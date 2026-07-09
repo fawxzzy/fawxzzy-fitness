@@ -6,28 +6,47 @@ Card: `FF-BETA-001 - Run 10-20 Real User Beta Before Paid Push`
 
 This packet turns the beta card into an operator-ready execution contract.
 
-The goal is not generic “get feedback.” The goal is to prove that real people can:
+## 2026-07-09 MVP Launch Reclassification
+
+Status: DEFERRED / POST-LAUNCH LEARNING
+
+The operator explicitly chose to skip the 10-20 real-user beta gate for MVP launch.
+
+This is not proof that beta passed. It is an accepted launch risk:
+
+- Real mobile/user friction may appear after launch.
+- First-user feedback must be monitored through `fawxzzy@gmail.com`, Discord/community channels, Stripe, Supabase, Vercel logs, and the Feedback Board.
+- Repeated friction becomes Feedback Board cards.
+- Any P0 paid/auth/billing/legal issue still triggers rollback or paid-checkout disablement.
+
+`FF-BETA-001` remains useful as post-launch learning and growth validation, but it no longer blocks MVP public paid checkout after `FF-QA-001` passes.
+
+The goal is not generic "get feedback." The goal is to prove that real people can:
 
 - get into Fitness
 - understand how to start
 - create or select a usable routine
 - complete a workout
 - understand the progression value
+- understand the free limits and the $5/month recurring Pro capacity unlock
+- understand that sensitive support goes to `fawxzzy@gmail.com`, not public Discord
 - surface real friction before paid launch
 
 ## Current Gate Position
 
-As of 2026-07-01:
+As of 2026-07-08:
 
-- `FF-CORE-001` fixed
-- `FF-CORE-002` fixed
-- `FF-PWA-001` fixed
-- `FF-LEGAL-001` fixed
-- `FF-MON-002` fixed
-- `FF-MON-001` in progress as the umbrella gate
-- `FF-QA-001` in progress as the launch smoke matrix
+- Core product and PWA work have proof-backed implementation receipts.
+- `FF-MON-002` has the recurring subscription flow implemented and sandbox-proofed.
+- `FF-LEGAL-001` has product-facing legal/support copy and operator defaults recorded, but remains counsel/business-open.
+- `FF-MON-001` remains `In Progress / NO-GO` as the monetization readiness gate.
+- `FF-QA-001` remains `In Progress / NO-GO` as the final launch smoke matrix.
 
-`FF-BETA-001` remains blocked on live tester execution, not on missing product doctrine.
+`FF-BETA-001` is deferred by operator decision, not passed.
+
+Execution kit:
+
+- `docs/ops/FF-BETA-001-BETA-EXECUTION-KIT-2026-07-08.md`
 
 ## Beta Objective
 
@@ -70,7 +89,18 @@ Each tester run should attempt to answer all of these:
 5. `Progression Understanding`
 - After the workout, can the tester explain what the app is recommending next?
 
-6. `Friction Capture`
+6. `Free / Pro / Support Understanding`
+- Can the tester explain the free limits:
+  - 3 routines
+  - 14 saved workout plans
+- Can the tester explain the Pro unlock:
+  - unlimited routines
+  - unlimited saved workout plans
+  - $5/month recurring subscription
+- Can the tester identify sensitive support as `fawxzzy@gmail.com`?
+- Can the tester identify Discord as community/product discussion only?
+
+7. `Friction Capture`
 - What did the tester hesitate on?
 - What did the tester misunderstand?
 - What felt broken, untrustworthy, or too technical?
@@ -96,6 +126,10 @@ For each tester, capture:
   - partially completed
   - blocked
 - progression understanding:
+  - understood
+  - partially understood
+  - unclear
+- free/pro/support understanding:
   - understood
   - partially understood
   - unclear
@@ -141,6 +175,7 @@ The beta can support a paid-launch go decision only if:
 - at least 10 real testers completed the flow
 - most testers can reach and complete a workout without live operator help
 - progression value is understandable to most testers
+- most testers understand the free limits, Pro unlock, recurring price, and sensitive support path
 - blocker issues are closed
 - high-severity issues are either closed or explicitly accepted with rationale
 
@@ -177,5 +212,6 @@ Use a final closeout receipt with:
 - the real tester evidence exists
 - major findings are converted into board truth
 - a clear go/no-go recommendation is written
+- the execution-kit privacy rules were followed, including anonymized tester ids in repo-tracked docs
 
 Until then, this packet is the execution contract, not the execution proof.

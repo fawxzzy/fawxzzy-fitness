@@ -2,7 +2,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { FITNESS_SUPPORT_CONTACT_LABEL } from "@/lib/legal-documents";
+import {
+  FITNESS_DISCORD_INVITE_URL,
+  FITNESS_DISCORD_SUPPORT_LABEL,
+  FITNESS_PRIVATE_SUPPORT_PATH_LABEL,
+  FITNESS_SUPPORT_EMAIL,
+  FITNESS_SUPPORT_CONTACT_LABEL,
+  FITNESS_SUPPORT_SENSITIVE_INFO_WARNING,
+} from "@/lib/legal-documents";
 
 export function LegalDocumentLayout({
   eyebrow,
@@ -53,8 +60,29 @@ export function LegalDocumentLayout({
           </div>
 
           <footer className="mx-auto mt-8 max-w-3xl px-2 py-3 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.88)]">
-            <p>
-              <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{FITNESS_SUPPORT_CONTACT_LABEL}</span>
+            <p className="mx-auto max-w-2xl">
+              <a
+                href={`mailto:${FITNESS_SUPPORT_EMAIL}`}
+                className="font-semibold text-[rgb(var(--text-primary)/0.96)] underline-offset-4 hover:text-[rgb(var(--accent)/0.96)] hover:underline"
+              >
+                {FITNESS_SUPPORT_CONTACT_LABEL}
+              </a>
+            </p>
+            <p className="mx-auto mt-2 max-w-2xl">
+              <a
+                href={FITNESS_DISCORD_INVITE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-[rgb(var(--text-primary)/0.92)] underline-offset-4 hover:text-[rgb(var(--accent)/0.96)] hover:underline"
+              >
+                {FITNESS_DISCORD_SUPPORT_LABEL}
+              </a>
+            </p>
+            <p className="mx-auto mt-2 max-w-2xl text-[12px] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
+              {FITNESS_SUPPORT_SENSITIVE_INFO_WARNING}
+            </p>
+            <p className="mx-auto mt-1.5 max-w-2xl text-[12px] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
+              {FITNESS_PRIVATE_SUPPORT_PATH_LABEL}
             </p>
           </footer>
         </section>

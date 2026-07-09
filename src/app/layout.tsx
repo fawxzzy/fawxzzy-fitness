@@ -23,6 +23,7 @@ import "./globals.css";
 const APP_NAME = "FawxzzyFitness";
 const APP_DESCRIPTION = "Track sessions and progress with a focused training workflow.";
 const APP_PREVIEW_IMAGE = "/brand/fitness-app-icon.png";
+const APP_ICON_VERSION = "fitness-fox-20260626";
 const DEFAULT_APP_SHELL_COLOR = "#07111b";
 // iOS home-screen PWAs misplace bottom-anchored UI when black-translucent is
 // combined with viewport-fit=cover, so keep the status bar in default mode.
@@ -43,6 +44,10 @@ function resolveAppShellColor() {
 }
 
 const APP_SHELL_COLOR = resolveAppShellColor();
+
+function versionedAppIcon(pathname: string) {
+  return `${pathname}?v=${APP_ICON_VERSION}`;
+}
 
 function resolveMetadataBase() {
   const candidates = [
@@ -99,14 +104,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", rel: "icon" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/app/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/app/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: versionedAppIcon("/favicon.ico"), rel: "icon" },
+      { url: versionedAppIcon("/favicon-32x32.png"), sizes: "32x32", type: "image/png" },
+      { url: versionedAppIcon("/favicon-16x16.png"), sizes: "16x16", type: "image/png" },
+      { url: versionedAppIcon("/app/icon-192.png"), sizes: "192x192", type: "image/png" },
+      { url: versionedAppIcon("/app/icon-512.png"), sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-    shortcut: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: versionedAppIcon("/icons/apple-touch-icon.png"), sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: versionedAppIcon("/icons/icon-192.png"), sizes: "192x192", type: "image/png" }],
   },
   other: {
     "mobile-web-app-capable": "yes",

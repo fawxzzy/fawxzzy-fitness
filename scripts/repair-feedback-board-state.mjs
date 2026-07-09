@@ -651,6 +651,11 @@ export async function runRepairFeedbackBoardState({
           continue;
         }
 
+        if (Boolean(threadResult.data.thread_metadata?.archived)) {
+          summary.notes.push(`${shortId}:${target.threadId} skipped archived thread target`);
+          continue;
+        }
+
         const messageResult = await fetchDiscordMessage(target.threadId, target.messageId, options);
         if (!messageResult.ok || !messageResult.data?.id) {
           if (messageResult.status === 404) {

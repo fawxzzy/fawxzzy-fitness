@@ -418,18 +418,23 @@ export function LoginScreen({
         {showManualAuth ? (
           <AuthFooter>
             <AuthFooterText>
-            <Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
-              {PASSWORD_LOGIN_UI_COPY.createAccountAction}
-            </Link>
-            <AuthFooterSeparator />
-            <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
-              {isSendingReset ? "Sending..." : resetPasswordLabel}
-            </AuthInlineLinkButton>
-            <AuthFooterSeparator />
-            <LegalInlineLinks linkClassName={appTokens.authInlineLink} />
-          </AuthFooterText>
-        </AuthFooter>
-      ) : null}
+              <Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
+                {PASSWORD_LOGIN_UI_COPY.createAccountAction}
+              </Link>
+              <AuthFooterSeparator />
+              <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
+                {isSendingReset ? "Sending..." : resetPasswordLabel}
+              </AuthInlineLinkButton>
+              <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
+            </AuthFooterText>
+          </AuthFooter>
+        ) : showRememberedAccountChoice ? (
+          <AuthFooter>
+            <AuthFooterText>
+              <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
+            </AuthFooterText>
+          </AuthFooter>
+        ) : null}
       </AuthCard>
 
       {showManualAuth ? (

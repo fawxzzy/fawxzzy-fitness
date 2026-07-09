@@ -4,14 +4,17 @@ import process from "node:process";
 import { register } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  assertExpectedFitnessSupabaseHost,
+  parseDotenvFile,
+  resolveEnvFilePath,
+} from "./env-file.mjs";
 import {
   FEEDBACK_MONETIZATION_BOARD_STATUS,
   FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER,
   FEEDBACK_MONETIZATION_ROADMAP,
   getFeedbackMonetizationCard,
 } from "./feedback-monetization-roadmap.mjs";
-import { runSyncFeedbackForumPosts } from "./sync-feedback-forum-posts.mjs";
 
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
@@ -164,6 +167,11 @@ function getTargetForumChannelId(args) {
 }
 
 function createServiceClient() {
+  assertExpectedFitnessSupabaseHost({
+    env: process.env,
+    commandName: "feedback:monetization:seed",
+  });
+
   return createClient(getSupabaseUrl(), getRequiredEnv(SUPABASE_SERVICE_ROLE_KEY_ENV), {
     auth: {
       autoRefreshToken: false,
@@ -354,11 +362,12 @@ export function buildRoadmapInsertValues(card, options = {}) {
   const nowIso = options.nowIso ?? new Date().toISOString();
   const forumChannelId = options.forumChannelId ?? null;
   const reporterDiscordUserId = options.reporterDiscordUserId ?? getRequiredEnv(DISCORD_APPLICATION_ID_ENV);
+  const boardStatus = card.boardStatus ?? FEEDBACK_MONETIZATION_BOARD_STATUS;
 
   return {
     source: "discord",
     report_type: "feature",
-    status: FEEDBACK_MONETIZATION_BOARD_STATUS,
+    status: boardStatus,
     severity: "medium",
     effort_points: card.effortPoints,
     card_id: card.cardId,
@@ -387,9 +396,10 @@ export function buildRoadmapInsertValues(card, options = {}) {
 function buildRoadmapUpdateValues(card, options = {}) {
   const nowIso = options.nowIso ?? new Date().toISOString();
   const forumChannelId = options.forumChannelId ?? null;
+  const boardStatus = card.boardStatus ?? FEEDBACK_MONETIZATION_BOARD_STATUS;
 
   return {
-    status: FEEDBACK_MONETIZATION_BOARD_STATUS,
+    status: boardStatus,
     severity: "medium",
     effort_points: card.effortPoints,
     card_id: card.cardId,
@@ -519,12 +529,17 @@ function buildSyncArgs(reportId, status, apply) {
   };
 }
 
+async function loadDefaultSyncRunner() {
+  const module = await import("./sync-feedback-forum-posts.mjs");
+  return module.runSyncFeedbackForumPosts;
+}
+
 export async function runSeedFeedbackMonetizationRoadmap({
   client = createServiceClient(),
   args = parseArgs(),
   helpers = null,
   discordApi = createDiscordApi(),
-  syncRunner = runSyncFeedbackForumPosts,
+  syncRunner = null,
   now = new Date(),
   logger = console,
   reporterDiscordUserId = null,
@@ -633,8 +648,9 @@ export async function runSeedFeedbackMonetizationRoadmap({
   }
 
   if (args.apply && !args.skipSync) {
+    const resolvedSyncRunner = syncRunner ?? await loadDefaultSyncRunner();
     for (const row of rowsForSync) {
-      const syncResult = await syncRunner({
+      const syncResult = await resolvedSyncRunner({
         client,
         args: buildSyncArgs(row.id, row.status, true),
       });

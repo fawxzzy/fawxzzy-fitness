@@ -32,11 +32,7 @@ export function isMissingBillingSchemaError(error: { message?: string } | null |
 }
 
 export function getProAccessOfferLabel(offerMode: ProPriceMode | null) {
-  return offerMode === "founding"
-    ? "Founding Monthly Pro"
-    : offerMode === "standard"
-      ? "Monthly Pro"
-      : "Plan not configured";
+  return offerMode === "founding" || offerMode === "standard" ? "Monthly Pro" : "Plan not configured";
 }
 
 function isEntitlementActive(entitlement: UserEntitlementRow | null, referenceNow = new Date()) {
@@ -77,7 +73,7 @@ export function buildFallbackProAccessSnapshot(
     accessSource: null,
     offerMode: billingConfig.activePriceMode,
     offerLabel,
-    checkoutConfigured: billingConfig.checkoutConfigured,
+  checkoutConfigured: billingConfig.checkoutConfigured,
     customerPortalAvailable: false,
     grantedAt: null,
     renewsAt: null,
@@ -88,6 +84,8 @@ export function buildFallbackProAccessSnapshot(
         ? "Billing migrations have not been applied yet, so Pro access truth is still unavailable on this surface."
         : billingConfig.checkoutConfigured
           ? "Stripe monthly Pro checkout configuration is present and the hosted subscription flow is ready."
+          : billingConfig.checkoutTechnicallyConfigured
+            ? "Stripe monthly Pro checkout configuration is present, but paid launch is not enabled yet."
           : "Stripe configuration has not been added yet, so Pro checkout is not ready on this surface.",
   };
 }
@@ -131,6 +129,8 @@ export function buildResolvedProAccessSnapshot({
           : "Your account already has active Pro access."
         : billingConfig.checkoutConfigured
           ? "Monthly Pro checkout is ready on this surface."
+          : billingConfig.checkoutTechnicallyConfigured
+            ? "Monthly Pro checkout is configured, but paid launch is not enabled yet."
           : "Upgrade checkout is not configured yet, so this section is currently read-only.",
   };
 }

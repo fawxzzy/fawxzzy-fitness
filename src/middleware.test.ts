@@ -63,3 +63,23 @@ test("middleware matcher excludes the web manifest route from auth-session inter
   assert.match(matcher, /manifest\\\.webmanifest/);
   assert.match(matcher, /webmanifest/);
 });
+
+test("middleware leaves legal documents public without session cookies", async () => {
+  for (const route of ["/privacy", "/terms"]) {
+    const response = await handleAuthSessionMiddleware(new NextRequest(`https://example.com${route}`));
+
+    assert.equal(response.status, 200, `${route} should not redirect to login`);
+    assert.equal(response.headers.get("location"), null);
+  }
+});
+
+test("middleware leaves discord verify api public without session cookies", async () => {
+  const response = await handleAuthSessionMiddleware(
+    new NextRequest("https://example.com/api/discord/verify", {
+      method: "POST",
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("location"), null);
+});

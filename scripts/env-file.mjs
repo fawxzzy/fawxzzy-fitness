@@ -13,7 +13,10 @@ export const DEFAULT_SHARED_ENV_FILES = [
 ];
 
 export function normalizeEnvValue(rawValue) {
-  const trimmed = rawValue.trim();
+  const trimmed = rawValue
+    .replace(/^\uFEFF+/, "")
+    .replace(/(?:\\r|\\n)+$/g, "")
+    .trim();
   if (
     (trimmed.startsWith("\"") && trimmed.endsWith("\""))
     || (trimmed.startsWith("'") && trimmed.endsWith("'"))

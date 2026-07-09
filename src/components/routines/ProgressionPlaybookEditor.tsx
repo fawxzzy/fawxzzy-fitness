@@ -334,6 +334,8 @@ function ProgressionBinaryToggleButton({
   ariaLabel,
   onClick,
   className,
+  disabled = false,
+  ariaDisabled = false,
 }: {
   checked: boolean;
   onLabel: string;
@@ -341,6 +343,8 @@ function ProgressionBinaryToggleButton({
   ariaLabel: string;
   onClick: () => void;
   className?: string;
+  disabled?: boolean;
+  ariaDisabled?: boolean;
 }) {
   return (
     <GlowSwitch
@@ -351,6 +355,8 @@ function ProgressionBinaryToggleButton({
       offLabel={offLabel}
       className={cn(GLOW_SWITCH_STANDARD_CLASS_NAME, className)}
       stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+      disabled={disabled}
+      ariaDisabled={ariaDisabled}
     />
   );
 }

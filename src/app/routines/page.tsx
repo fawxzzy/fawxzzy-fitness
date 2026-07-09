@@ -11,10 +11,12 @@ import { RoutinesOfflineBridge } from "@/app/routines/RoutinesOfflineBridge";
 import { RoutinesOfflineShell } from "@/app/routines/RoutinesOfflineShell";
 import { deleteRoutineAction, duplicateRoutineAction, setActiveRoutineAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
+import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { buildRoutineBrowseInfoRailItems } from "@/lib/header-info-rail";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
+import { selectAccessibleRoutineIdsForTier } from "@/lib/pro-tier-limits";
 import {
   filterQaLlelRows,
   QA_LLEL_VISIBILITY_COOKIE,
@@ -81,6 +83,7 @@ async function loadRoutinesBrowsePageModel(args: {
   profile: Awaited<ReturnType<typeof ensureProfile>>;
   showQaLlelData: boolean;
   draftRoutineId: string | null;
+  accessState: "free" | "pro";
 }): Promise<RoutinesBrowsePageModel> {
   const { data } = await args.diagnostics.measure("routines.list.fetch", async () => await args.supabase
     .from("routines")
@@ -104,7 +107,13 @@ async function loadRoutinesBrowsePageModel(args: {
   const publishedVisibleRoutines = args.draftRoutineId
     ? visibleRoutines.filter((routine) => routine.id !== args.draftRoutineId)
     : visibleRoutines;
-  const routineIds = publishedVisibleRoutines.map((routine) => routine.id);
+  const accessibleRoutineIds = selectAccessibleRoutineIdsForTier({
+    routines: publishedVisibleRoutines,
+    accessState: args.accessState,
+    activeRoutineId: args.profile.active_routine_id ?? null,
+  });
+  const accessiblePublishedRoutines = publishedVisibleRoutines.filter((routine) => accessibleRoutineIds.has(routine.id));
+  const routineIds = accessiblePublishedRoutines.map((routine) => routine.id);
 
   const { data: allRoutineDaysData } = routineIds.length
     ? await args.diagnostics.measure("routines.days.fetch", async () => await args.supabase
@@ -213,7 +222,7 @@ async function loadRoutinesBrowsePageModel(args: {
     }
   }
 
-  const activeRoutineName = publishedVisibleRoutines.find((routine) => routine.id === args.profile.active_routine_id)?.name ?? null;
+  const activeRoutineName = accessiblePublishedRoutines.find((routine) => routine.id === args.profile.active_routine_id)?.name ?? null;
   const completedSessionsByRoutineId = new Map<string, Array<{ routine_day_index: number | null; performed_at: string | null }>>();
   for (const session of routineSessionsData ?? []) {
     const routineId = typeof session.routine_id === "string" ? session.routine_id.trim() : "";
@@ -229,7 +238,7 @@ async function loadRoutinesBrowsePageModel(args: {
     completedSessionsByRoutineId.set(routineId, current);
   }
 
-  const routineBrowseItems = publishedVisibleRoutines.map((routine) => {
+  const routineBrowseItems = accessiblePublishedRoutines.map((routine) => {
     const dayStats = routineDayStatsByRoutineId.get(routine.id);
     const totalDays = dayStats?.totalDays ?? routine.cycle_length_days;
     const restDays = dayStats?.restDays ?? 0;
@@ -386,6 +395,7 @@ export default async function RoutinesPage() {
     timeoutMs: 5000,
   });
   const supabase = supabaseServer();
+  const proAccess = await loadProAccessSnapshot(user.id);
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
     profile,
     resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
@@ -402,6 +412,7 @@ export default async function RoutinesPage() {
       profile,
       showQaLlelData,
       draftRoutineId,
+      accessState: proAccess.accessState,
     });
   } catch (error) {
     fetchFailed = true;

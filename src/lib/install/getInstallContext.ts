@@ -1,6 +1,16 @@
 export type InstallPlatform = "ios" | "android" | "desktop" | "unknown";
 export type InstallBrowserKind = "safari" | "chrome" | "edge" | "firefox" | "inApp" | "unknown";
-export type InstallContextOverride = "ios-inapp" | "ios-safari" | "ios-standalone" | "android" | "desktop";
+export type InstallContextOverride =
+  | "ios-inapp"
+  | "ios-safari"
+  | "ios-standalone"
+  | "android"
+  | "android-chrome"
+  | "desktop"
+  | "desktop-windows-edge"
+  | "desktop-windows-chrome"
+  | "desktop-macos-safari"
+  | "desktop-macos-chrome";
 
 export type InstallContext = {
   platform: InstallPlatform;
@@ -25,6 +35,7 @@ export type InstallContextOptions = {
   standalone?: boolean;
   canUseNativeInstallPrompt?: boolean;
   override?: string | null;
+  allowOverride?: boolean;
 };
 
 type NavigatorWithStandalone = Navigator & {
@@ -54,8 +65,8 @@ function detectAndroid(userAgent: string) {
   return /Android/i.test(userAgent);
 }
 
-function parseOverride(rawOverride: string | null | undefined): InstallContextOverride | null {
-  if (process.env.NODE_ENV === "production" || !rawOverride) {
+function parseOverride(rawOverride: string | null | undefined, allowOverride: boolean): InstallContextOverride | null {
+  if (!allowOverride || !rawOverride) {
     return null;
   }
 
@@ -64,7 +75,12 @@ function parseOverride(rawOverride: string | null | undefined): InstallContextOv
     || rawOverride === "ios-safari"
     || rawOverride === "ios-standalone"
     || rawOverride === "android"
+    || rawOverride === "android-chrome"
     || rawOverride === "desktop"
+    || rawOverride === "desktop-windows-edge"
+    || rawOverride === "desktop-windows-chrome"
+    || rawOverride === "desktop-macos-safari"
+    || rawOverride === "desktop-macos-chrome"
   ) {
     return rawOverride;
   }
@@ -130,7 +146,7 @@ function contextFromOverride(
     };
   }
 
-  if (override === "android") {
+  if (override === "android" || override === "android-chrome") {
     return {
       platform: "android",
       browserKind: "chrome",
@@ -150,7 +166,11 @@ function contextFromOverride(
 
   return {
     platform: "desktop",
-    browserKind: "chrome",
+    browserKind: override === "desktop-windows-edge"
+      ? "edge"
+      : override === "desktop-macos-safari"
+        ? "safari"
+        : "chrome",
     isIOS: false,
     isAndroid: false,
     isInAppBrowser: false,
@@ -191,7 +211,7 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
   const platform = options.platform ?? (typeof navigator === "undefined" ? "" : navigator.platform);
   const maxTouchPoints = options.maxTouchPoints ?? (typeof navigator === "undefined" ? 0 : navigator.maxTouchPoints ?? 0);
   const canUseNativeInstallPrompt = options.canUseNativeInstallPrompt ?? false;
-  const override = parseOverride(options.override);
+  const override = parseOverride(options.override, options.allowOverride ?? false);
 
   if (override) {
     return contextFromOverride(override, canUseNativeInstallPrompt);

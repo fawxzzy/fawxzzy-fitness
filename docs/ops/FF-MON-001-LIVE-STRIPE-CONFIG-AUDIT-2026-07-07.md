@@ -2,9 +2,9 @@
 
 ## Status
 
-Live paid production is NO-GO.
+Live paid production is Final QA / Soft-Launch Candidate, but public checkout is still disabled until explicit enablement.
 
-Sandbox checkout, Customer Portal, current-deploy sandbox webhook freshness, live env installation, production redeploy, and bounded no-charge live webhook smoke are proof-closed. Live paid launch is still not ready for real users because live Customer Portal return/customer proof and the remaining business/legal/support decisions are open.
+Sandbox checkout, Customer Portal, current-deploy sandbox webhook freshness, live env installation, production redeploy, live public support email, live Customer Portal settings, bounded no-charge live webhook smoke, bounded live paid checkout, live paid Customer Portal cancel-at-period-end proof, receipt dedupe repair, legal/operator accepted-risk posture, accepted downgrade-equivalent proof, FF-SEC accepted-risk closure, and beta-skip risk acceptance are proof-closed for MVP. Live paid launch is still not open to real users because final whole-app launch smoke and explicit public-checkout enablement remain open.
 
 ## Scope
 
@@ -53,26 +53,34 @@ Configured live webhook destination:
   - `customer.subscription.updated`
   - `customer.subscription.deleted`
   - `invoice.paid`
+  - `invoice.payment_failed`
 
 Closure receipt:
 
 - On `2026-07-07`, a live Workbench webhook destination was created.
 - The destination page showed the stable production alias endpoint URL.
 - The destination page showed `Listening to 6 events`.
-- The six displayed events matched the required event list above.
+- The six displayed events matched the then-required event list from the `2026-07-07` pass.
 - On `2026-07-07`, the dashboard-created endpoint `we_1TqlES1n5lBbRYoVNF2MxcIq` was replaced with API-created endpoint `we_1Tqldd1n5lBbRYoVkvltrp1J` so the signing secret could be captured at creation time without printing it.
 - Stripe API readback showed exactly one live webhook endpoint, targeting the stable production alias, listening to the six required billing events.
 - Vercel production `STRIPE_WEBHOOK_SECRET` was replaced with the signing secret for `we_1Tqldd1n5lBbRYoVkvltrp1J`.
 
+Follow-up app-side requirement:
+
+- On `2026-07-08`, the source webhook handler was expanded to process `invoice.payment_failed` through the same subscription-status policy used for cancellation/dunning truth.
+- On `2026-07-08`, the live Stripe webhook destination was expanded to the seven-event list above, including `invoice.payment_failed`.
+- On `2026-07-09`, production deploy `dpl_ChzYfyQjfdagrpdYaev28LvQHert` included the current webhook handler and subscription receipt dedupe repair.
+
 ## Live Customer Portal Findings
 
-Live Customer Portal settings are partially ready:
+Live Customer Portal settings are ready at the Dashboard configuration layer:
 
 - Invoice history: enabled
 - Customer information: enabled
 - Payment methods: enabled
 - Cancel subscriptions: enabled
-- Cancel behavior: cancel at end of billing period
+- Cancel behavior: cancel at end of billing period is available
+- Cancel immediately: available in settings
 - Subscription plan switching: not enabled
 - Quantity changes: not enabled
 
@@ -80,7 +88,9 @@ Customer Portal / public details closure:
 
 - Terms of service link: set to `https://fawxzzy-fitness-local.vercel.app/terms`.
 - Privacy policy link: set to `https://fawxzzy-fitness-local.vercel.app/privacy`.
-- Portal redirect link was not confirmed through a live paid customer portal session because no live paid customer was created in this no-charge smoke.
+- Customer support email: set to `fawxzzy@gmail.com` in live `Business details > Public details`.
+- Portal redirect/return behavior was later confirmed through the bounded live paid customer flow on `2026-07-09`.
+- Customer Portal settings showed `Legal policies` links are managed through `Public business information`; no separate Customer Portal support-email field was exposed in the portal settings page.
 
 Attempted closure:
 
@@ -92,10 +102,16 @@ Attempted closure:
 - A reload confirmed those links were not saved in that pass.
 - A Stripe API account update was also attempted, but Stripe rejects updating the platform account's own business profile through that `accounts.update` method; that API path is only allowed for connected accounts.
 - Follow-up Dashboard pass from the signed-in in-app browser reopened `Business details > Public details`, confirmed both URL fields contained the production app routes, saved the modal, and reopened the editor to verify the persisted values.
+- Follow-up Dashboard pass on `2026-07-08` reopened `Business details > Public details`, filled `Customer support email` with `fawxzzy@gmail.com`, saved the modal, and read back the public details block showing `Support email` as `fawxzzy@gmail.com`.
+- Follow-up Dashboard pass on `2026-07-08` opened live `Billing > Customer portal` settings and confirmed invoice history, customer information, payment methods, cancel subscriptions, cancel immediately, cancel at end of billing period, Terms link, Privacy link, and Public business information are visible in the live portal configuration.
 
-Required before launch:
+Follow-up closure:
 
-- Portal redirect/return behavior must be verified from an app-started live Customer Portal session once a bounded live paid customer exists.
+- On `2026-07-09`, the operator explicitly approved one bounded live `$5/month` paid smoke.
+- Live QA account `atlas-fitness-live-paid-smoke@fawxzzy.test` completed Checkout Session `cs_live_a10u8ZHl7q2gQszAO07cqzGLMBrQAxPpVToGBPAaMcqH1G0aJ1r6F5za3m`, creating customer `cus_Uqsoov3SXetpJ3` and subscription `sub_1TrBAy1n5lBbRYoVnmxAwmFx`.
+- The app-started Customer Portal opened for that customer and cancel-at-period-end was completed.
+- The app returned to `/settings?section=pro` and showed active Pro access through `2026-08-09` with `Cancels at period end`.
+- This closes the bounded live paid Customer Portal return/customer/cancel proof. It does not close public launch approval or final whole-app launch smoke.
 
 ## Vercel Production Env Findings
 
@@ -162,6 +178,7 @@ Bounded no-charge live smoke receipt on `2026-07-07`:
   - `we_1Tqldd1n5lBbRYoVkvltrp1J`
   - `https://fawxzzy-fitness-local.vercel.app/api/billing/webhook/stripe`
   - events: `checkout.session.completed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`
+  - required follow-up before final paid smoke: deploy the failed-payment handler, then verify/add `invoice.payment_failed`
 - Created live Checkout Session `cs_live_a1EQzcOj0aivMIdcA3kF04VXa2WB9AgxFRqFtgqCCsUVrOLTxSsAxPLHIZ` in `subscription` mode and immediately expired it without payment.
 - Expired session status: `expired`; payment status: `unpaid`.
 - Stripe event `evt_1TqmOH1n5lBbRYoVW3er3wW4` type `checkout.session.expired` reached `pending_webhooks=0`.
@@ -174,17 +191,22 @@ Bounded no-charge live smoke receipt on `2026-07-07`:
 2. ~~Set live Stripe legal public business links.~~ Completed:
    - Terms of Service
    - Privacy Policy
-3. Confirm Customer Portal redirect/return behavior from an app-started live Customer Portal session.
-4. ~~Create the live webhook destination for the production endpoint.~~ Completed: `we_1Tqldd1n5lBbRYoVkvltrp1J`.
-5. ~~Copy the live webhook signing secret into Vercel production.~~ Completed for `we_1Tqldd1n5lBbRYoVkvltrp1J`.
-6. ~~Re-verify production Stripe key modes during bounded live smoke.~~ Completed by redacted env readback plus no-charge live Checkout Session creation.
-7. ~~Replace production recurring price id with the final live `$5/month` recurring price id.~~ Completed for `STRIPE_PRO_STANDARD_PRICE_ID`.
-8. ~~Redeploy production after env changes.~~ Completed: `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
-9. ~~Run a bounded live-mode readiness smoke without charging a real user.~~ Completed for no-charge checkout-session expiration and signed webhook delivery.
-10. Run the final live paid transaction smoke only after operator approves the exact real-money handling.
+3. ~~Set live Stripe public support email.~~ Completed: `fawxzzy@gmail.com`.
+4. ~~Confirm Customer Portal redirect/return behavior from an app-started live Customer Portal session.~~ Completed for bounded live paid QA customer on `2026-07-09`.
+5. ~~Create the live webhook destination for the production endpoint.~~ Completed: `we_1Tqldd1n5lBbRYoVkvltrp1J`.
+6. ~~Copy the live webhook signing secret into Vercel production.~~ Completed for `we_1Tqldd1n5lBbRYoVkvltrp1J`.
+7. ~~Re-verify production Stripe key modes during bounded live smoke.~~ Completed by redacted env readback plus no-charge live Checkout Session creation.
+8. ~~Replace production recurring price id with the final live `$5/month` recurring price id.~~ Completed for `STRIPE_PRO_STANDARD_PRICE_ID`.
+9. ~~Redeploy production after env changes.~~ Completed: `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
+10. ~~Run a bounded live-mode readiness smoke without charging a real user.~~ Completed for no-charge checkout-session expiration and signed webhook delivery.
+11. ~~Deploy the failed-payment handler and verify the live endpoint listens for `invoice.payment_failed`.~~ Completed; production deploy `dpl_ChzYfyQjfdagrpdYaev28LvQHert` includes the handler, and endpoint readiness includes `invoice.payment_failed`.
+12. ~~Run the bounded live paid transaction smoke only after operator approves the exact real-money handling.~~ Completed for one `$5/month` QA subscription on `2026-07-09`.
+13. ~~Recheck final downgrade truth after the live paid subscription period ends on `2026-08-09`, unless an accepted equivalent proof replaces it.~~ Superseded for MVP by accepted sandbox/test-clock downgrade-equivalent proof. Do not claim the actual live `2026-08-09` downgrade occurred until it is rechecked after that date.
+14. Run final `FF-QA-001` launch smoke.
+15. Explicitly approve and enable public checkout only after final smoke passes.
 
 ## Current Call
 
-Live paid launch remains blocked.
+Live paid launch remains guarded.
 
-The app-side recurring subscription implementation and no-charge live webhook path are strong enough to continue. Live paid launch is not ready until live Customer Portal return behavior, support/refund/legal/deletion/geography decisions, and an explicitly approved final paid smoke are complete.
+The app-side recurring subscription implementation, live paid Customer Portal path, webhook receipt dedupe repair, legal/operator accepted-risk posture, beta-skip risk acceptance, FF-SEC accepted-risk closure, and accepted downgrade-equivalent proof are strong enough to proceed to the final `FF-QA-001` smoke. Public checkout must remain disabled until that smoke passes and the enable step is explicitly approved.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalDocumentLayout } from "@/components/legal/LegalDocumentLayout";
-import { PRIVACY_POLICY_LAST_UPDATED } from "@/lib/legal-documents";
+import { FITNESS_PRIVATE_SUPPORT_PATH_LABEL, PRIVACY_POLICY_LAST_UPDATED } from "@/lib/legal-documents";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | FawxzzyFitness",
@@ -61,8 +61,9 @@ export default function PrivacyPolicyPage({
     >
       <Section title="Overview">
         <p>
-          Fawxzzy Fitness (&quot;Fitness,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is a workout tracking and progression product. We aim to
-          limit collection to information needed to provide, secure, support, bill, debug, and improve Fitness.
+          Fawxzzy Fitness (&quot;Fitness,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is a workout tracking and
+          progression product operated by Zachariah John Harold Redfield. We aim to limit collection to
+          information needed to provide, secure, support, bill, debug, and improve Fitness.
         </p>
         <p>
           Fitness is not a medical product. However, workout data can still be personal and sensitive because it may
@@ -206,7 +207,7 @@ export default function PrivacyPolicyPage({
 
       <Section title="Deletion and Account Controls">
         <p>
-          You may request deletion of your account or personal information by contacting support.
+          You may request deletion of your account or personal information through the private support path.
         </p>
         <p>
           When deletion is requested, we will delete or de-identify active account and workout records where reasonably
@@ -214,8 +215,16 @@ export default function PrivacyPolicyPage({
           backups, dispute evidence, or legal reasons.
         </p>
         <p>
+          If you request account deletion while a Stripe subscription is active, subscription cancellation must be
+          completed through the billing flow or confirmed by support before destructive account deletion is completed.
+          After deletion, account recovery may not be available.
+        </p>
+        <p>
           Deleting the app from your device does not automatically delete your server-side account, workout history,
           Pro subscription, or billing records.
+        </p>
+        <p>
+          {FITNESS_PRIVATE_SUPPORT_PATH_LABEL}
         </p>
       </Section>
 
@@ -244,6 +253,10 @@ export default function PrivacyPolicyPage({
         <p>
           If you are under the age of majority where you live, you should use Fitness only with permission and
           supervision from a parent or guardian.
+        </p>
+        <p>
+          Paid Pro subscriptions are intended only for users who are at least 18 years old or the age of
+          majority where they live.
         </p>
         <p>
           If you believe a child under 13 has provided personal information to Fitness, contact support so we can

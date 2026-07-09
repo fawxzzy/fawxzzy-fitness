@@ -40,6 +40,7 @@ test("getStripeBillingConfigSnapshot defaults to an unconfigured state when Stri
       STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: undefined,
+      PAID_LAUNCH_ENABLED: undefined,
     },
     () => getStripeBillingConfigSnapshot(),
   );
@@ -53,32 +54,59 @@ test("getStripeBillingConfigSnapshot defaults to an unconfigured state when Stri
     activePriceMode: null,
     activePriceId: null,
     checkoutConfigured: false,
+    checkoutTechnicallyConfigured: false,
+    paidLaunchEnabled: false,
     recurringInterval: "month",
   });
 });
 
-test("getStripeBillingConfigSnapshot normalizes literal escaped newline suffixes from Vercel env input", () => {
+test("getStripeBillingConfigSnapshot normalizes Vercel env BOM and escaped newline artifacts", () => {
   const snapshot = withEnv(
     {
-      STRIPE_SECRET_KEY: "sk_live_normalized\\r\\n",
+      STRIPE_SECRET_KEY: "\uFEFFsk_live_normalized\\r\\n",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_normalized\\r\\n",
       STRIPE_WEBHOOK_SECRET: "whsec_normalized\\r\\n",
       STRIPE_PRO_FOUNDING_PRICE_ID: undefined,
-      STRIPE_PRO_STANDARD_PRICE_ID: "price_live_monthly\\r\\n",
+      STRIPE_PRO_STANDARD_PRICE_ID: "\uFEFFprice_live_monthly\\r\\n",
       STRIPE_PRO_ACTIVE_PRICE_MODE: "standard\\r\\n",
       STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: undefined,
+      PAID_LAUNCH_ENABLED: "\uFEFFtrue\\r\\n",
     },
     () => getStripeBillingConfigSnapshot(),
   );
 
   assert.equal(snapshot.activePriceMode, "standard");
   assert.equal(snapshot.activePriceId, "price_live_monthly");
+  assert.equal(snapshot.checkoutTechnicallyConfigured, true);
+  assert.equal(snapshot.paidLaunchEnabled, true);
   assert.equal(snapshot.checkoutConfigured, true);
 });
 
-test("getStripeBillingConfigSnapshot prefers the founding offer when only the founding price is configured", () => {
+test("getStripeBillingConfigSnapshot can keep checkout configured but launch-disabled", () => {
+  const snapshot = withEnv(
+    {
+      STRIPE_SECRET_KEY: "sk_live_disabled",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_disabled",
+      STRIPE_WEBHOOK_SECRET: "whsec_disabled",
+      STRIPE_PRO_FOUNDING_PRICE_ID: undefined,
+      STRIPE_PRO_STANDARD_PRICE_ID: "price_live_monthly",
+      STRIPE_PRO_ACTIVE_PRICE_MODE: "standard",
+      STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: undefined,
+      STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: undefined,
+      STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: undefined,
+      PAID_LAUNCH_ENABLED: "false",
+    },
+    () => getStripeBillingConfigSnapshot(),
+  );
+
+  assert.equal(snapshot.checkoutTechnicallyConfigured, true);
+  assert.equal(snapshot.paidLaunchEnabled, false);
+  assert.equal(snapshot.checkoutConfigured, false);
+});
+
+test("getStripeBillingConfigSnapshot preserves compatibility when only the legacy monthly price env is configured", () => {
   const snapshot = withEnv(
     {
       STRIPE_SECRET_KEY: "sk_test_founding",
@@ -87,12 +115,14 @@ test("getStripeBillingConfigSnapshot prefers the founding offer when only the fo
       STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: "price_founding",
       STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: undefined,
+      PAID_LAUNCH_ENABLED: "true",
     },
     () => getStripeBillingConfigSnapshot(),
   );
 
   assert.equal(snapshot.activePriceMode, "founding");
   assert.equal(snapshot.activePriceId, "price_founding");
+  assert.equal(snapshot.checkoutTechnicallyConfigured, true);
   assert.equal(snapshot.checkoutConfigured, true);
 });
 
@@ -105,12 +135,14 @@ test("getStripeBillingConfigSnapshot honors an explicit standard offer selection
       STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: "price_founding",
       STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: "price_standard",
       STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: "standard",
+      PAID_LAUNCH_ENABLED: "true",
     },
     () => getStripeBillingConfigSnapshot(),
   );
 
   assert.equal(snapshot.activePriceMode, "standard");
   assert.equal(snapshot.activePriceId, "price_standard");
+  assert.equal(snapshot.checkoutTechnicallyConfigured, true);
   assert.equal(snapshot.checkoutConfigured, true);
 });
 
@@ -124,5 +156,18 @@ test("getStripeBillingConfigSnapshot fails closed on an invalid active price mod
         () => getStripeBillingConfigSnapshot(),
       ),
     /Invalid environment variable: STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE/,
+  );
+});
+
+test("getStripeBillingConfigSnapshot fails closed on an invalid paid launch flag", () => {
+  assert.throws(
+    () =>
+      withEnv(
+        {
+          PAID_LAUNCH_ENABLED: "yes",
+        },
+        () => getStripeBillingConfigSnapshot(),
+      ),
+    /Invalid environment variable: PAID_LAUNCH_ENABLED/,
   );
 });

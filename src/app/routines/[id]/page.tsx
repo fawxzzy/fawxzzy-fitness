@@ -20,6 +20,7 @@ import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/
 import { buildRoutineWorkoutPlanEditorInfoRailItems } from "@/lib/header-info-rail";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
+import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { buildRoutinePlanRecapExercises } from "@/lib/routine-plan-preview";
 import { getRoutineDayEditHref, getRoutineEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
@@ -59,6 +60,13 @@ export default async function RoutineHomePage({ params }: PageProps) {
     timeoutMs: 5000,
   });
   const supabase = supabaseServer();
+  const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
+    supabase,
+    userId: user.id,
+  });
+  if (accessResult.error || !accessResult.routineIds.has(id)) {
+    notFound();
+  }
 
   const { data: routineData } = await diagnostics.measure("routine-home.routine.fetch", async () => await supabase
     .from("routines")

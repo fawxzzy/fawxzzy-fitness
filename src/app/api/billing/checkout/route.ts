@@ -76,8 +76,12 @@ export async function POST(request: NextRequest) {
   if (!billingConfig.checkoutConfigured || !billingConfig.activePriceId || !billingConfig.activePriceMode) {
     return buildJsonResponse({
       ok: false,
-      code: "BILLING_CHECKOUT_NOT_CONFIGURED",
-      error: "Monthly Pro checkout is not configured yet.",
+      code: billingConfig.checkoutTechnicallyConfigured && !billingConfig.paidLaunchEnabled
+        ? "BILLING_CHECKOUT_LAUNCH_DISABLED"
+        : "BILLING_CHECKOUT_NOT_CONFIGURED",
+      error: billingConfig.checkoutTechnicallyConfigured && !billingConfig.paidLaunchEnabled
+        ? "Monthly Pro checkout is not open yet."
+        : "Monthly Pro checkout is not configured yet.",
       requestId,
     }, { status: 503 });
   }

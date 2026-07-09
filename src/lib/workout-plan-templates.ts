@@ -311,7 +311,12 @@ async function createWorkoutPlanTemplateFromDay(args: {
   routineDay: TemplateAwareRoutineDay;
   dayExercises: TemplateAwareRoutineDayExercise[];
   requestedName?: string | null;
+  capacityError?: Error | null;
 }) {
+  if (args.capacityError) {
+    return { data: null, exercises: [] as WorkoutPlanTemplateExerciseRow[], error: args.capacityError };
+  }
+
   const existingTemplateNames = await loadWorkoutPlanTemplateNames({
     supabase: args.supabase,
     userId: args.userId,
@@ -474,6 +479,7 @@ export async function ensureWorkoutPlanTemplateForRoutineDay(args: {
   routineDay: TemplateAwareRoutineDay;
   dayExercises: TemplateAwareRoutineDayExercise[];
   markEditChoiceRequired: boolean;
+  capacityError?: Error | null;
 }) {
   if (args.routineDay.workout_plan_template_id) {
     if (args.markEditChoiceRequired && !args.routineDay.workout_plan_template_edit_choice_required) {
@@ -514,6 +520,7 @@ export async function ensureWorkoutPlanTemplateForRoutineDay(args: {
     userId: args.userId,
     routineDay: args.routineDay,
     dayExercises: args.dayExercises,
+    capacityError: args.capacityError,
   });
 
   if (createResult.error || !createResult.data) {
@@ -613,6 +620,7 @@ export async function saveRoutineDayAsNewWorkoutPlanTemplate(args: {
   routineDay: TemplateAwareRoutineDay;
   dayExercises: TemplateAwareRoutineDayExercise[];
   requestedName: string;
+  capacityError?: Error | null;
 }) {
   const createResult = await createWorkoutPlanTemplateFromDay({
     supabase: args.supabase,
@@ -620,6 +628,7 @@ export async function saveRoutineDayAsNewWorkoutPlanTemplate(args: {
     routineDay: args.routineDay,
     dayExercises: args.dayExercises,
     requestedName: args.requestedName,
+    capacityError: args.capacityError,
   });
 
   if (createResult.error || !createResult.data) {

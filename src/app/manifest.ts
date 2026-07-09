@@ -1,5 +1,11 @@
 import type { MetadataRoute } from "next";
 
+const APP_ICON_VERSION = "fitness-fox-20260626";
+
+function versionedAppIcon(pathname: string) {
+  return `${pathname}?v=${APP_ICON_VERSION}`;
+}
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
@@ -14,13 +20,13 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#07111b",
     icons: [
       {
-        src: "/app/icon-192.png",
+        src: versionedAppIcon("/app/icon-192.png"),
         sizes: "192x192",
         type: "image/png",
         purpose: "any maskable" as any,
       },
       {
-        src: "/app/icon-512.png",
+        src: versionedAppIcon("/app/icon-512.png"),
         sizes: "512x512",
         type: "image/png",
         purpose: "any maskable" as any,

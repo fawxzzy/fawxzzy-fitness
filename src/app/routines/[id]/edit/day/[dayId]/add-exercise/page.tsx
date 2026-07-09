@@ -11,6 +11,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { requireUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
+import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { formatRoutineDayDisplayName } from "@/lib/routines";
 import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
@@ -36,6 +37,13 @@ const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progr
 export default async function EditDayAddExercisePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
+  const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
+    supabase,
+    userId: user.id,
+  });
+  if (accessResult.error || !accessResult.routineIds.has(params.id)) {
+    notFound();
+  }
 
   const { data: routineWithProgression, error: routineWithProgressionError } = await supabase
     .from("routines")

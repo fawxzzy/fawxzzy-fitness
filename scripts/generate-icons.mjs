@@ -13,6 +13,21 @@ const generatedPngPath = path.join(rootDir, "public", "brand", "fitness-app-icon
 const outputTargets = [
   { type: "png", size: 1024, targetPath: generatedPngPath },
   { type: "png", size: 1024, targetPath: path.join(rootDir, "public", "app", "loader-sigil.png") },
+  { type: "png", size: 512, targetPath: path.join(rootDir, "public", "app", "icon-512.png") },
+  { type: "png", size: 192, targetPath: path.join(rootDir, "public", "app", "icon-192.png") },
+  { type: "png", size: 512, targetPath: path.join(rootDir, "public", "icons", "icon-512.png") },
+  { type: "png", size: 192, targetPath: path.join(rootDir, "public", "icons", "icon-192.png") },
+  { type: "png", size: 180, targetPath: path.join(rootDir, "public", "icons", "apple-touch-icon.png") },
+  { type: "png", size: 32, targetPath: path.join(rootDir, "public", "favicon-32x32.png") },
+  { type: "png", size: 16, targetPath: path.join(rootDir, "public", "favicon-16x16.png") },
+  { type: "ico", sizes: [16, 32, 48], targetPath: path.join(rootDir, "public", "favicon.ico") },
+];
+
+const legacyPublicTargets = [
+  path.join(rootDir, "public", "icon-source.svg"),
+  path.join(rootDir, "public", "icon-192.png"),
+  path.join(rootDir, "public", "icon-512.png"),
+  path.join(rootDir, "public", "apple-touch-icon.png"),
 ];
 
 function parseArguments(argv) {
@@ -100,6 +115,24 @@ async function main() {
   const options = parseArguments(process.argv.slice(2));
   const sourceBuffer = await fs.readFile(iconSourcePath);
   const staleTargets = [];
+
+  for (const targetPath of legacyPublicTargets) {
+    const currentBuffer = await readExistingBuffer(targetPath);
+    if (!currentBuffer) {
+      continue;
+    }
+
+    const relativePath = path.relative(rootDir, targetPath);
+    staleTargets.push(relativePath);
+
+    if (options.check) {
+      console.log(`legacy ${relativePath}`);
+      continue;
+    }
+
+    await fs.unlink(targetPath);
+    console.log(`rm    ${relativePath}`);
+  }
 
   for (const target of outputTargets) {
     const nextBuffer = await renderOutputBuffer(sourceBuffer, target);

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import type { ActionResult } from "@/lib/action-result";
 import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
 import { buildCustomExerciseInsertPayload } from "@/lib/custom-exercise-payload";
@@ -10,6 +11,12 @@ import { getRoutineEditPath, getRoutineHomePath, getTodayPath, revalidateRoutine
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
+import {
+  BASE_SAVED_WORKOUT_PLAN_LIMIT,
+  ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE,
+  WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE,
+} from "@/lib/pro-tier-limits";
+import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { buildProgressionReviewTargetPlan } from "@/lib/progression-review-loader";
 import { buildProgressionPlaybookConfigFromFormState, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
@@ -20,6 +27,7 @@ import {
   loadRoutineDayWithWorkoutPlanCompat,
   loadRoutineDaysWithWorkoutPlanCompat,
   loadWorkoutPlanNames,
+  isMissingWorkoutPlanTableError,
   omitRoutineDayExerciseWorkoutPlanColumn,
   saveRoutineDayAsNewWorkoutPlan,
   WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT,
@@ -38,6 +46,23 @@ function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
   revalidatePath(getTodayPath());
   revalidatePath(`/routines/${routineId}/days/${dayId}`);
+}
+
+async function enforceRoutineAccessForCurrentTier(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId: string;
+}): Promise<ActionResult> {
+  const accessResult = await loadAccessibleRoutineIdsForCurrentTier(args);
+  if (accessResult.error) {
+    return { ok: false, error: "Could not verify routine access." };
+  }
+
+  if (!accessResult.routineIds.has(args.routineId)) {
+    return { ok: false, error: ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE };
+  }
+
+  return { ok: true };
 }
 
 
@@ -64,6 +89,35 @@ function parseRoutineExercisePayload(formData: FormData) {
 
 function selectedProgressionPlaybook(payload: Record<string, unknown>) {
   return typeof payload.progression_playbook_id === "string" && payload.progression_playbook_id.length > 0;
+}
+
+async function getSavedWorkoutPlanCapacityError(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+}) {
+  const proAccess = await loadProAccessSnapshot(args.userId);
+  if (proAccess.accessState === "pro") {
+    return null;
+  }
+
+  const { count, error } = await args.supabase
+    .from("workout_plan_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", args.userId);
+
+  if (error) {
+    if (isMissingWorkoutPlanTableError(error)) {
+      return null;
+    }
+
+    return new Error("Could not verify workout plan capacity.");
+  }
+
+  if ((count ?? 0) >= BASE_SAVED_WORKOUT_PLAN_LIMIT) {
+    return new Error(WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE);
+  }
+
+  return null;
 }
 
 const ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config, workout_plan_template_exercise_id";
@@ -237,6 +291,15 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     return { ok: false, error: "Missing workout plan info" };
   }
 
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
+  }
+
   const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
     supabase,
     userId: user.id,
@@ -392,11 +455,19 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     return { ok: false, error: "Missing exercise info" };
   }
 
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
+  }
+
   const parsedPayload = parseRoutineExercisePayload(formData);
   if (!parsedPayload.ok) {
     return { ok: false, error: parsedPayload.error };
   }
-
   let exerciseId = selectedExerciseId;
   let createdCustomExerciseId: string | null = null;
 
@@ -583,6 +654,15 @@ export async function resolveWorkoutPlanEditDecisionAction(
     return { ok: false, error: "Missing workout plan decision info." };
   }
 
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
+  }
+
   const { data: routineDay, error: routineDayError } = await loadRoutineDayWithWorkoutPlanCompat({
     supabase,
     routineDayId,
@@ -622,12 +702,17 @@ export async function resolveWorkoutPlanEditDecisionAction(
       return { ok: false, error: "Workout plan name already exists." };
     }
 
+    const capacityError = await getSavedWorkoutPlanCapacityError({
+      supabase,
+      userId: user.id,
+    });
     const saveResult = await saveRoutineDayAsNewWorkoutPlan({
       supabase,
       userId: user.id,
       routineDay,
       dayExercises: orderedDayExercises,
       requestedName: requestedTemplateName,
+      capacityError,
     });
     if (saveResult.error || !saveResult.templateId) {
       return { ok: false, error: saveResult.error?.message ?? "Could not save new workout plan." };
@@ -645,12 +730,19 @@ export async function resolveWorkoutPlanEditDecisionAction(
     };
   }
 
+  const capacityError = routineDay.workout_plan_template_id
+    ? null
+    : await getSavedWorkoutPlanCapacityError({
+        supabase,
+        userId: user.id,
+      });
   const ensureResult = await ensureWorkoutPlanForRoutineDay({
     supabase,
     userId: user.id,
     routineDay,
     dayExercises: orderedDayExercises,
     markEditChoiceRequired: false,
+    capacityError,
   });
   if (ensureResult.error || !ensureResult.templateId) {
     return { ok: false, error: ensureResult.error?.message ?? "Could not prepare workout plan." };
@@ -684,6 +776,15 @@ export async function loadWorkoutPlanEditDecisionStateAction(
 
   if (!routineId || !routineDayId) {
     return { ok: false, error: "Missing workout plan decision info." };
+  }
+
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
   }
 
   const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
@@ -728,11 +829,19 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: "Missing exercise info" };
   }
 
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
+  }
+
   const parsedPayload = parseRoutineExercisePayload(formData);
   if (!parsedPayload.ok) {
     return { ok: false, error: parsedPayload.error };
   }
-
   const { data: existingExerciseRow, error: existingExerciseError } = await supabase
     .from("routine_day_exercises")
     .select(ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT)
@@ -866,6 +975,15 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
     return { ok: false, error: "Missing reorder info" };
   }
 
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
+  }
+
   const { data: existingRows, error: existingRowsError } = await supabase
     .from("routine_day_exercises")
     .select("id")
@@ -961,6 +1079,15 @@ export async function deleteRoutineDayExerciseAction(formData: FormData): Promis
 
   if (!routineId || !routineDayId || !exerciseRowId) {
     return { ok: false, error: "Missing delete info" };
+  }
+
+  const routineAccess = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!routineAccess.ok) {
+    return routineAccess;
   }
 
   const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({

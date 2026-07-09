@@ -43,12 +43,15 @@ const LEGACY_SUPABASE_ANON_KEY_ENV = "LEGACY_SUPABASE_ANON_KEY";
 const STRIPE_SECRET_KEY_ENV = "STRIPE_SECRET_KEY";
 const NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_ENV = "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY";
 const STRIPE_WEBHOOK_SECRET_ENV = "STRIPE_WEBHOOK_SECRET";
+const STRIPE_TEST_WEBHOOK_SECRET_ENV = "STRIPE_TEST_WEBHOOK_SECRET";
+const STRIPE_SANDBOX_WEBHOOK_SECRET_ENV = "STRIPE_SANDBOX_WEBHOOK_SECRET";
 const STRIPE_PRO_FOUNDING_PRICE_ID_ENV = "STRIPE_PRO_FOUNDING_PRICE_ID";
 const STRIPE_PRO_STANDARD_PRICE_ID_ENV = "STRIPE_PRO_STANDARD_PRICE_ID";
 const STRIPE_PRO_ACTIVE_PRICE_MODE_ENV = "STRIPE_PRO_ACTIVE_PRICE_MODE";
 const STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_ENV = "STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID";
 const STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID_ENV = "STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID";
 const STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_ENV = "STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE";
+const PAID_LAUNCH_ENABLED_ENV = "PAID_LAUNCH_ENABLED";
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{5,32}$/;
 const HEX_PATTERN = /^[0-9a-f]+$/i;
 
@@ -92,7 +95,10 @@ export function optionalEnv(name: string): string | null {
 }
 
 function normalizeEnvValue(value: string | undefined): string | undefined {
-  return value?.replace(/(?:\\r|\\n)+$/g, "").trim();
+  return value
+    ?.replace(/^\uFEFF+/, "")
+    .replace(/(?:\\r|\\n)+$/g, "")
+    .trim();
 }
 
 function optionalBooleanEnv(name: string, fallback = false): boolean {
@@ -359,6 +365,10 @@ export function STRIPE_WEBHOOK_SECRET_OPTIONAL(): string | null {
   return optionalEnv(STRIPE_WEBHOOK_SECRET_ENV);
 }
 
+export function STRIPE_TEST_WEBHOOK_SECRET_OPTIONAL(): string | null {
+  return optionalEnv(STRIPE_TEST_WEBHOOK_SECRET_ENV) ?? optionalEnv(STRIPE_SANDBOX_WEBHOOK_SECRET_ENV);
+}
+
 export function STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_OPTIONAL(): string | null {
   return optionalEnv(STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_ENV);
 }
@@ -403,4 +413,8 @@ export function STRIPE_PRO_ACTIVE_PRICE_MODE_OPTIONAL(): "founding" | "standard"
   throw new Error(
     `Invalid environment variable: ${STRIPE_PRO_ACTIVE_PRICE_MODE_ENV}. Expected 'founding' or 'standard'.`,
   );
+}
+
+export function PAID_LAUNCH_ENABLED(): boolean {
+  return optionalBooleanEnv(PAID_LAUNCH_ENABLED_ENV, false);
 }

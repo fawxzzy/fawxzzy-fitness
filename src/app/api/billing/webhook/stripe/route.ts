@@ -1,8 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { STRIPE_WEBHOOK_SECRET_OPTIONAL } from "@/lib/env";
+import {
+  STRIPE_TEST_WEBHOOK_SECRET_OPTIONAL,
+  STRIPE_WEBHOOK_SECRET_OPTIONAL,
+} from "@/lib/env";
 import { getStripeServerClient } from "@/lib/billing/stripe-server";
+import {
+  StripeWebhookNotConfiguredError,
+  buildStripeWebhookSecretCandidates,
+  constructStripeWebhookEvent,
+} from "@/lib/billing/stripe-webhook-signature";
+import {
+  mapSubscriptionStatusToPurchaseStatus,
+  shouldKeepProEntitlement,
+} from "@/lib/billing/subscription-status";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { BillingPurchaseRow } from "@/types/db";
 
@@ -121,6 +133,16 @@ function getInvoiceLinePriceId(line: Stripe.InvoiceLineItem | null | undefined) 
   return linePriceId;
 }
 
+function getInvoiceSubscriptionMetadata(invoice: Stripe.Invoice) {
+  return (invoice as Stripe.Invoice & {
+    parent?: {
+      subscription_details?: {
+        metadata?: Record<string, string | null | undefined> | null;
+      } | null;
+    } | null;
+  }).parent?.subscription_details?.metadata ?? {};
+}
+
 function getUserIdFromCheckoutSession(session: Stripe.Checkout.Session) {
   const metadataUserId = session.metadata?.fitness_user_id?.trim();
   if (metadataUserId) {
@@ -131,53 +153,6 @@ function getUserIdFromCheckoutSession(session: Stripe.Checkout.Session) {
     ? session.client_reference_id.trim()
     : "";
   return clientReferenceId || null;
-}
-
-function mapSubscriptionStatusToPurchaseStatus(
-  status: Stripe.Subscription.Status,
-  currentPeriodEndIso: string | null,
-): BillingPurchaseRow["status"] {
-  const stillActive = currentPeriodEndIso ? new Date(currentPeriodEndIso).valueOf() > Date.now() : false;
-
-  switch (status) {
-    case "active":
-    case "trialing":
-      return "completed";
-    case "past_due":
-    case "paused":
-    case "incomplete":
-      return "pending";
-    case "canceled":
-      return stillActive ? "completed" : "cancelled";
-    case "unpaid":
-    case "incomplete_expired":
-      return "failed";
-    default:
-      return "pending";
-  }
-}
-
-function shouldKeepProEntitlement(
-  status: Stripe.Subscription.Status,
-  currentPeriodEndIso: string | null,
-) {
-  const currentPeriodEnd = currentPeriodEndIso ? new Date(currentPeriodEndIso) : null;
-  const hasFutureWindow = currentPeriodEnd ? currentPeriodEnd.valueOf() > Date.now() : false;
-
-  switch (status) {
-    case "active":
-    case "trialing":
-    case "past_due":
-    case "paused":
-      return hasFutureWindow;
-    case "canceled":
-      return hasFutureWindow;
-    case "incomplete":
-    case "incomplete_expired":
-    case "unpaid":
-    default:
-      return false;
-  }
 }
 
 function getRecurringDetailsFromPrice(price: Stripe.Price | null | undefined) {
@@ -213,6 +188,157 @@ async function findPurchaseByField(admin: any, field: string, value: string | nu
   return result.data?.id ?? null;
 }
 
+const SUBSCRIPTION_PURCHASE_SELECT = `
+  id,
+  stripe_checkout_session_id,
+  stripe_payment_intent_id,
+  stripe_customer_id,
+  stripe_price_id,
+  stripe_subscription_id,
+  stripe_invoice_id,
+  amount_total,
+  currency,
+  billing_interval,
+  billing_interval_count,
+  period_start,
+  period_end,
+  completed_at,
+  created_at
+`;
+
+type SubscriptionPurchaseCandidate = {
+  id: string;
+  stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_price_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_invoice_id: string | null;
+  amount_total: number | null;
+  currency: string | null;
+  billing_interval: "month" | "year" | null;
+  billing_interval_count: number | null;
+  period_start: string | null;
+  period_end: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+};
+
+async function findSubscriptionPurchaseCandidates(args: {
+  admin: any;
+  invoiceId: string | null;
+  sessionId: string | null;
+  subscriptionId: string;
+}) {
+  const {
+    admin,
+    invoiceId,
+    sessionId,
+    subscriptionId,
+  } = args;
+  const byId = new Map<string, SubscriptionPurchaseCandidate>();
+
+  async function collect(field: "stripe_subscription_id" | "stripe_checkout_session_id" | "stripe_invoice_id", value: string | null) {
+    if (!value) return;
+
+    const result = await admin
+      .from("billing_purchases")
+      .select(SUBSCRIPTION_PURCHASE_SELECT)
+      .eq(field, value)
+      .eq("purchase_kind", "pro_subscription")
+      .order("created_at", { ascending: true });
+
+    if (result.error) {
+      throw new Error(`Could not load billing purchase candidates by ${field}: ${result.error.message}`);
+    }
+
+    for (const row of result.data ?? []) {
+      if (typeof row?.id === "string") {
+        byId.set(row.id, row as SubscriptionPurchaseCandidate);
+      }
+    }
+  }
+
+  await collect("stripe_subscription_id", subscriptionId);
+  await collect("stripe_checkout_session_id", sessionId);
+  await collect("stripe_invoice_id", invoiceId);
+
+  return Array.from(byId.values()).sort((a, b) => {
+    const sessionScore = Number(Boolean(b.stripe_checkout_session_id)) - Number(Boolean(a.stripe_checkout_session_id));
+    if (sessionScore !== 0) return sessionScore;
+
+    const paidScore = Number(Boolean(b.amount_total && b.currency)) - Number(Boolean(a.amount_total && a.currency));
+    if (paidScore !== 0) return paidScore;
+
+    return new Date(a.created_at ?? 0).valueOf() - new Date(b.created_at ?? 0).valueOf();
+  });
+}
+
+function firstDefined<T>(...values: Array<T | null | undefined>) {
+  return values.find((value): value is T => value !== null && value !== undefined) ?? null;
+}
+
+function mergeSubscriptionPurchasePayload(
+  basePayload: Record<string, unknown>,
+  candidates: SubscriptionPurchaseCandidate[],
+) {
+  return {
+    ...basePayload,
+    stripe_checkout_session_id: firstDefined(
+      basePayload.stripe_checkout_session_id as string | null,
+      ...candidates.map((candidate) => candidate.stripe_checkout_session_id),
+    ),
+    stripe_payment_intent_id: firstDefined(
+      basePayload.stripe_payment_intent_id as string | null,
+      ...candidates.map((candidate) => candidate.stripe_payment_intent_id),
+    ),
+    stripe_customer_id: firstDefined(
+      basePayload.stripe_customer_id as string | null,
+      ...candidates.map((candidate) => candidate.stripe_customer_id),
+    ),
+    stripe_price_id: firstDefined(
+      basePayload.stripe_price_id as string | null,
+      ...candidates.map((candidate) => candidate.stripe_price_id),
+    ),
+    stripe_subscription_id: firstDefined(
+      basePayload.stripe_subscription_id as string | null,
+      ...candidates.map((candidate) => candidate.stripe_subscription_id),
+    ),
+    stripe_invoice_id: firstDefined(
+      basePayload.stripe_invoice_id as string | null,
+      ...candidates.map((candidate) => candidate.stripe_invoice_id),
+    ),
+    amount_total: firstDefined(
+      basePayload.amount_total as number | null,
+      ...candidates.map((candidate) => candidate.amount_total),
+    ),
+    currency: firstDefined(
+      basePayload.currency as string | null,
+      ...candidates.map((candidate) => candidate.currency),
+    ),
+    billing_interval: firstDefined(
+      basePayload.billing_interval as "month" | "year" | null,
+      ...candidates.map((candidate) => candidate.billing_interval),
+    ),
+    billing_interval_count: firstDefined(
+      basePayload.billing_interval_count as number | null,
+      ...candidates.map((candidate) => candidate.billing_interval_count),
+    ),
+    period_start: firstDefined(
+      basePayload.period_start as string | null,
+      ...candidates.map((candidate) => candidate.period_start),
+    ),
+    period_end: firstDefined(
+      basePayload.period_end as string | null,
+      ...candidates.map((candidate) => candidate.period_end),
+    ),
+    completed_at: firstDefined(
+      basePayload.completed_at as string | null,
+      ...candidates.map((candidate) => candidate.completed_at),
+    ),
+  };
+}
+
 async function resolveUserIdFromStripeCustomer(admin: any, stripeCustomerId: string | null) {
   if (!stripeCustomerId) {
     return null;
@@ -246,14 +372,24 @@ async function syncBillingCustomer(args: {
     userId,
   } = args;
 
+  const payload: {
+    user_id: string;
+    stripe_customer_id: string;
+    latest_stripe_subscription_id: string | null;
+    billing_email?: string;
+  } = {
+    user_id: userId,
+    stripe_customer_id: stripeCustomerId,
+    latest_stripe_subscription_id: subscriptionId,
+  };
+
+  if (billingEmail) {
+    payload.billing_email = billingEmail;
+  }
+
   const { error } = await admin
     .from("billing_customers")
-    .upsert({
-      user_id: userId,
-      stripe_customer_id: stripeCustomerId,
-      billing_email: billingEmail,
-      latest_stripe_subscription_id: subscriptionId,
-    }, {
+    .upsert(payload, {
       onConflict: "user_id",
     });
 
@@ -386,53 +522,19 @@ async function upsertSubscriptionPurchase(args: {
     raw_event_id: eventId,
   };
 
-  const existingPurchaseId =
-    await findPurchaseByField(admin, "stripe_subscription_id", subscriptionId)
-    ?? await findPurchaseByField(admin, "stripe_checkout_session_id", sessionId)
-    ?? await findPurchaseByField(admin, "stripe_invoice_id", invoiceId);
+  const candidates = await findSubscriptionPurchaseCandidates({
+    admin,
+    invoiceId,
+    sessionId,
+    subscriptionId,
+  });
+  const existingPurchaseId = candidates[0]?.id ?? null;
 
   if (existingPurchaseId) {
-    const existingPurchaseResult = await admin
-      .from("billing_purchases")
-      .select(`
-        stripe_checkout_session_id,
-        stripe_payment_intent_id,
-        stripe_customer_id,
-        stripe_price_id,
-        stripe_subscription_id,
-        stripe_invoice_id,
-        amount_total,
-        currency,
-        billing_interval,
-        billing_interval_count,
-        period_start,
-        period_end,
-        completed_at
-      `)
-      .eq("id", existingPurchaseId)
-      .single();
-
-    if (existingPurchaseResult.error) {
-      throw new Error(`Could not load existing subscription purchase receipt: ${existingPurchaseResult.error.message}`);
-    }
-
-    const existingPurchase = existingPurchaseResult.data ?? {};
-    const mergedPayload = {
-      ...basePayload,
-      stripe_checkout_session_id: sessionId ?? existingPurchase.stripe_checkout_session_id ?? null,
-      stripe_payment_intent_id: stripePaymentIntentId ?? existingPurchase.stripe_payment_intent_id ?? null,
-      stripe_customer_id: stripeCustomerId ?? existingPurchase.stripe_customer_id ?? null,
-      stripe_price_id: priceId ?? existingPurchase.stripe_price_id ?? null,
-      stripe_subscription_id: subscriptionId ?? existingPurchase.stripe_subscription_id ?? null,
-      stripe_invoice_id: invoiceId ?? existingPurchase.stripe_invoice_id ?? null,
-      amount_total: amountTotal ?? existingPurchase.amount_total ?? null,
-      currency: currency ?? existingPurchase.currency ?? null,
-      billing_interval: billingInterval ?? existingPurchase.billing_interval ?? null,
-      billing_interval_count: billingIntervalCount ?? existingPurchase.billing_interval_count ?? null,
-      period_start: periodStart ?? existingPurchase.period_start ?? null,
-      period_end: periodEnd ?? existingPurchase.period_end ?? null,
-      completed_at: completedAt ?? existingPurchase.completed_at ?? null,
-    };
+    const duplicateIds = candidates
+      .map((candidate) => candidate.id)
+      .filter((id) => id !== existingPurchaseId);
+    const mergedPayload = mergeSubscriptionPurchasePayload(basePayload, candidates);
 
     const { data, error } = await admin
       .from("billing_purchases")
@@ -445,6 +547,17 @@ async function upsertSubscriptionPurchase(args: {
       throw new Error(`Could not update subscription purchase receipt: ${error.message}`);
     }
 
+    if (duplicateIds.length > 0) {
+      const { error: deleteError } = await admin
+        .from("billing_purchases")
+        .delete()
+        .in("id", duplicateIds);
+
+      if (deleteError) {
+        throw new Error(`Could not delete duplicate subscription purchase receipts: ${deleteError.message}`);
+      }
+    }
+
     return data;
   }
 
@@ -455,6 +568,51 @@ async function upsertSubscriptionPurchase(args: {
     .single();
 
   if (error) {
+    const message = error.message?.toLowerCase?.() ?? "";
+    const isSubscriptionDuplicate =
+      error.code === "23505"
+      || (message.includes("duplicate") && message.includes("subscription"));
+
+    if (isSubscriptionDuplicate) {
+      const retryCandidates = await findSubscriptionPurchaseCandidates({
+        admin,
+        invoiceId,
+        sessionId,
+        subscriptionId,
+      });
+      const retryPurchaseId = retryCandidates[0]?.id ?? null;
+
+      if (retryPurchaseId) {
+        const duplicateIds = retryCandidates
+          .map((candidate) => candidate.id)
+          .filter((id) => id !== retryPurchaseId);
+        const mergedPayload = mergeSubscriptionPurchasePayload(basePayload, retryCandidates);
+        const retryResult = await admin
+          .from("billing_purchases")
+          .update(mergedPayload)
+          .eq("id", retryPurchaseId)
+          .select("id")
+          .single();
+
+        if (retryResult.error) {
+          throw new Error(`Could not recover duplicate subscription purchase receipt: ${retryResult.error.message}`);
+        }
+
+        if (duplicateIds.length > 0) {
+          const { error: deleteError } = await admin
+            .from("billing_purchases")
+            .delete()
+            .in("id", duplicateIds);
+
+          if (deleteError) {
+            throw new Error(`Could not delete duplicate subscription purchase receipts: ${deleteError.message}`);
+          }
+        }
+
+        return retryResult.data;
+      }
+    }
+
     throw new Error(`Could not insert subscription purchase receipt: ${error.message}`);
   }
 
@@ -640,11 +798,8 @@ async function handleInvoicePaid(args: {
     throw new Error("Invoice paid event is missing Stripe customer or subscription id.");
   }
 
-  const stripe = getStripeServerClient();
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-    expand: ["items.data.price"],
-  });
-  const metadataUserId = subscription.metadata?.fitness_user_id?.trim() || null;
+  const subscriptionMetadata = getInvoiceSubscriptionMetadata(invoice);
+  const metadataUserId = subscriptionMetadata.fitness_user_id?.trim() || null;
   const userId = metadataUserId || await resolveUserIdFromStripeCustomer(admin, stripeCustomerId);
   if (!userId) {
     throw new Error("Could not resolve the Fitness user for the paid subscription invoice.");
@@ -658,31 +813,14 @@ async function handleInvoicePaid(args: {
       } | null;
     } | null;
   })?.pricing?.price_details?.price ?? null);
-  const subscriptionPrice = getPriceObject(subscription.items.data[0]?.price ?? null);
-  const price = linePrice ?? subscriptionPrice;
+  const price = linePrice;
   const metadataPriceId =
-    typeof (invoice as Stripe.Invoice & {
-      parent?: {
-        subscription_details?: {
-          metadata?: {
-            stripe_price_id?: string | null;
-          } | null;
-        } | null;
-      } | null;
-    }).parent?.subscription_details?.metadata?.stripe_price_id === "string"
-      ? (invoice as Stripe.Invoice & {
-          parent?: {
-            subscription_details?: {
-              metadata?: {
-                stripe_price_id?: string | null;
-              } | null;
-            } | null;
-          } | null;
-        }).parent?.subscription_details?.metadata?.stripe_price_id?.trim() || null
+    typeof subscriptionMetadata.stripe_price_id === "string"
+      ? subscriptionMetadata.stripe_price_id.trim() || null
       : null;
   const billing = getRecurringDetailsFromPrice(price);
-  const periodStart = toIsoFromUnixSeconds(firstLine?.period?.start ?? subscription.items.data[0]?.current_period_start);
-  const periodEnd = toIsoFromUnixSeconds(firstLine?.period?.end ?? subscription.items.data[0]?.current_period_end);
+  const periodStart = toIsoFromUnixSeconds(firstLine?.period?.start);
+  const periodEnd = toIsoFromUnixSeconds(firstLine?.period?.end);
   const purchase = await upsertSubscriptionPurchase({
     admin,
     amountTotal: invoice.amount_paid ?? invoice.amount_due ?? null,
@@ -713,7 +851,85 @@ async function handleInvoicePaid(args: {
     admin,
     active: true,
     expiresAt: periodEnd,
-    grantedAt: toIsoFromUnixSeconds(subscription.created) ?? toIsoFromUnixSeconds(event.created) ?? new Date().toISOString(),
+    grantedAt: toIsoFromUnixSeconds(event.created) ?? new Date().toISOString(),
+    purchaseId: typeof purchase?.id === "string" ? purchase.id : null,
+    subscriptionId,
+    userId,
+  });
+}
+
+async function handleInvoicePaymentFailed(args: {
+  admin: any;
+  event: Stripe.Event;
+  invoice: Stripe.Invoice;
+}) {
+  const {
+    admin,
+    event,
+    invoice,
+  } = args;
+
+  const stripeCustomerId = getCustomerId(invoice.customer);
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  if (!stripeCustomerId || !subscriptionId) {
+    throw new Error("Invoice payment failed event is missing Stripe customer or subscription id.");
+  }
+
+  const subscriptionMetadata = getInvoiceSubscriptionMetadata(invoice);
+  const metadataUserId = subscriptionMetadata.fitness_user_id?.trim() || null;
+  const userId = metadataUserId || await resolveUserIdFromStripeCustomer(admin, stripeCustomerId);
+  if (!userId) {
+    throw new Error("Could not resolve the Fitness user for the failed subscription invoice.");
+  }
+
+  const firstLine = invoice.lines.data[0];
+  const linePrice = getPriceObject((firstLine as Stripe.InvoiceLineItem & {
+    pricing?: {
+      price_details?: {
+        price?: string | Stripe.Price | null;
+      } | null;
+    } | null;
+  })?.pricing?.price_details?.price ?? null);
+  const price = linePrice;
+  const billing = getRecurringDetailsFromPrice(price);
+  const periodStart = toIsoFromUnixSeconds(firstLine?.period?.start);
+  const periodEnd = toIsoFromUnixSeconds(firstLine?.period?.end);
+  const hasFutureWindow = periodEnd ? new Date(periodEnd).valueOf() > Date.now() : false;
+  const purchase = await upsertSubscriptionPurchase({
+    admin,
+    amountTotal: invoice.amount_due ?? null,
+    billingInterval: billing.billing_interval,
+    billingIntervalCount: billing.billing_interval_count,
+    completedAt: null,
+    currency: invoice.currency ?? null,
+    eventId: event.id,
+    invoiceId: invoice.id,
+    periodEnd,
+    periodStart,
+    priceId: getInvoiceLinePriceId(firstLine) ?? price?.id ?? (
+      typeof subscriptionMetadata.stripe_price_id === "string"
+        ? subscriptionMetadata.stripe_price_id.trim() || null
+        : null
+    ),
+    purchaseStatus: hasFutureWindow ? "pending" : "failed",
+    stripeCustomerId,
+    subscriptionId,
+    userId,
+  });
+
+  await syncBillingCustomer({
+    admin,
+    billingEmail: invoice.customer_email ?? null,
+    stripeCustomerId,
+    subscriptionId,
+    userId,
+  });
+
+  await upsertProEntitlement({
+    admin,
+    active: hasFutureWindow,
+    expiresAt: periodEnd,
+    grantedAt: toIsoFromUnixSeconds(event.created) ?? new Date().toISOString(),
     purchaseId: typeof purchase?.id === "string" ? purchase.id : null,
     subscriptionId,
     userId,
@@ -722,9 +938,12 @@ async function handleInvoicePaid(args: {
 
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
-  const webhookSecret = STRIPE_WEBHOOK_SECRET_OPTIONAL();
+  const webhookSecretCandidates = buildStripeWebhookSecretCandidates({
+    primarySecret: STRIPE_WEBHOOK_SECRET_OPTIONAL(),
+    testSecret: STRIPE_TEST_WEBHOOK_SECRET_OPTIONAL(),
+  });
 
-  if (!webhookSecret) {
+  if (webhookSecretCandidates.length === 0) {
     return buildJsonResponse({
       ok: false,
       code: "BILLING_WEBHOOK_NOT_CONFIGURED",
@@ -746,7 +965,12 @@ export async function POST(request: NextRequest) {
 
     const rawBody = await request.text();
     const stripe = getStripeServerClient();
-    const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    const { event } = constructStripeWebhookEvent({
+      rawBody,
+      secrets: webhookSecretCandidates,
+      signature,
+      stripe,
+    });
     const admin = supabaseAdmin() as any;
 
     if (event.type === "checkout.session.completed") {
@@ -805,13 +1029,21 @@ export async function POST(request: NextRequest) {
           });
 
         if (entitlementError) {
-          throw new Error(`Could not upsert Lifetime Pro entitlement: ${entitlementError.message}`);
+          throw new Error(`Could not upsert included Pro entitlement: ${entitlementError.message}`);
         }
       }
     }
 
     if (event.type === "invoice.paid") {
       await handleInvoicePaid({
+        admin,
+        event,
+        invoice: event.data.object as Stripe.Invoice,
+      });
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      await handleInvoicePaymentFailed({
         admin,
         event,
         invoice: event.data.object as Stripe.Invoice,
@@ -863,6 +1095,7 @@ export async function POST(request: NextRequest) {
       requestId,
     });
   } catch (error) {
+    const notConfigured = error instanceof StripeWebhookNotConfiguredError;
     console.error("[billing-webhook-stripe] failed", {
       requestId,
       error: error instanceof Error ? error.message : String(error),
@@ -870,9 +1103,11 @@ export async function POST(request: NextRequest) {
 
     return buildJsonResponse({
       ok: false,
-      code: "BILLING_WEBHOOK_FAILED",
-      error: "Unable to process the Stripe billing webhook.",
+      code: notConfigured ? "BILLING_WEBHOOK_NOT_CONFIGURED" : "BILLING_WEBHOOK_FAILED",
+      error: notConfigured
+        ? "Stripe webhook handling is not configured yet."
+        : "Unable to process the Stripe billing webhook.",
       requestId,
-    }, { status: 400 });
+    }, { status: notConfigured ? 503 : 400 });
   }
 }

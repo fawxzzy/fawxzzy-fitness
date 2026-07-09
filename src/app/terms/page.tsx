@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalDocumentLayout } from "@/components/legal/LegalDocumentLayout";
-import { TERMS_OF_SERVICE_LAST_UPDATED } from "@/lib/legal-documents";
+import { FITNESS_PRIVATE_SUPPORT_PATH_LABEL, TERMS_OF_SERVICE_LAST_UPDATED } from "@/lib/legal-documents";
 
 export const metadata: Metadata = {
   title: "Terms of Service | FawxzzyFitness",
@@ -61,8 +61,9 @@ export default function TermsOfServicePage({
     >
       <Section title="Using Fitness">
         <p>
-          Fawxzzy Fitness (&quot;Fitness,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is a workout tracking and progression product. By
-          accessing or using Fitness, you agree to these Terms.
+          Fawxzzy Fitness (&quot;Fitness,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is a workout tracking and
+          progression product operated by Zachariah John Harold Redfield. By accessing or using Fitness,
+          you agree to these Terms.
         </p>
         <p>
           You may use Fitness only in lawful ways and only in accordance with these Terms.
@@ -74,6 +75,10 @@ export default function TermsOfServicePage({
         <p>
           If you are under the age of majority where you live, you should use Fitness only with permission and
           supervision from a parent or guardian.
+        </p>
+        <p>
+          Paid Pro subscriptions are intended only for users who are at least 18 years old or the age of
+          majority where they live.
         </p>
       </Section>
 
@@ -146,8 +151,16 @@ export default function TermsOfServicePage({
         </p>
         <p>
           If you purchase a recurring subscription, it may renew automatically until cancelled. To avoid future
-          charges, cancel before the renewal date through the available billing management flow or by contacting
-          support if self-service billing is unavailable.
+          charges, cancel before the renewal date through the available billing management flow. If self-service
+          billing is unavailable or fails, contact support before the renewal date.
+        </p>
+        <p>
+          Cancellation normally stops future renewals and preserves Pro access through the current paid period,
+          unless the subscription is refunded, disputed, charged back, cannot be verified, or otherwise becomes
+          invalid.
+        </p>
+        <p>
+          {FITNESS_PRIVATE_SUPPORT_PATH_LABEL}
         </p>
         <p>
           Pro entitlement is granted only after payment or subscription state is successfully verified. Fitness may
@@ -155,12 +168,16 @@ export default function TermsOfServicePage({
           charged back, cannot be verified, or appears fraudulent.
         </p>
         <p>
-          Deleting the app or deleting your account does not automatically cancel a subscription unless the billing
-          cancellation is completed through the applicable billing flow or confirmed by support.
+          Deleting the app or requesting account deletion does not automatically cancel a subscription unless the
+          billing cancellation is completed through the applicable billing flow or confirmed by support. If an account
+          deletion request is made while a Stripe subscription is active, the subscription must be cancelled through
+          the Stripe billing flow or cancelled with support before destructive account deletion is completed.
         </p>
         <p>
-          Refund requests may be reviewed case by case. Except where required by law or expressly stated at checkout,
-          payments are not guaranteed to be refundable after Pro access has been granted.
+          Refund requests are reviewed case by case and, when approved, are processed through Stripe where possible.
+          Duplicate payments, accidental immediate purchases, and support-approved exceptions may be reviewed for
+          refund. Except where required by law or expressly stated at checkout, partial-month refunds are not
+          guaranteed after Pro access has been granted.
         </p>
       </Section>
 
@@ -212,7 +229,7 @@ export default function TermsOfServicePage({
       <Section title="Product Ownership and Feedback">
         <p>
           Fitness, including its software, design, interface, branding, systems, and documentation, is owned by
-          Fawxzzy Fitness or its licensors.
+          Zachariah John Harold Redfield or its licensors.
         </p>
         <p>
           You may submit ideas, bug reports, suggestions, or feedback. We may use feedback without restriction or
@@ -262,10 +279,10 @@ export default function TermsOfServicePage({
           for every training context, or capable of producing any specific fitness result.
         </p>
         <p>
-          To the fullest extent allowed by applicable law, Fawxzzy Fitness will not be liable for indirect,
-          incidental, special, consequential, exemplary, or punitive damages, or for lost profits, lost data, lost
-          workout history, training injury, service interruption, payment processing issues, or unauthorized account
-          access.
+          To the fullest extent allowed by applicable law, Fitness and its operator will not be liable for
+          indirect, incidental, special, consequential, exemplary, or punitive damages, or for lost profits,
+          lost data, lost workout history, training injury, service interruption, payment processing issues,
+          or unauthorized account access.
         </p>
         <p>
           Some jurisdictions do not allow certain limitations of liability, so some limits may not apply to you.

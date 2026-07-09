@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthCard, AuthDock, AuthIntro, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { IOSAddToHomeScreenGate } from "@/components/install/IOSAddToHomeScreenGate";
 import { IOSOpenInSafariGate } from "@/components/install/IOSOpenInSafariGate";
@@ -12,8 +13,10 @@ import { getCanonicalInstallUrl } from "@/lib/install/config";
 import { copyInstallUrl, getInstallContext } from "@/lib/install/getInstallContext";
 import { useInstallContextOverride } from "@/lib/install/useInstallContextOverride";
 import { usePWAInstallPrompt } from "@/components/install/usePWAInstallPrompt";
+import { RouteLoading } from "@/components/RouteLoading";
 
 export function InstallRouteSurface({ initialInstallContext = null }: { initialInstallContext?: string | null }) {
+  const router = useRouter();
   const installUrl = getCanonicalInstallUrl();
   const openHref = "/login";
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -24,10 +27,17 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
     () =>
       getInstallContext({
         override,
+        allowOverride: true,
         canUseNativeInstallPrompt: installPrompt.canPromptInstall,
       }),
     [installPrompt.canPromptInstall, override],
   );
+
+  useEffect(() => {
+    if (context.isStandalone) {
+      router.replace(openHref);
+    }
+  }, [context.isStandalone, router]);
 
   const handleCopy = () => {
     copyInstallUrl(installUrl)
@@ -55,6 +65,10 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
         primaryLabel="Open"
       />
     );
+  }
+
+  if (context.isStandalone) {
+    return <RouteLoading label="Opening Fitness" variant="route" />;
   }
 
   return (

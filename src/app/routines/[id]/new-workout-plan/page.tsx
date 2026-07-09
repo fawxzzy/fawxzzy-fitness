@@ -9,6 +9,7 @@ import { CreateRoutineDayClient } from "@/app/routines/CreateRoutineDayClient";
 import { createRoutineDayAction, populateRoutineDayFromSourceAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { formatRoutineDayStableDisplayName, getRoutineDayResolvedWeekdayLabel } from "@/lib/routines";
 import { getRoutineDayEditHref, getRoutineEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -36,6 +37,13 @@ export default async function CreateWorkoutPlanPage({ params, searchParams }: Pa
     collector: diagnostics,
   });
   const supabase = supabaseServer();
+  const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
+    supabase,
+    userId: user.id,
+  });
+  if (accessResult.error || !accessResult.routineIds.has(id)) {
+    notFound();
+  }
 
   const { data: routineData } = await diagnostics.measure("routine-day-create.routine.fetch", async () => await supabase
     .from("routines")

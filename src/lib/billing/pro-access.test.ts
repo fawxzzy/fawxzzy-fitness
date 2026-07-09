@@ -17,6 +17,8 @@ const configuredBillingSnapshot = {
   standardPriceConfigured: true,
   activePriceMode: "founding" as const,
   activePriceId: "price_founding",
+  paidLaunchEnabled: true,
+  checkoutTechnicallyConfigured: true,
   checkoutConfigured: true,
   recurringInterval: "month" as const,
 };
@@ -37,7 +39,7 @@ test("isMissingBillingSchemaError detects missing billing-table failures only", 
 });
 
 test("getProAccessOfferLabel keeps offer copy stable", () => {
-  assert.equal(getProAccessOfferLabel("founding"), "Founding Monthly Pro");
+  assert.equal(getProAccessOfferLabel("founding"), "Monthly Pro");
   assert.equal(getProAccessOfferLabel("standard"), "Monthly Pro");
   assert.equal(getProAccessOfferLabel(null), "Plan not configured");
 });
@@ -52,7 +54,19 @@ test("buildFallbackProAccessSnapshot exposes schema fallback truth without imply
   assert.match(snapshot.supportNote, /Billing migrations have not been applied yet/i);
 });
 
-test("buildResolvedProAccessSnapshot reports active Lifetime Pro access deterministically", () => {
+test("buildFallbackProAccessSnapshot distinguishes disabled launch from missing Stripe setup", () => {
+  const snapshot = buildFallbackProAccessSnapshot("setup", {
+    ...configuredBillingSnapshot,
+    paidLaunchEnabled: false,
+    checkoutConfigured: false,
+    checkoutTechnicallyConfigured: true,
+  });
+
+  assert.equal(snapshot.checkoutConfigured, false);
+  assert.match(snapshot.supportNote, /paid launch is not enabled yet/i);
+});
+
+test("buildResolvedProAccessSnapshot reports active included Pro access deterministically", () => {
   const entitlement: UserEntitlementRow = {
     id: "entitlement-1",
     user_id: "user-1",
@@ -116,6 +130,24 @@ test("buildResolvedProAccessSnapshot keeps free users on the checkout-ready note
   assert.match(snapshot.supportNote, /Monthly Pro checkout is ready on this surface/i);
 });
 
+test("buildResolvedProAccessSnapshot keeps free users blocked when paid launch is disabled", () => {
+  const snapshot = buildResolvedProAccessSnapshot({
+    billingConfig: {
+      ...configuredBillingSnapshot,
+      paidLaunchEnabled: false,
+      checkoutConfigured: false,
+      checkoutTechnicallyConfigured: true,
+    },
+    entitlement: null,
+    purchase: null,
+    customerPortalAvailable: false,
+  });
+
+  assert.equal(snapshot.accessState, "free");
+  assert.equal(snapshot.checkoutConfigured, false);
+  assert.match(snapshot.supportNote, /paid launch is not enabled yet/i);
+});
+
 test("buildResolvedProAccessSnapshot reflects scheduled subscription cancellation while access remains active", () => {
   const entitlement: UserEntitlementRow = {
     id: "entitlement-sub-1",
@@ -153,4 +185,27 @@ test("buildResolvedProAccessSnapshot reflects scheduled subscription cancellatio
   assert.equal(snapshot.accessSource, "subscription");
   assert.equal(snapshot.cancellationScheduledFor, "2026-08-01T01:00:00.000Z");
   assert.match(snapshot.supportNote, /keeps Pro access until the scheduled subscription end date/i);
+});
+
+test("buildResolvedProAccessSnapshot treats expired subscription entitlement as Free", () => {
+  const expiredEntitlement: UserEntitlementRow = {
+    id: "entitlement-expired-1",
+    user_id: "user-1",
+    entitlement_key: "pro",
+    status: "active",
+    granted_at: "2026-01-01T01:00:00.000Z",
+    expires_at: "2026-02-01T01:00:00.000Z",
+    source_subscription_id: "sub_expired",
+    created_at: "2026-01-01T01:00:00.000Z",
+    updated_at: "2026-02-01T01:00:00.000Z",
+  };
+
+  const snapshot = buildResolvedProAccessSnapshot({
+    billingConfig: configuredBillingSnapshot,
+    entitlement: expiredEntitlement,
+    purchase: null,
+    customerPortalAvailable: true,
+  });
+
+  assert.equal(snapshot.accessState, "free");
 });

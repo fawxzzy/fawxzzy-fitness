@@ -7,6 +7,7 @@ import {
   STRIPE_PRO_STANDARD_PRICE_ID_OPTIONAL,
   STRIPE_SECRET_KEY_OPTIONAL,
   STRIPE_WEBHOOK_SECRET_OPTIONAL,
+  PAID_LAUNCH_ENABLED,
 } from "@/lib/env";
 
 export type ProPriceMode = "founding" | "standard";
@@ -20,6 +21,8 @@ export type StripeBillingConfigSnapshot = {
   activePriceMode: ProPriceMode | null;
   activePriceId: string | null;
   recurringInterval: "month";
+  paidLaunchEnabled: boolean;
+  checkoutTechnicallyConfigured: boolean;
   checkoutConfigured: boolean;
 };
 
@@ -30,6 +33,7 @@ export function getStripeBillingConfigSnapshot(): StripeBillingConfigSnapshot {
   const foundingPriceId = STRIPE_PRO_FOUNDING_PRICE_ID_OPTIONAL();
   const standardPriceId = STRIPE_PRO_STANDARD_PRICE_ID_OPTIONAL();
   const requestedMode = STRIPE_PRO_ACTIVE_PRICE_MODE_OPTIONAL();
+  const paidLaunchEnabled = PAID_LAUNCH_ENABLED();
 
   const activePriceMode: ProPriceMode | null =
     requestedMode
@@ -51,6 +55,8 @@ export function getStripeBillingConfigSnapshot(): StripeBillingConfigSnapshot {
     activePriceMode,
     activePriceId: activePriceId ?? null,
     recurringInterval: "month",
-    checkoutConfigured: Boolean(secretKey && publishableKey && activePriceId),
+    paidLaunchEnabled,
+    checkoutTechnicallyConfigured: Boolean(secretKey && publishableKey && activePriceId),
+    checkoutConfigured: Boolean(paidLaunchEnabled && secretKey && publishableKey && activePriceId),
   };
 }

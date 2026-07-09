@@ -117,8 +117,7 @@ export function SignupForm({
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
             </Link>
-            <span aria-hidden="true" className="text-[rgb(var(--text-muted)/0.72)]">|</span>
-            <LegalInlineLinks linkClassName={appTokens.authInlineLink} />
+            <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
         </AuthFooter>
       </AuthCard>

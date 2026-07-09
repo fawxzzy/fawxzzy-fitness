@@ -90,8 +90,7 @@ export function ResetPasswordForm({ error }: { error?: string }) {
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
             </Link>
-            <AuthFooterSeparator />
-            <LegalInlineLinks linkClassName={appTokens.authInlineLink} />
+            <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
         </AuthFooter>
       </AuthCard>

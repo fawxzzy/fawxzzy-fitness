@@ -8,6 +8,7 @@ import { ensureProfile } from "@/lib/profile";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
 import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { getRoutineHomeHref } from "@/lib/routine-day-navigation";
+import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,13 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
+  const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
+    supabase,
+    userId: user.id,
+  });
+  if (accessResult.error || !accessResult.routineIds.has(params.id)) {
+    notFound();
+  }
 
   const { data: routineWithProgression, error: routineWithProgressionError } = await supabase
     .from("routines")

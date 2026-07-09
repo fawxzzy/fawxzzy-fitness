@@ -17,6 +17,7 @@ import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { resolveEditDayAutoProgressionState } from "@/lib/edit-day-progression";
 import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
+import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayCreateHref, getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
@@ -53,6 +54,13 @@ type PageProps = {
 export default async function RoutineDayEditorPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
+  const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
+    supabase,
+    userId: user.id,
+  });
+  if (accessResult.error || !accessResult.routineIds.has(params.id)) {
+    notFound();
+  }
 
   const { data: routineWithProgression, error: routineWithProgressionError } = await supabase
     .from("routines")

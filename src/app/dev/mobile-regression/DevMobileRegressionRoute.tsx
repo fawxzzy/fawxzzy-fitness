@@ -2815,7 +2815,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                     accessLabel: "Free",
                     accessSource: null,
                     offerMode: "founding",
-                    offerLabel: "Founding Monthly Pro",
+                    offerLabel: "Monthly Pro",
                     checkoutConfigured: false,
                     customerPortalAvailable: false,
                     grantedAt: null,

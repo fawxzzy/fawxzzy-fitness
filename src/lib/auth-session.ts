@@ -12,11 +12,14 @@ const PUBLIC_AUTHLESS_PATH_PREFIXES = [
   "/forgot-password",
   "/install",
   "/login",
+  "/privacy",
   "/reset-password",
   "/signup",
+  "/terms",
 ];
 const PUBLIC_AUTHLESS_PATHS = new Set([
   "/api/app-version",
+  "/api/discord/verify",
   "/api/billing/webhook/stripe",
   "/api/discord/interactions",
   "/api/discord/message-commands/poll",

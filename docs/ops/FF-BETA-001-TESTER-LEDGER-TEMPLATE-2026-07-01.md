@@ -4,6 +4,12 @@ Use this ledger while executing:
 
 - `FF-BETA-001 - Run 10-20 Real User Beta Before Paid Push`
 
+## MVP Launch Status
+
+Status: DEFERRED / POST-LAUNCH LEARNING
+
+The operator explicitly accepted the risk of launching MVP without 10-20 real beta-user proof. This ledger remains the post-launch learning template. Do not backfill fake testers or treat empty rows as proof.
+
 Pair this with:
 
 - `docs/ops/FF-BETA-001-REAL-USER-BETA-PROOF-PACKET-2026-07-01.md`
@@ -26,6 +32,9 @@ Entry Result: passed | blocked
 Routine Result: created | selected | blocked
 Workout Result: completed | partial | blocked
 Progression Understanding: understood | partial | unclear
+Free Limits Understood: yes | no | partial
+Pro Offer Understood: yes | no | partial
+Support Path Understood: yes | no | partial
 Operator Intervention Needed: yes | no
 
 Top Friction Points:
@@ -45,28 +54,30 @@ Recommendation:
 
 ## Rollup Table
 
+These rows are placeholders only. Do not treat a tester id as enrolled until platform, install path, first-session date, and at least one result field are filled from a real tester run.
+
 | Tester ID | Cohort | Platform | Install Path | Account Type | First Session Date | Workout Lane Loaded | Feedback Received | Blocking Issues | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| FFB26-001 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-002 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-003 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-004 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-005 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-006 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-007 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-008 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-009 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-010 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-011 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-012 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-013 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-014 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-015 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-016 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-017 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-018 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-019 | Beta-01 |  |  | Free |  |  |  | None | Active |
-| FFB26-020 | Beta-01 |  |  | Free |  |  |  | None | Active |
+| FFB26-001 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-002 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-003 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-004 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-005 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-006 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-007 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-008 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-009 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-010 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-011 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-012 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-013 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-014 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-015 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-016 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-017 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-018 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-019 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
+| FFB26-020 | Beta-01 |  |  |  |  |  |  |  | Unassigned |
 
 ## Private Identity Map Rule
 

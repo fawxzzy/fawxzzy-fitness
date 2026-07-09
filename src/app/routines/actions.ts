@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import type { ActionResult } from "@/lib/action-result";
 import { getRoutineEditPath, getRoutineHomePath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -18,6 +19,14 @@ import {
 import { resolveUniqueRoutineCopyName } from "@/lib/routine-copy-name";
 import { toCanonicalRoutineTimezone } from "@/lib/timezones";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
+import {
+  BASE_ROUTINE_LIMIT,
+  BASE_SAVED_WORKOUT_PLAN_LIMIT,
+  ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE,
+  WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE,
+  selectAccessibleRoutineIdsForTier,
+  selectAccessibleWorkoutPlanTemplateIdsForTier,
+} from "@/lib/pro-tier-limits";
 import {
   getSchemaMismatchMessage,
   isMissingProgressionPlaybookColumnError,
@@ -260,12 +269,19 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
   const sourceDayExercises = sourceDayExercisesResult.data
     .filter((exercise) => exercise.routine_day_id === args.sourceRoutineDayId)
     .sort((left, right) => left.position - right.position);
+  const capacityError = sourceDayResult.data.workout_plan_template_id
+    ? null
+    : await getSavedWorkoutPlanCapacityError({
+        supabase: args.supabase,
+        userId: args.userId,
+      });
   const ensuredTemplateResult = await ensureWorkoutPlanForRoutineDay({
     supabase: args.supabase,
     userId: args.userId,
     routineDay: sourceDayResult.data,
     dayExercises: sourceDayExercises,
     markEditChoiceRequired: true,
+    capacityError,
   });
   if (ensuredTemplateResult.error || !ensuredTemplateResult.templateId) {
     if (isMissingWorkoutPlanTableError(ensuredTemplateResult.error)) {
@@ -386,6 +402,13 @@ export async function setActiveRoutineAction(formData: FormData): Promise<Action
     return { ok: false, error: routineCheckError.message };
   }
 
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
+
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ active_routine_id: routineId })
@@ -410,6 +433,13 @@ export async function loadRoutineWorkoutPlanSourcesAction(formData: FormData): P
     return { ok: false, error: "Missing routine ID." };
   }
 
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
+
   const sources = await loadWorkoutPlanSourceList({
     supabase,
     userId: user.id,
@@ -427,6 +457,13 @@ export async function appendRoutineDayAction(formData: FormData): Promise<Append
   if (!routineId) {
     return { ok: false, error: "Missing routine ID." };
   }
+
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
 
   const { data: routine, error: routineError } = await supabase
     .from("routines")
@@ -510,6 +547,13 @@ export async function deleteRoutineDayAction(formData: FormData): Promise<Action
   if (!routineId || !routineDayId) {
     return { ok: false, error: "Missing workout plan info." };
   }
+
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
 
   const { data: routine, error: routineError } = await supabase
     .from("routines")
@@ -598,6 +642,13 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
   if (!routineId || (!sourceRoutineDayId && !workoutPlanTemplateId)) {
     return { ok: false, error: "Missing workout plan info." };
   }
+
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
 
   const { data: routine, error: routineError } = await supabase
     .from("routines")
@@ -820,6 +871,13 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
   if (!routineId || !targetRoutineDayId || (!sourceRoutineDayId && !workoutPlanTemplateId)) {
     return { ok: false, error: "Missing workout plan info." };
   }
+
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
 
   const { data: targetDay, error: targetDayError } = await loadRoutineDayWithDuplicateSourceCompat({
     supabase,
@@ -1101,6 +1159,12 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
     return { ok: false, error: sourceRoutineError?.message ?? "Source routine not found." };
   }
 
+  const routineCapacity = await enforceRoutineCapacityForCreate({
+    supabase,
+    userId: user.id,
+  });
+  if (!routineCapacity.ok) return routineCapacity;
+
   const { data: existingRoutines, error: existingRoutinesError } = await supabase
     .from("routines")
     .select("name")
@@ -1347,6 +1411,13 @@ export async function reorderRoutineDaysAction(formData: FormData): Promise<Reor
     return { ok: false, error: "Missing reorder info." };
   }
 
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
+
   const { data: existingDays, error: existingDaysError } = await supabase
     .from("routine_days")
     .select("id")
@@ -1395,6 +1466,13 @@ export async function createRoutineDayAction(formData: FormData): Promise<Create
   if (!routineId) {
     return { ok: false, error: "Missing routine ID." };
   }
+
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
 
   const { data: routine, error: routineError } = await supabase
     .from("routines")
@@ -1606,6 +1684,18 @@ function selectedRoutineDefaultProgressionPlaybook(payload: {
   return typeof selectedPlaybookId === "string" && selectedPlaybookId.length > 0;
 }
 
+function routineDefaultProgressionChanged(args: {
+  existingPlaybookId?: string | null;
+  existingConfig?: Record<string, unknown> | null;
+  nextPlaybookId?: string | null;
+  nextConfig?: Record<string, unknown> | null;
+}) {
+  return (
+    (args.existingPlaybookId ?? null) !== (args.nextPlaybookId ?? null)
+    || JSON.stringify(args.existingConfig ?? null) !== JSON.stringify(args.nextConfig ?? null)
+  );
+}
+
 function normalizeStretchValue(value: string | null | undefined) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -1623,12 +1713,144 @@ function isStretchExerciseMetadata(exercise: {
   return normalizeStretchValue(exercise.primary_muscle) === "recovery" && normalizedName.includes("stretch");
 }
 
+async function enforceRoutineCapacityForCreate(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+}): Promise<ActionResult> {
+  const proAccess = await loadProAccessSnapshot(args.userId);
+  if (proAccess.accessState === "pro") {
+    return { ok: true };
+  }
+
+  const { count, error } = await args.supabase
+    .from("routines")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", args.userId);
+
+  if (error) {
+    return { ok: false, error: "Could not verify routine capacity." };
+  }
+
+  if ((count ?? 0) >= BASE_ROUTINE_LIMIT) {
+    return { ok: false, error: ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE };
+  }
+
+  return { ok: true };
+}
+
+async function enforceRoutineAccessForCurrentTier(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId: string;
+}): Promise<ActionResult> {
+  const proAccess = await loadProAccessSnapshot(args.userId);
+  if (proAccess.accessState === "pro") {
+    return { ok: true };
+  }
+
+  const [{ data: profile }, { data: routines, error }] = await Promise.all([
+    args.supabase
+      .from("profiles")
+      .select("active_routine_id")
+      .eq("id", args.userId)
+      .maybeSingle(),
+    args.supabase
+      .from("routines")
+      .select("id, name, updated_at, created_at")
+      .eq("user_id", args.userId)
+      .order("updated_at", { ascending: false }),
+  ]);
+
+  if (error) {
+    return { ok: false, error: "Could not verify routine access." };
+  }
+
+  const accessibleRoutineIds = selectAccessibleRoutineIdsForTier({
+    routines: routines ?? [],
+    accessState: proAccess.accessState,
+    activeRoutineId: profile?.active_routine_id ?? null,
+  });
+
+  if (!accessibleRoutineIds.has(args.routineId)) {
+    return { ok: false, error: ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE };
+  }
+
+  return { ok: true };
+}
+
+async function enforceWorkoutPlanTemplateAccessForCurrentTier(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  templateId: string;
+}): Promise<ActionResult> {
+  const proAccess = await loadProAccessSnapshot(args.userId);
+  if (proAccess.accessState === "pro") {
+    return { ok: true };
+  }
+
+  const { data: templates, error } = await args.supabase
+    .from("workout_plan_templates")
+    .select("id, name, updated_at, created_at")
+    .eq("user_id", args.userId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return { ok: false, error: "Could not verify workout plan access." };
+  }
+
+  const accessibleTemplateIds = selectAccessibleWorkoutPlanTemplateIdsForTier({
+    templates: templates ?? [],
+    accessState: proAccess.accessState,
+  });
+
+  if (!accessibleTemplateIds.has(args.templateId)) {
+    return { ok: false, error: WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE };
+  }
+
+  return { ok: true };
+}
+
+async function getSavedWorkoutPlanCapacityError(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+}) {
+  const proAccess = await loadProAccessSnapshot(args.userId);
+  if (proAccess.accessState === "pro") {
+    return null;
+  }
+
+  const { count, error } = await args.supabase
+    .from("workout_plan_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", args.userId);
+
+  if (error) {
+    if (isMissingWorkoutPlanTableError(error)) {
+      return null;
+    }
+
+    return new Error("Could not verify workout plan capacity.");
+  }
+
+  if ((count ?? 0) >= BASE_SAVED_WORKOUT_PLAN_LIMIT) {
+    return new Error(WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE);
+  }
+
+  return null;
+}
+
 export async function createRoutineAction(formData: FormData): Promise<CreateRoutineResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
   const parsed = parseRoutineForm(formData);
   if (!parsed.ok) return parsed;
   const previewDays = parseRoutinePreviewDays(formData);
+
+  const routineCapacity = await enforceRoutineCapacityForCreate({
+    supabase,
+    userId: user.id,
+  });
+  if (!routineCapacity.ok) return routineCapacity;
 
   const startDate = parsed.payload.startDate || getRoutineStartDateForWeekday({
     cycleLengthDays: parsed.payload.cycleLengthDays,
@@ -1748,6 +1970,13 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
   if (!routineId) return { ok: false, error: "Routine ID is required." };
   if (!parsed.ok) return parsed;
 
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
+
   const startDate = parsed.payload.startDate || getRoutineStartDateForWeekday({
     cycleLengthDays: parsed.payload.cycleLengthDays,
     startWeekday: parsed.payload.startWeekday,
@@ -1757,12 +1986,19 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
 
   const { data: existingRoutine, error: existingRoutineError } = await supabase
     .from("routines")
-    .select("cycle_length_days")
+    .select("cycle_length_days, default_progression_playbook_id, default_progression_playbook_config")
     .eq("id", routineId)
     .eq("user_id", user.id)
     .single();
 
   if (existingRoutineError || !existingRoutine) return { ok: false, error: existingRoutineError?.message ?? "Routine not found" };
+
+  const defaultProgressionChanged = routineDefaultProgressionChanged({
+    existingPlaybookId: existingRoutine.default_progression_playbook_id ?? null,
+    existingConfig: existingRoutine.default_progression_playbook_config ?? null,
+    nextPlaybookId: parsed.payload.defaultProgressionPlaybookId,
+    nextConfig: parsed.payload.defaultProgressionPlaybookConfig,
+  });
 
   const routinePayload = {
     name: parsed.payload.name,
@@ -1929,6 +2165,13 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
     return { ok: false, error: "Missing routine ID." };
   }
 
+  const accessResult = await enforceRoutineAccessForCurrentTier({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+  if (!accessResult.ok) return accessResult;
+
   const { data: affectedExerciseRows, error: affectedExerciseError } = await supabase
     .from("session_exercises")
     .select("exercise_id, session:sessions!inner(routine_id, status, user_id)")
@@ -2010,11 +2253,37 @@ export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise
   }
 
   if (resolvedTemplateId) {
+    const templateAccess = await enforceWorkoutPlanTemplateAccessForCurrentTier({
+      supabase,
+      userId: user.id,
+      templateId: resolvedTemplateId,
+    });
+    if (!templateAccess.ok) {
+      return templateAccess;
+    }
+
     linkedRoutineDays = allRoutineDaysResult.data.filter((day) => day.workout_plan_template_id === resolvedTemplateId);
   }
 
   if (linkedRoutineDays.length > 0) {
     const linkedRoutineDayIds = linkedRoutineDays.map((day) => day.id);
+    const affectedRoutineIds = Array.from(new Set(
+      linkedRoutineDays
+        .map((day) => day.routine_id)
+        .filter((value): value is string => Boolean(value)),
+    ));
+
+    for (const routineId of affectedRoutineIds) {
+      const routineAccess = await enforceRoutineAccessForCurrentTier({
+        supabase,
+        userId: user.id,
+        routineId,
+      });
+      if (!routineAccess.ok) {
+        return routineAccess;
+      }
+    }
+
     const { error: deleteRoutineDaysError } = await supabase
       .from("routine_days")
       .delete()
@@ -2024,12 +2293,6 @@ export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise
     if (deleteRoutineDaysError) {
       return { ok: false, error: deleteRoutineDaysError.message };
     }
-
-    const affectedRoutineIds = Array.from(new Set(
-      linkedRoutineDays
-        .map((day) => day.routine_id)
-        .filter((value): value is string => Boolean(value)),
-    ));
 
     for (const routineId of affectedRoutineIds) {
       const { data: remainingDays, error: remainingDaysError } = await supabase

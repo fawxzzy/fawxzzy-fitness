@@ -81,11 +81,6 @@ export function TodayStartButton({
   }, [prefetchedHref, router]);
 
   function navigateToSession(href: string) {
-    if (typeof window !== "undefined") {
-      window.location.assign(href);
-      return;
-    }
-
     router.push(href);
   }
 

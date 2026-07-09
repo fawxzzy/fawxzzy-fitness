@@ -4,7 +4,11 @@ import process from "node:process";
 import { register } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  assertExpectedFitnessSupabaseHost,
+  parseDotenvFile,
+  resolveEnvFilePath,
+} from "./env-file.mjs";
 
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
@@ -27,6 +31,11 @@ for (const [key, value] of Object.entries(fileEnv)) {
     process.env[key] = value;
   }
 }
+
+assertExpectedFitnessSupabaseHost({
+  env: process.env,
+  commandName: "feedback:sync-forum-posts",
+});
 
 const DISCORD_FORUM_SYNC_SELECT_COLUMNS = [
   "id",

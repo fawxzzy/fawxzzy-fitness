@@ -1,4 +1,6 @@
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
+import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
+import { selectAccessibleWorkoutPlanTemplateIdsForTier } from "@/lib/pro-tier-limits";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { buildRoutinePlanRecapExercises, selectRoutinePlanPreviewExercises } from "@/lib/routine-plan-preview";
 import {
@@ -113,9 +115,22 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
     return null;
   }
 
-  const templates = (templatesData ?? []) as WorkoutPlanRow[];
-  if (templates.length === 0) {
+  const allTemplates = (templatesData ?? []) as WorkoutPlanRow[];
+  if (allTemplates.length === 0) {
     return null;
+  }
+
+  const proAccess = await loadProAccessSnapshot(userId);
+  const accessibleTemplateIds = selectAccessibleWorkoutPlanTemplateIdsForTier({
+    templates: allTemplates,
+    accessState: proAccess.accessState,
+  });
+  const templates = allTemplates.filter((template) => accessibleTemplateIds.has(template.id));
+  if (templates.length === 0) {
+    return {
+      items: [],
+      hasUntemplatedSourceDays: false,
+    };
   }
 
   const templateIds = templates.map((template) => template.id);

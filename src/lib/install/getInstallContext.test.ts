@@ -93,10 +93,74 @@ test("detects iPadOS Safari desktop platform with touch", () => {
 test("ios safari override remains guidance-only for local install QA", () => {
   const context = getInstallContext({
     override: "ios-safari",
+    allowOverride: true,
     canUseNativeInstallPrompt: false,
   });
 
   assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
   assert.equal(context.shouldBlockAppAccess, false);
   assert.equal(context.shouldAllowAppAccess, true);
+});
+
+test("install context override is opt-in so protected routes cannot bypass install gate by query string", () => {
+  const context = getInstallContext({
+    override: "desktop",
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 TikTok 37.1.0",
+    platform: "iPhone",
+    maxTouchPoints: 5,
+    standalone: false,
+  });
+
+  assert.equal(context.isInAppBrowser, true);
+  assert.equal(context.shouldShowIOSOpenInSafariGate, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+});
+
+test("public install route can force iOS in-app browser guidance from documented install context", () => {
+  const context = getInstallContext({
+    override: "ios-inapp",
+    allowOverride: true,
+  });
+
+  assert.equal(context.platform, "ios");
+  assert.equal(context.browserKind, "inApp");
+  assert.equal(context.shouldShowIOSOpenInSafariGate, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+});
+
+test("public install route can force iOS standalone handoff from documented install context", () => {
+  const context = getInstallContext({
+    override: "ios-standalone",
+    allowOverride: true,
+  });
+
+  assert.equal(context.platform, "ios");
+  assert.equal(context.isStandalone, true);
+  assert.equal(context.shouldShowIOSOpenInSafariGate, false);
+  assert.equal(context.shouldShowIOSAddToHomeScreenGate, false);
+  assert.equal(context.shouldBlockAppAccess, false);
+  assert.equal(context.shouldAllowAppAccess, true);
+});
+
+test("documented Android and desktop install contexts resolve to concrete browser families", () => {
+  const android = getInstallContext({
+    override: "android-chrome",
+    allowOverride: true,
+  });
+  const edge = getInstallContext({
+    override: "desktop-windows-edge",
+    allowOverride: true,
+  });
+  const safari = getInstallContext({
+    override: "desktop-macos-safari",
+    allowOverride: true,
+  });
+
+  assert.equal(android.platform, "android");
+  assert.equal(android.browserKind, "chrome");
+  assert.equal(edge.platform, "desktop");
+  assert.equal(edge.browserKind, "edge");
+  assert.equal(safari.platform, "desktop");
+  assert.equal(safari.browserKind, "safari");
 });

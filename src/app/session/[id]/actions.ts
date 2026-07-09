@@ -598,7 +598,6 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   if (!parsedPayload.ok) {
     return { ok: false, error: parsedPayload.error };
   }
-
   let canonicalExerciseId = selectedExerciseId;
   let resolvedExerciseMeasurementType: "reps" | "time" | "distance" | "time_distance" | "none" | null = null;
   let resolvedExerciseName: string | null = null;
@@ -915,7 +914,6 @@ export async function updateSessionExerciseProgressionAction(formData: FormData)
     progression_playbook_id: progression.playbookId,
     progression_playbook_config: progression.config,
   };
-
   const { data: sessionExerciseRow, error: sessionExerciseReadError } = await supabase
     .from("session_exercises")
     .select("routine_day_exercise_id")

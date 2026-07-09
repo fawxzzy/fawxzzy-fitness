@@ -8,8 +8,7 @@ import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToast } from "@/components/ui/ToastProvider";
 import { cn } from "@/lib/cn";
-
-const FITNESS_DISCORD_INVITE_URL = "https://discord.gg/tnnV7BNJ7h";
+import { FITNESS_DISCORD_INVITE_URL } from "@/lib/legal-documents";
 
 type DiscordTokenResponse =
   | {

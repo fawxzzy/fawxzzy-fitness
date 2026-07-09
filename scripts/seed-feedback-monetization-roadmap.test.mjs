@@ -117,6 +117,19 @@ test("buildRoadmapInsertValues maps roadmap cards into bounded feature rows", ()
   assert.match(values.steps_to_reproduce, /Acceptance Criteria:/);
 });
 
+test("buildRoadmapInsertValues preserves closed launch gate status", () => {
+  const card = FEEDBACK_MONETIZATION_ROADMAP.find((entry) => entry.cardId === "FF-MON-001");
+  assert.ok(card);
+
+  const values = buildRoadmapInsertValues(card, {
+    nowIso: "2026-06-10T12:00:00.000Z",
+    forumChannelId: "forum-1",
+    reporterDiscordUserId: "1504700208251146371",
+  });
+
+  assert.equal(values.status, "fixed");
+});
+
 test("runSeedFeedbackMonetizationRoadmap creates missing rows and forum threads, then syncs them", async () => {
   const client = createMockClient();
   const syncCalls = [];
