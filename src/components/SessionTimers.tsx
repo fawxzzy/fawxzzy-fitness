@@ -601,7 +601,6 @@ export function SetLoggerCard({
     prefillReps,
     prefillWeight,
     prefillWeightUnit,
-    seededInitialEffortRating,
     unitLabel,
   ]);
   const currentLiveTargetMetrics = useMemo(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
 import {
@@ -195,7 +195,7 @@ export function ExerciseGoalForm({
   });
   const shouldHideEmptySummary = hideEmptySummary ?? showValidationMessage;
   const setsHasValue = Boolean(state.sets.trim());
-  const publishFailureToggleInfo = (overrideIsFailureMode?: boolean) => {
+  const publishFailureToggleInfo = useCallback((overrideIsFailureMode?: boolean) => {
     const payload = buildFailureToggleInfoPayload({
       modality,
       state,
@@ -209,7 +209,7 @@ export function ExerciseGoalForm({
     window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
       detail: payload,
     }));
-  };
+  }, [isFailureMode, modality, onInfoRequest, state]);
   const resolvedCompanionToggleCards = useMemo(
     () => [
       ...(companionToggleCards ?? []),
@@ -220,7 +220,7 @@ export function ExerciseGoalForm({
   const secondaryToggleCount = resolvedCompanionToggleCards.length;
   const multiToggleLayoutActive = secondaryToggleCount > 1;
   const secondaryToggleCardClassName = "relative inline-flex w-[7.35rem] min-w-[7.35rem] max-w-[7.35rem] shrink-0 flex-col text-center";
-  const failureToggleCard = supportsFailure ? (
+  const failureToggleCard = useMemo(() => supportsFailure ? (
     <div
       className={secondaryToggleCardClassName}
       onFocusCapture={() => publishFailureToggleInfo()}
@@ -243,7 +243,14 @@ export function ExerciseGoalForm({
         stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
       />
     </div>
-  ) : null;
+  ) : null, [
+    isFailureMode,
+    onStateChange,
+    publishFailureToggleInfo,
+    secondaryToggleCardClassName,
+    state,
+    supportsFailure,
+  ]);
   const resolvedAuxiliaryFields = useMemo(
     () => {
       if (!supportsFailure || !failureToggleCard || !inlineFailureToggle) {
@@ -286,7 +293,16 @@ export function ExerciseGoalForm({
         } satisfies MeasurementPanelAuxiliaryField,
       ];
     },
-    [auxiliaryFields, failureToggleCard, inlineFailureToggle, supportsFailure],
+    [
+      auxiliaryFields,
+      failureToggleCard,
+      inlineFailureToggle,
+      isFailureMode,
+      onStateChange,
+      publishFailureToggleInfo,
+      state,
+      supportsFailure,
+    ],
   );
   const secondaryToggleRow = resolvedCompanionToggleCards.length > 0 ? (
     <div className={multiToggleLayoutActive ? "flex flex-wrap items-start justify-center gap-2" : "flex justify-center"}>

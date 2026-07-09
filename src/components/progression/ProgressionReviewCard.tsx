@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ACTION_CHROME_CONTROL_CLASS_NAME,
@@ -116,6 +116,26 @@ export function ProgressionReviewCard({
   const isExpanded = expanded ?? uncontrolledExpanded;
   const appliedPinsStorageKey = useMemo(() => getProgressionAppliedPinsStorageKey(routineId), [routineId]);
 
+  const persistAppliedPins = useCallback((pins: ProgressionAppliedPin[]) => {
+    if (typeof window === "undefined" || !hasLoadedAppliedPins) {
+      return;
+    }
+
+    const nextPins = pruneExpiredProgressionAppliedPins(pins);
+    if (nextPins.length === 0) {
+      window.sessionStorage.removeItem(appliedPinsStorageKey);
+      window.dispatchEvent(new CustomEvent(PROGRESSION_APPLIED_PINS_CHANGED_EVENT, {
+        detail: { routineId, storageKey: appliedPinsStorageKey },
+      }));
+      return;
+    }
+
+    window.sessionStorage.setItem(appliedPinsStorageKey, JSON.stringify(nextPins));
+    window.dispatchEvent(new CustomEvent(PROGRESSION_APPLIED_PINS_CHANGED_EVENT, {
+      detail: { routineId, storageKey: appliedPinsStorageKey },
+    }));
+  }, [appliedPinsStorageKey, hasLoadedAppliedPins, routineId]);
+
   function setExpanded(nextExpanded: boolean) {
     if (expanded === undefined) {
       setUncontrolledExpanded(nextExpanded);
@@ -186,7 +206,7 @@ export function ProgressionReviewCard({
       }])));
       return next;
     });
-  }, [appliedPins.length, hasLoadedAppliedPins, items]);
+  }, [appliedPins.length, hasLoadedAppliedPins, items, persistAppliedPins]);
 
   useEffect(() => {
     if (!hasLoadedAppliedPins || clearScopedPinsSignal <= 0 || !routineDayIdScope) {
@@ -207,7 +227,7 @@ export function ProgressionReviewCard({
       }])));
       return next;
     });
-  }, [clearScopedPinsSignal, hasLoadedAppliedPins, routineDayIdScope]);
+  }, [clearScopedPinsSignal, hasLoadedAppliedPins, persistAppliedPins, routineDayIdScope]);
 
   function clearAppliedPin(id: string) {
     setAppliedPins((current) => {
@@ -225,26 +245,6 @@ export function ProgressionReviewCard({
       delete next[id];
       return next;
     });
-  }
-
-  function persistAppliedPins(pins: ProgressionAppliedPin[]) {
-    if (typeof window === "undefined" || !hasLoadedAppliedPins) {
-      return;
-    }
-
-    const nextPins = pruneExpiredProgressionAppliedPins(pins);
-    if (nextPins.length === 0) {
-      window.sessionStorage.removeItem(appliedPinsStorageKey);
-      window.dispatchEvent(new CustomEvent(PROGRESSION_APPLIED_PINS_CHANGED_EVENT, {
-        detail: { routineId, storageKey: appliedPinsStorageKey },
-      }));
-      return;
-    }
-
-    window.sessionStorage.setItem(appliedPinsStorageKey, JSON.stringify(nextPins));
-    window.dispatchEvent(new CustomEvent(PROGRESSION_APPLIED_PINS_CHANGED_EVENT, {
-      detail: { routineId, storageKey: appliedPinsStorageKey },
-    }));
   }
 
   const scopedAppliedPins = useMemo(() => {

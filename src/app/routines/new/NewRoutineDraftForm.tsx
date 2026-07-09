@@ -459,7 +459,7 @@ export function NewRoutineDraftForm({
     };
   }, [hasDirtyChanges]);
 
-  const commitCycleLengthInput = () => {
+  const commitCycleLengthInput = useCallback(() => {
     const committedCycleLength = commitRoutineCycleLengthInput(cycleLengthInput, draft.cycleLengthDays);
     const nextDraft =
       committedCycleLength.cycleLengthDays === draft.cycleLengthDays
@@ -473,7 +473,7 @@ export function NewRoutineDraftForm({
     }
 
     return nextDraft;
-  };
+  }, [cycleLengthInput, draft]);
 
   const movePreviewDayWithinList = useCallback((currentDays: NewRoutinePreviewDaySeed[], fromIndex: number, toIndex: number) => {
     if (

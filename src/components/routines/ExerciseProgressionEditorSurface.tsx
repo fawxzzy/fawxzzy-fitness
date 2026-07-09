@@ -145,7 +145,7 @@ export function ExerciseProgressionEditorSurface({
     exerciseMovementPattern,
     goalState.weight,
     routineDefaultProgressionConfig?.stepOverrides,
-    routineDefaultValue?.progressionLoadIncrement,
+    routineDefaultValue,
     weightUnit,
   ]);
 

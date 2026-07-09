@@ -2084,7 +2084,7 @@ export function ExercisePicker({
     clearToFreshGoalState();
     setDidApplyLast(false);
     previousExerciseIdRef.current = nextSelectionKey;
-  }, [clearToFreshGoalState, inferredCustomGoalModality, isCustomExerciseSelected, selectedExercise]);
+  }, [clearToFreshGoalState, isCustomExerciseSelected, routineTargetConfig, selectedExercise]);
 
   const previousCustomProfileKeyRef = useRef<string | null>(null);
 
@@ -2291,7 +2291,7 @@ export function ExercisePicker({
   const customExerciseHelperTone = customExerciseTargetState.helperTone;
   const customExerciseShowStatusSeparator = customExerciseTargetState.showStatusSeparator;
 
-  const renderCustomExerciseFilterStage = () => {
+  const renderCustomExerciseFilterStage = useCallback(() => {
     const resolveSection = () => {
       switch (activeCustomExerciseFilterSection) {
       case "secondary":
@@ -2346,9 +2346,19 @@ export function ExercisePicker({
         </div>
       </section>
     );
-  };
+  }, [
+    activeCustomExerciseFilterSection,
+    customExerciseEquipmentGroups,
+    customExerciseEquipmentTags,
+    customExerciseMovementGroups,
+    customExerciseMovementTags,
+    customExerciseMuscleTags,
+    customExerciseSecondaryMuscleTags,
+    filteredCustomExerciseMuscleGroups,
+    filteredCustomExerciseSecondaryMuscleGroups,
+  ]);
 
-  const customExerciseTagRowsNode = isCustomExerciseSelected ? (
+  const customExerciseTagRowsNode = useMemo(() => isCustomExerciseSelected ? (
     <div className="space-y-1.5 pt-1">
       <HorizontalScrollHint
         className="-mx-1"
@@ -2376,15 +2386,25 @@ export function ExercisePicker({
       <input type="hidden" name="customExerciseMovementPattern" value={selectedCustomMovementPattern} />
       <input type="hidden" name="customExerciseEquipment" value={selectedCustomEquipment} />
     </div>
-  ) : null;
+  ) : null, [
+    activeCustomExerciseFilterSection,
+    customExerciseFilterSections,
+    customExerciseName,
+    isCustomExerciseSelected,
+    renderCustomExerciseFilterStage,
+    selectedCustomEquipment,
+    selectedCustomMovementPattern,
+    selectedCustomPrimaryMuscle,
+    selectedCustomSecondaryMuscle,
+  ]);
 
-  const goalContentContext = {
+  const goalContentContext = useMemo(() => ({
     selectedExercise: activeSelectedExercise,
     goalState,
     goalModality,
     effectiveGoalModality,
     failureToggleInfoContent,
-  };
+  }), [activeSelectedExercise, effectiveGoalModality, failureToggleInfoContent, goalModality, goalState]);
   const applyLastToGoalState = useCallback(() => {
     if (!selectedStats) {
       return;
@@ -2464,39 +2484,39 @@ export function ExercisePicker({
     ? goalDockViewportModeProp(goalContentContext)
     : goalDockViewportModeProp;
   const compactGoalDockViewport = goalDockViewportMode === "compact";
-  const betweenInputsAndPreviewNode = goalBetweenInputsAndPreviewContent
+  const betweenInputsAndPreviewNode = useMemo(() => goalBetweenInputsAndPreviewContent
     ? (typeof goalBetweenInputsAndPreviewContent === "function"
       ? goalBetweenInputsAndPreviewContent(goalContentContext)
       : goalBetweenInputsAndPreviewContent)
-    : null;
-  const combinedBetweenInputsAndPreviewNode = customExerciseTagRowsNode || betweenInputsAndPreviewNode
+    : null, [goalBetweenInputsAndPreviewContent, goalContentContext]);
+  const combinedBetweenInputsAndPreviewNode = useMemo(() => customExerciseTagRowsNode || betweenInputsAndPreviewNode
     ? (
       <>
         {betweenInputsAndPreviewNode}
         {customExerciseTagRowsNode}
       </>
     )
-    : null;
-  const goalExtraNode = goalExtraContent
+    : null, [betweenInputsAndPreviewNode, customExerciseTagRowsNode]);
+  const goalExtraNode = useMemo(() => goalExtraContent
     ? (typeof goalExtraContent === "function"
       ? goalExtraContent(goalContentContext)
       : goalExtraContent)
-    : null;
-  const callerCompanionToggleCards = goalCompanionToggleCardsProp
+    : null, [goalContentContext, goalExtraContent]);
+  const callerCompanionToggleCards = useMemo(() => goalCompanionToggleCardsProp
     ? (typeof goalCompanionToggleCardsProp === "function"
       ? goalCompanionToggleCardsProp(goalContentContext)
       : goalCompanionToggleCardsProp)
-    : [];
-  const callerLowerCompanionToggleCards = goalLowerCompanionToggleCardsProp
+    : [], [goalCompanionToggleCardsProp, goalContentContext]);
+  const callerLowerCompanionToggleCards = useMemo(() => goalLowerCompanionToggleCardsProp
     ? (typeof goalLowerCompanionToggleCardsProp === "function"
       ? goalLowerCompanionToggleCardsProp(goalContentContext)
       : goalLowerCompanionToggleCardsProp)
-    : [];
-  const callerAuxiliaryFields = goalAuxiliaryFieldsProp
+    : [], [goalContentContext, goalLowerCompanionToggleCardsProp]);
+  const callerAuxiliaryFields = useMemo(() => goalAuxiliaryFieldsProp
     ? (typeof goalAuxiliaryFieldsProp === "function"
       ? goalAuxiliaryFieldsProp(goalContentContext)
       : goalAuxiliaryFieldsProp)
-    : [];
+    : [], [goalAuxiliaryFieldsProp, goalContentContext]);
   const addFlowSecondaryToggleCardClassName = "relative inline-flex w-[7.35rem] min-w-[7.35rem] max-w-[7.35rem] shrink-0 flex-col text-center";
   const embeddedToggleButtonClassName = cn(
     ACTION_CHROME_CONTROL_CLASS_NAME,
@@ -2547,9 +2567,12 @@ export function ExercisePicker({
       </button>
     </div>
   ) : null;
-  const resolvedCompanionToggleCards = [
-    ...callerCompanionToggleCards,
-  ];
+  const resolvedCompanionToggleCards = useMemo(
+    () => [
+      ...callerCompanionToggleCards,
+    ],
+    [callerCompanionToggleCards],
+  );
   const handleUseLastSelectionToggle = useCallback(() => {
     publishUseLastInfo();
     if (didApplyLast) {
@@ -2574,7 +2597,7 @@ export function ExercisePicker({
     onToggleLastSelection: handleUseLastSelectionToggle,
   }) : footerSlot;
   const activeSelectionCue = resolveExerciseRowCueClasses(activeSelectedExercise ?? customExerciseDraftOption);
-  const configureGoalDockNode = routineTargetConfig && (selectedExercise || isCustomExerciseSelected) ? (
+  const configureGoalDockNode = useMemo(() => routineTargetConfig && (selectedExercise || isCustomExerciseSelected) ? (
     <section className={cn(
       appTokens.exercisePickerGoalCompact,
       measurementDockSurfaceClassName,
@@ -2640,7 +2663,24 @@ export function ExercisePicker({
         ) : null}
       </VerticalScrollHint>
     </section>
-  ) : null;
+  ) : null, [
+    activeSelectionCue.dockAccentBarClassName,
+    activeSelectionCue.dockShellClassName,
+    callerAuxiliaryFields,
+    callerLowerCompanionToggleCards,
+    combinedBetweenInputsAndPreviewNode,
+    compactGoalDockViewport,
+    goalExtraNode,
+    goalInlineFailureToggle,
+    goalModality,
+    goalState,
+    handleGoalStateChange,
+    isCustomExerciseSelected,
+    isMeasurementOptionalSelected,
+    resolvedCompanionToggleCards,
+    routineTargetConfig,
+    selectedExercise,
+  ]);
   const goalDockRef = useRef<HTMLDivElement | null>(null);
   const listViewportRef = useRef<HTMLDivElement | null>(null);
   const [goalDockHeight, setGoalDockHeight] = useState(0);

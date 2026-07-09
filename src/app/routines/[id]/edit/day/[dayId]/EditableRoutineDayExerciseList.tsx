@@ -916,7 +916,15 @@ export function EditableRoutineDayExerciseList({
     }
 
     submit();
-  }, [activeExercise, createDraftSnapshot, expandedId, performExerciseUpdate, submitExerciseUpdate]);
+  }, [
+    activeExercise,
+    createDraftSnapshot,
+    expandedId,
+    performExerciseUpdate,
+    sanitizeExerciseFormData,
+    shouldSuppressInlineExerciseAutosave,
+    submitExerciseUpdate,
+  ]);
   const activeDraft = activeExercise ? draftsById[activeExercise.id] ?? null : null;
 
   useEffect(() => {
