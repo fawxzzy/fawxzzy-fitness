@@ -10,6 +10,7 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -24,6 +25,7 @@ import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { buildCurrentSessionHeaderInfoRailItems } from "@/lib/header-info-rail";
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import type { SetRow } from "@/types/db";
+import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 
 type AddSetPayload = {
   sessionId: string;
@@ -60,7 +62,17 @@ type SyncQueuedSetLogsAction = (payload: {
   }>;
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
-type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
+type SessionAutoPromotionUpdate = {
+  exerciseName: string;
+  previousTarget: string | null;
+  appliedTarget: string | null;
+  linkedTargetCount: number;
+};
+
+type ServerAction = (formData: FormData) => Promise<ActionResult<{
+  sessionId: string;
+  progressionUpdates: SessionAutoPromotionUpdate[];
+}>>;
 type ProgressionUpdateAction = (formData: FormData) => Promise<ActionResult>;
 type CopilotFeedbackUpdateAction = (payload: {
   sessionId: string;
@@ -120,6 +132,7 @@ export function SessionPageClient({
   deleteSetAction,
   updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
+  updateSessionExerciseTimerAction,
   disableDraftPersistence = false,
 }: {
   userId: string;
@@ -153,6 +166,11 @@ export function SessionPageClient({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   updateSessionExerciseCopilotFeedbackAction?: CopilotFeedbackUpdateAction;
   updateSessionExerciseProgressionAction: ProgressionUpdateAction;
+  updateSessionExerciseTimerAction?: (payload: {
+    sessionId: string;
+    sessionExerciseId: string;
+    command: ExerciseTimerCommand;
+  }) => Promise<ActionResult<{ timer: ExerciseTimerSnapshot }>>;
   disableDraftPersistence?: boolean;
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
@@ -160,6 +178,7 @@ export function SessionPageClient({
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [hasMountedTimer, setHasMountedTimer] = useState(false);
+  const [completedSessionUpdates, setCompletedSessionUpdates] = useState<SessionAutoPromotionUpdate[] | null>(null);
   const toast = useToast();
   useToastMessageEffect("error", searchError, { id: "session-search-error" });
   const fallbackReturnHref = useMemo(
@@ -281,7 +300,7 @@ export function SessionPageClient({
           if (result.ok) {
             clearActiveSessionHint(sessionId);
             writeInstallEarnedMoment("workout-completed");
-            navigateReturn();
+            setCompletedSessionUpdates(result.data?.progressionUpdates ?? []);
           }
         }}
         className="w-full"
@@ -350,6 +369,7 @@ export function SessionPageClient({
               deleteSetAction={deleteSetAction}
               updateSessionExerciseCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
               updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
+              updateSessionExerciseTimerAction={updateSessionExerciseTimerAction}
               disableDraftPersistence={disableDraftPersistence}
               bottomDockCenter={null}
             />
@@ -358,6 +378,41 @@ export function SessionPageClient({
           {emptyState}
         </section>
       </ContentRail>
+      {completedSessionUpdates ? (
+        <ConfirmDestructiveModal
+          open
+          title="Workout saved"
+          titleVariant="raw"
+          description={completedSessionUpdates.length > 0
+            ? "Your routine has been updated for the next session."
+            : "Your current routine targets stay the same."
+          }
+          confirmLabel="Continue"
+          confirmActionLabel="Continue"
+          confirmVariant="primary"
+          cancelLabel="Continue"
+          hideCancelAction
+          onCancel={navigateReturn}
+          onConfirm={navigateReturn}
+        >
+          {completedSessionUpdates.length > 0 ? (
+            <ul className="space-y-2 text-left">
+              {completedSessionUpdates.map((update) => (
+                <li
+                  key={`${update.exerciseName}-${update.appliedTarget}`}
+                  className="rounded-[0.8rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] px-3 py-2"
+                >
+                  <p className="text-[0.78rem] font-semibold text-[rgb(var(--text-primary)/0.96)]">{update.exerciseName}</p>
+                  <p className="mt-0.5 text-[0.72rem] font-medium text-[rgb(var(--text-muted)/0.9)]">
+                    {update.previousTarget ?? "Current target"} {"\u2192"} {update.appliedTarget ?? "Updated target"}
+                    {update.linkedTargetCount > 1 ? ` across ${update.linkedTargetCount} routine days` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </ConfirmDestructiveModal>
+      ) : null}
     </ScrollScreenWithBottomActions>
   );
 }

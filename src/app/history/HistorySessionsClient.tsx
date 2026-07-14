@@ -4,6 +4,12 @@ import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
+import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
+import { PremiumCycleAnalyticsPreview } from "@/components/history/PremiumCycleAnalyticsPreview";
+import { HistoryAchievementsSurface } from "@/components/history/HistoryAchievementsSurface";
+import { buildHistoryAchievements } from "@/lib/history-achievements";
+import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
+import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
@@ -16,7 +22,10 @@ import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
-import { getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
+import { buildHistoryCalendarView } from "@/lib/history-calendar";
+import { buildHistoryMonthlyProgress } from "@/lib/history-monthly-progress";
+import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
+import { getWeeklyProgressDayKey, getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
@@ -158,6 +167,8 @@ function HistorySessionFilters({
   filterState,
   filterOptions,
   onFilterStateChange,
+  selectedCalendarDayLabel,
+  onClearCalendarDay,
 }: {
   query: string;
   onQueryChange: (next: string) => void;
@@ -169,6 +180,8 @@ function HistorySessionFilters({
   filterState: ExerciseInfoFilterState;
   filterOptions: ExerciseInfoFilterOptions;
   onFilterStateChange: (next: ExerciseInfoFilterState) => void;
+  selectedCalendarDayLabel: string | null;
+  onClearCalendarDay: () => void;
 }) {
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const routineOptions = Array.isArray(filterOptions.routines) ? filterOptions.routines : [];
@@ -319,6 +332,18 @@ function HistorySessionFilters({
           })}
         </FilterSection>
       ) : null}
+      {selectedCalendarDayLabel ? (
+        <FilterSection title="Calendar" showClear onClear={onClearCalendarDay}>
+          <PillButton
+            type="button"
+            active
+            className="shrink-0 whitespace-nowrap px-2 py-1 text-[10px] !border-[rgb(var(--success-rgb)/0.68)] !bg-[rgb(var(--success-rgb)/0.18)] !text-[rgb(var(--text-primary)/0.98)]"
+            onClick={onClearCalendarDay}
+          >
+            {selectedCalendarDayLabel}
+          </PillButton>
+        </FilterSection>
+      ) : null}
     </>
   );
 
@@ -372,10 +397,12 @@ export function HistorySessionsClient({
   selectedSessionId,
   initialViewMode = "compact",
   initialFiltersOpen = false,
+  initialSelectedDayKey = null,
   initialQuery = "",
   initialSelectedTags = [],
   showBottomActions = true,
   sessionHrefOverrides,
+  premiumCycleAnalyticsPreviewEnabled = false,
 }: {
   sessions: SessionSummary[];
   filterOptions?: ExerciseInfoFilterOptions;
@@ -394,13 +421,16 @@ export function HistorySessionsClient({
   selectedSessionId?: string;
   initialViewMode?: "compact" | "detailed";
   initialFiltersOpen?: boolean;
+  initialSelectedDayKey?: string | null;
   initialQuery?: string;
   initialSelectedTags?: string[];
   showBottomActions?: boolean;
   sessionHrefOverrides?: Record<string, string>;
+  premiumCycleAnalyticsPreviewEnabled?: boolean;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(initialSelectedDayKey);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const [filterState, setFilterState] = useState<ExerciseInfoFilterState>(createDefaultExerciseInfoFilterState());
   const [payloadsByFilterKey, setPayloadsByFilterKey] = useState<Record<string, HistorySessionsScopePayload>>(() => {
@@ -618,7 +648,15 @@ export function HistorySessionsClient({
     ].filter((group): group is ExerciseTagGroup => group !== null && group.tags.length > 0);
   }, [scopedSessions]);
 
-  const filteredSessions = useMemo(() => {
+  const scopedSessionDayKeysById = useMemo(() => {
+    const dayKeys = new Map<string, string | null>();
+    for (const session of scopedSessions) {
+      dayKeys.set(session.id, getWeeklyProgressDayKey(session.startedAt, scopedWeeklyProgress.timezone));
+    }
+    return dayKeys;
+  }, [scopedSessions, scopedWeeklyProgress.timezone]);
+
+  const queryFilteredSessions = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
 
     return scopedSessions.filter((session) => {
@@ -637,6 +675,51 @@ export function HistorySessionsClient({
     });
   }, [deferredQuery, scopedSessions, selectedTags, sessionTagsById]);
 
+  const selectableDayKeys = useMemo(() => {
+    const dayKeys = new Set<string>();
+    for (const session of queryFilteredSessions) {
+      const dayKey = scopedSessionDayKeysById.get(session.id);
+      if (dayKey) {
+        dayKeys.add(dayKey);
+      }
+    }
+    return dayKeys;
+  }, [queryFilteredSessions, scopedSessionDayKeysById]);
+
+  const effectiveSelectedDayKey = selectedDayKey && selectableDayKeys.has(selectedDayKey)
+    ? selectedDayKey
+    : null;
+
+  useEffect(() => {
+    if (selectedDayKey && !selectableDayKeys.has(selectedDayKey)) {
+      setSelectedDayKey(null);
+    }
+  }, [selectableDayKeys, selectedDayKey]);
+
+  const calendarView = useMemo(() => buildHistoryCalendarView({
+    sessions: queryFilteredSessions,
+    timezone: scopedWeeklyProgress.timezone,
+    selectedDayKey: effectiveSelectedDayKey,
+  }), [effectiveSelectedDayKey, queryFilteredSessions, scopedWeeklyProgress.timezone]);
+
+  const monthlyProgress = useMemo(() => buildHistoryMonthlyProgress({
+    sessions: queryFilteredSessions,
+    timezone: scopedWeeklyProgress.timezone,
+  }), [queryFilteredSessions, scopedWeeklyProgress.timezone]);
+
+  const workoutStreak = useMemo(() => buildHistoryWorkoutStreak({
+    sessions: queryFilteredSessions,
+    timezone: scopedWeeklyProgress.timezone,
+  }), [queryFilteredSessions, scopedWeeklyProgress.timezone]);
+
+  const filteredSessions = useMemo(() => {
+    if (!effectiveSelectedDayKey) {
+      return queryFilteredSessions;
+    }
+
+    return queryFilteredSessions.filter((session) => scopedSessionDayKeysById.get(session.id) === effectiveSelectedDayKey);
+  }, [effectiveSelectedDayKey, queryFilteredSessions, scopedSessionDayKeysById]);
+
   const sessionWeekStarts = useMemo(
     () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, scopedWeeklyProgress.timezone)])),
     [filteredSessions, scopedWeeklyProgress.timezone],
@@ -649,6 +732,11 @@ export function HistorySessionsClient({
     () => new Map(scopedWeeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
     [scopedWeeklyProgressByWeek],
   );
+  const achievements = useMemo(() => buildHistoryAchievements({
+    completedWorkoutCount: scopedScopeSummary.completedWorkoutCount,
+    bestWeekCount: workoutStreak.bestWeekCount,
+    prMomentCount: scopedScopeSummary.prMomentCount,
+  }), [scopedScopeSummary.completedWorkoutCount, scopedScopeSummary.prMomentCount, workoutStreak.bestWeekCount]);
 
   return (
     <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
@@ -672,14 +760,34 @@ export function HistorySessionsClient({
                   filterState={filterState}
                   filterOptions={filterOptions}
                   onFilterStateChange={setFilterState}
+                  selectedCalendarDayLabel={calendarView.selectedDay?.label ?? null}
+                  onClearCalendarDay={() => setSelectedDayKey(null)}
                 />
               </HistoryTitleControlShell>
             </div>
           </div>
         </div>
       ) : null}
+      <HistoryAchievementsSurface achievements={achievements} />
+      {queryFilteredSessions.length > 0 ? (
+        <div data-history-retention-surface="calendar">
+          <HistoryCalendarSurface
+            calendarView={calendarView}
+            onSelectDayKey={setSelectedDayKey}
+          />
+        </div>
+      ) : null}
       <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-      <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+      {premiumCycleAnalyticsPreviewEnabled ? <PremiumCycleAnalyticsPreview /> : null}
+      <div data-history-retention-surface="monthly">
+        <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
+      </div>
+      <div data-history-retention-surface="streak">
+        <WorkoutStreakSurface summary={workoutStreak} viewMode={viewMode} />
+      </div>
+      <div data-history-retention-surface="current-week-progression">
+        <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+      </div>
       {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
         <ul className={cn(

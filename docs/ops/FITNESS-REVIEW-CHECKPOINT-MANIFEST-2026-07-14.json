@@ -1,0 +1,357 @@
+{
+  "schemaVersion": "fitness.review-checkpoint-manifest.v1",
+  "createdAt": "2026-07-14",
+  "repository": "fawxzzy-fitness",
+  "baseCommit": "e1ab7fbea979456380230c5459fdef6ae4c927e9",
+  "branch": "codex/fitness-review-checkpoint",
+  "strategy": "aggregate_preservation_commit",
+  "strategyReason": "Shared implementation files contain inseparable work from multiple Review cards. Splitting the current tree would risk rewriting, dropping, or falsely attributing preserved changes.",
+  "originalSnapshot": {
+    "modifiedPaths": 78,
+    "untrackedPaths": 54,
+    "totalPaths": 132,
+    "contentDeltaPaths": 130,
+    "statOnlyNoContentDelta": [
+      "scripts/test-alias-loader.mjs",
+      "src/app/routines/[id]/edit/page.tsx"
+    ]
+  },
+  "preservationArtifact": "docs/ops/FITNESS-REVIEW-CHECKPOINT-MANIFEST-2026-07-14.json",
+  "releaseState": {
+    "mergeAuthorized": false,
+    "productionDeployAuthorized": false,
+    "affectedCardsRemain": "review"
+  },
+  "verification": {
+    "completedAt": "2026-07-14",
+    "repositoryVerification": {
+      "command": "npm run verify",
+      "status": "passed",
+      "base": "origin/main@e1ab7fbea979456380230c5459fdef6ae4c927e9"
+    },
+    "passingChecks": [
+      "npm run typecheck",
+      "npm run test:atlas-contracts",
+      "git diff --check",
+      "verify:strict lint stage",
+      "verify:strict history UI contracts stage",
+      "verify:strict app theme contracts stage",
+      "verify:strict fitness growth shadow stage",
+      "verify:strict mobile regression harness typecheck stage"
+    ],
+    "reviewFindings": [
+      {
+        "command": "focused 87-test preservation suite",
+        "status": "86_passed_1_failed",
+        "finding": "FF-CORE-001 roadmap source now emits fixed while the preserved test still expects confirmed."
+      },
+      {
+        "command": "npm run migration:validate",
+        "status": "pending_migrations",
+        "finding": "The two preserved exercise/set timing migrations are intentionally unapplied in this no-database-mutation packet."
+      },
+      {
+        "command": "npm run verify:history-render",
+        "status": "failed_review_proof",
+        "finding": "The complete retention review stack exceeds the verifier's page-overflow contract."
+      },
+      {
+        "command": "npm run verify:strict",
+        "status": "failed_mobile_regression_expectations",
+        "finding": "Five fixture expectations are stale after the preserved session-post-close-feedback and session-auto-progression-confirmation scenarios expanded the matrix from 57 to 59 entries and from 12 to 14 inventory groups."
+      }
+    ],
+    "lintWarnings": [
+      "ExerciseTimerControl.tsx: useEffect is missing runCommand dependency.",
+      "SessionPageClient.tsx: useMemo has an unnecessary navigateReturn dependency."
+    ],
+    "productionBuild": "not_run_because_verify_strict_stopped_at_review_fixture_failures"
+  },
+  "overlapEvidence": [
+    {
+      "path": "src/app/session/[id]/actions.ts",
+      "cards": ["FF-CORE-001", "FF-PROG-001", "FF-SESSION-001", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-006"],
+      "reason": "Contains post-save summary, automatic progression, timer persistence, set timing, and effort feedback behavior."
+    },
+    {
+      "path": "src/app/globals.css",
+      "cards": ["FF-CORE-001", "FF-CORE-002", "FF-HISTORY-002", "FF-HISTORY-003", "FF-PROG-001", "FF-PWA-003", "FF-RET-001", "FF-RET-002", "FF-RET-004", "FF-SESSION-001", "FF-SESSION-003", "FF-SESSION-005", "FF-SESSION-006"],
+      "reason": "Contains shared presentation rules for the Review batch across session, routine, history, progression, and install surfaces."
+    },
+    {
+      "path": "src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx",
+      "cards": ["FF-CORE-001", "FF-CORE-002", "FF-HISTORY-002", "FF-HISTORY-003", "FF-PROG-001", "FF-RET-001", "FF-RET-002", "FF-RET-004", "FF-SESSION-001", "FF-SESSION-003", "FF-SESSION-005", "FF-SESSION-006"],
+      "reason": "One fixture route provides review surfaces for multiple independently tracked features."
+    }
+  ],
+  "groups": [
+    {
+      "id": "atlas_contracts_ci",
+      "ownership": "confirmed",
+      "confidence": "high",
+      "cards": ["FF-QA-002"],
+      "evidence": ["FITNESS_QA_002_REVIEW_RECEIPT"],
+      "paths": [
+        ".github/workflows/atlas-contracts.yml"
+      ]
+    },
+    {
+      "id": "discord_board_and_feedback_ops",
+      "ownership": "confirmed_shared",
+      "confidence": "medium",
+      "cards": ["FF-MKT-001", "FF-MON-001", "FF-PWA-003", "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005", "FF-SOC-001"],
+      "evidence": ["FITNESS_BOARD_AUTONOMY_RECEIPT", "2026-07-13-reconciliation-journal.json"],
+      "paths": [
+        "docs/ops/FITNESS-MONETIZATION-ROADMAP.md",
+        "package.json",
+        "scripts/export-discord-bug-reports.mjs",
+        "scripts/export-feedback-board.mjs",
+        "scripts/feedback-card-seed-core.mjs",
+        "scripts/feedback-card-seed-core.test.mjs",
+        "scripts/feedback-card-sets.mjs",
+        "scripts/feedback-monetization-roadmap.mjs",
+        "scripts/feedback-session-exercise-timer-cards.mjs",
+        "scripts/seed-feedback-card-set.mjs",
+        "scripts/seed-feedback-card-set.test.mjs",
+        "scripts/seed-feedback-monetization-roadmap.mjs",
+        "scripts/seed-feedback-monetization-roadmap.test.mjs",
+        "scripts/sync-feedback-forum-posts.mjs"
+      ]
+    },
+    {
+      "id": "ambiguous_test_runtime_support",
+      "ownership": "ambiguous_preserved",
+      "confidence": "low",
+      "cards": ["FF-QA-001", "FF-QA-002"],
+      "evidence": ["No exact originating receipt; files support environment and test-runtime behavior used by prior QA work."],
+      "paths": [
+        "scripts/env-file.mjs",
+        "scripts/env-file.test.mjs",
+        "scripts/test-alias-loader.mjs",
+        "src/lib/package.json"
+      ]
+    },
+    {
+      "id": "operator_review_queue",
+      "ownership": "confirmed_shared",
+      "confidence": "high",
+      "cards": ["FF-CORE-001", "FF-CORE-002", "FF-HISTORY-002", "FF-HISTORY-003", "FF-PROG-001", "FF-PWA-003", "FF-RET-001", "FF-RET-002", "FF-RET-004", "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005", "FF-SESSION-006"],
+      "evidence": ["FITNESS_REVIEW_RECEIPT"],
+      "paths": [
+        "docs/ops/FITNESS-MANUAL-REVIEW-CHECKLIST-2026-07-13.md",
+        "docs/ops/FITNESS-REVIEW-QUEUE.md"
+      ]
+    },
+    {
+      "id": "founding_user_launch_material",
+      "ownership": "confirmed",
+      "confidence": "high",
+      "cards": ["FF-MKT-001"],
+      "evidence": ["FF-MKT-001-FOUNDING-USER-LAUNCH-PLAN-2026-07-12.md"],
+      "paths": [
+        "docs/ops/FF-MKT-001-FOUNDING-USER-LAUNCH-PLAN-2026-07-12.md",
+        "docs/ops/assets/ff-mkt-001/01-history-overview.png",
+        "docs/ops/assets/ff-mkt-001/02-curated-generated-plan.png",
+        "docs/ops/assets/ff-mkt-001/03-current-session-exercise-timer.png",
+        "docs/ops/assets/ff-mkt-001/04-shareable-workout-recap.png"
+      ]
+    },
+    {
+      "id": "social_scope_decision",
+      "ownership": "confirmed",
+      "confidence": "high",
+      "cards": ["FF-SOC-001"],
+      "evidence": ["FF-SOC-001-SOCIAL-SCOPE-DECISION-2026-07-12.md"],
+      "paths": [
+        "docs/ops/FF-SOC-001-SOCIAL-SCOPE-DECISION-2026-07-12.md"
+      ]
+    },
+    {
+      "id": "install_and_pwa_review",
+      "ownership": "confirmed_shared",
+      "confidence": "high",
+      "cards": ["FF-PWA-003"],
+      "historicalEvidenceCards": ["FF-PWA-001"],
+      "evidence": ["FF-PWA-001-INSTALL-FLOW-HANDOFF-PROOF-2026-07-09.md", "FITNESS_BOARD_AUTONOMY_RECEIPT"],
+      "paths": [
+        "docs/ops/FF-PWA-001-INSTALL-FLOW-HANDOFF-PROOF-2026-07-09.md",
+        "src/app/install/page.tsx",
+        "src/app/login/page.tsx",
+        "src/app/manifest.ts",
+        "src/app/page.tsx",
+        "src/app/signup/page.tsx",
+        "src/components/ServiceWorkerBootstrap.tsx",
+        "src/components/install/EarnedInstallPrompt.tsx",
+        "src/components/install/IOSAddToHomeScreenGate.tsx",
+        "src/components/install/IOSOpenInSafariGate.tsx",
+        "src/components/install/InstallRouteSurface.tsx",
+        "src/components/install/ProtectedAppInstallGate.tsx",
+        "src/lib/install/config.test.ts",
+        "src/lib/install/config.ts",
+        "src/lib/install/earned-install-prompt.test.ts",
+        "src/lib/install/earned-install-prompt.ts",
+        "src/lib/install/getInstallContext.test.ts",
+        "src/lib/install/getInstallContext.ts"
+      ]
+    },
+    {
+      "id": "curated_onboarding_engine",
+      "ownership": "confirmed_shared",
+      "confidence": "high",
+      "cards": ["FF-ENGINE-001", "FF-ENGINE-002", "FF-ONBOARD-001"],
+      "evidence": ["2026-07-13-reconciliation-journal.json"],
+      "paths": [
+        "src/app/curated-onboarding/actions.ts",
+        "src/features/curated-onboarding/api-contract.ts",
+        "src/features/curated-onboarding/components/CuratedIntroStep.tsx",
+        "src/features/curated-onboarding/components/CuratedOnboardingShell.tsx",
+        "src/features/curated-onboarding/components/GenerationHandoffStep.tsx",
+        "src/features/curated-onboarding/components/ReviewStep.tsx",
+        "src/features/curated-onboarding/engine.test.ts",
+        "src/features/curated-onboarding/engine.ts",
+        "src/features/curated-onboarding/reducer.test.ts",
+        "src/features/curated-onboarding/reducer.ts",
+        "src/features/curated-onboarding/step-registry.ts"
+      ]
+    },
+    {
+      "id": "history_metrics_calendar_and_achievements",
+      "ownership": "confirmed_shared",
+      "confidence": "high",
+      "cards": ["FF-GAM-001", "FF-HISTORY-003", "FF-RET-001", "FF-RET-002", "FF-RET-004"],
+      "evidence": ["2026-07-13-history-review-ready.json", "2026-07-14-history-003-review.json"],
+      "paths": [
+        "scripts/verify-history-family-ui.mjs",
+        "src/app/history/HistorySessionsClient.tsx",
+        "src/app/history/page.tsx",
+        "src/components/history/ConsistencyHeatmapSurface.tsx",
+        "src/components/history/HistoryAchievementsSurface.tsx",
+        "src/components/history/HistoryCalendarSurface.tsx",
+        "src/components/history/HistoryMetricsDisclosure.tsx",
+        "src/components/history/HistoryShared.tsx",
+        "src/components/history/MonthlyProgressSurface.tsx",
+        "src/components/history/PremiumCycleAnalyticsPreview.tsx",
+        "src/components/history/WorkoutStreakSurface.tsx",
+        "src/lib/history-achievements.test.ts",
+        "src/lib/history-achievements.ts",
+        "src/lib/history-calendar.test.ts",
+        "src/lib/history-calendar.ts",
+        "src/lib/history-consistency-heatmap.test.ts",
+        "src/lib/history-consistency-heatmap.ts",
+        "src/lib/history-monthly-progress.test.ts",
+        "src/lib/history-monthly-progress.ts",
+        "src/lib/history-workout-streak.test.ts",
+        "src/lib/history-workout-streak.ts"
+      ]
+    },
+    {
+      "id": "history_detail_hardening",
+      "ownership": "confirmed",
+      "confidence": "high",
+      "cards": ["FF-HISTORY-002"],
+      "evidence": ["2026-07-14-history-002-review.json"],
+      "paths": [
+        "src/app/history/[sessionId]/LogAuditClient.tsx",
+        "src/app/history/[sessionId]/page.tsx",
+        "src/lib/history-session-detail-loader.test.ts",
+        "src/lib/history-session-detail-loader.ts",
+        "src/lib/history-sessions-page-loader.ts"
+      ]
+    },
+    {
+      "id": "routine_card_and_editor_polish",
+      "ownership": "confirmed",
+      "confidence": "high",
+      "cards": ["FF-CORE-002"],
+      "evidence": ["2026-07-14-core-002-remediation-review.json", "2026-07-14-routine-history-polish-review.json"],
+      "paths": [
+        "src/app/routines/RoutineHomeClient.tsx",
+        "src/app/routines/RoutineHomeEditorClient.tsx",
+        "src/app/routines/RoutinesPageClient.tsx",
+        "src/app/routines/WorkoutPlansPageClient.tsx",
+        "src/app/routines/[id]/edit/EditRoutineAutosaveForm.tsx",
+        "src/app/routines/[id]/edit/page.tsx",
+        "src/app/routines/new/NewRoutineDraftForm.tsx",
+        "src/app/routines/page.tsx",
+        "src/components/day-list/RoutineDayCardPresentation.tsx",
+        "src/components/legal/LegalInlineLinks.contract.test.ts",
+        "src/components/legal/LegalInlineLinks.tsx",
+        "src/components/routines/RoutineBrowseCard.contract.test.ts",
+        "src/components/routines/RoutineBrowseCard.tsx",
+        "src/components/routines/RoutineEditorForm.tsx",
+        "src/components/routines/routineCardChrome.ts",
+        "src/lib/routine-details-form.ts"
+      ]
+    },
+    {
+      "id": "session_timer_recovery_feedback_and_progression",
+      "ownership": "confirmed_shared",
+      "confidence": "high",
+      "cards": ["FF-CORE-001", "FF-PROG-001", "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005", "FF-SESSION-006"],
+      "evidence": ["2026-07-13-auto-progression-checkpoint.json", "2026-07-13-session-feedback-review-ready.json", "2026-07-14-core-001-review.json", "2026-07-14-prog-001-review.json"],
+      "paths": [
+        "docs/ops/FF-SESSION-EXERCISE-TIMER-CARD-DRAFTS-2026-07-09.md",
+        "src/app/session/[id]/SessionQuickAddExerciseForm.tsx",
+        "src/app/session/[id]/actions.ts",
+        "src/app/session/[id]/page.tsx",
+        "src/app/session/[id]/queries.ts",
+        "src/app/today/TodayDayPicker.tsx",
+        "src/components/SessionExerciseFocus.tsx",
+        "src/components/SessionPageClient.tsx",
+        "src/components/SessionTimers.tsx",
+        "src/components/exercises/ExerciseChooserAddFlowForm.tsx",
+        "src/components/progression/ProgressionReviewCard.tsx",
+        "src/components/session/ExerciseTimerControl.tsx",
+        "src/components/session/ExerciseTimerSetup.tsx",
+        "src/components/session/RecoveryTimingPrompt.tsx",
+        "src/components/session/SessionExerciseFeedbackPrompt.tsx",
+        "src/components/ui/ConfirmDestructiveModal.tsx",
+        "src/components/workout/ExerciseDisclosureCard.tsx",
+        "src/lib/exercise-timer.test.ts",
+        "src/lib/exercise-timer.ts",
+        "src/lib/recovery-timing.test.ts",
+        "src/lib/recovery-timing.ts",
+        "src/lib/session-auto-progression.test.ts",
+        "src/lib/session-auto-progression.ts",
+        "src/lib/session-completed-visibility.test.ts",
+        "src/lib/session-completed-visibility.ts",
+        "src/types/db.ts",
+        "supabase/migrations/20260713013116_exercise_timer_truth.sql",
+        "supabase/migrations/20260713020801_set_timing_truth.sql"
+      ]
+    },
+    {
+      "id": "shared_mobile_review_surfaces",
+      "ownership": "confirmed_shared",
+      "confidence": "high",
+      "cards": ["FF-CORE-001", "FF-CORE-002", "FF-HISTORY-002", "FF-HISTORY-003", "FF-PROG-001", "FF-PWA-003", "FF-RET-001", "FF-RET-002", "FF-RET-004", "FF-SESSION-001", "FF-SESSION-003", "FF-SESSION-005", "FF-SESSION-006"],
+      "evidence": ["FITNESS_REVIEW_RECEIPT"],
+      "paths": [
+        "src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx",
+        "src/app/dev/mobile-regression/sessionScenarioFixtures.ts",
+        "src/app/globals.css",
+        "src/components/ui/app/SharedSectionShell.tsx",
+        "src/components/ui/app/designSystem.ts",
+        "src/features/mobile-regression/fixtures.ts"
+      ]
+    }
+  ],
+  "ambiguousPaths": [
+    {
+      "path": "scripts/env-file.mjs",
+      "reason": "No exact originating card or receipt was found; preserved as prior QA support."
+    },
+    {
+      "path": "scripts/env-file.test.mjs",
+      "reason": "No exact originating card or receipt was found; preserved with its implementation."
+    },
+    {
+      "path": "scripts/test-alias-loader.mjs",
+      "reason": "Shared test-runtime support predates the latest card receipts."
+    },
+    {
+      "path": "src/lib/package.json",
+      "reason": "Shared test-runtime module boundary has no exact originating receipt."
+    }
+  ]
+}

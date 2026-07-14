@@ -1,3 +1,5 @@
+import { normalizeRoutineTimezone } from "@/lib/timezones";
+
 function sanitizeRoutineName(value: string) {
   return value.slice(0, 15);
 }
@@ -41,7 +43,7 @@ export function normalizeRoutineDetailsDraft(raw: Partial<RoutineDetailsDraft>, 
       : defaults.scheduleMode,
     startDate: isValidRoutineDateString(rawStartDate) ? rawStartDate : defaults.startDate,
     startWeekday: typeof raw.startWeekday === "string" ? raw.startWeekday : defaults.startWeekday,
-    timezone: typeof raw.timezone === "string" ? raw.timezone : defaults.timezone,
+    timezone: normalizeRoutineTimezone(typeof raw.timezone === "string" ? raw.timezone : defaults.timezone),
     weightUnit: raw.weightUnit === "kg" ? "kg" : "lbs",
     distanceUnit: raw.distanceUnit === "km" ? "km" : "mi",
   };

@@ -775,7 +775,7 @@ export function TodayDayPicker({
                     {selectedDay.exercises.map((exercise) => {
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
-                      const canShowCardAction = cardReadyItem?.type === "promote" || cardReadyItem?.type === "deload";
+                      const canShowCardAction = cardReadyItem?.type === "deload";
                       const cardActionPending = isCardActionPending && (
                         cardPendingItemId === cardReadyItem?.id
                         || cardPendingItemId === cardAppliedPin?.routineDayExerciseId

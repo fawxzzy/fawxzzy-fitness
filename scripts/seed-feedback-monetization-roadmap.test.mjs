@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   buildRoadmapInsertValues,
   buildRoadmapStepsToReproduce,
   parseArgs,
   runSeedFeedbackMonetizationRoadmap,
 } from "./seed-feedback-monetization-roadmap.mjs";
-import { FEEDBACK_MONETIZATION_ROADMAP } from "./feedback-monetization-roadmap.mjs";
+import {
+  FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER,
+  FEEDBACK_MONETIZATION_ROADMAP,
+} from "./feedback-monetization-roadmap.mjs";
 
 function createMockClient(initialRows = []) {
   const rows = [...initialRows];
@@ -128,6 +134,34 @@ test("buildRoadmapInsertValues preserves closed launch gate status", () => {
   });
 
   assert.equal(values.status, "fixed");
+});
+
+test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {
+  const roadmapCardIds = FEEDBACK_MONETIZATION_ROADMAP.map((card) => card.cardId);
+
+  assert.deepEqual([...FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER].sort(), [...roadmapCardIds].sort());
+  assert.equal(new Set(FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER).size, FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER.length);
+
+  const orderIndex = new Map(FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER.map((cardId, index) => [cardId, index]));
+  for (const card of FEEDBACK_MONETIZATION_ROADMAP) {
+    for (const dependencyId of card.dependsOn) {
+      if (!orderIndex.has(dependencyId)) {
+        continue;
+      }
+      assert.ok(
+        orderIndex.get(dependencyId) < orderIndex.get(card.cardId),
+        `${card.cardId} appears before dependency ${dependencyId}`,
+      );
+    }
+  }
+});
+
+test("human roadmap doc order stays aligned with the seeded implementation order", () => {
+  const roadmapDocPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "docs", "ops", "FITNESS-MONETIZATION-ROADMAP.md");
+  const roadmapDoc = fs.readFileSync(roadmapDocPath, "utf8");
+  const docOrder = [...roadmapDoc.matchAll(/^\d+\.\s+`(FF-[A-Z0-9-]+)`/gm)].map((match) => match[1]);
+
+  assert.deepEqual(docOrder, FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER);
 });
 
 test("runSeedFeedbackMonetizationRoadmap creates missing rows and forum threads, then syncs them", async () => {

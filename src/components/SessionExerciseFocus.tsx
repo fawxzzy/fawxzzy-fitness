@@ -36,13 +36,17 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
-import { type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
+import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
+import { hasSavedSessionExerciseFeedback, SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
+import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
+import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
@@ -242,6 +246,7 @@ export type SessionExerciseFocusItem = {
   copilotFeedbackNote?: string | null;
   copilotFeedbackUpdatedAt?: string | null;
   copilotFeedbackEffort?: number | null;
+  exerciseTimer?: ExerciseTimerSnapshot;
 };
 
 function resolveSessionExerciseTone(args: {
@@ -285,6 +290,7 @@ export function SessionExerciseFocus({
   deleteSetAction,
   updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
+  updateSessionExerciseTimerAction,
   disableDraftPersistence = false,
   bottomDockCenter,
 }: {
@@ -309,6 +315,11 @@ export function SessionExerciseFocus({
     effort: number | null;
   }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null; updatedAt: string | null }>>;
   updateSessionExerciseProgressionAction: (formData: FormData) => Promise<ActionResult>;
+  updateSessionExerciseTimerAction?: (payload: {
+    sessionId: string;
+    sessionExerciseId: string;
+    command: ExerciseTimerCommand;
+  }) => Promise<ActionResult<{ timer: ExerciseTimerSnapshot }>>;
   disableDraftPersistence?: boolean;
   bottomDockCenter?: ReactNode;
 }) {
@@ -347,6 +358,12 @@ export function SessionExerciseFocus({
     () => cachedSessionState?.draftStateBySessionExerciseId ?? {},
   );
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
+  const [answeredFeedbackExerciseIds, setAnsweredFeedbackExerciseIds] = useState<Set<string>>(() => new Set());
+  const [savedFeedbackByExerciseId, setSavedFeedbackByExerciseId] = useState<Record<string, {
+    signal: SessionCopilotFeedbackSignal | null;
+    note: string | null;
+    effort: number | null;
+  }>>({});
   const rowViewModelBySessionExerciseId = useMemo(() => {
     const fallbackWeightUnit = unitLabel === "lbs" ? "lbs" : "kg";
     return new Map(
@@ -556,6 +573,11 @@ export function SessionExerciseFocus({
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
             previousShowWhenCompleted: existing.showWhenCompleted,
+            retainWhenFirstCompleted: !answeredFeedbackExerciseIds.has(exercise.id) && !hasSavedSessionExerciseFeedback({
+              signal: exercise.copilotFeedbackSignal,
+              note: exercise.copilotFeedbackNote,
+              effort: exercise.copilotFeedbackEffort,
+            }),
           })
         : existing.showWhenCompleted;
 
@@ -570,7 +592,7 @@ export function SessionExerciseFocus({
         showWhenCompleted: nextShowWhenCompleted,
       };
     });
-  }, [exercises, patchRowState]);
+  }, [answeredFeedbackExerciseIds, exercises, patchRowState]);
 
   const toggleExercise = useCallback((exerciseId: string) => {
     setPersistedLoggerExerciseId(exerciseId);
@@ -584,6 +606,12 @@ export function SessionExerciseFocus({
       targetSetsMax: exercise.targetSetsMax,
     }) : null;
     const isOpeningExercise = selectedExerciseId !== exerciseId;
+    const shouldRetainCompletedCard = Boolean(exercise) && !answeredFeedbackExerciseIds.has(exerciseId) && !hasSavedSessionExerciseFeedback({
+      signal: exercise?.copilotFeedbackSignal,
+      note: exercise?.copilotFeedbackNote,
+      effort: exercise?.copilotFeedbackEffort,
+    });
+    const isActuallySkipped = clientRowState?.isSkipped ?? exercise?.isSkipped ?? false;
 
     if (isOpeningExercise && progressState?.isGoalCompleted && !rowViewModel?.isSkipped) {
       patchRowState(exerciseId, (current) => ({
@@ -594,17 +622,17 @@ export function SessionExerciseFocus({
       return;
     }
 
-    if (rowViewModel?.isSkipped) {
+    if (isActuallySkipped) {
       return;
     }
     if (!isOpeningExercise && progressState?.isGoalCompleted) {
       patchRowState(exerciseId, (current) => ({
         ...current,
-        showWhenCompleted: false,
+        showWhenCompleted: shouldRetainCompletedCard,
       }));
     }
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
-  }, [exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, rowViewModelBySessionExerciseId, selectedExerciseId]);
+  }, [answeredFeedbackExerciseIds, exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, rowViewModelBySessionExerciseId, selectedExerciseId]);
 
   const handleSkipToggle = useCallback(async (
     exerciseId: string,
@@ -678,6 +706,8 @@ export function SessionExerciseFocus({
           const isExpanded = selectedExerciseId === exercise.id;
           const isStretchHub = isStretchHubExercise(exercise);
           const clientRowState = rowClientStateBySessionExerciseId[exercise.id];
+          const currentExerciseSets = setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets;
+          const recoveryTimingInsight = buildRecoveryTimingInsight(currentExerciseSets);
           const snapshotLoggedSetCount = setSnapshotsBySessionExerciseId[exercise.id]?.length;
           const loggedCountForTarget = typeof snapshotLoggedSetCount === "number"
             ? snapshotLoggedSetCount
@@ -730,13 +760,28 @@ export function SessionExerciseFocus({
           ) ?? exercise.prefill;
           const progressState = deriveSessionExerciseProgressState({
             loggedSetCount: setCount,
-            isSkipped: baseRowViewModel.isSkipped,
+            isSkipped: clientRowState?.isSkipped ?? exercise.isSkipped,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
           });
-          const effectiveIsHidden = baseRowViewModel.isSkipped || (
+          const isActuallySkipped = clientRowState?.isSkipped ?? exercise.isSkipped;
+          const savedFeedback = savedFeedbackByExerciseId[exercise.id] ?? {
+            signal: exercise.copilotFeedbackSignal,
+            note: exercise.copilotFeedbackNote,
+            effort: exercise.copilotFeedbackEffort,
+          };
+          const hasSavedFeedback = answeredFeedbackExerciseIds.has(exercise.id) || hasSavedSessionExerciseFeedback({
+            signal: savedFeedback.signal,
+            note: savedFeedback.note,
+            effort: savedFeedback.effort,
+          });
+          const needsPostCloseFeedback = Boolean(updateSessionExerciseCopilotFeedbackAction)
+            && progressState.isGoalCompleted
+            && !hasSavedFeedback;
+          const effectiveIsHidden = isActuallySkipped || (
             progressState.isGoalCompleted
             && !(clientRowState?.showWhenCompleted ?? false)
+            && !needsPostCloseFeedback
             && !isExpanded
           );
           const rowViewModel = effectiveIsHidden === baseRowViewModel.isSkipped
@@ -744,9 +789,19 @@ export function SessionExerciseFocus({
             : deriveSessionExerciseRowViewModel({
                 ...baseRowViewModel,
                 isSkipped: effectiveIsHidden,
-              });
+          });
           const rowState = rowViewModel.rowState;
           const isCompletedRow = rowState.cardState === "completed";
+          const shouldShowFeedbackPrompt = Boolean(updateSessionExerciseCopilotFeedbackAction)
+            && progressState.isGoalCompleted
+            && !isExpanded
+            && !hasSavedFeedback;
+          const savedFeedbackLabel = [
+            savedFeedback.signal ? formatSessionCopilotFeedbackLabel(savedFeedback.signal) : null,
+            savedFeedback.effort !== null ? `${savedFeedback.effort}/10` : null,
+            !savedFeedback.signal && savedFeedback.effort === null && savedFeedback.note ? "Note saved" : null,
+          ].filter((item): item is string => Boolean(item)).join(" · ");
+          const hasCollapsedSupplement = Boolean(recoveryTimingInsight) || shouldShowFeedbackPrompt || Boolean(savedFeedbackLabel);
           const titleMeta = progressState.goalSetTarget !== null
             ? (
               <span className={isCompletedRow ? "text-[rgb(var(--success-rgb)/0.98)]" : undefined}>
@@ -878,8 +933,42 @@ export function SessionExerciseFocus({
               hideEmptySummary
               contentVerticalAlign="top"
               progressFill={sessionProgressFill}
+              collapsedContent={(
+                <>
+                  {recoveryTimingInsight ? (
+                    <p className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                      {recoveryTimingInsight.label}
+                    </p>
+                  ) : null}
+                  {savedFeedbackLabel ? (
+                    <p className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                      {savedFeedbackLabel}
+                    </p>
+                  ) : null}
+                  {shouldShowFeedbackPrompt && updateSessionExerciseCopilotFeedbackAction ? (
+                    <SessionExerciseFeedbackPrompt
+                      sessionId={sessionId}
+                      sessionExerciseId={exercise.id}
+                      updateFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
+                      onSaved={(feedback) => {
+                        setAnsweredFeedbackExerciseIds((current) => new Set([...current, exercise.id]));
+                        setSavedFeedbackByExerciseId((current) => ({ ...current, [exercise.id]: feedback }));
+                        patchRowState(exercise.id, (current) => ({ ...current, showWhenCompleted: true }));
+                      }}
+                    />
+                  ) : null}
+                </>
+              )}
             >
               <>
+                {exercise.exerciseTimer?.enabled && updateSessionExerciseTimerAction ? (
+                  <ExerciseTimerControl
+                    sessionId={sessionId}
+                    sessionExerciseId={exercise.id}
+                    initialTimer={exercise.exerciseTimer}
+                    updateTimerAction={updateSessionExerciseTimerAction}
+                  />
+                ) : null}
                 <SetLoggerCard
                   userId={userId}
                   sessionId={sessionId}
@@ -887,7 +976,7 @@ export function SessionExerciseFocus({
                   addSetAction={addSetAction}
                   syncQueuedSetLogsAction={syncQueuedSetLogsAction}
                   unitLabel={unitLabel}
-                  initialSets={setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets}
+                  initialSets={currentExerciseSets}
                   onSetsChange={(nextSets) => {
                     setSetSnapshotsBySessionExerciseId((current) => {
                       const previous = current[exercise.id];
@@ -1143,7 +1232,9 @@ export function SessionExerciseFocus({
                   ? "max-h-0 scale-[0.98] overflow-hidden opacity-0"
                   : isExpanded
                     ? "max-h-[240rem] scale-100 overflow-visible opacity-100"
-                    : "max-h-72 scale-100 overflow-hidden opacity-100",
+                    : hasCollapsedSupplement
+                      ? "max-h-[48rem] scale-100 overflow-visible opacity-100"
+                      : "max-h-72 scale-100 overflow-hidden opacity-100",
               ].join(" ")}
             >
               <SessionExerciseBlock>

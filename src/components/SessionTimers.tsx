@@ -1675,11 +1675,21 @@ export function SetLoggerCard({
       setDidApplyLastTarget(true);
     }
   }, [applyHintValues, applyLastRow, didApplyLastTarget, isEditedFromCurrentTarget, resetLoggerMeasurementInputs]);
+  const remainingTargetSetCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - sets.length);
+  const handleLogAll = useCallback(async () => {
+    if (logRequestInFlightRef.current || remainingTargetSetCount === 0) {
+      return;
+    }
+
+    for (let index = 0; index < remainingTargetSetCount; index += 1) {
+      await handleLogSet();
+    }
+  }, [handleLogSet, remainingTargetSetCount]);
   const attachedLoggerActionStrip = useMemo(
     () => (
       <AttachedCardActionStripFrame
         className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.3)] bg-[rgb(var(--surface-1-rgb)/0.18)]"
-        gridClassName="grid-cols-[minmax(108px,0.78fr)_minmax(0,1.92fr)]"
+        gridClassName="grid-cols-[minmax(88px,0.72fr)_minmax(0,1fr)_minmax(0,1fr)]"
       >
         <button
           type="button"
@@ -1708,7 +1718,7 @@ export function SetLoggerCard({
           className={cn(
             getAttachedCardActionButtonClassName({
               intent: "positive",
-              className: "!h-12 rounded-br-[var(--card-radius)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+              className: "!h-12 !border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
             }),
             isSaveDisabled
               ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
@@ -1719,9 +1729,26 @@ export function SetLoggerCard({
             {liveLogButtonLabel}
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => { void handleLogAll(); }}
+          disabled={isSaveDisabled || remainingTargetSetCount === 0}
+          data-bottom-action-intent="positive"
+          className={cn(
+            getAttachedCardActionButtonClassName({
+              intent: "positive",
+              className: "!h-12 rounded-br-[var(--card-radius)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+            }),
+            isSaveDisabled || remainingTargetSetCount === 0
+              ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
+              : undefined,
+          )}
+        >
+          <span className="bottom-action__label">Log all</span>
+        </button>
       </AttachedCardActionStripFrame>
     ),
-    [handleLogSet, handleToggleLastTarget, isLastTargetButtonDisabled, isSaveDisabled, lastTargetButtonLabel, liveLogButtonLabel],
+    [handleLogAll, handleLogSet, handleToggleLastTarget, isLastTargetButtonDisabled, isSaveDisabled, lastTargetButtonLabel, liveLogButtonLabel, remainingTargetSetCount],
   );
   const measurementAuxiliaryFields = useMemo<MeasurementPanelAuxiliaryField[]>(() => {
     const warmupField: MeasurementPanelAuxiliaryField = {
@@ -2069,124 +2096,6 @@ export function SetLoggerCard({
             footerContent={null}
             showInlineStepControls
           />
-          <div className="border-t border-[rgb(var(--accent-divider-rgb)/0.16)] px-3 pb-2 pt-2.5">
-            <div className="space-y-1.5">
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--accent)/0.82)]">
-                  Effort Feedback
-                </p>
-                {copilotWhyLabel ? (
-                  <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.92)]">
-                    {copilotWhyLabel}
-                  </p>
-                ) : null}
-              </div>
-
-              <HorizontalScrollHint
-                scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 pt-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
-                contentClassName="flex w-max items-center gap-2"
-              >
-                {SESSION_COPILOT_FEEDBACK_SIGNALS.map((signal) => {
-                  const isSelected = copilotSignalState === signal;
-                  return (
-                    <ChipButton
-                      key={signal}
-                      type="button"
-                      tone={isSelected ? getSessionCopilotFeedbackTone(signal) : "default"}
-                      aria-pressed={isSelected}
-                      disabled={isSavingCopilotFeedback}
-                      className={cn(
-                        "whitespace-nowrap px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-[border-color,background-color,box-shadow,color,transform] duration-150",
-                        isSelected ? "translate-y-[-1px]" : undefined,
-                        isSelected ? getCopilotFeedbackSelectedClassName(signal) : undefined,
-                        !isSelected ? "text-[rgb(var(--text-muted)/0.92)]" : undefined,
-                      )}
-                      onClick={() => {
-                        void handleCopilotSignalPress(signal);
-                      }}
-                    >
-                      {formatSessionCopilotFeedbackLabel(signal)}
-                    </ChipButton>
-                  );
-                })}
-              </HorizontalScrollHint>
-
-              <div className="space-y-1">
-                <p className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.88)]">
-                  Effort Rating
-                </p>
-                <HorizontalScrollHint
-                  scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 pt-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
-                  contentClassName="flex w-max items-center gap-1.5"
-                >
-                  {SESSION_EFFORT_SCALE_OPTIONS.map((value) => {
-                    const isSelected = selectedEffortValue === value;
-                    return (
-                      <ChipButton
-                        key={value}
-                        type="button"
-                        tone={isSelected ? "success" : "default"}
-                        aria-pressed={isSelected}
-                        aria-label={`Effort ${value} out of 10`}
-                        className={cn(
-                          "inline-flex h-8 w-8 items-center justify-center px-0 py-0 text-[11px] font-semibold tracking-[0.04em] transition-[border-color,background-color,box-shadow,color,transform] duration-150",
-                          isSelected ? "translate-y-[-1px]" : undefined,
-                          isSelected ? getEffortScaleSelectedClassName(value) : "text-[rgb(var(--text-muted)/0.92)]",
-                        )}
-                        onClick={() => {
-                          void handleCopilotEffortPress(value);
-                        }}
-                      >
-                        {value}
-                      </ChipButton>
-                    );
-                  })}
-                </HorizontalScrollHint>
-              </div>
-
-              {shouldShowCopilotNoteInput ? (
-                <div className="space-y-1">
-                  <label
-                    htmlFor={`session-copilot-note-${sessionExerciseId}`}
-                    className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.88)]"
-                  >
-                    note
-                  </label>
-                  {copilotNoteContextLabel ? (
-                    <p className="text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.84)]">
-                      {copilotNoteContextLabel}
-                    </p>
-                  ) : null}
-                  <input
-                    id={`session-copilot-note-${sessionExerciseId}`}
-                    type="text"
-                    value={copilotNoteState}
-                    maxLength={SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}
-                    disabled={isSavingCopilotFeedback}
-                    placeholder={copilotNotePlaceholder}
-                    className="h-6.5 w-full border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.28)] bg-transparent px-0 pb-1 pt-0 text-[13px] leading-none text-[rgb(var(--text)/0.97)] outline-none transition placeholder:text-[rgb(var(--text-muted)/0.56)] focus:border-[rgb(var(--accent)/0.42)]"
-                    onChange={(event) => {
-                      setCopilotNoteState(event.currentTarget.value);
-                    }}
-                    onBlur={() => {
-                      void handleCopilotNoteCommit();
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        event.currentTarget.blur();
-                      }
-                    }}
-                  />
-                </div>
-              ) : null}
-
-              <div className="flex min-h-[14px] items-center justify-between gap-2 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.72)]">
-                <span>{isSavingCopilotFeedback ? "Saving feedback..." : (isCopilotFeedbackDirty ? "Unsaved feedback" : "Feedback saved")}</span>
-                <span>{copilotNoteState.length}/{SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}</span>
-              </div>
-            </div>
-          </div>
           {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
         </WorkoutEntrySection>
 

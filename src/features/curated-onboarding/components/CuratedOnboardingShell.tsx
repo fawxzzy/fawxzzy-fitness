@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState, useTransition } from "react";
+import { createCuratedRoutineDraftAction, generateCuratedWorkoutPlanAction } from "@/app/curated-onboarding/actions";
 import { AuthCard, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { RouteLoading } from "@/components/RouteLoading";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -31,6 +32,7 @@ import {
   saveCuratedOnboardingState,
 } from "../storage.ts";
 import { getCuratedStepDefinition } from "../step-registry.ts";
+import type { CuratedWorkoutPlan } from "../engine.ts";
 import type {
   CardioPreference,
   CuratedOnboardingData,
@@ -48,6 +50,8 @@ import { GoalsStep } from "./GoalsStep";
 import { PreferencesStep } from "./PreferencesStep";
 import { ReviewStep } from "./ReviewStep";
 import { ScheduleStep } from "./ScheduleStep";
+import { GenerationHandoffStep } from "./GenerationHandoffStep";
+import { writeRoutineDraftSession } from "@/lib/routine-draft-session";
 
 type CuratedOnboardingShellProps = {
   userId: string;
@@ -68,10 +72,13 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [completionSource, setCompletionSource] = useState<CompletionSource>("fresh");
   const [didResumeDraft, setDidResumeDraft] = useState(false);
+  const [generatedPlan, setGeneratedPlan] = useState<CuratedWorkoutPlan | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [isCreatingDraft, startCreatingDraft] = useTransition();
   const journeyTrackedRef = useRef(false);
   const completionTrackedRef = useRef(false);
   const abandonmentTrackedRef = useRef(false);
-  const handoffRedirectedRef = useRef(false);
+  const generationRequestedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestStateRef = useRef(state);
   const latestCompletionSourceRef = useRef<CompletionSource>(completionSource);
@@ -168,29 +175,26 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   }, [completionSource, hasHydrated, state.draft.draftId, state.lifecycle.completedAt, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
-    if (
-      !hasHydrated
-      || state.draft.stepId !== "generation-handoff"
-      || state.lifecycle.intakeStatus !== "completed"
-      || handoffRedirectedRef.current
-    ) {
+    if (!hasHydrated || state.draft.stepId !== "generation-handoff" || state.lifecycle.intakeStatus !== "completed" || generationRequestedRef.current) {
       return;
     }
 
-    handoffRedirectedRef.current = true;
-    const completedAt = state.lifecycle.completedAt ?? nowIso();
-
-    saveCuratedOnboardingState(userId, state);
-    markInitialExperienceSeen(userId, completedAt);
-
-    const timer = window.setTimeout(() => {
-      router.replace("/today");
-    }, 120);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [hasHydrated, router, state, userId]);
+    generationRequestedRef.current = true;
+    setGenerationError(null);
+    void generateCuratedWorkoutPlanAction(state.draft.data)
+      .then((result) => {
+        if (!result.ok) {
+          throw new Error(result.error);
+        }
+        setGeneratedPlan(result.plan);
+        dispatch({ type: "generation-resolved", status: "ready", planId: result.plan.planId });
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "The curated plan could not be generated.";
+        setGenerationError(message);
+        dispatch({ type: "generation-resolved", status: "failed", message });
+      });
+  }, [hasHydrated, state.draft.data, state.draft.stepId, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
     if (!hasHydrated || typeof window === "undefined") {
@@ -263,7 +267,9 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     journeyTrackedRef.current = false;
     completionTrackedRef.current = false;
     abandonmentTrackedRef.current = false;
-    handoffRedirectedRef.current = false;
+    generationRequestedRef.current = false;
+    setGeneratedPlan(null);
+    setGenerationError(null);
     setCompletionSource("fresh");
     setDidResumeDraft(false);
     setSaveState("idle");
@@ -282,6 +288,25 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     }
 
     dispatch({ type: "go-next", at });
+  }
+
+  function handleCreateDraft() {
+    startCreatingDraft(async () => {
+      setGenerationError(null);
+      try {
+        const result = await createCuratedRoutineDraftAction(state.draft.data);
+        if (!result.ok) {
+          setGenerationError(result.error);
+          return;
+        }
+        writeRoutineDraftSession(result.routineId, result.routineName);
+        router.push("/routines/new");
+      } catch (error) {
+        setGenerationError(
+          error instanceof Error ? error.message : "Could not create the editable routine draft.",
+        );
+      }
+    });
   }
 
   function renderStepBody() {
@@ -358,15 +383,24 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
       return <ReviewStep data={state.draft.data} />;
     }
 
+    if (state.draft.stepId === "generation-handoff") {
+      return (
+        <GenerationHandoffStep
+          data={state.draft.data}
+          generationStatus={state.lifecycle.generationStatus}
+          plan={generatedPlan}
+          isCreatingDraft={isCreatingDraft}
+          error={generationError}
+          onCreateDraft={handleCreateDraft}
+        />
+      );
+    }
+
     return null;
   }
 
   if (!hasHydrated) {
     return <RouteLoading label="Restoring your training setup" variant="route" />;
-  }
-
-  if (state.draft.stepId === "generation-handoff" && state.lifecycle.intakeStatus === "completed") {
-    return <RouteLoading label="Opening today" variant="route" />;
   }
 
   return (
@@ -417,6 +451,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
 
         {state.message ? <AuthMessage tone={state.lifecycle.generationStatus === "failed" ? "error" : "default"}>{state.message}</AuthMessage> : null}
 
+        {state.draft.stepId !== "generation-handoff" ? (
         <div className={showBack ? appTokens.curatedActionRow : appTokens.curatedActionRowSolo}>
           {showBack ? (
             <SecondaryButton
@@ -437,6 +472,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
             {stepDefinition.nextLabel}
           </PrimaryButton>
         </div>
+        ) : null}
       </AuthCard>
     </AuthShell>
   );

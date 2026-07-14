@@ -4,7 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import { assertExpectedFitnessSupabaseHost, parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
@@ -19,13 +19,12 @@ export const repoRoot = path.resolve(scriptDir, "..");
 export const DISCORD_FEEDBACK_EXPORTS_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-DISCORD-FEEDBACK-EXPORTS.md");
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
-const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
+const resolvedEnv = {
+  ...process.env,
+  ...fileEnv,
+};
 
-for (const [key, value] of Object.entries(fileEnv)) {
-  if (explicitEnvFileOverride || !process.env[key]) {
-    process.env[key] = value;
-  }
-}
+Object.assign(process.env, resolvedEnv);
 
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = {
@@ -88,13 +87,11 @@ function getRequiredEnv(name) {
 }
 
 function getOptionalEnv(name) {
-  const fileValue = fileEnv[name]?.trim();
+  const fileValue = resolvedEnv[name]?.trim();
   if (fileValue) {
     return fileValue;
   }
-
-  const shellValue = process.env[name]?.trim();
-  return shellValue && shellValue.length > 0 ? shellValue : null;
+  return null;
 }
 
 function getOptionalGuildId() {
@@ -112,6 +109,11 @@ function getSupabaseUrl() {
 }
 
 function createServiceClient() {
+  assertExpectedFitnessSupabaseHost({
+    env: resolvedEnv,
+    commandName: "discord feedback export",
+  });
+
   return createClient(getSupabaseUrl(), getRequiredEnv(SUPABASE_SERVICE_ROLE_KEY_ENV), {
     auth: {
       autoRefreshToken: false,

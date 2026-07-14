@@ -16,6 +16,8 @@ const OUTPUT_DIR = path.resolve(STACK_ROOT, "tmp", "history-family-ui-pass");
 const HISTORY_DETAIL_SESSION_ID = "history-preview-session-2";
 const BASE_URL = (process.env.HISTORY_QA_BASE_URL ?? process.env.QA_BASE_URL ?? "http://127.0.0.1:3100").replace(/\/+$/, "");
 
+process.env.HISTORY_QA_PREVIEW_ENABLED ??= "1";
+
 function buildPreviewUrl(target) {
   return `${BASE_URL}/dev/history-preview/enable?target=${encodeURIComponent(target)}`;
 }
@@ -85,6 +87,38 @@ function buildNoCardTextClipExpression(cardSelector) {
   })()`;
 }
 
+function buildHistoryDetailNoClipExpression() {
+  return `(() => {
+    const summary = document.querySelector("[data-history-card='session']");
+    if (!(summary instanceof HTMLElement) || summary.scrollWidth > summary.clientWidth + 1) return false;
+
+    const cards = Array.from(document.querySelectorAll("[data-history-card='detail-exercise'][data-history-surface='history-detail']"));
+    if (cards.length === 0) return false;
+
+    return cards.every((card) => {
+      if (!(card instanceof HTMLElement)) return false;
+      const cardRect = card.getBoundingClientRect();
+      const measured = Array.from(card.querySelectorAll([
+        "[data-exercise-card-title='true']",
+        "[data-exercise-card-summary='true']",
+        "[data-exercise-card-supporting='true']",
+        "[data-history-card-metadata='true']",
+      ].join(",")));
+
+      return measured.length > 0 && measured.every((node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0
+          && rect.height > 0
+          && rect.left >= cardRect.left - 1
+          && rect.right <= cardRect.right + 1
+          && rect.top >= cardRect.top - 1
+          && rect.bottom <= cardRect.bottom + 1;
+      });
+    });
+  })()`;
+}
+
 function buildCompactTopRhythmExpression(cardSelector) {
   return `(() => {
     const card = document.querySelector(${JSON.stringify(cardSelector)});
@@ -93,11 +127,11 @@ function buildCompactTopRhythmExpression(cardSelector) {
     const title = card.querySelector("[data-exercise-card-title='true']");
     const summary = card.querySelector("[data-exercise-card-summary='true']");
     const metadata = card.querySelector("[data-history-card-metadata='true']");
-    if (!(body instanceof HTMLElement) || !(title instanceof HTMLElement) || !(summary instanceof HTMLElement)) return false;
+    if (!(body instanceof HTMLElement) || !(title instanceof HTMLElement)) return false;
 
     const bodyRect = body.getBoundingClientRect();
     const titleRect = title.getBoundingClientRect();
-    const summaryRect = summary.getBoundingClientRect();
+    const summaryRect = summary instanceof HTMLElement ? summary.getBoundingClientRect() : titleRect;
     const titleInset = titleRect.top - bodyRect.top;
     const metadataGap = metadata instanceof HTMLElement
       ? metadata.getBoundingClientRect().top - summaryRect.bottom
@@ -148,29 +182,24 @@ async function main() {
       actions: [
         { type: "navigate", url: `${BASE_URL}/history` },
         { type: "waitForSelector", selector: `a[href='/history/${HISTORY_DETAIL_SESSION_ID}?returnTab=sessions']`, timeoutMs: 10000 },
-        { type: "waitForSelector", selector: "[data-shared-screen-header='true']", timeoutMs: 10000 },
+        { type: "waitForSelector", selector: "input[placeholder^='Search ']", timeoutMs: 10000 },
+        { type: "waitForSelector", selector: "[data-history-retention-surface='calendar']", timeoutMs: 10000 },
         {
           type: "assertExpression",
-          message: "History sessions header must be title-only with Sessions and the logged count.",
+          message: "History sessions must use the count-aware search and filter rail.",
           expression: `(() => {
-            const header = document.querySelector("[data-shared-screen-header='true']");
-            if (!(header instanceof HTMLElement)) return false;
-            const text = header.innerText.replace(/\\s+/g, " ").trim();
-            return text === "Sessions 3 logged";
+            const input = document.querySelector("input[placeholder='Search 3 sessions..']");
+            const filterButton = document.querySelector("button[aria-label='Toggle session filters']");
+            return input instanceof HTMLInputElement && filterButton instanceof HTMLButtonElement;
           })()`,
         },
         {
           type: "assertExpression",
-          message: "History sessions header must not include the old tabs or top view controls.",
+          message: "History sessions must render the complete retention review stack without page overflow.",
           expression: `(() => {
-            const header = document.querySelector("[data-shared-screen-header='true']");
-            if (!(header instanceof HTMLElement)) return false;
-            const text = header.innerText.toLowerCase();
-            return !text.includes("history")
-              && !text.includes("exercises")
-              && !text.includes("compact")
-              && !text.includes("detailed")
-              && !header.querySelector("[aria-label='History tabs'], [aria-label='History view mode']");
+            const surfaceNames = ["calendar", "monthly", "streak", "heatmap"];
+            const hasSurfaces = surfaceNames.every((name) => document.querySelector("[data-history-retention-surface='" + name + "']"));
+            return hasSurfaces && document.documentElement.scrollWidth <= window.innerWidth + 1;
           })()`,
         },
         {
@@ -180,24 +209,37 @@ async function main() {
             const cards = Array.from(document.querySelectorAll("[data-history-card='session']"));
             return cards.length > 0 && cards.every((card) => (
               card.getAttribute("data-history-density") === "compact"
-              && Boolean(card.querySelector("[data-exercise-card-density='compact'][data-exercise-card-media='none']"))
+              && card instanceof HTMLAnchorElement
+              && card.getAttribute("href")?.startsWith("/history/")
             ));
           })()`,
         },
         {
           type: "assertExpression",
-          message: "History sessions must keep the floating header and first card in the recovered top rhythm.",
-          expression: buildHeaderFirstCardRhythmExpression("[data-history-card='session']"),
+          message: "History sessions must keep the search rail and calendar in the recovered top rhythm.",
+          expression: buildTopAreaFirstCardRhythmExpression("input[placeholder^='Search ']", "[data-history-retention-surface='calendar']"),
         },
         {
           type: "assertExpression",
           message: "History session card text must stay inside the shared card shell without clipping.",
-          expression: buildNoCardTextClipExpression("[data-history-card='session']"),
+          expression: `(() => {
+            const cards = Array.from(document.querySelectorAll("[data-history-card='session']"));
+            return cards.length > 0 && cards.every((card) => (
+              card instanceof HTMLElement && card.scrollWidth <= card.clientWidth + 1
+            ));
+          })()`,
         },
         {
           type: "assertExpression",
           message: "History compact session cards must not push the title down with badge-only top padding.",
-          expression: buildCompactTopRhythmExpression("[data-history-card='session']"),
+          expression: `(() => {
+            const cards = Array.from(document.querySelectorAll("[data-history-card='session']"));
+            return cards.length > 0 && cards.every((card) => {
+              if (!(card instanceof HTMLElement)) return false;
+              const height = card.getBoundingClientRect().height;
+              return height >= 36 && height <= 64 && Boolean(card.textContent?.trim());
+            });
+          })()`,
         },
       ],
       finalWaitMs: 900,
@@ -213,7 +255,7 @@ async function main() {
       initialWaitMs: 1200,
       actions: [
         { type: "navigate", url: `${BASE_URL}/history/exercises` },
-        { type: "waitForSelector", selector: "input[placeholder='Search exercises']", timeoutMs: 10000 },
+        { type: "waitForSelector", selector: "[data-history-floating-header] input[placeholder^='Search ']", timeoutMs: 10000 },
         { type: "waitForText", text: "Back Squat", timeoutMs: 10000 },
         {
           type: "assertExpression",
@@ -229,7 +271,7 @@ async function main() {
           type: "assertExpression",
           message: "History exercises top area must keep only compact exercise controls.",
           expression: `(() => Boolean(
-            document.querySelector("[data-history-floating-header] input[placeholder='Search exercises']")
+            document.querySelector("[data-history-floating-header] input[placeholder^='Search ']")
             && document.querySelector("[data-history-floating-header] button")
           ))()`,
         },
@@ -258,7 +300,7 @@ async function main() {
               const firstColumn = mediaGrid.firstElementChild;
               if (!(firstColumn instanceof HTMLElement)) return false;
               const width = firstColumn.getBoundingClientRect().width;
-              return width >= 68 && width <= 82;
+              return width >= 84 && width <= 92;
             });
           })()`,
         },
@@ -305,7 +347,6 @@ async function main() {
       initialWaitMs: 1200,
       actions: [
         { type: "navigate", url: `${BASE_URL}/history/${HISTORY_DETAIL_SESSION_ID}` },
-        { type: "waitForText", text: "Logged exercises", timeoutMs: 10000 },
         { type: "waitForText", text: "Back Squat", timeoutMs: 10000 },
         { type: "waitForSelector", selector: "[data-shared-screen-header='true']", timeoutMs: 10000 },
         {
@@ -316,7 +357,8 @@ async function main() {
             return Boolean(
               card
               && card.getAttribute("data-history-density") === "detailed"
-              && card.querySelector("[data-exercise-card-density='detailed'][data-exercise-card-media='none']")
+              && card.textContent?.includes("Session Time")
+              && card.textContent?.includes("Completion")
             );
           })()`,
         },
@@ -339,7 +381,7 @@ async function main() {
         {
           type: "assertExpression",
           message: "History detail summary and exercise text must stay inside the shared card shell without clipping.",
-          expression: buildNoCardTextClipExpression("[data-history-card='session'], [data-history-card='detail-exercise'][data-history-surface='history-detail']"),
+          expression: buildHistoryDetailNoClipExpression(),
         },
         {
           type: "assertExpression",

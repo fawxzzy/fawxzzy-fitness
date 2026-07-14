@@ -32,6 +32,21 @@ test("detects iPhone in-app browser as Open in Safari gate", () => {
   assert.equal(context.shouldAllowAppAccess, false);
 });
 
+test("detects link-in-bio iPhone browsers as Open in Safari gate", () => {
+  const context = getInstallContext({
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 LinkMe/2.0",
+    platform: "iPhone",
+    maxTouchPoints: 5,
+    standalone: false,
+  });
+
+  assert.equal(context.isInAppBrowser, true);
+  assert.equal(context.shouldShowIOSOpenInSafariGate, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
+});
+
 test("allows iPhone standalone mode", () => {
   const context = getInstallContext({
     userAgent:

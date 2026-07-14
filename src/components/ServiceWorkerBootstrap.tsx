@@ -397,6 +397,12 @@ export function ServiceWorkerBootstrap() {
       scheduleIdleUpdate();
     };
 
+    const isUsableRegistration = (registration: ServiceWorkerRegistration | null | undefined): registration is ServiceWorkerRegistration => (
+      Boolean(registration)
+      && typeof registration?.addEventListener === "function"
+      && typeof registration?.update === "function"
+    );
+
     const bindRegistration = (registration: ServiceWorkerRegistration) => {
       if (registration.waiting && navigator.serviceWorker.controller) {
         queueUpdate(registration, pendingBuildId);
@@ -500,6 +506,20 @@ export function ServiceWorkerBootstrap() {
     navigator.serviceWorker.register("/sw.js", { scope: "/" })
       .then((registration) => {
         if (cancelled) {
+          return;
+        }
+
+        if (!isUsableRegistration(registration)) {
+          publishStatus("idle");
+          recordClientBootDiagnostic({
+            tag: "[boot.service-worker]",
+            source: "client",
+            route: typeof window !== "undefined" ? window.location.pathname : null,
+            stage: "registration-unavailable",
+            buildId: CURRENT_APP_BUILD_ID,
+          }, {
+            level: "info",
+          });
           return;
         }
 

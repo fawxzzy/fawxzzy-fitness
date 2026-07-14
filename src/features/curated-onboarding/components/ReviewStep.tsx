@@ -9,9 +9,9 @@ export function ReviewStep({ data }: { data: CuratedOnboardingData }) {
   return (
     <div className={appTokens.curatedCompactStack}>
       <CuratedInfoCard tone="accent">
-        <p className={appTokens.curatedCardTitle}>This intake becomes the future generator handoff.</p>
+        <p className={appTokens.curatedCardTitle}>This intake becomes your generated routine.</p>
         <p className={appTokens.curatedCardBodyStrong}>
-          Save it when everything feels accurate. The app will keep the intake and reuse it when the curated engine is ready.
+          Generate when everything feels accurate. You will review the complete plan before opening an editable routine draft.
         </p>
       </CuratedInfoCard>
 

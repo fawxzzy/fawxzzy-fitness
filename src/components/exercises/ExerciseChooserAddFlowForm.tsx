@@ -132,6 +132,7 @@ export function ExerciseChooserAddFlowForm({
   addExerciseAction,
   successMessage,
   errorMessage,
+  additionalGoalExtraContent,
   className,
 }: {
   formId: string;
@@ -156,6 +157,7 @@ export function ExerciseChooserAddFlowForm({
   addExerciseAction: (formData: FormData) => Promise<HandledActionResult>;
   successMessage: string;
   errorMessage: string;
+  additionalGoalExtraContent?: ReactNode;
   className?: string;
 }) {
   const toast = useToast();
@@ -333,41 +335,46 @@ export function ExerciseChooserAddFlowForm({
               )}
             />
           )}
-          goalExtraContent={shouldShowProgression ? ({ selectedExercise: activeExercise, goalState, effectiveGoalModality }) => {
+          goalExtraContent={shouldShowProgression || additionalGoalExtraContent ? ({ selectedExercise: activeExercise, goalState, effectiveGoalModality }) => {
             return (
-              <ExerciseProgressionEditorSurface
-                draft={progressionDraft}
-                onChange={(nextValue) => {
-                  setHasCustomizedProgression(true);
-                  setProgressionDraft(nextValue);
-                }}
-                goalState={goalState}
-                modality={effectiveGoalModality}
-                weightUnit={weightUnit}
-                distanceUnit={resolveExerciseDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit)}
-                exerciseMeasurementType={activeExercise?.measurement_type ?? selectedExercise?.measurement_type ?? "reps"}
-                exerciseEquipment={activeExercise?.equipment ?? selectedExercise?.equipment ?? null}
-                exerciseMovementPattern={activeExercise?.movement_pattern ?? selectedExercise?.movement_pattern ?? null}
-                exerciseName={activeExercise?.name ?? selectedExercise?.name ?? null}
-                cycleLengthDays={cycleLengthDays}
-                progressionExampleDayNumber={progressionExampleDayNumber}
-                routineDefaultValue={seededExerciseProgression}
-                onApplyRoutineDefault={() => {
-                  setHasCustomizedProgression(false);
-                  setProgressionDraft(seededExerciseProgression);
-                }}
-                trainingFocusValue={selectedTrainingFocus}
-                trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, progressionDraft)}
-                onTrainingFocusChange={(goal) => {
-                  setSelectedTrainingFocus(goal);
-                  setHasCustomizedProgression(true);
-                  const nextProgressionDraft = createProgressionPlaybookFormStateForTrainingGoal(goal);
-                  setProgressionDraft(seedProgressionDraftWithStepValue(nextProgressionDraft, progressionStepPolicy.defaultValue));
-                }}
-                reserveInfoLayoutSpace={false}
-                dropdownPreset="exercise-inline"
-                infoDockPlacement="above-bottom-actions"
-              />
+              <>
+                {additionalGoalExtraContent}
+                {shouldShowProgression ? (
+                  <ExerciseProgressionEditorSurface
+                    draft={progressionDraft}
+                    onChange={(nextValue) => {
+                      setHasCustomizedProgression(true);
+                      setProgressionDraft(nextValue);
+                    }}
+                    goalState={goalState}
+                    modality={effectiveGoalModality}
+                    weightUnit={weightUnit}
+                    distanceUnit={resolveExerciseDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit)}
+                    exerciseMeasurementType={activeExercise?.measurement_type ?? selectedExercise?.measurement_type ?? "reps"}
+                    exerciseEquipment={activeExercise?.equipment ?? selectedExercise?.equipment ?? null}
+                    exerciseMovementPattern={activeExercise?.movement_pattern ?? selectedExercise?.movement_pattern ?? null}
+                    exerciseName={activeExercise?.name ?? selectedExercise?.name ?? null}
+                    cycleLengthDays={cycleLengthDays}
+                    progressionExampleDayNumber={progressionExampleDayNumber}
+                    routineDefaultValue={seededExerciseProgression}
+                    onApplyRoutineDefault={() => {
+                      setHasCustomizedProgression(false);
+                      setProgressionDraft(seededExerciseProgression);
+                    }}
+                    trainingFocusValue={selectedTrainingFocus}
+                    trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, progressionDraft)}
+                    onTrainingFocusChange={(goal) => {
+                      setSelectedTrainingFocus(goal);
+                      setHasCustomizedProgression(true);
+                      const nextProgressionDraft = createProgressionPlaybookFormStateForTrainingGoal(goal);
+                      setProgressionDraft(seedProgressionDraftWithStepValue(nextProgressionDraft, progressionStepPolicy.defaultValue));
+                    }}
+                    reserveInfoLayoutSpace={false}
+                    dropdownPreset="exercise-inline"
+                    infoDockPlacement="above-bottom-actions"
+                  />
+                ) : null}
+              </>
             );
           } : null}
           goalDockViewportMode={shouldShowProgression ? ({ goalState }) => {

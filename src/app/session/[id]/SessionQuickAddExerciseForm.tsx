@@ -1,6 +1,7 @@
 "use client";
 
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
+import { ExerciseTimerSetup } from "@/components/session/ExerciseTimerSetup";
 import type { EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -42,6 +43,7 @@ export function SessionQuickAddExerciseForm({
       addExerciseAction={addExerciseAction}
       successMessage="Exercise added to session."
       errorMessage="Could not add exercise."
+      additionalGoalExtraContent={<ExerciseTimerSetup />}
     />
   );
 }

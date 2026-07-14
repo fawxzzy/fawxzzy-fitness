@@ -43,7 +43,7 @@ type NavigatorWithStandalone = Navigator & {
 };
 
 const IN_APP_BROWSER_PATTERN =
-  /(TikTok|musical_ly|Instagram|FBAN|FBAV|Messenger|Twitter|Line|LinkedInApp|Pinterest|Snapchat|Discord|WhatsApp|Telegram|MicroMessenger)/i;
+  /(TikTok|musical_ly|Instagram|FBAN|FBAV|Messenger|Twitter|Line|LinkedInApp|Pinterest|Snapchat|Discord|WhatsApp|Telegram|MicroMessenger|LinkMe|Linktree|Beacons)/i;
 const SAFARI_EXCLUSION_PATTERN = /(CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|DuckDuckGo|YaBrowser)/i;
 
 function resolveStandaloneFromWindow() {

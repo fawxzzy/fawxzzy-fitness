@@ -69,6 +69,7 @@ export function ExerciseDisclosureCard({
   contentVerticalAlign,
   progressFill,
   stickyHeaderWhenExpanded = false,
+  collapsedContent,
   title,
   rightIcon,
   surface,
@@ -117,6 +118,7 @@ export function ExerciseDisclosureCard({
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
   progressFill?: ProgressionProgressFill | null;
   stickyHeaderWhenExpanded?: boolean;
+  collapsedContent?: ReactNode;
   title?: ReactNode;
   rightIcon?: ReactNode;
   surface?: WorkoutCardSurface;
@@ -196,6 +198,7 @@ export function ExerciseDisclosureCard({
           badgeText={badgeText}
         />
       </div>
+      {!expanded ? collapsedContent : null}
       {(expanded || keepPanelMounted) && children ? (
         <div
           id={contract.panelId}

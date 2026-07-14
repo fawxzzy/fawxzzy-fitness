@@ -18,7 +18,7 @@ import {
 } from "@/lib/routine-day-card-summary";
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[3.2rem] !py-[0.24rem]";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !pt-[0.6rem] !pb-0";
 export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
@@ -37,6 +37,7 @@ export const ROUTINE_DAY_RECAP_SCROLL_CLASS_NAME = "pl-0.5 pr-[1.95rem] pb-0.5 s
 export const ROUTINE_DAY_RECAP_CONTENT_CLASS_NAME = "flex w-max min-w-full items-stretch gap-2 pr-[1.8rem] sm:gap-2.5 sm:pr-0";
 export const ROUTINE_DAY_RECAP_ITEM_CLASS_NAME = "flex min-h-[4.9rem] w-[calc(100vw-5.7rem)] min-w-[calc(100vw-5.7rem)] max-w-[calc(100vw-5.7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5";
 const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.02rem] z-[7] flex items-center justify-center";
+const ROUTINE_DAY_CARD_REORDER_TOP_CENTER_SLOT_CLASS_NAME = "pointer-events-none absolute left-1/2 top-[0.12rem] z-[7] flex -translate-x-1/2 items-center justify-center";
 
 export type RoutineDayCardSummary = {
   total?: number;
@@ -225,6 +226,7 @@ export function RoutineDayCardTitle({
   weekdayLabel,
   allowWeekdayFallback = true,
   dayWeekdaySeparator = "pipe",
+  dayNameClassName,
   className,
 }: {
   routineName?: string | null;
@@ -234,14 +236,15 @@ export function RoutineDayCardTitle({
   weekdayLabel?: string | null;
   allowWeekdayFallback?: boolean;
   dayWeekdaySeparator?: "dot" | "pipe";
+  dayNameClassName?: string;
   className?: string;
 }) {
   const normalizedRoutineName = routineName?.trim();
   const dayName = formatRoutineDayStableDisplayName({ name, dayIndex, startDate });
   const weekday = weekdayLabel?.trim() || (allowWeekdayFallback ? getRoutineDayWeekdayLabel(dayIndex, startDate, "short") : "");
-  const dayNameClassName = dayName.trim().toLowerCase() === "rest"
+  const resolvedDayNameClassName = dayName.trim().toLowerCase() === "rest"
     ? "text-[rgb(var(--accent-yellow-on))]"
-    : undefined;
+    : dayNameClassName;
 
   return (
     <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
@@ -251,7 +254,7 @@ export function RoutineDayCardTitle({
           <SignatureMiniPipe />
         </>
       ) : null}
-      <span className={cn("min-w-0", dayNameClassName)}>{dayName}</span>
+      <span className={cn("min-w-0", resolvedDayNameClassName)}>{dayName}</span>
       {weekday ? (
         <>
           {dayWeekdaySeparator === "dot" ? <SignatureDot /> : <SignatureMiniPipe />}
@@ -430,6 +433,7 @@ export function RoutineOverviewDayCard({
   showSelectedTag = false,
   isExpanded = false,
   reorderHandle,
+  headerLayout = "standard",
   rightRailClassName,
   allowWeekdayFallback = true,
   wrapper,
@@ -441,6 +445,7 @@ export function RoutineOverviewDayCard({
   showSelectedTag?: boolean;
   isExpanded?: boolean;
   reorderHandle?: ReactNode;
+  headerLayout?: "standard" | "cornered";
   rightRailClassName?: string;
   allowWeekdayFallback?: boolean;
   wrapper?: (child: ReactNode) => ReactNode;
@@ -458,14 +463,29 @@ export function RoutineOverviewDayCard({
   const card = (
     <div className="relative min-w-0">
       {reorderHandle && !isExpanded ? (
-        <div className={ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME}>
+        <div className={headerLayout === "cornered" ? ROUTINE_DAY_CARD_REORDER_TOP_CENTER_SLOT_CLASS_NAME : ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME}>
           <div className="pointer-events-auto">
             {reorderHandle}
           </div>
         </div>
       ) : null}
       <DayCard
-        title={(
+        title={headerLayout === "cornered" ? (
+          <span className="flex w-full justify-start pr-20 text-left">
+            <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start gap-1 text-left">
+              <RoutineDayCardTitle
+                name={day.isRest ? "Rest" : (day.title ?? day.name ?? null)}
+                dayIndex={day.dayIndex}
+                startDate={startDate}
+                weekdayLabel={day.isRest ? null : day.occurrenceWeekday}
+                allowWeekdayFallback={!day.isRest && allowWeekdayFallback}
+                dayNameClassName="text-[rgb(var(--accent)/0.98)]"
+                className="justify-start text-left"
+              />
+              <MetricAccentBar variant="thin" className="w-full self-stretch opacity-90" />
+            </span>
+          </span>
+        ) : (
           <span className="flex w-full justify-center text-center">
             <span className="inline-flex min-w-0 max-w-full flex-col items-center gap-1 text-center">
               <RoutineDayCardTitle
@@ -480,7 +500,7 @@ export function RoutineOverviewDayCard({
             </span>
           </span>
         )}
-        subtitle={renderRoutineDaySubtitle(day)}
+        subtitle={headerLayout === "cornered" && day.isRest ? undefined : renderRoutineDaySubtitle(day)}
         subtitleTone="plain"
         rightIcon={(
           <span className={cn("inline-flex items-center justify-center", selectedTag ? "gap-1.5" : undefined)}>
@@ -500,8 +520,16 @@ export function RoutineOverviewDayCard({
           isExpanded ? "rounded-b-none ![border-bottom-left-radius:0px] ![border-bottom-right-radius:0px]" : undefined,
         )}
         bodyClassName={day.isRest ? ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME : ROUTINE_DAY_CARD_BODY_CLASS_NAME}
-        contentClassName={day.isRest ? ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINE_DAY_CARD_CONTENT_CLASS_NAME}
-        titleClassName={day.isRest ? cn(ROUTINE_DAY_CARD_TITLE_CLASS_NAME, "leading-none") : ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
+        contentClassName={cn(
+          day.isRest ? ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINE_DAY_CARD_CONTENT_CLASS_NAME,
+          headerLayout === "cornered" ? "!pt-[0.32rem]" : undefined,
+        )}
+        titleClassName={cn(
+          day.isRest ? ROUTINE_DAY_CARD_TITLE_CLASS_NAME : ROUTINE_DAY_CARD_TITLE_CLASS_NAME,
+          headerLayout === "cornered" ? "!items-start !pr-20 text-left" : undefined,
+          headerLayout === "cornered" && reorderHandle && !day.isRest ? "min-h-[2.55rem]" : undefined,
+          day.isRest ? "leading-none" : undefined,
+        )}
         subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
         contentVerticalAlign={day.isRest ? "auto" : undefined}
         rightIconMode="overlay"

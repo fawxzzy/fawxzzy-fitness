@@ -10,11 +10,19 @@ import {
   consumeInstallEarnedMoment,
   dismissInstallEarnedPromptForSession,
   isInstallEarnedPromptDismissedForSession,
+  recordInstallReturnVisit,
   type InstallEarnedMoment,
 } from "@/lib/install/earned-install-prompt";
 import { usePWAInstallPrompt } from "@/components/install/usePWAInstallPrompt";
 
 function getEarnedPromptCopy(moment: InstallEarnedMoment) {
+  if (moment === "stable-return") {
+    return {
+      eyebrow: "Welcome back",
+      title: "Keep Fitness one tap away",
+      body: "You have returned on several training days. Install Fitness for a faster path back to Today and your active session.",
+    };
+  }
   if (moment === "workout-completed") {
     return {
       eyebrow: "Workout Saved",
@@ -46,7 +54,7 @@ export function EarnedInstallPrompt({ className }: { className?: string }) {
       return;
     }
 
-    const moment = consumeInstallEarnedMoment();
+    const moment = consumeInstallEarnedMoment() ?? recordInstallReturnVisit();
     if (!moment) {
       return;
     }

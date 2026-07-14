@@ -13,18 +13,22 @@ export const DEFAULT_SHARED_ENV_FILES = [
 ];
 
 export function normalizeEnvValue(rawValue) {
-  const trimmed = rawValue
+  let normalized = rawValue
     .replace(/^\uFEFF+/, "")
     .replace(/(?:\\r|\\n)+$/g, "")
     .trim();
+
   if (
-    (trimmed.startsWith("\"") && trimmed.endsWith("\""))
-    || (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    (normalized.startsWith("\"") && normalized.endsWith("\""))
+    || (normalized.startsWith("'") && normalized.endsWith("'"))
   ) {
-    return trimmed.slice(1, -1);
+    normalized = normalized.slice(1, -1);
   }
 
-  return trimmed;
+  return normalized
+    .replace(/^\uFEFF+/, "")
+    .replace(/(?:\\r|\\n)+$/g, "")
+    .trim();
 }
 
 export function parseDotenvFile(filePath) {
@@ -82,7 +86,24 @@ export function resolveEnvFilePaths(repoRoot, override = process.env[DEV_ENV_FIL
       .map((candidateName) => path.join(atlasRoot, "secrets", candidateName))
       .filter((candidatePath) => fs.existsSync(candidatePath));
 
-    return sharedEnvPaths.length > 0 ? sharedEnvPaths : [repoDefault];
+    if (sharedEnvPaths.length === 0) {
+      return [repoDefault];
+    }
+
+    const expectedHost = resolveExpectedSupabaseHost();
+    return sharedEnvPaths
+      .map((candidatePath, index) => ({
+        ...rankEnvFileForExpectedSupabaseHost(candidatePath, expectedHost),
+        index,
+      }))
+      .sort((left, right) => {
+        if (left.matchesExpected !== right.matchesExpected) {
+          return left.matchesExpected ? -1 : 1;
+        }
+
+        return left.index - right.index;
+      })
+      .map((entry) => entry.filePath);
   }
 
   return [path.isAbsolute(requested)
@@ -104,6 +125,22 @@ export function resolveUrlHost(value) {
   } catch {
     return "";
   }
+}
+
+function resolveExpectedSupabaseHost(rawValue = process.env[FITNESS_EXPECT_SUPABASE_HOST_ENV] ?? "") {
+  const normalized = String(rawValue ?? "").trim().toLowerCase();
+  return normalized || DEFAULT_EXPECTED_SUPABASE_HOST;
+}
+
+function rankEnvFileForExpectedSupabaseHost(filePath, expectedHost) {
+  const env = parseDotenvFile(filePath);
+  const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || "");
+
+  return {
+    filePath,
+    actualHost,
+    matchesExpected: Boolean(expectedHost) && actualHost === expectedHost,
+  };
 }
 
 function looksLikeProductionEnvFile(filePath) {
@@ -138,7 +175,7 @@ export function assertExpectedFitnessSupabaseHost({
   env,
   commandName,
 }) {
-  const expectedHost = String(env[FITNESS_EXPECT_SUPABASE_HOST_ENV] || DEFAULT_EXPECTED_SUPABASE_HOST).trim().toLowerCase();
+  const expectedHost = resolveExpectedSupabaseHost(env[FITNESS_EXPECT_SUPABASE_HOST_ENV]);
   const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || "");
   const usageTarget = commandName ? ` for ${commandName}` : "";
 

@@ -47,6 +47,18 @@ const ROUTINE_SELECT_LEGACY = "name, weight_unit";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 const SESSION_EXERCISE_SELECT_LEGACY = "id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_updated_at, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit)";
 const SESSION_EXERCISE_SELECT_WITH_EFFORT = "id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_effort, copilot_feedback_updated_at, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit)";
+const EXERCISE_TIMER_SELECT = "exercise_timer_enabled, exercise_timer_mode, exercise_timer_target_seconds, exercise_timer_elapsed_seconds, exercise_timer_status, exercise_timer_started_at, exercise_timer_completed_at";
+const SESSION_EXERCISE_SELECT_WITH_TIMER = `${SESSION_EXERCISE_SELECT_LEGACY}, ${EXERCISE_TIMER_SELECT}`;
+const SESSION_EXERCISE_SELECT_WITH_EFFORT_AND_TIMER = `${SESSION_EXERCISE_SELECT_WITH_EFFORT}, ${EXERCISE_TIMER_SELECT}`;
+
+function isMissingExerciseTimerColumnError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("exercise_timer_") && (
+    message.includes("does not exist")
+    || message.includes("schema cache")
+    || message.includes("could not find")
+  );
+}
 
 function resolveMeasurementType(value: unknown): MeasurementType | null {
   return value === "reps" || value === "time" || value === "distance" || value === "time_distance" || value === "none" ? value : null;
@@ -128,19 +140,39 @@ export async function getSessionPageDataForUser(
 
   const { data: sessionExercisesWithEffort, error: sessionExercisesWithEffortError } = await supabase
     .from("session_exercises")
-    .select(SESSION_EXERCISE_SELECT_WITH_EFFORT)
+    .select(SESSION_EXERCISE_SELECT_WITH_EFFORT_AND_TIMER)
     .eq("session_id", sessionId)
     .eq("user_id", userId)
     .order("position", { ascending: true });
-  const { data: legacySessionExercisesData } = sessionExercisesWithEffortError && isMissingSessionCopilotFeedbackEffortColumnError(sessionExercisesWithEffortError)
-    ? await supabase
+  let sessionExercisesData: unknown[] | null = sessionExercisesWithEffort;
+  if (sessionExercisesWithEffortError && isMissingExerciseTimerColumnError(sessionExercisesWithEffortError)) {
+    const fallback = await supabase
+      .from("session_exercises")
+      .select(SESSION_EXERCISE_SELECT_WITH_EFFORT)
+      .eq("session_id", sessionId)
+      .eq("user_id", userId)
+      .order("position", { ascending: true });
+    if (fallback.error && isMissingSessionCopilotFeedbackEffortColumnError(fallback.error)) {
+      const legacy = await supabase
         .from("session_exercises")
         .select(SESSION_EXERCISE_SELECT_LEGACY)
         .eq("session_id", sessionId)
         .eq("user_id", userId)
-        .order("position", { ascending: true })
-    : { data: null };
-  const sessionExercisesData = sessionExercisesWithEffort ?? legacySessionExercisesData ?? [];
+        .order("position", { ascending: true });
+      sessionExercisesData = legacy.data;
+    } else {
+      sessionExercisesData = fallback.data;
+    }
+  } else if (sessionExercisesWithEffortError && isMissingSessionCopilotFeedbackEffortColumnError(sessionExercisesWithEffortError)) {
+    const fallback = await supabase
+      .from("session_exercises")
+      .select(SESSION_EXERCISE_SELECT_WITH_TIMER)
+      .eq("session_id", sessionId)
+      .eq("user_id", userId)
+      .order("position", { ascending: true });
+    sessionExercisesData = fallback.data;
+  }
+  sessionExercisesData = sessionExercisesData ?? [];
 
   const { data: routineDaysData } = session.routine_id
     ? await supabase
@@ -267,18 +299,38 @@ export async function getSessionPageDataForUser(
       enabled_metrics: enabledMetrics,
       progression_playbook_id: linkedRoutine?.progression_playbook_id ?? null,
       progression_playbook_config: linkedRoutine?.progression_playbook_config ?? null,
+      exercise_timer_enabled: item.exercise_timer_enabled === true,
+      exercise_timer_mode: item.exercise_timer_mode ?? null,
+      exercise_timer_target_seconds: item.exercise_timer_target_seconds ?? null,
+      exercise_timer_elapsed_seconds: item.exercise_timer_elapsed_seconds ?? 0,
+      exercise_timer_status: item.exercise_timer_status ?? "idle",
+      exercise_timer_started_at: item.exercise_timer_started_at ?? null,
+      exercise_timer_completed_at: item.exercise_timer_completed_at ?? null,
     };
   });
   const exerciseIds = sessionExercises.map((exercise) => exercise.id);
 
-  const { data: setsData } = exerciseIds.length
-    ? await supabase
+  let setsData: unknown[] | null = [];
+  if (exerciseIds.length) {
+    let setsResult: {
+      data: unknown[] | null;
+      error: { message?: string } | null;
+    } = await supabase
+        .from("sets")
+        .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit, logged_at")
+        .in("session_exercise_id", exerciseIds)
+        .eq("user_id", userId)
+        .order("set_index", { ascending: true });
+    if (setsResult.error?.message?.toLowerCase().includes("logged_at")) {
+      setsResult = await supabase
         .from("sets")
         .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
         .in("session_exercise_id", exerciseIds)
         .eq("user_id", userId)
-        .order("set_index", { ascending: true })
-    : { data: [] };
+        .order("set_index", { ascending: true });
+    }
+    setsData = setsResult.data;
+  }
 
   const sets = (setsData ?? []) as SetRow[];
   const setsByExercise = new Map<string, SetRow[]>();

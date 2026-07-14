@@ -22,6 +22,7 @@ import { HISTORY_CACHE_SCHEMA_VERSION, type HistoryCacheSnapshot } from "@/lib/o
 import { QA_LLEL_VISIBILITY_COOKIE, resolveQaLlelVisibilityOverride } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { HistorySessionsClient } from "./HistorySessionsClient";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,11 @@ function getSingleSearchParam(value: string | string[] | null | undefined) {
   }
 
   return typeof value === "string" ? value : undefined;
+}
+
+function getHistoryDaySearchParam(value: string | string[] | null | undefined) {
+  const dayValue = getSingleSearchParam(value)?.trim();
+  return dayValue && /^\d{4}-\d{2}-\d{2}$/.test(dayValue) ? dayValue : undefined;
 }
 
 function HistoryRouteMessage({
@@ -58,6 +64,7 @@ export default async function HistoryPage({
   const initialViewMode = viewParam === "detailed" ? "detailed" : "compact";
   const initialFiltersOpen = getSingleSearchParam(searchParams?.filters) === "open";
   const initialQuery = getSingleSearchParam(searchParams?.q) ?? "";
+  const initialSelectedDayKey = getHistoryDaySearchParam(searchParams?.day) ?? null;
   const initialSelectedTags = (getSingleSearchParam(searchParams?.tags) ?? "")
     .split(",")
     .map((value) => value.trim())
@@ -171,8 +178,10 @@ export default async function HistoryPage({
           selectedSessionId={state.data.selectedSessionId}
           initialViewMode={initialViewMode}
           initialFiltersOpen={initialFiltersOpen}
+          initialSelectedDayKey={initialSelectedDayKey}
           initialQuery={initialQuery}
           initialSelectedTags={initialSelectedTags}
+          premiumCycleAnalyticsPreviewEnabled={isFeatureEnabled("premiumCycleAnalyticsPreview")}
         />
         <HistoryOfflineBridge snapshot={historySnapshot} />
       </HistoryRouteScaffold>

@@ -1592,6 +1592,66 @@ button,
   color: rgb(var(--text));
 }
 
+.routine-card-delete-anchor {
+  pointer-events: none;
+  position: absolute;
+  right: 0.65rem;
+  top: 0.3rem;
+  z-index: 8;
+}
+
+.routine-card-delete-action {
+  position: relative;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgb(var(--danger-rgb)) !important;
+  padding: 0 0 0.34rem !important;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: color 120ms ease;
+}
+
+.routine-card-delete-action::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--danger-rgb) / 0.14), rgb(var(--danger-rgb) / 0.85), rgb(var(--danger-rgb) / 0.14));
+  box-shadow: 0 0 14px rgb(var(--danger-rgb) / 0.16);
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.routine-card-delete-action:hover:not(:disabled) {
+  color: rgb(255 178 178) !important;
+}
+
+.routine-card-delete-action:hover:not(:disabled)::after {
+  background: linear-gradient(90deg, rgb(255 178 178 / 0.18), rgb(255 178 178 / 0.92), rgb(255 178 178 / 0.18));
+  box-shadow: 0 0 14px rgb(255 178 178 / 0.2);
+}
+
+.routine-card-delete-action:focus-visible {
+  outline: 2px solid rgb(var(--danger-rgb) / 0.3);
+  outline-offset: 3px;
+}
+
+.routine-card-delete-action:disabled {
+  cursor: not-allowed;
+}
+
+@media (min-width: 640px) {
+  .routine-card-delete-anchor {
+    right: 0.8rem;
+  }
+}
+
 .app-button {
   position: relative;
   overflow: hidden;

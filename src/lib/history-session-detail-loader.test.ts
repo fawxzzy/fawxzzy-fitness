@@ -48,17 +48,24 @@ type ExerciseSeed = {
   default_unit: string | null;
 };
 
-function createSupabaseStub(seed: { sessionExercises: SessionExerciseSeed[]; sets: SetSeed[]; exercises?: ExerciseSeed[] }) {
+function createSupabaseStub(seed: {
+  sessionExercises: SessionExerciseSeed[];
+  sets: SetSeed[];
+  exercises?: ExerciseSeed[];
+  missingExerciseMetadataColumn?: string;
+}) {
   return {
     from(table: "session_exercises" | "sets" | "exercises") {
       const state = {
         table,
+        select: "",
         filters: [] as Array<{ key: string; value: string }>,
         inFilter: null as { key: string; values: string[] } | null,
       };
 
       const chain = {
-        select() {
+        select(value: string) {
+          state.select = value;
           return chain;
         },
         eq(key: string, value: string) {
@@ -91,9 +98,15 @@ function createSupabaseStub(seed: { sessionExercises: SessionExerciseSeed[]; set
           });
           return { data: rows };
         },
-        async then(resolve: (value: { data: ExerciseSeed[] }) => unknown) {
+        async then(resolve: (value: { data: ExerciseSeed[] | null; error?: { message: string } }) => unknown) {
           if (state.table !== "exercises") {
             return resolve({ data: [] });
+          }
+          if (seed.missingExerciseMetadataColumn && state.select.includes(seed.missingExerciseMetadataColumn)) {
+            return resolve({
+              data: null,
+              error: { message: `Could not find the '${seed.missingExerciseMetadataColumn}' column of 'exercises' in the schema cache` },
+            });
           }
           const rows = (seed.exercises ?? []).filter((row) => {
             const matchesEq = state.filters.every((filter) => String((row as Record<string, unknown>)[filter.key]) === filter.value);
@@ -455,6 +468,15 @@ test("resolves history exercise name from fallback row label when metadata is mi
   }), "Legacy Incline Press");
 });
 
+test("skips blank labels and returns the first non-empty history exercise name", () => {
+  assert.equal(resolveHistoryExerciseName({
+    metadataName: "   ",
+    rowExerciseName: "",
+    rowName: " Incline Press ",
+    mapExerciseName: "Incline Press Map",
+  }), "Incline Press");
+});
+
 test("resolves history exercise name to safe fallback when no labels exist", () => {
   assert.equal(resolveHistoryExerciseName({
     metadataName: null,
@@ -507,4 +529,42 @@ test("normalizes exercise metadata map keys and preserves full row count with mi
   assert.equal(result.summary.sessionExercisesCount, 2);
   assert.equal(result.exerciseMetadataById.get("101")?.name, "Resolved Name");
   assert.equal(result.exerciseMetadataById.has("102"), false);
+});
+
+test("retries a legacy-safe exercise metadata select when an optional column is unavailable", async () => {
+  const supabase = createSupabaseStub({
+    sessionExercises: [{
+      id: "se-schema-drift",
+      session_id: "session-schema-drift",
+      user_id: "user-1",
+      exercise_id: "exercise-schema-drift",
+      position: 1,
+      performed_index: 0,
+      notes: null,
+      is_skipped: false,
+    }],
+    sets: [],
+    exercises: [{
+      id: "exercise-schema-drift",
+      name: "Cable Row",
+      slug: "cable-row",
+      image_path: null,
+      image_icon_path: null,
+      image_howto_path: null,
+      measurement_type: "reps",
+      default_unit: null,
+    }],
+    missingExerciseMetadataColumn: "calories_estimation_method",
+  });
+
+  const result = await loadHistoryDetailRows({
+    supabase,
+    sessionId: "session-schema-drift",
+    userId: "user-1",
+    sessionFound: true,
+  });
+
+  assert.equal(result.orderedSessionExercises.length, 1);
+  assert.equal(result.exerciseMetadataById.get("exercise-schema-drift")?.name, "Cable Row");
+  assert.equal(result.summary.fallbackPathUsed, true);
 });
