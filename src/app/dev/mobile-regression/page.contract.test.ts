@@ -7,7 +7,7 @@ const pageUrl = new URL("./page.tsx", import.meta.url);
 test("mobile regression fixtures remain production-blocked and preview-reviewable", async () => {
   const source = await readFile(pageUrl, "utf8");
 
-  assert.match(source, /process\.env\.VERCEL_ENV === "preview"/);
-  assert.match(source, /process\.env\.NODE_ENV === "production" && !isVercelPreview/);
+  assert.match(source, /process\.env\.HISTORY_QA_PREVIEW_ENABLED === "1"/);
+  assert.match(source, /process\.env\.NODE_ENV === "production" && !isReviewPreviewEnabled/);
   assert.match(source, /notFound\(\)/);
 });
