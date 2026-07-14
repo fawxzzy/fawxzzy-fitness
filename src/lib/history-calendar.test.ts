@@ -95,3 +95,17 @@ test("history calendar still renders the current month when no sessions exist", 
   assert.equal(view.months[0]?.monthKey, "2026-07-01");
   assert.equal(view.selectedDay, null);
 });
+
+test("history calendar marks planned misses while completed sessions retain training truth", () => {
+  const view = buildHistoryCalendarView({
+    sessions: [createSession("session-1", "2026-07-08T14:00:00.000Z")],
+    timezone: "America/New_York",
+    skippedDayKeys: ["2026-07-07", "2026-07-08"],
+    now: "2026-07-10T14:00:00.000Z",
+  });
+
+  assert.equal(findCalendarDay(view, "2026-07-07")?.isSkipped, true);
+  assert.equal(findCalendarDay(view, "2026-07-07")?.activityTone, "none");
+  assert.equal(findCalendarDay(view, "2026-07-08")?.isSkipped, false);
+  assert.equal(findCalendarDay(view, "2026-07-08")?.activityTone, "low");
+});

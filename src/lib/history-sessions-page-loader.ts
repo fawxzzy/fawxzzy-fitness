@@ -35,6 +35,11 @@ import {
   buildSessionCopilotReceiptLabel,
 } from "@/lib/session-feedback-ui";
 import type { ProgressionEventRow, SessionExerciseRow, SessionRow } from "@/types/db";
+import {
+  buildHistorySkippedWorkoutDays,
+  type HistoryPlannedRoutineDay,
+  type HistorySkippedWorkoutDay,
+} from "@/lib/history-planned-days";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
 
@@ -62,6 +67,9 @@ export type HistorySessionsPageData = {
   filterOptions: ExerciseInfoFilterOptions;
   currentRoutineSessionItems: SessionSummary[];
   currentCycleSessionItems: SessionSummary[];
+  plannedSkippedDayKeys: string[];
+  currentRoutinePlannedSkippedDayKeys: string[];
+  currentCyclePlannedSkippedDayKeys: string[];
   subtitle: string;
   activeRoutineTitle: string | null;
   scopeSummary: HistoryScopeSummary;
@@ -77,6 +85,7 @@ export type HistorySessionsPageData = {
 
 export type HistorySessionsScopePayload = {
   sessionItems: SessionSummary[];
+  plannedSkippedDayKeys: string[];
   scopeSummary: HistoryScopeSummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
@@ -119,6 +128,7 @@ type HistorySessionsScopeContext = {
   exerciseMetaById: Map<string, ExerciseMetadataRow>;
   exerciseNameById: Map<string, string>;
   routineDayCountByRoutineId: Map<string, number>;
+  plannedSkippedWorkoutDays: HistorySkippedWorkoutDay[];
   profileTimeZone: string;
   now?: string;
   activeRoutineId: string | null;
@@ -557,6 +567,22 @@ function normalizeRoutineDayCounts(rows: unknown[]) {
   );
 }
 
+function normalizePlannedRoutineDays(rows: unknown[]): HistoryPlannedRoutineDay[] {
+  return rows
+    .map((row): HistoryPlannedRoutineDay | null => {
+      const record = asRecord(row);
+      const routineId = record ? asTrimmedString(record.routine_id) : null;
+      const dayIndex = record ? asNullableInteger(record.day_index) : null;
+      if (!routineId || dayIndex === null) return null;
+      return {
+        routineId,
+        dayIndex,
+        isRest: record?.is_rest === true,
+      };
+    })
+    .filter((day): day is HistoryPlannedRoutineDay => Boolean(day));
+}
+
 function unwrapRelationRecord(value: unknown) {
   if (Array.isArray(value)) {
     return asRecord(value[0]);
@@ -775,6 +801,16 @@ function buildHistorySessionsScopePayload(
     const dayKey = getWeeklyProgressDayKey(event.created_at, context.profileTimeZone);
     return Boolean(dayKey && dayKey >= currentCycleWindow.startDate && dayKey <= currentCycleWindow.endDate);
   });
+  const plannedSkippedDayKeys = Array.from(new Set(
+    context.plannedSkippedWorkoutDays
+      .filter((day) => {
+        if (normalizedFilterState.analyticsScope === "all_time") return true;
+        if (!selectedRoutineId || day.routineId !== selectedRoutineId) return false;
+        if (normalizedFilterState.analyticsScope !== "current_cycle" || !currentCycleWindow) return true;
+        return day.dayKey >= currentCycleWindow.startDate && day.dayKey <= currentCycleWindow.endDate;
+      })
+      .map((day) => day.dayKey),
+  )).sort((left, right) => left.localeCompare(right));
 
   const weeklyProgress = buildWeeklyProgressSummary({
     sessions: scopedSessionItems,
@@ -830,6 +866,7 @@ function buildHistorySessionsScopePayload(
 
   return {
     sessionItems: scopedSessionItems,
+    plannedSkippedDayKeys,
     scopeSummary,
     weeklyProgress,
     weeklyProgressByWeek,
@@ -1065,6 +1102,7 @@ async function loadHistorySessionsScopeContext({
   });
   const routineDayNameByKey = normalizeRoutineDayNames(routineDayRows);
   const routineDayCountByRoutineId = normalizeRoutineDayCounts(routineDayRows);
+  const plannedRoutineDays = normalizePlannedRoutineDays(routineDayRows);
   const exerciseNameById = normalizeExerciseNameRows(exerciseNameRows);
   const exerciseMetaById = normalizeExerciseMetadataRows(exerciseNameRows);
   const prEvaluationSets = normalizePrEvaluationSets(historicalSetRows);
@@ -1189,6 +1227,18 @@ async function loadHistorySessionsScopeContext({
     ? sessionItems
     : filterQaLlelRows(sessionItems, (session) => [session.routineTitle, session.dayTitle]);
   const routineMetas = normalizeRoutineMetas(allRoutineRows, profileSettings.activeRoutineId, profileTimezone);
+  const plannedSkippedWorkoutDays = buildHistorySkippedWorkoutDays({
+    routines: routineMetas.map((routine) => ({
+      id: routine.id,
+      startDate: routine.startDate,
+      cycleLengthDays: routine.cycleLengthDays,
+      timeZone: routine.timeZone,
+      isActive: routine.isActive,
+    })),
+    routineDays: plannedRoutineDays,
+    sessions: visibleSessionItems,
+    now,
+  });
   const filterOptions = buildHistorySessionsFilterOptions({
     routineMetas,
     sessions: visibleSessionItems,
@@ -1206,6 +1256,7 @@ async function loadHistorySessionsScopeContext({
       exerciseMetaById,
       exerciseNameById,
       routineDayCountByRoutineId,
+      plannedSkippedWorkoutDays,
       profileTimeZone: profileTimezone,
       now,
       activeRoutineId: profileSettings.activeRoutineId,
@@ -1277,6 +1328,9 @@ export async function loadHistorySessionsPageData({
     filterOptions: scopeContext.filterOptions,
     currentRoutineSessionItems: currentRoutinePayload.sessionItems,
     currentCycleSessionItems: currentCyclePayload.sessionItems,
+    plannedSkippedDayKeys: allTimePayload.plannedSkippedDayKeys,
+    currentRoutinePlannedSkippedDayKeys: currentRoutinePayload.plannedSkippedDayKeys,
+    currentCyclePlannedSkippedDayKeys: currentCyclePayload.plannedSkippedDayKeys,
     subtitle: `${allTimePayload.sessionItems.length} completed sessions`,
     activeRoutineTitle: scopeContext.activeRoutineTitle,
     scopeSummary: allTimePayload.scopeSummary,

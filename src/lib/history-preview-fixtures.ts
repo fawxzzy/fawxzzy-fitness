@@ -672,6 +672,9 @@ export function getHistoryPreviewSessionsPageData(args?: {
     filterOptions: { routines: [] },
     currentRoutineSessionItems: [...historyPreviewSessions],
     currentCycleSessionItems: [...historyPreviewSessions],
+    plannedSkippedDayKeys: ["2026-04-22"],
+    currentRoutinePlannedSkippedDayKeys: ["2026-04-22"],
+    currentCyclePlannedSkippedDayKeys: ["2026-04-22"],
     subtitle: `${historyPreviewSessions.length} completed sessions`,
     scopeSummary: historyPreviewScopeSummary,
     currentRoutineScopeSummary: {

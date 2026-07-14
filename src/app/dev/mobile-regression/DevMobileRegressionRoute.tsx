@@ -2718,6 +2718,9 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             sessions={[...mockHistorySessions]}
             currentRoutineSessions={[...mockHistorySessions]}
             currentCycleSessions={[...mockHistorySessions]}
+            plannedSkippedDayKeys={["2026-04-08"]}
+            currentRoutinePlannedSkippedDayKeys={["2026-04-08"]}
+            currentCyclePlannedSkippedDayKeys={["2026-04-08"]}
             activeRoutineTitle={mockHistoryWeeklyProgress.primaryRoutineTitle}
             scopeSummary={mockHistoryScopeSummary}
             currentRoutineScopeSummary={{

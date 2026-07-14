@@ -13,6 +13,7 @@ function getDayButtonClassName(args: {
   inMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
+  isSkipped: boolean;
   activityTone: "none" | "low" | "medium" | "high";
 }) {
   if (!args.inMonth) {
@@ -25,6 +26,10 @@ function getDayButtonClassName(args: {
 
   if (args.isToday) {
     return "border-[rgb(var(--accent-yellow-on)/0.9)] bg-[rgb(93_74_21)] text-[rgb(255_250_231)] shadow-[0_0_0_1px_rgb(var(--accent-yellow-on)/0.12)]";
+  }
+
+  if (args.isSkipped) {
+    return "border-[rgb(var(--danger-rgb)/0.82)] bg-[rgb(92_26_31)] text-[rgb(255_244_244)] shadow-[0_0_0_1px_rgb(var(--danger-rgb)/0.12)]";
   }
 
   switch (args.activityTone) {
@@ -43,11 +48,13 @@ function getDayBackgroundColor(args: {
   inMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
+  isSkipped: boolean;
   activityTone: "none" | "low" | "medium" | "high";
 }) {
   if (!args.inMonth) return undefined;
   if (args.isSelected) return "rgb(25 102 53)";
   if (args.isToday) return "rgb(93 74 21)";
+  if (args.isSkipped) return "rgb(92 26 31)";
 
   switch (args.activityTone) {
     case "high":
@@ -76,7 +83,7 @@ export function HistoryCalendarSurface({
       headerAlign="center"
     >
       <HorizontalScrollHint
-        scrollClassName="-mx-1.5 px-1.5"
+        scrollClassName="-mx-1.5 px-1.5 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
         contentClassName="flex min-w-max gap-2 pb-1"
       >
         {calendarView.months.map((month) => (
@@ -107,6 +114,8 @@ export function HistoryCalendarSurface({
                       key={day.dayKey}
                       type="button"
                       aria-pressed={day.isSelected}
+                      aria-label={day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined}
+                      data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
                       disabled={!day.inMonth || day.sessionCount === 0}
                       onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
                       style={{ backgroundColor: getDayBackgroundColor(day) }}
@@ -134,6 +143,8 @@ export function HistoryCalendarSurface({
         <span>Today</span>
         <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)] bg-[rgb(17_91_49)]" />
         <span>Training</span>
+        <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--danger-rgb)/0.62)] bg-[rgb(92_26_31)]" />
+        <span>Skipped</span>
       </div>
     </HistorySection>
   );

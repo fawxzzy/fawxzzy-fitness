@@ -563,3 +563,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Rebuilding recap bullets per screen reintroduces text-touching-dot bugs, spacing drift, and inconsistent progress/progression panels across exercise info, history, and logged-session detail.
 - Evidence: `src/components/ui/DetailSectionList.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/ExerciseInfoSheet.tsx`
 - Status: Proposed
+
+## 2026-07-14 - History calendars distinguish completed and skipped planned workout days
+- Type: Pattern
+- WHAT changed: The history calendar now derives past planned workout dates from routine cycle truth, keeps completed session days green, marks genuinely missed workout days red, and allows vertical page movement to begin over the horizontally swipeable month rail.
+- WHY it changed: The calendar previously showed only completed-session density and its horizontal-only touch contract blocked normal mobile page scrolling when a gesture started inside the calendar.
+- Rule: Calendar status must come from routine scheduling plus completed-session truth, and horizontally scrollable history surfaces must preserve vertical page gestures.
+- Evidence: `src/lib/history-planned-days.ts`, `src/lib/history-calendar.ts`, `src/components/history/HistoryCalendarSurface.tsx`
+- Status: Proposed
