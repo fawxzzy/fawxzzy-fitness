@@ -1,6 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-07-14 - Explicit deployment classification must outrank the CI execution context
+- Type: Guardrail
+- WHAT changed: Atlas health contracts now classify explicit Vercel production and preview values before the inherited CI execution signal.
+- WHY it changed: GitHub Actions runs with `CI=true`; treating that runner context as the highest-priority environment caused production and preview contract fixtures to be misclassified as CI even when they intentionally set Vercel deployment values.
+- Rule: Runtime deployment classification should prefer explicit deployment metadata over the fact that the current process is executing in CI.
+- Evidence: `src/lib/atlas-contracts.ts`, `src/lib/atlas-contracts.test.ts`, hosted Atlas contracts run `29355735323`.
+- Status: Proposed
+
 ## 2026-06-28 - Compact mobile routine and exercise cards should share the same title-width and goal-summary contracts
 - Type: Pattern
 - WHAT changed: The mobile routine browse cards, workout-plan cards, day recap tiles, Today rows, and session exercise cards were tightened onto the same compact spacing rules by shrinking right-edge chrome padding, rebalancing compact title/right-rail layout, and updating the regression fixture route to use shared formatted goal-summary text instead of hand-written strings.

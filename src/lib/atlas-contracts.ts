@@ -37,10 +37,6 @@ function normalizeAtlasEnvironment(): AtlasEnvironment {
     return "test";
   }
 
-  if (process.env.CI === "true") {
-    return "ci";
-  }
-
   if (process.env.VERCEL_ENV === "production") {
     return "production";
   }
@@ -51,6 +47,10 @@ function normalizeAtlasEnvironment(): AtlasEnvironment {
 
   if (process.env.NODE_ENV === "production") {
     return "production";
+  }
+
+  if (process.env.CI === "true") {
+    return "ci";
   }
 
   return "local";

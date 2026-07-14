@@ -32,6 +32,7 @@ test("buildAtlasHealthPayload reports ok when the canonical auth env is present"
   const payload = withEnv(
     {
       NODE_ENV: "production",
+      CI: "true",
       VERCEL_ENV: "production",
       VERCEL_GIT_COMMIT_SHA: "abcdef1234567890",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
@@ -52,6 +53,7 @@ test("buildAtlasHealthPayload degrades when the service-role key is absent", () 
   const payload = withEnv(
     {
       NODE_ENV: "production",
+      CI: "true",
       VERCEL_ENV: "preview",
       VERCEL_GIT_COMMIT_SHA: "abcdef1",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
