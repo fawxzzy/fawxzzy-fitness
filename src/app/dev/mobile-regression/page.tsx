@@ -22,7 +22,8 @@ export default async function DevMobileRegressionPage({
     fixture?: string;
   };
 }) {
-  if (process.env.NODE_ENV === "production") {
+  const isVercelPreview = process.env.VERCEL_ENV === "preview";
+  if (process.env.NODE_ENV === "production" && !isVercelPreview) {
     notFound();
   }
 
