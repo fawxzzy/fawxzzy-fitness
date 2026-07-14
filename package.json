@@ -155,7 +155,7 @@
     "test:app-theme-contracts": "node --import ./scripts/register-test-aliases.mjs --test src/lib/app-theme.test.ts",
     "verify:strict": "npm run lint && npm run test:history-ui-contracts && npm run test:app-theme-contracts && npm run test:fitness-growth-shadow && npm run verify:mobile-regression && npm run build",
     "test:auth-ui-contracts": "node --import ./scripts/register-test-aliases.mjs --test src/app/login/loginScreenState.test.ts src/app/login/LoginScreen.contract.test.ts src/components/ui/app/designSystem.contract.test.ts src/lib/local-dev-auto-entry.test.ts",
-    "test:billing": "node --import ./scripts/register-test-aliases.mjs --test src/lib/billing/stripe-config.test.ts src/lib/billing/pro-access.test.ts src/lib/billing/reconcile-cancelled-checkout.test.ts src/lib/billing/stripe-webhook-signature.test.ts src/lib/billing/subscription-status.test.ts src/lib/pro-tier-limits.test.ts",
+    "test:billing": "node --import ./scripts/register-test-aliases.mjs --test src/lib/billing/community-pricing-policy.test.ts src/lib/billing/stripe-config.test.ts src/lib/billing/pro-access.test.ts src/lib/billing/reconcile-cancelled-checkout.test.ts src/lib/billing/stripe-webhook-signature.test.ts src/lib/billing/subscription-status.test.ts src/lib/pro-tier-limits.test.ts",
     "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
     "test:fitness-release-ledger": "node --test scripts/release/fitness-release-note.test.mjs",
     "test:fitness-release-readiness": "node --test scripts/release/fitness-release-readiness.test.mjs",
