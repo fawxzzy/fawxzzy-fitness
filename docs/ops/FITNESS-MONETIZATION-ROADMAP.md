@@ -78,26 +78,29 @@ Recommended order:
 5. `FF-MON-002` Implement Stripe Pro Subscription Checkout Flow
 6. `FF-SEC-001` Supabase Production Hardening Before Paid Launch
 7. `FF-MON-003` Define Pro Plan Pricing and Gated Value Copy
-8. `FF-MON-001` Monetization Readiness Gate
-9. `FF-QA-001` Monetization Launch Smoke Test Checklist
-10. `FF-QA-002` Harden Atlas Contracts and CI Environment Verification
-11. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
-12. `FF-RET-001` Add Calendar View
-13. `FF-RET-004` Add Weekly and Monthly Progress Summaries
-14. `FF-RET-002` Add Workout Streaks
-15. `FF-RET-003` Add Consistency Heatmap
-16. `FF-PWA-003` Expand Earned Install Promotion Moments
-17. `FF-ENGINE-001` Build Curated Workout Engine V1
-18. `FF-ONBOARD-001` Ship Curated Onboarding Intake And Generator Handoff
-19. `FF-RECAP-001` Ship Shareable Workout Recap Artifacts
-20. `FF-ANALYTICS-002` Add Premium Cycle Analytics Preview Placement
-21. `FF-MKT-001` Founding User Launch Plan
-22. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
-23. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
-24. `FF-GAM-001` Add Achievements and Badges
-25. `FF-SOC-001` Explore Social Features
-26. `FF-PROG-001` Ship Today And Routines Progression Updates Surface
-27. `FF-ACCOUNT-001` Add Account Workout Data Export
+8. `FF-MON-004` Design Subscriber-Count Community Pricing
+9. `FF-MON-005` Add Optional Support Fawxzzy Payments
+10. `FF-MON-001` Monetization Readiness Gate
+11. `FF-QA-001` Monetization Launch Smoke Test Checklist
+12. `FF-QA-002` Harden Atlas Contracts and CI Environment Verification
+13. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
+14. `FF-RET-001` Add Calendar View
+15. `FF-RET-004` Add Weekly and Monthly Progress Summaries
+16. `FF-RET-002` Add Workout Streaks
+17. `FF-RET-003` Add Consistency Heatmap
+18. `FF-PWA-003` Expand Earned Install Promotion Moments
+19. `FF-ENGINE-001` Build Curated Workout Engine V1
+20. `FF-ONBOARD-001` Ship Curated Onboarding Intake And Generator Handoff
+21. `FF-RECAP-001` Ship Shareable Workout Recap Artifacts
+22. `FF-ANALYTICS-002` Add Premium Cycle Analytics Preview Placement
+23. `FF-MKT-001` Founding User Launch Plan
+24. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
+25. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
+26. `FF-GAM-001` Add Achievements and Badges
+27. `FF-SOC-001` Explore Social Features
+28. `FF-SOC-002` Add Gifted Pro Subscription Credits
+29. `FF-PROG-001` Ship Today And Routines Progression Updates Surface
+30. `FF-ACCOUNT-001` Add Account Workout Data Export
 
 Backfilled shipped cards:
 - `FF-PROG-001` and `FF-ACCOUNT-001` stay in the roadmap for coverage, but they are intentionally placed below active future implementation lanes so resolved work does not crowd the live queue.
@@ -106,6 +109,18 @@ Do not start yet:
 - `FF-ENGINE-002` waits on `FF-ENGINE-001` and `FF-RET-004`.
 - `FF-GAM-001` waits on retention loops.
 - `FF-SOC-001` waits on the paid core plus legal clarity.
+- `FF-MON-004` waits on operator acceptance of the community-price milestones and existing-subscriber policy.
+- `FF-MON-005` waits on operator acceptance of support wording, minimum, presets, placement, and refund policy.
+- `FF-SOC-002` waits on accepted social identity/privacy rules and `FF-MON-004` price-snapshot semantics.
+
+## 2026-07-14 Community Monetization Planning
+
+- `FF-MON-004` owns subscriber-count community pricing. The first proposal permanently ratchets down from `$5` to `$4` at 1,250 paid subscribers, `$3` at 1,667, `$2` at 2,500, `$1` at 5,000, and a `$0.50` floor at 10,000.
+- A `$0.01` recurring USD charge is not viable: Stripe's standard minimum non-zero USD charge is `$0.50`, and fixed transaction fees make micro-monthly billing inefficient.
+- At the `$0.50/month` equivalent floor, `$6/year` is the preferred planning option because one annual transaction preserves much more of the same gross revenue than twelve monthly transactions.
+- `FF-MON-005` owns optional one-time Support Fawxzzy payments. This is separate from subscriptions, grants no additional entitlement, and must not be described as a charitable or tax-deductible donation.
+- `FF-SOC-002` owns gifted Pro months after social identity exists. A one-time gift snapshots the current community price and creates whole recipient-month credits in an app-owned entitlement ledger.
+- These cards are Planning only. No Stripe price, subscription, entitlement, production environment, deployment, or user data was changed during admission.
 
 ## 2026-07-07 Card Reconciliation
 

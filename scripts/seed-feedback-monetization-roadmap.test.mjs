@@ -154,6 +154,32 @@ test("FF-QA-002 has a deterministic review-state registry contract", () => {
   assert.ok(card.acceptanceCriteria.some((criterion) => criterion.includes("production deploy")));
 });
 
+test("community monetization ideas have separate deterministic planning contracts", () => {
+  const communityPrice = getFeedbackMonetizationCard("FF-MON-004");
+  const supportPayment = getFeedbackMonetizationCard("FF-MON-005");
+  const giftedPro = getFeedbackMonetizationCard("FF-SOC-002");
+
+  assert.ok(communityPrice);
+  assert.equal(communityPrice.boardStatus, "confirmed");
+  assert.equal(communityPrice.priority, "P1");
+  assert.deepEqual(communityPrice.dependsOn, ["FF-MON-002", "FF-MON-003"]);
+  assert.match(communityPrice.notes, /\$1 at 5,000/);
+  assert.match(communityPrice.notes, /\$0\.50 floor/);
+  assert.ok(communityPrice.acceptanceCriteria.some((criterion) => criterion.includes("ratchet downward permanently")));
+
+  assert.ok(supportPayment);
+  assert.equal(supportPayment.boardStatus, "confirmed");
+  assert.deepEqual(supportPayment.dependsOn, ["FF-LEGAL-001", "FF-MON-002"]);
+  assert.ok(supportPayment.acceptanceCriteria.some((criterion) => criterion.includes("not a charitable")));
+  assert.ok(supportPayment.acceptanceCriteria.some((criterion) => criterion.includes("no additional product entitlement")));
+
+  assert.ok(giftedPro);
+  assert.equal(giftedPro.boardStatus, "confirmed");
+  assert.deepEqual(giftedPro.dependsOn, ["FF-SOC-001", "FF-MON-004"]);
+  assert.ok(giftedPro.acceptanceCriteria.some((criterion) => criterion.includes("recipient months")));
+  assert.ok(giftedPro.acceptanceCriteria.some((criterion) => criterion.includes("peer-to-peer money transfer")));
+});
+
 test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {
   const roadmapCardIds = FEEDBACK_MONETIZATION_ROADMAP.map((card) => card.cardId);
 
