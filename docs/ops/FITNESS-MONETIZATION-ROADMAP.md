@@ -109,8 +109,8 @@ Do not start yet:
 - `FF-ENGINE-002` waits on `FF-ENGINE-001` and `FF-RET-004`.
 - `FF-GAM-001` waits on retention loops.
 - `FF-SOC-001` waits on the paid core plus legal clarity.
-- `FF-MON-004` waits on operator acceptance of the community-price milestones and existing-subscriber policy.
-- `FF-MON-005` waits on operator acceptance of support wording, minimum, presets, placement, and refund policy.
+- `FF-MON-004` direction is operator-accepted and waits for the active Fitness review/iteration chain plus its bounded implementation admission.
+- `FF-MON-005` direction is operator-accepted and waits for the active Fitness review/iteration chain plus its bounded implementation admission.
 - `FF-SOC-002` waits on accepted social identity/privacy rules and `FF-MON-004` price-snapshot semantics.
 
 ## 2026-07-14 Community Monetization Planning
@@ -121,6 +121,16 @@ Do not start yet:
 - `FF-MON-005` owns optional one-time Support Fawxzzy payments. This is separate from subscriptions, grants no additional entitlement, and must not be described as a charitable or tax-deductible donation.
 - `FF-SOC-002` owns gifted Pro months after social identity exists. A one-time gift snapshots the current community price and creates whole recipient-month credits in an app-owned entitlement ledger.
 - These cards are Planning only. No Stripe price, subscription, entitlement, production environment, deployment, or user data was changed during admission.
+
+### Operator Acceptance And Delivery Research
+
+- On 2026-07-14 the operator accepted the proposed pricing ladder, permanent downward-only behavior, `$3` support minimum, `$5/$10/$25` support presets, Settings/Account placement, direct-recipient gifting first, and a community pool later.
+- Implementation remains sequenced behind the already-open Fitness review and iteration chain. Acceptance does not authorize interleaving billing work into those shared branches.
+- The selected pricing architecture uses immutable Stripe Prices, seven consecutive daily threshold snapshots, an append-only community-price epoch, next-invoice monthly migration with `proration_behavior=none`, and a durable idempotent migration ledger.
+- Monthly subscribers are never silently converted to annual billing. Any annual low-price option requires explicit user opt-in.
+- Support uses a separate one-time Checkout and never writes Pro entitlement state.
+- The first gifting release excludes actively renewing Pro recipients until paid-period overlap semantics are separately accepted and proven.
+- Full delivery and UI pattern research: `docs/ops/FF-COMMUNITY-MONETIZATION-DELIVERY-RESEARCH-2026-07-14.md`.
 
 ## 2026-07-07 Card Reconciliation
 

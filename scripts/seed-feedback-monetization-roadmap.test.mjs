@@ -164,20 +164,28 @@ test("community monetization ideas have separate deterministic planning contract
   assert.equal(communityPrice.priority, "P1");
   assert.deepEqual(communityPrice.dependsOn, ["FF-MON-002", "FF-MON-003"]);
   assert.match(communityPrice.notes, /\$1 at 5,000/);
-  assert.match(communityPrice.notes, /\$0\.50 floor/);
+  assert.match(communityPrice.notes, /\$0\.50 monthly floor/);
+  assert.match(communityPrice.notes, /Operator accepted/);
+  assert.match(communityPrice.notes, /annual billing is opt-in only/);
   assert.ok(communityPrice.acceptanceCriteria.some((criterion) => criterion.includes("ratchet downward permanently")));
+  assert.ok(communityPrice.acceptanceCriteria.some((criterion) => criterion.includes("seven-day threshold")));
 
   assert.ok(supportPayment);
   assert.equal(supportPayment.boardStatus, "confirmed");
   assert.deepEqual(supportPayment.dependsOn, ["FF-LEGAL-001", "FF-MON-002"]);
+  assert.match(supportPayment.notes, /\$3 minimum/);
+  assert.match(supportPayment.notes, /Settings\/Account placement/);
   assert.ok(supportPayment.acceptanceCriteria.some((criterion) => criterion.includes("not a charitable")));
   assert.ok(supportPayment.acceptanceCriteria.some((criterion) => criterion.includes("no additional product entitlement")));
 
   assert.ok(giftedPro);
   assert.equal(giftedPro.boardStatus, "confirmed");
   assert.deepEqual(giftedPro.dependsOn, ["FF-SOC-001", "FF-MON-004"]);
+  assert.match(giftedPro.notes, /direct-recipient gifting first/);
+  assert.match(giftedPro.notes, /community pool later/);
   assert.ok(giftedPro.acceptanceCriteria.some((criterion) => criterion.includes("recipient months")));
   assert.ok(giftedPro.acceptanceCriteria.some((criterion) => criterion.includes("peer-to-peer money transfer")));
+  assert.ok(giftedPro.acceptanceCriteria.some((criterion) => criterion.includes("actively renewing Pro recipients are ineligible")));
 });
 
 test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {
