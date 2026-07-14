@@ -432,6 +432,30 @@ export const FEEDBACK_MONETIZATION_ROADMAP = [
     notes: "Do not let social features distract from the core paid loop.",
   },
   {
+    cardId: "FF-SOC-002",
+    title: "Show Live Active User Presence on Today",
+    boardStatus: "confirmed",
+    area: "Social",
+    typeLabel: "Social / Presence",
+    phase: FEEDBACK_MONETIZATION_PHASES.phase4,
+    priority: "P2",
+    effortPoints: 8,
+    dependsOn: ["FF-ANALYTICS-001", "FF-SOC-001"],
+    description: "Show a compact aggregate online-user count on Today with a subtle green presence ping, without exposing individual identities or weakening offline-state clarity.",
+    userStory: "As a user, I want to see how many people are actively using Fitness, so that the app feels alive without turning the Today screen into a social feed.",
+    acceptanceCriteria: [
+      "Today shows a compact active-user count with the established green accent and a restrained presence glow or ping.",
+      "The online definition, heartbeat window, expiry behavior, and counting source are deterministic and documented.",
+      "The count represents aggregate presence only and does not expose user identities, workout details, or precise activity timestamps.",
+      "The surface does not collide with the existing offline indicator or other conditional Today-screen status UI.",
+      "Offline, unavailable, stale, loading, zero-user, and reconnecting states degrade cleanly without presenting false precision.",
+      "Presence updates are rate-limited and designed to avoid excessive database, realtime, battery, or mobile-network usage.",
+      "Privacy-policy and analytics implications are reviewed before implementation is admitted to Ready.",
+      "Mobile layout, reduced motion, accessibility labeling, and authenticated/anonymous counting boundaries are verified.",
+    ],
+    notes: "Planning only. Research the smallest privacy-safe aggregate presence contract before choosing Supabase Realtime, heartbeat storage, or another delivery mechanism.",
+  },
+  {
     cardId: "FF-ANALYTICS-001",
     title: "Add Active User and Product Usage Statistics",
     area: "Analytics",
@@ -476,6 +500,7 @@ export const FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER = [
   "FF-ANALYTICS-001",
   "FF-ENGINE-002",
   "FF-SOC-001",
+  "FF-SOC-002",
 ];
 
 export function getFeedbackMonetizationCard(cardId) {

@@ -130,6 +130,24 @@ test("buildRoadmapInsertValues preserves closed launch gate status", () => {
   assert.equal(values.status, "fixed");
 });
 
+test("FF-SOC-002 has a bounded planning contract without duplicating operator analytics", () => {
+  const card = FEEDBACK_MONETIZATION_ROADMAP.find((entry) => entry.cardId === "FF-SOC-002");
+  assert.ok(card);
+  assert.equal(card.title, "Show Live Active User Presence on Today");
+  assert.equal(card.boardStatus, "confirmed");
+  assert.equal(card.area, "Social");
+  assert.equal(card.typeLabel, "Social / Presence");
+  assert.equal(card.priority, "P2");
+  assert.deepEqual(card.dependsOn, ["FF-ANALYTICS-001", "FF-SOC-001"]);
+  assert.match(card.description, /aggregate online-user count on Today/);
+  assert.ok(card.acceptanceCriteria.some((criterion) => /offline indicator/.test(criterion)));
+  assert.ok(card.acceptanceCriteria.some((criterion) => /does not expose user identities/.test(criterion)));
+  assert.equal(
+    FEEDBACK_MONETIZATION_ROADMAP.filter((entry) => entry.cardId === "FF-SOC-002").length,
+    1,
+  );
+});
+
 test("runSeedFeedbackMonetizationRoadmap creates missing rows and forum threads, then syncs them", async () => {
   const client = createMockClient();
   const syncCalls = [];

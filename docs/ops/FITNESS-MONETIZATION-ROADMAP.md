@@ -91,11 +91,13 @@ Recommended order:
 18. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
 19. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
 20. `FF-SOC-001` Explore Social Features
+21. `FF-SOC-002` Show Live Active User Presence on Today
 
 Do not start yet:
 - `FF-ENGINE-002` waits on `FF-ENGINE-001` and `FF-RET-004`.
 - `FF-GAM-001` waits on retention loops.
 - `FF-SOC-001` waits on the paid core plus legal clarity.
+- `FF-SOC-002` waits on the aggregate analytics definition plus the social/privacy boundary; it remains Planning until the presence and offline-state contract is explicit.
 
 ## 2026-07-07 Card Reconciliation
 
