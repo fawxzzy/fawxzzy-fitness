@@ -77,7 +77,6 @@ jobs:
             ".playbook/findings.json"
             ".playbook/plan.json"
             ".playbook/repo-graph.json"
-            ".playbook/last-run.json"
           )
 
           for artifact in "${required_artifacts[@]}"; do

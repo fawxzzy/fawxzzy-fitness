@@ -114,6 +114,22 @@ test('install-official-fallback rejects registry-like fallback specs', () => {
   assert.match(run.stderr, /not part of the canonical fallback distribution contract/);
 });
 
+test('clean-environment CI does not require apply-only execution state without invoking apply', () => {
+  const workflow = readFileSync(path.join(process.cwd(), '.github', 'workflows', 'ci.yml'), 'utf8');
+  const cleanEnvironmentJob = workflow.slice(workflow.indexOf('  playbook-clean-environment:'));
+
+  assert.match(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs ai-context/);
+  assert.match(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs plan/);
+  assert.match(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs pilot/);
+  assert.doesNotMatch(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs apply(?:\s|$)/);
+
+  const artifactAssertion = cleanEnvironmentJob.slice(cleanEnvironmentJob.indexOf('required_artifacts=('));
+  assert.match(artifactAssertion, /\.playbook\/findings\.json/);
+  assert.match(artifactAssertion, /\.playbook\/plan\.json/);
+  assert.match(artifactAssertion, /\.playbook\/repo-graph\.json/);
+  assert.doesNotMatch(artifactAssertion, /\.playbook\/last-run\.json/);
+});
+
 test('install-official-fallback reports detailed download failures for https fallback specs', () => {
   const run = spawnSync('node', ['scripts/playbook-runtime.mjs', '--install-official-fallback'], {
     encoding: 'utf8',
