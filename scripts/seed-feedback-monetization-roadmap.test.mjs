@@ -12,6 +12,7 @@ import {
 import {
   FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER,
   FEEDBACK_MONETIZATION_ROADMAP,
+  getFeedbackMonetizationCard,
 } from "./feedback-monetization-roadmap.mjs";
 
 function createMockClient(initialRows = []) {
@@ -108,14 +109,15 @@ test("buildRoadmapStepsToReproduce stores user story and acceptance criteria in 
 });
 
 test("buildRoadmapInsertValues maps roadmap cards into bounded feature rows", () => {
-  const card = FEEDBACK_MONETIZATION_ROADMAP[1];
+  const card = FEEDBACK_MONETIZATION_ROADMAP.find((entry) => entry.cardId === "FF-BETA-001");
+  assert.ok(card);
   const values = buildRoadmapInsertValues(card, {
     nowIso: "2026-06-10T12:00:00.000Z",
     forumChannelId: "forum-1",
     reporterDiscordUserId: "1504700208251146371",
   });
 
-  assert.equal(values.card_id, "FF-CORE-001");
+  assert.equal(values.card_id, "FF-BETA-001");
   assert.equal(values.status, "confirmed");
   assert.equal(values.discord_forum_channel_id, "forum-1");
   assert.equal(values.reporter_discord_user_id, "1504700208251146371");
@@ -136,6 +138,22 @@ test("buildRoadmapInsertValues preserves closed launch gate status", () => {
   assert.equal(values.status, "fixed");
 });
 
+test("FF-QA-002 has a deterministic review-state registry contract", () => {
+  const card = getFeedbackMonetizationCard("FF-QA-002");
+
+  assert.ok(card);
+  assert.equal(card.title, "Harden Atlas Contracts and CI Environment Verification");
+  assert.equal(card.boardStatus, "fawxzzy_review");
+  assert.equal(card.area, "QA");
+  assert.equal(card.typeLabel, "QA / Integration");
+  assert.equal(card.phase, "Phase 1 launch/reliability");
+  assert.equal(card.priority, "P1");
+  assert.equal(card.effortPoints, 5);
+  assert.deepEqual(card.dependsOn, []);
+  assert.ok(card.acceptanceCriteria.some((criterion) => criterion.includes("VERCEL_ENV")));
+  assert.ok(card.acceptanceCriteria.some((criterion) => criterion.includes("production deploy")));
+});
+
 test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {
   const roadmapCardIds = FEEDBACK_MONETIZATION_ROADMAP.map((card) => card.cardId);
 
@@ -154,6 +172,14 @@ test("implementation order covers every roadmap card exactly once and respects i
       );
     }
   }
+});
+
+test("roadmap registry has no duplicate card IDs and keeps FF-QA-002 adjacent to FF-QA-001", () => {
+  const roadmapCardIds = FEEDBACK_MONETIZATION_ROADMAP.map((card) => card.cardId);
+  const qa001Index = FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER.indexOf("FF-QA-001");
+
+  assert.equal(new Set(roadmapCardIds).size, roadmapCardIds.length);
+  assert.equal(FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER[qa001Index + 1], "FF-QA-002");
 });
 
 test("human roadmap doc order stays aligned with the seeded implementation order", () => {
@@ -221,4 +247,49 @@ test("runSeedFeedbackMonetizationRoadmap creates missing rows and forum threads,
   assert.equal(syncCalls.length, 1);
   assert.equal(syncCalls[0].apply, true);
   assert.ok(logs.some((line) => /Rows created: 1/.test(line)));
+});
+
+test("runSeedFeedbackMonetizationRoadmap replays FF-QA-002 without a duplicate row or thread", async () => {
+  const client = createMockClient();
+  const createdThreads = [];
+  const sharedOptions = {
+    client,
+    args: {
+      apply: true,
+      debug: false,
+      cardIds: ["FF-QA-002"],
+      useTestingForum: false,
+      skipSync: true,
+    },
+    helpers: {
+      buildBody: ({ report }) => `body:${report.card_id}`,
+      buildReporterLabel: () => "Fawx Security",
+      buildTagNames: () => ["Feature", "Review", "Backlog"],
+      buildTitle: ({ area, summary }) => `Feature: ${area} - ${summary}`,
+      formatShortId: (value) => String(value).slice(0, 8),
+      shouldApplyBacklogTag: () => true,
+    },
+    discordApi: {
+      async resolveTagIdsByName() {
+        return { ok: true, matchedTagIds: ["tag-1", "tag-2"], missingTagNames: [] };
+      },
+      async createForumThread(args) {
+        createdThreads.push(args);
+        return { ok: true, threadId: "thread-qa-002", messageId: "message-qa-002" };
+      },
+    },
+    now: new Date("2026-07-14T12:00:00.000Z"),
+    logger: { log() {} },
+    reporterDiscordUserId: "1504700208251146371",
+    forumChannelId: "forum-1",
+  };
+
+  await runSeedFeedbackMonetizationRoadmap(sharedOptions);
+  await runSeedFeedbackMonetizationRoadmap(sharedOptions);
+
+  assert.equal(client.rows.length, 1);
+  assert.equal(client.rows[0].card_id, "FF-QA-002");
+  assert.equal(client.rows[0].status, "fawxzzy_review");
+  assert.equal(client.rows[0].discord_forum_thread_id, "thread-qa-002");
+  assert.equal(createdThreads.length, 1);
 });

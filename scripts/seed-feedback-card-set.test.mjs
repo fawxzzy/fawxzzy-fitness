@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseCardSetArgs, runSeedFeedbackCardSetSelection } from "./seed-feedback-card-set.mjs";
+import { listFeedbackCardSets, resolveFeedbackCardSet } from "./feedback-card-sets.mjs";
+import { FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER } from "./feedback-monetization-roadmap.mjs";
 
 function createMockClient(initialRows = []) {
   const rows = [...initialRows];
@@ -95,6 +97,17 @@ test("parseCardSetArgs separates set selection from seed args", () => {
       skipSync: true,
     },
   });
+});
+
+test("generic card-set registry lists the monetization set and preserves FF-QA-002 order", () => {
+  const monetizationSet = listFeedbackCardSets().find((entry) => entry.key === "monetization");
+  const resolvedSet = resolveFeedbackCardSet("monetization");
+
+  assert.ok(monetizationSet);
+  assert.ok(resolvedSet);
+  assert.equal(monetizationSet.cardCount, resolvedSet.spec.cards.length);
+  assert.equal(resolvedSet.spec.order, FEEDBACK_MONETIZATION_IMPLEMENTATION_ORDER);
+  assert.equal(resolvedSet.spec.order[resolvedSet.spec.order.indexOf("FF-QA-001") + 1], "FF-QA-002");
 });
 
 test("runSeedFeedbackCardSetSelection seeds the session exercise-timer packet through the generic registry", async () => {

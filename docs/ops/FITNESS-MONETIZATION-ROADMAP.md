@@ -80,23 +80,24 @@ Recommended order:
 7. `FF-MON-003` Define Pro Plan Pricing and Gated Value Copy
 8. `FF-MON-001` Monetization Readiness Gate
 9. `FF-QA-001` Monetization Launch Smoke Test Checklist
-10. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
-11. `FF-RET-001` Add Calendar View
-12. `FF-RET-004` Add Weekly and Monthly Progress Summaries
-13. `FF-RET-002` Add Workout Streaks
-14. `FF-RET-003` Add Consistency Heatmap
-15. `FF-PWA-003` Expand Earned Install Promotion Moments
-16. `FF-ENGINE-001` Build Curated Workout Engine V1
-17. `FF-ONBOARD-001` Ship Curated Onboarding Intake And Generator Handoff
-18. `FF-RECAP-001` Ship Shareable Workout Recap Artifacts
-19. `FF-ANALYTICS-002` Add Premium Cycle Analytics Preview Placement
-20. `FF-MKT-001` Founding User Launch Plan
-21. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
-22. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
-23. `FF-GAM-001` Add Achievements and Badges
-24. `FF-SOC-001` Explore Social Features
-25. `FF-PROG-001` Ship Today And Routines Progression Updates Surface
-26. `FF-ACCOUNT-001` Add Account Workout Data Export
+10. `FF-QA-002` Harden Atlas Contracts and CI Environment Verification
+11. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
+12. `FF-RET-001` Add Calendar View
+13. `FF-RET-004` Add Weekly and Monthly Progress Summaries
+14. `FF-RET-002` Add Workout Streaks
+15. `FF-RET-003` Add Consistency Heatmap
+16. `FF-PWA-003` Expand Earned Install Promotion Moments
+17. `FF-ENGINE-001` Build Curated Workout Engine V1
+18. `FF-ONBOARD-001` Ship Curated Onboarding Intake And Generator Handoff
+19. `FF-RECAP-001` Ship Shareable Workout Recap Artifacts
+20. `FF-ANALYTICS-002` Add Premium Cycle Analytics Preview Placement
+21. `FF-MKT-001` Founding User Launch Plan
+22. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
+23. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
+24. `FF-GAM-001` Add Achievements and Badges
+25. `FF-SOC-001` Explore Social Features
+26. `FF-PROG-001` Ship Today And Routines Progression Updates Surface
+27. `FF-ACCOUNT-001` Add Account Workout Data Export
 
 Backfilled shipped cards:
 - `FF-PROG-001` and `FF-ACCOUNT-001` stay in the roadmap for coverage, but they are intentionally placed below active future implementation lanes so resolved work does not crowd the live queue.
