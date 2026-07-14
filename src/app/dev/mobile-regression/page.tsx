@@ -28,5 +28,5 @@ export default async function DevMobileRegressionPage({
   }
 
   const { default: DevMobileRegressionRoute } = await import("@/app/dev/mobile-regression/DevMobileRegressionRoute");
-  return <DevMobileRegressionRoute searchParams={searchParams} />;
+  return <DevMobileRegressionRoute allowProductionPreview={isReviewPreviewEnabled} searchParams={searchParams} />;
 }

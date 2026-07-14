@@ -3377,15 +3377,17 @@ function renderScenario(scenario: MobileFixtureScenario) {
 }
 
 export default function DevMobileRegressionPage({
+  allowProductionPreview = false,
   searchParams,
 }: {
+  allowProductionPreview?: boolean;
   searchParams?: {
     scenario?: string;
     screen?: string;
     fixture?: string;
   };
 }) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && !allowProductionPreview) {
     notFound();
   }
 
