@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
-import { GlowSwitch } from "@/components/ui/GlowSwitch";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
+import { cn } from "@/lib/cn";
 import {
   formatExerciseTimerClock,
   getExerciseTimerElapsedSeconds,
@@ -35,6 +35,11 @@ export function ExerciseTimerControl({
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    setTimer(initialTimer);
+    setNowMs(Date.now());
+  }, [initialTimer]);
+
+  useEffect(() => {
     if (timer.status !== "running") {
       return;
     }
@@ -62,32 +67,50 @@ export function ExerciseTimerControl({
   const isComplete = timer.status === "completed";
 
   return (
-    <section className="mx-3 mb-3 rounded-2xl border border-[rgb(var(--accent)/0.28)] bg-[linear-gradient(180deg,rgb(var(--surface-2-rgb)/0.98),rgb(var(--surface-1-rgb)/0.96))] p-3" aria-label="Exercise timer">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="shrink-0 text-xs font-black uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">Exercise Timer</p>
-          <GlowSwitch
-            checked={timer.status === "running"}
-            ariaLabel={timer.status === "running" ? "Turn exercise timer off" : "Turn exercise timer on"}
-            onLabel="Timer On"
-            offLabel="Timer Off"
-            disabled={isPending}
-            onClick={() => runCommand(timer.status === "running" ? "pause" : "start")}
-            className="h-8 w-[6.4rem] shrink-0 text-[8px]"
-            stateClassName="min-w-[2.65rem]"
-          />
-        </div>
+    <section className="mx-3 mb-3 overflow-hidden rounded-2xl border border-[rgb(var(--accent)/0.28)] bg-[linear-gradient(180deg,rgb(var(--surface-2-rgb)/0.98),rgb(var(--surface-1-rgb)/0.96))]" aria-label="Exercise timer">
+      <div className="flex items-center justify-between gap-3 px-3 py-3">
+        <p className="shrink-0 text-xs font-black uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">Exercise Timer</p>
         <output className="shrink-0 text-xs font-black tabular-nums tracking-[0.16em] text-[rgb(var(--accent)/0.92)]" aria-live="off">
           {formatExerciseTimerClock(displaySeconds)}
         </output>
       </div>
-      {isComplete ? <p className="mt-2 text-sm font-bold text-[rgb(var(--success-rgb))]">Target complete</p> : null}
-      <div className={`mt-3 grid ${isComplete ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-[rgb(var(--accent-divider-rgb)/0.22)] pt-3`}>
-        <SecondaryButton type="button" size="sm" disabled={isPending} onClick={() => runCommand("reset")}>Reset</SecondaryButton>
+      <AttachedCardActionStripFrame
+        className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.28)] bg-[rgb(var(--surface-1-rgb)/0.16)]"
+        gridClassName={isComplete ? "grid-cols-1" : "grid-cols-2"}
+      >
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => runCommand("reset")}
+          data-bottom-action-intent="info"
+          className={cn(
+            getAttachedCardActionButtonClassName({
+              intent: "info",
+              className: cn("!h-12 rounded-bl-[var(--card-radius)]", !isComplete ? "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]" : "rounded-br-[var(--card-radius)]"),
+            }),
+            isPending ? "opacity-55" : undefined,
+          )}
+        >
+          <span className="bottom-action__label">Reset</span>
+        </button>
         {!isComplete ? (
-          <SecondaryButton type="button" size="sm" disabled={isPending} onClick={() => runCommand("complete")}>Done</SecondaryButton>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => runCommand("complete")}
+            data-bottom-action-intent="positive"
+            className={cn(
+              getAttachedCardActionButtonClassName({
+                intent: "positive",
+                className: "!h-12 rounded-br-[var(--card-radius)]",
+              }),
+              isPending ? "opacity-55" : undefined,
+            )}
+          >
+            <span className="bottom-action__label">Done</span>
+          </button>
         ) : null}
-      </div>
+      </AttachedCardActionStripFrame>
     </section>
   );
 }

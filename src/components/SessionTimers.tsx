@@ -425,6 +425,8 @@ export function SetLoggerCard({
   draftFormState,
   disableDraftPersistence = false,
   initialEffortRating = null,
+  exerciseTimerVisible = false,
+  onExerciseTimerVisibilityChange,
 }: {
   userId: string;
   sessionId: string;
@@ -495,6 +497,8 @@ export function SetLoggerCard({
   draftFormState?: SessionLoggerDraftFormState | null;
   disableDraftPersistence?: boolean;
   initialEffortRating?: number | null;
+  exerciseTimerVisible?: boolean;
+  onExerciseTimerVisibilityChange?: (nextVisible: boolean) => Promise<boolean>;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -518,6 +522,7 @@ export function SetLoggerCard({
     : null;
   const [rpe, setRpe] = useState(seededInitialEffortRating === null ? "" : String(seededInitialEffortRating));
   const [isWarmup, setIsWarmup] = useState(false);
+  const [isTimerVisibilityPending, setIsTimerVisibilityPending] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
   const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
   const resolvedIsWarmup = isWarmup;
@@ -1763,6 +1768,18 @@ export function SetLoggerCard({
     ),
     [handleLogAll, handleLogSet, handleToggleLastTarget, isSaveDisabled, lastTargetButtonLabel, liveLogButtonPrefix, liveSummaryItems, showLastTargetAction, showLogAllAction, loggerActionGridClassName],
   );
+  const handleExerciseTimerVisibilityToggle = useCallback(async () => {
+    if (!onExerciseTimerVisibilityChange || isTimerVisibilityPending) {
+      return;
+    }
+
+    setIsTimerVisibilityPending(true);
+    try {
+      await onExerciseTimerVisibilityChange(!exerciseTimerVisible);
+    } finally {
+      setIsTimerVisibilityPending(false);
+    }
+  }, [exerciseTimerVisible, isTimerVisibilityPending, onExerciseTimerVisibilityChange]);
   const measurementAuxiliaryFields = useMemo<MeasurementPanelAuxiliaryField[]>(() => {
     const warmupField: MeasurementPanelAuxiliaryField = {
       title: "Warm-Up",
@@ -1829,8 +1846,33 @@ export function SetLoggerCard({
       });
     }
 
+    if (onExerciseTimerVisibilityChange) {
+      fields.push({
+        title: "Timer",
+        input: null,
+        inlineLabel: "TIMER",
+        useInlineFieldShell: false,
+        showEmptyValue: false,
+        hasValue: true,
+        renderInput: () => (
+          <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
+            <GlowSwitch
+              checked={exerciseTimerVisible}
+              ariaLabel={exerciseTimerVisible ? "Exercise timer enabled" : "Exercise timer disabled"}
+              onLabel="Timer On"
+              offLabel="Timer Off"
+              onClick={() => { void handleExerciseTimerVisibilityToggle(); }}
+              disabled={isTimerVisibilityPending}
+              className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+              stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+            />
+          </div>
+        ),
+      });
+    }
+
     return fields;
-  }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
+  }, [exerciseTimerVisible, handleExerciseTimerVisibilityToggle, isTimerVisibilityPending, onExerciseTimerVisibilityChange, resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
   const persistCopilotFeedback = useCallback(async (
     nextSignal: SessionCopilotFeedbackSignal | null,
     nextNote: string,

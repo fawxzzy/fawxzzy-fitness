@@ -357,6 +357,12 @@ export function SessionExerciseFocus({
   const [draftStateBySessionExerciseId, setDraftStateBySessionExerciseId] = useState<Record<string, SessionLoggerDraftState>>(
     () => cachedSessionState?.draftStateBySessionExerciseId ?? {},
   );
+  const [timerSnapshotsBySessionExerciseId, setTimerSnapshotsBySessionExerciseId] = useState<Record<string, ExerciseTimerSnapshot>>({});
+  const [timerVisibilityBySessionExerciseId, setTimerVisibilityBySessionExerciseId] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(exercises
+      .filter((exercise) => exercise.exerciseTimer?.enabled)
+      .map((exercise) => [exercise.id, true])),
+  );
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const [answeredFeedbackExerciseIds, setAnsweredFeedbackExerciseIds] = useState<Set<string>>(() => new Set());
   const [savedFeedbackByExerciseId, setSavedFeedbackByExerciseId] = useState<Record<string, {
@@ -707,6 +713,9 @@ export function SessionExerciseFocus({
           const isStretchHub = isStretchHubExercise(exercise);
           const clientRowState = rowClientStateBySessionExerciseId[exercise.id];
           const currentExerciseSets = setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets;
+          const currentExerciseTimer = timerSnapshotsBySessionExerciseId[exercise.id] ?? exercise.exerciseTimer;
+          const isExerciseTimerVisible = currentExerciseTimer?.enabled === true
+            && (timerVisibilityBySessionExerciseId[exercise.id] ?? true);
           const recoveryTimingInsight = buildRecoveryTimingInsight(currentExerciseSets);
           const snapshotLoggedSetCount = setSnapshotsBySessionExerciseId[exercise.id]?.length;
           const loggedCountForTarget = typeof snapshotLoggedSetCount === "number"
@@ -996,6 +1005,26 @@ export function SessionExerciseFocus({
                   copilotFeedbackUpdatedAt={exercise.copilotFeedbackUpdatedAt ?? null}
                   initialEffortRating={draftState?.copilotFeedbackEffort ?? exercise.copilotFeedbackEffort ?? null}
                   updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
+                  exerciseTimerVisible={isExerciseTimerVisible}
+                  onExerciseTimerVisibilityChange={currentExerciseTimer?.enabled && updateSessionExerciseTimerAction ? async (nextVisible) => {
+                    const result = await updateSessionExerciseTimerAction({
+                      sessionId,
+                      sessionExerciseId: exercise.id,
+                      command: nextVisible ? "start" : "pause",
+                    });
+                    if (!result.ok) {
+                      toast.error(result.error || "Could not update exercise timer.");
+                      return false;
+                    }
+                    if (!result.data?.timer) {
+                      toast.error("Could not update exercise timer.");
+                      return false;
+                    }
+                    const nextTimer = result.data.timer;
+                    setTimerSnapshotsBySessionExerciseId((current) => ({ ...current, [exercise.id]: nextTimer }));
+                    setTimerVisibilityBySessionExerciseId((current) => ({ ...current, [exercise.id]: nextVisible }));
+                    return true;
+                  } : undefined}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
@@ -1044,11 +1073,11 @@ export function SessionExerciseFocus({
                     handleSetCountChange(exercise.id, count);
                   }}
                 />
-                {exercise.exerciseTimer?.enabled && updateSessionExerciseTimerAction ? (
+                {isExerciseTimerVisible && currentExerciseTimer && updateSessionExerciseTimerAction ? (
                   <ExerciseTimerControl
                     sessionId={sessionId}
                     sessionExerciseId={exercise.id}
-                    initialTimer={exercise.exerciseTimer}
+                    initialTimer={currentExerciseTimer}
                     updateTimerAction={updateSessionExerciseTimerAction}
                   />
                 ) : null}
