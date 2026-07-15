@@ -222,11 +222,11 @@ async function noopSetAction(_: unknown) {
   };
 }
 
-async function noopExerciseTimerAction(payload: { command: "start" | "pause" | "reset" | "complete" }) {
+async function noopExerciseTimerAction(payload: { command: "enable" | "disable" | "start" | "pause" | "reset" | "complete" }) {
   "use server";
-  const status: ExerciseTimerStatus = payload.command === "start"
+  const status: ExerciseTimerStatus = payload.command === "enable" || payload.command === "start"
     ? "running"
-    : payload.command === "pause"
+    : payload.command === "disable" || payload.command === "pause"
       ? "paused"
       : payload.command === "complete"
         ? "completed"
@@ -235,9 +235,9 @@ async function noopExerciseTimerAction(payload: { command: "start" | "pause" | "
     ok: true as const,
     data: {
       timer: {
-        enabled: true,
-        mode: "countdown" as const,
-        targetSeconds: 90,
+        enabled: payload.command !== "disable",
+        mode: "count_up" as const,
+        targetSeconds: null,
         elapsedSeconds: payload.command === "reset" ? 0 : 24,
         status,
         startedAt: status === "running" ? new Date().toISOString() : null,

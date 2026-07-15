@@ -35,8 +35,8 @@ function QuickLogActionLabel({ label }: { label: string }) {
       <SignatureInlineList
         items={details.map((detail) => <span key={detail}>{detail}</span>)}
         separator="pipe"
-        className="min-w-0 flex-nowrap gap-x-1 text-[9px] font-medium tracking-normal"
-        itemClassName="truncate"
+        className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
+        itemClassName="whitespace-nowrap"
       />
     </span>
   );
@@ -78,6 +78,7 @@ export function getAttachedCardActionButtonClassName({
 export function AttachedQuickActionStrip({
   rowContract,
   onPress,
+  logAllCount = 0,
   onSkip,
   className,
   gridClassName = "grid-cols-[74px_minmax(0,1fr)]",
@@ -96,6 +97,7 @@ export function AttachedQuickActionStrip({
     quickLogDisabledMessage: string;
   };
   onPress: () => Promise<void> | void;
+  logAllCount?: number;
   onSkip?: () => Promise<void> | void;
   className?: string;
   gridClassName?: string;
@@ -106,6 +108,12 @@ export function AttachedQuickActionStrip({
   const isBusy = rowContract.isSkipPending || rowContract.isQuickLogPending;
   const isSkipDisabled = isBusy || rowContract.isSkipDisabled || !onSkip;
   const isQuickLogDisabled = isBusy || rowContract.isQuickLogDisabled;
+  const showLogAll = logAllCount > 1;
+  const handleLogAll = async () => {
+    for (let index = 0; index < logAllCount; index += 1) {
+      await onPress();
+    }
+  };
   const quickLogLabel = rowContract.isQuickLogDisabled
     ? rowContract.quickLogDisabledMessage
     : rowContract.isQuickLogPending
@@ -131,6 +139,23 @@ export function AttachedQuickActionStrip({
       >
         <span className="bottom-action__label">{skipLabel}</span>
       </button>
+      {showLogAll ? (
+        <button
+          type="button"
+          onClick={() => { void handleLogAll(); }}
+          disabled={isQuickLogDisabled}
+          data-bottom-action-intent="positive"
+          className={cn(
+            getAttachedCardActionButtonClassName({
+              intent: "positive",
+              className: "!border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+            }),
+            isQuickLogDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
+          )}
+        >
+          <span className="bottom-action__label text-[10px]">Log all</span>
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onPress}
@@ -150,7 +175,7 @@ export function AttachedQuickActionStrip({
           quickLogActionClassName,
         )}
         >
-          <span className={cn("bottom-action__label", appTokens.currentSessionLoggerSummaryText)}>
+          <span className={cn("bottom-action__label min-w-0", appTokens.currentSessionLoggerSummaryText)}>
             <QuickLogActionLabel label={quickLogLabel} />
           </span>
       </button>

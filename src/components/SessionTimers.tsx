@@ -1698,8 +1698,8 @@ export function SetLoggerCard({
   const loggerActionGridClassName = loggerActionCount === 1
     ? "grid-cols-1"
     : loggerActionCount === 2
-      ? "grid-cols-2"
-      : "grid-cols-3";
+      ? (showLastTargetAction ? "grid-cols-[74px_minmax(0,1fr)]" : "grid-cols-[80px_minmax(0,1fr)]")
+      : "grid-cols-[74px_80px_minmax(0,1fr)]";
   const handleLogAll = useCallback(async () => {
     if (logRequestInFlightRef.current || remainingTargetSetCount === 0) {
       return;
@@ -1772,8 +1772,8 @@ export function SetLoggerCard({
                 <SignatureInlineList
                   items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
                   separator="pipe"
-                  className="min-w-0 flex-nowrap gap-x-1 text-[9px] font-medium tracking-normal"
-                  itemClassName="truncate"
+                  className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
+                  itemClassName="whitespace-nowrap"
                 />
               </>
             ) : null}

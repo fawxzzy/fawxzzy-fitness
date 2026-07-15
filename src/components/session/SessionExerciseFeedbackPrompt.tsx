@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChipButton } from "@/components/ui/Chip";
+import { cn } from "@/lib/cn";
 import type { ActionResult } from "@/lib/action-result";
 import {
   formatSessionCopilotFeedbackLabel,
@@ -112,7 +113,12 @@ export function SessionExerciseFeedbackPrompt({
             tone={signal === value ? getSessionCopilotFeedbackTone(value) : "default"}
             aria-pressed={signal === value}
             onClick={() => setSignal((current) => current === value ? null : value)}
-            className="shrink-0 px-2.5 py-1 text-[9px] font-semibold tracking-[0.12em]"
+            className={cn(
+              "shrink-0 px-2.5 py-1 text-[9px] font-semibold tracking-[0.12em]",
+              signal === value
+                ? "!border-[rgb(var(--accent)/0.96)] !bg-[rgb(var(--accent)/0.3)] !text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent)/0.7)] shadow-[0_0_14px_rgb(var(--accent)/0.28)]"
+                : undefined,
+            )}
           >
             {formatSessionCopilotFeedbackLabel(value)}
           </ChipButton>
@@ -128,7 +134,12 @@ export function SessionExerciseFeedbackPrompt({
             aria-pressed={effort === value}
             aria-label={`Effort ${value} out of 10`}
             onClick={() => setEffort((current) => current === value ? null : value)}
-            className="inline-flex h-6 w-6 shrink-0 items-center justify-center px-0 py-0 text-[10px] font-semibold tracking-normal"
+            className={cn(
+              "inline-flex h-6 w-6 shrink-0 items-center justify-center px-0 py-0 text-[10px] font-semibold tracking-normal",
+              effort === value
+                ? "!border-[rgb(var(--accent)/0.96)] !bg-[rgb(var(--accent)/0.3)] !text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent)/0.7)] shadow-[0_0_14px_rgb(var(--accent)/0.28)]"
+                : undefined,
+            )}
           >
             {value}
           </ChipButton>

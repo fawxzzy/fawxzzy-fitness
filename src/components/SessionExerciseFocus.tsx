@@ -713,8 +713,16 @@ export function SessionExerciseFocus({
           const isStretchHub = isStretchHubExercise(exercise);
           const clientRowState = rowClientStateBySessionExerciseId[exercise.id];
           const currentExerciseSets = setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets;
-          const currentExerciseTimer = timerSnapshotsBySessionExerciseId[exercise.id] ?? exercise.exerciseTimer;
-          const isExerciseTimerVisible = currentExerciseTimer?.enabled === true
+          const currentExerciseTimer = timerSnapshotsBySessionExerciseId[exercise.id] ?? exercise.exerciseTimer ?? {
+            enabled: false,
+            mode: "count_up" as const,
+            targetSeconds: null,
+            elapsedSeconds: 0,
+            status: "idle" as const,
+            startedAt: null,
+            completedAt: null,
+          };
+          const isExerciseTimerVisible = currentExerciseTimer.enabled === true
             && (timerVisibilityBySessionExerciseId[exercise.id] ?? true);
           const recoveryTimingInsight = buildRecoveryTimingInsight(currentExerciseSets);
           const snapshotLoggedSetCount = setSnapshotsBySessionExerciseId[exercise.id]?.length;
@@ -936,16 +944,21 @@ export function SessionExerciseFocus({
               rightRailClassName={CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME}
               cornerMeta={titleMeta}
               cornerMetaClassName={CURRENT_SESSION_CARD_CORNER_META_CLASS_NAME}
-              overlayActions={cardInfoButton}
+              overlayActions={recoveryTimingInsight ? undefined : cardInfoButton}
               overlayActionsClassName={CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME}
               showAccentRail
               hideEmptySummary
               contentVerticalAlign="top"
               progressFill={sessionProgressFill}
               collapsedCardFooter={recoveryTimingInsight ? (
-                <p className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
-                  {recoveryTimingInsight.label}
-                </p>
+                <div className="flex min-h-9 items-center justify-between gap-3 border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] pl-3">
+                  <p className="min-w-0 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                    {recoveryTimingInsight.label}
+                  </p>
+                  <div className="flex shrink-0 self-stretch items-center border-l border-[rgb(var(--accent-divider-rgb)/0.2)] px-2.5">
+                    {cardInfoButton}
+                  </div>
+                </div>
               ) : null}
               collapsedContent={(
                 <>
@@ -1006,11 +1019,11 @@ export function SessionExerciseFocus({
                   initialEffortRating={draftState?.copilotFeedbackEffort ?? exercise.copilotFeedbackEffort ?? null}
                   updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                   exerciseTimerVisible={isExerciseTimerVisible}
-                  onExerciseTimerVisibilityChange={currentExerciseTimer?.enabled && updateSessionExerciseTimerAction ? async (nextVisible) => {
+                  onExerciseTimerVisibilityChange={updateSessionExerciseTimerAction ? async (nextVisible) => {
                     const result = await updateSessionExerciseTimerAction({
                       sessionId,
                       sessionExerciseId: exercise.id,
-                      command: nextVisible ? "start" : "pause",
+                      command: nextVisible ? "enable" : "disable",
                     });
                     if (!result.ok) {
                       toast.error(result.error || "Could not update exercise timer.");
@@ -1073,7 +1086,7 @@ export function SessionExerciseFocus({
                     handleSetCountChange(exercise.id, count);
                   }}
                 />
-                {isExerciseTimerVisible && currentExerciseTimer && updateSessionExerciseTimerAction ? (
+                {isExerciseTimerVisible && updateSessionExerciseTimerAction ? (
                   <ExerciseTimerControl
                     sessionId={sessionId}
                     sessionExerciseId={exercise.id}
@@ -1087,7 +1100,10 @@ export function SessionExerciseFocus({
 
           const quickActionStrip = !isExpanded ? (
             <AttachedQuickActionStrip
-              gridClassName="grid-cols-[88px_minmax(0,1fr)]"
+              gridClassName={(exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount > 1
+                ? "grid-cols-[74px_80px_minmax(0,1fr)]"
+                : "grid-cols-[74px_minmax(0,1fr)]"}
+              logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}
               rowContract={{
                 label: draftState?.quickLogLabel ?? rowState.quickLogLabel,
                 skipLabel: rowState.skipActionLabel,

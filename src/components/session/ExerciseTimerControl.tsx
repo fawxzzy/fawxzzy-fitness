@@ -65,6 +65,7 @@ export function ExerciseTimerControl({
 
   const displaySeconds = getExerciseTimerElapsedSeconds(timer, nowMs);
   const isComplete = timer.status === "completed";
+  const isRunning = timer.status === "running";
 
   return (
     <section className="mx-3 mb-3 overflow-hidden rounded-2xl border border-[rgb(var(--accent)/0.28)] bg-[linear-gradient(180deg,rgb(var(--surface-2-rgb)/0.98),rgb(var(--surface-1-rgb)/0.96))]" aria-label="Exercise timer">
@@ -78,23 +79,6 @@ export function ExerciseTimerControl({
         className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.28)] bg-[rgb(var(--surface-1-rgb)/0.16)]"
         gridClassName={isComplete ? "grid-cols-1" : "grid-cols-3"}
       >
-        {!isComplete ? (
-          <button
-            type="button"
-            disabled={isPending || timer.status !== "running"}
-            onClick={() => runCommand("pause")}
-            data-bottom-action-intent="info"
-            className={cn(
-              getAttachedCardActionButtonClassName({
-                intent: "info",
-                className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
-              }),
-              isPending || timer.status !== "running" ? "opacity-55" : undefined,
-            )}
-          >
-            <span className="bottom-action__label">Pause</span>
-          </button>
-        ) : null}
         <button
           type="button"
           disabled={isPending}
@@ -103,13 +87,30 @@ export function ExerciseTimerControl({
           className={cn(
             getAttachedCardActionButtonClassName({
               intent: "info",
-              className: cn("!h-12", isComplete ? "rounded-bl-[var(--card-radius)] rounded-br-[var(--card-radius)]" : "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]"),
+                className: cn("!h-12", isComplete ? "rounded-bl-[var(--card-radius)] rounded-br-[var(--card-radius)]" : "rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]"),
             }),
             isPending ? "opacity-55" : undefined,
           )}
         >
           <span className="bottom-action__label">Reset</span>
         </button>
+        {!isComplete ? (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => runCommand(isRunning ? "pause" : "start")}
+            data-bottom-action-intent="info"
+            className={cn(
+              getAttachedCardActionButtonClassName({
+                intent: "info",
+                className: "!h-12 !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
+              }),
+              isPending ? "opacity-55" : undefined,
+            )}
+          >
+            <span className="bottom-action__label">{isRunning ? "Pause" : "Resume"}</span>
+          </button>
+        ) : null}
         {!isComplete ? (
           <button
             type="button"
