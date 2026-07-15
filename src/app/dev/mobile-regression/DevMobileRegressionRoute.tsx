@@ -2871,7 +2871,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className={appTokens.settingsContentRail}>
           <SurfaceCard>
-            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : null}>
+            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : scenario.fixture === "achievements" ? "achievements" : null}>
               <div className="pointer-events-none">
                 <SettingsAccordionClient
                   email="dev-regression@example.com"
@@ -2899,6 +2899,12 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                     supportNote: "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
                   }}
                   billingNotice={null}
+                  achievements={[
+                    { id: "first-workout", title: "First Workout", description: "Complete one workout.", unlocked: true },
+                    { id: "ten-sessions", title: "Ten Sessions", description: "Complete ten workouts over time.", unlocked: true },
+                    { id: "three-week-streak", title: "Three Session Streak", description: "Log three consecutive planned workout days.", unlocked: true },
+                    { id: "first-pr", title: "PR Logged", description: "Record one history-backed PR moment.", unlocked: true },
+                  ]}
                 />
               </div>
             </SettingsScreenStateProvider>

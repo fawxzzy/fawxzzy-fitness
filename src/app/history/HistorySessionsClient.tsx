@@ -5,8 +5,6 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
-import { HistoryAchievementsSurface } from "@/components/history/HistoryAchievementsSurface";
-import { buildHistoryAchievements } from "@/lib/history-achievements";
 import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
 import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
@@ -893,11 +891,6 @@ export function HistorySessionsClient({
     () => new Map(scopedWeeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
     [scopedWeeklyProgressByWeek],
   );
-  const achievements = useMemo(() => buildHistoryAchievements({
-    completedWorkoutCount: scopedScopeSummary.completedWorkoutCount,
-    bestSessionStreakCount: workoutStreak.bestSessionCount,
-    prMomentCount: scopedScopeSummary.prMomentCount,
-  }), [scopedScopeSummary.completedWorkoutCount, scopedScopeSummary.prMomentCount, workoutStreak.bestSessionCount]);
   const hasCycleTimelineFilter = normalizedFilterState.analyticsScope === "current_cycle";
   const hasSpecificTimelineFilter = Boolean(effectiveSelectedDayKey || selectedMonthKey || hasCycleTimelineFilter);
   const displayedWorkoutStreak = hasSpecificTimelineFilter ? filteredTimelineWorkoutStreak : workoutStreak;
@@ -946,7 +939,6 @@ export function HistorySessionsClient({
           </div>
         </div>
       ) : null}
-      <HistoryAchievementsSurface achievements={achievements} />
       {queryFilteredSessions.length > 0 ? (
         <div data-history-retention-surface="calendar">
           <HistoryCalendarSurface

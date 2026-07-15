@@ -1005,6 +1005,16 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     cardStates: [{ cardId: "settings-data-export", state: "selected", badgeText: "QA" }],
   }),
   buildSimpleFixture({
+    id: "settings-achievements",
+    route: "settings",
+    screen: "settings",
+    family: "Settings / detail",
+    name: "Settings: achievements",
+    fixture: "achievements",
+    fixtureState: "settings-achievements-v1",
+    cardStates: [{ cardId: "settings-achievements", state: "selected", badgeText: "Earned" }],
+  }),
+  buildSimpleFixture({
     id: "exercise-detail-strength",
     route: "exerciseDetail",
     screen: "exercise-detail",
