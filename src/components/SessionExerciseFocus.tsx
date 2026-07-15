@@ -45,6 +45,7 @@ import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveSt
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
 import { hasSavedSessionExerciseFeedback, SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -966,9 +967,19 @@ export function SessionExerciseFocus({
               progressFill={sessionProgressFill}
               collapsedCardFooter={recoveryTimingInsight ? (
                 <div className="-mt-px flex min-h-9 items-center justify-between gap-3 bg-[linear-gradient(90deg,rgb(var(--success-rgb)/0.24),rgb(var(--accent)/0.14))] pl-3">
-                  <p className="min-w-0 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
-                    {recoveryTimingInsight.label}
-                  </p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <p className="shrink-0 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                      {recoveryTimingInsight.label}
+                    </p>
+                    {savedFeedbackLabel ? (
+                      <>
+                        <SignatureMiniPipe className="h-[0.8em] w-[0.35rem]" barClassName="w-[2px]" />
+                        <p className="whitespace-nowrap text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                          {savedFeedbackLabel}
+                        </p>
+                      </>
+                    ) : null}
+                  </div>
                   <div className="flex shrink-0 self-stretch items-center border-l border-[rgb(var(--accent-divider-rgb)/0.16)] px-2.5">
                     {cardFooterInfoButton}
                   </div>
@@ -976,11 +987,6 @@ export function SessionExerciseFocus({
               ) : null}
               collapsedContent={(
                 <>
-                  {savedFeedbackLabel ? (
-                    <p className="border-x border-b border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
-                      {savedFeedbackLabel}
-                    </p>
-                  ) : null}
                   {shouldShowFeedbackPrompt && updateSessionExerciseCopilotFeedbackAction ? (
                     <SessionExerciseFeedbackPrompt
                       sessionId={sessionId}
