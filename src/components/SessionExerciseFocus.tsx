@@ -83,6 +83,7 @@ const COMPACT_SESSION_ROW_SHELL_CLASS_NAME = "overflow-hidden rounded-none round
 const CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME = "!right-[0.58rem] !top-[0.58rem] !bottom-auto !translate-y-0";
 const CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME = "inset-0 !left-0 !right-0 !top-0 !bottom-0 !block !translate-y-0 pointer-events-none";
 const CURRENT_SESSION_CARD_INFO_BUTTON_CLASS_NAME = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
+const CURRENT_SESSION_CARD_FOOTER_INFO_BUTTON_CLASS_NAME = "inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.3)] bg-[rgb(var(--bg-app)/0.46)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.56)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
 const CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME = "!pr-[2.75rem] sm:!pr-[3.3rem] pb-[1.9rem]";
 const CURRENT_SESSION_CARD_CORNER_META_CLASS_NAME = "!right-[1.82rem] !top-[0.71rem]";
 
@@ -874,6 +875,19 @@ export function SessionExerciseFocus({
               <span aria-hidden="true">i</span>
             </button>
           );
+          const cardFooterInfoButton = (
+            <button
+              type="button"
+              aria-label={`Open exercise info for ${exercise.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setExerciseInfoExerciseId(exercise.exerciseId);
+              }}
+              className={CURRENT_SESSION_CARD_FOOTER_INFO_BUTTON_CLASS_NAME}
+            >
+              <span aria-hidden="true">i</span>
+            </button>
+          );
 
           const cardShellStyle: CSSProperties & {
             "--exercise-card-progress-fill-top-right-radius": string;
@@ -951,12 +965,12 @@ export function SessionExerciseFocus({
               contentVerticalAlign="top"
               progressFill={sessionProgressFill}
               collapsedCardFooter={recoveryTimingInsight ? (
-                <div className="flex min-h-9 items-center justify-between gap-3 border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] pl-3">
+                <div className="-mt-px flex min-h-9 items-center justify-between gap-3 bg-[linear-gradient(90deg,rgb(var(--success-rgb)/0.24),rgb(var(--accent)/0.14))] pl-3">
                   <p className="min-w-0 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
                     {recoveryTimingInsight.label}
                   </p>
-                  <div className="flex shrink-0 self-stretch items-center border-l border-[rgb(var(--accent-divider-rgb)/0.2)] px-2.5">
-                    {cardInfoButton}
+                  <div className="flex shrink-0 self-stretch items-center border-l border-[rgb(var(--accent-divider-rgb)/0.16)] px-2.5">
+                    {cardFooterInfoButton}
                   </div>
                 </div>
               ) : null}

@@ -1874,8 +1874,8 @@ export function SetLoggerCard({
             <GlowSwitch
               checked={exerciseTimerVisible}
               ariaLabel={exerciseTimerVisible ? "Exercise timer enabled" : "Exercise timer disabled"}
-              onLabel="Timer On"
-              offLabel="Timer Off"
+              onLabel="Timer"
+              offLabel="Timer"
               onClick={() => { void handleExerciseTimerVisibilityToggle(); }}
               disabled={isTimerVisibilityPending}
               className={GLOW_SWITCH_STANDARD_CLASS_NAME}
