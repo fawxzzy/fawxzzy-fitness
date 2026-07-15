@@ -35,6 +35,7 @@ type Props = {
   name: string | null;
   startDate: string | null;
   isRest: boolean;
+  isOptional: boolean;
   showDayAdjustmentControl?: boolean;
   initialDayAdjustmentDirection?: SetFlowDirection;
   floatingHeaderSlotId?: string;
@@ -112,6 +113,7 @@ export function EditDaySettingsAutosaveForm({
   name,
   startDate,
   isRest,
+  isOptional,
   showDayAdjustmentControl = false,
   initialDayAdjustmentDirection = "straight",
   floatingHeaderSlotId,
@@ -128,12 +130,12 @@ export function EditDaySettingsAutosaveForm({
     [dayIndex, name, startDate],
   );
   const initialSnapshot = useMemo(
-    () => JSON.stringify({ name: initialEditableName, isRest, dayAdjustmentDirection: initialDayAdjustmentDirection }),
-    [initialDayAdjustmentDirection, initialEditableName, isRest],
+    () => JSON.stringify({ name: initialEditableName, isRest, isOptional, dayAdjustmentDirection: initialDayAdjustmentDirection }),
+    [initialDayAdjustmentDirection, initialEditableName, isOptional, isRest],
   );
-  const pendingSnapshotRef = useRef<{ name: string; isRest: boolean; dayAdjustmentDirection: SetFlowDirection } | null>(null);
+  const pendingSnapshotRef = useRef<{ name: string; isRest: boolean; isOptional: boolean; dayAdjustmentDirection: SetFlowDirection } | null>(null);
   const lastSubmittedRef = useRef(initialSnapshot);
-  const [draft, setDraft] = useState({ name: initialEditableName, isRest, dayAdjustmentDirection: initialDayAdjustmentDirection });
+  const [draft, setDraft] = useState({ name: initialEditableName, isRest, isOptional, dayAdjustmentDirection: initialDayAdjustmentDirection });
   const [isFocusModeActive, setIsFocusModeActive] = useState(false);
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
   const [isDayAdjustmentVisible, setIsDayAdjustmentVisible] = useState(showDayAdjustmentControl);
@@ -155,12 +157,12 @@ export function EditDaySettingsAutosaveForm({
   }, []);
 
   useEffect(() => {
-    const nextDraft = { name: initialEditableName, isRest, dayAdjustmentDirection: initialDayAdjustmentDirection };
+    const nextDraft = { name: initialEditableName, isRest, isOptional, dayAdjustmentDirection: initialDayAdjustmentDirection };
     setDraft(nextDraft);
     setIsDayAdjustmentVisible(showDayAdjustmentControl);
     pendingSnapshotRef.current = nextDraft;
     lastSubmittedRef.current = JSON.stringify(nextDraft);
-  }, [initialDayAdjustmentDirection, initialEditableName, isRest, showDayAdjustmentControl]);
+  }, [initialDayAdjustmentDirection, initialEditableName, isOptional, isRest, showDayAdjustmentControl]);
 
   useEffect(() => {
     setActiveWorkoutPlanId(workoutPlanId);
@@ -224,6 +226,11 @@ export function EditDaySettingsAutosaveForm({
     } else {
       formData.delete("isRest");
     }
+    if (nextSnapshot.isOptional && !nextSnapshot.isRest) {
+      formData.set("isOptional", "on");
+    } else {
+      formData.delete("isOptional");
+    }
     if (isDayAdjustmentVisible) {
       formData.set("dayAdjustmentDirection", nextSnapshot.dayAdjustmentDirection);
     } else {
@@ -269,7 +276,7 @@ export function EditDaySettingsAutosaveForm({
     toast,
   ]);
 
-  const scheduleAutosave = useCallback((nextSnapshot: { name: string; isRest: boolean; dayAdjustmentDirection: SetFlowDirection }) => {
+  const scheduleAutosave = useCallback((nextSnapshot: { name: string; isRest: boolean; isOptional: boolean; dayAdjustmentDirection: SetFlowDirection }) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     pendingSnapshotRef.current = nextSnapshot;
     timeoutRef.current = setTimeout(submitAutosave, 500);
@@ -444,6 +451,41 @@ export function EditDaySettingsAutosaveForm({
           ) : null}
         </div>
       </ConfirmDestructiveModal>
+      <div className="mx-auto flex w-full max-w-sm gap-1 rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.58)] p-1">
+        {([
+          ["required", "Required"],
+          ["optional", "Optional"],
+          ["rest", "Rest"],
+        ] as const).map(([kind, label]) => {
+          const active = kind === "rest" ? draft.isRest : kind === "optional" ? draft.isOptional : !draft.isRest && !draft.isOptional;
+          return (
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                const nextSnapshot = {
+                  ...draft,
+                  isRest: kind === "rest",
+                  isOptional: kind === "optional",
+                };
+                setDraft(nextSnapshot);
+                scheduleAutosave(nextSnapshot);
+              }}
+              className={cn(
+                "min-h-9 flex-1 rounded-[0.65rem] px-2 text-[11px] font-semibold transition",
+                active
+                  ? kind === "rest"
+                    ? "bg-[rgb(var(--accent-yellow-off)/0.2)] text-[rgb(var(--accent-yellow-on))]"
+                    : "bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--accent-strong))]"
+                  : "text-[rgb(var(--text-secondary)/0.82)] hover:bg-[rgb(var(--surface-1-rgb)/0.72)]",
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
     </form>
   );
 }

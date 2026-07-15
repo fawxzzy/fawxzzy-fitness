@@ -153,6 +153,7 @@ export type RoutineDayRow = {
   day_index: number;
   name: string | null;
   is_rest: boolean;
+  is_optional?: boolean;
   notes: string | null;
   duplicate_source_routine_day_id?: string | null;
   workout_plan_template_id?: string | null;

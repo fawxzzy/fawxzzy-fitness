@@ -26,6 +26,7 @@ type RoutineDayIdentity = {
   day_index: number;
   name: string | null;
   is_rest: boolean;
+  is_optional?: boolean;
 };
 
 type TodayDisplayDaySource = "session" | "calendar" | "template";
@@ -92,6 +93,7 @@ export type TodayRoutinePayloadState = {
   dayName: string;
   dayWeekday: string | null;
   isRest: boolean;
+  isOptional?: boolean;
   state: TodayPickerDayState;
   routineId: string;
   routineDayId: string | null;
@@ -103,6 +105,7 @@ export function buildTodayRoutinePayloadState(args: {
   routineDayName: string | null;
   routineDayWeekday?: string | null;
   isRest: boolean;
+  isOptional?: boolean;
   state: TodayPickerDayState;
   routineDayId: string | null;
   fallbackDayIndex: number | null;
@@ -127,6 +130,7 @@ export function buildTodayRoutinePayloadState(args: {
     dayName,
     dayWeekday,
     isRest: args.isRest,
+    isOptional: Boolean(args.isOptional),
     state: args.state,
     routineId: args.activeRoutine.id,
     routineDayId: args.routineDayId,
@@ -145,6 +149,7 @@ export type TodayPickerDay<TExercise = TodayPickerExercise> = {
   dayIndex: number;
   name: string;
   isRest: boolean;
+  isOptional?: boolean;
   state: TodayPickerDayState;
   invalidExerciseCount: number;
   exercises: TExercise[];
@@ -155,6 +160,10 @@ export type TodaySummaryTone = "blocking" | "warning" | null;
 export function getTodayDaySummary(day: TodayPickerDay): string | null {
   if (day.state === "rest") {
     return "Rest day.";
+  }
+
+  if (day.isOptional) {
+    return "Optional workout. Logging it counts normally; skipping it does not affect your required plan.";
   }
 
   if (day.state === "empty" && day.invalidExerciseCount > 0) {
