@@ -1695,10 +1695,12 @@ export function SetLoggerCard({
   const remainingTargetSetCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - sets.length);
   const showLastTargetAction = !isLastTargetButtonDisabled;
   const showLogAllAction = remainingTargetSetCount > 0;
-  const loggerActionCount = Number(showLastTargetAction) + 1;
+  const loggerActionCount = Number(showLastTargetAction) + Number(showLogAllAction) + 1;
   const loggerActionGridClassName = loggerActionCount === 1
     ? "grid-cols-1"
-    : "grid-cols-[74px_minmax(0,1fr)]";
+    : loggerActionCount === 2
+      ? (showLastTargetAction ? "grid-cols-[74px_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_74px]")
+      : "grid-cols-[74px_minmax(0,1fr)_74px]";
   const handleLogAll = useCallback(async () => {
     const remainingCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - latestSetsRef.current.length);
     if (logRequestInFlightRef.current || remainingCount === 0) {
@@ -1732,9 +1734,26 @@ export function SetLoggerCard({
             <span className="bottom-action__label">{lastTargetButtonLabel}</span>
           </button>
         ) : null}
+        {showLogAllAction ? (
+          <button
+            type="button"
+            onClick={() => { void handleLogAll(); }}
+            disabled={isSaveDisabled}
+            data-bottom-action-intent="positive"
+            className={cn(
+              getAttachedCardActionButtonClassName({
+                intent: "positive",
+                className: "!h-12 !border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+              }),
+              isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
+            )}
+          >
+            <span className="bottom-action__label text-[11px]">Log all</span>
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={showLogAllAction ? () => { void handleLogAll(); } : handleLogSet}
+          onClick={handleLogSet}
           disabled={isSaveDisabled}
           data-bottom-action-intent="positive"
           className={cn(
@@ -1748,24 +1767,20 @@ export function SetLoggerCard({
             isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
           )}
         >
-          {showLogAllAction ? (
-            <span className="bottom-action__label text-[11px]">Log all</span>
-          ) : (
-            <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-1.5 text-[10px] leading-tight">
-              <span>{liveLogButtonPrefix}</span>
-              {liveSummaryItems.length > 0 ? (
-                <>
-                  <SignatureMiniPipe className="h-[0.82em] w-[0.35rem]" barClassName="w-[2px]" />
-                  <SignatureInlineList
-                    items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
-                    separator="pipe"
-                    className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
-                    itemClassName="whitespace-nowrap"
-                  />
-                </>
-              ) : null}
-            </span>
-          )}
+          <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-1.5 text-[10px] leading-tight">
+            <span>{liveLogButtonPrefix}</span>
+            {liveSummaryItems.length > 0 ? (
+              <>
+                <SignatureMiniPipe className="h-[0.82em] w-[0.35rem]" barClassName="w-[2px]" />
+                <SignatureInlineList
+                  items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
+                  separator="pipe"
+                  className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
+                  itemClassName="whitespace-nowrap"
+                />
+              </>
+            ) : null}
+          </span>
         </button>
       </AttachedCardActionStripFrame>
     ),
