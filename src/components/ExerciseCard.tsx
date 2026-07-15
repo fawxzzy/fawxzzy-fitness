@@ -636,7 +636,11 @@ export function ExerciseCard({
           <button
             type="button"
             {...buttonProps}
-            className={cn("block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", resolvedPressClassName)}
+            className={cn(
+              "block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]",
+              footer ? "!border-0" : undefined,
+              resolvedPressClassName,
+            )}
             onClick={onPress}
             disabled={disabled}
           >
