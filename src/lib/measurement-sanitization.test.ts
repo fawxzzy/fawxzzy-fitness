@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { sanitizeEnabledMeasurementValues } from "./measurement-sanitization.ts";
+import { sanitizeEnabledMeasurementValues, sanitizeLoggedMeasurementValues } from "./measurement-sanitization.ts";
 
 test("sanitizeEnabledMeasurementValues clears disabled measurement values", () => {
   const sanitized = sanitizeEnabledMeasurementValues(
@@ -38,6 +38,24 @@ test("sanitizeEnabledMeasurementValues drops stale values when toggling back on 
   assert.equal(toggledBackOn.reps, "");
   assert.equal(toggledBackOn.weight, "");
   assert.equal(toggledBackOn.duration, "6:00");
+});
+
+test("sanitizeLoggedMeasurementValues preserves a timed set duration without relying on timer UI state", () => {
+  const sanitized = sanitizeLoggedMeasurementValues({
+    reps: "",
+    weight: "",
+    duration: "0:45",
+    distance: "",
+    calories: "",
+  });
+
+  assert.deepEqual(sanitized, {
+    reps: "",
+    weight: "",
+    duration: "0:45",
+    distance: "",
+    calories: "",
+  });
 });
 
 test("formatGoalSummaryText excludes disabled measurements from summaries", async () => {

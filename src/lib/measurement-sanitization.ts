@@ -39,6 +39,14 @@ export function deriveMeasurementPresenceFromValues(values: MeasurementValueInpu
   };
 }
 
+/**
+ * Set logging persists every measurement that has an entered value. UI controls,
+ * such as the optional exercise timer, must not remove a configured duration.
+ */
+export function sanitizeLoggedMeasurementValues<T extends SanitizableMeasurementValues>(raw: T): T {
+  return sanitizeEnabledMeasurementValues(deriveMeasurementPresenceFromValues(raw), raw);
+}
+
 export function sanitizeEnabledMeasurementValues<T extends SanitizableMeasurementValues>(
   enabled: EnabledMeasurements,
   raw: T,

@@ -364,7 +364,9 @@ function getInputClassName({
       labeledEditorFieldControlClassName,
       cn(
         "h-11 rounded-[inherit] !border-0 !bg-transparent py-0 text-center !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-        withEdgeControls ? "px-[2.35rem]" : "px-3",
+        // The edge buttons occupy 1.75rem per side including their inset. Keep
+        // the numeric lane readable instead of reserving more space than needed.
+        withEdgeControls ? "px-[1.95rem] text-[13px]" : "px-3",
       ),
       extraClassName,
     );
@@ -1279,7 +1281,7 @@ export function MeasurementPanelV2({
     if (fieldId === "weight") return "w-[7.2rem]";
     if (fieldId === "time") return "w-[7.15rem]";
     if (fieldId === "distance") return "w-[7.15rem]";
-    if (fieldId === "calories") return "w-[6.85rem]";
+    if (fieldId === "calories") return "w-[7.15rem]";
     if (fieldId === "rpe") return "w-[7.6rem]";
     return "w-[6.9rem]";
   }
@@ -1300,7 +1302,7 @@ export function MeasurementPanelV2({
       if (fieldId === "weight") return 7.2;
       if (fieldId === "time") return 7.15;
       if (fieldId === "distance") return 7.15;
-      if (fieldId === "calories") return 6.85;
+      if (fieldId === "calories") return 7.15;
       if (fieldId === "rpe") return 7.6;
       return 6.9;
     };
@@ -1447,6 +1449,13 @@ export function MeasurementPanelV2({
     suppressHorizontalRailClickRef.current = false;
   }
 
+  const horizontalAuxiliaryFields = useHorizontalScrollLayout
+    ? orderedMetricFields.filter((field) => field.id.startsWith("aux-field-"))
+    : [];
+  const horizontalMetricFields = useHorizontalScrollLayout
+    ? orderedMetricFields.filter((field) => !field.id.startsWith("aux-field-"))
+    : orderedMetricFields;
+
   return (
     <section className={cn(appTokens.measurementPanelStack, "max-w-full overflow-x-hidden", useHorizontalScrollLayout ? "space-y-0.5" : undefined, className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
       {showHeader ? <div className={appTokens.measurementPanelGrid}>{description ? <p className={appTokens.measurementHeaderMeta}>{description}</p> : null}</div> : null}
@@ -1474,26 +1483,45 @@ export function MeasurementPanelV2({
           }) : null}
 
           {useHorizontalScrollLayout ? (
-            <HorizontalScrollHint
-              className="-mx-1 relative overflow-visible"
-              scrollRef={horizontalRailRef}
-              scrollClassName="overflow-y-hidden overscroll-x-contain px-1 pb-1 pt-1 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
-              contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-start gap-[3px]"
-              scrollProps={{
-                "data-measurement-horizontal-rail": "true",
-                onPointerDownCapture: handleHorizontalRailPointerDownCapture,
-                onPointerMoveCapture: handleHorizontalRailPointerMoveCapture,
-                onPointerUpCapture: handleHorizontalRailPointerUpCapture,
-                onPointerCancelCapture: handleHorizontalRailPointerCancelCapture,
-                onClickCapture: handleHorizontalRailClickCapture,
-              }}
-            >
+            <>
+              {horizontalAuxiliaryFields.length > 0 ? (
+                <div
+                  className={cn(
+                    "grid items-center gap-[3px] px-1 pb-1 pt-1",
+                    horizontalAuxiliaryFields.length === 1
+                      ? "grid-cols-1"
+                      : horizontalAuxiliaryFields.length === 2
+                        ? "grid-cols-2"
+                        : "grid-cols-3",
+                  )}
+                >
+                  {horizontalAuxiliaryFields.map((field) => (
+                    <div key={field.id} className="min-w-0">
+                      {field.node}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <HorizontalScrollHint
+                className="-mx-1 relative overflow-visible"
+                scrollRef={horizontalRailRef}
+                scrollClassName="overflow-y-hidden overscroll-x-contain px-1 pb-1 pt-1 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
+                contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-start gap-[3px]"
+                scrollProps={{
+                  "data-measurement-horizontal-rail": "true",
+                  onPointerDownCapture: handleHorizontalRailPointerDownCapture,
+                  onPointerMoveCapture: handleHorizontalRailPointerMoveCapture,
+                  onPointerUpCapture: handleHorizontalRailPointerUpCapture,
+                  onPointerCancelCapture: handleHorizontalRailPointerCancelCapture,
+                  onClickCapture: handleHorizontalRailClickCapture,
+                }}
+              >
                   {horizontalRowPrefix ? (
                     <div className="shrink-0">
                       {horizontalRowPrefix}
                     </div>
                   ) : null}
-                  {orderedMetricFields.map((field) => (
+                  {horizontalMetricFields.map((field) => (
                     <div
                       key={field.id}
                       className={cn("shrink-0", getHorizontalFieldWidthClassName(field.id))}
@@ -1502,7 +1530,8 @@ export function MeasurementPanelV2({
                       {field.node}
                     </div>
                   ))}
-            </HorizontalScrollHint>
+              </HorizontalScrollHint>
+            </>
           ) : metricRows.map((row, rowIndex) => {
             if (row.length === 1) {
               return (
