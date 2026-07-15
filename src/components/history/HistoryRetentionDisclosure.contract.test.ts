@@ -6,6 +6,7 @@ const disclosureSource = readFileSync(new URL("./HistoryMetricsDisclosure.tsx", 
 const monthlySource = readFileSync(new URL("./MonthlyProgressSurface.tsx", import.meta.url), "utf8");
 const streakSource = readFileSync(new URL("./WorkoutStreakSurface.tsx", import.meta.url), "utf8");
 const calendarSource = readFileSync(new URL("./HistoryCalendarSurface.tsx", import.meta.url), "utf8");
+const achievementsSource = readFileSync(new URL("./HistoryAchievementsSurface.tsx", import.meta.url), "utf8");
 const historyClientSource = readFileSync(new URL("../../app/history/HistorySessionsClient.tsx", import.meta.url), "utf8");
 
 test("compact History disclosures rotate green metadata beside the chevron", () => {
@@ -51,6 +52,14 @@ test("Calendar month grids replace neighboring-month dates with blank fillers", 
   assert.match(calendarSource, /data-calendar-day-filler="true"/);
   assert.match(calendarSource, /aria-hidden="true"/);
   assert.doesNotMatch(calendarSource, /disabled=\{!day\.inMonth/);
+});
+
+test("Achievements use the shared disclosure in every History density", () => {
+  assert.match(achievementsSource, /data-history-achievements-disclosure="true"/);
+  assert.match(achievementsSource, /<HistoryCompactDisclosure/);
+  assert.match(achievementsSource, /summaryItems=\{\[`\$\{unlockedCount\}\/\$\{achievements\.length\} earned`\]\}/);
+  assert.match(achievementsSource, /accentTone="green"/);
+  assert.doesNotMatch(achievementsSource, /<HistorySection/);
 });
 
 test("History timeline filters expose one clear-all control and hide unrelated summaries", () => {
