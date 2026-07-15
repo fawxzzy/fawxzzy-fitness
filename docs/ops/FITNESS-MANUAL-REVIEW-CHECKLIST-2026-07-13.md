@@ -4,7 +4,7 @@
 
 This checklist covers every Fitness roadmap card implemented locally in the current review batch.
 
-- Review-ready cards: 18
+- Review-ready cards: 17
 - Production deployments: 0
 - Production database migrations applied: 0
 - Board state for review-ready cards: `in_progress`
@@ -14,7 +14,7 @@ Use the local review server at `http://127.0.0.1:3004`. These routes are local-o
 
 ## 1. History Overview
 
-Cards: `FF-RET-001`, `FF-RET-002`, `FF-RET-003`, `FF-RET-004`, `FF-GAM-001`, `FF-ANALYTICS-002`
+Cards: `FF-RET-001`, `FF-RET-002`, `FF-RET-003`, `FF-RET-004`, `FF-GAM-001`
 
 Route: `http://127.0.0.1:3004/dev/mobile-regression?scenario=history-sessions-compact`
 
@@ -22,7 +22,8 @@ Route: `http://127.0.0.1:3004/dev/mobile-regression?scenario=history-sessions-co
 - [ ] Workout streak and monthly progress are easy to scan.
 - [ ] Consistency heatmap remains compact on mobile.
 - [ ] Achievements are small, deterministic, and do not reward unsafe volume.
-- [ ] Premium analytics appears only as a locked preview without scores or coaching claims.
+
+`FF-ANALYTICS-002` returned to Planning after the empty locked preview was rejected during operator review.
 
 ## 2. Curated Workout Builder
 

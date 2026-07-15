@@ -136,6 +136,16 @@ test("buildRoadmapInsertValues preserves closed launch gate status", () => {
   assert.equal(values.status, "fixed");
 });
 
+test("premium cycle analytics returns to planning without placeholder UI claims", () => {
+  const card = FEEDBACK_MONETIZATION_ROADMAP.find((entry) => entry.cardId === "FF-ANALYTICS-002");
+  assert.ok(card);
+
+  assert.equal(card.boardStatus, "confirmed");
+  assert.equal(card.title, "Plan Premium Cycle Analytics Experience");
+  assert.match(card.description, /Do not render locked placeholder metrics/i);
+  assert.ok(card.acceptanceCriteria.some((criterion) => /No premium analytics UI renders/i.test(criterion)));
+});
+
 test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {
   const roadmapCardIds = FEEDBACK_MONETIZATION_ROADMAP.map((card) => card.cardId);
 

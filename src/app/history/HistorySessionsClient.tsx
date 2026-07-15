@@ -5,7 +5,6 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
-import { PremiumCycleAnalyticsPreview } from "@/components/history/PremiumCycleAnalyticsPreview";
 import { HistoryAchievementsSurface } from "@/components/history/HistoryAchievementsSurface";
 import { buildHistoryAchievements } from "@/lib/history-achievements";
 import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
@@ -406,7 +405,6 @@ export function HistorySessionsClient({
   initialSelectedTags = [],
   showBottomActions = true,
   sessionHrefOverrides,
-  premiumCycleAnalyticsPreviewEnabled = false,
 }: {
   sessions: SessionSummary[];
   filterOptions?: ExerciseInfoFilterOptions;
@@ -433,7 +431,6 @@ export function HistorySessionsClient({
   initialSelectedTags?: string[];
   showBottomActions?: boolean;
   sessionHrefOverrides?: Record<string, string>;
-  premiumCycleAnalyticsPreviewEnabled?: boolean;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
@@ -791,7 +788,6 @@ export function HistorySessionsClient({
         </div>
       ) : null}
       <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-      {premiumCycleAnalyticsPreviewEnabled ? <PremiumCycleAnalyticsPreview /> : null}
       <div data-history-retention-surface="monthly">
         <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
       </div>
