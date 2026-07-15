@@ -185,6 +185,7 @@ export function ExerciseCard({
   titleMeta,
   subtitle,
   children,
+  footer,
   leadingVisual,
   onPress,
   rightIcon = defaultChevron,
@@ -231,6 +232,7 @@ export function ExerciseCard({
   titleMeta?: ReactNode;
   subtitle?: ReactNode;
   children?: ReactNode;
+  footer?: ReactNode;
   leadingVisual?: ReactNode;
   onPress?: () => void;
   rightIcon?: ReactNode;
@@ -599,6 +601,7 @@ export function ExerciseCard({
       {overlayActions}
     </div>
   ) : null;
+  const footerNode = footer ? <div data-exercise-card-footer="true">{footer}</div> : null;
 
   if (actions) {
     return (
@@ -620,6 +623,7 @@ export function ExerciseCard({
           )}
           <div className="flex shrink-0 items-center gap-1.5 px-2 py-2">{actions}</div>
         </div>
+        {footerNode}
       </Glass>
     );
   }
@@ -638,6 +642,7 @@ export function ExerciseCard({
           >
             {bodyContent}
           </button>
+          {footerNode}
         </div>
       </Glass>
     );
@@ -648,6 +653,7 @@ export function ExerciseCard({
       <div className="relative">
         {overlayActionsNode}
         {bodyContent}
+        {footerNode}
       </div>
     </Glass>
   );

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
+import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { cn } from "@/lib/cn";
 
@@ -9,6 +10,36 @@ export function SessionExerciseBlock({ children, className }: { children: ReactN
 
 export function SessionExerciseCard({ children }: { children: ReactNode }) {
   return <div>{children}</div>;
+}
+
+function QuickLogActionLabel({ label }: { label: string }) {
+  const detailStart = label.indexOf(": ");
+  if (detailStart < 1) {
+    return label;
+  }
+
+  const prefix = label.slice(0, detailStart);
+  const details = label
+    .slice(detailStart + 2)
+    .split(/\s*\|\s*/)
+    .filter(Boolean);
+
+  if (details.length === 0) {
+    return prefix;
+  }
+
+  return (
+    <span className="inline-flex min-w-0 items-center justify-center gap-1.5 text-[10px] leading-tight">
+      <span>{prefix}</span>
+      <SignatureMiniPipe aria-hidden className="shrink-0" />
+      <SignatureInlineList
+        items={details.map((detail) => <span key={detail}>{detail}</span>)}
+        separator="pipe"
+        className="min-w-0 flex-nowrap gap-x-1 text-[9px] font-medium tracking-normal"
+        itemClassName="truncate"
+      />
+    </span>
+  );
 }
 
 const ATTACHED_CARD_ACTION_STRIP_SHELL_CLASS_NAME = "-mt-px overflow-hidden rounded-b-[1.05rem] border border-t-0 border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)]";
@@ -118,10 +149,10 @@ export function AttachedQuickActionStrip({
           actionRowClassName,
           quickLogActionClassName,
         )}
-      >
-        <span className={cn("bottom-action__label", appTokens.currentSessionLoggerSummaryText)}>
-          {quickLogLabel}
-        </span>
+        >
+          <span className={cn("bottom-action__label", appTokens.currentSessionLoggerSummaryText)}>
+            <QuickLogActionLabel label={quickLogLabel} />
+          </span>
       </button>
     </AttachedCardActionStripFrame>
   );

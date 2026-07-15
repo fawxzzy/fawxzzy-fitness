@@ -942,13 +942,13 @@ export function SessionExerciseFocus({
               hideEmptySummary
               contentVerticalAlign="top"
               progressFill={sessionProgressFill}
+              collapsedCardFooter={recoveryTimingInsight ? (
+                <p className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                  {recoveryTimingInsight.label}
+                </p>
+              ) : null}
               collapsedContent={(
                 <>
-                  {recoveryTimingInsight ? (
-                    <p className="border-x border-b border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
-                      {recoveryTimingInsight.label}
-                    </p>
-                  ) : null}
                   {savedFeedbackLabel ? (
                     <p className="border-x border-b border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
                       {savedFeedbackLabel}

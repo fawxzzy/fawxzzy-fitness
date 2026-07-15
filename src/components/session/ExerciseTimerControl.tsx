@@ -76,8 +76,25 @@ export function ExerciseTimerControl({
       </div>
       <AttachedCardActionStripFrame
         className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.28)] bg-[rgb(var(--surface-1-rgb)/0.16)]"
-        gridClassName={isComplete ? "grid-cols-1" : "grid-cols-2"}
+        gridClassName={isComplete ? "grid-cols-1" : "grid-cols-3"}
       >
+        {!isComplete ? (
+          <button
+            type="button"
+            disabled={isPending || timer.status !== "running"}
+            onClick={() => runCommand("pause")}
+            data-bottom-action-intent="info"
+            className={cn(
+              getAttachedCardActionButtonClassName({
+                intent: "info",
+                className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
+              }),
+              isPending || timer.status !== "running" ? "opacity-55" : undefined,
+            )}
+          >
+            <span className="bottom-action__label">Pause</span>
+          </button>
+        ) : null}
         <button
           type="button"
           disabled={isPending}
@@ -86,7 +103,7 @@ export function ExerciseTimerControl({
           className={cn(
             getAttachedCardActionButtonClassName({
               intent: "info",
-              className: cn("!h-12 rounded-bl-[var(--card-radius)]", !isComplete ? "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]" : "rounded-br-[var(--card-radius)]"),
+              className: cn("!h-12", isComplete ? "rounded-bl-[var(--card-radius)] rounded-br-[var(--card-radius)]" : "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]"),
             }),
             isPending ? "opacity-55" : undefined,
           )}

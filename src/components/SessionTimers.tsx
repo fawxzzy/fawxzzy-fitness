@@ -29,7 +29,7 @@ import {
   GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
 } from "@/components/ui/GlowSwitch";
 import { appTokens } from "@/components/ui/app/tokens";
-import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
@@ -1100,6 +1100,7 @@ export function SetLoggerCard({
 
   const resolvedIsFailure = showFailureToggle && !resolvedIsWarmup && isFailure;
   const isSaveDisabled = isSubmitting || isLogRequestPending;
+  const shouldPersistTimerDuration = !onExerciseTimerVisibilityChange || exerciseTimerVisible;
 
   const applyQuickLogTargetToInputs = useCallback((target: SessionQuickLogTarget | null | undefined) => {
     if (!target) {
@@ -1164,17 +1165,21 @@ export function SetLoggerCard({
       return;
     }
 
-    const presentMetrics = deriveMeasurementPresenceFromValues({
+    const rawPresentMetrics = deriveMeasurementPresenceFromValues({
       reps,
       weight,
       duration: durationInput,
       distance,
       calories,
     });
+    const presentMetrics = {
+      ...rawPresentMetrics,
+      time: rawPresentMetrics.time && shouldPersistTimerDuration,
+    };
     const sanitizedValues = sanitizeEnabledMeasurementValues(presentMetrics, {
       weight,
       reps,
-      duration: durationInput,
+      duration: shouldPersistTimerDuration ? durationInput : "",
       distance,
       calories,
     });
@@ -1442,6 +1447,7 @@ export function SetLoggerCard({
     distance,
     distanceUnit,
     durationInput,
+    shouldPersistTimerDuration,
     resolvedIsFailure,
     resolvedIsWarmup,
     reps,
@@ -1465,7 +1471,7 @@ export function SetLoggerCard({
       reps: reps.trim() ? Number(reps) : null,
       weight: weight.trim() ? Number(weight) : null,
       weightUnit: selectedWeightUnit,
-      durationSeconds: parseDurationInput(durationInput),
+      durationSeconds: shouldPersistTimerDuration ? parseDurationInput(durationInput) : null,
       distance: distance.trim() ? Number(distance) : null,
       distanceUnit,
       calories: calories.trim() ? Number(calories) : null,
@@ -1474,7 +1480,7 @@ export function SetLoggerCard({
       emptyLabel: hasVisibleMeasurements ? "Add measurements" : "",
       includeWarmupTag: false,
     }).filter((item) => item.trim().length > 0);
-  }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, weight]);
+  }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, shouldPersistTimerDuration, weight]);
   const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
   const liveLogButtonLabel = liveSummaryItems.length > 0
     ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)}`
@@ -1495,17 +1501,21 @@ export function SetLoggerCard({
     [canonicalFormState, currentFormState],
   );
   const draftQuickLogPayload = useMemo<SessionLoggerDraftQuickLogPayload | null>(() => {
-    const presentMetrics = deriveMeasurementPresenceFromValues({
+    const rawPresentMetrics = deriveMeasurementPresenceFromValues({
       reps,
       weight,
       duration: durationInput,
       distance,
       calories,
     });
+    const presentMetrics = {
+      ...rawPresentMetrics,
+      time: rawPresentMetrics.time && shouldPersistTimerDuration,
+    };
     const sanitizedValues = sanitizeEnabledMeasurementValues(presentMetrics, {
       weight,
       reps,
-      duration: durationInput,
+      duration: shouldPersistTimerDuration ? durationInput : "",
       distance,
       calories,
     });
@@ -1532,7 +1542,7 @@ export function SetLoggerCard({
       notes: resolvedIsFailure ? FAILURE_NOTE_SENTINEL : null,
       weightUnit: selectedWeightUnit,
     };
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, shouldPersistTimerDuration, weight]);
   const selectedEffortValue = rpe.trim() ? Number(rpe.trim()) : null;
   const hasSelectedEffortValue = selectedEffortValue !== null && Number.isFinite(selectedEffortValue);
   const liveGoalLabel = liveSummaryItems.length > 0
@@ -1759,7 +1769,12 @@ export function SetLoggerCard({
             {liveSummaryItems.length > 0 ? (
               <>
                 <SignatureMiniPipe className="h-[0.82em] w-[0.35rem]" barClassName="w-[2px]" />
-                <span className="truncate text-[9px] font-medium tracking-normal">{liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)}</span>
+                <SignatureInlineList
+                  items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
+                  separator="pipe"
+                  className="min-w-0 flex-nowrap gap-x-1 text-[9px] font-medium tracking-normal"
+                  itemClassName="truncate"
+                />
               </>
             ) : null}
           </span>

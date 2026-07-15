@@ -108,6 +108,7 @@ export function SessionExerciseFeedbackPrompt({
           <ChipButton
             key={value}
             type="button"
+            active={signal === value}
             tone={signal === value ? getSessionCopilotFeedbackTone(value) : "default"}
             aria-pressed={signal === value}
             onClick={() => setSignal((current) => current === value ? null : value)}
@@ -122,6 +123,7 @@ export function SessionExerciseFeedbackPrompt({
           <ChipButton
             key={value}
             type="button"
+            active={effort === value}
             tone={effort === value ? "success" : "default"}
             aria-pressed={effort === value}
             aria-label={`Effort ${value} out of 10`}
