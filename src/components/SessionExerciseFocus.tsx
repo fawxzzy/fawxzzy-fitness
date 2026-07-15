@@ -76,6 +76,11 @@ type SessionExerciseLocalCacheEntry = {
   rowClientStateBySessionExerciseId: Record<string, SessionRowClientState>;
   setSnapshotsBySessionExerciseId: Record<string, SetLoggerSeedSet[]>;
   draftStateBySessionExerciseId: Record<string, SessionLoggerDraftState>;
+  savedFeedbackByExerciseId: Record<string, {
+    signal: SessionCopilotFeedbackSignal | null;
+    note: string | null;
+    effort: number | null;
+  }>;
 };
 
 const sessionExerciseLocalStateCache = new Map<string, SessionExerciseLocalCacheEntry>();
@@ -366,12 +371,16 @@ export function SessionExerciseFocus({
       .map((exercise) => [exercise.id, true])),
   );
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
-  const [answeredFeedbackExerciseIds, setAnsweredFeedbackExerciseIds] = useState<Set<string>>(() => new Set());
+  const [answeredFeedbackExerciseIds, setAnsweredFeedbackExerciseIds] = useState<Set<string>>(() => new Set(
+    Object.entries(cachedSessionState?.savedFeedbackByExerciseId ?? {})
+      .filter(([, feedback]) => hasSavedSessionExerciseFeedback(feedback))
+      .map(([exerciseId]) => exerciseId),
+  ));
   const [savedFeedbackByExerciseId, setSavedFeedbackByExerciseId] = useState<Record<string, {
     signal: SessionCopilotFeedbackSignal | null;
     note: string | null;
     effort: number | null;
-  }>>({});
+  }>>(() => cachedSessionState?.savedFeedbackByExerciseId ?? {});
   const rowViewModelBySessionExerciseId = useMemo(() => {
     const fallbackWeightUnit = unitLabel === "lbs" ? "lbs" : "kg";
     return new Map(
@@ -435,8 +444,9 @@ export function SessionExerciseFocus({
       rowClientStateBySessionExerciseId,
       setSnapshotsBySessionExerciseId,
       draftStateBySessionExerciseId,
+      savedFeedbackByExerciseId,
     });
-  }, [draftStateBySessionExerciseId, rowClientStateBySessionExerciseId, sessionId, setSnapshotsBySessionExerciseId]);
+  }, [draftStateBySessionExerciseId, rowClientStateBySessionExerciseId, savedFeedbackByExerciseId, sessionId, setSnapshotsBySessionExerciseId]);
   useEffect(() => {
     if (!selectedExerciseId) {
       return;
@@ -538,6 +548,21 @@ export function SessionExerciseFocus({
       );
 
       return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+  }, [exercises]);
+
+  useEffect(() => {
+    const availableExerciseIds = new Set(exercises.map((exercise) => exercise.id));
+
+    setSavedFeedbackByExerciseId((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([exerciseId]) => availableExerciseIds.has(exerciseId)),
+      );
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+    setAnsweredFeedbackExerciseIds((current) => {
+      const next = new Set([...current].filter((exerciseId) => availableExerciseIds.has(exerciseId)));
+      return next.size === current.size ? current : next;
     });
   }, [exercises]);
 
@@ -966,7 +991,7 @@ export function SessionExerciseFocus({
               contentVerticalAlign="top"
               progressFill={sessionProgressFill}
               collapsedCardFooter={recoveryTimingInsight ? (
-                <div className="-mt-px flex min-h-9 items-center justify-between gap-3 bg-[linear-gradient(90deg,rgb(var(--success-rgb)/0.24),rgb(var(--accent)/0.14))] pl-3">
+                <div className="-mt-px flex min-h-9 items-center justify-between gap-3 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))] pl-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <p className="shrink-0 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
                       {recoveryTimingInsight.label}
@@ -980,7 +1005,7 @@ export function SessionExerciseFocus({
                       </>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 self-stretch items-center border-l border-[rgb(var(--accent-divider-rgb)/0.16)] px-2.5">
+                  <div className="flex shrink-0 self-stretch items-center px-2.5">
                     {cardFooterInfoButton}
                   </div>
                 </div>
@@ -993,6 +1018,16 @@ export function SessionExerciseFocus({
                       sessionExerciseId={exercise.id}
                       updateFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                       onSaved={(feedback) => {
+                        const cachedState = sessionExerciseLocalStateCache.get(sessionId);
+                        if (cachedState) {
+                          sessionExerciseLocalStateCache.set(sessionId, {
+                            ...cachedState,
+                            savedFeedbackByExerciseId: {
+                              ...cachedState.savedFeedbackByExerciseId,
+                              [exercise.id]: feedback,
+                            },
+                          });
+                        }
                         setAnsweredFeedbackExerciseIds((current) => new Set([...current, exercise.id]));
                         setSavedFeedbackByExerciseId((current) => ({ ...current, [exercise.id]: feedback }));
                         patchRowState(exercise.id, (current) => ({ ...current, showWhenCompleted: false }));
@@ -1120,7 +1155,7 @@ export function SessionExerciseFocus({
 
           const quickActionStrip = !isExpanded ? (
             <AttachedQuickActionStrip
-              gridClassName={(exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount > 1
+              gridClassName={(exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount > 0
                 ? "grid-cols-[74px_80px_minmax(0,1fr)]"
                 : "grid-cols-[74px_minmax(0,1fr)]"}
               logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}

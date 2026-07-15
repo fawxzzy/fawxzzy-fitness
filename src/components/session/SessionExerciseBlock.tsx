@@ -108,7 +108,7 @@ export function AttachedQuickActionStrip({
   const isBusy = rowContract.isSkipPending || rowContract.isQuickLogPending;
   const isSkipDisabled = isBusy || rowContract.isSkipDisabled || !onSkip;
   const isQuickLogDisabled = isBusy || rowContract.isQuickLogDisabled;
-  const showLogAll = logAllCount > 1;
+  const showLogAll = logAllCount > 0;
   const handleLogAll = async () => {
     for (let index = 0; index < logAllCount; index += 1) {
       await onPress();
