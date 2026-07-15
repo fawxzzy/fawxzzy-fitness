@@ -18,6 +18,7 @@ test("compact History disclosures rotate green metadata beside the chevron", () 
 test("monthly and weekly streak headers use rotating metadata without pipe separators", () => {
   assert.match(monthlySource, /title="Monthly"/);
   assert.match(monthlySource, /compactSummaryItems=\{compactSummaryItems\}/);
+  assert.match(monthlySource, /summary\.completedWorkoutCount > 0/);
   assert.doesNotMatch(monthlySource, />\|</);
 
   assert.match(streakSource, /title="Weekly Streak"/);
@@ -40,4 +41,11 @@ test("compact Calendar is collapsible without helper prose and Weekly Streak fol
   assert.ok(calendarIndex < streakIndex);
   assert.ok(streakIndex < summaryIndex);
   assert.ok(summaryIndex < monthlyIndex);
+});
+
+test("Calendar month grids replace neighboring-month dates with blank fillers", () => {
+  assert.match(calendarSource, /if \(!day\.inMonth\)/);
+  assert.match(calendarSource, /data-calendar-day-filler="true"/);
+  assert.match(calendarSource, /aria-hidden="true"/);
+  assert.doesNotMatch(calendarSource, /disabled=\{!day\.inMonth/);
 });

@@ -25,9 +25,11 @@ function buildMetrics(summary: HistoryMonthlyProgressSummary): MetricDatum[] {
 }
 
 export function MonthlyProgressSurface({ summary, viewMode }: { summary: HistoryMonthlyProgressSummary; viewMode: "compact" | "detailed" }) {
-  const supportingLine = summary.topExerciseName
-    ? `${summary.trend.detail} Most repeated: ${summary.topExerciseName}.`
-    : summary.trend.detail;
+  const supportingLine = summary.completedWorkoutCount > 0
+    ? summary.topExerciseName
+      ? `${summary.trend.detail} Most repeated: ${summary.topExerciseName}.`
+      : summary.trend.detail
+    : undefined;
   const compactSummaryItems = [
     summary.monthLabel,
     summary.trend.label,

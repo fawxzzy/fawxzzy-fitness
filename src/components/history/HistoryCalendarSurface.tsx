@@ -105,29 +105,42 @@ function CalendarContent({
             <div className="space-y-1">
               {month.weeks.map((week, weekIndex) => (
                 <div key={`${month.monthKey}-week-${weekIndex}`} className="grid grid-cols-7 gap-1">
-                  {week.map((day) => (
-                    <button
-                      key={day.dayKey}
-                      type="button"
-                      aria-pressed={day.isSelected}
-                      aria-label={day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined}
-                      data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
-                      disabled={!day.inMonth || day.sessionCount === 0}
-                      onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
-                      style={{ backgroundColor: getDayBackgroundColor(day) }}
-                      className={cn(
-                        "flex aspect-square min-h-[2.2rem] flex-col items-center justify-center rounded-[0.55rem] border px-1 py-1 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-default disabled:opacity-100",
-                        getDayButtonClassName(day),
-                      )}
-                    >
-                      <span className="text-[0.78rem] font-semibold leading-none">
-                        {day.dayNumber}
-                      </span>
-                      <span className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.1em]">
-                        {day.sessionCount > 0 ? day.sessionCount : ""}
-                      </span>
-                    </button>
-                  ))}
+                  {week.map((day) => {
+                    if (!day.inMonth) {
+                      return (
+                        <span
+                          key={day.dayKey}
+                          aria-hidden="true"
+                          data-calendar-day-filler="true"
+                          className="block aspect-square min-h-[2.2rem]"
+                        />
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={day.dayKey}
+                        type="button"
+                        aria-pressed={day.isSelected}
+                        aria-label={day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined}
+                        data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
+                        disabled={day.sessionCount === 0}
+                        onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
+                        style={{ backgroundColor: getDayBackgroundColor(day) }}
+                        className={cn(
+                          "flex aspect-square min-h-[2.2rem] flex-col items-center justify-center rounded-[0.55rem] border px-1 py-1 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-default disabled:opacity-100",
+                          getDayButtonClassName(day),
+                        )}
+                      >
+                        <span className="text-[0.78rem] font-semibold leading-none">
+                          {day.dayNumber}
+                        </span>
+                        <span className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.1em]">
+                          {day.sessionCount > 0 ? day.sessionCount : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
             </div>
