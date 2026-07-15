@@ -936,12 +936,12 @@ export function SessionExerciseFocus({
               collapsedContent={(
                 <>
                   {recoveryTimingInsight ? (
-                    <p className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                    <p className="border-x border-b border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
                       {recoveryTimingInsight.label}
                     </p>
                   ) : null}
                   {savedFeedbackLabel ? (
-                    <p className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
+                    <p className="border-x border-b border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-2 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
                       {savedFeedbackLabel}
                     </p>
                   ) : null}
@@ -953,7 +953,7 @@ export function SessionExerciseFocus({
                       onSaved={(feedback) => {
                         setAnsweredFeedbackExerciseIds((current) => new Set([...current, exercise.id]));
                         setSavedFeedbackByExerciseId((current) => ({ ...current, [exercise.id]: feedback }));
-                        patchRowState(exercise.id, (current) => ({ ...current, showWhenCompleted: true }));
+                        patchRowState(exercise.id, (current) => ({ ...current, showWhenCompleted: false }));
                       }}
                     />
                   ) : null}
@@ -961,14 +961,6 @@ export function SessionExerciseFocus({
               )}
             >
               <>
-                {exercise.exerciseTimer?.enabled && updateSessionExerciseTimerAction ? (
-                  <ExerciseTimerControl
-                    sessionId={sessionId}
-                    sessionExerciseId={exercise.id}
-                    initialTimer={exercise.exerciseTimer}
-                    updateTimerAction={updateSessionExerciseTimerAction}
-                  />
-                ) : null}
                 <SetLoggerCard
                   userId={userId}
                   sessionId={sessionId}
@@ -1052,6 +1044,14 @@ export function SessionExerciseFocus({
                     handleSetCountChange(exercise.id, count);
                   }}
                 />
+                {exercise.exerciseTimer?.enabled && updateSessionExerciseTimerAction ? (
+                  <ExerciseTimerControl
+                    sessionId={sessionId}
+                    sessionExerciseId={exercise.id}
+                    initialTimer={exercise.exerciseTimer}
+                    updateTimerAction={updateSessionExerciseTimerAction}
+                  />
+                ) : null}
               </>
             </ExerciseDisclosureCard>
           );

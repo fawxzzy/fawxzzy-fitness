@@ -6,6 +6,7 @@ import type { ActionResult } from "@/lib/action-result";
 import {
   formatSessionCopilotFeedbackLabel,
   getSessionCopilotFeedbackTone,
+  isSessionCopilotFeedbackComplete,
   normalizeSessionCopilotFeedbackNote,
   SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH,
   SESSION_COPILOT_FEEDBACK_SIGNALS,
@@ -25,7 +26,9 @@ function hasFeedbackAnswer(args: {
   note: string;
   effort: number | null;
 }) {
-  return Boolean(args.signal) || Boolean(normalizeSessionCopilotFeedbackNote(args.note)) || args.effort !== null;
+  // A note is supporting context, not a standalone answer. Keep the card open until
+  // the user has supplied both the qualitative signal and the effort rating.
+  return isSessionCopilotFeedbackComplete(args);
 }
 
 export function hasSavedSessionExerciseFeedback(args: {

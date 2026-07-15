@@ -3,10 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
+import { GlowSwitch } from "@/components/ui/GlowSwitch";
 import {
   formatExerciseTimerClock,
-  getExerciseTimerDisplaySeconds,
-  isExerciseTimerTargetComplete,
+  getExerciseTimerElapsedSeconds,
   type ExerciseTimerCommand,
   type ExerciseTimerSnapshot,
 } from "@/lib/exercise-timer";
@@ -58,39 +58,33 @@ export function ExerciseTimerControl({
     });
   }
 
-  useEffect(() => {
-    if (timer.status === "running" && isExerciseTimerTargetComplete(timer, nowMs) && !isPending) {
-      runCommand("complete");
-    }
-  }, [isPending, nowMs, timer]);
-
-  const displaySeconds = getExerciseTimerDisplaySeconds(timer, nowMs);
+  const displaySeconds = getExerciseTimerElapsedSeconds(timer, nowMs);
   const isComplete = timer.status === "completed";
 
   return (
     <section className="mx-3 mb-3 rounded-2xl border border-[rgb(var(--accent)/0.28)] bg-[linear-gradient(180deg,rgb(var(--surface-2-rgb)/0.98),rgb(var(--surface-1-rgb)/0.96))] p-3" aria-label="Exercise timer">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">Exercise Timer</p>
-          <p className="text-xs text-[rgb(var(--text-secondary)/0.9)]">
-            {timer.mode === "countdown" ? "Countdown for this exercise" : "Elapsed time for this exercise"}
-          </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="shrink-0 text-xs font-black uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">Exercise Timer</p>
+          <GlowSwitch
+            checked={timer.status === "running"}
+            ariaLabel={timer.status === "running" ? "Turn exercise timer off" : "Turn exercise timer on"}
+            onLabel="Timer On"
+            offLabel="Timer Off"
+            disabled={isPending}
+            onClick={() => runCommand(timer.status === "running" ? "pause" : "start")}
+            className="h-8 w-[6.4rem] shrink-0 text-[8px]"
+            stateClassName="min-w-[2.65rem]"
+          />
         </div>
-        <output className="text-3xl font-black tabular-nums text-[rgb(var(--text-primary))]" aria-live="off">
+        <output className="shrink-0 text-xs font-black tabular-nums tracking-[0.16em] text-[rgb(var(--accent)/0.92)]" aria-live="off">
           {formatExerciseTimerClock(displaySeconds)}
         </output>
       </div>
       {isComplete ? <p className="mt-2 text-sm font-bold text-[rgb(var(--success-rgb))]">Target complete</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {timer.status === "running" ? (
-          <SecondaryButton type="button" size="sm" disabled={isPending} onClick={() => runCommand("pause")}>Pause</SecondaryButton>
-        ) : (
-          <SecondaryButton type="button" size="sm" disabled={isPending} onClick={() => runCommand("start")}>
-            {timer.status === "paused" ? "Resume" : "Start"}
-          </SecondaryButton>
-        )}
+      <div className={`mt-3 grid ${isComplete ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-[rgb(var(--accent-divider-rgb)/0.22)] pt-3`}>
         <SecondaryButton type="button" size="sm" disabled={isPending} onClick={() => runCommand("reset")}>Reset</SecondaryButton>
-        {timer.mode === "count_up" && timer.status !== "completed" ? (
+        {!isComplete ? (
           <SecondaryButton type="button" size="sm" disabled={isPending} onClick={() => runCommand("complete")}>Done</SecondaryButton>
         ) : null}
       </div>

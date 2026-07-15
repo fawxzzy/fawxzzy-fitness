@@ -760,8 +760,8 @@ const mockSessionExercises = [
     slug: "incline-walk",
     exerciseTimer: {
       enabled: true,
-      mode: "countdown" as const,
-      targetSeconds: 90,
+      mode: "count_up" as const,
+      targetSeconds: null,
       elapsedSeconds: 24,
       status: "paused" as const,
       startedAt: null,

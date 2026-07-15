@@ -12,19 +12,19 @@ import {
 
 const base: ExerciseTimerSnapshot = {
   enabled: true,
-  mode: "countdown",
-  targetSeconds: 90,
+  mode: "count_up",
+  targetSeconds: null,
   elapsedSeconds: 15,
   status: "paused",
   startedAt: null,
   completedAt: null,
 };
 
-test("exercise timer derives running elapsed and countdown display deterministically", () => {
+test("exercise timer derives running count-up display deterministically", () => {
   const running = { ...base, status: "running" as const, startedAt: "2026-07-13T01:00:00.000Z" };
   const now = Date.parse("2026-07-13T01:00:20.000Z");
   assert.equal(getExerciseTimerElapsedSeconds(running, now), 35);
-  assert.equal(getExerciseTimerDisplaySeconds(running, now), 55);
+  assert.equal(getExerciseTimerDisplaySeconds(running, now), 35);
   assert.equal(isExerciseTimerTargetComplete(running, now), false);
 });
 
@@ -44,11 +44,10 @@ test("exercise timer clock supports minute and hour durations", () => {
   assert.equal(formatExerciseTimerClock(3661), "1:01:01");
 });
 
-test("exercise timer setup is off by default and validates countdown targets", () => {
+test("exercise timer setup is off by default and supports count-up timers", () => {
   assert.deepEqual(parseExerciseTimerConfig({ enabled: false, mode: "", targetSeconds: "" }), { ok: true, config: null });
-  assert.equal(parseExerciseTimerConfig({ enabled: true, mode: "countdown", targetSeconds: 0 }).ok, false);
-  assert.deepEqual(parseExerciseTimerConfig({ enabled: true, mode: "countdown", targetSeconds: "90" }), {
+  assert.deepEqual(parseExerciseTimerConfig({ enabled: true, mode: "count_up", targetSeconds: "" }), {
     ok: true,
-    config: { mode: "countdown", targetSeconds: 90 },
+    config: { mode: "count_up", targetSeconds: null },
   });
 });
