@@ -20,6 +20,7 @@ test("routine browse card shows a two-column workout-plan preview without plus-m
   assert.doesNotMatch(source, /tone="warning" className=\{ROUTINES_BROWSE_CARD_TAG_SPACING_CLASS_NAME\}>Rest/);
   assert.match(source, /<SignatureMiniPipe className="h-\[0\.88em\] w-\[0\.38rem\]" barClassName="w-\[2px\]" \/>/);
   assert.match(source, /<MetricAccentBar variant="thin" className="w-full opacity-90" \/>/);
+  assert.match(source, /flex-col items-start gap-\[0\.2rem\] text-left/);
   assert.match(source, /<MetricAccentBar variant="thin" className="mt-1 w-16 opacity-85" \/>/);
   assert.match(source, /<AppBadge key=\{part\} tone="default"/);
   assert.match(source, /ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME/);

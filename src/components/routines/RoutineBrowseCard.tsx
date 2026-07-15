@@ -285,7 +285,7 @@ export function RoutineBrowseCard({
     <RoutinesListItemCard
       title={(
         <span className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 gap-y-1 text-left">
-          <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start gap-1 text-left">
+          <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start gap-[0.2rem] text-left">
             <span className="text-[rgb(var(--accent)/0.98)]">{routine.name}</span>
             <MetricAccentBar variant="thin" className="w-full opacity-90" />
           </span>
