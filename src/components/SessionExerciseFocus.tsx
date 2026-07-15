@@ -1129,7 +1129,7 @@ export function SessionExerciseFocus({
           const quickActionStrip = !isExpanded ? (
             <AttachedQuickActionStrip
               gridClassName={(exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount > 0
-                ? "grid-cols-[74px_minmax(0,1fr)_74px]"
+                ? "grid-cols-[74px_80px_minmax(0,1fr)]"
                 : "grid-cols-[74px_minmax(0,1fr)]"}
               logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}
               rowContract={{

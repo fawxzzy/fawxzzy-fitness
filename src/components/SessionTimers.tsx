@@ -1699,8 +1699,8 @@ export function SetLoggerCard({
   const loggerActionGridClassName = loggerActionCount === 1
     ? "grid-cols-1"
     : loggerActionCount === 2
-      ? (showLastTargetAction ? "grid-cols-[74px_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_74px]")
-      : "grid-cols-[74px_minmax(0,1fr)_74px]";
+      ? (showLastTargetAction ? "grid-cols-[74px_minmax(0,1fr)]" : "grid-cols-[80px_minmax(0,1fr)]")
+      : "grid-cols-[74px_80px_minmax(0,1fr)]";
   const handleLogAll = useCallback(async () => {
     const remainingCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - latestSetsRef.current.length);
     if (logRequestInFlightRef.current || remainingCount === 0) {
