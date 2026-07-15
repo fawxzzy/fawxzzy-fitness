@@ -16,6 +16,34 @@ export type HistoryWorkoutStreakSummary = {
 
 const DEFAULT_TIMEZONE = "America/New_York";
 
+export function filterHistorySkippedDayKeysForTimeline({
+  skippedDayKeys,
+  selectedDayKey,
+  selectedMonthKey,
+}: {
+  skippedDayKeys: string[];
+  selectedDayKey?: string | null;
+  selectedMonthKey?: string | null;
+}) {
+  if (selectedDayKey) {
+    return skippedDayKeys.filter((dayKey) => dayKey === selectedDayKey);
+  }
+  if (selectedMonthKey) {
+    return skippedDayKeys.filter((dayKey) => dayKey.startsWith(selectedMonthKey));
+  }
+  return skippedDayKeys;
+}
+
+export function shouldShowHistoryWorkoutStreak({
+  hasSpecificTimelineFilter,
+  visibleSessionCount,
+}: {
+  hasSpecificTimelineFilter: boolean;
+  visibleSessionCount: number;
+}) {
+  return !hasSpecificTimelineFilter || visibleSessionCount > 1;
+}
+
 function countBestCompletedRun(trackedDayKeys: string[], completedDayKeys: Set<string>) {
   let best = 0;
   let current = 0;

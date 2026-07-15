@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SessionSummary } from "../app/history/session-summary.ts";
-import { buildHistoryWorkoutStreak } from "./history-workout-streak.ts";
+import {
+  buildHistoryWorkoutStreak,
+  filterHistorySkippedDayKeysForTimeline,
+  shouldShowHistoryWorkoutStreak,
+} from "./history-workout-streak.ts";
 
 function session(id: string, startedAt: string): SessionSummary {
   return {
@@ -67,4 +71,26 @@ test("session streak respects the profile timezone at day boundaries", () => {
   assert.equal(summary.currentStartDayKey, "2026-07-05");
   assert.equal(summary.currentEndDayKey, "2026-07-06");
   assert.equal(summary.lastCompletedDayKey, "2026-07-06");
+});
+
+test("timeline streak scopes skipped planned days to the selected day or month", () => {
+  const skippedDayKeys = ["2026-06-30", "2026-07-03", "2026-07-08", "2026-08-01"];
+
+  assert.deepEqual(filterHistorySkippedDayKeysForTimeline({
+    skippedDayKeys,
+    selectedMonthKey: "2026-07",
+  }), ["2026-07-03", "2026-07-08"]);
+  assert.deepEqual(filterHistorySkippedDayKeysForTimeline({
+    skippedDayKeys,
+    selectedDayKey: "2026-07-08",
+    selectedMonthKey: "2026-07",
+  }), ["2026-07-08"]);
+  assert.equal(filterHistorySkippedDayKeysForTimeline({ skippedDayKeys }), skippedDayKeys);
+});
+
+test("specific timelines show Session Streak only when multiple sessions remain visible", () => {
+  assert.equal(shouldShowHistoryWorkoutStreak({ hasSpecificTimelineFilter: false, visibleSessionCount: 0 }), true);
+  assert.equal(shouldShowHistoryWorkoutStreak({ hasSpecificTimelineFilter: true, visibleSessionCount: 0 }), false);
+  assert.equal(shouldShowHistoryWorkoutStreak({ hasSpecificTimelineFilter: true, visibleSessionCount: 1 }), false);
+  assert.equal(shouldShowHistoryWorkoutStreak({ hasSpecificTimelineFilter: true, visibleSessionCount: 2 }), true);
 });

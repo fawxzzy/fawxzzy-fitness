@@ -23,7 +23,11 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
 import { buildHistoryMonthlyProgress } from "@/lib/history-monthly-progress";
-import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
+import {
+  buildHistoryWorkoutStreak,
+  filterHistorySkippedDayKeysForTimeline,
+  shouldShowHistoryWorkoutStreak,
+} from "@/lib/history-workout-streak";
 import { getWeeklyProgressDayKey, getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
@@ -863,6 +867,20 @@ export function HistorySessionsClient({
     return monthFilteredSessions.filter((session) => scopedSessionDayKeysById.get(session.id) === effectiveSelectedDayKey);
   }, [effectiveSelectedDayKey, monthFilteredSessions, scopedSessionDayKeysById]);
 
+  const filteredTimelineSkippedDayKeys = useMemo(() => {
+    return filterHistorySkippedDayKeysForTimeline({
+      skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
+      selectedDayKey: effectiveSelectedDayKey,
+      selectedMonthKey,
+    });
+  }, [effectiveSelectedDayKey, scopedPlannedSkippedDayKeys, selectedMonthKey]);
+
+  const filteredTimelineWorkoutStreak = useMemo(() => buildHistoryWorkoutStreak({
+    sessions: filteredSessions,
+    timezone: scopedWeeklyProgress.timezone,
+    skippedDayKeys: filteredTimelineSkippedDayKeys,
+  }), [filteredSessions, filteredTimelineSkippedDayKeys, scopedWeeklyProgress.timezone]);
+
   const sessionWeekStarts = useMemo(
     () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, scopedWeeklyProgress.timezone)])),
     [filteredSessions, scopedWeeklyProgress.timezone],
@@ -882,6 +900,11 @@ export function HistorySessionsClient({
   }), [scopedScopeSummary.completedWorkoutCount, scopedScopeSummary.prMomentCount, workoutStreak.bestSessionCount]);
   const hasCycleTimelineFilter = normalizedFilterState.analyticsScope === "current_cycle";
   const hasSpecificTimelineFilter = Boolean(effectiveSelectedDayKey || selectedMonthKey || hasCycleTimelineFilter);
+  const displayedWorkoutStreak = hasSpecificTimelineFilter ? filteredTimelineWorkoutStreak : workoutStreak;
+  const showWorkoutStreak = shouldShowHistoryWorkoutStreak({
+    hasSpecificTimelineFilter,
+    visibleSessionCount: filteredSessions.length,
+  });
   const hasStructuredFilters = selectedTags.length > 0
     || normalizedFilterState.analyticsScope !== "all_time"
     || Boolean(effectiveSelectedDayKey)
@@ -933,9 +956,9 @@ export function HistorySessionsClient({
           />
         </div>
       ) : null}
-      {!hasSpecificTimelineFilter ? (
+      {showWorkoutStreak ? (
         <div data-history-retention-surface="streak">
-          <WorkoutStreakSurface summary={workoutStreak} viewMode={viewMode} />
+          <WorkoutStreakSurface summary={displayedWorkoutStreak} viewMode={viewMode} />
         </div>
       ) : null}
       {!effectiveSelectedDayKey && !selectedMonthKey ? (

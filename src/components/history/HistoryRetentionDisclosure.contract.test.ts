@@ -16,6 +16,10 @@ test("compact History disclosures rotate green metadata beside the chevron", () 
 });
 
 test("monthly and session streak headers use canonical title metadata and rotating summaries", () => {
+  assert.match(disclosureSource, /import \{ SignatureMiniPipe \} from "@\/components\/ui\/app\/SignatureSeparator"/);
+  assert.match(disclosureSource, /<SignatureMiniPipe \/>/);
+  assert.doesNotMatch(disclosureSource, />\|<\/span>/);
+
   assert.match(monthlySource, /HistoryDisclosureTitle label="Monthly" meta=\{summary\.monthLabel\} metaTone="yellow"/);
   assert.match(monthlySource, /compactSummaryItems=\{compactSummaryItems\}/);
   assert.match(monthlySource, /summary\.completedWorkoutCount > 0/);
@@ -27,7 +31,7 @@ test("monthly and session streak headers use canonical title metadata and rotati
 
 test("compact Calendar is collapsible with green disclosure accents and Session Streak follows it", () => {
   assert.match(calendarSource, /viewMode: "compact" \| "detailed"/);
-  assert.match(calendarSource, /<HistoryCompactDisclosure title="Calendar" accentTone="green">/);
+  assert.match(calendarSource, /<HistoryCompactDisclosure title="Calendar" titleAlign="center" accentTone="green">/);
   assert.doesNotMatch(calendarSource, /Tap a day to filter the session list/);
   assert.match(historyClientSource, /onSelectDayKey=\{handleCalendarDayChange\}[\s\S]*viewMode=\{viewMode\}/);
 
@@ -54,6 +58,8 @@ test("History timeline filters expose one clear-all control and hide unrelated s
   assert.match(historyClientSource, /<FilterSection title="Session Date"/);
   assert.match(historyClientSource, /<FilterSection title="Month"/);
   assert.match(historyClientSource, /hasSpecificTimelineFilter/);
-  assert.match(historyClientSource, /!hasSpecificTimelineFilter \? \(/);
+  assert.match(historyClientSource, /showWorkoutStreak = shouldShowHistoryWorkoutStreak\(\{/);
+  assert.match(historyClientSource, /sessions: filteredSessions/);
+  assert.match(historyClientSource, /summary=\{displayedWorkoutStreak\}/);
   assert.match(historyClientSource, /!effectiveSelectedDayKey && !hasCycleTimelineFilter \? \(/);
 });

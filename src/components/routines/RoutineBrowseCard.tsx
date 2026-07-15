@@ -39,8 +39,8 @@ export type RoutineBrowseCardItem = {
   }>;
 };
 
-const ROUTINES_BROWSE_CARD_BODY_CLASS_NAME = "min-h-[7.2rem] py-[0.72rem]";
-const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 pt-[0.1rem] pb-0";
+const ROUTINES_BROWSE_CARD_BODY_CLASS_NAME = "min-h-[7.2rem] pb-[0.72rem] pt-[0.42rem]";
+const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 !pt-0 pb-0";
 const ROUTINES_BROWSE_CARD_PREVIEW_GRID_CLASS_NAME = "grid gap-2 pt-1";
 const ROUTINES_BROWSE_CARD_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
 const ROUTINES_BROWSE_CARD_PREVIEW_SCROLL_CLASS_NAME = "pl-1 pr-[1.7rem] pb-1 sm:pr-[1.2rem]";
@@ -284,13 +284,13 @@ export function RoutineBrowseCard({
   return (
     <RoutinesListItemCard
       title={(
-        <span className="inline-flex min-w-0 max-w-full flex-wrap items-start gap-x-2 gap-y-1 text-left">
+        <span className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 gap-y-1 text-left">
           <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start gap-1 text-left">
             <span className="text-[rgb(var(--accent)/0.98)]">{routine.name}</span>
             <MetricAccentBar variant="thin" className="w-full opacity-90" />
           </span>
           {createdTag ? (
-            <span className="inline-flex shrink-0 items-center gap-1.5 pt-[0.08rem] text-[9.5px] font-semibold uppercase leading-[1.1] tracking-[0.1em] text-[rgb(var(--text-secondary)/0.82)] sm:text-[10px]">
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-[9.5px] font-semibold uppercase leading-[1.1] tracking-[0.1em] text-[rgb(var(--text-secondary)/0.82)] sm:text-[10px]">
               <SignatureMiniPipe className="h-[0.88em] w-[0.38rem]" barClassName="w-[2px]" />
               <span>{createdTag}</span>
             </span>

@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useId, useState } from "react";
 import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 
@@ -56,6 +57,7 @@ function CompactHeader({
   controlsId,
   onToggle,
   accentTone,
+  titleAlign,
 }: {
   title: ReactNode;
   summary?: string;
@@ -63,6 +65,7 @@ function CompactHeader({
   controlsId: string;
   onToggle: () => void;
   accentTone: HistoryDisclosureAccentTone;
+  titleAlign: "left" | "center";
 }) {
   return (
     <button
@@ -75,7 +78,11 @@ function CompactHeader({
       <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
         <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
           <div className="flex min-h-[30px] items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-[0.79rem] font-semibold leading-[1.08] text-[rgb(var(--text-primary)/0.98)]">{title}</p>
+            {titleAlign === "center" ? <span aria-hidden="true" className="h-4 w-4 shrink-0" /> : null}
+            <p className={cn(
+              "min-w-0 flex-1 truncate text-[0.79rem] font-semibold leading-[1.08] text-[rgb(var(--text-primary)/0.98)]",
+              titleAlign === "center" ? "text-center" : undefined,
+            )}>{title}</p>
             {summary ? (
               <p
                 aria-live="off"
@@ -128,11 +135,13 @@ export function HistoryCompactDisclosure({
   summaryItems = [],
   children,
   accentTone = "yellow",
+  titleAlign = "left",
 }: {
   title: ReactNode;
   summaryItems?: Array<string | null | undefined>;
   children: ReactNode;
   accentTone?: HistoryDisclosureAccentTone;
+  titleAlign?: "left" | "center";
 }) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
@@ -147,6 +156,7 @@ export function HistoryCompactDisclosure({
         controlsId={panelId}
         onToggle={() => setExpanded((current) => !current)}
         accentTone={accentTone}
+        titleAlign={titleAlign}
       />
       <div id={panelId} hidden={!expanded} className="pt-2">
         <ExpandedCard accentTone={accentTone}>{children}</ExpandedCard>
@@ -204,7 +214,7 @@ export function HistoryDisclosureTitle({
   return (
     <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
       <span className="truncate">{label}</span>
-      <span aria-hidden="true" className="shrink-0 text-[rgb(var(--success-rgb)/0.94)]">|</span>
+      <SignatureMiniPipe />
       <span className={cn(
         "truncate",
         metaTone === "yellow"
