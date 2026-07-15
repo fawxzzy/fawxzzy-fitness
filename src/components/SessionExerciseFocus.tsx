@@ -39,7 +39,6 @@ import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visib
 import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
-import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
@@ -452,33 +451,6 @@ export function SessionExerciseFocus({
       return;
     }
     setPersistedLoggerExerciseId(selectedExerciseId);
-  }, [selectedExerciseId]);
-
-  useEffect(() => {
-    if (!selectedExerciseId) {
-      return;
-    }
-
-    let frameA = 0;
-    let frameB = 0;
-
-    frameA = window.requestAnimationFrame(() => {
-      frameB = window.requestAnimationFrame(() => {
-        const scrollContainer = document.querySelector("[data-app-scroll-container='true']");
-        const activeRow = document.querySelector(`[data-testid='session-exercise-toggle-${selectedExerciseId}']`)?.closest("li");
-
-        if (!(scrollContainer instanceof HTMLElement) || !(activeRow instanceof HTMLElement)) {
-          return;
-        }
-
-        scrollDockAwareIntoView(scrollContainer, activeRow);
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameA);
-      window.cancelAnimationFrame(frameB);
-    };
   }, [selectedExerciseId]);
 
   const patchRowState = useCallback((
@@ -1060,6 +1032,7 @@ export function SessionExerciseFocus({
                   }}
                   prefill={setLoggerPrefill}
                   setFlowQuickLogTargets={exercise.setFlowQuickLogTargets}
+                  fallbackQuickLogTarget={exercise.setFlowQuickLogTargets?.[0] ?? exercise.quickLogTarget ?? null}
                   defaultDistanceUnit={exercise.defaultUnit}
                   isCardio={exercise.isCardio}
                   targetHint={resolvedTargetHint}
@@ -1114,7 +1087,7 @@ export function SessionExerciseFocus({
                   targetSetsMax={exercise.targetSetsMax ?? null}
                   cycleLengthDays={cycleLengthDays ?? null}
                   progressionExampleDayNumber={sessionDayIndex ?? null}
-                  showAllMeasurementInputs={!isStretchHub}
+                  showAllMeasurementInputs={false}
                   showWarmupToggle={!isStretchHub}
                   showFailureToggle={!isStretchHub}
                   showProgressionControls={!isStretchHub}
@@ -1155,9 +1128,7 @@ export function SessionExerciseFocus({
 
           const quickActionStrip = !isExpanded ? (
             <AttachedQuickActionStrip
-              gridClassName={(exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount > 0
-                ? "grid-cols-[74px_80px_minmax(0,1fr)]"
-                : "grid-cols-[74px_minmax(0,1fr)]"}
+              gridClassName="grid-cols-[74px_minmax(0,1fr)]"
               logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}
               rowContract={{
                 label: draftState?.quickLogLabel ?? rowState.quickLogLabel,
@@ -1286,7 +1257,6 @@ export function SessionExerciseFocus({
                         };
                       });
                     }
-                    handleSetCountChange(exercise.id, setCount + 1);
                   } else {
                     setSetSnapshotsBySessionExerciseId((current) => {
                       const previous = current[exercise.id] ?? exercise.initialSets;

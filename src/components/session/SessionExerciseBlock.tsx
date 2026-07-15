@@ -139,26 +139,9 @@ export function AttachedQuickActionStrip({
       >
         <span className="bottom-action__label">{skipLabel}</span>
       </button>
-      {showLogAll ? (
-        <button
-          type="button"
-          onClick={() => { void handleLogAll(); }}
-          disabled={isQuickLogDisabled}
-          data-bottom-action-intent="positive"
-          className={cn(
-            getAttachedCardActionButtonClassName({
-              intent: "positive",
-              className: "!border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
-            }),
-            isQuickLogDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
-          )}
-        >
-          <span className="bottom-action__label text-[10px]">Log all</span>
-        </button>
-      ) : null}
       <button
         type="button"
-        onClick={onPress}
+        onClick={showLogAll ? () => { void handleLogAll(); } : onPress}
         disabled={isQuickLogDisabled}
         data-bottom-action-intent="positive"
         className={cn(
@@ -175,9 +158,13 @@ export function AttachedQuickActionStrip({
           quickLogActionClassName,
         )}
         >
-          <span className={cn("bottom-action__label min-w-0", appTokens.currentSessionLoggerSummaryText)}>
-            <QuickLogActionLabel label={quickLogLabel} />
-          </span>
+          {showLogAll ? (
+            <span className="bottom-action__label text-[10px]">Log all</span>
+          ) : (
+            <span className={cn("bottom-action__label min-w-0", appTokens.currentSessionLoggerSummaryText)}>
+              <QuickLogActionLabel label={quickLogLabel} />
+            </span>
+          )}
       </button>
     </AttachedCardActionStripFrame>
   );

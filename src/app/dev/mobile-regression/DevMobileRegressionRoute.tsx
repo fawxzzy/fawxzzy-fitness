@@ -197,26 +197,45 @@ async function noopDeleteRoutineDayAction(_: unknown) {
   return { ok: true as const };
 }
 
-async function noopSetAction(_: unknown) {
+const regressionSetIndexByExercise = new Map<string, number>();
+
+async function noopSetAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  weight: number;
+  reps: number;
+  durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | "steps" | null;
+  calories: number | null;
+  isWarmup: boolean;
+  notes: string | null;
+  weightUnit: "lbs" | "kg";
+  clientLogId?: string;
+}) {
   "use server";
+  const nextSetIndex = regressionSetIndexByExercise.get(payload.sessionExerciseId) ?? 0;
+  regressionSetIndexByExercise.set(payload.sessionExerciseId, nextSetIndex + 1);
+
   return {
     ok: true as const,
     data: {
       set: {
-        id: "regression-set",
-        session_exercise_id: "session-ex-1",
+        id: payload.clientLogId ?? `regression-set-${nextSetIndex}`,
+        client_log_id: payload.clientLogId ?? null,
+        session_exercise_id: payload.sessionExerciseId,
         user_id: "dev-user",
-        set_index: 0,
-        weight: 225,
-        reps: 5,
-        is_warmup: false,
-        notes: null,
-        duration_seconds: null,
-        distance: null,
-        distance_unit: null,
-        calories: null,
-        rpe: 8,
-        weight_unit: "lbs" as const,
+        set_index: nextSetIndex,
+        weight: payload.weight,
+        reps: payload.reps,
+        is_warmup: payload.isWarmup,
+        notes: payload.notes,
+        duration_seconds: payload.durationSeconds,
+        distance: payload.distance,
+        distance_unit: payload.distanceUnit,
+        calories: payload.calories,
+        rpe: null,
+        weight_unit: payload.weightUnit,
       },
     },
   };
