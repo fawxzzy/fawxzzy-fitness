@@ -1,0 +1,43 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const disclosureSource = readFileSync(new URL("./HistoryMetricsDisclosure.tsx", import.meta.url), "utf8");
+const monthlySource = readFileSync(new URL("./MonthlyProgressSurface.tsx", import.meta.url), "utf8");
+const streakSource = readFileSync(new URL("./WorkoutStreakSurface.tsx", import.meta.url), "utf8");
+const calendarSource = readFileSync(new URL("./HistoryCalendarSurface.tsx", import.meta.url), "utf8");
+const historyClientSource = readFileSync(new URL("../../app/history/HistorySessionsClient.tsx", import.meta.url), "utf8");
+
+test("compact History disclosures rotate green metadata beside the chevron", () => {
+  assert.match(disclosureSource, /window\.setInterval\(\(\) => \{/);
+  assert.match(disclosureSource, /\}, 3200\)/);
+  assert.match(disclosureSource, /text-\[rgb\(var\(--success-rgb\)\/0\.94\)\]/);
+  assert.match(disclosureSource, /\{summary\}[\s\S]*ChevronDownIcon/);
+});
+
+test("monthly and weekly streak headers use rotating metadata without pipe separators", () => {
+  assert.match(monthlySource, /title="Monthly"/);
+  assert.match(monthlySource, /compactSummaryItems=\{compactSummaryItems\}/);
+  assert.doesNotMatch(monthlySource, />\|</);
+
+  assert.match(streakSource, /title="Weekly Streak"/);
+  assert.match(streakSource, /compactSummaryItems=/);
+  assert.doesNotMatch(streakSource, />\|</);
+});
+
+test("compact Calendar is collapsible without helper prose and Weekly Streak follows it", () => {
+  assert.match(calendarSource, /viewMode: "compact" \| "detailed"/);
+  assert.match(calendarSource, /<HistoryCompactDisclosure title="Calendar">/);
+  assert.doesNotMatch(calendarSource, /Tap a day to filter the session list/);
+  assert.match(historyClientSource, /onSelectDayKey=\{setSelectedDayKey\}[\s\S]*viewMode=\{viewMode\}/);
+
+  const calendarIndex = historyClientSource.indexOf('data-history-retention-surface="calendar"');
+  const streakIndex = historyClientSource.indexOf('data-history-retention-surface="streak"');
+  const summaryIndex = historyClientSource.indexOf("<HistoryScopeSummarySurface");
+  const monthlyIndex = historyClientSource.indexOf('data-history-retention-surface="monthly"');
+
+  assert.ok(calendarIndex >= 0);
+  assert.ok(calendarIndex < streakIndex);
+  assert.ok(streakIndex < summaryIndex);
+  assert.ok(summaryIndex < monthlyIndex);
+});

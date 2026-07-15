@@ -28,15 +28,18 @@ export function MonthlyProgressSurface({ summary, viewMode }: { summary: History
   const supportingLine = summary.topExerciseName
     ? `${summary.trend.detail} Most repeated: ${summary.topExerciseName}.`
     : summary.trend.detail;
+  const compactSummaryItems = [
+    summary.monthLabel,
+    summary.trend.label,
+    `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`,
+    `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`,
+  ];
 
   return (
     <HistoryMetricsDisclosure
-      title={(
-        <>
-          Monthly <span className="px-1 text-[rgb(var(--accent-yellow-on)/0.98)]">|</span><span className="text-[rgb(var(--accent-yellow-on)/0.98)]">{summary.monthLabel}</span>
-        </>
-      )}
+      title="Monthly"
       summary={viewMode === "detailed" ? supportingLine : undefined}
+      compactSummaryItems={compactSummaryItems}
       items={buildMetrics(summary)}
       viewMode={viewMode}
     />

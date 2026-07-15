@@ -784,15 +784,16 @@ export function HistorySessionsClient({
           <HistoryCalendarSurface
             calendarView={calendarView}
             onSelectDayKey={setSelectedDayKey}
+            viewMode={viewMode}
           />
         </div>
       ) : null}
+      <div data-history-retention-surface="streak">
+        <WorkoutStreakSurface summary={workoutStreak} viewMode={viewMode} />
+      </div>
       <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
       <div data-history-retention-surface="monthly">
         <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
-      </div>
-      <div data-history-retention-surface="streak">
-        <WorkoutStreakSurface summary={workoutStreak} viewMode={viewMode} />
       </div>
       <div data-history-retention-surface="current-week-progression">
         <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />

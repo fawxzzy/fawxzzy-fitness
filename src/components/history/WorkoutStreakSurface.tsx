@@ -27,14 +27,14 @@ function buildMetrics(summary: HistoryWorkoutStreakSummary): MetricDatum[] {
 
 export function WorkoutStreakSurface({ summary, viewMode }: { summary: HistoryWorkoutStreakSummary; viewMode: "compact" | "detailed" }) {
   const streakLabel = `${summary.currentWeekCount} ${summary.currentWeekCount === 1 ? "week" : "weeks"}`;
+  const bestLabel = `Best ${summary.bestWeekCount} ${summary.bestWeekCount === 1 ? "week" : "weeks"}`;
+  const activeLabel = `${summary.activeWeekCount} active ${summary.activeWeekCount === 1 ? "week" : "weeks"}`;
+  const lastWorkoutLabel = summary.lastCompletedDayKey ? `Last ${formatLastCompleted(summary.lastCompletedDayKey)}` : "No workouts yet";
 
   return (
     <HistoryMetricsDisclosure
-      title={(
-        <>
-          Weekly Streak <span className="px-1 text-[rgb(var(--accent)/0.98)]">|</span><span className="text-[rgb(var(--accent)/0.98)]">{streakLabel} 🔥</span>
-        </>
-      )}
+      title="Weekly Streak"
+      compactSummaryItems={[`${streakLabel} \u{1F525}`, bestLabel, activeLabel, lastWorkoutLabel]}
       items={buildMetrics(summary)}
       viewMode={viewMode}
     />

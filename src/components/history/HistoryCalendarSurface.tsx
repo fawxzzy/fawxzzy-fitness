@@ -1,6 +1,7 @@
 "use client";
 
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { HistoryCompactDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import { cn } from "@/lib/cn";
 import type { HistoryCalendarView } from "@/lib/history-calendar";
 import { HistorySection } from "./HistoryShared";
@@ -68,7 +69,7 @@ function getDayBackgroundColor(args: {
   }
 }
 
-export function HistoryCalendarSurface({
+function CalendarContent({
   calendarView,
   onSelectDayKey,
 }: {
@@ -76,12 +77,7 @@ export function HistoryCalendarSurface({
   onSelectDayKey: (dayKey: string | null) => void;
 }) {
   return (
-    <HistorySection
-      title={<span className="block w-full text-center">Calendar</span>}
-      description="Tap a day to filter the session list"
-      className="!border-0 !bg-transparent !p-0"
-      headerAlign="center"
-    >
+    <>
       <HorizontalScrollHint
         scrollClassName="-mx-1.5 px-1.5 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
         contentClassName="flex min-w-max gap-2 pb-1"
@@ -146,6 +142,36 @@ export function HistoryCalendarSurface({
         <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--danger-rgb)/0.62)] bg-[rgb(92_26_31)]" />
         <span>Skipped</span>
       </div>
+    </>
+  );
+}
+
+export function HistoryCalendarSurface({
+  calendarView,
+  onSelectDayKey,
+  viewMode,
+}: {
+  calendarView: HistoryCalendarView;
+  onSelectDayKey: (dayKey: string | null) => void;
+  viewMode: "compact" | "detailed";
+}) {
+  const content = <CalendarContent calendarView={calendarView} onSelectDayKey={onSelectDayKey} />;
+
+  if (viewMode === "compact") {
+    return (
+      <HistoryCompactDisclosure title="Calendar">
+        <div className="px-3 pb-4 pt-4">{content}</div>
+      </HistoryCompactDisclosure>
+    );
+  }
+
+  return (
+    <HistorySection
+      title={<span className="block w-full text-center">Calendar</span>}
+      className="!border-0 !bg-transparent !p-0"
+      headerAlign="center"
+    >
+      {content}
     </HistorySection>
   );
 }
