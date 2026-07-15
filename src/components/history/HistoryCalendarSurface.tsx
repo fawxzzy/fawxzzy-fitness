@@ -172,7 +172,7 @@ export function HistoryCalendarSurface({
 
   if (viewMode === "compact") {
     return (
-      <HistoryCompactDisclosure title="Calendar">
+      <HistoryCompactDisclosure title="Calendar" accentTone="green">
         <div className="px-3 pb-4 pt-4">{content}</div>
       </HistoryCompactDisclosure>
     );

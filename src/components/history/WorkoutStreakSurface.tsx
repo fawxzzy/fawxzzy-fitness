@@ -1,7 +1,7 @@
 "use client";
 
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
+import { HistoryDisclosureTitle, HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import type { HistoryWorkoutStreakSummary } from "@/lib/history-workout-streak";
 
 function formatLastCompleted(dayKey: string | null) {
@@ -18,23 +18,40 @@ function formatLastCompleted(dayKey: string | null) {
 
 function buildMetrics(summary: HistoryWorkoutStreakSummary): MetricDatum[] {
   return [
-    { label: "Current", value: `${summary.currentWeekCount} ${summary.currentWeekCount === 1 ? "week" : "weeks"}`, valueTone: summary.currentWeekCount > 0 ? "success" : "muted" },
-    { label: "Best", value: `${summary.bestWeekCount} ${summary.bestWeekCount === 1 ? "week" : "weeks"}`, valueTone: summary.bestWeekCount > 0 ? "default" : "muted" },
-    { label: "Active Weeks", value: String(summary.activeWeekCount), valueTone: summary.activeWeekCount > 0 ? "default" : "muted" },
+    { label: "Current", value: `${summary.currentSessionCount} ${summary.currentSessionCount === 1 ? "session" : "sessions"}`, valueTone: summary.currentSessionCount > 0 ? "success" : "muted" },
+    { label: "Best", value: `${summary.bestSessionCount} ${summary.bestSessionCount === 1 ? "session" : "sessions"}`, valueTone: summary.bestSessionCount > 0 ? "default" : "muted" },
+    { label: "Planned Logged", value: `${summary.completedPlannedSessionCount} / ${summary.trackedPlannedSessionCount}`, valueTone: summary.completedPlannedSessionCount > 0 ? "default" : "muted" },
     { label: "Last Workout", value: formatLastCompleted(summary.lastCompletedDayKey), valueTone: summary.lastCompletedDayKey ? "default" : "muted" },
   ];
 }
 
+function formatStreakRange(summary: HistoryWorkoutStreakSummary) {
+  if (!summary.currentStartDayKey || !summary.currentEndDayKey) {
+    return "No active streak";
+  }
+
+  const format = (dayKey: string) => new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${dayKey}T12:00:00.000Z`));
+
+  if (summary.currentStartDayKey === summary.currentEndDayKey) {
+    return format(summary.currentStartDayKey);
+  }
+  return `${format(summary.currentStartDayKey)} - ${format(summary.currentEndDayKey)}`;
+}
+
 export function WorkoutStreakSurface({ summary, viewMode }: { summary: HistoryWorkoutStreakSummary; viewMode: "compact" | "detailed" }) {
-  const streakLabel = `${summary.currentWeekCount} ${summary.currentWeekCount === 1 ? "week" : "weeks"}`;
-  const bestLabel = `Best ${summary.bestWeekCount} ${summary.bestWeekCount === 1 ? "week" : "weeks"}`;
-  const activeLabel = `${summary.activeWeekCount} active ${summary.activeWeekCount === 1 ? "week" : "weeks"}`;
+  const streakLabel = `${summary.currentSessionCount} ${summary.currentSessionCount === 1 ? "session" : "sessions"}`;
+  const bestLabel = `Best ${summary.bestSessionCount} ${summary.bestSessionCount === 1 ? "session" : "sessions"}`;
+  const plannedLabel = `${summary.completedPlannedSessionCount} of ${summary.trackedPlannedSessionCount} planned`;
   const lastWorkoutLabel = summary.lastCompletedDayKey ? `Last ${formatLastCompleted(summary.lastCompletedDayKey)}` : "No workouts yet";
 
   return (
     <HistoryMetricsDisclosure
-      title="Weekly Streak"
-      compactSummaryItems={[`${streakLabel} \u{1F525}`, bestLabel, activeLabel, lastWorkoutLabel]}
+      title={<HistoryDisclosureTitle label="Session Streak" meta={formatStreakRange(summary)} />}
+      compactSummaryItems={[`${streakLabel} \u{1F525}`, bestLabel, plannedLabel, lastWorkoutLabel]}
       items={buildMetrics(summary)}
       viewMode={viewMode}
     />

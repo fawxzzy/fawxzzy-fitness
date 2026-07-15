@@ -19,47 +19,52 @@ function session(id: string, startedAt: string): SessionSummary {
   };
 }
 
-test("workout streak counts consecutive active weeks without penalizing rest days", () => {
+test("session streak follows completed planned sessions instead of calendar weeks", () => {
   const summary = buildHistoryWorkoutStreak({
     sessions: [
-      session("one", "2026-06-23T14:00:00.000Z"),
-      session("two", "2026-07-02T14:00:00.000Z"),
-      session("three", "2026-07-07T14:00:00.000Z"),
+      session("one", "2026-07-01T14:00:00.000Z"),
+      session("two", "2026-07-05T14:00:00.000Z"),
+      session("three", "2026-07-09T14:00:00.000Z"),
     ],
+    skippedDayKeys: ["2026-07-03"],
     timezone: "America/New_York",
-    now: "2026-07-09T12:00:00.000Z",
   });
 
-  assert.equal(summary.currentWeekCount, 3);
-  assert.equal(summary.bestWeekCount, 3);
-  assert.equal(summary.activeWeekCount, 3);
+  assert.equal(summary.currentSessionCount, 2);
+  assert.equal(summary.bestSessionCount, 2);
+  assert.equal(summary.completedPlannedSessionCount, 3);
+  assert.equal(summary.missedPlannedSessionCount, 1);
+  assert.equal(summary.currentStartDayKey, "2026-07-05");
+  assert.equal(summary.currentEndDayKey, "2026-07-09");
 });
 
-test("workout streak carries the previous streak through an unfinished current week", () => {
+test("a latest skipped planned session resets the current streak", () => {
   const summary = buildHistoryWorkoutStreak({
     sessions: [
-      session("one", "2026-06-25T14:00:00.000Z"),
-      session("two", "2026-07-02T14:00:00.000Z"),
+      session("one", "2026-07-01T14:00:00.000Z"),
+      session("two", "2026-07-05T14:00:00.000Z"),
     ],
+    skippedDayKeys: ["2026-07-09"],
     timezone: "America/New_York",
-    now: "2026-07-07T12:00:00.000Z",
   });
 
-  assert.equal(summary.currentWeekCount, 2);
-  assert.match(summary.ruleDescription, /partial week/);
+  assert.equal(summary.currentSessionCount, 0);
+  assert.equal(summary.bestSessionCount, 2);
+  assert.equal(summary.currentStartDayKey, null);
+  assert.equal(summary.currentEndDayKey, null);
 });
 
-test("workout streak resets after a fully missed week and respects timezone boundaries", () => {
+test("session streak respects the profile timezone at day boundaries", () => {
   const summary = buildHistoryWorkoutStreak({
     sessions: [
-      session("old", "2026-06-16T14:00:00.000Z"),
-      session("boundary", "2026-07-06T02:00:00.000Z"),
+      session("one", "2026-07-06T02:00:00.000Z"),
+      session("two", "2026-07-07T02:00:00.000Z"),
     ],
     timezone: "America/New_York",
-    now: "2026-07-12T12:00:00.000Z",
   });
 
-  assert.equal(summary.currentWeekCount, 1);
-  assert.equal(summary.bestWeekCount, 1);
-  assert.equal(summary.lastCompletedDayKey, "2026-07-05");
+  assert.equal(summary.currentSessionCount, 2);
+  assert.equal(summary.currentStartDayKey, "2026-07-05");
+  assert.equal(summary.currentEndDayKey, "2026-07-06");
+  assert.equal(summary.lastCompletedDayKey, "2026-07-06");
 });

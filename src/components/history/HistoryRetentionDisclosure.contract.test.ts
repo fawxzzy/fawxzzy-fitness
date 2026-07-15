@@ -15,22 +15,21 @@ test("compact History disclosures rotate green metadata beside the chevron", () 
   assert.match(disclosureSource, /\{summary\}[\s\S]*ChevronDownIcon/);
 });
 
-test("monthly and weekly streak headers use rotating metadata without pipe separators", () => {
-  assert.match(monthlySource, /title="Monthly"/);
+test("monthly and session streak headers use canonical title metadata and rotating summaries", () => {
+  assert.match(monthlySource, /HistoryDisclosureTitle label="Monthly" meta=\{summary\.monthLabel\} metaTone="yellow"/);
   assert.match(monthlySource, /compactSummaryItems=\{compactSummaryItems\}/);
   assert.match(monthlySource, /summary\.completedWorkoutCount > 0/);
-  assert.doesNotMatch(monthlySource, />\|</);
 
-  assert.match(streakSource, /title="Weekly Streak"/);
+  assert.match(streakSource, /HistoryDisclosureTitle label="Session Streak" meta=\{formatStreakRange\(summary\)\}/);
   assert.match(streakSource, /compactSummaryItems=/);
-  assert.doesNotMatch(streakSource, />\|</);
+  assert.doesNotMatch(streakSource, /Weekly Streak/);
 });
 
-test("compact Calendar is collapsible without helper prose and Weekly Streak follows it", () => {
+test("compact Calendar is collapsible with green disclosure accents and Session Streak follows it", () => {
   assert.match(calendarSource, /viewMode: "compact" \| "detailed"/);
-  assert.match(calendarSource, /<HistoryCompactDisclosure title="Calendar">/);
+  assert.match(calendarSource, /<HistoryCompactDisclosure title="Calendar" accentTone="green">/);
   assert.doesNotMatch(calendarSource, /Tap a day to filter the session list/);
-  assert.match(historyClientSource, /onSelectDayKey=\{setSelectedDayKey\}[\s\S]*viewMode=\{viewMode\}/);
+  assert.match(historyClientSource, /onSelectDayKey=\{handleCalendarDayChange\}[\s\S]*viewMode=\{viewMode\}/);
 
   const calendarIndex = historyClientSource.indexOf('data-history-retention-surface="calendar"');
   const streakIndex = historyClientSource.indexOf('data-history-retention-surface="streak"');
@@ -48,4 +47,13 @@ test("Calendar month grids replace neighboring-month dates with blank fillers", 
   assert.match(calendarSource, /data-calendar-day-filler="true"/);
   assert.match(calendarSource, /aria-hidden="true"/);
   assert.doesNotMatch(calendarSource, /disabled=\{!day\.inMonth/);
+});
+
+test("History timeline filters expose one clear-all control and hide unrelated summaries", () => {
+  assert.match(historyClientSource, /aria-label="Clear all History filters"/);
+  assert.match(historyClientSource, /<FilterSection title="Session Date"/);
+  assert.match(historyClientSource, /<FilterSection title="Month"/);
+  assert.match(historyClientSource, /hasSpecificTimelineFilter/);
+  assert.match(historyClientSource, /!hasSpecificTimelineFilter \? \(/);
+  assert.match(historyClientSource, /!effectiveSelectedDayKey && !hasCycleTimelineFilter \? \(/);
 });

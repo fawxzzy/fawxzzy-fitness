@@ -1,7 +1,7 @@
 "use client";
 
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
+import { HistoryDisclosureTitle, HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import type { HistoryMonthlyProgressSummary } from "@/lib/history-monthly-progress";
 
 function formatVolume(summary: HistoryMonthlyProgressSummary) {
@@ -31,7 +31,6 @@ export function MonthlyProgressSurface({ summary, viewMode }: { summary: History
       : summary.trend.detail
     : undefined;
   const compactSummaryItems = [
-    summary.monthLabel,
     summary.trend.label,
     `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`,
     `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`,
@@ -39,7 +38,7 @@ export function MonthlyProgressSurface({ summary, viewMode }: { summary: History
 
   return (
     <HistoryMetricsDisclosure
-      title="Monthly"
+      title={<HistoryDisclosureTitle label="Monthly" meta={summary.monthLabel} metaTone="yellow" />}
       summary={viewMode === "detailed" ? supportingLine : undefined}
       compactSummaryItems={compactSummaryItems}
       items={buildMetrics(summary)}
