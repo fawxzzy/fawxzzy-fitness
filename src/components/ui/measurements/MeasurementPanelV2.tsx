@@ -1485,18 +1485,9 @@ export function MeasurementPanelV2({
           {useHorizontalScrollLayout ? (
             <>
               {horizontalAuxiliaryFields.length > 0 ? (
-                <div
-                  className={cn(
-                    "grid items-center gap-px px-1 pb-1 pt-1",
-                    horizontalAuxiliaryFields.length === 1
-                      ? "grid-cols-1"
-                      : horizontalAuxiliaryFields.length === 2
-                        ? "grid-cols-2"
-                        : "grid-cols-3",
-                  )}
-                >
+                <div className="flex flex-wrap items-center justify-center gap-1 px-1 pb-1 pt-1">
                   {horizontalAuxiliaryFields.map((field) => (
-                    <div key={field.id} className="min-w-0">
+                    <div key={field.id} className="shrink-0 [&_button]:!w-[7.1rem]">
                       {field.node}
                     </div>
                   ))}
