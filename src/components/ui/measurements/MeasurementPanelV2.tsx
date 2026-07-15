@@ -1487,7 +1487,7 @@ export function MeasurementPanelV2({
               {horizontalAuxiliaryFields.length > 0 ? (
                 <div
                   className={cn(
-                    "grid items-center gap-[3px] px-1 pb-1 pt-1",
+                    "grid items-center gap-px px-1 pb-1 pt-1",
                     horizontalAuxiliaryFields.length === 1
                       ? "grid-cols-1"
                       : horizontalAuxiliaryFields.length === 2
