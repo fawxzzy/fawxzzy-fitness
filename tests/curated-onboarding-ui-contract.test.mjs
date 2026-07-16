@@ -18,7 +18,23 @@ test("curated onboarding uses the signed-in Fitness screen and bottom-action con
   assert.match(shell, /BottomActionSingle/);
   assert.match(shell, /BottomActionSplit/);
   assert.match(shell, /BottomDockButton/);
+  assert.match(shell, /BottomDockLink/);
+  assert.match(shell, /pointer-events-auto/);
   assert.doesNotMatch(shell, /AuthShell|AuthCard|curatedCard|curatedActionRow/);
+});
+
+test("curated onboarding keeps operator review actions on canonical app patterns", () => {
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+  const intro = readComponent("CuratedIntroStep.tsx");
+  const progress = readComponent("CuratedOnboardingProgress.tsx");
+
+  assert.match(shell, /ROUTINE_CARD_DELETE_TEXT_CLASS_NAME/);
+  assert.match(shell, /Build manually/);
+  assert.doesNotMatch(intro, /Build manually/);
+  assert.match(shell, /canAccessCuratedStep/);
+  assert.match(shell, /type: "go-to-step"/);
+  assert.match(progress, /aria-label="Edit setup pages"/);
+  assert.match(progress, /aria-current/);
 });
 test("curated user UI does not expose raw intake state or implementation-oriented snapshot chrome", () => {
   const handoff = readComponent("GenerationHandoffStep.tsx");

@@ -85,6 +85,17 @@ export function canAdvanceCuratedStep(stepId: CuratedStepId, data: CuratedOnboar
   return isCuratedOnboardingReadyForHandoff(data);
 }
 
+export function canAccessCuratedStep(stepId: CuratedStepId, data: CuratedOnboardingData) {
+  if (stepId === "generation-handoff") {
+    return false;
+  }
+
+  const targetIndex = getCuratedStepIndex(stepId);
+  return CURATED_STEP_ORDER
+    .slice(0, targetIndex)
+    .every((previousStepId) => canAdvanceCuratedStep(previousStepId, data));
+}
+
 export function getCuratedStepBlockingMessage(stepId: CuratedStepId) {
   if (stepId === "goals") return "Choose the training focus that should lead the routine.";
   if (stepId === "experience") return "Choose the experience level that matches your current baseline.";

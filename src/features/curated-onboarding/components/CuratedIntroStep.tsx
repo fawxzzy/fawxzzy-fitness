@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
 
@@ -16,15 +15,6 @@ export function CuratedIntroStep() {
           className="justify-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.94)]"
         />
       </CuratedInfoCard>
-
-      <div className="text-center">
-        <Link
-          href="/routines/new"
-          className="border-b border-[rgb(var(--accent)/0.65)] pb-0.5 text-[10px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]"
-        >
-          Build manually
-        </Link>
-      </div>
     </div>
   );
 }

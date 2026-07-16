@@ -9,9 +9,10 @@ import {
   BottomActionSingle,
   BottomActionSplit,
 } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
+import { ROUTINE_CARD_DELETE_TEXT_CLASS_NAME } from "@/components/routines/routineCardChrome";
 import { RouteLoading } from "@/components/RouteLoading";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -29,6 +30,7 @@ import { createCuratedOnboardingState } from "../fixtures.ts";
 import { curatedOnboardingReducer } from "../reducer.ts";
 import {
   canAdvanceCuratedStep,
+  canAccessCuratedStep,
   canGoBackCuratedStep,
   getCuratedProgressValue,
   getCuratedStepBlockingMessage,
@@ -50,6 +52,7 @@ import type {
   EquipmentAccess,
   PreferredStyle,
   TrainingGoal,
+  CuratedStepId,
 } from "../types.ts";
 import { ConstraintsStep } from "./ConstraintsStep";
 import { CuratedIntroStep } from "./CuratedIntroStep";
@@ -251,6 +254,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   const canAdvance = canAdvanceCuratedStep(state.draft.stepId, state.draft.data);
   const blockingMessage = getCuratedStepBlockingMessage(state.draft.stepId);
   const showBack = canGoBackCuratedStep(state.draft.stepId);
+  const isIntroStep = state.draft.stepId === "intro";
   const missingRequestedDraft = Boolean(requestedDraftId && hasHydrated && !didResumeDraft);
   const saveLabel =
     saveState === "error"
@@ -428,6 +432,29 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
         {generationError ? "Plan unavailable" : "Create editable draft"}
       </BottomDockButton>
     </BottomActionSingle>
+  ) : isIntroStep ? (
+    <BottomActionSplit
+      className="grid-cols-[minmax(88px,0.68fr)_minmax(0,2fr)]"
+      secondary={(
+        <BottomDockLink
+          href="/routines/new"
+          intent="toggleInactive"
+          className="px-2 text-[0.7rem]"
+        >
+          Build manually
+        </BottomDockLink>
+      )}
+      primary={(
+        <BottomDockButton
+          type="button"
+          intent="positive"
+          disabled={!canAdvance}
+          onClick={handlePrimaryAction}
+        >
+          {stepDefinition.nextLabel}
+        </BottomDockButton>
+      )}
+    />
   ) : showBack ? (
     <BottomActionSplit
       secondary={(
@@ -487,7 +514,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
           </ContentRail>
         )}
         bottomDock={(
-          <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
+          <div className={`${BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME} pointer-events-auto`}>
             <div className={BOTTOM_ACTION_SHELL_CLASSNAME}>{bottomActions}</div>
           </div>
         )}
@@ -498,6 +525,14 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
               currentStep={currentStep}
               totalSteps={CURATED_STEP_ORDER.length}
               progress={progressValue}
+              steps={CURATED_STEP_ORDER.map((stepId) => ({
+                id: stepId,
+                label: getCuratedStepDefinition(stepId).eyebrow,
+                available: stepId === "generation-handoff"
+                  ? isGenerationStep
+                  : canAccessCuratedStep(stepId, state.draft.data),
+              }))}
+              onStepSelect={(stepId: CuratedStepId) => dispatch({ type: "go-to-step", stepId, at: nowIso() })}
             />
 
             <header className="space-y-2 px-1 text-center">
@@ -514,7 +549,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="border-b border-[rgb(var(--danger-rgb)/0.7)] pb-0.5 text-[rgb(var(--danger-rgb)/0.94)]"
+                  className={ROUTINE_CARD_DELETE_TEXT_CLASS_NAME}
                 >
                   Start over
                 </button>
