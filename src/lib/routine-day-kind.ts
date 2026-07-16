@@ -10,6 +10,18 @@ export function getRoutineDayKind(day: RoutineDayKindSource): RoutineDayKind {
   return day.is_optional ? "optional" : "required";
 }
 
+export function getRoutineDayKindLabel(dayKind: RoutineDayKind) {
+  if (dayKind === "required") return "Active";
+  if (dayKind === "optional") return "Optional";
+  return "Rest";
+}
+
+export function getNextRoutineDayKind(dayKind: RoutineDayKind): RoutineDayKind {
+  if (dayKind === "required") return "optional";
+  if (dayKind === "optional") return "rest";
+  return "required";
+}
+
 export function isRequiredRoutineDay(day: RoutineDayKindSource) {
   return getRoutineDayKind(day) === "required";
 }

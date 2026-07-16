@@ -162,7 +162,7 @@ function getFieldChromeClassName(width: FieldWidth) {
 
 function getMetricRowLaneClassName(fieldCount: number, gridColumnCount: 2 | 3) {
   if (fieldCount >= 3) {
-    return "w-full max-w-[20.25rem]";
+    return "w-full max-w-[23.25rem]";
   }
 
   if (fieldCount === 2) {
@@ -1485,7 +1485,7 @@ export function MeasurementPanelV2({
           {useHorizontalScrollLayout ? (
             <>
               {horizontalAuxiliaryFields.length > 0 ? (
-                <div className="flex flex-wrap items-center justify-center gap-1 px-1 pb-1 pt-1">
+                <div className="flex flex-nowrap items-center justify-center gap-1 pb-1 pt-1">
                   {horizontalAuxiliaryFields.map((field) => (
                     <div key={field.id} className="shrink-0 [&_button]:!w-[7.1rem]">
                       {field.node}

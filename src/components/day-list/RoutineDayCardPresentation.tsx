@@ -49,6 +49,7 @@ export type RoutineDayCardSummary = {
 
 export type RoutineDayCardPresentationItem = {
   isRest: boolean;
+  isOptional?: boolean;
   splitSummary?: RoutineDayCardSummary;
   exerciseSummary?: string;
 };
@@ -122,12 +123,16 @@ function resolveRoutineDaySubtitleTagParts(day: RoutineDayCardPresentationItem) 
     return [day.exerciseSummary?.trim() || "No exercises"];
   }
 
+  const statusPart = day.isOptional ? ["Optional"] : [];
+
   if (day.splitSummary) {
     const parts = buildRoutineSplitParts(day.splitSummary);
-    return parts.length > 0 ? parts : [formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
+    return parts.length > 0
+      ? [...statusPart, ...parts]
+      : [...statusPart, formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
   }
 
-  return [];
+  return statusPart;
 }
 
 function renderRoutineDaySubtitleTagRail(

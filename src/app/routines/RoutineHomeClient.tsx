@@ -31,6 +31,7 @@ import {
   RoutineChooserSourceCard,
 } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
+import { RoutineDayKindCycleAction } from "@/components/routines/RoutineDayKindCycleAction";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -49,6 +50,11 @@ import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import {
+  getNextRoutineDayKind,
+  getRoutineDayKind,
+  type RoutineDayKind,
+} from "@/lib/routine-day-kind";
+import {
   formatRoutineDayStableDisplayName,
   getRoutineDayEditableName,
   getRoutineDayResolvedWeekdayLabel,
@@ -63,6 +69,7 @@ export type RoutineHomeDayCardItem = {
   title?: string;
   occurrenceWeekday?: string | null;
   isRest: boolean;
+  isOptional?: boolean;
   splitSummary?: {
     total: number;
     strength: number;
@@ -182,7 +189,7 @@ export function RoutineHomeClient({
   const [orderedDays, setOrderedDays] = useState(days);
   const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
   const [dayPendingDelete, setDayPendingDelete] = useState<RoutineHomeDayCardItem | null>(null);
-  const [restOverrideByDayId, setRestOverrideByDayId] = useState<Record<string, boolean>>({});
+  const [dayKindOverrideByDayId, setDayKindOverrideByDayId] = useState<Record<string, RoutineDayKind>>({});
   const [restTogglePendingDayId, setRestTogglePendingDayId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const initialAvailableWorkoutPlanSources = (_workoutPlanSources ?? []).filter(
@@ -331,18 +338,18 @@ export function RoutineHomeClient({
     });
   }, [dayPendingDelete, deleteRoutineDayAction, routineId, router, toast]);
 
-  const handleToggleDayRest = useCallback((day: RoutineHomeDayCardItem, currentIsRest: boolean) => {
+  const handleCycleDayKind = useCallback((day: RoutineHomeDayCardItem, currentDayKind: RoutineDayKind) => {
     if (isRestTogglePending) {
       return;
     }
 
-    const nextIsRest = !currentIsRest;
-    const previousOverride = restOverrideByDayId[day.id];
+    const nextDayKind = getNextRoutineDayKind(currentDayKind);
+    const previousOverride = dayKindOverrideByDayId[day.id];
     const dayName = String(day.name ?? day.title ?? day.dayIndex).trim();
 
-    setRestOverrideByDayId((current) => ({
+    setDayKindOverrideByDayId((current) => ({
       ...current,
-      [day.id]: nextIsRest,
+      [day.id]: nextDayKind,
     }));
     setRestTogglePendingDayId(day.id);
 
@@ -351,13 +358,16 @@ export function RoutineHomeClient({
       formData.set("routineId", routineId);
       formData.set("routineDayId", day.id);
       formData.set("name", dayName);
-      if (nextIsRest) {
+      if (nextDayKind === "rest") {
         formData.set("isRest", "on");
+      }
+      if (nextDayKind === "optional") {
+        formData.set("isOptional", "on");
       }
 
       const result = await updateRoutineDaySettingsAction(formData);
       if (!result.ok) {
-        setRestOverrideByDayId((current) => {
+        setDayKindOverrideByDayId((current) => {
           const next = { ...current };
           if (previousOverride === undefined) {
             delete next[day.id];
@@ -371,14 +381,19 @@ export function RoutineHomeClient({
         return;
       }
 
-      toast.info(nextIsRest ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : REST_DAY_BEHAVIOR_CONTRACT.copy.disabled, {
+      const nextCopy = nextDayKind === "rest"
+        ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled
+        : nextDayKind === "optional"
+          ? "Optional workout plan: skipping it will not affect your plan."
+          : REST_DAY_BEHAVIOR_CONTRACT.copy.disabled;
+      toast.info(nextCopy, {
         id: "day-rest-toggle-status",
         durationMs: 2600,
       });
       setRestTogglePendingDayId(null);
       router.refresh();
     });
-  }, [isRestTogglePending, restOverrideByDayId, routineId, router, toast]);
+  }, [dayKindOverrideByDayId, isRestTogglePending, routineId, router, toast]);
 
   const moveDayWithinList = useCallback((
     currentDays: RoutineHomeDayCardItem[],
@@ -576,8 +591,14 @@ export function RoutineHomeClient({
             <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
               {displayDays.map((day) => {
                 const sourceDay = sourceDayById.get(day.id) ?? day;
-                const displayIsRest = restOverrideByDayId[day.id] ?? day.isRest;
-                const displayDay = { ...day, isRest: displayIsRest };
+                const displayDayKind = dayKindOverrideByDayId[day.id] ?? getRoutineDayKind({
+                  is_rest: day.isRest,
+                  is_optional: day.isOptional,
+                });
+                const displayIsRest = displayDayKind === "rest";
+                const displayIsOptional = displayDayKind === "optional";
+                const nextDayKind = getNextRoutineDayKind(displayDayKind);
+                const displayDay = { ...day, isRest: displayIsRest, isOptional: displayIsOptional };
                 const hasWorkoutPlanContent = routineDayHasWorkoutPlanContent(sourceDay);
                 const isExpanded = expandedDayId === day.id;
                 const isThisTogglePending = restTogglePendingDayId === day.id && isRestTogglePending;
@@ -637,20 +658,16 @@ export function RoutineHomeClient({
                         {card}
                         {isExpanded ? (
                           <AttachedCardActionStripFrame gridClassName={displayIsRest ? "grid-cols-1" : "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]"}>
-                            <button
-                              type="button"
-                              data-bottom-action-intent={displayIsRest ? "toggleActive" : "toggleInactive"}
-                              onClick={() => handleToggleDayRest(sourceDay, displayIsRest)}
+                            <RoutineDayKindCycleAction
+                              dayKind={displayDayKind}
+                              dayName={day.title ?? day.name ?? `workout plan ${day.dayIndex}`}
+                              onCycle={() => handleCycleDayKind(sourceDay, displayDayKind)}
                               disabled={isThisTogglePending}
-                              aria-pressed={displayIsRest}
-                              className={displayIsRest
+                              isPending={isThisTogglePending}
+                              className={nextDayKind === "required"
                                 ? getAttachedCardActionButtonClassName({ intent: "toggleActive" })
                                 : ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME}
-                            >
-                              <span className={cn("bottom-action__label", isThisTogglePending ? "opacity-65" : undefined)}>
-                                {isThisTogglePending ? "Saving..." : displayIsRest ? "Set Training" : "Set Rest"}
-                              </span>
-                            </button>
+                            />
                             {!displayIsRest ? (
                               <button
                                 type="button"

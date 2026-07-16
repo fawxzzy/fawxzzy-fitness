@@ -6,7 +6,7 @@ import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 
 export const metadata: Metadata = {
-  title: "Optional workout day review",
+  title: "Routine day status review",
   robots: { index: false, follow: false },
 };
 
@@ -19,13 +19,13 @@ export default function OptionalPlannedDayReviewPage() {
             <SharedScreenHeader
               recipe="editDay"
               title="Optional workout day"
-              subtitle="Review fixture"
+              subtitle="Routine card control"
               action={<span className="text-[11px] font-semibold text-[rgb(var(--accent-strong))]">Review</span>}
             />
             <div className="mt-4 space-y-3">
               <RoutineDayKindReviewPanel />
               <p className="px-1 text-center text-[12px] leading-5 text-[rgb(var(--text-muted)/0.88)]">
-                This preview does not read or change your routine data.
+                This is the exact control used on the routine card. It is data-safe here and does not read or change your routine.
               </p>
             </div>
           </ScreenScaffold>
