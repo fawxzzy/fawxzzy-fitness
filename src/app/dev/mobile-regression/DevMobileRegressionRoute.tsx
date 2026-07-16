@@ -176,7 +176,7 @@ async function noopSessionSaveWithPromotion(_: unknown) {
         exerciseName: "Back Squat",
         previousTarget: "4 sets x 5 reps x 225 lbs",
         appliedTarget: "4 sets x 6 reps x 225 lbs",
-        linkedTargetCount: 2,
+        linkedDayNames: ["Lower A", "Lower B"],
       }],
     },
   };
@@ -2304,7 +2304,24 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
   }
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
-  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
+  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt)
+    .map((exercise) => {
+      if (scenario.id !== "session-auto-progression-confirmation" || exercise.id !== "session-ex-1") {
+        return exercise;
+      }
+
+      const sourceSet = exercise.initialSets[0];
+      const targetSetCount = exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0;
+      return {
+        ...exercise,
+        initialSets: Array.from({ length: targetSetCount }, (_, index) => ({
+          ...sourceSet,
+          id: `set-auto-progression-${index + 1}`,
+          set_index: index,
+        })),
+        loggedSetCount: targetSetCount,
+      };
+    });
   const regressionSessionId = `dev-session-${scenario.fixtureState}`;
 
   return (

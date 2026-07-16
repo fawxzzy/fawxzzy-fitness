@@ -49,7 +49,7 @@ type SessionAutoPromotionUpdate = {
   exerciseName: string;
   previousTarget: string | null;
   appliedTarget: string | null;
-  linkedTargetCount: number;
+  linkedDayNames: string[];
 };
 
 function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
@@ -239,7 +239,7 @@ async function applyEligibleAutomaticProgressionUpdates(args: {
       exerciseName: item.exerciseName,
       previousTarget: formatProgressionReviewTargetLabel(result.data.previousTarget as ProgressionTargetPlan),
       appliedTarget: formatProgressionReviewTargetLabel(result.data.appliedTarget as ProgressionTargetPlan),
-      linkedTargetCount: result.data.linkedTargets?.length ?? 1,
+      linkedDayNames: item.linkedUpdate?.dayNames ?? (item.dayName ? [item.dayName] : []),
     });
   }
 

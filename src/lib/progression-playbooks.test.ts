@@ -708,6 +708,42 @@ test("progression review promotes from older best qualifying session when latest
   assert.equal(candidate.sourceSession?.isLatest, false);
 });
 
+test("progression review exposes the parent completed session as promotion authority", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-exercise-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [8, 8, 8],
+    weight: 30,
+  }).map((row) => ({ ...row, sessionRecordId: "completed-session-1" }));
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 8,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+    plan: buildPlan({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 6,
+      repsMax: 8,
+      weightMin: 25,
+      weightMax: 25,
+    }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(history[0]?.sessionId, "session-exercise-1");
+  assert.equal(history[0]?.sessionRecordId, "completed-session-1");
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.sourceSession?.sessionId, "completed-session-1");
+  assert.equal(candidate.sourceSession?.isLatest, true);
+});
+
 test("progression review does not pool qualified load sets across sessions", () => {
   const rows = [
     ...buildHistoryRows({
