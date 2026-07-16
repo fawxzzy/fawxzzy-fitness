@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
+import { RoutineDayKindSelector, type RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
 import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -71,6 +72,7 @@ export function EditDayRegressionSurface({
   exercises: EditDayExercise[];
 }) {
   const [goalState, setGoalState] = useState<ExerciseGoalFormState>(buildGoalState);
+  const [reviewDayKind, setReviewDayKind] = useState<RoutineDayKind>("optional");
   const [expandedId, setExpandedId] = useState<string | null>(fixture === "edit-exercise" ? exercises[0]?.id ?? null : null);
   const activeExercise = expandedId ? exercises.find((exercise) => exercise.id === expandedId) ?? null : null;
   const activeDraft: EditDayExerciseDraft | null = fixture === "edit-exercise" && activeExercise
@@ -242,6 +244,22 @@ export function EditDayRegressionSurface({
 
   return (
     <div className="space-y-3">
+      {fixture === "default" ? (
+        <section className="rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.48)] px-3 py-3" data-routine-day-kind-review="true">
+          <div className="mb-2.5 flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold text-[rgb(var(--text-primary))]">Day type</h2>
+            <span className="text-[11px] font-medium text-[rgb(var(--accent-strong))]">{reviewDayKind}</span>
+          </div>
+          <RoutineDayKindSelector value={reviewDayKind} onChange={setReviewDayKind} />
+          <p className="mt-2.5 text-[12px] leading-5 text-[rgb(var(--text-secondary)/0.88)]">
+            {reviewDayKind === "optional"
+              ? "Optional workouts stay available to log. Skipping one does not affect your required plan."
+              : reviewDayKind === "required"
+                ? "Required workouts count toward your plan and are marked missed when their planned day passes."
+                : "Rest days are excluded from planned workout statistics."}
+          </p>
+        </section>
+      ) : null}
       <DayDetailExerciseList
         mode="editable"
         items={items}

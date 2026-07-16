@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { RoutineDayKindSelector, type RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
 import {
   RoutineEditorPageHeader,
   RoutineEditorTitleInput,
@@ -451,41 +452,18 @@ export function EditDaySettingsAutosaveForm({
           ) : null}
         </div>
       </ConfirmDestructiveModal>
-      <div className="mx-auto flex w-full max-w-sm gap-1 rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.58)] p-1">
-        {([
-          ["required", "Required"],
-          ["optional", "Optional"],
-          ["rest", "Rest"],
-        ] as const).map(([kind, label]) => {
-          const active = kind === "rest" ? draft.isRest : kind === "optional" ? draft.isOptional : !draft.isRest && !draft.isOptional;
-          return (
-            <button
-              key={kind}
-              type="button"
-              aria-pressed={active}
-              onClick={() => {
-                const nextSnapshot = {
-                  ...draft,
-                  isRest: kind === "rest",
-                  isOptional: kind === "optional",
-                };
-                setDraft(nextSnapshot);
-                scheduleAutosave(nextSnapshot);
-              }}
-              className={cn(
-                "min-h-9 flex-1 rounded-[0.65rem] px-2 text-[11px] font-semibold transition",
-                active
-                  ? kind === "rest"
-                    ? "bg-[rgb(var(--accent-yellow-off)/0.2)] text-[rgb(var(--accent-yellow-on))]"
-                    : "bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--accent-strong))]"
-                  : "text-[rgb(var(--text-secondary)/0.82)] hover:bg-[rgb(var(--surface-1-rgb)/0.72)]",
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+      <RoutineDayKindSelector
+        value={(draft.isRest ? "rest" : draft.isOptional ? "optional" : "required") satisfies RoutineDayKind}
+        onChange={(kind) => {
+          const nextSnapshot = {
+            ...draft,
+            isRest: kind === "rest",
+            isOptional: kind === "optional",
+          };
+          setDraft(nextSnapshot);
+          scheduleAutosave(nextSnapshot);
+        }}
+      />
     </form>
   );
 }
