@@ -1,4 +1,3 @@
-import { appTokens } from "@/components/ui/app/tokens";
 import { getCuratedReviewSections } from "../selectors.ts";
 import type { CuratedOnboardingData } from "../types.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
@@ -7,20 +6,19 @@ export function ReviewStep({ data }: { data: CuratedOnboardingData }) {
   const sections = getCuratedReviewSections(data);
 
   return (
-    <div className={appTokens.curatedCompactStack}>
-      <CuratedInfoCard tone="accent">
-        <p className={appTokens.curatedCardTitle}>This intake becomes your generated routine.</p>
-        <p className={appTokens.curatedCardBodyStrong}>
-          Generate when everything feels accurate. You will review the complete plan before opening an editable routine draft.
-        </p>
-      </CuratedInfoCard>
-
-      {sections.map((section) => (
-        <CuratedInfoCard key={section.title} compact>
-          <p className={appTokens.curatedSectionLabel}>{section.title}</p>
-          <p className={appTokens.curatedCardBodyStrong}>{section.value}</p>
-        </CuratedInfoCard>
-      ))}
-    </div>
+    <CuratedInfoCard tone="accent" className="!p-0">
+      <dl className="divide-y divide-[rgb(var(--border-strong)/0.16)]">
+        {sections.map((section) => (
+          <div key={section.title} className="flex items-start justify-between gap-4 px-3.5 py-3 sm:px-4">
+            <dt className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.9)]">
+              {section.title}
+            </dt>
+            <dd className="min-w-0 text-right text-xs font-medium leading-5 text-[rgb(var(--text-primary)/0.94)]">
+              {section.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </CuratedInfoCard>
   );
 }

@@ -1,6 +1,4 @@
-import { AuthField } from "@/components/auth/AuthShell";
-import { appTokens } from "@/components/ui/app/tokens";
-import { Input } from "@/components/ui/Input";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { CARDIO_PREFERENCE_OPTIONS, PREFERRED_STYLE_OPTIONS } from "../constants.ts";
 import { formatCuratedListInput, parseCuratedListInput } from "../schema.ts";
 import type { CardioPreference, CuratedOnboardingData, PreferredStyle } from "../types.ts";
@@ -18,41 +16,47 @@ export function PreferencesStep({
   onLikesChange: (value: string[]) => void;
 }) {
   return (
-    <div className={appTokens.curatedLooseStack}>
-      <div className={appTokens.curatedCompactStack}>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent)/0.94)]">Training style</p>
         {PREFERRED_STYLE_OPTIONS.map((option) => (
           <CuratedOptionCard
             key={option.value}
             onClick={() => onStyleChange(option.value)}
             selected={data.preferredStyle === option.value}
           >
-            <p className={appTokens.curatedCardTitle}>{option.label}</p>
-            <p className={appTokens.curatedCardBody}>{option.description}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">{option.label}</p>
+              <p className="mt-0.5 text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">{option.description}</p>
+            </div>
           </CuratedOptionCard>
         ))}
       </div>
 
-      <div className={appTokens.curatedCompactStack}>
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent)/0.94)]">Cardio</p>
         {CARDIO_PREFERENCE_OPTIONS.map((option) => (
           <CuratedOptionCard
             key={option.value}
             onClick={() => onCardioChange(option.value)}
             selected={data.cardioPreference === option.value}
           >
-            <p className={appTokens.curatedCardTitle}>{option.label}</p>
-            <p className={appTokens.curatedCardBody}>{option.description}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">{option.label}</p>
+              <p className="mt-0.5 text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">{option.description}</p>
+            </div>
           </CuratedOptionCard>
         ))}
       </div>
 
-      <AuthField label="Exercises you already like">
-        <Input
+      <LabeledEditorField label="Exercises you like">
+        <input
           value={formatCuratedListInput(data.exerciseLikes)}
           onChange={(event) => onLikesChange(parseCuratedListInput(event.target.value))}
           placeholder="Bench press, lunges, incline walk"
-          className={appTokens.curatedInput}
+          className={`${labeledEditorFieldControlClassName} h-12 px-4 py-3 text-center`}
         />
-      </AuthField>
+      </LabeledEditorField>
     </div>
   );
 }

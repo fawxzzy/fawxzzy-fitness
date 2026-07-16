@@ -1,13 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useReducer, useRef, useState, useTransition } from "react";
 import { createCuratedRoutineDraftAction, generateCuratedWorkoutPlanAction } from "@/app/curated-onboarding/actions";
-import { AuthCard, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import {
+  BOTTOM_ACTION_SHELL_CLASSNAME,
+  BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME,
+  BottomActionSingle,
+  BottomActionSplit,
+} from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { ContentRail } from "@/components/layout/ContentRail";
+import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
 import { RouteLoading } from "@/components/RouteLoading";
-import { appTokens } from "@/components/ui/app/tokens";
-import { GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import {
   trackCuratedAbandoned,
   trackCuratedCompleted,
@@ -43,6 +53,7 @@ import type {
 } from "../types.ts";
 import { ConstraintsStep } from "./ConstraintsStep";
 import { CuratedIntroStep } from "./CuratedIntroStep";
+import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
 import { CuratedOnboardingProgress } from "./CuratedOnboardingProgress";
 import { EquipmentStep } from "./EquipmentStep";
 import { ExperienceStep } from "./ExperienceStep";
@@ -243,16 +254,16 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   const missingRequestedDraft = Boolean(requestedDraftId && hasHydrated && !didResumeDraft);
   const saveLabel =
     saveState === "error"
-      ? "We could not save this intake locally."
+      ? "Save failed"
       : saveState === "saving"
-        ? "Saving this intake on this device..."
+        ? "Saving"
         : saveState === "saved" && state.lifecycle.intakeStatus === "completed"
-          ? "Intake saved on this device."
+          ? "Setup saved"
           : saveState === "saved"
-            ? "Draft saved on this device."
+            ? "Draft saved"
             : didResumeDraft
-              ? "Draft resumed on this device."
-              : "Your setup auto-saves on this device.";
+              ? "Draft restored"
+              : "Autosave on";
 
   function patchData(patch: Partial<CuratedOnboardingData>) {
     dispatch({
@@ -386,12 +397,9 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     if (state.draft.stepId === "generation-handoff") {
       return (
         <GenerationHandoffStep
-          data={state.draft.data}
           generationStatus={state.lifecycle.generationStatus}
           plan={generatedPlan}
-          isCreatingDraft={isCreatingDraft}
           error={generationError}
-          onCreateDraft={handleCreateDraft}
         />
       );
     }
@@ -403,77 +411,138 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     return <RouteLoading label="Restoring your training setup" variant="route" />;
   }
 
+  const isGenerationStep = state.draft.stepId === "generation-handoff";
+  const generationIsLoading = isGenerationStep
+    && !generationError
+    && (!generatedPlan || isCreatingDraft);
+  const bottomActions = isGenerationStep ? (
+    <BottomActionSingle>
+      <BottomDockButton
+        type="button"
+        intent="positive"
+        disabled={!generatedPlan || state.lifecycle.generationStatus !== "ready"}
+        loading={generationIsLoading}
+        loadingLabel={isCreatingDraft ? "Creating editable draft" : "Building routine"}
+        onClick={handleCreateDraft}
+      >
+        {generationError ? "Plan unavailable" : "Create editable draft"}
+      </BottomDockButton>
+    </BottomActionSingle>
+  ) : showBack ? (
+    <BottomActionSplit
+      secondary={(
+        <BottomDockButton
+          type="button"
+          intent="toggleInactive"
+          onClick={() => dispatch({ type: "go-back", at: nowIso() })}
+        >
+          Back
+        </BottomDockButton>
+      )}
+      primary={(
+        <BottomDockButton
+          type="button"
+          intent="positive"
+          disabled={!canAdvance}
+          onClick={handlePrimaryAction}
+        >
+          {stepDefinition.nextLabel}
+        </BottomDockButton>
+      )}
+    />
+  ) : (
+    <BottomActionSingle>
+      <BottomDockButton
+        type="button"
+        intent="positive"
+        disabled={!canAdvance}
+        onClick={handlePrimaryAction}
+      >
+        {stepDefinition.nextLabel}
+      </BottomDockButton>
+    </BottomActionSingle>
+  );
+
   return (
-    <AuthShell>
-      <AuthCard className={appTokens.curatedCard}>
-        <div className={appTokens.curatedHeaderStack}>
-          <CuratedOnboardingProgress
-            currentStep={currentStep}
-            totalSteps={CURATED_STEP_ORDER.length}
-            progress={progressValue}
-          />
-
-          <div className={appTokens.curatedHeaderTitleStack}>
-            <p className={appTokens.curatedHeaderEyebrow}>{stepDefinition.eyebrow}</p>
-            <h1 className={appTokens.curatedHeaderTitle}>{stepDefinition.title}</h1>
-            <p className={appTokens.curatedHeaderBody}>{stepDefinition.body}</p>
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
+      <MobileScreenScaffold
+        floatingHeader={(
+          <ContentRail className="py-1 pt-3">
+            <ScreenScaffold recipe="editDay" className="w-full">
+              <SharedScreenHeader
+                recipe="editDay"
+                title="Curated Routine"
+                subtitle={(
+                  <SignatureInlineList
+                    separator="pipe"
+                    items={[stepDefinition.eyebrow, `${currentStep} of ${CURATED_STEP_ORDER.length}`]}
+                    className="justify-center"
+                  />
+                )}
+                align="center"
+                withPanel={false}
+                action={<TopRightBackButton href="/today" historyBehavior="fallback-only" ariaLabel="Resume setup later" />}
+              />
+            </ScreenScaffold>
+          </ContentRail>
+        )}
+        bottomDock={(
+          <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
+            <div className={BOTTOM_ACTION_SHELL_CLASSNAME}>{bottomActions}</div>
           </div>
+        )}
+      >
+        <ContentRail className="pb-6 pt-2">
+          <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-[720px] space-y-3">
+            <CuratedOnboardingProgress
+              currentStep={currentStep}
+              totalSteps={CURATED_STEP_ORDER.length}
+              progress={progressValue}
+            />
 
-          <div className={appTokens.curatedAutosavePanel}>
-            <div className={appTokens.curatedInlineStack}>
-              <p className={appTokens.curatedStatusText}>{saveLabel}</p>
-              <p className={appTokens.curatedMetaText}>Leave anytime. Resume later will pick up on this device if the intake is still in draft.</p>
-            </div>
-            <div className={appTokens.curatedUtilityRow}>
-              <Link href="/today" className={appTokens.curatedInlineLink}>
-                Resume later
-              </Link>
-              <GhostButton type="button" size="sm" onClick={handleReset} className={appTokens.curatedUtilityButton}>
-                Start over
-              </GhostButton>
-            </div>
-          </div>
-        </div>
+            <header className="space-y-2 px-1 text-center">
+              <h1 className="text-[1.32rem] font-semibold leading-tight tracking-[-0.025em] text-[rgb(var(--text-primary))] sm:text-[1.5rem]">
+                {stepDefinition.title}
+              </h1>
+              <div className="flex items-center justify-between gap-3 text-[9px] font-semibold uppercase tracking-[0.13em]">
+                <span
+                  data-save-state={saveState}
+                  className={saveState === "error" ? "text-[rgb(var(--danger-rgb))]" : "text-[rgb(var(--accent)/0.9)]"}
+                >
+                  {saveLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="border-b border-[rgb(var(--danger-rgb)/0.7)] pb-0.5 text-[rgb(var(--danger-rgb)/0.94)]"
+                >
+                  Start over
+                </button>
+              </div>
+            </header>
 
-        {missingRequestedDraft ? (
-          <AuthMessage>
-            That saved draft was not found on this device, so this setup is starting fresh instead of resuming.
-          </AuthMessage>
-        ) : null}
+            {missingRequestedDraft ? (
+              <CuratedInfoCard compact tone="warning">
+                <p className="text-xs text-[rgb(var(--text-secondary)/0.94)]">Saved draft not found. A new setup was opened.</p>
+              </CuratedInfoCard>
+            ) : null}
 
-        <section className={appTokens.curatedStepPanel}>
-          {renderStepBody()}
-        </section>
+            <section className="space-y-3" aria-label={stepDefinition.title}>
+              {renderStepBody()}
+            </section>
 
-        {blockingMessage && !canAdvance ? (
-          <AuthMessage>{blockingMessage}</AuthMessage>
-        ) : null}
+            {blockingMessage && !canAdvance ? (
+              <p className="px-2 text-center text-[11px] leading-5 text-[rgb(var(--text-muted)/0.9)]">{blockingMessage}</p>
+            ) : null}
 
-        {state.message ? <AuthMessage tone={state.lifecycle.generationStatus === "failed" ? "error" : "default"}>{state.message}</AuthMessage> : null}
-
-        {state.draft.stepId !== "generation-handoff" ? (
-        <div className={showBack ? appTokens.curatedActionRow : appTokens.curatedActionRowSolo}>
-          {showBack ? (
-            <SecondaryButton
-              type="button"
-              onClick={() => dispatch({ type: "go-back", at: nowIso() })}
-              className={appTokens.curatedActionButton}
-            >
-              Back
-            </SecondaryButton>
-          ) : null}
-
-          <PrimaryButton
-            type="button"
-            disabled={!canAdvance}
-            onClick={handlePrimaryAction}
-            className={appTokens.curatedActionButton}
-          >
-            {stepDefinition.nextLabel}
-          </PrimaryButton>
-        </div>
-        ) : null}
-      </AuthCard>
-    </AuthShell>
+            {state.message ? (
+              <CuratedInfoCard compact tone={state.lifecycle.generationStatus === "failed" ? "danger" : "default"}>
+                <p className="text-xs text-[rgb(var(--text-secondary)/0.94)]">{state.message}</p>
+              </CuratedInfoCard>
+            ) : null}
+          </ScreenScaffold>
+        </ContentRail>
+      </MobileScreenScaffold>
+    </AppShell>
   );
 }

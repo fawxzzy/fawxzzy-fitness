@@ -1,14 +1,13 @@
-import { appTokens } from "@/components/ui/app/tokens";
-import type { CuratedGenerationStatus, CuratedOnboardingData } from "../types.ts";
-import { formatCuratedExerciseTarget, type CuratedWorkoutPlan } from "../engine.ts";
+import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import type { CuratedGenerationStatus } from "../types.ts";
+import type { CuratedWorkoutPlan } from "../engine.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
-import { PrimaryButton } from "@/components/ui/AppButton";
 
 function getStatusCopy(status: CuratedGenerationStatus) {
   if (status === "queued") {
     return {
       title: "Building your plan",
-      body: "Your completed intake is being converted into an editable routine now.",
+      body: "Building from your saved setup.",
       tone: "warning" as const,
     };
   }
@@ -16,7 +15,7 @@ function getStatusCopy(status: CuratedGenerationStatus) {
   if (status === "ready") {
     return {
       title: "Your plan is ready to review",
-      body: "Every day uses catalog exercises and double progression. Open it as a draft to edit exercises, days, and targets before publishing.",
+      body: "Review the days below, then open the editable draft.",
       tone: "accent" as const,
     };
   }
@@ -24,7 +23,7 @@ function getStatusCopy(status: CuratedGenerationStatus) {
   if (status === "failed") {
     return {
       title: "Plan generation failed",
-      body: "Your intake is still saved. Adjust the intake or retry generation without losing the draft.",
+      body: "Your setup is saved. Return and try again.",
       tone: "danger" as const,
     };
   }
@@ -32,101 +31,82 @@ function getStatusCopy(status: CuratedGenerationStatus) {
   if (status === "not-implemented") {
     return {
       title: "Generation is not implemented yet",
-      body: "Your intake is saved, the contract is wired, and you can return later when the real curated engine exists.",
+      body: "Your setup is saved for a later retry.",
       tone: "accent" as const,
     };
   }
 
   return {
     title: "Intake saved locally",
-    body: "The intake is complete. Plan generation will begin when this handoff step is ready.",
+    body: "Preparing the editable draft.",
     tone: "default" as const,
   };
 }
 
-function formatGenerationStatus(status: CuratedGenerationStatus) {
-  if (status === "not-implemented") {
-    return "Not implemented";
+function formatExerciseTarget(exercise: CuratedWorkoutPlan["days"][number]["exercises"][number]) {
+  if (exercise.targetDurationSeconds) {
+    return `${exercise.targetSets}x${Math.round(exercise.targetDurationSeconds / 60)} min`;
   }
-
-  if (status === "queued") {
-    return "Queued";
-  }
-
-  if (status === "ready") {
-    return "Ready";
-  }
-
-  if (status === "failed") {
-    return "Failed";
-  }
-
-  return "Idle";
+  return `${exercise.targetSets}x${exercise.targetRepsMin}-${exercise.targetRepsMax}`;
 }
 
 export function GenerationHandoffStep({
-  data,
   generationStatus,
   plan,
-  isCreatingDraft,
   error,
-  onCreateDraft,
 }: {
-  data: CuratedOnboardingData;
   generationStatus: CuratedGenerationStatus;
   plan: CuratedWorkoutPlan | null;
-  isCreatingDraft: boolean;
   error: string | null;
-  onCreateDraft: () => void;
 }) {
   const copy = getStatusCopy(generationStatus);
 
   return (
-    <div className={appTokens.curatedOuterStack}>
-      <CuratedInfoCard tone={copy.tone}>
-        <p className={appTokens.curatedCardTitle}>{copy.title}</p>
-        <p className={appTokens.curatedCardBodyStrong}>{copy.body}</p>
+    <div className="space-y-3">
+      <CuratedInfoCard tone={copy.tone} compact>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">{copy.title}</p>
+          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
+            {generationStatus === "ready" ? "Ready" : generationStatus === "failed" ? "Failed" : "Working"}
+          </span>
+        </div>
+        <p className="mt-1 text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">{copy.body}</p>
       </CuratedInfoCard>
 
-      <div className={appTokens.curatedTwoColumnGrid}>
-        <CuratedInfoCard compact>
-          <p className={appTokens.curatedSectionLabel}>Intake status</p>
-          <p className={appTokens.curatedCardBodyStrong}>Completed</p>
-        </CuratedInfoCard>
-        <CuratedInfoCard compact>
-          <p className={appTokens.curatedSectionLabel}>Generation status</p>
-          <p className={appTokens.curatedCardBodyStrong}>{formatGenerationStatus(generationStatus)}</p>
-        </CuratedInfoCard>
-      </div>
-
       {plan ? (
-        <div className={appTokens.curatedOuterStack}>
-          {plan.rationale.map((item) => (
-            <CuratedInfoCard key={item} compact>
-              <p className={appTokens.curatedCardBodyStrong}>{item}</p>
-            </CuratedInfoCard>
-          ))}
+        <div className="space-y-3">
+          <CuratedInfoCard compact>
+            <SignatureInlineList
+              separator="pipe"
+              items={plan.rationale}
+              className="text-[10px] font-medium leading-5 text-[rgb(var(--text-secondary)/0.92)]"
+            />
+          </CuratedInfoCard>
+
           {plan.days.map((day) => (
-            <CuratedInfoCard key={day.name}>
-              <p className={appTokens.curatedCardTitle}>{day.name}</p>
-              <p className={appTokens.curatedCardBodyStrong}>
-                {day.exercises.map((exercise) => `${exercise.name} ${formatCuratedExerciseTarget(exercise)}`).join(" | ")}
+            <CuratedInfoCard key={day.name} className="space-y-2.5">
+              <p className="border-b border-[rgb(var(--accent)/0.35)] pb-1 text-sm font-semibold text-[rgb(var(--accent)/0.96)]">
+                {day.name}
               </p>
+              <div className="space-y-2">
+                {day.exercises.map((exercise) => (
+                  <div key={exercise.slug} className="flex min-w-0 items-center gap-2 text-xs leading-5">
+                    <span className="min-w-0 flex-1 text-[rgb(var(--text-primary)/0.94)]">{exercise.name}</span>
+                    <SignatureMiniPipe />
+                    <span className="shrink-0 font-semibold text-[rgb(var(--text-secondary)/0.92)]">{formatExerciseTarget(exercise)}</span>
+                  </div>
+                ))}
+              </div>
             </CuratedInfoCard>
           ))}
-          {error ? <p className="text-sm text-[rgb(var(--danger-rgb))]">{error}</p> : null}
-          <PrimaryButton type="button" disabled={isCreatingDraft} onClick={onCreateDraft}>
-            {isCreatingDraft ? "Creating editable draft..." : "Create editable draft"}
-          </PrimaryButton>
         </div>
       ) : null}
 
-      <CuratedInfoCard>
-        <p className={appTokens.curatedSectionLabel}>Saved intake snapshot</p>
-        <pre className={appTokens.curatedSnapshot}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </CuratedInfoCard>
+      {error ? (
+        <CuratedInfoCard compact tone="danger">
+          <p className="text-xs leading-5 text-[rgb(var(--danger-rgb))]">{error}</p>
+        </CuratedInfoCard>
+      ) : null}
     </div>
   );
 }

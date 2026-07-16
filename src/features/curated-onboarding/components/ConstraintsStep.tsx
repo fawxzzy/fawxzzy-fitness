@@ -1,6 +1,4 @@
-import { AuthField } from "@/components/auth/AuthShell";
-import { appTokens } from "@/components/ui/app/tokens";
-import { Input } from "@/components/ui/Input";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { formatCuratedListInput, parseCuratedListInput } from "../schema.ts";
 import type { CuratedOnboardingData } from "../types.ts";
 
@@ -16,34 +14,34 @@ export function ConstraintsStep({
   onTargetAreasChange: (value: string[]) => void;
 }) {
   return (
-    <div className={appTokens.curatedOuterStack}>
-      <AuthField label="Injuries or limitations">
+    <div className="space-y-3">
+      <LabeledEditorField label="Injuries or limitations">
         <textarea
-          rows={4}
+          rows={3}
           value={data.limitations ?? ""}
           onChange={(event) => onLimitationsChange(event.target.value)}
           placeholder="Shoulder irritation overhead, low-back fatigue, limited space..."
-          className={appTokens.curatedTextarea}
+          className={`${labeledEditorFieldControlClassName} min-h-24 resize-y px-4 py-3 text-center`}
         />
-      </AuthField>
+      </LabeledEditorField>
 
-      <AuthField label="Exercises to avoid">
-        <Input
+      <LabeledEditorField label="Exercises to avoid">
+        <input
           value={formatCuratedListInput(data.exerciseDislikes)}
           onChange={(event) => onDislikesChange(parseCuratedListInput(event.target.value))}
           placeholder="Burpees, upright rows, long treadmill blocks"
-          className={appTokens.curatedInput}
+          className={`${labeledEditorFieldControlClassName} h-12 px-4 py-3 text-center`}
         />
-      </AuthField>
+      </LabeledEditorField>
 
-      <AuthField label="Optional target areas">
-        <Input
+      <LabeledEditorField label="Optional target areas">
+        <input
           value={formatCuratedListInput(data.targetAreas)}
           onChange={(event) => onTargetAreasChange(parseCuratedListInput(event.target.value))}
           placeholder="Glutes, upper back, conditioning"
-          className={appTokens.curatedInput}
+          className={`${labeledEditorFieldControlClassName} h-12 px-4 py-3 text-center`}
         />
-      </AuthField>
+      </LabeledEditorField>
     </div>
   );
 }
