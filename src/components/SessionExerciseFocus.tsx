@@ -36,8 +36,8 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
-import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
-import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel } from "@/lib/session-feedback-ui";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel, buildSessionSavedFeedbackLabel } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
@@ -812,11 +812,11 @@ export function SessionExerciseFocus({
             && progressState.isGoalCompleted
             && !isExpanded
             && !hasSavedFeedback;
-          const savedFeedbackLabel = [
-            savedFeedback.signal ? formatSessionCopilotFeedbackLabel(savedFeedback.signal) : null,
-            savedFeedback.effort !== null ? `${savedFeedback.effort}/10` : null,
-            !savedFeedback.signal && savedFeedback.effort === null && savedFeedback.note ? "Note saved" : null,
-          ].filter((item): item is string => Boolean(item)).join(" · ");
+          const savedFeedbackLabel = buildSessionSavedFeedbackLabel({
+            signal: savedFeedback.signal,
+            note: savedFeedback.note,
+            effortValue: savedFeedback.effort,
+          });
           const hasCollapsedSupplement = Boolean(recoveryTimingInsight) || shouldShowFeedbackPrompt || Boolean(savedFeedbackLabel);
           const titleMeta = progressState.goalSetTarget !== null
             ? (
