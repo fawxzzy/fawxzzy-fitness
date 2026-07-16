@@ -73,6 +73,15 @@ test("middleware leaves legal documents public without session cookies", async (
   }
 });
 
+test("middleware leaves the optional day review fixture public without session cookies", async () => {
+  const response = await handleAuthSessionMiddleware(
+    new NextRequest("https://example.com/review/optional-planned-day"),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("location"), null);
+});
+
 test("middleware leaves discord verify api public without session cookies", async () => {
   const response = await handleAuthSessionMiddleware(
     new NextRequest("https://example.com/api/discord/verify", {
