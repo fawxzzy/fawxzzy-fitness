@@ -25,7 +25,11 @@ alter table public.session_exercises
     check (
       (exercise_timer_enabled and exercise_timer_mode is not null)
       or
-      (not exercise_timer_enabled and exercise_timer_status = 'idle' and exercise_timer_started_at is null)
+      (
+        not exercise_timer_enabled
+        and exercise_timer_status in ('idle', 'paused')
+        and exercise_timer_started_at is null
+      )
     );
 
 create index if not exists session_exercises_timer_enabled_history_idx
