@@ -23,6 +23,8 @@ import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/o
 import { overlayChromeClassNames } from "@/components/ui/OverlayChrome";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useToast } from "@/components/ui/ToastProvider";
+import { resolveCuratedRoutineMenuOption, type CuratedRoutineMenuOption } from "@/features/curated-onboarding/selectors";
+import { loadCuratedOnboardingGateState } from "@/features/curated-onboarding/storage";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
@@ -32,6 +34,8 @@ type Props = {
   backHref: string;
   routines: RoutineBrowseCardItem[];
   draftRoutineName?: string | null;
+  curatedOnboardingEnabled?: boolean;
+  curatedOnboardingUserId?: string | null;
   duplicateRoutineAction: (formData: FormData) => Promise<ActionResult & { routineId?: string }>;
   onRequestClose?: () => void;
   initialDuplicateExpanded?: boolean;
@@ -139,6 +143,8 @@ export function CreateRoutineClient({
   backHref,
   routines,
   draftRoutineName,
+  curatedOnboardingEnabled = false,
+  curatedOnboardingUserId = null,
   duplicateRoutineAction,
   onRequestClose,
   initialDuplicateExpanded = false,
@@ -162,6 +168,7 @@ export function CreateRoutineClient({
     });
   });
   const [duplicateNameError, setDuplicateNameError] = useState<string | null>(null);
+  const [curatedMenuOption, setCuratedMenuOption] = useState<CuratedRoutineMenuOption | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const titleId = useId();
@@ -242,6 +249,19 @@ export function CreateRoutineClient({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!curatedOnboardingEnabled || !curatedOnboardingUserId) {
+      setCuratedMenuOption(null);
+      return;
+    }
+
+    const gateState = loadCuratedOnboardingGateState(curatedOnboardingUserId);
+    setCuratedMenuOption(resolveCuratedRoutineMenuOption({
+      enabled: true,
+      savedDraftId: gateState.savedCuratedDraftId,
+    }));
+  }, [curatedOnboardingEnabled, curatedOnboardingUserId]);
 
   useEffect(() => {
     if (!isDuplicateExpanded) {
@@ -332,6 +352,12 @@ export function CreateRoutineClient({
     router.prefetch("/routines/new?mode=blank");
   }, [router]);
 
+  useEffect(() => {
+    if (curatedMenuOption) {
+      router.prefetch(curatedMenuOption.href);
+    }
+  }, [curatedMenuOption, router]);
+
   if (!isMounted || !portalTarget) {
     return null;
   }
@@ -393,8 +419,19 @@ export function CreateRoutineClient({
                 }}
               />
             ) : null}
+            {curatedMenuOption ? (
+              <RoutineChooserOptionCard
+                title={curatedMenuOption.label}
+                rightSlot={<ChevronRightIcon className="h-4 w-4" />}
+                disabled={isPending}
+                onPress={() => {
+                  setIsDuplicateExpanded(false);
+                  router.push(curatedMenuOption.href, { scroll: false });
+                }}
+              />
+            ) : null}
             <RoutineChooserOptionCard
-              title="Blank routine"
+              title="Build manually"
               rightSlot={<ChevronRightIcon className="h-4 w-4" />}
               disabled={isPending}
               onPress={() => {

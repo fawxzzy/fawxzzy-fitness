@@ -2,7 +2,32 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { EMPTY_CURATED_ONBOARDING_DATA } from "./constants.ts";
-import { canAccessCuratedStep } from "./selectors.ts";
+import { canAccessCuratedStep, resolveCuratedRoutineMenuOption } from "./selectors.ts";
+
+test("curated routine menu stays hidden while its feature is disabled", () => {
+  assert.equal(resolveCuratedRoutineMenuOption({
+    enabled: false,
+    savedDraftId: "curated-primary",
+  }), null);
+});
+
+test("curated routine menu starts or resumes the canonical flow", () => {
+  assert.deepEqual(resolveCuratedRoutineMenuOption({
+    enabled: true,
+    savedDraftId: null,
+  }), {
+    href: "/curated-onboarding",
+    label: "Build for me",
+  });
+
+  assert.deepEqual(resolveCuratedRoutineMenuOption({
+    enabled: true,
+    savedDraftId: " curated-primary ",
+  }), {
+    href: "/curated-onboarding?draft=curated-primary",
+    label: "Resume build",
+  });
+});
 
 test("curated step access opens only pages whose prerequisites are complete", () => {
   assert.equal(canAccessCuratedStep("intro", EMPTY_CURATED_ONBOARDING_DATA), true);

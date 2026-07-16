@@ -40,6 +40,7 @@ import { ROUTINE_DRAFT_COOKIE_NAME } from "@/lib/routine-draft-session";
 import { ROUTINES_CACHE_SCHEMA_VERSION, type RoutinesCacheSnapshot } from "@/lib/offline/routines-cache";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 import { formatCount, formatDateShort } from "@/lib/formatting";
+import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
 import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 
 export const dynamic = "force-dynamic";
@@ -474,6 +475,8 @@ export default async function RoutinesPage() {
               routines={pageModel.routineBrowseItems}
               workoutPlansHref="/routines/workout-plans"
               draftRoutineName={pageModel.draftRoutineName}
+              curatedOnboardingEnabled={isCuratedOnboardingEnabled()}
+              curatedOnboardingUserId={user.id}
               duplicateRoutineAction={duplicateRoutineAction}
               setActiveRoutineAction={setActiveRoutineAction}
               deleteRoutineAction={deleteRoutineAction}

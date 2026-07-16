@@ -7,6 +7,11 @@ import {
 } from "./constants.ts";
 import type { CuratedOnboardingData, CuratedOnboardingDraft, CuratedStepId } from "./types.ts";
 
+export type CuratedRoutineMenuOption = {
+  href: string;
+  label: "Build for me" | "Resume build";
+};
+
 function findOptionLabel<T extends string>(value: T | null | undefined, options: Array<{ value: T; label: string }>) {
   return options.find((option) => option.value === value)?.label ?? "Not set";
 }
@@ -21,6 +26,28 @@ export function getCuratedProgressValue(stepId: CuratedStepId) {
 
 export function canGoBackCuratedStep(stepId: CuratedStepId) {
   return getCuratedStepIndex(stepId) > 0 && stepId !== "generation-handoff";
+}
+
+export function resolveCuratedRoutineMenuOption(args: {
+  enabled: boolean;
+  savedDraftId: string | null;
+}): CuratedRoutineMenuOption | null {
+  if (!args.enabled) {
+    return null;
+  }
+
+  const savedDraftId = args.savedDraftId?.trim();
+  if (!savedDraftId) {
+    return {
+      href: "/curated-onboarding",
+      label: "Build for me",
+    };
+  }
+
+  return {
+    href: `/curated-onboarding?draft=${encodeURIComponent(savedDraftId)}`,
+    label: "Resume build",
+  };
 }
 
 export function isCuratedOnboardingReadyForHandoff(data: CuratedOnboardingData) {
