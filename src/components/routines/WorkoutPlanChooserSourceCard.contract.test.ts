@@ -20,6 +20,8 @@ test("workout-plan chooser keeps the shared horizontal exercise rail", () => {
 });
 
 test("workout-plan chooser title follows the top-left routine-card pattern", () => {
+  assert.match(source, /: "text-\[rgb\(var\(--accent-strong\)\/0\.98\)\]"/);
+  assert.match(source, /\? "text-\[rgb\(var\(--accent-yellow-on\)\)\]"/);
   assert.match(source, /className="flex w-full justify-start text-left"/);
   assert.match(source, /flex-col items-start gap-1 text-left/);
   assert.match(source, /break-words text-left leading-\[1\.1\]/);

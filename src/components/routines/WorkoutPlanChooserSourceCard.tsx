@@ -71,7 +71,7 @@ export function WorkoutPlanChooserSourceCard({
   const resolvedTitle = (source.title ?? source.name ?? "").trim() || "Workout Plan";
   const titleToneClassName = resolvedTitle.toLowerCase() === "rest"
     ? "text-[rgb(var(--accent-yellow-on))]"
-    : undefined;
+    : "text-[rgb(var(--accent-strong)/0.98)]";
 
   return (
     <RoutinesListItemCard
