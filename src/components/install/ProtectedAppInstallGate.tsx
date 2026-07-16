@@ -23,6 +23,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/install",
   "/auth",
   "/dev",
+  "/review",
 ];
 
 const AUTH_INSTALL_ENTRY_PATHS = new Set([
