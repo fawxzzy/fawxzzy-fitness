@@ -119,7 +119,7 @@ const ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonCl
 });
 const ROUTINE_HOME_REORDER_HANDLE_CLASS_NAME = cn(
   appTokens.routineEditorReorderHandle,
-  "relative z-[2] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
+  "relative z-[2] !h-7 !w-12 !rounded-full !px-1.5 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
 const ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME = cn(
