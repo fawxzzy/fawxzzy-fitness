@@ -15,6 +15,31 @@ export function isSessionExerciseFeedbackComplete(args: {
     && args.effortValue <= 10;
 }
 
+export function hasSavedSessionExerciseFeedback(args: {
+  signal?: SessionCopilotFeedbackSignal | null;
+  note?: string | null;
+  effort?: number | null;
+}) {
+  return isSessionExerciseFeedbackComplete({
+    signal: args.signal ?? null,
+    effortValue: args.effort ?? null,
+  });
+}
+
+export function resolveSessionExerciseFeedbackSaveOutcome(args: {
+  saveSucceeded: boolean;
+  persistedSignal?: SessionCopilotFeedbackSignal | null;
+  persistedEffort?: number | null;
+}) {
+  return {
+    shouldDismiss: args.saveSucceeded && isSessionExerciseFeedbackComplete({
+      signal: args.persistedSignal ?? null,
+      effortValue: args.persistedEffort ?? null,
+    }),
+    shouldRetry: !args.saveSucceeded,
+  };
+}
+
 export type SessionProgressionStateSummaryInput = {
   progressionPlaybookId?: string | null;
   progressionSessionSettingsEnabled?: boolean | null;

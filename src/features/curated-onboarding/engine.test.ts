@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveCuratedExerciseTarget, formatCuratedExerciseTarget, generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
+import { buildCuratedRoutineSchedule, deriveCuratedExerciseTarget, formatCuratedExerciseTarget, generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
 import type { CuratedOnboardingData } from "./types.ts";
 
 function intake(overrides: Partial<CuratedOnboardingData> = {}): CuratedOnboardingData {
@@ -135,4 +135,23 @@ test("curated preview and draft target derivation agree for time-based exercises
   });
   assert.equal(formatCuratedExerciseTarget(plank), `${plank.targetSets}x1 min`);
   assert.equal(formatCuratedExerciseTarget(mountainClimber), `${mountainClimber.targetSets}x1 min`);
+});
+
+test("curated routine schedule preserves weekly frequency with explicit rest days", () => {
+  const plan = generateCuratedWorkoutPlan(intake({ daysPerWeek: 3 }));
+  const schedule = buildCuratedRoutineSchedule(plan);
+
+  assert.equal(schedule.length, 7);
+  assert.deepEqual(
+    schedule.filter((day) => day.planDay).map((day) => day.dayIndex),
+    [1, 3, 5],
+  );
+  assert.deepEqual(
+    schedule.filter((day) => !day.planDay).map((day) => day.dayIndex),
+    [2, 4, 6, 7],
+  );
+  assert.deepEqual(
+    schedule.flatMap((day) => day.planDay?.name ?? []),
+    plan.days.map((day) => day.name),
+  );
 });

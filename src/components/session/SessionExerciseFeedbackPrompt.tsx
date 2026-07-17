@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChipButton } from "@/components/ui/Chip";
 import type { ActionResult } from "@/lib/action-result";
-import { isSessionExerciseFeedbackComplete } from "@/lib/session-feedback-ui";
+import { resolveSessionExerciseFeedbackSaveOutcome } from "@/lib/session-feedback-ui";
 import {
   formatSessionCopilotFeedbackLabel,
   getSessionCopilotFeedbackTone,
@@ -13,13 +13,20 @@ import {
   type SessionCopilotFeedbackSignal,
 } from "@/lib/session-copilot-feedback";
 
+type PersistedFeedback = {
+  signal: SessionCopilotFeedbackSignal | null;
+  note: string | null;
+  effort: number | null;
+  updatedAt: string | null;
+};
+
 type FeedbackAction = (payload: {
   sessionId: string;
   sessionExerciseId: string;
   signal: SessionCopilotFeedbackSignal | null;
   note: string | null;
   effort: number | null;
-}) => Promise<ActionResult<unknown>>;
+}) => Promise<ActionResult<PersistedFeedback>>;
 
 function hasFeedbackAnswer(args: {
   signal: SessionCopilotFeedbackSignal | null;
@@ -29,36 +36,25 @@ function hasFeedbackAnswer(args: {
   return Boolean(args.signal) || Boolean(normalizeSessionCopilotFeedbackNote(args.note)) || args.effort !== null;
 }
 
-export function hasSavedSessionExerciseFeedback(args: {
-  signal?: SessionCopilotFeedbackSignal | null;
-  note?: string | null;
-  effort?: number | null;
-}) {
-  return hasFeedbackAnswer({
-    signal: args.signal ?? null,
-    note: args.note ?? "",
-    effort: args.effort ?? null,
-  });
-}
-
 export function SessionExerciseFeedbackPrompt({
   sessionId,
   sessionExerciseId,
+  initialFeedback,
   updateFeedbackAction,
   onSaved,
 }: {
   sessionId: string;
   sessionExerciseId: string;
+  initialFeedback: Pick<PersistedFeedback, "signal" | "note" | "effort">;
   updateFeedbackAction: FeedbackAction;
   onSaved: (feedback: { signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null }) => void;
 }) {
-  const [signal, setSignal] = useState<SessionCopilotFeedbackSignal | null>(null);
-  const [effort, setEffort] = useState<number | null>(null);
-  const [note, setNote] = useState("");
+  const [signal, setSignal] = useState<SessionCopilotFeedbackSignal | null>(initialFeedback.signal);
+  const [effort, setEffort] = useState<number | null>(initialFeedback.effort);
+  const [note, setNote] = useState(initialFeedback.note ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const savedSignatureRef = useRef<string | null>(null);
   const canSave = hasFeedbackAnswer({ signal, note, effort });
-  const canFinalize = isSessionExerciseFeedbackComplete({ signal, effortValue: effort });
 
   useEffect(() => {
     if (!canSave || isSaving) return;
@@ -77,19 +73,27 @@ export function SessionExerciseFeedbackPrompt({
         note: normalizedNote,
         effort,
       }).then((result) => {
-        if (result.ok && canFinalize) {
-          onSaved({ signal, note: normalizedNote, effort });
+        const persistedFeedback = result.ok ? result.data : undefined;
+        const outcome = resolveSessionExerciseFeedbackSaveOutcome({
+          saveSucceeded: result.ok,
+          persistedSignal: persistedFeedback?.signal,
+          persistedEffort: persistedFeedback?.effort,
+        });
+        if (persistedFeedback && outcome.shouldDismiss) {
+          onSaved(persistedFeedback);
           return;
         }
 
-        savedSignatureRef.current = null;
+        if (outcome.shouldRetry) {
+          savedSignatureRef.current = null;
+        }
       }).finally(() => {
         setIsSaving(false);
       });
     }, 700);
 
     return () => window.clearTimeout(timeoutId);
-  }, [canFinalize, canSave, effort, isSaving, note, onSaved, sessionExerciseId, sessionId, signal, updateFeedbackAction]);
+  }, [canSave, effort, isSaving, note, onSaved, sessionExerciseId, sessionId, signal, updateFeedbackAction]);
 
   return (
     <div

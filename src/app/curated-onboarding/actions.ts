@@ -2,6 +2,7 @@
 
 import { createRoutineAction } from "@/app/routines/actions";
 import {
+  buildCuratedRoutineSchedule,
   generateAdaptiveCuratedWorkoutPlan,
   deriveCuratedExerciseTarget,
   type CuratedHistorySignals,
@@ -111,17 +112,18 @@ export async function createCuratedRoutineDraftAction(
   const timezone = normalizeRoutineTimezone(profile.timezone);
   const progressionState = createProgressionPlaybookFormState({ playbookId: plan.progressionPlaybookId });
   const progressionConfig = buildProgressionPlaybookConfigFromFormState(progressionState);
+  const schedule = buildCuratedRoutineSchedule(plan);
   const formData = new FormData();
 
   formData.set("name", plan.name.slice(0, 15));
-  formData.set("cycleLengthDays", String(plan.days.length));
+  formData.set("cycleLengthDays", String(schedule.length));
   formData.set("scheduleMode", "weekday_anchored");
   formData.set("startDate", getTodayDateInTimeZone(timezone));
   formData.set("startWeekday", "monday");
   formData.set("timezone", timezone);
   formData.set("weightUnit", profile.preferred_weight_unit ?? "lbs");
   formData.set("distanceUnit", profile.preferred_distance_unit ?? "mi");
-  formData.set("previewDays", JSON.stringify(plan.days.map(() => ({ isRest: false }))));
+  formData.set("previewDays", JSON.stringify(schedule.map((day) => ({ isRest: day.planDay === null }))));
   appendProgressionPlaybookFormData(formData, progressionState);
 
   const createResult = await createRoutineAction(formData);
@@ -153,9 +155,13 @@ export async function createCuratedRoutineDraftAction(
   }
 
   const createdDayByIndex = new Map((createResult.createdDays ?? []).map((day) => [day.dayIndex, day]));
-  for (let dayIndex = 0; dayIndex < plan.days.length; dayIndex += 1) {
-    const day = plan.days[dayIndex];
-    const createdDay = createdDayByIndex.get(dayIndex + 1);
+  for (const scheduleDay of schedule) {
+    const day = scheduleDay.planDay;
+    if (!day) {
+      continue;
+    }
+
+    const createdDay = createdDayByIndex.get(scheduleDay.dayIndex);
     if (!createdDay) {
       await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
       return { ok: false, error: "Curated routine day creation was incomplete." };

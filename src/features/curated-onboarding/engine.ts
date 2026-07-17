@@ -31,6 +31,11 @@ export type CuratedWorkoutPlan = {
   days: CuratedPlanDay[];
 };
 
+export type CuratedRoutineScheduleDay = {
+  dayIndex: number;
+  planDay: CuratedPlanDay | null;
+};
+
 export type CuratedHistorySignals = {
   completionRate: number | null;
   missedWorkoutCount: number;
@@ -361,4 +366,22 @@ export function generateAdaptiveCuratedWorkoutPlan(
   signals: CuratedHistorySignals,
 ): CuratedWorkoutPlan {
   return generateCuratedWorkoutPlanWithSignals(data, signals);
+}
+
+export function buildCuratedRoutineSchedule(plan: CuratedWorkoutPlan): CuratedRoutineScheduleDay[] {
+  const cycleLengthDays = 7;
+  const trainingDayCount = plan.days.length;
+
+  if (trainingDayCount < 1 || trainingDayCount > cycleLengthDays) {
+    throw new Error("Curated routines require between one and seven training days.");
+  }
+
+  const trainingDayByIndex = new Map(
+    plan.days.map((planDay, index) => [Math.floor((index * cycleLengthDays) / trainingDayCount) + 1, planDay]),
+  );
+
+  return Array.from({ length: cycleLengthDays }, (_, index) => ({
+    dayIndex: index + 1,
+    planDay: trainingDayByIndex.get(index + 1) ?? null,
+  }));
 }
