@@ -359,8 +359,43 @@ export function verifyReconciliation({
   };
 }
 
+export function parseCliArguments(args) {
+  let ref = "HEAD";
+  let refSeen = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--ref") {
+      if (refSeen) {
+        throw new Error("duplicate --ref argument");
+      }
+      const value = args[index + 1];
+      if (!value || value.startsWith("-")) {
+        throw new Error("--ref requires a commitish value");
+      }
+      ref = value;
+      refSeen = true;
+      index += 1;
+      continue;
+    }
+    if (argument.startsWith("-")) {
+      throw new Error(`unknown flag: ${argument}`);
+    }
+    throw new Error(`unexpected positional argument: ${argument}`);
+  }
+
+  return { ref };
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const report = verifyReconciliation();
-  console.log(JSON.stringify(report, null, 2));
-  process.exitCode = report.ok ? 0 : 1;
+  try {
+    const { ref } = parseCliArguments(process.argv.slice(2));
+    const report = verifyReconciliation({ ref });
+    console.log(JSON.stringify(report, null, 2));
+    process.exitCode = report.ok ? 0 : 1;
+  } catch (error) {
+    console.error(`CLI_ARGUMENT_ERROR: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("Usage: node fp-fit-content-rec-002-verify.mjs [--ref <commitish>]");
+    process.exitCode = 2;
+  }
 }

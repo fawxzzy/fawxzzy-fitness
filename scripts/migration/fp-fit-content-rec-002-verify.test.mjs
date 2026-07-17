@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import process from "node:process";
 import test from "node:test";
 import {
   EXPECTED_MANIFEST,
@@ -12,6 +13,8 @@ import {
   validateManifestContract,
   verifyReconciliation,
 } from "./fp-fit-content-rec-002-verify.mjs";
+
+const VERIFIER_RELATIVE_PATH = "scripts/migration/fp-fit-content-rec-002-verify.mjs";
 
 function cloneExpectedManifest() {
   return structuredClone(EXPECTED_MANIFEST);
@@ -52,6 +55,26 @@ function writeDriftedFixtureManifest(fixtureRoot) {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   manifest.packetId = "DRIFTED-PACKET";
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+}
+
+function runVerifierCli(args, repoRoot = REPO_ROOT) {
+  return spawnSync(
+    process.execPath,
+    [path.join(repoRoot, ...VERIFIER_RELATIVE_PATH.split("/")), ...args],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
+}
+
+function expectCliArgumentFailure(args, messagePattern) {
+  const result = runVerifierCli(args);
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, messagePattern);
+  assert.match(result.stderr, /Usage: node fp-fit-content-rec-002-verify\.mjs/u);
 }
 
 test("accepts the exact committed review-settled packet", () => {
@@ -225,5 +248,74 @@ test("ignores uncommitted worktree manifest drift for a requested ref", () => {
 
     const report = verifyReconciliation({ repoRoot: fixtureRoot, ref: "HEAD" });
     assert.equal(report.ok, true, report.issues.join("\n"));
+  });
+});
+
+test("CLI with no arguments verifies HEAD", () => {
+  const result = runVerifierCli([]);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true, report.issues.join("\n"));
+  assert.equal(report.ref, "HEAD");
+});
+
+test("CLI --ref verifies the exact requested head", () => {
+  const exactHead = runGit(REPO_ROOT, ["rev-parse", "HEAD"]);
+  const result = runVerifierCli(["--ref", exactHead]);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true, report.issues.join("\n"));
+  assert.equal(report.ref, exactHead);
+});
+
+test("CLI --ref rejects the base ref that lacks this packet manifest", () => {
+  const result = runVerifierCli(["--ref", EXPECTED_MANIFEST.base.commit]);
+  assert.equal(result.status, 1, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.ref, EXPECTED_MANIFEST.base.commit);
+  assert.match(report.issues.join("\n"), /cannot read provenance manifest from [0-9a-f]{40}/u);
+});
+
+test("CLI rejects an unknown flag", () => {
+  expectCliArgumentFailure(["--unknown"], /unknown flag: --unknown/u);
+});
+
+test("CLI rejects a missing --ref value", () => {
+  expectCliArgumentFailure(["--ref"], /--ref requires a commitish value/u);
+});
+
+test("CLI rejects duplicate --ref arguments", () => {
+  expectCliArgumentFailure(
+    ["--ref", "HEAD", "--ref", "HEAD"],
+    /duplicate --ref argument/u,
+  );
+});
+
+test("CLI rejects extra positional arguments", () => {
+  expectCliArgumentFailure(["HEAD"], /unexpected positional argument: HEAD/u);
+});
+
+test("CLI requested-ref proof ignores unstaged and staged manifest drift", () => {
+  withDetachedFixture((fixtureRoot) => {
+    const fixtureVerifierPath = path.join(
+      fixtureRoot,
+      ...VERIFIER_RELATIVE_PATH.split("/"),
+    );
+    const currentVerifierPath = path.join(
+      REPO_ROOT,
+      ...VERIFIER_RELATIVE_PATH.split("/"),
+    );
+    writeFileSync(fixtureVerifierPath, readFileSync(currentVerifierPath, "utf8"), "utf8");
+    writeDriftedFixtureManifest(fixtureRoot);
+
+    const unstagedResult = runVerifierCli(["--ref", "HEAD"], fixtureRoot);
+    assert.equal(unstagedResult.status, 0, unstagedResult.stderr);
+    assert.equal(JSON.parse(unstagedResult.stdout).ref, "HEAD");
+
+    runGit(fixtureRoot, ["add", "--", MANIFEST_RELATIVE_PATH]);
+    const stagedResult = runVerifierCli(["--ref", "HEAD"], fixtureRoot);
+    assert.equal(stagedResult.status, 0, stagedResult.stderr);
+    assert.equal(JSON.parse(stagedResult.stdout).ref, "HEAD");
   });
 });
