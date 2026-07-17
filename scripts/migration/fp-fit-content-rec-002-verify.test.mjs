@@ -369,3 +369,78 @@ test("fails closed when a requested ref name is ambiguous", () => {
     );
   });
 });
+
+test("ignores forged replacement objects for resolution and every verification read", () => {
+  withDetachedFixture((fixtureRoot) => {
+    const exactHead = runGit(fixtureRoot, ["rev-parse", "HEAD"]);
+    writeDriftedFixtureManifest(fixtureRoot);
+
+    const migrationPath = path.join(
+      fixtureRoot,
+      "supabase",
+      "migrations",
+      "043_hide_standalone_stretch_catalog_rows.sql",
+    );
+    writeFileSync(
+      migrationPath,
+      `${readFileSync(migrationPath, "utf8")}\n-- forged replacement migration\n`,
+      "utf8",
+    );
+
+    const provenancePath = path.join(
+      fixtureRoot,
+      "docs",
+      "registry",
+      "migrations",
+      "provenance",
+      "043_hide_standalone_stretch_catalog_rows.provider-canonical.sql.txt",
+    );
+    writeFileSync(
+      provenancePath,
+      `${readFileSync(provenancePath, "utf8")}\n-- forged replacement provenance\n`,
+      "utf8",
+    );
+    runGit(fixtureRoot, ["add", "--all"]);
+    const forgedTree = runGit(fixtureRoot, ["write-tree"]);
+    const forgedCommit = runGit(fixtureRoot, [
+      "-c",
+      "user.name=Fitness Verifier Test",
+      "-c",
+      "user.email=fitness-verifier@example.invalid",
+      "commit-tree",
+      forgedTree,
+      "-m",
+      "test: forged replacement source",
+    ]);
+    runGit(fixtureRoot, ["replace", forgedCommit, exactHead]);
+
+    const replacedManifest = JSON.parse(
+      runGit(fixtureRoot, ["show", `${forgedCommit}:${MANIFEST_RELATIVE_PATH}`]),
+    );
+    assert.equal(replacedManifest.packetId, EXPECTED_MANIFEST.packetId);
+
+    const previousNoReplace = process.env.GIT_NO_REPLACE_OBJECTS;
+    process.env.GIT_NO_REPLACE_OBJECTS = "0";
+    try {
+      assert.equal(resolveCommitRef(fixtureRoot, forgedCommit), forgedCommit);
+      const report = verifyReconciliation({ repoRoot: fixtureRoot, ref: forgedCommit });
+      assert.equal(report.ok, false);
+      assert.equal(report.ref, forgedCommit);
+      assert.match(report.issues.join("\n"), /manifest\.packetId/u);
+      assert.match(report.issues.join("\n"), /exact base .* is not an ancestor/u);
+      assert.match(report.issues.join("\n"), /terminal source manifest/u);
+      assert.match(report.issues.join("\n"), /043 executable Git blob/u);
+      assert.match(
+        report.issues.join("\n"),
+        /043 provider-canonical historical provenance Git blob/u,
+      );
+      assert.match(report.issues.join("\n"), /stacked path allowlist/u);
+    } finally {
+      if (previousNoReplace === undefined) {
+        delete process.env.GIT_NO_REPLACE_OBJECTS;
+      } else {
+        process.env.GIT_NO_REPLACE_OBJECTS = previousNoReplace;
+      }
+    }
+  });
+});

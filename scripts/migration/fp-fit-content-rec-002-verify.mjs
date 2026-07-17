@@ -129,11 +129,23 @@ function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function runGit(repoRoot, args, { text = true } = {}) {
-  const result = spawnSync("git", ["-C", repoRoot, ...args], {
+function verifierGitSpawnOptions({ text = true } = {}) {
+  return {
     encoding: text ? "utf8" : null,
+    env: {
+      ...process.env,
+      GIT_NO_REPLACE_OBJECTS: "1",
+    },
     maxBuffer: 16 * 1024 * 1024,
-  });
+  };
+}
+
+function runGit(repoRoot, args, { text = true } = {}) {
+  const result = spawnSync(
+    "git",
+    ["-C", repoRoot, ...args],
+    verifierGitSpawnOptions({ text }),
+  );
   if (result.status !== 0) {
     const stderr = Buffer.isBuffer(result.stderr) ? result.stderr.toString("utf8") : result.stderr;
     throw new Error(`git ${args.join(" ")} failed: ${stderr.trim()}`);
@@ -145,10 +157,7 @@ export function resolveCommitRef(repoRoot, ref) {
   const result = spawnSync(
     "git",
     ["-C", repoRoot, "rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`],
-    {
-      encoding: "utf8",
-      maxBuffer: 16 * 1024 * 1024,
-    },
+    verifierGitSpawnOptions(),
   );
   const stdout = result.stdout?.trim() ?? "";
   const stderr = result.stderr?.trim() ?? "";
