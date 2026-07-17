@@ -3,8 +3,8 @@
   "packetId": "FP-FIT-CONTENT-REC-002",
   "repository": "fawxzzy/fawxzzy-fitness",
   "base": {
-    "branch": "codex/fp-fit-rec-001-source-recovery",
-    "commit": "7389a0762f0d4318844681ecd06744fcc9138e2e"
+    "branch": "main",
+    "commit": "d50fb86bf9e1ec77af0eb922eb7d99da212f5264"
   },
   "sourceTree": {
     "migrationCount": 101,
@@ -40,7 +40,8 @@
         "preconditionHandling": "CREATES_SLUG_BEFORE_UPDATE"
       },
       "providerCanonicalHistorical": {
-        "sourceClass": "IMMUTABLE_GIT_BLOB",
+        "sourceClass": "COMMITTED_NON_EXECUTABLE_PROVENANCE_BLOB",
+        "provenancePath": "docs/registry/migrations/provenance/043_hide_standalone_stretch_catalog_rows.provider-canonical.sql.txt",
         "gitBlob": "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395",
         "byteLength": 303,
         "rawSha256": "e0aa179c8d32e662ce747d8121bd6fcec893ec592e2daa5675a993358894c534",

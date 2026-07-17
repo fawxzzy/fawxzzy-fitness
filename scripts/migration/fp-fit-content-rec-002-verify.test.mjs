@@ -27,6 +27,10 @@ test("accepts the exact committed review-settled packet", () => {
   assert.equal(report.historicalNameAliasCount, 2);
   assert.equal(report.version043.executableGitBlob, "42a8bd9aef05ad8aeb5efd8db644bc70a711a78f");
   assert.equal(
+    report.version043.providerCanonicalHistoricalProvenancePath,
+    "docs/registry/migrations/provenance/043_hide_standalone_stretch_catalog_rows.provider-canonical.sql.txt",
+  );
+  assert.equal(
     report.version043.providerCanonicalHistoricalGitBlob,
     "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395",
   );
@@ -60,6 +64,31 @@ test("rejects weakened provider-canonical 043 governance state", () => {
       manifest.migrations[0].providerCanonicalHistorical.executableStatus = "EXECUTABLE";
     },
     /manifest\.migrations\[0\]\.providerCanonicalHistorical\.executableStatus/u,
+  );
+});
+
+test("rejects provider-canonical 043 provenance path drift", () => {
+  expectContractFailure(
+    (manifest) => {
+      manifest.migrations[0].providerCanonicalHistorical.provenancePath =
+        "supabase/migrations/043_hide_standalone_stretch_catalog_rows.sql";
+    },
+    /manifest\.migrations\[0\]\.providerCanonicalHistorical\.provenancePath/u,
+  );
+});
+
+test("rejects provider-canonical 043 byte-contract drift", () => {
+  expectContractFailure(
+    (manifest) => {
+      manifest.migrations[0].providerCanonicalHistorical.rawSha256 = "0".repeat(64);
+    },
+    /manifest\.migrations\[0\]\.providerCanonicalHistorical\.rawSha256/u,
+  );
+  expectContractFailure(
+    (manifest) => {
+      manifest.migrations[0].providerCanonicalHistorical.byteLength = 302;
+    },
+    /manifest\.migrations\[0\]\.providerCanonicalHistorical\.byteLength/u,
   );
 });
 
@@ -129,5 +158,6 @@ test("rejects false overall parity or replay success", () => {
 test("base ref fails because it lacks this packet's provenance contract", () => {
   const report = verifyReconciliation({ ref: EXPECTED_MANIFEST.base.commit });
   assert.equal(report.ok, false);
+  assert.match(report.issues.join("\n"), /cannot verify 043 identities/u);
   assert.match(report.issues.join("\n"), /stacked path allowlist/u);
 });

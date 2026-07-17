@@ -19,8 +19,8 @@ export const EXPECTED_MANIFEST = Object.freeze({
   packetId: "FP-FIT-CONTENT-REC-002",
   repository: "fawxzzy/fawxzzy-fitness",
   base: {
-    branch: "codex/fp-fit-rec-001-source-recovery",
-    commit: "7389a0762f0d4318844681ecd06744fcc9138e2e",
+    branch: "main",
+    commit: "d50fb86bf9e1ec77af0eb922eb7d99da212f5264",
   },
   sourceTree: {
     migrationCount: 101,
@@ -56,7 +56,9 @@ export const EXPECTED_MANIFEST = Object.freeze({
         preconditionHandling: "CREATES_SLUG_BEFORE_UPDATE",
       },
       providerCanonicalHistorical: {
-        sourceClass: "IMMUTABLE_GIT_BLOB",
+        sourceClass: "COMMITTED_NON_EXECUTABLE_PROVENANCE_BLOB",
+        provenancePath:
+          "docs/registry/migrations/provenance/043_hide_standalone_stretch_catalog_rows.provider-canonical.sql.txt",
         gitBlob: "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395",
         byteLength: 303,
         rawSha256: "e0aa179c8d32e662ce747d8121bd6fcec893ec592e2daa5675a993358894c534",
@@ -120,6 +122,7 @@ export const EXPECTED_MANIFEST = Object.freeze({
 const EXPECTED_PATHS = [
   "docs/ops/FP-FIT-CONTENT-REC-002-RECEIPT.md",
   "docs/registry/migrations/FP-FIT-CONTENT-REC-002.v1.json",
+  "docs/registry/migrations/provenance/043_hide_standalone_stretch_catalog_rows.provider-canonical.sql.txt",
   "scripts/migration/fp-fit-content-rec-002-verify.mjs",
   "scripts/migration/fp-fit-content-rec-002-verify.test.mjs",
 ];
@@ -285,12 +288,17 @@ export function verifyReconciliation({
   try {
     const oid043 = blobOidAtRef(repoRoot, ref, version043.path);
     checkBlob(issues, repoRoot, "043 executable", version043.executable, oid043);
+    const providerProvenanceOid = blobOidAtRef(
+      repoRoot,
+      ref,
+      version043.providerCanonicalHistorical.provenancePath,
+    );
     checkBlob(
       issues,
       repoRoot,
       "043 provider-canonical historical provenance",
       version043.providerCanonicalHistorical,
-      version043.providerCanonicalHistorical.gitBlob,
+      providerProvenanceOid,
     );
     const executableText = readBlob(repoRoot, oid043).toString("utf8");
     const slugCreateIndex = executableText.indexOf("add column if not exists slug text null");
@@ -334,6 +342,7 @@ export function verifyReconciliation({
     historicalNameAliasCount: EXPECTED_MANIFEST.historicalNameAliases.length,
     version043: {
       executableGitBlob: version043.executable.gitBlob,
+      providerCanonicalHistoricalProvenancePath: version043.providerCanonicalHistorical.provenancePath,
       providerCanonicalHistoricalGitBlob: version043.providerCanonicalHistorical.gitBlob,
       providerCanonicalHistoricalStatus: version043.providerCanonicalHistorical.executableStatus,
       preconditionHandling: version043.executable.preconditionHandling,
