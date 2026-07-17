@@ -74,7 +74,7 @@ The repository-only projection remains provider-canonical `97/101`, whitespace `
 The committed review-settled packet passed these repository-only gates before publication:
 
 - focused verifier: PASS twice with byte-identical JSON and zero issues;
-- focused tests: PASS, including committed-path reachability and path/byte-contract drift rejection;
+- focused tests: PASS, 12/12, including committed-path reachability and path/byte-contract drift rejection;
 - repository-required branch-aware `npm run verify`: PASS against merged `origin/main` at `d50fb86bf9e1ec77af0eb922eb7d99da212f5264`;
 - exact ancestry, preserved four-path contract, and additive provenance-path allowlist: PASS;
 - migration scope: PASS with zero migration changes from the admitted base;
