@@ -219,7 +219,7 @@ async function applyEligibleAutomaticProgressionUpdates(args: {
     if (!shouldApplyAutomaticSessionPromotion({
       candidateType: item.type,
       autoUpdateRoutineGoals,
-      sourceSessionId: item.sourceSession?.sessionId,
+      sourceSessionRecordId: item.sourceSession?.sessionRecordId,
       completedSessionId: args.sessionId,
     })) {
       continue;
