@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -12,7 +13,7 @@ export const FROZEN_PARITY_EVIDENCE = Object.freeze({
     migrationCount: 101,
     firstVersion: "001",
     lastVersion: "20260716033653",
-    manifestClass: "PATH_TAB_GIT_BLOB_LF_NO_TRAILING_LF_SHA256",
+    manifestClass: "PATH_TAB_GIT_INDEX_BLOB_OID_NO_TRAILING_LF_SHA256",
     manifestSha256: "d0671af0c557969ce3d24c2a9b41975adeacc0d4073103fd1513426242c1557e",
     recoveryCommit: "60e2c1b182b87e5a719d9c32227c1d2ccf7ebeb5",
   }),
@@ -125,16 +126,66 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function canonicalGitBytes(contents) {
-  // Git's Windows checkout may materialize CRLF while the committed blob remains LF.
-  // Recovery digests freeze immutable Git blob bytes, not platform checkout EOLs.
+function normalizeCheckoutEols(contents) {
   return Buffer.from(contents.toString("utf8").replace(/\r\n/gu, "\n"), "utf8");
 }
 
-function gitBlobOid(contents) {
-  const normalizedContents = canonicalGitBytes(contents);
-  const header = Buffer.from(`blob ${normalizedContents.length}\0`, "utf8");
-  return createHash("sha1").update(header).update(normalizedContents).digest("hex");
+function readIndexMigrationEntries(repoRoot) {
+  const output = execFileSync(
+    "git",
+    ["-C", repoRoot, "ls-files", "--stage", "-z", "--", "supabase/migrations"],
+    { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 },
+  );
+
+  return output
+    .toString("utf8")
+    .split("\0")
+    .filter(Boolean)
+    .map((record) => {
+      const match = record.match(/^(\d+) ([0-9a-f]{40}) ([0-3])\t(.+)$/u);
+      if (!match) throw new Error(`cannot parse Git index entry: ${record}`);
+      const [, mode, oid, stage, relativePath] = match;
+      if (stage !== "0") throw new Error(`unmerged Git index entry is not allowed: ${relativePath}`);
+      return { mode, oid, path: relativePath };
+    })
+    .filter((entry) => entry.path.endsWith(".sql"))
+    .sort((left, right) => (left.path === right.path ? 0 : left.path < right.path ? -1 : 1));
+}
+
+function readIndexBlobs(repoRoot, entries) {
+  if (entries.length === 0) return [];
+  const output = execFileSync(
+    "git",
+    ["-C", repoRoot, "cat-file", "--batch"],
+    {
+      input: Buffer.from(`${entries.map((entry) => entry.oid).join("\n")}\n`, "utf8"),
+      encoding: "buffer",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
+  const blobs = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const headerEnd = output.indexOf(0x0a, offset);
+    if (headerEnd < 0) throw new Error(`missing Git cat-file header for ${entry.path}`);
+    const header = output.subarray(offset, headerEnd).toString("utf8");
+    const match = header.match(/^([0-9a-f]{40}) blob (\d+)$/u);
+    if (!match || match[1] !== entry.oid) {
+      throw new Error(`unexpected Git cat-file header for ${entry.path}: ${header}`);
+    }
+    const size = Number.parseInt(match[2], 10);
+    const bodyStart = headerEnd + 1;
+    const bodyEnd = bodyStart + size;
+    if (bodyEnd >= output.length || output[bodyEnd] !== 0x0a) {
+      throw new Error(`truncated Git index blob for ${entry.path}`);
+    }
+    blobs.push(output.subarray(bodyStart, bodyEnd));
+    offset = bodyEnd + 1;
+  }
+
+  if (offset !== output.length) throw new Error("unexpected trailing Git cat-file output");
+  return blobs;
 }
 
 function toPosixPath(value) {
@@ -316,20 +367,44 @@ export function validateEvidenceContract(evidence = FROZEN_PARITY_EVIDENCE) {
 export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_EVIDENCE } = {}) {
   const issues = validateEvidenceContract(evidence);
   const migrationDirectory = path.join(repoRoot, "supabase", "migrations");
-  let migrationPaths = [];
+  let worktreeMigrationPaths = [];
+  let indexEntries = [];
+  let indexBlobs = [];
 
   try {
-    migrationPaths = collectMigrationPaths(migrationDirectory);
+    worktreeMigrationPaths = collectMigrationPaths(migrationDirectory);
   } catch (error) {
     issues.push(error instanceof Error ? error.message : String(error));
   }
 
+  try {
+    indexEntries = readIndexMigrationEntries(repoRoot);
+    indexBlobs = readIndexBlobs(repoRoot, indexEntries);
+  } catch (error) {
+    issues.push(`cannot read Git index migration bytes: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  const migrationPaths = indexEntries.map((entry) => entry.path);
+  compareField(
+    issues,
+    JSON.stringify(worktreeMigrationPaths),
+    JSON.stringify(migrationPaths),
+    "migration worktree/index path set",
+  );
+
   const manifestEntries = [];
   const identities = [];
-  for (const relativePath of migrationPaths) {
+  for (const [index, relativePath] of migrationPaths.entries()) {
+    const entry = indexEntries[index];
+    const indexBlob = indexBlobs[index];
     const absolutePath = path.join(repoRoot, ...relativePath.split("/"));
-    const contents = readFileSync(absolutePath);
-    manifestEntries.push(`${relativePath}\t${gitBlobOid(contents)}`);
+    manifestEntries.push(`${relativePath}\t${entry.oid}`);
+    if (indexBlob && existsSync(absolutePath) && lstatSync(absolutePath).isFile()) {
+      const checkoutBytes = readFileSync(absolutePath);
+      if (!normalizeCheckoutEols(checkoutBytes).equals(normalizeCheckoutEols(indexBlob))) {
+        issues.push(`migration checkout differs from indexed bytes beyond EOL representation: ${relativePath}`);
+      }
+    }
     const identity = parseVersionAndName(relativePath);
     if (!identity) {
       issues.push(`invalid migration source name: ${relativePath}`);
@@ -354,13 +429,18 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
       issues.push(`missing recovered source: ${expected.path}`);
       continue;
     }
-    const contents = readFileSync(absolutePath);
-    const rawSha256 = sha256(canonicalGitBytes(contents));
-    const gitBlob = gitBlobOid(contents);
+    const index = migrationPaths.indexOf(expected.path);
+    if (index < 0 || !indexBlobs[index]) {
+      issues.push(`missing indexed recovered source: ${expected.path}`);
+      continue;
+    }
+    const indexBlob = indexBlobs[index];
+    const rawSha256 = sha256(indexBlob);
+    const gitBlob = indexEntries[index].oid;
     compareField(issues, rawSha256, expected.rawSha256, `${expected.path} raw sha256`);
     compareField(issues, gitBlob, expected.gitBlob, `${expected.path} git blob`);
 
-    const sourceText = contents.toString("utf8");
+    const sourceText = indexBlob.toString("utf8");
     const units = expected.localUnitMode === "PROVIDER_GROUPED_SOURCE"
       ? [sourceText]
       : splitSqlStatements(sourceText);
@@ -372,7 +452,8 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
       path: expected.path,
       gitBlob,
       rawSha256,
-      rawDigestInputClass: "CANONICAL_LF_GIT_BLOB_BYTES",
+      rawDigestInputClass: "GIT_INDEX_BLOB_BYTES",
+      checkoutEolPolicy: "LF_OR_CRLF_EQUIVALENT_TO_INDEX",
       providerDigestClass: expected.providerDigestClass,
       providerBundleMd5: expected.providerBundleMd5,
       normalizedUnitCount: unitDigests.length,

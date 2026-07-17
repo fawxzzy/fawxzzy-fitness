@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -16,11 +17,33 @@ function cloneEvidence() {
   return JSON.parse(JSON.stringify(FROZEN_PARITY_EVIDENCE));
 }
 
+function runGit(repoRoot, args, options = {}) {
+  return execFileSync("git", ["-C", repoRoot, ...args], {
+    encoding: "utf8",
+    ...options,
+  });
+}
+
 function withMigrationFixture(run) {
   const fixtureRoot = mkdtempSync(path.join(tmpdir(), "fp-fit-rec-001-"));
   const fixtureMigrationDirectory = path.join(fixtureRoot, "supabase", "migrations");
   mkdirSync(path.dirname(fixtureMigrationDirectory), { recursive: true });
   cpSync(path.join(REPO_ROOT, "supabase", "migrations"), fixtureMigrationDirectory, { recursive: true });
+  runGit(fixtureRoot, ["init", "--quiet"]);
+  runGit(fixtureRoot, ["config", "core.autocrlf", "false"]);
+  runGit(fixtureRoot, ["config", "user.name", "FP-FIT-REC-001 Test"]);
+  runGit(fixtureRoot, ["config", "user.email", "fp-fit-rec-001@example.invalid"]);
+  const sourceObjectDirectory = runGit(REPO_ROOT, ["rev-parse", "--git-path", "objects"]).trim();
+  const alternateInfoDirectory = path.join(fixtureRoot, ".git", "objects", "info");
+  mkdirSync(alternateInfoDirectory, { recursive: true });
+  writeFileSync(
+    path.join(alternateInfoDirectory, "alternates"),
+    `${path.resolve(REPO_ROOT, sourceObjectDirectory).split(path.sep).join("/")}\n`,
+    "utf8",
+  );
+  const sourceIndex = runGit(REPO_ROOT, ["ls-files", "--stage", "--", "supabase/migrations"]);
+  runGit(fixtureRoot, ["update-index", "--index-info"], { input: sourceIndex });
+  runGit(fixtureRoot, ["commit", "--quiet", "-m", "fixture migration tree"]);
   try {
     run(fixtureRoot, fixtureMigrationDirectory);
   } finally {
@@ -69,8 +92,8 @@ test("freezes the three exact raw source and Git blob digests", () => {
 });
 
 test("fails closed when a migration source is missing", () => {
-  withMigrationFixture((fixtureRoot, migrationDirectory) => {
-    unlinkSync(path.join(migrationDirectory, "20260716033653_routine_day_optional.sql"));
+  withMigrationFixture((fixtureRoot) => {
+    runGit(fixtureRoot, ["rm", "--quiet", "--", "supabase/migrations/20260716033653_routine_day_optional.sql"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source count|migration source manifest|missing recovered source/u);
@@ -80,6 +103,7 @@ test("fails closed when a migration source is missing", () => {
 test("fails closed when an extra migration source appears", () => {
   withMigrationFixture((fixtureRoot, migrationDirectory) => {
     writeFileSync(path.join(migrationDirectory, "99999999999999_unadmitted.sql"), "select 1;\n", "utf8");
+    runGit(fixtureRoot, ["add", "--", "supabase/migrations/99999999999999_unadmitted.sql"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source count|migration source manifest/u);
@@ -87,11 +111,12 @@ test("fails closed when an extra migration source appears", () => {
 });
 
 test("fails closed when a migration source is renamed", () => {
-  withMigrationFixture((fixtureRoot, migrationDirectory) => {
-    renameSync(
-      path.join(migrationDirectory, "20260713020801_set_timing_truth.sql"),
-      path.join(migrationDirectory, "20260713020801_set_timing_truth_renamed.sql"),
-    );
+  withMigrationFixture((fixtureRoot) => {
+    runGit(fixtureRoot, [
+      "mv",
+      "supabase/migrations/20260713020801_set_timing_truth.sql",
+      "supabase/migrations/20260713020801_set_timing_truth_renamed.sql",
+    ]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source manifest|missing recovered source/u);
@@ -101,13 +126,14 @@ test("fails closed when a migration source is renamed", () => {
 test("fails closed when source bytes change", () => {
   withMigrationFixture((fixtureRoot, migrationDirectory) => {
     writeFileSync(path.join(migrationDirectory, "20260713020801_set_timing_truth.sql"), "changed\n", "utf8");
+    runGit(fixtureRoot, ["add", "--", "supabase/migrations/20260713020801_set_timing_truth.sql"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source manifest|raw sha256|git blob|normalized unit/u);
   });
 });
 
-test("accepts a clean Windows CRLF checkout while freezing canonical Git blob bytes", () => {
+test("accepts a clean Windows CRLF checkout while freezing indexed Git blob bytes", () => {
   withMigrationFixture((fixtureRoot, migrationDirectory) => {
     for (const source of RECOVERED_SOURCES) {
       const absolutePath = path.join(migrationDirectory, path.basename(source.path));
@@ -119,11 +145,27 @@ test("accepts a clean Windows CRLF checkout while freezing canonical Git blob by
     assert.deepEqual(
       report.recoveredSources.map(({ rawDigestInputClass }) => rawDigestInputClass),
       [
-        "CANONICAL_LF_GIT_BLOB_BYTES",
-        "CANONICAL_LF_GIT_BLOB_BYTES",
-        "CANONICAL_LF_GIT_BLOB_BYTES",
+        "GIT_INDEX_BLOB_BYTES",
+        "GIT_INDEX_BLOB_BYTES",
+        "GIT_INDEX_BLOB_BYTES",
       ],
     );
+  });
+});
+
+test("rejects CRLF when CRLF bytes are actually committed", () => {
+  withMigrationFixture((fixtureRoot, migrationDirectory) => {
+    const source = RECOVERED_SOURCES[0];
+    const relativePath = source.path;
+    const absolutePath = path.join(migrationDirectory, path.basename(relativePath));
+    const lfText = readFileSync(absolutePath, "utf8").replace(/\r\n/gu, "\n");
+    writeFileSync(absolutePath, lfText.replace(/\n/gu, "\r\n"), "utf8");
+    runGit(fixtureRoot, ["add", "--", relativePath]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "commit CRLF representation"]);
+
+    const report = verifyRecovery({ repoRoot: fixtureRoot });
+    assert.equal(report.ok, false);
+    assert.match(report.issues.join("\n"), /migration source manifest|raw sha256|git blob/u);
   });
 });
 

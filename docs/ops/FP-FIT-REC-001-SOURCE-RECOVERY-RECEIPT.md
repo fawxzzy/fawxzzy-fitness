@@ -14,6 +14,8 @@ Supabase project ref: `lpswxoyfniocuhljgzbc`
 
 FP-FIT-REC-001 restored the three migration source files that were absent from `origin/main`. The recovered bytes came only from immutable commit `60e2c1b182b87e5a719d9c32227c1d2ccf7ebeb5`; no stacked application changes were absorbed.
 
+The exact clean six-path recovery checkpoint is `abacd50404b60292fb4a81111b33747ccff1db22`. Its three recovered SQL blobs are immutable. The separately admitted `FP-FIT-REC-001-PLAYBOOK-NOTE-001` successor adds the required Playbook note and hardens the verifier's committed-byte proof without changing any migration.
+
 The local source denominator is now 101/101 with the exact complete-tree Git-blob manifest SHA-256 `d0671af0c557969ce3d24c2a9b41975adeacc0d4073103fd1513426242c1557e`. The pre-existing 98 migration sources are unchanged.
 
 This packet does not claim full live content parity. The measured terminal status is:
@@ -24,7 +26,7 @@ This packet does not claim full live content parity. The measured terminal statu
 
 The next separately admitted owner packet is `FP-FIT-CONTENT-REC-002` for versions `043` and `20260709073000`. Only after that packet is resolved may `FP-PARITY-RATCHET-001` run. Neither successor is started here.
 
-## Exact six-path scope
+## Exact six-path recovery checkpoint
 
 1. `supabase/migrations/20260713013116_exercise_timer_truth.sql`
 2. `supabase/migrations/20260713020801_set_timing_truth.sql`
@@ -33,7 +35,13 @@ The next separately admitted owner packet is `FP-FIT-CONTENT-REC-002` for versio
 5. `scripts/migration/fp-fit-rec-001-verify.test.mjs`
 6. `docs/ops/FP-FIT-REC-001-SOURCE-RECOVERY-RECEIPT.md`
 
-`package.json`, application code, UI, Auth, billing, security policy, and every other migration remain outside scope.
+## Separately admitted Playbook-note successor
+
+`FP-FIT-REC-001-PLAYBOOK-NOTE-001` admits one unique additional path, `docs/PLAYBOOK_NOTES.md`, and permits this receipt to be updated. Combined with the recovery checkpoint, the PR denominator is exactly seven unique paths.
+
+The addendum appends one provenance guardrail without normalizing, resolving, reordering, or otherwise changing pre-existing `docs/PLAYBOOK_NOTES.md` content or its pre-existing conflict marker. It also addresses exact-head review thread `PRRT_kwDOSErjt86Rv1p7`: Git blob identity and raw SHA-256 now come from index bytes read through Git plumbing, while checkout LF/CRLF equivalence is checked separately. A fixture that actually commits CRLF migration bytes is rejected.
+
+`package.json`, application code, UI, Auth, billing, security policy, `.gitattributes`, and every other migration remain outside the combined scope.
 
 ## Recovered source provenance
 
@@ -43,7 +51,7 @@ The next separately admitted owner packet is `FP-FIT-CONTENT-REC-002` for versio
 | `20260713020801_set_timing_truth.sql` | `5e34f762a255dcf40087e605f8f009e3215f1dff` | `82ce3b62e60c0c729405ae1af487b382de44d8c618c6dd07232223acd0348bd2` | `4ceecc520442c0c798fa1b21781cef8e` | 2 |
 | `20260716033653_routine_day_optional.sql` | `f3fa17151024a57f9e62575f6dc4e8f5898fa5af` | `2b8d8b73e03f77b6034030a934a31b299529d852e406d4f74322d80866c45172` | `1988bf82878e3a26b4e065af2f7f6920` | 1 |
 
-Raw SHA-256 values are computed over the immutable canonical-LF Git blob bytes. A clean Windows checkout may materialize those files with CRLF; checkout-only line endings do not change or invalidate committed blob identity.
+Raw SHA-256 values and Git blob IDs are derived from exact Git index blob bytes. A clean Windows checkout may materialize an LF index blob with CRLF; checkout EOL equivalence is tolerated separately and cannot alter the asserted index identity. CRLF bytes actually stored in the index or tree produce different identities and fail closed.
 
 The MD5 values are classified as provider-returned statement-bundle digests. They are not raw source-file digests. The six whitespace-normalized local comparison units are frozen by SHA-256 manifest `3c789038ba4d6c41572d1c383844456db762ca9b6832ae95c1ff2f63a100460e`.
 
@@ -109,10 +117,11 @@ No system runtime was installed, no remote Supabase project was created or linke
 
 ## Verification
 
-- Static verifier: PASS; 101 sources, 101 unique versions, exact first/last versions, exact complete-tree manifest, three raw source digests, three Git blob IDs, and six normalized units.
-- Focused test: PASS; 13/13 tests, including missing, extra, renamed, changed-source, Windows CRLF checkout, false raw-exact, and false full-parity coverage.
-- Repository-required `npm run verify`: BLOCKED on the committed branch by `requireNotesOnChanges`, which requires `docs/PLAYBOOK_NOTES.md` for the three restored migration paths. That path is outside the frozen six-path allowlist and was not added. The earlier pre-commit invocation passed because the verifier did not include uncommitted migration additions in its base diff; it is not treated as the terminal result.
-- Hosted `verify`: PASS on PR head `b5bd824b683d64c7002faeefd790fe45df05096f` before the additive CRLF portability fix. A new exact-head run is required after that fix is pushed.
+- Static verifier: PASS; exact Git index proof covers 101 sources, 101 unique versions, exact first/last versions, the complete-tree manifest, three raw source digests, three Git blob IDs, and six normalized units.
+- Focused test: PASS; 14/14 tests, including missing, extra, renamed, changed-source, clean Windows CRLF checkout, actually committed CRLF rejection, false raw-exact, and false full-parity coverage.
+- Six-path checkpoint `npm run verify`: BLOCKED by `requireNotesOnChanges`, which required `docs/PLAYBOOK_NOTES.md` for the three restored migration paths. That was an honest scope blocker before the successor was admitted.
+- Playbook-note successor `npm run verify`: PASS on the committed addendum and again after the receipt-only amendment; branch-aware Playbook verification recognized the admitted note against exact base `e1ab7fbea979456380230c5459fdef6ae4c927e9`.
+- Hosted `verify`: PASS on checkpoint head `abacd50404b60292fb4a81111b33747ccff1db22`. A new exact-head run is required after the successor is pushed.
 - Existing-source invariance: PASS; the 98 pre-existing migration paths have no diff from the base.
 - Dependency bootstrap: `npm ci` completed without lockfile changes. It reported 14 existing dependency advisories (3 moderate, 10 high, 1 critical); dependency remediation is outside this six-path packet.
 - Local replay: BLOCKED for the exact prerequisites above; no substitute replay was claimed.
@@ -131,4 +140,4 @@ PR #106 reproduces the same existing contract classes:
 - `contract-check`: Node 20 raises `ERR_UNKNOWN_FILE_EXTENSION` for `src/lib/atlas-contracts.test.ts`; the same command passes locally under the repository's current Node 22 runtime.
 - `Playbook clean-environment validation`: Playbook verification succeeds, then the workflow requires `.playbook/last-run.json`, which the current Playbook command does not generate.
 
-Fixing either hosted workflow or the local notes policy requires paths outside this packet. They remain explicit external governance blockers rather than being hidden, retried, or folded into source recovery.
+Fixing either base-reproduced hosted workflow requires paths outside the combined seven-path packet. They remain explicit external governance blockers rather than being hidden, retried, or folded into source recovery. The separately admitted Playbook-note successor addresses only the branch-aware notes contract.
