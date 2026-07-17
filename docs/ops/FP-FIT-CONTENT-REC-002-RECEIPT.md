@@ -67,15 +67,16 @@ The repository-only projection remains provider-canonical `97/101`, whitespace `
 
 ## Verification
 
-The review-settled packet must pass these repository-only gates before publication:
+The committed review-settled packet passed these repository-only gates before publication:
 
-- focused verifier and focused tests against the committed exact head;
-- repository-required branch-aware `npm run verify`;
-- exact ancestry and four-path stacked allowlist;
-- zero migration changes from the admitted base;
-- exact blob and raw SHA-256 checks for replay-safe executable 043, provider-canonical historical 043 provenance, and executable `20260709073000`;
-- source denominator, historical aliases, committed LF, JSON, JavaScript syntax, diff, credential, and machine-path checks;
-- clean worktree and upstream parity.
+- focused verifier: PASS twice with byte-identical JSON and zero issues;
+- focused tests: PASS twice, 10/10 on each run;
+- repository-required branch-aware `npm run verify`: PASS against `origin/main` at `e1ab7fbea979456380230c5459fdef6ae4c927e9`;
+- exact ancestry and four-path stacked allowlist: PASS;
+- migration scope: PASS with zero migration changes from the admitted base;
+- exact blob and raw SHA-256 checks: PASS for replay-safe executable 043, provider-canonical historical 043 provenance, and executable `20260709073000`;
+- source denominator, historical aliases, committed LF, JSON, JavaScript syntax, diff, credential, and machine-path checks: PASS;
+- clean worktree and upstream parity: required after the final receipt commit and push.
 
 Local Supabase replay remains blocked by the explicitly preserved no-runtime gate; no substitute may be attempted.
 
