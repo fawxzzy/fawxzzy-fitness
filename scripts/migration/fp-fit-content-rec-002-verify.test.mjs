@@ -20,18 +20,22 @@ function expectContractFailure(mutate, pathPattern) {
   assert.match(issues.join("\n"), pathPattern);
 }
 
-test("accepts the exact committed five-path reconciliation packet", () => {
+test("accepts the exact committed review-settled packet", () => {
   const report = verifyReconciliation();
   assert.equal(report.ok, true, report.issues.join("\n"));
   assert.equal(report.sourceTree.migrationCount, 101);
   assert.equal(report.historicalNameAliasCount, 2);
-  assert.equal(report.version043.executableGitBlob, "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395");
-  assert.equal(report.version043.displacedGitBlob, "42a8bd9aef05ad8aeb5efd8db644bc70a711a78f");
-  assert.equal(report.version043.forwardMigrationIfIntended, "FORWARD_MIGRATION_REQUIRED");
+  assert.equal(report.version043.executableGitBlob, "42a8bd9aef05ad8aeb5efd8db644bc70a711a78f");
+  assert.equal(
+    report.version043.providerCanonicalHistoricalGitBlob,
+    "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395",
+  );
+  assert.equal(report.version043.preconditionHandling, "CREATES_SLUG_BEFORE_UPDATE");
   assert.equal(report.version20260709073000.rawByteProvenance, "UNKNOWN");
   assert.equal(report.version20260709073000.historicalExecutableReplacement, "PROHIBITED");
-  assert.equal(report.postUnitARepositoryProjection.overallContentParity, "BLOCKED");
+  assert.equal(report.terminalRepositoryProjection.overallContentParity, "BLOCKED");
   assert.equal(report.zeroToHeadLocalReplay, "BLOCKED");
+  assert.equal(report.targetBootstrap.state, "REQUIRED_BEFORE_043_PROVIDER_CANONICAL_EXECUTABLE_ADOPTION");
 });
 
 test("manifest contains no SQL body field or provider representation body", () => {
@@ -44,18 +48,18 @@ test("manifest contains no SQL body field or provider representation body", () =
 test("rejects a changed 043 executable identity", () => {
   expectContractFailure(
     (manifest) => {
-      manifest.migrations[0].executable.gitBlob = manifest.migrations[0].displaced.gitBlob;
+      manifest.migrations[0].executable.gitBlob = manifest.migrations[0].providerCanonicalHistorical.gitBlob;
     },
     /manifest\.migrations\[0\]\.executable\.gitBlob/u,
   );
 });
 
-test("rejects weakened displaced 043 provenance state", () => {
+test("rejects weakened provider-canonical 043 governance state", () => {
   expectContractFailure(
     (manifest) => {
-      manifest.migrations[0].displaced.ifIntended = "NO_ACTION";
+      manifest.migrations[0].providerCanonicalHistorical.executableStatus = "EXECUTABLE";
     },
-    /manifest\.migrations\[0\]\.displaced\.ifIntended/u,
+    /manifest\.migrations\[0\]\.providerCanonicalHistorical\.executableStatus/u,
   );
 });
 
@@ -110,9 +114,9 @@ test("rejects denominator, alias, or prior source-manifest drift", () => {
 test("rejects false overall parity or replay success", () => {
   expectContractFailure(
     (manifest) => {
-      manifest.postUnitARepositoryProjection.overallContentParity = "PASS";
+      manifest.terminalRepositoryProjection.overallContentParity = "PASS";
     },
-    /manifest\.postUnitARepositoryProjection\.overallContentParity/u,
+    /manifest\.terminalRepositoryProjection\.overallContentParity/u,
   );
   expectContractFailure(
     (manifest) => {
@@ -122,8 +126,8 @@ test("rejects false overall parity or replay success", () => {
   );
 });
 
-test("base ref fails because it still executes the displaced 043 blob", () => {
+test("base ref fails because it lacks this packet's provenance contract", () => {
   const report = verifyReconciliation({ ref: EXPECTED_MANIFEST.base.commit });
   assert.equal(report.ok, false);
-  assert.match(report.issues.join("\n"), /043 executable Git blob|reconciled source manifest|stacked path allowlist/u);
+  assert.match(report.issues.join("\n"), /stacked path allowlist/u);
 });

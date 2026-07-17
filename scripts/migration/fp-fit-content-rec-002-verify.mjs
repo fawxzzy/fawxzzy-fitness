@@ -27,7 +27,7 @@ export const EXPECTED_MANIFEST = Object.freeze({
     manifestCanonicalization: "SORTED_PATH_TAB_GIT_BLOB_OID_WITH_LF_JOIN",
     priorPacket: "FP-FIT-REC-001",
     priorManifestSha256: "d0671af0c557969ce3d24c2a9b41975adeacc0d4073103fd1513426242c1557e",
-    reconciledManifestSha256: "f6bd16c1f2999fb655958eae0262896a77436bd153f31693d4c464f20eed7fad",
+    terminalManifestSha256: "d0671af0c557969ce3d24c2a9b41975adeacc0d4073103fd1513426242c1557e",
   },
   historicalNameAliases: [
     {
@@ -46,6 +46,16 @@ export const EXPECTED_MANIFEST = Object.freeze({
       version: "043",
       path: "supabase/migrations/043_hide_standalone_stretch_catalog_rows.sql",
       executable: {
+        sourceClass: "REPLAY_SAFE_REPOSITORY_BLOB",
+        gitBlob: "42a8bd9aef05ad8aeb5efd8db644bc70a711a78f",
+        byteLength: 376,
+        rawSha256: "f5231385f72b80ecac0c5f92616e2d1a692ee61b88cdca738386a1ddee077346",
+        providerCanonicalParity: "FAIL",
+        whitespaceParity: "FAIL",
+        commentWhitespaceParity: "FAIL",
+        preconditionHandling: "CREATES_SLUG_BEFORE_UPDATE",
+      },
+      providerCanonicalHistorical: {
         sourceClass: "IMMUTABLE_GIT_BLOB",
         gitBlob: "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395",
         byteLength: 303,
@@ -53,14 +63,7 @@ export const EXPECTED_MANIFEST = Object.freeze({
         providerCanonicalParity: "PASS",
         whitespaceParity: "PASS",
         commentWhitespaceParity: "PASS",
-      },
-      displaced: {
-        gitBlob: "42a8bd9aef05ad8aeb5efd8db644bc70a711a78f",
-        byteLength: 376,
-        rawSha256: "f5231385f72b80ecac0c5f92616e2d1a692ee61b88cdca738386a1ddee077346",
-        extraStatementIntent: "UNCONFIRMED",
-        ifIntended: "FORWARD_MIGRATION_REQUIRED",
-        executableCopy: "PROHIBITED",
+        executableStatus: "PROHIBITED_UNTIL_TARGET_BOOTSTRAP_PROVES_SLUG_PRECONDITION",
       },
     },
     {
@@ -87,22 +90,30 @@ export const EXPECTED_MANIFEST = Object.freeze({
     commentWhitespaceParity: "99/101",
     substantiveMismatchVersions: ["043", "20260709073000"],
   },
-  postUnitARepositoryProjection: {
-    providerCanonicalParity: "98/101",
-    whitespaceParity: "99/101",
-    commentWhitespaceParity: "100/101",
-    unresolvedVersion: "20260709073000",
+  terminalRepositoryProjection: {
+    providerCanonicalParity: "97/101",
+    whitespaceParity: "98/101",
+    commentWhitespaceParity: "99/101",
+    unresolvedVersions: ["043", "20260709073000"],
     rawByteParity: "UNKNOWN",
     overallContentParity: "BLOCKED",
   },
   replay: {
     zeroToHeadLocal: "BLOCKED",
-    reason: "NO_ADMITTED_LOCAL_SUPABASE_RUNTIME",
+    reasons: [
+      "NO_ADMITTED_LOCAL_SUPABASE_RUNTIME",
+      "PROVIDER_CANONICAL_043_REQUIRES_UNPROVEN_PREEXISTING_SLUG",
+    ],
     substitutes: "PROHIBITED",
+  },
+  targetBootstrap: {
+    state: "REQUIRED_BEFORE_043_PROVIDER_CANONICAL_EXECUTABLE_ADOPTION",
+    proof: "FAITHFUL_DISPOSABLE_REPLAY_PROVING_SLUG_EXISTS_BEFORE_VERSION_043",
+    syntheticHistoricalMutation: "PROHIBITED",
   },
   nextPacket: {
     id: "FP-PARITY-RATCHET-001",
-    state: "PROHIBITED_UNTIL_REPLAY_AND_GOVERNANCE_GATES",
+    state: "PROHIBITED_UNTIL_TARGET_BOOTSTRAP_REPLAY_AND_GOVERNANCE_GATES",
   },
 });
 
@@ -111,7 +122,6 @@ const EXPECTED_PATHS = [
   "docs/registry/migrations/FP-FIT-CONTENT-REC-002.v1.json",
   "scripts/migration/fp-fit-content-rec-002-verify.mjs",
   "scripts/migration/fp-fit-content-rec-002-verify.test.mjs",
-  "supabase/migrations/043_hide_standalone_stretch_catalog_rows.sql",
 ];
 
 function sha256(bytes) {
@@ -263,8 +273,8 @@ export function verifyReconciliation({
     if (currentTree.entries.length !== EXPECTED_MANIFEST.sourceTree.migrationCount) {
       issues.push(`current migration count expected ${EXPECTED_MANIFEST.sourceTree.migrationCount}, received ${currentTree.entries.length}`);
     }
-    if (currentTree.manifestSha256 !== EXPECTED_MANIFEST.sourceTree.reconciledManifestSha256) {
-      issues.push(`reconciled source manifest expected ${EXPECTED_MANIFEST.sourceTree.reconciledManifestSha256}, received ${currentTree.manifestSha256}`);
+    if (currentTree.manifestSha256 !== EXPECTED_MANIFEST.sourceTree.terminalManifestSha256) {
+      issues.push(`terminal source manifest expected ${EXPECTED_MANIFEST.sourceTree.terminalManifestSha256}, received ${currentTree.manifestSha256}`);
     }
   } catch (error) {
     issues.push(`cannot verify migration source trees: ${error instanceof Error ? error.message : String(error)}`);
@@ -275,9 +285,18 @@ export function verifyReconciliation({
   try {
     const oid043 = blobOidAtRef(repoRoot, ref, version043.path);
     checkBlob(issues, repoRoot, "043 executable", version043.executable, oid043);
-    checkBlob(issues, repoRoot, "043 displaced provenance", version043.displaced, version043.displaced.gitBlob);
-    if (oid043 === version043.displaced.gitBlob) {
-      issues.push("043 displaced blob remains executable");
+    checkBlob(
+      issues,
+      repoRoot,
+      "043 provider-canonical historical provenance",
+      version043.providerCanonicalHistorical,
+      version043.providerCanonicalHistorical.gitBlob,
+    );
+    const executableText = readBlob(repoRoot, oid043).toString("utf8");
+    const slugCreateIndex = executableText.indexOf("add column if not exists slug text null");
+    const slugUseIndex = executableText.indexOf("update public.exercises");
+    if (slugCreateIndex < 0 || slugUseIndex < 0 || slugCreateIndex > slugUseIndex) {
+      issues.push("043 executable must create slug before the catalog update uses it");
     }
   } catch (error) {
     issues.push(`cannot verify 043 identities: ${error instanceof Error ? error.message : String(error)}`);
@@ -310,14 +329,14 @@ export function verifyReconciliation({
     sourceTree: {
       migrationCount: currentTree?.entries.length ?? null,
       priorManifestSha256: priorTree?.manifestSha256 ?? null,
-      reconciledManifestSha256: currentTree?.manifestSha256 ?? null,
+      terminalManifestSha256: currentTree?.manifestSha256 ?? null,
     },
     historicalNameAliasCount: EXPECTED_MANIFEST.historicalNameAliases.length,
     version043: {
       executableGitBlob: version043.executable.gitBlob,
-      displacedGitBlob: version043.displaced.gitBlob,
-      displacedIntent: version043.displaced.extraStatementIntent,
-      forwardMigrationIfIntended: version043.displaced.ifIntended,
+      providerCanonicalHistoricalGitBlob: version043.providerCanonicalHistorical.gitBlob,
+      providerCanonicalHistoricalStatus: version043.providerCanonicalHistorical.executableStatus,
+      preconditionHandling: version043.executable.preconditionHandling,
     },
     version20260709073000: {
       executableGitBlob: versionBilling.executable.gitBlob,
@@ -326,8 +345,9 @@ export function verifyReconciliation({
       rawByteProvenance: versionBilling.rawByteProvenance,
       historicalExecutableReplacement: versionBilling.historicalExecutableReplacement,
     },
-    postUnitARepositoryProjection: EXPECTED_MANIFEST.postUnitARepositoryProjection,
+    terminalRepositoryProjection: EXPECTED_MANIFEST.terminalRepositoryProjection,
     zeroToHeadLocalReplay: EXPECTED_MANIFEST.replay.zeroToHeadLocal,
+    targetBootstrap: EXPECTED_MANIFEST.targetBootstrap,
     nextPacket: EXPECTED_MANIFEST.nextPacket,
     issues,
   };
