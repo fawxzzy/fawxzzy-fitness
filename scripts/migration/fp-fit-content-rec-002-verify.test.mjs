@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import {
   EXPECTED_MANIFEST,
   MANIFEST_PATH,
+  MANIFEST_RELATIVE_PATH,
+  REPO_ROOT,
   validateManifestContract,
   verifyReconciliation,
 } from "./fp-fit-content-rec-002-verify.mjs";
@@ -18,6 +23,35 @@ function expectContractFailure(mutate, pathPattern) {
   const issues = validateManifestContract(manifest);
   assert.ok(issues.length > 0);
   assert.match(issues.join("\n"), pathPattern);
+}
+
+function runGit(cwd, args) {
+  const result = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim();
+}
+
+function withDetachedFixture(run) {
+  const fixtureRoot = mkdtempSync(path.join(os.tmpdir(), "fp-fit-content-rec-002-"));
+  try {
+    const sourceHead = runGit(REPO_ROOT, ["rev-parse", "HEAD"]);
+    runGit(REPO_ROOT, ["clone", "--no-hardlinks", "--quiet", ".", fixtureRoot]);
+    runGit(fixtureRoot, ["checkout", "--detach", "--quiet", sourceHead]);
+    return run(fixtureRoot);
+  } finally {
+    rmSync(fixtureRoot, { force: true, recursive: true });
+  }
+}
+
+function writeDriftedFixtureManifest(fixtureRoot) {
+  const manifestPath = path.join(fixtureRoot, ...MANIFEST_RELATIVE_PATH.split("/"));
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  manifest.packetId = "DRIFTED-PACKET";
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 }
 
 test("accepts the exact committed review-settled packet", () => {
@@ -158,6 +192,38 @@ test("rejects false overall parity or replay success", () => {
 test("base ref fails because it lacks this packet's provenance contract", () => {
   const report = verifyReconciliation({ ref: EXPECTED_MANIFEST.base.commit });
   assert.equal(report.ok, false);
-  assert.match(report.issues.join("\n"), /cannot verify 043 identities/u);
-  assert.match(report.issues.join("\n"), /stacked path allowlist/u);
+  assert.match(
+    report.issues.join("\n"),
+    /cannot read provenance manifest from [0-9a-f]{40}/u,
+  );
+});
+
+test("rejects manifest drift committed on the requested ref", () => {
+  withDetachedFixture((fixtureRoot) => {
+    writeDriftedFixtureManifest(fixtureRoot);
+    runGit(fixtureRoot, ["add", "--", MANIFEST_RELATIVE_PATH]);
+    runGit(fixtureRoot, [
+      "-c",
+      "user.name=Fitness Verifier Test",
+      "-c",
+      "user.email=fitness-verifier@example.invalid",
+      "commit",
+      "--quiet",
+      "-m",
+      "test: drift committed manifest",
+    ]);
+
+    const report = verifyReconciliation({ repoRoot: fixtureRoot, ref: "HEAD" });
+    assert.equal(report.ok, false);
+    assert.match(report.issues.join("\n"), /manifest\.packetId/u);
+  });
+});
+
+test("ignores uncommitted worktree manifest drift for a requested ref", () => {
+  withDetachedFixture((fixtureRoot) => {
+    writeDriftedFixtureManifest(fixtureRoot);
+
+    const report = verifyReconciliation({ repoRoot: fixtureRoot, ref: "HEAD" });
+    assert.equal(report.ok, true, report.issues.join("\n"));
+  });
 });

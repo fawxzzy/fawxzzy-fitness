@@ -22,6 +22,8 @@ This is a repository-only receipt. No Supabase project was read, linked, logged 
 
 The initial packet treated exact provider bytes as sufficient executable truth. Exact-head review disproved that assumption: migration `008` creates `public.exercises` without `slug`, version `043` reads `slug`, and the next repository migration that adds the column is `20260505065000`, which runs later. Replacing the executable with the provider-canonical blob would therefore break a fresh ordered replay. Provider provenance and executable replay safety are separate contracts; this packet now preserves both without inventing a synthetic historical migration.
 
+The verifier reads the manifest, executable migrations, and non-executable provenance artifact from the requested committed Git ref. Mutable worktree or index content is not an acceptance input.
+
 Version `20260709073000` has a provider-canonical representation but no reachable raw-identical source. Conflating the normalized provider representation with raw-byte recovery would fabricate provenance and could change historical behavior. Its executable path remains frozen until a later owner receipt, behavior/schema parity proof, faithful disposable Supabase replay, and explicit governance packet.
 
 ## Exact path boundary
@@ -74,7 +76,7 @@ The repository-only projection remains provider-canonical `97/101`, whitespace `
 The committed review-settled packet passed these repository-only gates before publication:
 
 - focused verifier: PASS twice with byte-identical JSON and zero issues;
-- focused tests: PASS, 12/12, including committed-path reachability and path/byte-contract drift rejection;
+- focused tests: PASS, 14/14, including committed-path reachability, committed manifest-drift rejection, uncommitted worktree-manifest isolation, and path/byte-contract drift rejection;
 - repository-required branch-aware `npm run verify`: PASS against merged `origin/main` at `d50fb86bf9e1ec77af0eb922eb7d99da212f5264`;
 - exact ancestry, preserved four-path contract, and additive provenance-path allowlist: PASS;
 - migration scope: PASS with zero migration changes from the admitted base;

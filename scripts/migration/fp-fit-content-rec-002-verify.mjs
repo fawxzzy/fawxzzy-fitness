@@ -1,17 +1,15 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+export const MANIFEST_RELATIVE_PATH =
+  "docs/registry/migrations/FP-FIT-CONTENT-REC-002.v1.json";
 export const MANIFEST_PATH = path.join(
   REPO_ROOT,
-  "docs",
-  "registry",
-  "migrations",
-  "FP-FIT-CONTENT-REC-002.v1.json",
+  ...MANIFEST_RELATIVE_PATH.split("/"),
 );
 
 export const EXPECTED_MANIFEST = Object.freeze({
@@ -191,6 +189,10 @@ function readBlob(repoRoot, oid) {
   return runGit(repoRoot, ["cat-file", "blob", oid], { text: false });
 }
 
+function readBlobAtRef(repoRoot, ref, relativePath) {
+  return readBlob(repoRoot, blobOidAtRef(repoRoot, ref, relativePath));
+}
+
 function migrationTreeAtRef(repoRoot, ref) {
   const output = runGit(repoRoot, ["ls-tree", "-r", "--full-tree", ref, "--", "supabase/migrations"]);
   const entries = output
@@ -233,25 +235,20 @@ function checkBlob(issues, repoRoot, label, expected, actualOid) {
 
 export function verifyReconciliation({
   repoRoot = REPO_ROOT,
-  manifestPath = path.join(
-    repoRoot,
-    "docs",
-    "registry",
-    "migrations",
-    "FP-FIT-CONTENT-REC-002.v1.json",
-  ),
   ref = "HEAD",
 } = {}) {
   const issues = [];
   let manifest;
   try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    manifest = JSON.parse(readBlobAtRef(repoRoot, ref, MANIFEST_RELATIVE_PATH).toString("utf8"));
   } catch (error) {
     return {
       ok: false,
       packet: "FP-FIT-CONTENT-REC-002",
       ref,
-      issues: [`cannot read provenance manifest: ${error instanceof Error ? error.message : String(error)}`],
+      issues: [
+        `cannot read provenance manifest from ${ref}: ${error instanceof Error ? error.message : String(error)}`,
+      ],
     };
   }
   issues.push(...validateManifestContract(manifest));
