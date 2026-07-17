@@ -120,7 +120,7 @@ No system runtime was installed, no remote Supabase project was created or linke
 ## Verification
 
 - Static verifier: PASS; authoritative proof reads an explicit Git commit tree, defaulting to `HEAD`, and covers 101 sources, 101 unique versions, exact first/last versions, the complete-tree manifest, three raw source digests, three Git blob IDs, and six normalized units.
-- Focused test: PASS, 21/21; coverage includes staged-index substitution over wrong `HEAD`, missing and wrong commitish/tree rejection, wrong-blob rejection for each recovered path, clean Windows CRLF checkout, actually committed CRLF rejection, and deterministic acceptance when the advisory historical object is unavailable.
+- Focused test: PASS, 24/24; coverage includes staged-index substitution over wrong `HEAD`, missing and wrong commitish/tree rejection, wrong-blob rejection for each recovered path, clean Windows CRLF checkout, actually committed CRLF rejection, deterministic acceptance when the advisory historical object is unavailable, and accepted/missing/altered live-catalog digest-class enforcement.
 - Six-path checkpoint `npm run verify`: BLOCKED by `requireNotesOnChanges`, which required `docs/PLAYBOOK_NOTES.md` for the three restored migration paths. That was an honest scope blocker before the successor was admitted.
 - Playbook-note successor `npm run verify`: PASS on the committed addendum and again after the receipt-only amendment; branch-aware Playbook verification recognized the admitted note against exact base `e1ab7fbea979456380230c5459fdef6ae4c927e9`.
 - Hosted `verify`: PASS on checkpoint head `abacd50404b60292fb4a81111b33747ccff1db22`. A new exact-head run is required after the successor is pushed.
