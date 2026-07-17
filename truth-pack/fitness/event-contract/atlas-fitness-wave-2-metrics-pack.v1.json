@@ -29,8 +29,8 @@
     "src/lib/ecosystem/fitness-integration-contract.ts",
     "src/lib/ecosystem/fitness-shadow-events.ts",
     "src/lib/session-follow-up-jobs.ts",
-    "docs/ops/ATLAS-CODEX-CONTEXT-RUNBOOK.md",
-    "docs/registry/STACK-SYNERGY-REGISTRY.json"
+    "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md",
+    "docs/mobile-shell-contract.md"
   ],
   "shared_nouns": [
     {
@@ -108,7 +108,7 @@
         "atlas.bottom_action_intent"
       ],
       "evidence_refs": [
-        "docs/registry/STACK-SYNERGY-REGISTRY.json"
+        "docs/mobile-shell-contract.md"
       ]
     }
   ],
