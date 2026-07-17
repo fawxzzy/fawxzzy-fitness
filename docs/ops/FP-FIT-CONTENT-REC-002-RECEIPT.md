@@ -69,19 +69,24 @@ After the exact Unit A replacement, the repository-only projection is provider-c
 
 ## Verification
 
-Terminal verification is recorded after the committed packet is checked. Until then, this section is intentionally `PENDING`.
+The committed local packet passed all available repository-only gates:
 
-- focused verifier, deterministic run 1: `PENDING`
-- focused verifier, deterministic run 2: `PENDING`
-- focused tests, deterministic run 1: `PENDING`
-- focused tests, deterministic run 2: `PENDING`
-- repository-required branch-aware verification: `PENDING`
-- exact base/head ancestry and stacked diff: `PENDING`
-- exact five-path allowlist and migration denominator: `PENDING`
-- committed LF plus JSON parse: `PENDING`
-- credential, secret, and machine-path scans: `PENDING`
-- clean worktree and upstream parity: `PENDING`
-- exact-head Codex review and unresolved-thread reads: `PENDING`
+- focused verifier: PASS twice with byte-identical JSON output and no issues;
+- focused tests: PASS twice, 10/10 on both runs;
+- repository-required branch-aware `npm run verify`: PASS;
+- exact ancestry: PASS; the admitted base is an ancestor of the packet head;
+- stacked path allowlist: PASS; exactly the five authorized paths differ from the admitted base;
+- migration scope: PASS; version `043` is the only changed migration, the three PR-106 recovery sources are unchanged, and version `20260709073000` remains at exact blob `5d15f5b7232f40e750c696b536d5b08145c64037`;
+- exact blob and raw SHA-256 checks: PASS for executable 043, displaced 043 provenance, and executable `20260709073000`;
+- source denominator and historical aliases: PASS; 101 unique versions and two aliases remain frozen;
+- committed LF and terminal newline checks: PASS for all five packet paths;
+- JSON parse and JavaScript syntax checks: PASS;
+- diff and scope checks: PASS; no `package.json`, lockfile, recovered source, product, UI, or other migration change;
+- credential, connection-string, secret-token, and machine-path scans: PASS with zero findings;
+- canonical preservation: PASS; canonical Fitness and ATLAS root remained at their admitted branches, heads, and cleanliness counts throughout local verification;
+- local Supabase replay: BLOCKED by the explicitly preserved no-runtime gate; no substitute was attempted.
+
+Draft-PR publication, exact-head Codex review, and the two thread-aware unresolved reads occur only after this receipt is committed so that review targets the immutable final head. Their authoritative outcome is recorded in the PR and the external ATLAS MAIN terminal receipt rather than being predicted in this file.
 
 ## Successor boundary
 
