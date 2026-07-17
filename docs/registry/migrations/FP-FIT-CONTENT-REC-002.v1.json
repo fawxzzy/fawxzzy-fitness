@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "packetId": "FP-FIT-CONTENT-REC-002",
+  "repository": "fawxzzy/fawxzzy-fitness",
+  "base": {
+    "branch": "codex/fp-fit-rec-001-source-recovery",
+    "commit": "7a7b21148199d49b3165651e41575b1fb74a1c12"
+  },
+  "sourceTree": {
+    "migrationCount": 101,
+    "manifestCanonicalization": "SORTED_PATH_TAB_GIT_BLOB_OID_WITH_LF_JOIN",
+    "priorPacket": "FP-FIT-REC-001",
+    "priorManifestSha256": "d0671af0c557969ce3d24c2a9b41975adeacc0d4073103fd1513426242c1557e",
+    "reconciledManifestSha256": "f6bd16c1f2999fb655958eae0262896a77436bd153f31693d4c464f20eed7fad"
+  },
+  "historicalNameAliases": [
+    {
+      "version": "20260515090309",
+      "gitName": "055_discord_member_links",
+      "providerName": "20260515103000_055_discord_member_links"
+    },
+    {
+      "version": "20260515090322",
+      "gitName": "056_compact_public_member_numbers",
+      "providerName": "20260515120000_056_compact_public_member_numbers"
+    }
+  ],
+  "migrations": [
+    {
+      "version": "043",
+      "path": "supabase/migrations/043_hide_standalone_stretch_catalog_rows.sql",
+      "executable": {
+        "sourceClass": "IMMUTABLE_GIT_BLOB",
+        "gitBlob": "ceb74dae0443e4f5b4ef83ae56e989f9ae6d1395",
+        "byteLength": 303,
+        "rawSha256": "e0aa179c8d32e662ce747d8121bd6fcec893ec592e2daa5675a993358894c534",
+        "providerCanonicalParity": "PASS",
+        "whitespaceParity": "PASS",
+        "commentWhitespaceParity": "PASS"
+      },
+      "displaced": {
+        "gitBlob": "42a8bd9aef05ad8aeb5efd8db644bc70a711a78f",
+        "byteLength": 376,
+        "rawSha256": "f5231385f72b80ecac0c5f92616e2d1a692ee61b88cdca738386a1ddee077346",
+        "extraStatementIntent": "UNCONFIRMED",
+        "ifIntended": "FORWARD_MIGRATION_REQUIRED",
+        "executableCopy": "PROHIBITED"
+      }
+    },
+    {
+      "version": "20260709073000",
+      "path": "supabase/migrations/20260709073000_billing_subscription_receipt_dedupe.sql",
+      "executable": {
+        "gitBlob": "5d15f5b7232f40e750c696b536d5b08145c64037",
+        "byteLength": 4231,
+        "rawSha256": "2ba64e3725d014abca605528175f551826f43da433caf8c30c27b96d804569ea"
+      },
+      "providerCanonicalRepresentation": {
+        "evidenceClass": "PROVIDER_CANONICAL_REPRESENTATION",
+        "byteLength": 163,
+        "normalizedSha256": "db9a19423ab36cf41be8d9011038f19798cd7598be9a1ae85beb79c3a49625f2"
+      },
+      "rawByteProvenance": "UNKNOWN",
+      "historicalExecutableReplacement": "PROHIBITED",
+      "futureGovernanceGate": "OWNER_RECEIPT_BEHAVIOR_SCHEMA_PARITY_AND_FAITHFUL_DISPOSABLE_REPLAY"
+    }
+  ],
+  "priorEvidenceSnapshot": {
+    "providerCanonicalParity": "97/101",
+    "whitespaceParity": "98/101",
+    "commentWhitespaceParity": "99/101",
+    "substantiveMismatchVersions": [
+      "043",
+      "20260709073000"
+    ]
+  },
+  "postUnitARepositoryProjection": {
+    "providerCanonicalParity": "98/101",
+    "whitespaceParity": "99/101",
+    "commentWhitespaceParity": "100/101",
+    "unresolvedVersion": "20260709073000",
+    "rawByteParity": "UNKNOWN",
+    "overallContentParity": "BLOCKED"
+  },
+  "replay": {
+    "zeroToHeadLocal": "BLOCKED",
+    "reason": "NO_ADMITTED_LOCAL_SUPABASE_RUNTIME",
+    "substitutes": "PROHIBITED"
+  },
+  "nextPacket": {
+    "id": "FP-PARITY-RATCHET-001",
+    "state": "PROHIBITED_UNTIL_REPLAY_AND_GOVERNANCE_GATES"
+  }
+}
