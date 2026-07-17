@@ -73,6 +73,22 @@ export function parseDotenvFiles(filePaths) {
   return mergedEntries;
 }
 
+export function mergeEnvFileWithShell({
+  fileEnv,
+  shellEnv,
+  explicitEnvFileOverride = Boolean(shellEnv[DEV_ENV_FILE_OVERRIDE_ENV]?.trim()),
+}) {
+  const resolvedEnv = { ...shellEnv };
+
+  for (const [key, value] of Object.entries(fileEnv)) {
+    if (explicitEnvFileOverride || !resolvedEnv[key]) {
+      resolvedEnv[key] = value;
+    }
+  }
+
+  return resolvedEnv;
+}
+
 export function resolveEnvFilePaths(repoRoot, override = process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? "") {
   const requested = override.trim();
   if (!requested) {
@@ -176,7 +192,7 @@ export function assertExpectedFitnessSupabaseHost({
   commandName,
 }) {
   const expectedHost = resolveExpectedSupabaseHost(env[FITNESS_EXPECT_SUPABASE_HOST_ENV]);
-  const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || "");
+  const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || "");
   const usageTarget = commandName ? ` for ${commandName}` : "";
 
   if (!expectedHost) {
@@ -185,7 +201,7 @@ export function assertExpectedFitnessSupabaseHost({
 
   if (!actualHost) {
     throw new Error(
-      `Refusing to continue${usageTarget} without NEXT_PUBLIC_SUPABASE_URL. Expected Supabase host: ${expectedHost}.`,
+      `Refusing to continue${usageTarget} without NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL. Expected Supabase host: ${expectedHost}.`,
     );
   }
 
@@ -193,7 +209,7 @@ export function assertExpectedFitnessSupabaseHost({
     throw new Error(
       `Refusing to continue${usageTarget} because Fitness is pointed at the wrong Supabase project. ` +
       `Expected ${expectedHost}, received ${actualHost}. ` +
-      `Fix ${FITNESS_EXPECT_SUPABASE_HOST_ENV} or NEXT_PUBLIC_SUPABASE_URL before running the local Fitness workflow.`,
+      `Fix ${FITNESS_EXPECT_SUPABASE_HOST_ENV}, NEXT_PUBLIC_SUPABASE_URL, or SUPABASE_URL before running the local Fitness workflow.`,
     );
   }
 }
