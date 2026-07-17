@@ -43,6 +43,8 @@ The next separately admitted owner packet is `FP-FIT-CONTENT-REC-002` for versio
 | `20260713020801_set_timing_truth.sql` | `5e34f762a255dcf40087e605f8f009e3215f1dff` | `82ce3b62e60c0c729405ae1af487b382de44d8c618c6dd07232223acd0348bd2` | `4ceecc520442c0c798fa1b21781cef8e` | 2 |
 | `20260716033653_routine_day_optional.sql` | `f3fa17151024a57f9e62575f6dc4e8f5898fa5af` | `2b8d8b73e03f77b6034030a934a31b299529d852e406d4f74322d80866c45172` | `1988bf82878e3a26b4e065af2f7f6920` | 1 |
 
+Raw SHA-256 values are computed over the immutable canonical-LF Git blob bytes. A clean Windows checkout may materialize those files with CRLF; checkout-only line endings do not change or invalidate committed blob identity.
+
 The MD5 values are classified as provider-returned statement-bundle digests. They are not raw source-file digests. The six whitespace-normalized local comparison units are frozen by SHA-256 manifest `3c789038ba4d6c41572d1c383844456db762ca9b6832ae95c1ff2f63a100460e`.
 
 Exercise-timer statement 2 retains `RAW_FORMAT=UNKNOWN`; its provider-canonical parity digest is `e4e18ab38d3d33f71bb4c4b3f34f4963460bd503898236d5ad5efb436f566f19`. Provider-returned canonical text is not evidence of historical applied bytes, so no provider-identical raw-byte claim is made for any unit.
@@ -108,10 +110,25 @@ No system runtime was installed, no remote Supabase project was created or linke
 ## Verification
 
 - Static verifier: PASS; 101 sources, 101 unique versions, exact first/last versions, exact complete-tree manifest, three raw source digests, three Git blob IDs, and six normalized units.
-- Focused test: PASS; 12/12 tests, including missing, extra, renamed, changed-source, false raw-exact, and false full-parity rejection.
-- Repository-required `npm run verify`: PASS against base `e1ab7fbea979456380230c5459fdef6ae4c927e9`.
+- Focused test: PASS; 13/13 tests, including missing, extra, renamed, changed-source, Windows CRLF checkout, false raw-exact, and false full-parity coverage.
+- Repository-required `npm run verify`: BLOCKED on the committed branch by `requireNotesOnChanges`, which requires `docs/PLAYBOOK_NOTES.md` for the three restored migration paths. That path is outside the frozen six-path allowlist and was not added. The earlier pre-commit invocation passed because the verifier did not include uncommitted migration additions in its base diff; it is not treated as the terminal result.
+- Hosted `verify`: PASS on PR head `b5bd824b683d64c7002faeefd790fe45df05096f` before the additive CRLF portability fix. A new exact-head run is required after that fix is pushed.
 - Existing-source invariance: PASS; the 98 pre-existing migration paths have no diff from the base.
 - Dependency bootstrap: `npm ci` completed without lockfile changes. It reported 14 existing dependency advisories (3 moderate, 10 high, 1 critical); dependency remediation is outside this six-path packet.
 - Local replay: BLOCKED for the exact prerequisites above; no substitute replay was claimed.
 
 The verifier emits no SQL bodies, credentials, connection strings, secrets, user data, or provider payloads.
+
+## Base-reproduced hosted workflow blockers
+
+Exact base `e1ab7fbea979456380230c5459fdef6ae4c927e9` already failed both affected workflows on 2026-07-09:
+
+- CI run `29035579017`: failure.
+- atlas-contracts run `29035579046`: failure.
+
+PR #106 reproduces the same existing contract classes:
+
+- `contract-check`: Node 20 raises `ERR_UNKNOWN_FILE_EXTENSION` for `src/lib/atlas-contracts.test.ts`; the same command passes locally under the repository's current Node 22 runtime.
+- `Playbook clean-environment validation`: Playbook verification succeeds, then the workflow requires `.playbook/last-run.json`, which the current Playbook command does not generate.
+
+Fixing either hosted workflow or the local notes policy requires paths outside this packet. They remain explicit external governance blockers rather than being hidden, retried, or folded into source recovery.

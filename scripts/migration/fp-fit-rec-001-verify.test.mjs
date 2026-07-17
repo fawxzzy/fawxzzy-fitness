@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, mkdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -104,6 +104,26 @@ test("fails closed when source bytes change", () => {
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source manifest|raw sha256|git blob|normalized unit/u);
+  });
+});
+
+test("accepts a clean Windows CRLF checkout while freezing canonical Git blob bytes", () => {
+  withMigrationFixture((fixtureRoot, migrationDirectory) => {
+    for (const source of RECOVERED_SOURCES) {
+      const absolutePath = path.join(migrationDirectory, path.basename(source.path));
+      const lfText = readFileSync(absolutePath, "utf8").replace(/\r\n/gu, "\n");
+      writeFileSync(absolutePath, lfText.replace(/\n/gu, "\r\n"), "utf8");
+    }
+    const report = verifyRecovery({ repoRoot: fixtureRoot });
+    assert.equal(report.ok, true, report.issues.join("\n"));
+    assert.deepEqual(
+      report.recoveredSources.map(({ rawDigestInputClass }) => rawDigestInputClass),
+      [
+        "CANONICAL_LF_GIT_BLOB_BYTES",
+        "CANONICAL_LF_GIT_BLOB_BYTES",
+        "CANONICAL_LF_GIT_BLOB_BYTES",
+      ],
+    );
   });
 });
 

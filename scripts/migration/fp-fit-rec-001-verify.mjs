@@ -125,10 +125,14 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function gitBlobOid(contents) {
+function canonicalGitBytes(contents) {
   // Git's Windows checkout may materialize CRLF while the committed blob remains LF.
-  // The recovery manifest freezes committed Git identity, not platform checkout EOLs.
-  const normalizedContents = Buffer.from(contents.toString("utf8").replace(/\r\n/gu, "\n"), "utf8");
+  // Recovery digests freeze immutable Git blob bytes, not platform checkout EOLs.
+  return Buffer.from(contents.toString("utf8").replace(/\r\n/gu, "\n"), "utf8");
+}
+
+function gitBlobOid(contents) {
+  const normalizedContents = canonicalGitBytes(contents);
   const header = Buffer.from(`blob ${normalizedContents.length}\0`, "utf8");
   return createHash("sha1").update(header).update(normalizedContents).digest("hex");
 }
@@ -351,7 +355,7 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
       continue;
     }
     const contents = readFileSync(absolutePath);
-    const rawSha256 = sha256(contents);
+    const rawSha256 = sha256(canonicalGitBytes(contents));
     const gitBlob = gitBlobOid(contents);
     compareField(issues, rawSha256, expected.rawSha256, `${expected.path} raw sha256`);
     compareField(issues, gitBlob, expected.gitBlob, `${expected.path} git blob`);
@@ -368,6 +372,7 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
       path: expected.path,
       gitBlob,
       rawSha256,
+      rawDigestInputClass: "CANONICAL_LF_GIT_BLOB_BYTES",
       providerDigestClass: expected.providerDigestClass,
       providerBundleMd5: expected.providerBundleMd5,
       normalizedUnitCount: unitDigests.length,
