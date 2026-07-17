@@ -10,6 +10,7 @@ import {
   MANIFEST_PATH,
   MANIFEST_RELATIVE_PATH,
   REPO_ROOT,
+  resolveCommitRef,
   validateManifestContract,
   verifyReconciliation,
 } from "./fp-fit-content-rec-002-verify.mjs";
@@ -252,11 +253,12 @@ test("ignores uncommitted worktree manifest drift for a requested ref", () => {
 });
 
 test("CLI with no arguments verifies HEAD", () => {
+  const exactHead = runGit(REPO_ROOT, ["rev-parse", "HEAD"]);
   const result = runVerifierCli([]);
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(result.stdout);
   assert.equal(report.ok, true, report.issues.join("\n"));
-  assert.equal(report.ref, "HEAD");
+  assert.equal(report.ref, exactHead);
 });
 
 test("CLI --ref verifies the exact requested head", () => {
@@ -311,11 +313,59 @@ test("CLI requested-ref proof ignores unstaged and staged manifest drift", () =>
 
     const unstagedResult = runVerifierCli(["--ref", "HEAD"], fixtureRoot);
     assert.equal(unstagedResult.status, 0, unstagedResult.stderr);
-    assert.equal(JSON.parse(unstagedResult.stdout).ref, "HEAD");
+    const exactHead = runGit(fixtureRoot, ["rev-parse", "HEAD"]);
+    assert.equal(JSON.parse(unstagedResult.stdout).ref, exactHead);
 
     runGit(fixtureRoot, ["add", "--", MANIFEST_RELATIVE_PATH]);
     const stagedResult = runVerifierCli(["--ref", "HEAD"], fixtureRoot);
     assert.equal(stagedResult.status, 0, stagedResult.stderr);
-    assert.equal(JSON.parse(stagedResult.stdout).ref, "HEAD");
+    assert.equal(JSON.parse(stagedResult.stdout).ref, exactHead);
+  });
+});
+
+test("pins a symbolic ref to one commit before later Git reads", () => {
+  withDetachedFixture((fixtureRoot) => {
+    const symbolicRef = "refs/heads/verifier-moving-ref";
+    const exactHead = runGit(fixtureRoot, ["rev-parse", "HEAD"]);
+    runGit(fixtureRoot, ["update-ref", symbolicRef, exactHead]);
+
+    const pinnedCommit = resolveCommitRef(fixtureRoot, symbolicRef);
+    assert.equal(pinnedCommit, exactHead);
+
+    runGit(fixtureRoot, ["update-ref", symbolicRef, EXPECTED_MANIFEST.base.commit]);
+    assert.equal(
+      runGit(fixtureRoot, ["rev-parse", symbolicRef]),
+      EXPECTED_MANIFEST.base.commit,
+    );
+
+    const report = verifyReconciliation({ repoRoot: fixtureRoot, ref: pinnedCommit });
+    assert.equal(report.ok, true, report.issues.join("\n"));
+    assert.equal(report.ref, exactHead);
+  });
+});
+
+test("fails closed when a requested ref is unavailable", () => {
+  const report = verifyReconciliation({ ref: "refs/heads/does-not-exist" });
+  assert.equal(report.ok, false);
+  assert.equal(report.ref, null);
+  assert.deepEqual(
+    report.issues,
+    ["cannot resolve requested ref to a unique immutable commit SHA"],
+  );
+});
+
+test("fails closed when a requested ref name is ambiguous", () => {
+  withDetachedFixture((fixtureRoot) => {
+    const ambiguousName = "verifier-ambiguous-ref";
+    runGit(fixtureRoot, ["branch", ambiguousName, "HEAD"]);
+    runGit(fixtureRoot, ["tag", ambiguousName, EXPECTED_MANIFEST.base.commit]);
+
+    const report = verifyReconciliation({ repoRoot: fixtureRoot, ref: ambiguousName });
+    assert.equal(report.ok, false);
+    assert.equal(report.ref, null);
+    assert.deepEqual(
+      report.issues,
+      ["cannot resolve requested ref to a unique immutable commit SHA"],
+    );
   });
 });

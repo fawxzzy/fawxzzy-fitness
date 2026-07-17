@@ -141,6 +141,27 @@ function runGit(repoRoot, args, { text = true } = {}) {
   return result.stdout;
 }
 
+export function resolveCommitRef(repoRoot, ref) {
+  const result = spawnSync(
+    "git",
+    ["-C", repoRoot, "rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`],
+    {
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
+  const stdout = result.stdout?.trim() ?? "";
+  const stderr = result.stderr?.trim() ?? "";
+  if (
+    result.status !== 0
+    || stderr.length > 0
+    || !/^[0-9a-f]{40}$/u.test(stdout)
+  ) {
+    throw new Error("requested ref did not resolve uniquely to an immutable commit SHA");
+  }
+  return stdout;
+}
+
 function compareContract(actual, expected, contractPath, issues) {
   if (Array.isArray(expected)) {
     if (!Array.isArray(actual)) {
@@ -237,6 +258,17 @@ export function verifyReconciliation({
   repoRoot = REPO_ROOT,
   ref = "HEAD",
 } = {}) {
+  try {
+    ref = resolveCommitRef(repoRoot, ref);
+  } catch {
+    return {
+      ok: false,
+      packet: "FP-FIT-CONTENT-REC-002",
+      ref: null,
+      issues: ["cannot resolve requested ref to a unique immutable commit SHA"],
+    };
+  }
+
   const issues = [];
   let manifest;
   try {
