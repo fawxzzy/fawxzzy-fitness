@@ -1,5 +1,5 @@
 export function shouldApplyAutomaticSessionPromotion(args: {
-  candidateType: "promote" | "review" | "deload";
+  candidateType: "none" | "promote" | "review" | "deload";
   autoUpdateRoutineGoals?: boolean;
   sourceSessionRecordId?: string | null;
   completedSessionId: string;

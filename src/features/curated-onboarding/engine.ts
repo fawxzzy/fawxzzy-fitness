@@ -7,6 +7,7 @@ import type {
 export type CuratedPlanExercise = {
   slug: string;
   name: string;
+  measurementType: "reps" | "time";
   targetSets: number;
   targetRepsMin: number;
   targetRepsMax: number;
@@ -53,6 +54,8 @@ type ExerciseCandidate = {
   slug: string;
   name: string;
   equipment: EquipmentAccess[];
+  measurementType?: "reps" | "time";
+  targetDurationSeconds?: number;
 };
 
 const CANDIDATES: Record<MovementRole, ExerciseCandidate[]> = {
@@ -99,11 +102,11 @@ const CANDIDATES: Record<MovementRole, ExerciseCandidate[]> = {
     { slug: "bodyweight-walking-lunge", name: "Bodyweight Walking Lunge", equipment: ["bodyweight", "bands"] },
   ],
   core: [
-    { slug: "plank", name: "Plank", equipment: ["full-gym", "barbell", "dumbbells", "machines", "bands", "bodyweight"] },
+    { slug: "plank", name: "Plank", equipment: ["full-gym", "barbell", "dumbbells", "machines", "bands", "bodyweight"], measurementType: "time", targetDurationSeconds: 60 },
   ],
   cardio: [
-    { slug: "incline-walk", name: "Incline Walk", equipment: ["full-gym", "machines"] },
-    { slug: "mountain-climber", name: "Mountain Climber", equipment: ["barbell", "dumbbells", "bands", "bodyweight"] },
+    { slug: "incline-walk", name: "Incline Walk", equipment: ["full-gym", "machines"], measurementType: "time", targetDurationSeconds: 600 },
+    { slug: "mountain-climber", name: "Mountain Climber", equipment: ["barbell", "dumbbells", "bands", "bodyweight"], measurementType: "time", targetDurationSeconds: 60 },
   ],
 };
 
@@ -140,10 +143,91 @@ const SPLITS: Record<number, Array<{ name: string; roles: MovementRole[] }>> = {
   ],
 };
 
+function normalizeConstraint(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+const MOVEMENT_CONSTRAINT_TOKENS = new Set([
+  "squat",
+  "deadlift",
+  "press",
+  "row",
+  "lunge",
+  "pull",
+  "push",
+  "plank",
+  "walk",
+  "climber",
+  "bridge",
+]);
+
+function constraintTokens(value: string) {
+  return normalizeConstraint(value)
+    .split(" ")
+    .filter(Boolean)
+    .map((token) => token.length > 3 && token.endsWith("s") ? token.slice(0, -1) : token);
+}
+
+function buildIntakeConstraintExclusions(data: CuratedOnboardingData) {
+  const dislikes = new Set(data.exerciseDislikes.map(normalizeConstraint).filter(Boolean));
+  const limitationText = normalizeConstraint(data.limitations ?? "");
+  const limitationTokens = new Set(constraintTokens(data.limitations ?? ""));
+  const excluded = new Set<string>();
+
+  for (const candidates of Object.values(CANDIDATES)) {
+    for (const candidate of candidates) {
+      const normalizedSlug = normalizeConstraint(candidate.slug);
+      const normalizedName = normalizeConstraint(candidate.name);
+      const candidateMovementTokens = constraintTokens(candidate.name).filter((token) => MOVEMENT_CONSTRAINT_TOKENS.has(token));
+      const explicitlyDisliked = dislikes.has(normalizedSlug) || dislikes.has(normalizedName);
+      const namedInLimitations = Boolean(
+        limitationText
+        && (limitationText.includes(normalizedSlug)
+          || limitationText.includes(normalizedName)
+          || candidateMovementTokens.some((token) => limitationTokens.has(token))),
+      );
+      if (explicitlyDisliked || namedInLimitations) {
+        excluded.add(candidate.slug);
+      }
+    }
+  }
+
+  return excluded;
+}
+
 function chooseExercise(role: MovementRole, equipment: EquipmentAccess[], excludedSlugs = new Set<string>()) {
   const available = CANDIDATES[role].filter((candidate) => candidate.equipment.some((value) => equipment.includes(value)));
-  const selected = available.find((candidate) => !excludedSlugs.has(candidate.slug)) ?? available[0];
-  return selected ?? CANDIDATES[role][CANDIDATES[role].length - 1];
+  const selected = available.find((candidate) => !excludedSlugs.has(candidate.slug));
+  if (selected) {
+    return selected;
+  }
+  if (available.length > 0) {
+    throw new Error(`No safe ${role.replace(/-/g, " ")} exercise matches the selected equipment and constraints.`);
+  }
+  return CANDIDATES[role][CANDIDATES[role].length - 1];
+}
+
+export function deriveCuratedExerciseTarget(exercise: CuratedPlanExercise) {
+  return exercise.measurementType === "time"
+    ? {
+        measurementType: "time" as const,
+        targetRepsMin: null,
+        targetRepsMax: null,
+        targetDurationSeconds: exercise.targetDurationSeconds ?? 60,
+      }
+    : {
+        measurementType: "reps" as const,
+        targetRepsMin: exercise.targetRepsMin,
+        targetRepsMax: exercise.targetRepsMax,
+        targetDurationSeconds: null,
+      };
+}
+
+export function formatCuratedExerciseTarget(exercise: CuratedPlanExercise) {
+  const target = deriveCuratedExerciseTarget(exercise);
+  return target.measurementType === "time"
+    ? `${exercise.targetSets}x${Math.round(target.targetDurationSeconds / 60)} min`
+    : `${exercise.targetSets}x${target.targetRepsMin}-${target.targetRepsMax}`;
 }
 
 function getTargetRange(goal: TrainingGoal, role: MovementRole) {
@@ -191,10 +275,12 @@ function generateCuratedWorkoutPlanWithSignals(
   const daysPerWeek = shouldReduceSchedule ? requestedDaysPerWeek - 1 : requestedDaysPerWeek;
   const sessionLengthMinutes = data.sessionLengthMinutes as number;
   const equipment = signals?.availableEquipment?.length ? signals.availableEquipment : data.equipment;
-  const excludedSlugs = new Set([
+  const adaptiveExcludedSlugs = new Set([
     ...(signals?.failedExerciseSlugs ?? []),
     ...(signals?.fatiguedExerciseSlugs ?? []),
   ]);
+  const intakeExcludedSlugs = buildIntakeConstraintExclusions(data);
+  const excludedSlugs = new Set([...adaptiveExcludedSlugs, ...intakeExcludedSlugs]);
   const exerciseLimit = sessionLengthMinutes <= 30 ? 4 : sessionLengthMinutes <= 45 ? 5 : sessionLengthMinutes <= 60 ? 6 : 7;
   const baseSets = data.experience === "beginner" ? 3 : goal === "get-stronger" ? 4 : 3;
   const split = SPLITS[daysPerWeek];
@@ -205,10 +291,10 @@ function generateCuratedWorkoutPlanWithSignals(
       const range = getTargetRange(goal, role);
       return {
         ...exercise,
+        measurementType: exercise.measurementType ?? "reps",
         targetSets: role === "cardio" ? 1 : role === "core" || index >= 3 ? Math.min(baseSets, 3) : baseSets,
         targetRepsMin: range.min,
         targetRepsMax: range.max,
-        ...(role === "cardio" && exercise.slug === "incline-walk" ? { targetDurationSeconds: 600 } : {}),
         progressionPlaybookId: "double_progression" as const,
       };
     }),
@@ -227,6 +313,8 @@ function generateCuratedWorkoutPlanWithSignals(
     equipment: [...equipment].sort(),
     preferredStyle: data.preferredStyle ?? null,
     cardioPreference: data.cardioPreference ?? null,
+    limitations: normalizeConstraint(data.limitations ?? ""),
+    exerciseDislikes: data.exerciseDislikes.map(normalizeConstraint).filter(Boolean).sort(),
     adaptiveSignals: signals ? {
       completionRate: signals.completionRate,
       missedWorkoutCount: signals.missedWorkoutCount,
@@ -239,8 +327,11 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(shouldReduceSchedule
       ? [`Recent completion supports ${daysPerWeek} days instead of the requested ${requestedDaysPerWeek}; the draft stays editable.`]
       : []),
-    ...(excludedSlugs.size > 0
-      ? [`Recent failed-target or fatigue signals replaced ${excludedSlugs.size} exercise choice${excludedSlugs.size === 1 ? "" : "s"} where an equipment-compatible alternative existed.`]
+    ...(adaptiveExcludedSlugs.size > 0
+      ? [`Recent failed-target or fatigue signals replaced ${adaptiveExcludedSlugs.size} exercise choice${adaptiveExcludedSlugs.size === 1 ? "" : "s"} where an equipment-compatible alternative existed.`]
+      : []),
+    ...(intakeExcludedSlugs.size > 0
+      ? [`Your stated limitations or exercise exclusions removed ${intakeExcludedSlugs.size} exercise choice${intakeExcludedSlugs.size === 1 ? "" : "s"}.`]
       : []),
   ];
 

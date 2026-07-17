@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChipButton } from "@/components/ui/Chip";
 import type { ActionResult } from "@/lib/action-result";
+import { isSessionExerciseFeedbackComplete } from "@/lib/session-feedback-ui";
 import {
   formatSessionCopilotFeedbackLabel,
   getSessionCopilotFeedbackTone,
@@ -57,6 +58,7 @@ export function SessionExerciseFeedbackPrompt({
   const [isSaving, setIsSaving] = useState(false);
   const savedSignatureRef = useRef<string | null>(null);
   const canSave = hasFeedbackAnswer({ signal, note, effort });
+  const canFinalize = isSessionExerciseFeedbackComplete({ signal, effortValue: effort });
 
   useEffect(() => {
     if (!canSave || isSaving) return;
@@ -75,7 +77,7 @@ export function SessionExerciseFeedbackPrompt({
         note: normalizedNote,
         effort,
       }).then((result) => {
-        if (result.ok) {
+        if (result.ok && canFinalize) {
           onSaved({ signal, note: normalizedNote, effort });
           return;
         }
@@ -87,7 +89,7 @@ export function SessionExerciseFeedbackPrompt({
     }, 700);
 
     return () => window.clearTimeout(timeoutId);
-  }, [canSave, effort, isSaving, note, onSaved, sessionExerciseId, sessionId, signal, updateFeedbackAction]);
+  }, [canFinalize, canSave, effort, isSaving, note, onSaved, sessionExerciseId, sessionId, signal, updateFeedbackAction]);
 
   return (
     <div

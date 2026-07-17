@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -10,6 +11,7 @@ import {
   buildSessionEffortNotePlaceholder,
   buildSessionProgressionFeedbackSummaryLabel,
   buildSessionProgressionStateLabel,
+  isSessionExerciseFeedbackComplete,
   type ComparableSessionLoggerDraftState,
 } from "./session-feedback-ui.ts";
 
@@ -234,4 +236,17 @@ test("areSessionLoggerDraftStatesEqual detects feedback and form drift", () => {
     ),
     false,
   );
+});
+
+test("feedback finalization waits for both a text signal and effort score", () => {
+  assert.equal(isSessionExerciseFeedbackComplete({ signal: "too_hard", effortValue: null }), false);
+  assert.equal(isSessionExerciseFeedbackComplete({ signal: null, effortValue: 8 }), false);
+  assert.equal(isSessionExerciseFeedbackComplete({ signal: "too_hard", effortValue: 8 }), true);
+});
+
+test("feedback prompt acknowledges partial saves without dismissing until complete", () => {
+  const source = readFileSync(new URL("../components/session/SessionExerciseFeedbackPrompt.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /if \(result\.ok && canFinalize\)/);
+  assert.match(source, /isSessionExerciseFeedbackComplete\(\{ signal, effortValue: effort \}\)/);
 });

@@ -3,6 +3,7 @@
 import { createRoutineAction } from "@/app/routines/actions";
 import {
   generateAdaptiveCuratedWorkoutPlan,
+  deriveCuratedExerciseTarget,
   type CuratedHistorySignals,
   type CuratedWorkoutPlan,
 } from "@/features/curated-onboarding/engine";
@@ -173,19 +174,19 @@ export async function createCuratedRoutineDraftAction(
 
     const exercisePayload = day.exercises.map((exercise, position) => {
       const catalogExercise = exerciseByName.get(exercise.name)!;
-      const measurementType = catalogExercise.measurement_type ?? "reps";
-      const usesReps = measurementType === "reps";
+      const target = deriveCuratedExerciseTarget(exercise);
+      const usesReps = target.measurementType === "reps";
       return {
         user_id: user.id,
         routine_day_id: createdDay.id,
         exercise_id: catalogExercise.id,
         position,
         target_sets: exercise.targetSets,
-        target_reps: usesReps ? exercise.targetRepsMin : null,
-        target_reps_min: usesReps ? exercise.targetRepsMin : null,
-        target_reps_max: usesReps ? exercise.targetRepsMax : null,
-        target_duration_seconds: exercise.targetDurationSeconds ?? (measurementType === "time" ? 60 : null),
-        measurement_type: measurementType,
+        target_reps: target.targetRepsMin,
+        target_reps_min: target.targetRepsMin,
+        target_reps_max: target.targetRepsMax,
+        target_duration_seconds: target.targetDurationSeconds,
+        measurement_type: target.measurementType,
         default_unit: catalogExercise.default_unit ?? (usesReps ? "reps" : null),
         progression_playbook_id: exercise.progressionPlaybookId,
         progression_playbook_config: progressionConfig,

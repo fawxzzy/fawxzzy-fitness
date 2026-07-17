@@ -4,6 +4,17 @@ import type { SessionTargetHintSource } from "@/lib/session-target-hints";
 
 export const SESSION_FEEDBACK_SUMMARY_SEPARATOR = " | ";
 
+export function isSessionExerciseFeedbackComplete(args: {
+  signal: SessionCopilotFeedbackSignal | null;
+  effortValue: number | null;
+}) {
+  return args.signal !== null
+    && args.effortValue !== null
+    && Number.isFinite(args.effortValue)
+    && args.effortValue >= 1
+    && args.effortValue <= 10;
+}
+
 export type SessionProgressionStateSummaryInput = {
   progressionPlaybookId?: string | null;
   progressionSessionSettingsEnabled?: boolean | null;

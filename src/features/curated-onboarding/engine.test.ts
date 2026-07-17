@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
+import { deriveCuratedExerciseTarget, formatCuratedExerciseTarget, generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
 import type { CuratedOnboardingData } from "./types.ts";
 
 function intake(overrides: Partial<CuratedOnboardingData> = {}): CuratedOnboardingData {
@@ -88,4 +88,51 @@ test("adaptive curated engine swaps failed exercises within available equipment"
   });
   assert.equal(plan.days.flatMap((day) => day.exercises).some((exercise) => exercise.slug === "barbell-bench-press"), false);
   assert.match(plan.rationale.join(" "), /equipment-compatible alternative/i);
+});
+
+test("curated engine deterministically excludes stated exercise constraints", () => {
+  const disliked = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym"],
+    exerciseDislikes: ["Back Squat"],
+  }));
+  const limited = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym"],
+    limitations: "Avoid back squats due to knee pain.",
+  }));
+
+  assert.equal(disliked.days.flatMap((day) => day.exercises).some((exercise) => exercise.slug === "back-squat"), false);
+  assert.equal(limited.days.flatMap((day) => day.exercises).some((exercise) => exercise.slug === "back-squat"), false);
+  assert.match(disliked.rationale.join(" "), /exercise exclusions removed/i);
+});
+
+test("curated engine fails safely when every equipment-compatible candidate is excluded", () => {
+  assert.throws(
+    () => generateCuratedWorkoutPlan(intake({
+      daysPerWeek: 2,
+      equipment: ["bodyweight"],
+      exerciseDislikes: ["Plank"],
+    })),
+    /No safe core exercise matches/i,
+  );
+});
+
+test("curated preview and draft target derivation agree for time-based exercises", () => {
+  const plan = generateCuratedWorkoutPlan(intake({
+    daysPerWeek: 2,
+    equipment: ["bodyweight"],
+  }));
+  const exercises = plan.days.flatMap((day) => day.exercises);
+  const plank = exercises.find((exercise) => exercise.slug === "plank");
+  const mountainClimber = exercises.find((exercise) => exercise.slug === "mountain-climber");
+
+  assert.ok(plank);
+  assert.ok(mountainClimber);
+  assert.deepEqual(deriveCuratedExerciseTarget(plank), {
+    measurementType: "time",
+    targetRepsMin: null,
+    targetRepsMax: null,
+    targetDurationSeconds: 60,
+  });
+  assert.equal(formatCuratedExerciseTarget(plank), `${plank.targetSets}x1 min`);
+  assert.equal(formatCuratedExerciseTarget(mountainClimber), `${mountainClimber.targetSets}x1 min`);
 });
