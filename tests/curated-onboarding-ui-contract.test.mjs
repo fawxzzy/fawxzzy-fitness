@@ -18,23 +18,24 @@ test("curated onboarding uses the signed-in Fitness screen and bottom-action con
   assert.match(shell, /BottomActionSingle/);
   assert.match(shell, /BottomActionSplit/);
   assert.match(shell, /BottomDockButton/);
-  assert.match(shell, /BottomDockLink/);
   assert.match(shell, /pointer-events-auto/);
   assert.doesNotMatch(shell, /AuthShell|AuthCard|curatedCard|curatedActionRow/);
 });
 
 test("curated onboarding keeps operator review actions on canonical app patterns", () => {
   const shell = readComponent("CuratedOnboardingShell.tsx");
-  const intro = readComponent("CuratedIntroStep.tsx");
   const progress = readComponent("CuratedOnboardingProgress.tsx");
+  const review = readComponent("ReviewStep.tsx");
 
   assert.match(shell, /ROUTINE_CARD_DELETE_TEXT_CLASS_NAME/);
-  assert.match(shell, /Build manually/);
-  assert.doesNotMatch(intro, /Build manually/);
   assert.match(shell, /canAccessCuratedStep/);
   assert.match(shell, /type: "go-to-step"/);
+  assert.match(shell, /CURATED_FORM_STEP_ORDER/);
+  assert.match(review, /<details/);
+  assert.match(review, /onEdit/);
   assert.match(progress, /aria-label="Edit setup pages"/);
   assert.match(progress, /aria-current/);
+  assert.match(progress, /steps\.length/);
 });
 test("curated user UI does not expose raw intake state or implementation-oriented snapshot chrome", () => {
   const handoff = readComponent("GenerationHandoffStep.tsx");
@@ -44,20 +45,23 @@ test("curated user UI does not expose raw intake state or implementation-oriente
   assert.match(handoff, /SignatureMiniPipe/);
 });
 
-test("curated steps reuse canonical controls instead of auth-form or route-local token families", () => {
+test("curated questionnaire reuses app cards and accessible selectable controls", () => {
   const stepSources = [
-    "ConstraintsStep.tsx",
-    "CuratedIntroStep.tsx",
-    "EquipmentStep.tsx",
-    "ExperienceStep.tsx",
-    "GoalsStep.tsx",
-    "PreferencesStep.tsx",
+    "QuestionnaireStep.tsx",
     "ReviewStep.tsx",
-    "ScheduleStep.tsx",
   ].map(readComponent).join("\n");
 
-  assert.match(stepSources, /LabeledEditorField/);
-  assert.match(stepSources, /SegmentedControl/);
-  assert.match(stepSources, /PillButton/);
+  assert.match(stepSources, /CuratedInfoCard/);
+  assert.match(stepSources, /aria-checked/);
+  assert.match(stepSources, /role=\{multiple \? "checkbox" : "radio"\}/);
+  assert.match(stepSources, /data-curated-question/);
   assert.doesNotMatch(stepSources, /AuthField|appTokens\.curated/);
+});
+
+test("the live shell renders the parity questionnaire rather than the legacy six-step components", () => {
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+
+  assert.match(shell, /QuestionnaireStep/);
+  assert.match(shell, /getCuratedIntakeSection/);
+  assert.doesNotMatch(shell, /<GoalsStep|<ExperienceStep|<ScheduleStep|<EquipmentStep|<ConstraintsStep|<PreferencesStep/);
 });

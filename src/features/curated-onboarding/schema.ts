@@ -11,6 +11,7 @@ import {
   SESSION_LENGTH_OPTIONS,
   TRAINING_GOAL_OPTIONS,
 } from "./constants.ts";
+import { CURATED_QUESTION_IDS, deriveCuratedEngineData } from "./questionnaire.ts";
 import type {
   CuratedGenerationStatus,
   CuratedIntakeStatus,
@@ -55,11 +56,32 @@ function normalizeIntegerValue(value: unknown, allowed: readonly number[]) {
 function cloneEmptyCuratedOnboardingData(): CuratedOnboardingData {
   return {
     ...EMPTY_CURATED_ONBOARDING_DATA,
+    intakeResponses: {},
     equipment: [...EMPTY_CURATED_ONBOARDING_DATA.equipment],
     exerciseLikes: [...EMPTY_CURATED_ONBOARDING_DATA.exerciseLikes],
     exerciseDislikes: [...EMPTY_CURATED_ONBOARDING_DATA.exerciseDislikes],
     targetAreas: [...EMPTY_CURATED_ONBOARDING_DATA.targetAreas],
   };
+}
+
+function normalizeIntakeResponses(value: unknown) {
+  const record = asRecord(value);
+  const responses: CuratedOnboardingData["intakeResponses"] = {};
+
+  if (!record) return responses;
+
+  for (const questionId of CURATED_QUESTION_IDS) {
+    const valueForQuestion = record[questionId];
+    if (typeof valueForQuestion === "boolean") responses[questionId] = valueForQuestion;
+    else if (typeof valueForQuestion === "string") responses[questionId] = valueForQuestion.trim();
+    else if (Array.isArray(valueForQuestion)) responses[questionId] = normalizeStringArray(valueForQuestion);
+
+    const otherKey = `${questionId}Other`;
+    const otherValue = record[otherKey];
+    if (typeof otherValue === "string" && otherValue.trim()) responses[otherKey] = otherValue.trim();
+  }
+
+  return responses;
 }
 
 export function isCuratedStepId(value: unknown): value is CuratedStepId {
@@ -87,6 +109,10 @@ export function normalizeCuratedOnboardingData(value: unknown): CuratedOnboardin
   next.exerciseLikes = normalizeStringArray(record.exerciseLikes);
   next.exerciseDislikes = normalizeStringArray(record.exerciseDislikes);
   next.targetAreas = normalizeStringArray(record.targetAreas);
+  next.intakeResponses = normalizeIntakeResponses(record.intakeResponses);
+
+  const derived = deriveCuratedEngineData(next.intakeResponses, next);
+  Object.assign(next, derived, { intakeResponses: next.intakeResponses });
 
   return next;
 }
@@ -160,9 +186,13 @@ function migrateLegacyCuratedOnboardingState(record: Record<string, unknown>, le
   }
 
   const completedAt = legacyCompletedAt ?? null;
+  const draft = {
+    ...legacyDraft,
+    stepId: completedAt ? "generation-handoff" as const : "intro" as const,
+  };
 
   return {
-    draft: legacyDraft,
+    draft,
     lifecycle: {
       intakeStatus: completedAt ? "completed" : "draft",
       generationStatus: completedAt ? "not-implemented" : "idle",
@@ -170,6 +200,43 @@ function migrateLegacyCuratedOnboardingState(record: Record<string, unknown>, le
       completedAt,
     },
     message: null,
+  };
+}
+
+function migrateVersionTwoState(record: Record<string, unknown>, legacyCompletedAt: string | null): CuratedOnboardingState | null {
+  const wrapperDraft = asRecord(record.draft);
+  const draftSource = wrapperDraft ?? record;
+  const version = draftSource.version;
+
+  if (version !== 2) return null;
+
+  const draft = validateCuratedOnboardingDraft({
+    version: CURATED_ONBOARDING_DRAFT_VERSION,
+    draftId: draftSource.draftId,
+    stepId: draftSource.stepId,
+    updatedAt: draftSource.updatedAt,
+    data: draftSource.data,
+  });
+
+  if (!draft) return null;
+
+  const lifecycleSource = asRecord(record.lifecycle);
+  const lifecycle = lifecycleSource
+    ? normalizeLifecycle(lifecycleSource)
+    : {
+        intakeStatus: legacyCompletedAt ? "completed" as const : "draft" as const,
+        generationStatus: legacyCompletedAt ? "not-implemented" as const : "idle" as const,
+        planId: null,
+        completedAt: legacyCompletedAt,
+      };
+
+  return {
+    draft: {
+      ...draft,
+      stepId: lifecycle.intakeStatus === "completed" ? "generation-handoff" : "intro",
+    },
+    lifecycle,
+    message: typeof record.message === "string" ? record.message : null,
   };
 }
 
@@ -193,6 +260,10 @@ export function validateCuratedOnboardingState(value: unknown, options?: { legac
       lifecycle: lifecycleRecord,
       message: typeof record.message === "string" ? record.message : null,
     };
+  }
+
+  if (record.version === 2) {
+    return migrateVersionTwoState(record, options?.legacyCompletedAt ?? null);
   }
 
   if (record.version === 1) {

@@ -43,7 +43,7 @@ function readVersionedFlagAt(userId: string, suffix: "completed" | "entry-seen",
     const parsed = JSON.parse(raw) as Partial<VersionedFlagRecord>;
 
     if (
-      (parsed.version !== 1 && parsed.version !== CURATED_ONBOARDING_DRAFT_VERSION)
+      (![1, 2, CURATED_ONBOARDING_DRAFT_VERSION].includes(parsed.version ?? -1))
       || typeof parsed.at !== "string"
       || parsed.at.length === 0
     ) {

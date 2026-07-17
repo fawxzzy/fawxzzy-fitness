@@ -33,7 +33,7 @@ export function CuratedOnboardingProgress({
 
       <nav
         className="grid gap-1 pt-1"
-        style={{ gridTemplateColumns: "repeat(9, minmax(0, 1fr))" }}
+        style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
         aria-label="Edit setup pages"
       >
         {steps.map((step, index) => {

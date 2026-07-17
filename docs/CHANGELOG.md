@@ -2,13 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## Unreleased - 2026-07-16
 
 ### WHAT
-- Corrected clean-environment CI to require only the planning artifacts produced by its non-applying Playbook ladder. `.playbook/last-run.json` remains an apply execution-state artifact.
+- Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
+- Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
+- Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
 
 ### WHY
-- Prevents CI from requiring an artifact that the documented read-only ladder cannot produce, while preserving execution-state evidence for governed apply paths.
+- Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
+- A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
 
 ## 1.0.1 - 2026-06-24
 
@@ -1909,7 +1912,7 @@ A shared bottom action component enforces a default ordering, causing unintended
 ### WHAT
 - Updated `.github/workflows/ci.yml` to define `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` at job scope as a required deterministic input and fail fast when it is missing.
 - Refined Playbook acquisition logic in CI to follow the explicit sequence `install -> acquire package -> acquire official fallback -> run`, including an opt-in `PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1` path for deterministic fallback-only simulations.
-- Tightened CI runtime validation to require the artifacts emitted by its command ladder: `.playbook/findings.json`, `.playbook/plan.json`, and `.playbook/repo-graph.json`; `.playbook/last-run.json` remains apply-only execution state.
+- Tightened CI runtime validation to require `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json` instead of only checking for any file under `.playbook/`.
 - Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to codify the deterministic fallback requirement and required artifact contract.
 
 ### WHY

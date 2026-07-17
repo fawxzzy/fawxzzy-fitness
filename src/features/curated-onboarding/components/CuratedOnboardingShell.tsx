@@ -9,7 +9,7 @@ import {
   BottomActionSingle,
   BottomActionSplit,
 } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
 import { ROUTINE_CARD_DELETE_TEXT_CLASS_NAME } from "@/components/routines/routineCardChrome";
@@ -25,8 +25,13 @@ import {
   trackCuratedResumed,
   trackCuratedStarted,
 } from "../analytics.ts";
-import { CURATED_STEP_ORDER } from "../constants.ts";
+import { CURATED_FORM_STEP_ORDER } from "../constants.ts";
 import { createCuratedOnboardingState } from "../fixtures.ts";
+import {
+  deriveCuratedEngineData,
+  getCuratedIntakeSection,
+  getMissingRequiredQuestionIds,
+} from "../questionnaire.ts";
 import { curatedOnboardingReducer } from "../reducer.ts";
 import {
   canAdvanceCuratedStep,
@@ -46,29 +51,23 @@ import {
 import { getCuratedStepDefinition } from "../step-registry.ts";
 import type { CuratedWorkoutPlan } from "../engine.ts";
 import type {
-  CardioPreference,
+  CuratedIntakeResponse,
+  CuratedIntakeResponses,
   CuratedOnboardingData,
-  ExperienceLevel,
-  EquipmentAccess,
-  PreferredStyle,
-  TrainingGoal,
+  CuratedOnboardingState,
   CuratedStepId,
 } from "../types.ts";
-import { ConstraintsStep } from "./ConstraintsStep";
-import { CuratedIntroStep } from "./CuratedIntroStep";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
 import { CuratedOnboardingProgress } from "./CuratedOnboardingProgress";
-import { EquipmentStep } from "./EquipmentStep";
-import { ExperienceStep } from "./ExperienceStep";
-import { GoalsStep } from "./GoalsStep";
-import { PreferencesStep } from "./PreferencesStep";
+import { QuestionnaireStep } from "./QuestionnaireStep";
 import { ReviewStep } from "./ReviewStep";
-import { ScheduleStep } from "./ScheduleStep";
 import { GenerationHandoffStep } from "./GenerationHandoffStep";
 import { writeRoutineDraftSession } from "@/lib/routine-draft-session";
 
 type CuratedOnboardingShellProps = {
   userId: string;
+  userEmail: string;
+  userName: string;
   requestedDraftId?: string | null;
 };
 
@@ -79,7 +78,33 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnboardingShellProps) {
+function withCuratedIdentity(state: CuratedOnboardingState, userEmail: string, userName: string) {
+  const intakeResponses: CuratedIntakeResponses = {
+    ...state.draft.data.intakeResponses,
+    ...(userEmail.trim() ? { email: userEmail.trim() } : {}),
+    ...(!state.draft.data.intakeResponses.name && userName.trim() ? { name: userName.trim() } : {}),
+  };
+  const derived = deriveCuratedEngineData(intakeResponses, state.draft.data);
+
+  return {
+    ...state,
+    draft: {
+      ...state.draft,
+      data: {
+        ...state.draft.data,
+        ...derived,
+        intakeResponses,
+      },
+    },
+  };
+}
+
+export function CuratedOnboardingShell({
+  userId,
+  userEmail,
+  userName,
+  requestedDraftId,
+}: CuratedOnboardingShellProps) {
   const router = useRouter();
   const [state, dispatch] = useReducer(curatedOnboardingReducer, undefined, () => createCuratedOnboardingState());
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -88,6 +113,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   const [didResumeDraft, setDidResumeDraft] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<CuratedWorkoutPlan | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [validationStepId, setValidationStepId] = useState<CuratedStepId | null>(null);
   const [isCreatingDraft, startCreatingDraft] = useTransition();
   const journeyTrackedRef = useRef(false);
   const completionTrackedRef = useRef(false);
@@ -109,18 +135,22 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     const savedState = loadCuratedOnboardingState(userId);
 
     if (savedState) {
-      dispatch({ type: "hydrate", state: savedState });
+      dispatch({ type: "hydrate", state: withCuratedIdentity(savedState, userEmail, userName) });
       const shouldResume = savedState.lifecycle.intakeStatus === "draft";
 
       setDidResumeDraft(shouldResume);
       setCompletionSource(shouldResume ? "resumed" : "fresh");
     } else {
+      dispatch({
+        type: "hydrate",
+        state: withCuratedIdentity(createCuratedOnboardingState(), userEmail, userName),
+      });
       setDidResumeDraft(false);
       setCompletionSource("fresh");
     }
 
     setHasHydrated(true);
-  }, [userId]);
+  }, [userEmail, userId, userName]);
 
   useEffect(() => {
     if (!hasHydrated || journeyTrackedRef.current || state.lifecycle.intakeStatus !== "draft") {
@@ -250,11 +280,16 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
 
   const stepDefinition = getCuratedStepDefinition(state.draft.stepId);
   const progressValue = getCuratedProgressValue(state.draft.stepId);
-  const currentStep = getCuratedStepIndex(state.draft.stepId) + 1;
+  const currentStep = state.draft.stepId === "generation-handoff"
+    ? CURATED_FORM_STEP_ORDER.length
+    : getCuratedStepIndex(state.draft.stepId) + 1;
   const canAdvance = canAdvanceCuratedStep(state.draft.stepId, state.draft.data);
   const blockingMessage = getCuratedStepBlockingMessage(state.draft.stepId);
   const showBack = canGoBackCuratedStep(state.draft.stepId);
-  const isIntroStep = state.draft.stepId === "intro";
+  const activeSection = getCuratedIntakeSection(state.draft.stepId);
+  const invalidQuestionIds = validationStepId === state.draft.stepId
+    ? getMissingRequiredQuestionIds(state.draft.stepId, state.draft.data.intakeResponses)
+    : [];
   const missingRequestedDraft = Boolean(requestedDraftId && hasHydrated && !didResumeDraft);
   const saveLabel =
     saveState === "error"
@@ -277,6 +312,19 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     });
   }
 
+  function patchResponse(questionId: string, value: CuratedIntakeResponse) {
+    const intakeResponses = {
+      ...state.draft.data.intakeResponses,
+      [questionId]: value,
+    };
+    const derived = deriveCuratedEngineData(intakeResponses, state.draft.data);
+
+    patchData({
+      ...derived,
+      intakeResponses,
+    });
+  }
+
   function handleReset() {
     resetCuratedOnboardingProgress(userId);
     journeyTrackedRef.current = false;
@@ -288,9 +336,10 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     setCompletionSource("fresh");
     setDidResumeDraft(false);
     setSaveState("idle");
+    setValidationStepId(null);
     dispatch({
       type: "reset",
-      nextState: createCuratedOnboardingState(),
+      nextState: withCuratedIdentity(createCuratedOnboardingState(), userEmail, userName),
     });
   }
 
@@ -302,6 +351,21 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
       return;
     }
 
+    const missingQuestionIds = getMissingRequiredQuestionIds(
+      state.draft.stepId,
+      state.draft.data.intakeResponses,
+    );
+    if (missingQuestionIds.length > 0) {
+      setValidationStepId(state.draft.stepId);
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector(`[data-curated-question="${missingQuestionIds[0]}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
+
+    setValidationStepId(null);
     dispatch({ type: "go-next", at });
   }
 
@@ -325,77 +389,27 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   }
 
   function renderStepBody() {
-    if (state.draft.stepId === "intro") {
-      return <CuratedIntroStep />;
-    }
-
-    if (state.draft.stepId === "goals") {
+    if (activeSection) {
       return (
-        <GoalsStep
-          data={state.draft.data}
-          onChange={(value: TrainingGoal) => patchData({ trainingGoal: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "experience") {
-      return (
-        <ExperienceStep
-          data={state.draft.data}
-          onChange={(value: ExperienceLevel) => patchData({ experience: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "equipment") {
-      return (
-        <EquipmentStep
-          data={state.draft.data}
-          onToggle={(value: EquipmentAccess) => {
-            const equipment = state.draft.data.equipment.includes(value)
-              ? state.draft.data.equipment.filter((entry) => entry !== value)
-              : [...state.draft.data.equipment, value];
-
-            patchData({ equipment });
-          }}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "schedule") {
-      return (
-        <ScheduleStep
-          data={state.draft.data}
-          onDaysChange={(value) => patchData({ daysPerWeek: value })}
-          onSessionLengthChange={(value) => patchData({ sessionLengthMinutes: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "preferences") {
-      return (
-        <PreferencesStep
-          data={state.draft.data}
-          onStyleChange={(value: PreferredStyle) => patchData({ preferredStyle: value })}
-          onCardioChange={(value: CardioPreference) => patchData({ cardioPreference: value })}
-          onLikesChange={(value) => patchData({ exerciseLikes: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "constraints") {
-      return (
-        <ConstraintsStep
-          data={state.draft.data}
-          onLimitationsChange={(value) => patchData({ limitations: value })}
-          onDislikesChange={(value) => patchData({ exerciseDislikes: value })}
-          onTargetAreasChange={(value) => patchData({ targetAreas: value })}
+        <QuestionnaireStep
+          section={activeSection}
+          responses={state.draft.data.intakeResponses}
+          invalidQuestionIds={invalidQuestionIds}
+          onResponseChange={patchResponse}
         />
       );
     }
 
     if (state.draft.stepId === "review") {
-      return <ReviewStep data={state.draft.data} />;
+      return (
+        <ReviewStep
+          data={state.draft.data}
+          onEdit={(stepId) => {
+            setValidationStepId(null);
+            dispatch({ type: "go-to-step", stepId, at: nowIso() });
+          }}
+        />
+      );
     }
 
     if (state.draft.stepId === "generation-handoff") {
@@ -432,29 +446,6 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
         {generationError ? "Plan unavailable" : "Create editable draft"}
       </BottomDockButton>
     </BottomActionSingle>
-  ) : isIntroStep ? (
-    <BottomActionSplit
-      className="grid-cols-[minmax(88px,0.68fr)_minmax(0,2fr)]"
-      secondary={(
-        <BottomDockLink
-          href="/routines/new"
-          intent="toggleInactive"
-          className="px-2 text-[0.7rem]"
-        >
-          Build manually
-        </BottomDockLink>
-      )}
-      primary={(
-        <BottomDockButton
-          type="button"
-          intent="positive"
-          disabled={!canAdvance}
-          onClick={handlePrimaryAction}
-        >
-          {stepDefinition.nextLabel}
-        </BottomDockButton>
-      )}
-    />
   ) : showBack ? (
     <BottomActionSplit
       secondary={(
@@ -470,7 +461,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
         <BottomDockButton
           type="button"
           intent="positive"
-          disabled={!canAdvance}
+          disabled={state.draft.stepId === "review" && !canAdvance}
           onClick={handlePrimaryAction}
         >
           {stepDefinition.nextLabel}
@@ -482,7 +473,6 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
       <BottomDockButton
         type="button"
         intent="positive"
-        disabled={!canAdvance}
         onClick={handlePrimaryAction}
       >
         {stepDefinition.nextLabel}
@@ -502,7 +492,9 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
                 subtitle={(
                   <SignatureInlineList
                     separator="pipe"
-                    items={[stepDefinition.eyebrow, `${currentStep} of ${CURATED_STEP_ORDER.length}`]}
+                    items={isGenerationStep
+                      ? [stepDefinition.eyebrow]
+                      : [stepDefinition.eyebrow, `${currentStep} of ${CURATED_FORM_STEP_ORDER.length}`]}
                     className="justify-center"
                   />
                 )}
@@ -521,19 +513,22 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
       >
         <ContentRail className="pb-6 pt-2">
           <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-[720px] space-y-3">
-            <CuratedOnboardingProgress
-              currentStep={currentStep}
-              totalSteps={CURATED_STEP_ORDER.length}
-              progress={progressValue}
-              steps={CURATED_STEP_ORDER.map((stepId) => ({
-                id: stepId,
-                label: getCuratedStepDefinition(stepId).eyebrow,
-                available: stepId === "generation-handoff"
-                  ? isGenerationStep
-                  : canAccessCuratedStep(stepId, state.draft.data),
-              }))}
-              onStepSelect={(stepId: CuratedStepId) => dispatch({ type: "go-to-step", stepId, at: nowIso() })}
-            />
+            {!isGenerationStep ? (
+              <CuratedOnboardingProgress
+                currentStep={currentStep}
+                totalSteps={CURATED_FORM_STEP_ORDER.length}
+                progress={progressValue}
+                steps={CURATED_FORM_STEP_ORDER.map((stepId) => ({
+                  id: stepId,
+                  label: getCuratedStepDefinition(stepId).eyebrow,
+                  available: canAccessCuratedStep(stepId, state.draft.data),
+                }))}
+                onStepSelect={(stepId: CuratedStepId) => {
+                  setValidationStepId(null);
+                  dispatch({ type: "go-to-step", stepId, at: nowIso() });
+                }}
+              />
+            ) : null}
 
             <header className="space-y-2 px-1 text-center">
               <h1 className="text-[1.32rem] font-semibold leading-tight tracking-[-0.025em] text-[rgb(var(--text-primary))] sm:text-[1.5rem]">
@@ -566,7 +561,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
               {renderStepBody()}
             </section>
 
-            {blockingMessage && !canAdvance ? (
+            {blockingMessage && validationStepId === state.draft.stepId && !canAdvance ? (
               <p className="px-2 text-center text-[11px] leading-5 text-[rgb(var(--text-muted)/0.9)]">{blockingMessage}</p>
             ) : null}
 

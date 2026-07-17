@@ -27,12 +27,14 @@ function createMemoryStorage(initial: Record<string, string> = {}) {
 test("curated onboarding storage loads a valid saved lifecycle state", () => {
   const storage = createMemoryStorage();
   const state = createCuratedOnboardingState({
-    draft: {
-      version: 2,
+    draft: createCuratedOnboardingDraft({
       draftId: "draft-5",
       stepId: "schedule",
       updatedAt: "2026-01-04T00:00:00.000Z",
       data: {
+        intakeResponses: {
+          email: "member@example.com",
+        },
         trainingGoal: "general-fitness",
         experience: "beginner",
         daysPerWeek: 4,
@@ -44,11 +46,52 @@ test("curated onboarding storage loads a valid saved lifecycle state", () => {
         exerciseDislikes: [],
         targetAreas: [],
       },
-    },
+    }),
   });
 
   assert.equal(saveCuratedOnboardingState("user-1", state, storage), true);
   assert.deepEqual(loadCuratedOnboardingState("user-1", storage), state);
+});
+
+test("curated onboarding storage migrates a v2 draft to the first parity page without losing engine inputs", () => {
+  const storage = createMemoryStorage({
+    "fawxzzy:curated-onboarding:v1:user-v2:state": JSON.stringify({
+      version: 2,
+      draft: {
+        version: 2,
+        draftId: "draft-v2",
+        stepId: "schedule",
+        updatedAt: "2026-01-04T00:00:00.000Z",
+        data: {
+          trainingGoal: "general-fitness",
+          experience: "beginner",
+          daysPerWeek: 4,
+          sessionLengthMinutes: 45,
+          equipment: ["bodyweight"],
+          preferredStyle: "full-body",
+          cardioPreference: "balanced",
+          exerciseLikes: [],
+          exerciseDislikes: [],
+          targetAreas: [],
+        },
+      },
+      lifecycle: {
+        intakeStatus: "draft",
+        generationStatus: "idle",
+        planId: null,
+        completedAt: null,
+      },
+      message: null,
+    }),
+  });
+
+  const state = loadCuratedOnboardingState("user-v2", storage);
+
+  assert.equal(state?.draft.version, 3);
+  assert.equal(state?.draft.stepId, "intro");
+  assert.equal(state?.draft.data.daysPerWeek, 4);
+  assert.deepEqual(state?.draft.data.equipment, ["bodyweight"]);
+  assert.deepEqual(state?.draft.data.intakeResponses, {});
 });
 
 test("curated onboarding storage falls back cleanly when the saved state is malformed", () => {

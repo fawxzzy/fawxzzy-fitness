@@ -1,10 +1,9 @@
+import { CURATED_FORM_STEP_ORDER, CURATED_STEP_ORDER } from "./constants.ts";
 import {
-  CARDIO_PREFERENCE_OPTIONS,
-  CURATED_STEP_ORDER,
-  EXPERIENCE_LEVEL_OPTIONS,
-  PREFERRED_STYLE_OPTIONS,
-  TRAINING_GOAL_OPTIONS,
-} from "./constants.ts";
+  CURATED_INTAKE_SECTIONS,
+  formatCuratedResponse,
+  getMissingRequiredQuestionIds,
+} from "./questionnaire.ts";
 import type { CuratedOnboardingData, CuratedOnboardingDraft, CuratedStepId } from "./types.ts";
 
 export type CuratedRoutineMenuOption = {
@@ -12,16 +11,14 @@ export type CuratedRoutineMenuOption = {
   label: "Build for me" | "Resume build";
 };
 
-function findOptionLabel<T extends string>(value: T | null | undefined, options: Array<{ value: T; label: string }>) {
-  return options.find((option) => option.value === value)?.label ?? "Not set";
-}
-
 export function getCuratedStepIndex(stepId: CuratedStepId) {
   return Math.max(CURATED_STEP_ORDER.indexOf(stepId), 0);
 }
 
 export function getCuratedProgressValue(stepId: CuratedStepId) {
-  return Math.round(((getCuratedStepIndex(stepId) + 1) / CURATED_STEP_ORDER.length) * 100);
+  if (stepId === "generation-handoff") return 100;
+  const formIndex = Math.max(CURATED_FORM_STEP_ORDER.indexOf(stepId), 0);
+  return Math.round(((formIndex + 1) / CURATED_FORM_STEP_ORDER.length) * 100);
 }
 
 export function canGoBackCuratedStep(stepId: CuratedStepId) {
@@ -32,9 +29,7 @@ export function resolveCuratedRoutineMenuOption(args: {
   enabled: boolean;
   savedDraftId: string | null;
 }): CuratedRoutineMenuOption | null {
-  if (!args.enabled) {
-    return null;
-  }
+  if (!args.enabled) return null;
 
   const savedDraftId = args.savedDraftId?.trim();
   if (!savedDraftId) {
@@ -51,8 +46,13 @@ export function resolveCuratedRoutineMenuOption(args: {
 }
 
 export function isCuratedOnboardingReadyForHandoff(data: CuratedOnboardingData) {
+  const questionnaireComplete = CURATED_INTAKE_SECTIONS.every(
+    (section) => getMissingRequiredQuestionIds(section.stepId, data.intakeResponses).length === 0,
+  );
+
   return Boolean(
-    data.trainingGoal
+    questionnaireComplete
+    && data.trainingGoal
     && data.experience
     && data.equipment.length > 0
     && data.daysPerWeek
@@ -63,14 +63,16 @@ export function isCuratedOnboardingReadyForHandoff(data: CuratedOnboardingData) 
 }
 
 export function hasCuratedOnboardingProgress(draft: CuratedOnboardingDraft) {
-  if (getCuratedStepIndex(draft.stepId) > 0) {
-    return true;
-  }
+  if (getCuratedStepIndex(draft.stepId) > 0) return true;
 
   const { data } = draft;
-
   return Boolean(
-    data.trainingGoal
+    Object.values(data.intakeResponses).some((value) =>
+      value === true
+      || (typeof value === "string" && value.trim().length > 0)
+      || (Array.isArray(value) && value.length > 0),
+    )
+    || data.trainingGoal
     || data.experience
     || data.daysPerWeek
     || data.sessionLengthMinutes
@@ -85,98 +87,34 @@ export function hasCuratedOnboardingProgress(draft: CuratedOnboardingDraft) {
 }
 
 export function canAdvanceCuratedStep(stepId: CuratedStepId, data: CuratedOnboardingData) {
-  if (stepId === "intro" || stepId === "constraints" || stepId === "generation-handoff") {
-    return true;
-  }
-
-  if (stepId === "goals") {
-    return Boolean(data.trainingGoal);
-  }
-
-  if (stepId === "experience") {
-    return Boolean(data.experience);
-  }
-
-  if (stepId === "equipment") {
-    return data.equipment.length > 0;
-  }
-
-  if (stepId === "schedule") {
-    return Boolean(data.daysPerWeek && data.sessionLengthMinutes);
-  }
-
-  if (stepId === "preferences") {
-    return Boolean(data.preferredStyle && data.cardioPreference);
-  }
-
-  return isCuratedOnboardingReadyForHandoff(data);
+  if (stepId === "generation-handoff") return true;
+  if (stepId === "review") return isCuratedOnboardingReadyForHandoff(data);
+  return getMissingRequiredQuestionIds(stepId, data.intakeResponses).length === 0;
 }
 
 export function canAccessCuratedStep(stepId: CuratedStepId, data: CuratedOnboardingData) {
-  if (stepId === "generation-handoff") {
-    return false;
-  }
+  if (stepId === "generation-handoff") return false;
 
   const targetIndex = getCuratedStepIndex(stepId);
-  return CURATED_STEP_ORDER
+  return CURATED_FORM_STEP_ORDER
     .slice(0, targetIndex)
     .every((previousStepId) => canAdvanceCuratedStep(previousStepId, data));
 }
 
 export function getCuratedStepBlockingMessage(stepId: CuratedStepId) {
-  if (stepId === "goals") return "Choose the training focus that should lead the routine.";
-  if (stepId === "experience") return "Choose the experience level that matches your current baseline.";
-  if (stepId === "equipment") return "Choose at least one equipment setup.";
-  if (stepId === "schedule") return "Set both weekly training days and session length.";
-  if (stepId === "preferences") return "Set both the split preference and cardio preference.";
-  if (stepId === "review") return "Complete the required setup inputs before saving the intake.";
-  return null;
+  if (stepId === "review") return "Complete each required question before generating the routine.";
+  if (stepId === "generation-handoff") return null;
+  return "Answer each required question on this page to continue.";
 }
 
 export function getCuratedReviewSections(data: CuratedOnboardingDraft["data"]) {
-  return [
-    {
-      title: "Training focus",
-      value: findOptionLabel(data.trainingGoal, TRAINING_GOAL_OPTIONS),
-    },
-    {
-      title: "Experience",
-      value: findOptionLabel(data.experience, EXPERIENCE_LEVEL_OPTIONS),
-    },
-    {
-      title: "Schedule",
-      value:
-        data.daysPerWeek && data.sessionLengthMinutes
-          ? `${data.daysPerWeek} days per week - ${data.sessionLengthMinutes} minutes`
-          : "Not set",
-    },
-    {
-      title: "Equipment",
-      value: data.equipment.length > 0 ? data.equipment.join(", ") : "Not set",
-    },
-    {
-      title: "Preferred style",
-      value: findOptionLabel(data.preferredStyle, PREFERRED_STYLE_OPTIONS),
-    },
-    {
-      title: "Cardio preference",
-      value: findOptionLabel(data.cardioPreference, CARDIO_PREFERENCE_OPTIONS),
-    },
-    {
-      title: "Limitations",
-      value: data.limitations?.trim() || "None logged",
-    },
-    {
-      title: "Exercise likes",
-      value: data.exerciseLikes.length > 0 ? data.exerciseLikes.join(", ") : "None logged",
-    },
-    {
-      title: "Exercise dislikes",
-      value: data.exerciseDislikes.length > 0 ? data.exerciseDislikes.join(", ") : "None logged",
-    },
-    {
-      title: "Target areas",
-      value: data.targetAreas.length > 0 ? data.targetAreas.join(", ") : "None logged",
-    },
-  ];
+  return CURATED_INTAKE_SECTIONS.map((section) => ({
+    stepId: section.stepId,
+    title: section.title,
+    answers: section.questions.map((question) => ({
+      id: question.id,
+      label: question.label,
+      value: formatCuratedResponse(question, data.intakeResponses),
+    })),
+  }));
 }

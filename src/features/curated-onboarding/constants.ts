@@ -8,23 +8,30 @@ import type {
   TrainingGoal,
 } from "./types.ts";
 
-export const CURATED_ONBOARDING_DRAFT_VERSION = 2 as const;
+export const CURATED_ONBOARDING_DRAFT_VERSION = 3 as const;
 export const CURATED_ONBOARDING_PRIMARY_DRAFT_ID = "curated-primary";
 export const CURATED_ONBOARDING_STORAGE_PREFIX = "fawxzzy:curated-onboarding:v1";
 
-export const CURATED_STEP_ORDER: CuratedStepId[] = [
+export const CURATED_FORM_STEP_ORDER: CuratedStepId[] = [
   "intro",
   "goals",
   "experience",
-  "equipment",
   "schedule",
-  "preferences",
+  "equipment",
   "constraints",
+  "preferences",
+  "nutrition",
+  "delivery",
   "review",
+];
+
+export const CURATED_STEP_ORDER: CuratedStepId[] = [
+  ...CURATED_FORM_STEP_ORDER,
   "generation-handoff",
 ];
 
 export const EMPTY_CURATED_ONBOARDING_DATA: CuratedOnboardingData = {
+  intakeResponses: {},
   trainingGoal: null,
   experience: null,
   daysPerWeek: null,
@@ -73,8 +80,8 @@ export const CARDIO_PREFERENCE_OPTIONS: Array<{ value: CardioPreference; label: 
   { value: "focus", label: "Cardio Focus", description: "Treat cardio as a meaningful part of the plan." },
 ];
 
-export const DAYS_PER_WEEK_OPTIONS = [2, 3, 4, 5, 6] as const;
-export const SESSION_LENGTH_OPTIONS = [30, 45, 60, 75] as const;
+export const DAYS_PER_WEEK_OPTIONS = [1, 2, 3, 4, 5, 6, 7] as const;
+export const SESSION_LENGTH_OPTIONS = [30, 45, 60, 75, 90] as const;
 
 export const CURATED_INTRO_CARDS = [
   {
