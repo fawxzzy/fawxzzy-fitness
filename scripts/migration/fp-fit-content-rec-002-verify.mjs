@@ -20,7 +20,7 @@ export const EXPECTED_MANIFEST = Object.freeze({
   repository: "fawxzzy/fawxzzy-fitness",
   base: {
     branch: "codex/fp-fit-rec-001-source-recovery",
-    commit: "7a7b21148199d49b3165651e41575b1fb74a1c12",
+    commit: "7389a0762f0d4318844681ecd06744fcc9138e2e",
   },
   sourceTree: {
     migrationCount: 101,

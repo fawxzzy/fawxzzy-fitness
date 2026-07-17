@@ -6,7 +6,7 @@ Repository: `fawxzzy/fawxzzy-fitness`
 
 Base branch: `codex/fp-fit-rec-001-source-recovery`
 
-Exact base: `7a7b21148199d49b3165651e41575b1fb74a1c12`
+Exact base: `7389a0762f0d4318844681ecd06744fcc9138e2e`
 
 Packet branch: `codex/fp-fit-content-rec-002`
 
@@ -33,6 +33,12 @@ Version `20260709073000` has a provider-canonical representation but no reachabl
 5. `docs/ops/FP-FIT-CONTENT-REC-002-RECEIPT.md`
 
 No package, product, application, UI, general test, other migration, recovered PR-106 source, or `docs/PLAYBOOK_NOTES.md` path is changed by this packet.
+
+## Re-admission and residue preservation
+
+ATLAS MAIN re-admitted this packet after the bounded PR-106 review fix. The new base `7389a0762f0d4318844681ecd06744fcc9138e2e` is one clean additive commit over the old base `7a7b21148199d49b3165651e41575b1fb74a1c12`. Its three changed paths are the prior packet's receipt, verifier, and focused test; none overlaps this packet's five paths.
+
+The preserved five-path residue was committed on the old base as local checkpoint `5fad1278b06dcd71f6fbd450e927e29d0632cc08`, then that single commit was rebased non-interactively without conflict onto the new base as `af4d02a6265123a5f98d148b11d126c4fc2cfe97`. All five committed Git blob IDs matched across the rebase. The only later additive metadata change updates this receipt, the provenance manifest, and the verifier from the old base identity to the new admitted base identity; the migration and focused-test blobs remain unchanged.
 
 ## Provenance result
 
