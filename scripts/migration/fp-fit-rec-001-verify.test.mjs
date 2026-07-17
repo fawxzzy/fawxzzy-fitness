@@ -260,6 +260,32 @@ test("rejects a false full-parity claim", () => {
   assert.ok(issues.some((issue) => issue.includes("liveCatalog.parityGate")));
 });
 
+test("accepts the frozen live catalog digest class", () => {
+  const evidence = cloneEvidence();
+  assert.equal(
+    evidence.liveCatalog.catalogDigestClass,
+    "VERSION_NAME_STATEMENT_COUNT_PROVIDER_BUNDLE_CANONICAL_SHA256",
+  );
+  assert.deepEqual(validateEvidenceContract(evidence), []);
+  assert.equal(verifyRecovery({ evidence }).liveEvidence.catalogDigestClass, evidence.liveCatalog.catalogDigestClass);
+});
+
+test("rejects a missing live catalog digest class", () => {
+  const evidence = cloneEvidence();
+  delete evidence.liveCatalog.catalogDigestClass;
+  const report = verifyRecovery({ evidence });
+  assert.equal(report.ok, false);
+  assert.ok(report.issues.some((issue) => issue.includes("liveCatalog.catalogDigestClass")));
+});
+
+test("rejects an altered live catalog digest class", () => {
+  const evidence = cloneEvidence();
+  evidence.liveCatalog.catalogDigestClass = "CATALOG_SHA256_WITHOUT_CANONICALIZATION_CONTRACT";
+  const report = verifyRecovery({ evidence });
+  assert.equal(report.ok, false);
+  assert.ok(report.issues.some((issue) => issue.includes("liveCatalog.catalogDigestClass")));
+});
+
 test("freezes the two name aliases and the measured parity denominators", () => {
   assert.equal(FROZEN_PARITY_EVIDENCE.historicalNameDrifts.length, 2);
   assert.deepEqual(

@@ -358,6 +358,7 @@ export function validateEvidenceContract(evidence = FROZEN_PARITY_EVIDENCE) {
     "rawByteParity",
     "overallContentParity",
     "parityGate",
+    "catalogDigestClass",
     "catalogSha256",
     "providerStatementManifestSha256",
     "localStatementManifestSha256",
@@ -503,6 +504,7 @@ export function verifyRecovery({
       rawByteParity: evidence?.liveCatalog?.rawByteParity,
       overallContentParity: evidence?.liveCatalog?.overallContentParity,
       parityGate: evidence?.liveCatalog?.parityGate,
+      catalogDigestClass: evidence?.liveCatalog?.catalogDigestClass,
     },
     issues,
   };
