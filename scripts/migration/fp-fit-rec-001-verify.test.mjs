@@ -20,6 +20,7 @@ function cloneEvidence() {
 function runGit(repoRoot, args, options = {}) {
   return execFileSync("git", ["-C", repoRoot, ...args], {
     encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
     ...options,
   });
 }
@@ -30,20 +31,12 @@ function withMigrationFixture(run) {
   mkdirSync(path.dirname(fixtureMigrationDirectory), { recursive: true });
   cpSync(path.join(REPO_ROOT, "supabase", "migrations"), fixtureMigrationDirectory, { recursive: true });
   runGit(fixtureRoot, ["init", "--quiet"]);
-  runGit(fixtureRoot, ["config", "core.autocrlf", "false"]);
+  runGit(fixtureRoot, ["config", "core.autocrlf", "input"]);
   runGit(fixtureRoot, ["config", "user.name", "FP-FIT-REC-001 Test"]);
   runGit(fixtureRoot, ["config", "user.email", "fp-fit-rec-001@example.invalid"]);
-  const sourceObjectDirectory = runGit(REPO_ROOT, ["rev-parse", "--git-path", "objects"]).trim();
-  const alternateInfoDirectory = path.join(fixtureRoot, ".git", "objects", "info");
-  mkdirSync(alternateInfoDirectory, { recursive: true });
-  writeFileSync(
-    path.join(alternateInfoDirectory, "alternates"),
-    `${path.resolve(REPO_ROOT, sourceObjectDirectory).split(path.sep).join("/")}\n`,
-    "utf8",
-  );
-  const sourceIndex = runGit(REPO_ROOT, ["ls-files", "--stage", "--", "supabase/migrations"]);
-  runGit(fixtureRoot, ["update-index", "--index-info"], { input: sourceIndex });
+  runGit(fixtureRoot, ["add", "--", "supabase/migrations"]);
   runGit(fixtureRoot, ["commit", "--quiet", "-m", "fixture migration tree"]);
+  runGit(fixtureRoot, ["config", "core.autocrlf", "false"]);
   try {
     run(fixtureRoot, fixtureMigrationDirectory);
   } finally {
@@ -94,9 +87,10 @@ test("freezes the three exact raw source and Git blob digests", () => {
 test("fails closed when a migration source is missing", () => {
   withMigrationFixture((fixtureRoot) => {
     runGit(fixtureRoot, ["rm", "--quiet", "--", "supabase/migrations/20260716033653_routine_day_optional.sql"]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "remove recovered source"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
-    assert.match(report.issues.join("\n"), /migration source count|migration source manifest|missing recovered source/u);
+    assert.match(report.issues.join("\n"), /migration source count|migration source manifest|missing committed recovered source/u);
   });
 });
 
@@ -104,6 +98,7 @@ test("fails closed when an extra migration source appears", () => {
   withMigrationFixture((fixtureRoot, migrationDirectory) => {
     writeFileSync(path.join(migrationDirectory, "99999999999999_unadmitted.sql"), "select 1;\n", "utf8");
     runGit(fixtureRoot, ["add", "--", "supabase/migrations/99999999999999_unadmitted.sql"]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "add unadmitted source"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source count|migration source manifest/u);
@@ -117,9 +112,10 @@ test("fails closed when a migration source is renamed", () => {
       "supabase/migrations/20260713020801_set_timing_truth.sql",
       "supabase/migrations/20260713020801_set_timing_truth_renamed.sql",
     ]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "rename recovered source"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
-    assert.match(report.issues.join("\n"), /migration source manifest|missing recovered source/u);
+    assert.match(report.issues.join("\n"), /migration source manifest|missing committed recovered source/u);
   });
 });
 
@@ -127,13 +123,14 @@ test("fails closed when source bytes change", () => {
   withMigrationFixture((fixtureRoot, migrationDirectory) => {
     writeFileSync(path.join(migrationDirectory, "20260713020801_set_timing_truth.sql"), "changed\n", "utf8");
     runGit(fixtureRoot, ["add", "--", "supabase/migrations/20260713020801_set_timing_truth.sql"]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "change recovered source"]);
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source manifest|raw sha256|git blob|normalized unit/u);
   });
 });
 
-test("accepts a clean Windows CRLF checkout while freezing indexed Git blob bytes", () => {
+test("accepts a clean Windows CRLF checkout while freezing committed-tree blob bytes", () => {
   withMigrationFixture((fixtureRoot, migrationDirectory) => {
     for (const source of RECOVERED_SOURCES) {
       const absolutePath = path.join(migrationDirectory, path.basename(source.path));
@@ -145,9 +142,9 @@ test("accepts a clean Windows CRLF checkout while freezing indexed Git blob byte
     assert.deepEqual(
       report.recoveredSources.map(({ rawDigestInputClass }) => rawDigestInputClass),
       [
-        "GIT_INDEX_BLOB_BYTES",
-        "GIT_INDEX_BLOB_BYTES",
-        "GIT_INDEX_BLOB_BYTES",
+        "GIT_COMMIT_TREE_BLOB_BYTES",
+        "GIT_COMMIT_TREE_BLOB_BYTES",
+        "GIT_COMMIT_TREE_BLOB_BYTES",
       ],
     );
   });
@@ -166,6 +163,84 @@ test("rejects CRLF when CRLF bytes are actually committed", () => {
     const report = verifyRecovery({ repoRoot: fixtureRoot });
     assert.equal(report.ok, false);
     assert.match(report.issues.join("\n"), /migration source manifest|raw sha256|git blob/u);
+  });
+});
+
+test("rejects a staged expected blob over a wrong committed HEAD", () => {
+  withMigrationFixture((fixtureRoot) => {
+    const source = RECOVERED_SOURCES[0];
+    runGit(fixtureRoot, ["rm", "--quiet", "--", source.path]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "commit wrong migration tree"]);
+    runGit(fixtureRoot, ["restore", "--source=HEAD^", "--staged", "--worktree", "--", source.path]);
+    const stagedEntry = runGit(fixtureRoot, ["ls-files", "--stage", "--", source.path]);
+    assert.match(stagedEntry, new RegExp(source.gitBlob, "u"));
+
+    const report = verifyRecovery({ repoRoot: fixtureRoot });
+    assert.equal(report.ok, false);
+    assert.match(report.issues.join("\n"), /migration source count|migration source manifest|missing committed recovered source/u);
+  });
+});
+
+test("rejects a missing authoritative commitish deterministically", () => {
+  withMigrationFixture((fixtureRoot) => {
+    const report = verifyRecovery({
+      repoRoot: fixtureRoot,
+      commitish: "0000000000000000000000000000000000000000",
+    });
+    assert.equal(report.ok, false);
+    assert.equal(report.sourceTree.commit, null);
+    assert.match(report.issues.join("\n"), /cannot read authoritative Git commit tree/u);
+  });
+});
+
+test("rejects an explicit commitish whose checkpoint tree is wrong", () => {
+  withMigrationFixture((fixtureRoot, migrationDirectory) => {
+    const source = RECOVERED_SOURCES[0];
+    writeFileSync(path.join(migrationDirectory, path.basename(source.path)), "wrong checkpoint tree\n", "utf8");
+    runGit(fixtureRoot, ["add", "--", source.path]);
+    runGit(fixtureRoot, ["commit", "--quiet", "-m", "commit wrong checkpoint tree"]);
+    const wrongCommit = runGit(fixtureRoot, ["rev-parse", "HEAD"]).trim();
+
+    const report = verifyRecovery({ repoRoot: fixtureRoot, commitish: wrongCommit });
+    assert.equal(report.ok, false);
+    assert.equal(report.sourceTree.commit, wrongCommit);
+    assert.match(report.issues.join("\n"), /migration source manifest|raw sha256|git blob/u);
+  });
+});
+
+for (const source of RECOVERED_SOURCES) {
+  test(`rejects a wrong committed blob mapping for ${source.path}`, () => {
+    withMigrationFixture((fixtureRoot, migrationDirectory) => {
+      writeFileSync(path.join(migrationDirectory, path.basename(source.path)), "wrong recovered blob\n", "utf8");
+      runGit(fixtureRoot, ["add", "--", source.path]);
+      runGit(fixtureRoot, ["commit", "--quiet", "-m", `map wrong blob for ${path.basename(source.path)}`]);
+
+      const report = verifyRecovery({ repoRoot: fixtureRoot });
+      assert.equal(report.ok, false);
+      assert.match(report.issues.join("\n"), new RegExp(source.path.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+      assert.match(report.issues.join("\n"), /raw sha256|git blob/u);
+    });
+  });
+}
+
+test("accepts committed source identities when historical provenance object is unavailable", () => {
+  withMigrationFixture((fixtureRoot) => {
+    assert.throws(() => runGit(fixtureRoot, [
+      "cat-file",
+      "-e",
+      `${FROZEN_PARITY_EVIDENCE.sourceTree.historicalRecoveryProvenance.commit}^{commit}`,
+    ]));
+
+    const report = verifyRecovery({ repoRoot: fixtureRoot });
+    assert.equal(report.ok, true, report.issues.join("\n"));
+    assert.deepEqual(report.historicalRecoveryProvenance, {
+      classification: "HISTORICAL_ADVISORY",
+      commit: "60e2c1b182b87e5a719d9c32227c1d2ccf7ebeb5",
+      publicImmutableRef: null,
+      availability: "UNKNOWN",
+      requiredForAcceptance: false,
+      resolutionAttempted: false,
+    });
   });
 });
 

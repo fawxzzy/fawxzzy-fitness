@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -13,9 +12,15 @@ export const FROZEN_PARITY_EVIDENCE = Object.freeze({
     migrationCount: 101,
     firstVersion: "001",
     lastVersion: "20260716033653",
-    manifestClass: "PATH_TAB_GIT_INDEX_BLOB_OID_NO_TRAILING_LF_SHA256",
+    manifestClass: "PATH_TAB_GIT_COMMIT_TREE_BLOB_OID_NO_TRAILING_LF_SHA256",
     manifestSha256: "d0671af0c557969ce3d24c2a9b41975adeacc0d4073103fd1513426242c1557e",
-    recoveryCommit: "60e2c1b182b87e5a719d9c32227c1d2ccf7ebeb5",
+    historicalRecoveryProvenance: Object.freeze({
+      classification: "HISTORICAL_ADVISORY",
+      commit: "60e2c1b182b87e5a719d9c32227c1d2ccf7ebeb5",
+      publicImmutableRef: null,
+      availability: "UNKNOWN",
+      requiredForAcceptance: false,
+    }),
   }),
   liveCatalog: Object.freeze({
     versionCount: 101,
@@ -126,15 +131,26 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function normalizeCheckoutEols(contents) {
-  return Buffer.from(contents.toString("utf8").replace(/\r\n/gu, "\n"), "utf8");
+function resolveCommit(repoRoot, commitish) {
+  if (typeof commitish !== "string" || commitish.length === 0 || /[\0\r\n]/u.test(commitish)) {
+    throw new Error("commitish must be a non-empty single-line string");
+  }
+  const resolved = execFileSync(
+    "git",
+    ["-C", repoRoot, "rev-parse", "--verify", "--end-of-options", `${commitish}^{commit}`],
+    { encoding: "utf8", maxBuffer: 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
+  ).trim();
+  if (!/^[0-9a-f]{40}$/u.test(resolved)) {
+    throw new Error(`unexpected resolved commit identity: ${resolved}`);
+  }
+  return resolved;
 }
 
-function readIndexMigrationEntries(repoRoot) {
+function readCommitMigrationEntries(repoRoot, commit) {
   const output = execFileSync(
     "git",
-    ["-C", repoRoot, "ls-files", "--stage", "-z", "--", "supabase/migrations"],
-    { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 },
+    ["-C", repoRoot, "ls-tree", "-r", "-z", "--full-tree", commit, "--", "supabase/migrations"],
+    { encoding: "buffer", maxBuffer: 16 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
   );
 
   return output
@@ -142,17 +158,22 @@ function readIndexMigrationEntries(repoRoot) {
     .split("\0")
     .filter(Boolean)
     .map((record) => {
-      const match = record.match(/^(\d+) ([0-9a-f]{40}) ([0-3])\t(.+)$/u);
-      if (!match) throw new Error(`cannot parse Git index entry: ${record}`);
-      const [, mode, oid, stage, relativePath] = match;
-      if (stage !== "0") throw new Error(`unmerged Git index entry is not allowed: ${relativePath}`);
-      return { mode, oid, path: relativePath };
+      const match = record.match(/^([0-7]{6}) (blob|tree|commit) ([0-9a-f]{40})\t(.+)$/u);
+      if (!match) throw new Error(`cannot parse Git commit-tree entry: ${record}`);
+      const [, mode, type, oid, relativePath] = match;
+      return { mode, type, oid, path: relativePath };
     })
     .filter((entry) => entry.path.endsWith(".sql"))
+    .map((entry) => {
+      if (entry.type !== "blob" || entry.mode !== "100644") {
+        throw new Error(`migration source must be a regular non-executable blob: ${entry.path}`);
+      }
+      return entry;
+    })
     .sort((left, right) => (left.path === right.path ? 0 : left.path < right.path ? -1 : 1));
 }
 
-function readIndexBlobs(repoRoot, entries) {
+function readGitBlobs(repoRoot, entries) {
   if (entries.length === 0) return [];
   const output = execFileSync(
     "git",
@@ -161,6 +182,7 @@ function readIndexBlobs(repoRoot, entries) {
       input: Buffer.from(`${entries.map((entry) => entry.oid).join("\n")}\n`, "utf8"),
       encoding: "buffer",
       maxBuffer: 64 * 1024 * 1024,
+      stdio: ["pipe", "pipe", "pipe"],
     },
   );
   const blobs = [];
@@ -178,7 +200,7 @@ function readIndexBlobs(repoRoot, entries) {
     const bodyStart = headerEnd + 1;
     const bodyEnd = bodyStart + size;
     if (bodyEnd >= output.length || output[bodyEnd] !== 0x0a) {
-      throw new Error(`truncated Git index blob for ${entry.path}`);
+      throw new Error(`truncated Git commit-tree blob for ${entry.path}`);
     }
     blobs.push(output.subarray(bodyStart, bodyEnd));
     offset = bodyEnd + 1;
@@ -186,29 +208,6 @@ function readIndexBlobs(repoRoot, entries) {
 
   if (offset !== output.length) throw new Error("unexpected trailing Git cat-file output");
   return blobs;
-}
-
-function toPosixPath(value) {
-  return value.split(path.sep).join("/");
-}
-
-function collectMigrationPaths(directory, relativeDirectory = "supabase/migrations") {
-  const paths = [];
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const absolutePath = path.join(directory, entry.name);
-    const relativePath = `${relativeDirectory}/${entry.name}`;
-    if (entry.isSymbolicLink()) {
-      throw new Error(`symbolic links are not allowed in the migration source tree: ${toPosixPath(relativePath)}`);
-    }
-    if (entry.isDirectory()) {
-      paths.push(...collectMigrationPaths(absolutePath, relativePath));
-      continue;
-    }
-    if (entry.isFile() && entry.name.endsWith(".sql")) {
-      paths.push(toPosixPath(relativePath));
-    }
-  }
-  return paths.sort();
 }
 
 function splitSqlStatements(sql) {
@@ -326,6 +325,26 @@ function compareField(issues, actual, expected, label) {
 export function validateEvidenceContract(evidence = FROZEN_PARITY_EVIDENCE) {
   const issues = [];
   const expected = FROZEN_PARITY_EVIDENCE;
+  const actualSourceTree = evidence?.sourceTree ?? {};
+  const expectedSourceTree = expected.sourceTree;
+  for (const key of [
+    "migrationCount",
+    "firstVersion",
+    "lastVersion",
+    "manifestClass",
+    "manifestSha256",
+  ]) {
+    compareField(issues, actualSourceTree[key], expectedSourceTree[key], `sourceTree.${key}`);
+  }
+  compareField(
+    issues,
+    JSON.stringify(actualSourceTree.historicalRecoveryProvenance),
+    JSON.stringify(expectedSourceTree.historicalRecoveryProvenance),
+    "sourceTree.historicalRecoveryProvenance",
+  );
+  if (actualSourceTree.historicalRecoveryProvenance?.requiredForAcceptance !== false) {
+    issues.push("historical recovery commit cannot be required for acceptance without a frozen public immutable ref");
+  }
   const actualCatalog = evidence?.liveCatalog ?? {};
   const expectedCatalog = expected.liveCatalog;
   for (const key of [
@@ -364,47 +383,31 @@ export function validateEvidenceContract(evidence = FROZEN_PARITY_EVIDENCE) {
   return issues;
 }
 
-export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_EVIDENCE } = {}) {
+export function verifyRecovery({
+  repoRoot = REPO_ROOT,
+  evidence = FROZEN_PARITY_EVIDENCE,
+  commitish = "HEAD",
+} = {}) {
   const issues = validateEvidenceContract(evidence);
-  const migrationDirectory = path.join(repoRoot, "supabase", "migrations");
-  let worktreeMigrationPaths = [];
-  let indexEntries = [];
-  let indexBlobs = [];
+  let resolvedCommit = null;
+  let commitEntries = [];
+  let commitBlobs = [];
 
   try {
-    worktreeMigrationPaths = collectMigrationPaths(migrationDirectory);
+    resolvedCommit = resolveCommit(repoRoot, commitish);
+    commitEntries = readCommitMigrationEntries(repoRoot, resolvedCommit);
+    commitBlobs = readGitBlobs(repoRoot, commitEntries);
   } catch (error) {
-    issues.push(error instanceof Error ? error.message : String(error));
+    issues.push(`cannot read authoritative Git commit tree for ${JSON.stringify(commitish)}: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  try {
-    indexEntries = readIndexMigrationEntries(repoRoot);
-    indexBlobs = readIndexBlobs(repoRoot, indexEntries);
-  } catch (error) {
-    issues.push(`cannot read Git index migration bytes: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
-  const migrationPaths = indexEntries.map((entry) => entry.path);
-  compareField(
-    issues,
-    JSON.stringify(worktreeMigrationPaths),
-    JSON.stringify(migrationPaths),
-    "migration worktree/index path set",
-  );
+  const migrationPaths = commitEntries.map((entry) => entry.path);
 
   const manifestEntries = [];
   const identities = [];
   for (const [index, relativePath] of migrationPaths.entries()) {
-    const entry = indexEntries[index];
-    const indexBlob = indexBlobs[index];
-    const absolutePath = path.join(repoRoot, ...relativePath.split("/"));
+    const entry = commitEntries[index];
     manifestEntries.push(`${relativePath}\t${entry.oid}`);
-    if (indexBlob && existsSync(absolutePath) && lstatSync(absolutePath).isFile()) {
-      const checkoutBytes = readFileSync(absolutePath);
-      if (!normalizeCheckoutEols(checkoutBytes).equals(normalizeCheckoutEols(indexBlob))) {
-        issues.push(`migration checkout differs from indexed bytes beyond EOL representation: ${relativePath}`);
-      }
-    }
     const identity = parseVersionAndName(relativePath);
     if (!identity) {
       issues.push(`invalid migration source name: ${relativePath}`);
@@ -424,23 +427,18 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
 
   const recoveredReports = [];
   for (const expected of RECOVERED_SOURCES) {
-    const absolutePath = path.join(repoRoot, ...expected.path.split("/"));
-    if (!existsSync(absolutePath) || !lstatSync(absolutePath).isFile()) {
-      issues.push(`missing recovered source: ${expected.path}`);
+    const sourceIndex = migrationPaths.indexOf(expected.path);
+    if (sourceIndex < 0 || !commitBlobs[sourceIndex]) {
+      issues.push(`missing committed recovered source: ${expected.path}`);
       continue;
     }
-    const index = migrationPaths.indexOf(expected.path);
-    if (index < 0 || !indexBlobs[index]) {
-      issues.push(`missing indexed recovered source: ${expected.path}`);
-      continue;
-    }
-    const indexBlob = indexBlobs[index];
-    const rawSha256 = sha256(indexBlob);
-    const gitBlob = indexEntries[index].oid;
+    const commitBlob = commitBlobs[sourceIndex];
+    const rawSha256 = sha256(commitBlob);
+    const gitBlob = commitEntries[sourceIndex].oid;
     compareField(issues, rawSha256, expected.rawSha256, `${expected.path} raw sha256`);
     compareField(issues, gitBlob, expected.gitBlob, `${expected.path} git blob`);
 
-    const sourceText = indexBlob.toString("utf8");
+    const sourceText = commitBlob.toString("utf8");
     const units = expected.localUnitMode === "PROVIDER_GROUPED_SOURCE"
       ? [sourceText]
       : splitSqlStatements(sourceText);
@@ -452,8 +450,8 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
       path: expected.path,
       gitBlob,
       rawSha256,
-      rawDigestInputClass: "GIT_INDEX_BLOB_BYTES",
-      checkoutEolPolicy: "LF_OR_CRLF_EQUIVALENT_TO_INDEX",
+      rawDigestInputClass: "GIT_COMMIT_TREE_BLOB_BYTES",
+      authoritativeCommit: resolvedCommit,
       providerDigestClass: expected.providerDigestClass,
       providerBundleMd5: expected.providerBundleMd5,
       normalizedUnitCount: unitDigests.length,
@@ -474,11 +472,19 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
     ok: issues.length === 0,
     packet: "FP-FIT-REC-001",
     sourceTree: {
+      proofClass: "GIT_COMMIT_TREE",
+      requestedCommitish: commitish,
+      commit: resolvedCommit,
       migrationCount: migrationPaths.length,
       versionCount: new Set(versions).size,
       firstVersion: versions[0] ?? null,
       lastVersion: versions.at(-1) ?? null,
+      manifestClass: evidence?.sourceTree?.manifestClass,
       manifestSha256,
+    },
+    historicalRecoveryProvenance: {
+      ...evidence?.sourceTree?.historicalRecoveryProvenance,
+      resolutionAttempted: false,
     },
     recoveredSources: recoveredReports,
     normalizedStatementUnits: {
@@ -503,7 +509,13 @@ export function verifyRecovery({ repoRoot = REPO_ROOT, evidence = FROZEN_PARITY_
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const report = verifyRecovery();
-  console.log(JSON.stringify(report, null, 2));
-  process.exitCode = report.ok ? 0 : 1;
+  const args = process.argv.slice(2);
+  if (args.length !== 0 && (args.length !== 2 || args[0] !== "--commitish" || !args[1])) {
+    console.error("usage: node scripts/migration/fp-fit-rec-001-verify.mjs [--commitish <commitish>]");
+    process.exitCode = 2;
+  } else {
+    const report = verifyRecovery({ commitish: args[1] ?? "HEAD" });
+    console.log(JSON.stringify(report, null, 2));
+    process.exitCode = report.ok ? 0 : 1;
+  }
 }
