@@ -9,10 +9,13 @@ import {
   REPO_ROOT,
   parseCliArgs,
   validateHistoricalSources,
+  validateMemberNumberConsumerSources,
   validateMigrationSource,
 } from "./fp-fit-user-number-safety-verify.mjs";
 
 const migrationSource = readFileSync(new URL(`../../${MIGRATION_PATH}`, import.meta.url), "utf8");
+const safetyCoreSource = readFileSync(new URL("../member-number-safety-core.mjs", import.meta.url), "utf8");
+const doctorSource = readFileSync(new URL("../doctor-discord-community.mjs", import.meta.url), "utf8");
 
 function expectRejected(source, expectedIssue) {
   const issues = validateMigrationSource(source);
@@ -24,6 +27,28 @@ function expectRejected(source, expectedIssue) {
 
 test("accepted forward migration satisfies the static contract", () => {
   assert.deepEqual(validateMigrationSource(migrationSource), []);
+});
+
+test("doctor source is bound to the shared fail-closed member-number predicate", () => {
+  assert.deepEqual(validateMemberNumberConsumerSources({ safetyCoreSource, doctorSource }), []);
+
+  const bypassedDoctor = doctorSource.replace(
+    "const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);",
+    "const memberNumberSafetyFatalReasons = [];",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    safetyCoreSource,
+    doctorSource: bypassedDoctor,
+  }).includes("missing doctor shared fatal-reason evaluation"));
+
+  const incompleteEvidence = doctorSource.replace(
+    "reservedNumberHighWaterError: memberNumberSafety.reservedNumberHighWaterError,",
+    "reservedNumberHighWaterError: null,",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    safetyCoreSource,
+    doctorSource: incompleteEvidence,
+  }).includes("missing doctor reserved high-water evidence"));
 });
 
 test("migration rejects profile rewrites and sequence mutation", () => {

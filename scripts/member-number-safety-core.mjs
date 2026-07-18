@@ -1,18 +1,46 @@
-export function collectPositiveMemberNumberGaps(numbers) {
-  const sorted = [...new Set(numbers.filter((value) => Number.isInteger(value) && value >= 1))]
-    .sort((left, right) => left - right);
-  if (sorted.length === 0) {
-    return [];
+export const MAX_REPORTED_MEMBER_NUMBER_GAPS = 100;
+
+export function summarizePositiveMemberNumberGaps(
+  numbers,
+  limit = MAX_REPORTED_MEMBER_NUMBER_GAPS,
+) {
+  if (!Number.isSafeInteger(limit) || limit < 0) {
+    throw new Error("gap report limit must be a non-negative safe integer");
   }
 
-  const occupied = new Set(sorted);
-  const gaps = [];
-  for (let candidate = 1; candidate <= sorted.at(-1); candidate += 1) {
-    if (!occupied.has(candidate)) {
-      gaps.push(candidate);
+  const sorted = [...new Set(
+    (Array.isArray(numbers) ? numbers : [])
+      .filter((value) => Number.isSafeInteger(value) && value >= 1),
+  )].sort((left, right) => left - right);
+  const reportedGaps = [];
+  let gapCount = 0;
+  let priorReservedNumber = 0;
+
+  for (const reservedNumber of sorted) {
+    const gapStart = priorReservedNumber + 1;
+    const gapEnd = reservedNumber - 1;
+    if (gapStart <= gapEnd) {
+      const intervalSize = gapEnd - gapStart + 1;
+      gapCount += intervalSize;
+
+      const reportCapacity = limit - reportedGaps.length;
+      const reportedFromInterval = Math.min(reportCapacity, intervalSize);
+      for (let offset = 0; offset < reportedFromInterval; offset += 1) {
+        reportedGaps.push(gapStart + offset);
+      }
     }
+    priorReservedNumber = reservedNumber;
   }
-  return gaps;
+
+  return {
+    gapCount,
+    reportedGaps,
+    truncated: gapCount > reportedGaps.length,
+  };
+}
+
+export function collectPositiveMemberNumberGaps(numbers) {
+  return summarizePositiveMemberNumberGaps(numbers).reportedGaps;
 }
 
 export function hasMemberIdentityChanged(before, after) {
@@ -44,6 +72,34 @@ export function deriveAssignedMemberIdentity({ isAutomation, nextNumber, assigne
   };
 }
 
+export function getMemberNumberSafetyFatalReasons(summary) {
+  const reasons = [];
+
+  if (summary?.zeroCount !== 1) {
+    reasons.push("invalid-zero-count");
+  }
+  if ((summary?.automationProfilesWithNumbers?.length ?? 0) > 0) {
+    reasons.push("numbered-automation-profile");
+  }
+  if ((summary?.unknownProfilesWithNumbers?.length ?? 0) > 0) {
+    reasons.push("numbered-unknown-profile");
+  }
+  if ((summary?.duplicateNumbers?.length ?? 0) > 0) {
+    reasons.push("duplicate-member-number");
+  }
+  if ((summary?.negativeHumanNumbers?.length ?? 0) > 0) {
+    reasons.push("negative-human-member-number");
+  }
+  if (summary?.reservedNumberHighWaterError) {
+    reasons.push(`reserved-number-high-water:${summary.reservedNumberHighWaterError}`);
+  }
+  if (!Number.isSafeInteger(summary?.minimumSafeNextNumber) || summary.minimumSafeNextNumber < 1) {
+    reasons.push("minimum-safe-next-number-unavailable");
+  }
+
+  return reasons;
+}
+
 export function summarizeMemberNumberSafety(profiles) {
   const profileRows = Array.isArray(profiles) ? profiles : [];
   const reservedNumberValues = profileRows
@@ -55,9 +111,12 @@ export function summarizeMemberNumberSafety(profiles) {
   const validReservedNumbers = reservedNumberValues.filter(
     (value) => Number.isSafeInteger(value) && value >= 0,
   );
-  const maxReservedNumber = validReservedNumbers.length > 0
-    ? Math.max(...validReservedNumbers)
-    : null;
+  let maxReservedNumber = null;
+  for (const value of validReservedNumbers) {
+    maxReservedNumber = maxReservedNumber === null
+      ? value
+      : Math.max(maxReservedNumber, value);
+  }
   const reservedNumberHighWaterError = invalidReservedNumbers.length > 0
     ? "invalid-reserved-number"
     : maxReservedNumber === Number.MAX_SAFE_INTEGER
@@ -83,11 +142,25 @@ export function summarizeMemberNumberSafety(profiles) {
   const humanNumbers = profileRows
     .filter((profile) => profile?.user_kind === "human" && Number.isInteger(profile?.user_number))
     .map((profile) => profile.user_number);
-  const positiveHumanNumbers = humanNumbers.filter((number) => number >= 1);
   const negativeHumanNumbers = humanNumbers.filter((number) => number < 0).sort((left, right) => left - right);
   const automationProfilesWithNumbers = profileRows.filter(
-    (profile) => profile?.user_kind === "automation" && profile?.user_number !== null,
+    (profile) => profile?.user_kind === "automation"
+      && profile?.user_number !== null
+      && profile?.user_number !== undefined,
   );
+  const unknownProfilesWithNumbers = profileRows.filter(
+    (profile) => profile?.user_kind !== "human"
+      && profile?.user_kind !== "automation"
+      && profile?.user_number !== null
+      && profile?.user_number !== undefined,
+  );
+  const positiveGapSummary = reservedNumberHighWaterError
+    ? {
+      gapCount: null,
+      reportedGaps: [],
+      truncated: false,
+    }
+    : summarizePositiveMemberNumberGaps(validReservedNumbers);
 
   return {
     automationProfilesWithNumbers,
@@ -96,8 +169,11 @@ export function summarizeMemberNumberSafety(profiles) {
     maxReservedNumber,
     minimumSafeNextNumber,
     negativeHumanNumbers,
-    positiveGaps: collectPositiveMemberNumberGaps(positiveHumanNumbers),
+    positiveGapCount: positiveGapSummary.gapCount,
+    positiveGaps: positiveGapSummary.reportedGaps,
+    positiveGapsTruncated: positiveGapSummary.truncated,
     reservedNumberHighWaterError,
+    unknownProfilesWithNumbers,
     zeroCount: profileRows.filter((profile) => profile?.user_number === 0).length,
   };
 }

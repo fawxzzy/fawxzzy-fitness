@@ -105,6 +105,45 @@ function forbidPattern(issues, source, pattern, label) {
   }
 }
 
+export function validateMemberNumberConsumerSources({ safetyCoreSource, doctorSource }) {
+  const issues = [];
+  const core = String(safetyCoreSource ?? "");
+  const doctor = String(doctorSource ?? "");
+
+  requirePattern(
+    issues,
+    core,
+    /export function getMemberNumberSafetyFatalReasons\(summary\)/u,
+    "shared member-number fatal-reason helper",
+  );
+  requirePattern(
+    issues,
+    doctor,
+    /getMemberNumberSafetyFatalReasons\(memberNumberSafety\)/u,
+    "doctor shared fatal-reason evaluation",
+  );
+  requirePattern(
+    issues,
+    doctor,
+    /memberNumberSafetyFatalReasons\.length > 0/u,
+    "doctor fail-closed fatal-reason predicate",
+  );
+  requirePattern(
+    issues,
+    doctor,
+    /reservedNumberHighWaterError: memberNumberSafety\.reservedNumberHighWaterError/u,
+    "doctor reserved high-water evidence",
+  );
+  requirePattern(
+    issues,
+    doctor,
+    /minimumSafeNextNumber: memberNumberSafety\.minimumSafeNextNumber/u,
+    "doctor minimum safe-next evidence",
+  );
+
+  return issues;
+}
+
 function countMatches(source, pattern) {
   return [...source.matchAll(pattern)].length;
 }
@@ -261,6 +300,7 @@ export function verifyCommit({ repoRoot = REPO_ROOT, commitish = "HEAD" } = {}) 
 
   const auditSource = sources.get("scripts/audit-member-numbers.mjs")?.toString("utf8") ?? "";
   const doctorSource = sources.get("scripts/doctor-discord-community.mjs")?.toString("utf8") ?? "";
+  const safetyCoreSource = sources.get("scripts/member-number-safety-core.mjs")?.toString("utf8") ?? "";
   const contractSource = sources.get("docs/ops/FP-FIT-USER-NUMBER-SAFETY-001.md")?.toString("utf8") ?? "";
   const basePlaybook = readCommitPath(repoRoot, BASE_COMMIT, "docs/PLAYBOOK_NOTES.md").toString("utf8");
   const candidatePlaybook = sources.get("docs/PLAYBOOK_NOTES.md")?.toString("utf8") ?? "";
@@ -268,6 +308,7 @@ export function verifyCommit({ repoRoot = REPO_ROOT, commitish = "HEAD" } = {}) 
   requirePattern(issues, auditSource, /summarizeMemberNumberSafety/u, "shared member-number safety audit usage");
   forbidPattern(issues, auditSource, /Compact numbering expected/u, "stale compact-number audit contract");
   requirePattern(issues, doctorSource, /summarizeMemberNumberSafety/u, "shared member-number safety doctor usage");
+  issues.push(...validateMemberNumberConsumerSources({ safetyCoreSource, doctorSource }));
   forbidPattern(issues, doctorSource, /Member number compaction and sync rows look healthy/u, "stale compact-number doctor contract");
   requirePattern(issues, contractSource, /FULL_CHAIN_REPLAY: BLOCKED/u, "honest replay blocker");
   requirePattern(issues, contractSource, /PROVIDER_APPLY: NOT_AUTHORIZED/u, "provider apply boundary");

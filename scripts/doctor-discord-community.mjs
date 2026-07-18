@@ -7,7 +7,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
-import { summarizeMemberNumberSafety } from "./member-number-safety-core.mjs";
+import {
+  getMemberNumberSafetyFatalReasons,
+  summarizeMemberNumberSafety,
+} from "./member-number-safety-core.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -934,8 +937,10 @@ async function checkMemberNumbers(adminClient) {
   const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   const profileRows = profiles ?? [];
   const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
+  const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);
   const zeroCount = memberNumberSafety.zeroCount;
   const automationProfilesWithNumbers = memberNumberSafety.automationProfilesWithNumbers;
+  const unknownProfilesWithNumbers = memberNumberSafety.unknownProfilesWithNumbers;
   const positiveGaps = memberNumberSafety.positiveGaps;
   const staleLinks = (links ?? []).filter((link) => {
     const profile = profilesById.get(link.fitness_user_id);
@@ -953,10 +958,7 @@ async function checkMemberNumbers(adminClient) {
         return reasons.length > 0 ? [`${profile.id}: ${reasons.join("; ")}`] : [];
       });
 
-  const status = zeroCount !== 1
-    || automationProfilesWithNumbers.length > 0
-    || memberNumberSafety.duplicateNumbers.length > 0
-    || memberNumberSafety.negativeHumanNumbers.length > 0
+  const status = memberNumberSafetyFatalReasons.length > 0
     ? "fail"
     : staleLinks.length > 0 || nicknameFailures.length > 0 || suspiciousNumberedProfiles.length > 0 || authUsersError
       ? "warn"
@@ -972,13 +974,19 @@ async function checkMemberNumbers(adminClient) {
         : "Member number integrity checks failed",
     {
       zeroCount,
-      positiveGapCount: positiveGaps.length,
+      maxReservedNumber: memberNumberSafety.maxReservedNumber,
+      minimumSafeNextNumber: memberNumberSafety.minimumSafeNextNumber,
+      reservedNumberHighWaterError: memberNumberSafety.reservedNumberHighWaterError,
+      memberNumberSafetyFatalReasons,
+      positiveGapCount: memberNumberSafety.positiveGapCount,
       positiveGaps,
+      positiveGapsTruncated: memberNumberSafety.positiveGapsTruncated,
       duplicateNumberCount: memberNumberSafety.duplicateNumbers.length,
       duplicateNumbers: memberNumberSafety.duplicateNumbers,
       negativeHumanNumberCount: memberNumberSafety.negativeHumanNumbers.length,
       negativeHumanNumbers: memberNumberSafety.negativeHumanNumbers,
       automationProfilesWithNumbers: automationProfilesWithNumbers.length,
+      unknownProfilesWithNumbers: unknownProfilesWithNumbers.length,
       staleDiscordLinkRows: staleLinks.length,
       nicknameFailureSummary: nicknameFailures.reduce((counts, link) => {
         const key = String(link.last_error_code ?? link.nickname_sync_status ?? "unknown");
@@ -1221,10 +1229,14 @@ function printPlainReport(report) {
     }
     if (check.zeroCount !== undefined) {
       console.log(`  #0 count: ${check.zeroCount}`);
-      console.log(`  permanent positive gaps: ${check.positiveGapCount}`);
+      console.log(`  max reserved number: ${check.maxReservedNumber ?? "none"}`);
+      console.log(`  minimum safe next number: ${check.minimumSafeNextNumber ?? "unavailable (fail-closed)"}`);
+      console.log(`  reserved high-water error: ${check.reservedNumberHighWaterError ?? "none"}`);
+      console.log(`  permanent positive gaps: ${check.positiveGapCount ?? "unavailable"}${check.positiveGapsTruncated ? " (evidence capped)" : ""}`);
       console.log(`  duplicate numbers: ${check.duplicateNumberCount}`);
       console.log(`  negative human numbers: ${check.negativeHumanNumberCount}`);
       console.log(`  automation profiles with numbers: ${check.automationProfilesWithNumbers}`);
+      console.log(`  unknown profiles with numbers: ${check.unknownProfilesWithNumbers}`);
       console.log(`  stale discord_member_links rows: ${check.staleDiscordLinkRows}`);
       if (check.ownerZeroFailure) {
         console.log(`  owner #0 sync warning: ${check.ownerZeroFailure.lastErrorCode ?? check.ownerZeroFailure.nicknameSyncStatus}`);
@@ -1286,10 +1298,14 @@ function buildMarkdownDetailLines(check) {
   }
   if (check.zeroCount !== undefined) {
     lines.push(`- #0 count: ${check.zeroCount}`);
-    lines.push(`- permanent positive gaps: ${check.positiveGapCount}`);
+    lines.push(`- max reserved number: ${check.maxReservedNumber ?? "none"}`);
+    lines.push(`- minimum safe next number: ${check.minimumSafeNextNumber ?? "unavailable (fail-closed)"}`);
+    lines.push(`- reserved high-water error: ${check.reservedNumberHighWaterError ?? "none"}`);
+    lines.push(`- permanent positive gaps: ${check.positiveGapCount ?? "unavailable"}${check.positiveGapsTruncated ? " (evidence capped)" : ""}`);
     lines.push(`- duplicate numbers: ${check.duplicateNumberCount}`);
     lines.push(`- negative human numbers: ${check.negativeHumanNumberCount}`);
     lines.push(`- automation profiles with numbers: ${check.automationProfilesWithNumbers}`);
+    lines.push(`- unknown profiles with numbers: ${check.unknownProfilesWithNumbers}`);
     lines.push(`- stale discord_member_links rows: ${check.staleDiscordLinkRows}`);
     if (check.ownerZeroFailure) {
       lines.push(`- owner #0 sync warning: ${check.ownerZeroFailure.lastErrorCode ?? check.ownerZeroFailure.nicknameSyncStatus}`);

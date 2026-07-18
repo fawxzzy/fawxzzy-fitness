@@ -3,8 +3,11 @@ import test from "node:test";
 import {
   collectPositiveMemberNumberGaps,
   deriveAssignedMemberIdentity,
+  getMemberNumberSafetyFatalReasons,
   hasMemberIdentityChanged,
+  MAX_REPORTED_MEMBER_NUMBER_GAPS,
   summarizeMemberNumberSafety,
+  summarizePositiveMemberNumberGaps,
 } from "./member-number-safety-core.mjs";
 
 test("permanent positive gaps are valid safety information", () => {
@@ -21,6 +24,8 @@ test("permanent positive gaps are valid safety information", () => {
   assert.equal(summary.automationProfilesWithNumbers.length, 0);
   assert.equal(summary.maxReservedNumber, 3);
   assert.equal(summary.minimumSafeNextNumber, 4);
+  assert.equal(summary.positiveGapCount, 1);
+  assert.equal(summary.positiveGapsTruncated, false);
   assert.equal(summary.reservedNumberHighWaterError, null);
   assert.equal(summary.zeroCount, 1);
   assert.deepEqual(collectPositiveMemberNumberGaps([5, 1, 3, 5]), [2, 4]);
@@ -55,6 +60,7 @@ test("legacy unknown and numbered automation profiles reserve the all-profile hi
   ]);
   assert.equal(unknownHigh.maxReservedNumber, 80);
   assert.equal(unknownHigh.minimumSafeNextNumber, 81);
+  assert.equal(unknownHigh.unknownProfilesWithNumbers.length, 1);
 
   const automationHigh = summarizeMemberNumberSafety([
     { user_kind: "human", user_number: 12 },
@@ -63,6 +69,22 @@ test("legacy unknown and numbered automation profiles reserve the all-profile hi
   assert.equal(automationHigh.maxReservedNumber, 90);
   assert.equal(automationHigh.minimumSafeNextNumber, 91);
   assert.equal(automationHigh.automationProfilesWithNumbers.length, 1);
+});
+
+test("mixed profile categories reserve numbers before gap analysis", () => {
+  const summary = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0 },
+    { user_kind: "human", user_number: 3 },
+    { user_kind: "unknown", user_number: 4 },
+    { user_kind: "automation", user_number: 5 },
+  ]);
+
+  assert.equal(summary.maxReservedNumber, 5);
+  assert.equal(summary.minimumSafeNextNumber, 6);
+  assert.deepEqual(summary.positiveGaps, [1, 2]);
+  assert.equal(summary.positiveGapCount, 2);
+  assert.equal(summary.unknownProfilesWithNumbers.length, 1);
+  assert.equal(summary.automationProfilesWithNumbers.length, 1);
 });
 
 test("zero-only and empty profile sets have deterministic safe successors", () => {
@@ -99,6 +121,8 @@ test("invalid and unsafe reserved values fail closed", () => {
   assert.deepEqual(invalid.invalidReservedNumbers, [-1, 2.5, Number.MAX_SAFE_INTEGER + 1]);
   assert.equal(invalid.maxReservedNumber, 10);
   assert.equal(invalid.minimumSafeNextNumber, null);
+  assert.equal(invalid.positiveGapCount, null);
+  assert.deepEqual(invalid.positiveGaps, []);
   assert.equal(invalid.reservedNumberHighWaterError, "invalid-reserved-number");
 
   const noSafeSuccessor = summarizeMemberNumberSafety([
@@ -106,7 +130,60 @@ test("invalid and unsafe reserved values fail closed", () => {
   ]);
   assert.equal(noSafeSuccessor.maxReservedNumber, Number.MAX_SAFE_INTEGER);
   assert.equal(noSafeSuccessor.minimumSafeNextNumber, null);
+  assert.equal(noSafeSuccessor.positiveGapCount, null);
   assert.equal(noSafeSuccessor.reservedNumberHighWaterError, "safe-integer-successor-unavailable");
+});
+
+test("every invalid JavaScript numeric class fails closed without gap enumeration", () => {
+  for (const invalidNumber of [
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    2.5,
+    -1,
+    Number.MAX_SAFE_INTEGER + 1,
+  ]) {
+    const summary = summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0 },
+      { user_kind: "unknown", user_number: invalidNumber },
+    ]);
+
+    assert.equal(summary.reservedNumberHighWaterError, "invalid-reserved-number");
+    assert.equal(summary.minimumSafeNextNumber, null);
+    assert.equal(summary.positiveGapCount, null);
+    assert.deepEqual(summary.positiveGaps, []);
+  }
+
+  const maximum = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0 },
+    { user_kind: "unknown", user_number: Number.MAX_SAFE_INTEGER },
+  ]);
+  assert.equal(maximum.reservedNumberHighWaterError, "safe-integer-successor-unavailable");
+  assert.equal(maximum.minimumSafeNextNumber, null);
+  assert.equal(maximum.positiveGapCount, null);
+  assert.deepEqual(maximum.positiveGaps, []);
+});
+
+test("large sparse safe numbers produce bounded deterministic gap evidence", () => {
+  const largeReservedNumber = Number.MAX_SAFE_INTEGER - 1;
+  const summary = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0 },
+    { user_kind: "human", user_number: largeReservedNumber },
+  ]);
+
+  assert.equal(summary.reservedNumberHighWaterError, null);
+  assert.equal(summary.minimumSafeNextNumber, Number.MAX_SAFE_INTEGER);
+  assert.equal(summary.positiveGapCount, largeReservedNumber - 1);
+  assert.equal(summary.positiveGaps.length, MAX_REPORTED_MEMBER_NUMBER_GAPS);
+  assert.deepEqual(summary.positiveGaps.slice(0, 3), [1, 2, 3]);
+  assert.equal(summary.positiveGaps.at(-1), MAX_REPORTED_MEMBER_NUMBER_GAPS);
+  assert.equal(summary.positiveGapsTruncated, true);
+
+  const gapSummary = summarizePositiveMemberNumberGaps([largeReservedNumber]);
+  assert.equal(gapSummary.gapCount, largeReservedNumber - 1);
+  assert.equal(gapSummary.reportedGaps.length, MAX_REPORTED_MEMBER_NUMBER_GAPS);
+  assert.equal(gapSummary.truncated, true);
+  assert.equal(collectPositiveMemberNumberGaps([largeReservedNumber]).length, MAX_REPORTED_MEMBER_NUMBER_GAPS);
 });
 
 test("normal current 0 through 52 state reports 53 without filling gaps", () => {
@@ -118,8 +195,54 @@ test("normal current 0 through 52 state reports 53 without filling gaps", () => 
 
   assert.equal(summary.maxReservedNumber, 52);
   assert.equal(summary.minimumSafeNextNumber, 53);
+  assert.equal(summary.positiveGapCount, 0);
   assert.deepEqual(summary.positiveGaps, []);
+  assert.equal(summary.positiveGapsTruncated, false);
   assert.deepEqual(summary.duplicateNumbers, []);
+});
+
+test("shared fatal reasons cover doctor pass and every member-number failure class", () => {
+  const valid = summarizeMemberNumberSafety(
+    Array.from({ length: 53 }, (_, userNumber) => ({
+      user_kind: "human",
+      user_number: userNumber,
+    })),
+  );
+  assert.deepEqual(getMemberNumberSafetyFatalReasons(valid), []);
+
+  const cases = [
+    [summarizeMemberNumberSafety([]), "invalid-zero-count"],
+    [summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0 },
+      { user_kind: "automation", user_number: 4 },
+    ]), "numbered-automation-profile"],
+    [summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0 },
+      { user_kind: "unknown", user_number: 4 },
+    ]), "numbered-unknown-profile"],
+    [summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: 4 },
+      { user_kind: "human", user_number: 4 },
+    ]), "duplicate-member-number"],
+    [summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: -1 },
+    ]), "negative-human-member-number"],
+    [summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0 },
+      { user_kind: "unknown", user_number: Number.NaN },
+    ]), "reserved-number-high-water:invalid-reserved-number"],
+  ];
+
+  for (const [summary, expectedReason] of cases) {
+    assert.ok(getMemberNumberSafetyFatalReasons(summary).includes(expectedReason));
+  }
+
+  assert.ok(getMemberNumberSafetyFatalReasons({
+    ...valid,
+    minimumSafeNextNumber: null,
+  }).includes("minimum-safe-next-number-unavailable"));
 });
 
 test("member identity permits same-value updates and rejects any identity change", () => {
