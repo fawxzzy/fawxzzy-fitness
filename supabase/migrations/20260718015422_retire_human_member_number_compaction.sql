@@ -9,7 +9,7 @@ declare
   compaction_wrapper_exists boolean;
   compactor_exists boolean;
   duplicate_number_exists boolean;
-  maximum_human_number bigint;
+  maximum_reserved_number bigint;
   negative_human_number_exists boolean;
   numbered_automation_exists boolean;
   sequence_called boolean;
@@ -134,10 +134,9 @@ begin
   end if;
 
   select coalesce(max(profile.user_number), -1)
-  into maximum_human_number
+  into maximum_reserved_number
   from public.profiles as profile
-  where profile.user_kind = 'human'
-    and profile.user_number is not null;
+  where profile.user_number is not null;
 
   select sequence_row.last_value, sequence_row.is_called
   into sequence_last_value, sequence_called
@@ -158,8 +157,8 @@ begin
     else sequence_last_value
   end;
 
-  if sequence_increment <> 1 or sequence_effective_next <= maximum_human_number then
-    raise exception 'member-number safety precondition failed: sequence is not above the human-number high-water mark';
+  if sequence_increment <> 1 or sequence_effective_next <= maximum_reserved_number then
+    raise exception 'member-number safety precondition failed: sequence is not above the reserved-number high-water mark';
   end if;
 end;
 $$;

@@ -129,7 +129,13 @@ export function validateMigrationSource(source) {
   requirePattern(issues, sql, /duplicate member numbers exist/iu, "duplicate-number precondition");
   requirePattern(issues, sql, /negative human member numbers exist/iu, "negative-number precondition");
   requirePattern(issues, sql, /an automation profile has a member number/iu, "automation-number precondition");
-  requirePattern(issues, sql, /sequence_effective_next <= maximum_human_number/iu, "sequence high-water precondition");
+  requirePattern(
+    issues,
+    sql,
+    /select coalesce\(max\(profile\.user_number\), -1\)\s+into maximum_reserved_number\s+from public\.profiles as profile\s+where profile\.user_number is not null;/iu,
+    "all-reserved-number high-water query",
+  );
+  requirePattern(issues, sql, /sequence_effective_next <= maximum_reserved_number/iu, "sequence high-water precondition");
 
   requirePattern(
     issues,

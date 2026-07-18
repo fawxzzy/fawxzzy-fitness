@@ -62,8 +62,15 @@ test("migration rejects loss of exact source allocator preconditions", () => {
     "unique index precondition",
   );
   expectRejected(
-    migrationSource.replace("sequence_effective_next <= maximum_human_number", "sequence_effective_next < -1"),
+    migrationSource.replace("sequence_effective_next <= maximum_reserved_number", "sequence_effective_next < -1"),
     "sequence high-water precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "where profile.user_number is not null;",
+      "where profile.user_kind = 'human'\n    and profile.user_number is not null;",
+    ),
+    "all-reserved-number high-water query",
   );
 });
 

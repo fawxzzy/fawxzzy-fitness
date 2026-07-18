@@ -22,7 +22,7 @@ No raw profile identifiers or secret values are part of this receipt.
 `20260718015422_retire_human_member_number_compaction.sql` is forward-only and transactional. It:
 
 1. Takes an `ACCESS EXCLUSIVE` lock on `public.profiles`.
-2. Fails closed unless the assignment trigger, function, sequence, and partial unique index are exact and enabled; compaction objects form either the exact legacy set or the fully retired set; profile identity invariants hold; and the sequence effective-next value is above the human-number high-water mark.
+2. Fails closed unless the assignment trigger, function, sequence, and partial unique index are exact and enabled; compaction objects form either the exact legacy set or the fully retired set; profile identity invariants hold; and the sequence effective-next value is above every non-null member number already reserved by any profile, including legacy `unknown` profiles.
 3. Drops the compaction trigger, delete wrapper, and compactor with `IF EXISTS` and `RESTRICT`, never `CASCADE`.
 4. Redefines insert assignment so automation profiles are always unnumbered and every new human receives `nextval`, regardless of caller-supplied identity values.
 5. Adds `public.enforce_immutable_profile_member_identity()` and `profiles_enforce_immutable_member_identity_before_update`; same-value updates pass, while changes to `user_number`, `user_kind`, or `user_number_assigned_at` fail.
@@ -41,7 +41,7 @@ The migration contains no profile `UPDATE`, `setval`, sequence restart, sequence
 - More than one `#0` remains a failure.
 - Automation profiles with numbers remain failures.
 
-The scripts do not claim to read the live sequence. They report the minimum safe next number from the observed high-water mark; action-time SQL must independently prove the real sequence effective-next value.
+The scripts do not claim to read the live sequence. They report the minimum safe next number from the observed high-water mark; action-time SQL must independently prove the real sequence effective-next value against every non-null profile number, not only rows already classified as human.
 
 ## Verification
 
