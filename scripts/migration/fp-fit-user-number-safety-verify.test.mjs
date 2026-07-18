@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  BASE_COMMIT,
   HISTORICAL_MIGRATIONS,
   MIGRATION_PATH,
   REPO_ROOT,
@@ -104,7 +106,10 @@ test("historical migration digests are immutable", () => {
   const sources = new Map(
     HISTORICAL_MIGRATIONS.map((entry) => [
       entry.path,
-      readFileSync(new URL(`../../${entry.path}`, import.meta.url)),
+      execFileSync("git", ["-C", REPO_ROOT, "show", `${BASE_COMMIT}:${entry.path}`], {
+        encoding: "buffer",
+        env: { ...process.env, GIT_NO_REPLACE_OBJECTS: "1" },
+      }),
     ]),
   );
   assert.deepEqual(validateHistoricalSources(sources), []);

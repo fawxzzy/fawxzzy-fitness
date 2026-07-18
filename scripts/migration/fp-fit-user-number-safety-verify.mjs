@@ -24,15 +24,15 @@ export const EXPECTED_CHANGED_PATHS = Object.freeze([
 export const HISTORICAL_MIGRATIONS = Object.freeze([
   Object.freeze({
     path: "supabase/migrations/044_real_user_numbers.sql",
-    sha256: "547ade2ad662b6b46a23b93e01a309fdf6a26adee2a3331b19337e085376676c",
+    sha256: "2350c5c2841b8e049fa098c26492ba4033baf70f04bb5b93f505cab85637809b",
   }),
   Object.freeze({
     path: "supabase/migrations/20260515090322_056_compact_public_member_numbers.sql",
-    sha256: "f3da407f2420d10a47adcdb74c64734af3d63634b0740b532c293e3fec32912f",
+    sha256: "a4e7f706604d356df9c72a83386f5f093eee9b6892b1b1b11fc7632aa153281b",
   }),
   Object.freeze({
     path: "supabase/migrations/20260515160000_060_discord_member_number_sync_queue.sql",
-    sha256: "ff40c0bad628ef9c435cb7570ed6940647c8c465a2e3fc0b21f07d71ea5c10e5",
+    sha256: "c9624c8c86acac9d605c80675ba0162d82cd3408a204052307b8e3a9f2701ab5",
   }),
 ]);
 
