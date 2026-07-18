@@ -22,7 +22,7 @@ No raw profile identifiers or secret values are part of this receipt.
 `20260718015422_retire_human_member_number_compaction.sql` is forward-only and transactional. It:
 
 1. Takes an `ACCESS EXCLUSIVE` lock on `public.profiles`.
-2. Fails closed unless the assignment trigger and function are exact and enabled; the named sequence is authoritative, increments by one, cannot cycle, and has an effective-next value above every non-null member number already reserved by any profile; and `profiles_user_number_uq` is the live, ready, valid one-key `user_number` partial unique index on `public.profiles`. Compaction objects must form either the exact legacy set or the fully retired set; exactly one existing profile reserves `#0` as a human with assignment metadata; every numbered profile is human; and all profile identity invariants must hold.
+2. Fails closed unless the assignment trigger and function are exact and enabled; the named sequence resolves to exactly one authoritative catalog row, increments by one, cannot cycle, uses `CACHE 1`, and has an effective-next value above every non-null member number already reserved by any profile; and `profiles_user_number_uq` is the live, ready, valid one-key `user_number` partial unique index on `public.profiles`. `CACHE 1` is required because a larger cache can leave lower preallocated values in another session even when `last_value` appears above the observed high-water mark. Compaction objects must form either the exact legacy set or the fully retired set; exactly one existing profile reserves `#0` as a human with assignment metadata; every numbered profile is human and has assignment metadata; and all profile identity invariants must hold.
 3. Transactionally reinstalls the immutable historical `public.is_automation_auth_user(uuid)` SQL/STABLE/SECURITY DEFINER definition, `search_path`, postgres ownership, and client execution revokes before the assignment function can use it.
 4. Drops the compaction trigger, delete wrapper, and compactor with `IF EXISTS` and `RESTRICT`, never `CASCADE`.
 5. Redefines insert assignment so automation profiles are always unnumbered and every new human receives `nextval`, regardless of caller-supplied identity values.
@@ -43,7 +43,10 @@ The migration contains no profile `UPDATE`, `setval`, sequence restart, sequence
 - Missing, duplicate, non-human, or assignment-metadata-free `#0` remains a failure.
 - Automation profiles with numbers remain failures.
 - Legacy `unknown`, null-kind, or future unrecognized profiles with numbers remain failures.
-- Both consumers load `user_number_assigned_at`, and the shared fatal-reason predicate is the sole structural exit authority for the exactly-one-human-`#0` metadata invariant and every numbered nonhuman classification.
+- Every numbered human missing `user_number_assigned_at` remains a failure, not only the profile reserving `#0`.
+- Both consumers use one shared complete-profile paginator with an exact count, a page size of at most 1,000, stable unique `id` ordering, explicit ranges, strictly increasing cross-page identities, and an empty after-denominator probe. Missing or changing counts, early short pages, extra rows, repeated/non-monotonic identifiers, provider errors, and bounded-capacity overflow all fail closed.
+- Both consumers load `user_number_assigned_at`, and the shared fatal-reason predicate is the sole structural exit authority for the exactly-one-human-`#0` metadata invariant, every numbered-human metadata invariant, and every numbered nonhuman classification.
+- Operator output includes only aggregate pagination evidence and sanitized safety facts. It does not emit profile IDs, email addresses, Discord IDs, page bodies, or reusable identifier hashes.
 
 The scripts do not claim to read the live sequence. They report the minimum safe next number from the observed high-water mark; action-time SQL must independently prove the real sequence effective-next value against every non-null profile number, not only rows already classified as human.
 

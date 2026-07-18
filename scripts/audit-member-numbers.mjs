@@ -5,8 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 import {
-  getMemberNumberSafetyFatalReasons,
-  summarizeMemberNumberSafety,
+  loadCompleteMemberNumberSafety,
 } from "./member-number-safety-core.mjs";
 
 const AUTOMATION_SIGNAL_PATTERN = /(^|[^a-z0-9])(codex|test|qa|example|preview|local)([^a-z0-9]|$)/i;
@@ -56,40 +55,6 @@ function createServiceClient() {
       persistSession: false,
     },
   });
-}
-
-function maskEmail(email) {
-  if (!email || !email.includes("@")) {
-    return "(missing)";
-  }
-
-  const [localPart, domain] = email.split("@");
-  if (!localPart || !domain) {
-    return "(invalid)";
-  }
-
-  const visibleLocal = localPart.slice(0, Math.min(localPart.length, 2));
-  const maskedLocal = `${visibleLocal}${"*".repeat(Math.max(localPart.length - visibleLocal.length, 1))}`;
-  const domainParts = domain.split(".");
-  const domainName = domainParts.shift() ?? "";
-  const maskedDomainName = domainName.length <= 2
-    ? `${domainName[0] ?? "*"}*`
-    : `${domainName.slice(0, 2)}${"*".repeat(domainName.length - 2)}`;
-
-  return `${maskedLocal}@${[maskedDomainName, ...domainParts].filter(Boolean).join(".")}`;
-}
-
-function maskDiscordUserId(value) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) {
-    return "(missing)";
-  }
-
-  if (normalized.length <= 4) {
-    return `${"*".repeat(Math.max(normalized.length - 1, 0))}${normalized.slice(-1)}`;
-  }
-
-  return `${"*".repeat(normalized.length - 4)}${normalized.slice(-4)}`;
 }
 
 function collectAutomationSignals(user) {
@@ -160,7 +125,7 @@ function printList(label, rows) {
 async function loadDiscordMemberLinks(client) {
   const { data, error } = await client
     .from("discord_member_links")
-    .select("id, fitness_user_id, discord_user_id, user_number, user_kind, nickname_sync_status, updated_at");
+    .select("fitness_user_id, user_number, user_kind");
 
   if (error) {
     if (/does not exist|Could not find the table|schema cache/i.test(error.message)) {
@@ -176,14 +141,7 @@ async function loadDiscordMemberLinks(client) {
 async function main() {
   const client = createServiceClient();
   const zacEmail = getOptionalEnv(FITNESS_ZAC_EMAIL_ENV)?.toLowerCase() ?? null;
-  const { data: profiles, error: profilesError } = await client
-    .from("profiles")
-    .select("id, user_number, user_kind, user_number_assigned_at")
-    .order("user_number", { ascending: true, nullsFirst: true });
-
-  if (profilesError) {
-    throw new Error(`Unable to load profiles: ${profilesError.message}`);
-  }
+  const completeProfileSafety = await loadCompleteMemberNumberSafety(client);
 
   let authUsers = [];
   let authUsersError = null;
@@ -195,11 +153,11 @@ async function main() {
   }
 
   const discordLinksResult = await loadDiscordMemberLinks(client);
-  const profileRows = profiles ?? [];
+  const profileRows = completeProfileSafety.rows;
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const profileById = new Map(profileRows.map((profile) => [profile.id, profile]));
-  const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
-  const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);
+  const memberNumberSafety = completeProfileSafety.summary;
+  const memberNumberSafetyFatalReasons = completeProfileSafety.fatalReasons;
   const numberedHumanProfiles = profileRows.filter((profile) => profile.user_kind === "human" && profile.user_number !== null);
   const automationProfiles = profileRows.filter((profile) => profile.user_kind === "automation");
   const unknownProfiles = profileRows.filter((profile) => profile.user_kind === "unknown");
@@ -217,29 +175,26 @@ async function main() {
           return [];
         }
 
-        return [`${profile.id} -> #${profile.user_number} -> ${maskEmail(authUser?.email ?? "")} -> ${reasons.join("; ")}`];
+        return [`#${profile.user_number} -> ${reasons.join("; ")}`];
       });
 
   const automationProfilesWithNumbers = automationProfiles
     .filter((profile) => profile.user_number !== null)
-    .map((profile) => `${profile.id} -> #${profile.user_number}`);
+    .map((profile) => `#${profile.user_number}`);
 
   const nonZacZeroProfiles = authUsersError || !zacEmail
     ? []
     : zeroProfiles.filter((profile) => {
         const authUser = authUsersById.get(profile.id);
         return String(authUser?.email ?? "").trim().toLowerCase() !== zacEmail;
-      }).map((profile) => {
-        const authUser = authUsersById.get(profile.id);
-        return `${profile.id} -> ${maskEmail(authUser?.email ?? "")}`;
-      });
+      }).map(() => "configured owner email does not match reserved #0");
 
   const staleDiscordLinkRows = !discordLinksResult.ok
     ? []
     : discordLinksResult.rows.flatMap((link) => {
         const profile = profileById.get(link.fitness_user_id);
         if (!profile) {
-          return [`link ${link.id} -> discord ${maskDiscordUserId(link.discord_user_id)} -> profile missing`];
+          return ["discord_member_links row points to a missing profile"];
         }
 
         const profileNumber = typeof profile.user_number === "number" ? profile.user_number : null;
@@ -249,7 +204,7 @@ async function main() {
         }
 
         return [
-          `link ${link.id} -> discord ${maskDiscordUserId(link.discord_user_id)} -> stored #${link.user_number ?? "null"} (${link.user_kind}) vs profile #${profileNumber ?? "null"} (${profileKind})`,
+          `stored #${link.user_number ?? "null"} (${link.user_kind}) does not match profile #${profileNumber ?? "null"} (${profileKind})`,
         ];
       });
 
@@ -280,6 +235,10 @@ async function main() {
   console.log(`Env file: ${envPath}`);
   console.log("Immutable numbering expected: deletions leave permanent positive gaps.");
   console.log("#0 is reserved; every assigned number is unique and never reused.");
+  console.log(`Profile safety exact count: ${completeProfileSafety.exactCount}`);
+  console.log(`Profile safety data pages: ${completeProfileSafety.dataPageCount}`);
+  console.log(`Profile safety page size: ${completeProfileSafety.pageSize}`);
+  console.log(`Profile safety requests: ${completeProfileSafety.requestCount}`);
   console.log(`Human numbered count: ${numberedHumanProfiles.length}`);
   console.log(`Automation count: ${automationProfiles.length}`);
   console.log(`Unknown count: ${unknownProfiles.length}`);

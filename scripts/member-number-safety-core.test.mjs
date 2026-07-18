@@ -1,16 +1,76 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  collectCompleteMemberNumberProfileRows,
   collectPositiveMemberNumberGaps,
   deriveAssignedMemberIdentity,
   getMemberNumberSafetyFatalReasons,
   hasMemberIdentityChanged,
+  loadCompleteMemberNumberSafety,
   MAX_REPORTED_MEMBER_NUMBER_GAPS,
+  MEMBER_NUMBER_PROFILE_PAGE_SIZE,
+  MEMBER_NUMBER_PROFILE_SELECT,
   summarizeMemberNumberSafety,
   summarizePositiveMemberNumberGaps,
 } from "./member-number-safety-core.mjs";
 
 const ASSIGNED_AT = "2026-01-01T00:00:00.000Z";
+
+function buildProfiles(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `profile-${String(index).padStart(6, "0")}`,
+    user_kind: "human",
+    user_number: index,
+    user_number_assigned_at: ASSIGNED_AT,
+  }));
+}
+
+function createPageFetcher(rows, override = () => null) {
+  let requestIndex = 0;
+  const calls = [];
+  return {
+    calls,
+    fetchPage: async ({ from, pageSize, to }) => {
+      const call = { from, pageSize, requestIndex, to };
+      calls.push(call);
+      const replacement = override(call);
+      requestIndex += 1;
+      return replacement ?? {
+        count: rows.length,
+        data: rows.slice(from, to + 1),
+        error: null,
+      };
+    },
+  };
+}
+
+function createProfileClient(rows, calls) {
+  return {
+    from(table) {
+      const call = { table };
+      calls.push(call);
+      const builder = {
+        order(column, options) {
+          call.order = { column, options };
+          return builder;
+        },
+        range(from, to) {
+          call.range = { from, to };
+          return Promise.resolve({
+            count: rows.length,
+            data: rows.slice(from, to + 1),
+            error: null,
+          });
+        },
+        select(columns, options) {
+          call.select = { columns, options };
+          return builder;
+        },
+      };
+      return builder;
+    },
+  };
+}
 
 test("permanent positive gaps are valid safety information", () => {
   const summary = summarizeMemberNumberSafety([
@@ -321,4 +381,180 @@ test("assignment ignores supplied human identity and leaves automation unnumbere
       user_number_assigned_at: null,
     },
   );
+});
+
+test("complete profile pagination reads every row with exact stable evidence", async () => {
+  const profiles = buildProfiles(1_201);
+  const calls = [];
+  const report = await loadCompleteMemberNumberSafety(
+    createProfileClient(profiles, calls),
+    { pageSize: 500 },
+  );
+
+  assert.equal(report.exactCount, 1_201);
+  assert.equal(report.dataPageCount, 3);
+  assert.equal(report.requestCount, 4);
+  assert.equal(report.rows.length, 1_201);
+  assert.deepEqual(report.fatalReasons, []);
+  assert.deepEqual(calls.map((call) => call.range), [
+    { from: 0, to: 499 },
+    { from: 500, to: 999 },
+    { from: 1_000, to: 1_499 },
+    { from: 1_201, to: 1_700 },
+  ]);
+  assert.ok(calls.every((call) => call.table === "profiles"));
+  assert.ok(calls.every((call) => call.select.columns === MEMBER_NUMBER_PROFILE_SELECT));
+  assert.ok(calls.every((call) => call.select.options.count === "exact"));
+  assert.ok(calls.every((call) => call.order.column === "id"));
+  assert.ok(calls.every((call) => call.order.options.ascending === true));
+});
+
+test("complete profile pagination handles exact pages, final short pages, and empty denominators", async () => {
+  const exactProfiles = buildProfiles(1_000);
+  const exactFetcher = createPageFetcher(exactProfiles);
+  const exact = await collectCompleteMemberNumberProfileRows(exactFetcher.fetchPage, { pageSize: 500 });
+  assert.equal(exact.exactCount, 1_000);
+  assert.equal(exact.dataPageCount, 2);
+  assert.equal(exact.requestCount, 3);
+
+  const shortProfiles = buildProfiles(1_001);
+  const shortFetcher = createPageFetcher(shortProfiles);
+  const short = await collectCompleteMemberNumberProfileRows(shortFetcher.fetchPage, { pageSize: 500 });
+  assert.equal(short.exactCount, 1_001);
+  assert.equal(short.dataPageCount, 3);
+  assert.equal(short.requestCount, 4);
+
+  const emptyFetcher = createPageFetcher([]);
+  const empty = await collectCompleteMemberNumberProfileRows(emptyFetcher.fetchPage);
+  assert.equal(empty.exactCount, 0);
+  assert.equal(empty.dataPageCount, 0);
+  assert.equal(empty.requestCount, 1);
+  assert.deepEqual(empty.rows, []);
+});
+
+test("complete profile pagination includes safety violations after the first thousand rows", async () => {
+  const profiles = buildProfiles(1_001);
+  profiles[1_000] = {
+    ...profiles[1_000],
+    user_kind: "unknown",
+  };
+  const calls = [];
+  const report = await loadCompleteMemberNumberSafety(
+    createProfileClient(profiles, calls),
+    { pageSize: MEMBER_NUMBER_PROFILE_PAGE_SIZE },
+  );
+
+  assert.equal(report.rows.length, 1_001);
+  assert.ok(report.fatalReasons.includes("numbered-unknown-profile"));
+  assert.equal(report.summary.unknownProfilesWithNumbers.length, 1);
+});
+
+test("complete profile pagination rejects duplicate, non-increasing, and repeated page identities", async () => {
+  const duplicateProfiles = buildProfiles(501);
+  duplicateProfiles[500] = { ...duplicateProfiles[500], id: duplicateProfiles[499].id };
+  const duplicateFetcher = createPageFetcher(duplicateProfiles);
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(duplicateFetcher.fetchPage, { pageSize: 500 }),
+    /ids are not strictly increasing/u,
+  );
+
+  const nonIncreasingProfiles = buildProfiles(501);
+  nonIncreasingProfiles[500] = { ...nonIncreasingProfiles[500], id: "profile-000100" };
+  const nonIncreasingFetcher = createPageFetcher(nonIncreasingProfiles);
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(nonIncreasingFetcher.fetchPage, { pageSize: 500 }),
+    /ids are not strictly increasing/u,
+  );
+
+  const repeatedProfiles = buildProfiles(1_000);
+  const repeatedFetcher = createPageFetcher(repeatedProfiles, ({ requestIndex }) => (
+    requestIndex === 1
+      ? { count: repeatedProfiles.length, data: repeatedProfiles.slice(0, 500), error: null }
+      : null
+  ));
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(repeatedFetcher.fetchPage, { pageSize: 500 }),
+    /ids are not strictly increasing/u,
+  );
+});
+
+test("complete profile pagination fails closed on count drift and incomplete denominators", async () => {
+  const profiles = buildProfiles(1_000);
+  const changedCountFetcher = createPageFetcher(profiles, ({ requestIndex }) => (
+    requestIndex === 1
+      ? { count: profiles.length + 1, data: profiles.slice(500), error: null }
+      : null
+  ));
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(changedCountFetcher.fetchPage, { pageSize: 500 }),
+    /count changed/u,
+  );
+
+  const earlyShortFetcher = createPageFetcher(profiles, ({ requestIndex }) => (
+    requestIndex === 1
+      ? { count: profiles.length, data: profiles.slice(500, 900), error: null }
+      : null
+  ));
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(earlyShortFetcher.fetchPage, { pageSize: 500 }),
+    /ended before the exact denominator/u,
+  );
+
+  const extraFetcher = createPageFetcher(buildProfiles(500), ({ requestIndex }) => (
+    requestIndex === 1
+      ? { count: 500, data: [buildProfiles(501)[500]], error: null }
+      : null
+  ));
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(extraFetcher.fetchPage, { pageSize: 500 }),
+    /rows after the exact denominator/u,
+  );
+});
+
+test("complete profile pagination fails closed on invalid counts, provider errors, and overflow", async () => {
+  for (const invalidCount of [null, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(
+      collectCompleteMemberNumberProfileRows(async () => ({
+        count: invalidCount,
+        data: [],
+        error: null,
+      })),
+      /count is invalid/u,
+    );
+  }
+
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(async () => ({
+      count: 0,
+      data: [],
+      error: { message: "sensitive provider detail" },
+    })),
+    (error) => error.message === "profile safety pagination provider error",
+  );
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(async () => {
+      throw new Error("sensitive provider detail");
+    }),
+    (error) => error.message === "profile safety pagination provider error",
+  );
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(async () => ({
+      count: 3,
+      data: buildProfiles(2),
+      error: null,
+    }), { maxPages: 1, pageSize: 2 }),
+    /pagination overflow/u,
+  );
+});
+
+test("numbered humans without assignment metadata fail the shared safety predicate", () => {
+  const summary = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
+    { user_kind: "human", user_number: 1, user_number_assigned_at: null },
+  ]);
+
+  assert.equal(summary.numberedHumanProfilesMissingAssignmentMetadata.length, 1);
+  assert.ok(getMemberNumberSafetyFatalReasons(summary).includes(
+    "numbered-human-assignment-metadata-missing",
+  ));
 });

@@ -124,6 +124,41 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
   const core = String(safetyCoreSource ?? "");
   const doctor = String(doctorSource ?? "");
 
+  const pageSizeMatch = core.match(/export const MEMBER_NUMBER_PROFILE_PAGE_SIZE = ([0-9_]+);/u);
+  const pageSize = Number(pageSizeMatch?.[1]?.replaceAll("_", ""));
+  if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 1_000) {
+    issues.push("missing bounded profile safety page size");
+  }
+  requirePattern(
+    issues,
+    core,
+    /export const MEMBER_NUMBER_PROFILE_SELECT = "id, user_number, user_kind, user_number_assigned_at";/u,
+    "exact profile safety projection",
+  );
+  requirePattern(issues, core, /export async function collectCompleteMemberNumberProfileRows/u, "shared profile safety paginator");
+  requirePattern(issues, core, /export async function loadCompleteMemberNumberSafety/u, "shared complete member-number loader");
+  requirePattern(issues, core, /\.select\(MEMBER_NUMBER_PROFILE_SELECT, \{ count: "exact" \}\)/u, "exact profile count request");
+  requirePattern(issues, core, /\.order\("id", \{ ascending: true \}\)/u, "stable unique profile ordering");
+  requirePattern(issues, core, /\.range\(from, to\)/u, "explicit profile page range");
+  requirePattern(issues, core, /result\.count !== exactCount/u, "profile count drift rejection");
+  requirePattern(issues, core, /profileId <= lastProfileId/u, "duplicate and non-increasing profile id rejection");
+  requirePattern(issues, core, /rows after the exact denominator/u, "after-denominator row rejection");
+  requirePattern(issues, core, /page ended before the exact denominator/u, "early short profile page rejection");
+  requirePattern(issues, core, /profile safety pagination overflow/u, "profile pagination overflow rejection");
+  requirePattern(issues, core, /profile safety pagination provider error/u, "sanitized profile provider failure");
+
+  for (const [label, source] of [["audit", audit], ["doctor", doctor]]) {
+    requirePattern(
+      issues,
+      source,
+      /loadCompleteMemberNumberSafety\(/u,
+      `${label} shared complete profile loader usage`,
+    );
+    forbidPattern(issues, source, /\.from\("profiles"\)/u, `${label} direct unpaged profile query`);
+    forbidPattern(issues, source, /\$\{profile\.id\}/u, `${label} raw profile id output`);
+    forbidPattern(issues, source, /\$\{link\.id\}/u, `${label} raw link id output`);
+  }
+
   requirePattern(
     issues,
     audit,
@@ -145,8 +180,8 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
   requirePattern(
     issues,
     audit,
-    /const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons\(memberNumberSafety\);/u,
-    "audit shared fatal-reason evaluation",
+    /const memberNumberSafetyFatalReasons = completeProfileSafety\.fatalReasons;/u,
+    "audit shared complete fatal-reason result",
   );
   requirePattern(
     issues,
@@ -175,9 +210,15 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
   );
   requirePattern(
     issues,
+    core,
+    /numbered-human-assignment-metadata-missing/u,
+    "shared every-numbered-human metadata fatal reason",
+  );
+  requirePattern(
+    issues,
     doctor,
-    /getMemberNumberSafetyFatalReasons\(memberNumberSafety\)/u,
-    "doctor shared fatal-reason evaluation",
+    /const memberNumberSafetyFatalReasons = completeProfileSafety\.fatalReasons;/u,
+    "doctor shared complete fatal-reason result",
   );
   requirePattern(
     issues,
@@ -185,12 +226,10 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
     /memberNumberSafetyFatalReasons\.length > 0/u,
     "doctor fail-closed fatal-reason predicate",
   );
-  requirePattern(
-    issues,
-    doctor,
-    /\.select\("id, user_number, user_kind, user_number_assigned_at"\)/u,
-    "doctor reserved-#0 metadata projection",
-  );
+  requirePattern(issues, audit, /Profile safety exact count:/u, "audit exact profile denominator evidence");
+  requirePattern(issues, audit, /Profile safety data pages:/u, "audit profile page evidence");
+  requirePattern(issues, doctor, /profileSafetyExactCount: completeProfileSafety\.exactCount/u, "doctor exact profile denominator evidence");
+  requirePattern(issues, doctor, /profileSafetyDataPages: completeProfileSafety\.dataPageCount/u, "doctor profile page evidence");
   requirePattern(
     issues,
     doctor,
@@ -278,6 +317,12 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(
     issues,
     preflightBody,
+    /where profile\.user_kind = 'human'\s+and profile\.user_number is not null\s+and profile\.user_number_assigned_at is null/iu,
+    "every-numbered-human assignment metadata precondition",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
     /where profile\.user_number is not null\s+and profile\.user_kind is distinct from 'human'/iu,
     "all-numbered-profiles-human precondition",
   );
@@ -286,6 +331,7 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(issues, sql, /negative human member numbers exist/iu, "negative-number precondition");
   requirePattern(issues, preflightBody, /exactly one reserved #0 human profile is required/iu, "reserved #0 count failure");
   requirePattern(issues, preflightBody, /reserved #0 profile has invalid human identity metadata/iu, "reserved #0 metadata failure");
+  requirePattern(issues, preflightBody, /a numbered human profile is missing assignment metadata/iu, "numbered human metadata failure");
   requirePattern(issues, preflightBody, /a numbered profile is not human/iu, "numbered nonhuman failure");
   requirePattern(
     issues,
@@ -297,11 +343,12 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(
     issues,
     preflightBody,
-    /select sequence_catalog\.seqincrement, sequence_catalog\.seqcycle\s+into sequence_increment, sequence_cycles\s+from pg_sequence as sequence_catalog\s+where sequence_catalog\.seqrelid = 'public\.real_user_number_seq'::regclass;/iu,
-    "authoritative sequence identity and cycle catalog proof",
+    /select sequence_catalog\.seqincrement, sequence_catalog\.seqcycle, sequence_catalog\.seqcache\s+into strict sequence_increment, sequence_cycles, sequence_cache\s+from pg_sequence as sequence_catalog\s+where sequence_catalog\.seqrelid = 'public\.real_user_number_seq'::regclass;/iu,
+    "authoritative single-row sequence increment cycle and cache catalog proof",
   );
   requirePattern(issues, preflightBody, /sequence_increment is distinct from 1/iu, "sequence increment fail-closed proof");
   requirePattern(issues, preflightBody, /sequence_cycles is distinct from false/iu, "non-cycling sequence precondition");
+  requirePattern(issues, preflightBody, /sequence_cache is distinct from 1/iu, "single-value sequence cache precondition");
   requirePattern(issues, preflightBody, /sequence_effective_next is null/iu, "unverifiable sequence fail-closed proof");
 
   if (!historicalClassifierDefinition) {
@@ -468,9 +515,9 @@ export function verifyCommit({ repoRoot = REPO_ROOT, commitish = "HEAD" } = {}) 
   const basePlaybook = readCommitPath(repoRoot, BASE_COMMIT, "docs/PLAYBOOK_NOTES.md").toString("utf8");
   const candidatePlaybook = sources.get("docs/PLAYBOOK_NOTES.md")?.toString("utf8") ?? "";
 
-  requirePattern(issues, auditSource, /summarizeMemberNumberSafety/u, "shared member-number safety audit usage");
+  requirePattern(issues, auditSource, /loadCompleteMemberNumberSafety/u, "shared complete member-number audit usage");
   forbidPattern(issues, auditSource, /Compact numbering expected/u, "stale compact-number audit contract");
-  requirePattern(issues, doctorSource, /summarizeMemberNumberSafety/u, "shared member-number safety doctor usage");
+  requirePattern(issues, doctorSource, /loadCompleteMemberNumberSafety/u, "shared complete member-number doctor usage");
   issues.push(...validateMemberNumberConsumerSources({ auditSource, safetyCoreSource, doctorSource }));
   forbidPattern(issues, doctorSource, /Member number compaction and sync rows look healthy/u, "stale compact-number doctor contract");
   requirePattern(issues, contractSource, /FULL_CHAIN_REPLAY: BLOCKED/u, "honest replay blocker");

@@ -34,28 +34,28 @@ test("accepted forward migration satisfies the static contract", () => {
   assert.deepEqual(validateMigrationSource(migrationSource, { historicalClassifierSource }), []);
 });
 
-test("doctor source is bound to the shared fail-closed member-number predicate", () => {
+test("audit and doctor are bound to the shared complete fail-closed profile denominator", () => {
   assert.deepEqual(validateMemberNumberConsumerSources({ auditSource, safetyCoreSource, doctorSource }), []);
 
   const bypassedDoctor = doctorSource.replace(
-    "const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);",
+    "const memberNumberSafetyFatalReasons = completeProfileSafety.fatalReasons;",
     "const memberNumberSafetyFatalReasons = [];",
   );
   assert.ok(validateMemberNumberConsumerSources({
     auditSource,
     safetyCoreSource,
     doctorSource: bypassedDoctor,
-  }).includes("missing doctor shared fatal-reason evaluation"));
+  }).includes("missing doctor shared complete fatal-reason result"));
 
-  const missingMetadataProjection = doctorSource.replace(
-    '.select("id, user_number, user_kind, user_number_assigned_at")',
-    '.select("id, user_number, user_kind")',
+  const missingMetadataProjection = safetyCoreSource.replace(
+    'export const MEMBER_NUMBER_PROFILE_SELECT = "id, user_number, user_kind, user_number_assigned_at";',
+    'export const MEMBER_NUMBER_PROFILE_SELECT = "id, user_number, user_kind";',
   );
   assert.ok(validateMemberNumberConsumerSources({
     auditSource,
-    safetyCoreSource,
-    doctorSource: missingMetadataProjection,
-  }).includes("missing doctor reserved-#0 metadata projection"));
+    safetyCoreSource: missingMetadataProjection,
+    doctorSource,
+  }).includes("missing exact profile safety projection"));
 
   const incompleteEvidence = doctorSource.replace(
     "reservedNumberHighWaterError: memberNumberSafety.reservedNumberHighWaterError,",
@@ -66,6 +66,43 @@ test("doctor source is bound to the shared fail-closed member-number predicate",
     safetyCoreSource,
     doctorSource: incompleteEvidence,
   }).includes("missing doctor reserved high-water evidence"));
+});
+
+test("shared profile paginator source freezes exact count, ordering, ranges, and sanitized consumers", () => {
+  const missingExactCount = safetyCoreSource.replace('{ count: "exact" }', "{}");
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: missingExactCount,
+    doctorSource,
+  }).includes("missing exact profile count request"));
+
+  const unstableOrder = safetyCoreSource.replace('.order("id", { ascending: true })', '.order("user_number", { ascending: true })');
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: unstableOrder,
+    doctorSource,
+  }).includes("missing stable unique profile ordering"));
+
+  const unpaged = safetyCoreSource.replace(".range(from, to)", ".limit(1000)");
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: unpaged,
+    doctorSource,
+  }).includes("missing explicit profile page range"));
+
+  const directAuditQuery = `${auditSource}\nclient.from("profiles");\n`;
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource: directAuditQuery,
+    safetyCoreSource,
+    doctorSource,
+  }).includes("forbidden audit direct unpaged profile query"));
+
+  const rawIdOutput = `${doctorSource}\nconsole.log(\`\${profile.id}\`);\n`;
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource,
+    doctorSource: rawIdOutput,
+  }).includes("forbidden doctor raw profile id output"));
 });
 
 test("audit source reports exact gap count, truncation, and capped evidence", () => {
@@ -90,14 +127,14 @@ test("audit source reports exact gap count, truncation, and capped evidence", ()
   }).includes("missing audit positive-gap truncation evidence"));
 
   const bypassedFatalReasons = auditSource.replace(
-    "const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);",
+    "const memberNumberSafetyFatalReasons = completeProfileSafety.fatalReasons;",
     "const memberNumberSafetyFatalReasons = [];",
   );
   assert.ok(validateMemberNumberConsumerSources({
     auditSource: bypassedFatalReasons,
     safetyCoreSource,
     doctorSource,
-  }).includes("missing audit shared fatal-reason evaluation"));
+  }).includes("missing audit shared complete fatal-reason result"));
 
   const incompleteCore = safetyCoreSource.replace(
     'reasons.push("reserved-zero-assignment-metadata-missing");',
@@ -108,6 +145,16 @@ test("audit source reports exact gap count, truncation, and capped evidence", ()
     safetyCoreSource: incompleteCore,
     doctorSource,
   }).includes("missing shared reserved-#0 metadata fatal reason"));
+
+  const incompleteNumberedHumanMetadata = safetyCoreSource.replace(
+    'reasons.push("numbered-human-assignment-metadata-missing");',
+    "// missing every-numbered-human metadata failure",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: incompleteNumberedHumanMetadata,
+    doctorSource,
+  }).includes("missing shared every-numbered-human metadata fatal reason"));
 });
 
 test("migration reinstalls the exact immutable historical automation classifier", () => {
@@ -179,10 +226,10 @@ test("migration rejects loss of exact source allocator preconditions", () => {
   );
   expectRejected(
     migrationSource.replace(
-      "select sequence_catalog.seqincrement, sequence_catalog.seqcycle",
-      "select sequence_catalog.seqincrement, false as seqcycle",
+      "select sequence_catalog.seqincrement, sequence_catalog.seqcycle, sequence_catalog.seqcache",
+      "select sequence_catalog.seqincrement, false as seqcycle, sequence_catalog.seqcache",
     ),
-    "authoritative sequence identity and cycle catalog proof",
+    "authoritative single-row sequence increment cycle and cache catalog proof",
   );
   expectRejected(
     migrationSource.replace("sequence_cycles is distinct from false", "sequence_cycles is distinct from true"),
@@ -198,6 +245,29 @@ test("migration rejects loss of exact source allocator preconditions", () => {
       "where profile.user_kind = 'human'\n    and profile.user_number is not null;",
     ),
     "all-reserved-number high-water query",
+  );
+});
+
+test("migration requires one authoritative non-cycling single-value-cache sequence row", () => {
+  expectRejected(
+    migrationSource.replace(", sequence_catalog.seqcache", ""),
+    "authoritative single-row sequence increment cycle and cache catalog proof",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_catalog.seqcache", "null::bigint as seqcache"),
+    "authoritative single-row sequence increment cycle and cache catalog proof",
+  );
+  expectRejected(
+    migrationSource.replace("into strict sequence_increment", "into sequence_increment"),
+    "authoritative single-row sequence increment cycle and cache catalog proof",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_cache is distinct from 1", "sequence_cache is distinct from 0"),
+    "single-value sequence cache precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_cache is distinct from 1", "sequence_cache > 1"),
+    "single-value sequence cache precondition",
   );
 });
 
@@ -273,6 +343,20 @@ test("migration requires one valid human #0 and rejects every numbered nonhuman"
       "profile.user_kind = 'automation'\n  )\n  into numbered_nonhuman_exists",
     ),
     "all-numbered-profiles-human precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "where profile.user_kind = 'human'\n      and profile.user_number is not null\n      and profile.user_number_assigned_at is null",
+      "where profile.user_kind = 'human'\n      and profile.user_number = 0\n      and profile.user_number_assigned_at is null",
+    ),
+    "every-numbered-human assignment metadata precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "a numbered human profile is missing assignment metadata",
+      "numbered human metadata accepted",
+    ),
+    "numbered human metadata failure",
   );
   expectRejected(
     migrationSource.replace(

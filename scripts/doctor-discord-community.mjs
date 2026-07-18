@@ -8,8 +8,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 import {
-  getMemberNumberSafetyFatalReasons,
-  summarizeMemberNumberSafety,
+  loadCompleteMemberNumberSafety,
 } from "./member-number-safety-core.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -903,20 +902,18 @@ async function checkMemberNumbers(adminClient) {
     return buildCheck("member-numbers", "fail", "Member number audit unavailable because Supabase service client is missing");
   }
 
-  const { data: profiles, error: profilesError } = await adminClient
-    .from("profiles")
-    .select("id, user_number, user_kind, user_number_assigned_at")
-    .order("user_number", { ascending: true, nullsFirst: true });
-
-  if (profilesError) {
+  let completeProfileSafety;
+  try {
+    completeProfileSafety = await loadCompleteMemberNumberSafety(adminClient);
+  } catch (error) {
     return buildCheck("member-numbers", "fail", "Unable to load profiles for member-number audit", {
-      error: profilesError.message,
+      error: error instanceof Error ? error.message : "profile safety pagination failed",
     });
   }
 
   const { data: links, error: linksError } = await adminClient
     .from("discord_member_links")
-    .select("id, fitness_user_id, discord_user_id, user_number, user_kind, nickname_sync_status, last_error_code");
+    .select("fitness_user_id, user_number, user_kind, nickname_sync_status, last_error_code");
 
   if (linksError) {
     return buildCheck("member-numbers", "fail", "Unable to load discord_member_links for member-number audit", {
@@ -934,10 +931,10 @@ async function checkMemberNumbers(adminClient) {
   }
 
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
-  const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
-  const profileRows = profiles ?? [];
-  const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
-  const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);
+  const profileRows = completeProfileSafety.rows;
+  const profilesById = new Map(profileRows.map((profile) => [profile.id, profile]));
+  const memberNumberSafety = completeProfileSafety.summary;
+  const memberNumberSafetyFatalReasons = completeProfileSafety.fatalReasons;
   const zeroCount = memberNumberSafety.zeroCount;
   const automationProfilesWithNumbers = memberNumberSafety.automationProfilesWithNumbers;
   const unknownProfilesWithNumbers = memberNumberSafety.unknownProfilesWithNumbers;
@@ -955,7 +952,7 @@ async function checkMemberNumbers(adminClient) {
       .flatMap((profile) => {
         const authUser = authUsersById.get(profile.id);
         const reasons = collectAutomationSignals(authUser);
-        return reasons.length > 0 ? [`${profile.id}: ${reasons.join("; ")}`] : [];
+        return reasons.length > 0 ? [reasons.join("; ")] : [];
       });
 
   const status = memberNumberSafetyFatalReasons.length > 0
@@ -974,6 +971,10 @@ async function checkMemberNumbers(adminClient) {
         : "Member number integrity checks failed",
     {
       zeroCount,
+      profileSafetyExactCount: completeProfileSafety.exactCount,
+      profileSafetyDataPages: completeProfileSafety.dataPageCount,
+      profileSafetyPageSize: completeProfileSafety.pageSize,
+      profileSafetyRequests: completeProfileSafety.requestCount,
       hasExactlyOneHumanZero: memberNumberSafety.hasExactlyOneHumanZero,
       reservedZeroAssignmentMetadataPresent: memberNumberSafety.reservedZeroAssignmentMetadataPresent,
       maxReservedNumber: memberNumberSafety.maxReservedNumber,

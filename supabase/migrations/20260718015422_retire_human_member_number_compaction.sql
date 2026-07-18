@@ -12,8 +12,10 @@ declare
   invalid_reserved_zero_exists boolean;
   maximum_reserved_number bigint;
   negative_human_number_exists boolean;
+  numbered_human_missing_assignment_metadata_exists boolean;
   numbered_nonhuman_exists boolean;
   reserved_zero_count bigint;
+  sequence_cache bigint;
   sequence_called boolean;
   sequence_cycles boolean;
   sequence_effective_next bigint;
@@ -150,6 +152,19 @@ begin
   select exists (
     select 1
     from public.profiles as profile
+    where profile.user_kind = 'human'
+      and profile.user_number is not null
+      and profile.user_number_assigned_at is null
+  )
+  into numbered_human_missing_assignment_metadata_exists;
+
+  if numbered_human_missing_assignment_metadata_exists then
+    raise exception 'member-number safety precondition failed: a numbered human profile is missing assignment metadata';
+  end if;
+
+  select exists (
+    select 1
+    from public.profiles as profile
     where profile.user_number is not null
     group by profile.user_number
     having count(*) > 1
@@ -193,8 +208,8 @@ begin
   into sequence_last_value, sequence_called
   from public.real_user_number_seq as sequence_row;
 
-  select sequence_catalog.seqincrement, sequence_catalog.seqcycle
-  into sequence_increment, sequence_cycles
+  select sequence_catalog.seqincrement, sequence_catalog.seqcycle, sequence_catalog.seqcache
+  into strict sequence_increment, sequence_cycles, sequence_cache
   from pg_sequence as sequence_catalog
   where sequence_catalog.seqrelid = 'public.real_user_number_seq'::regclass;
 
@@ -205,9 +220,10 @@ begin
 
   if sequence_increment is distinct from 1
     or sequence_cycles is distinct from false
+    or sequence_cache is distinct from 1
     or sequence_effective_next is null
     or sequence_effective_next <= maximum_reserved_number then
-    raise exception 'member-number safety precondition failed: sequence is cycling, unverifiable, or not above the reserved-number high-water mark';
+    raise exception 'member-number safety precondition failed: sequence must be non-cycling, single-value cached, verifiable, and above the reserved-number high-water mark';
   end if;
 end;
 $$;

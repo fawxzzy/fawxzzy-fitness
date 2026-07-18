@@ -1,4 +1,142 @@
 export const MAX_REPORTED_MEMBER_NUMBER_GAPS = 100;
+export const MEMBER_NUMBER_PROFILE_SELECT = "id, user_number, user_kind, user_number_assigned_at";
+export const MEMBER_NUMBER_PROFILE_PAGE_SIZE = 500;
+export const MAX_MEMBER_NUMBER_PROFILE_PAGES = 2_000;
+
+function assertPaginationOption(value, label, maximum = Number.MAX_SAFE_INTEGER) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    throw new Error(`${label} must be a positive safe integer no greater than ${maximum}`);
+  }
+}
+
+function validateProfileSafetyCount(count) {
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new Error("profile safety pagination count is invalid");
+  }
+}
+
+function validateStrictlyIncreasingProfileIds(rows, priorProfileId) {
+  let lastProfileId = priorProfileId;
+  for (const row of rows) {
+    const profileId = row?.id;
+    if (typeof profileId !== "string" || profileId.length === 0) {
+      throw new Error("profile safety pagination id is invalid");
+    }
+    if (lastProfileId !== null && profileId <= lastProfileId) {
+      throw new Error("profile safety pagination ids are not strictly increasing");
+    }
+    lastProfileId = profileId;
+  }
+  return lastProfileId;
+}
+
+export async function collectCompleteMemberNumberProfileRows(
+  fetchPage,
+  {
+    pageSize = MEMBER_NUMBER_PROFILE_PAGE_SIZE,
+    maxPages = MAX_MEMBER_NUMBER_PROFILE_PAGES,
+  } = {},
+) {
+  if (typeof fetchPage !== "function") {
+    throw new Error("profile safety page loader is required");
+  }
+  assertPaginationOption(pageSize, "profile safety page size", 1_000);
+  assertPaginationOption(maxPages, "profile safety maximum page count");
+  if (!Number.isSafeInteger(pageSize * maxPages)) {
+    throw new Error("profile safety pagination capacity is invalid");
+  }
+
+  const rows = [];
+  let exactCount = null;
+  let lastProfileId = null;
+  let dataPageCount = 0;
+  let requestCount = 0;
+
+  while (true) {
+    const afterDenominatorProbe = exactCount !== null && rows.length === exactCount;
+    if (!afterDenominatorProbe && dataPageCount >= maxPages) {
+      throw new Error("profile safety pagination overflow");
+    }
+
+    const from = rows.length;
+    const to = from + pageSize - 1;
+    let result;
+    try {
+      result = await fetchPage({ from, pageSize, to });
+    } catch {
+      throw new Error("profile safety pagination provider error");
+    }
+    requestCount += 1;
+
+    if (!result || result.error || !Array.isArray(result.data)) {
+      throw new Error("profile safety pagination provider error");
+    }
+    validateProfileSafetyCount(result.count);
+    if (exactCount === null) {
+      exactCount = result.count;
+      if (exactCount > pageSize * maxPages) {
+        throw new Error("profile safety pagination overflow");
+      }
+    } else if (result.count !== exactCount) {
+      throw new Error("profile safety pagination count changed");
+    }
+
+    if (afterDenominatorProbe) {
+      if (result.data.length !== 0) {
+        throw new Error("profile safety pagination returned rows after the exact denominator");
+      }
+      return {
+        dataPageCount,
+        exactCount,
+        pageSize,
+        requestCount,
+        rows,
+      };
+    }
+
+    const expectedPageLength = Math.min(pageSize, exactCount - rows.length);
+    if (result.data.length < expectedPageLength) {
+      throw new Error("profile safety pagination page ended before the exact denominator");
+    }
+    if (result.data.length > expectedPageLength) {
+      throw new Error("profile safety pagination returned rows beyond the exact denominator");
+    }
+    if (expectedPageLength === 0) {
+      return {
+        dataPageCount,
+        exactCount,
+        pageSize,
+        requestCount,
+        rows,
+      };
+    }
+
+    lastProfileId = validateStrictlyIncreasingProfileIds(result.data, lastProfileId);
+    rows.push(...result.data);
+    dataPageCount += 1;
+  }
+}
+
+export async function loadCompleteMemberNumberSafety(client, options) {
+  if (!client || typeof client.from !== "function") {
+    throw new Error("profile safety client is required");
+  }
+
+  const pagination = await collectCompleteMemberNumberProfileRows(
+    ({ from, to }) => client
+      .from("profiles")
+      .select(MEMBER_NUMBER_PROFILE_SELECT, { count: "exact" })
+      .order("id", { ascending: true })
+      .range(from, to),
+    options,
+  );
+  const summary = summarizeMemberNumberSafety(pagination.rows);
+  return {
+    ...pagination,
+    fatalReasons: getMemberNumberSafetyFatalReasons(summary),
+    summary,
+  };
+}
 
 export function summarizePositiveMemberNumberGaps(
   numbers,
@@ -88,6 +226,9 @@ export function getMemberNumberSafetyFatalReasons(summary) {
   if ((summary?.unknownProfilesWithNumbers?.length ?? 0) > 0) {
     reasons.push("numbered-unknown-profile");
   }
+  if ((summary?.numberedHumanProfilesMissingAssignmentMetadata?.length ?? 0) > 0) {
+    reasons.push("numbered-human-assignment-metadata-missing");
+  }
   if ((summary?.duplicateNumbers?.length ?? 0) > 0) {
     reasons.push("duplicate-member-number");
   }
@@ -164,6 +305,12 @@ export function summarizeMemberNumberSafety(profiles) {
       && profile?.user_number !== null
       && profile?.user_number !== undefined,
   );
+  const numberedHumanProfilesMissingAssignmentMetadata = profileRows.filter(
+    (profile) => profile?.user_kind === "human"
+      && profile?.user_number !== null
+      && profile?.user_number !== undefined
+      && (profile?.user_number_assigned_at === null || profile?.user_number_assigned_at === undefined),
+  );
   const positiveGapSummary = reservedNumberHighWaterError
     ? {
       gapCount: null,
@@ -180,6 +327,7 @@ export function summarizeMemberNumberSafety(profiles) {
     maxReservedNumber,
     minimumSafeNextNumber,
     negativeHumanNumbers,
+    numberedHumanProfilesMissingAssignmentMetadata,
     positiveGapCount: positiveGapSummary.gapCount,
     positiveGaps: positiveGapSummary.reportedGaps,
     positiveGapsTruncated: positiveGapSummary.truncated,
