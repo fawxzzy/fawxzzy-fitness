@@ -1,0 +1,128 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import {
+  HISTORICAL_MIGRATIONS,
+  MIGRATION_PATH,
+  REPO_ROOT,
+  parseCliArgs,
+  validateHistoricalSources,
+  validateMigrationSource,
+} from "./fp-fit-user-number-safety-verify.mjs";
+
+const migrationSource = readFileSync(new URL(`../../${MIGRATION_PATH}`, import.meta.url), "utf8");
+
+function expectRejected(source, expectedIssue) {
+  const issues = validateMigrationSource(source);
+  assert.ok(
+    issues.some((issue) => issue.includes(expectedIssue)),
+    `expected issue containing ${JSON.stringify(expectedIssue)}; got ${JSON.stringify(issues)}`,
+  );
+}
+
+test("accepted forward migration satisfies the static contract", () => {
+  assert.deepEqual(validateMigrationSource(migrationSource), []);
+});
+
+test("migration rejects profile rewrites and sequence mutation", () => {
+  expectRejected(`${migrationSource}\nupdate public.profiles set user_number = 1;\n`, "existing profile update");
+  expectRejected(`${migrationSource}\nselect setval('public.real_user_number_seq', 1);\n`, "setval call");
+  expectRejected(`${migrationSource}\nalter sequence public.real_user_number_seq restart with 1;\n`, "sequence restart");
+  expectRejected(`${migrationSource}\nselect 53;\n`, "hardcoded current high-water successor");
+});
+
+test("migration rejects destructive or non-idempotent compaction removal", () => {
+  expectRejected(
+    migrationSource.replace("on public.profiles restrict;", "on public.profiles cascade;"),
+    "CASCADE",
+  );
+  expectRejected(
+    migrationSource.replace("drop function if exists public.compact_human_member_numbers_preserving_zero() restrict;", ""),
+    "restricted compactor drop",
+  );
+  expectRejected(
+    migrationSource.replace("drop trigger if exists profiles_compact_human_member_numbers_after_delete", "drop trigger profiles_compact_human_member_numbers_after_delete"),
+    "restricted compaction trigger drop",
+  );
+});
+
+test("migration rejects loss of exact source allocator preconditions", () => {
+  expectRejected(
+    migrationSource.replace("to_regprocedure('public.assign_real_user_number_on_profile_insert()')", "to_regprocedure('public.missing()')"),
+    "assignment function precondition",
+  );
+  expectRejected(
+    migrationSource.replace("to_regclass('public.real_user_number_seq')", "to_regclass('public.missing_sequence')"),
+    "sequence precondition",
+  );
+  expectRejected(
+    migrationSource.replace("to_regclass('public.profiles_user_number_uq')", "to_regclass('public.missing_index')"),
+    "unique index precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_effective_next <= maximum_human_number", "sequence_effective_next < -1"),
+    "sequence high-water precondition",
+  );
+});
+
+test("migration rejects caller-supplied human identity bypass", () => {
+  const bypassed = migrationSource.replace(
+    "begin\n  if public.is_automation_auth_user(new.id) then",
+    "begin\n  if new.user_number is not null then\n    return new;\n  end if;\n\n  if public.is_automation_auth_user(new.id) then",
+  );
+  expectRejected(bypassed, "caller-supplied number bypass");
+
+  expectRejected(
+    migrationSource.replace("new.user_number_assigned_at := now();", "new.user_number_assigned_at := coalesce(new.user_number_assigned_at, now());"),
+    "caller-supplied assignment timestamp",
+  );
+});
+
+test("migration rejects incomplete immutable identity enforcement", () => {
+  expectRejected(
+    migrationSource.replace(
+      "or new.user_kind is distinct from old.user_kind",
+      "or new.user_kind = old.user_kind",
+    ),
+    "immutable comparator for user_kind",
+  );
+  expectRejected(
+    migrationSource.replace("create trigger profiles_enforce_immutable_member_identity_before_update", "create trigger wrong_identity_trigger"),
+    "immutable BEFORE UPDATE trigger",
+  );
+});
+
+test("migration rejects unsafe sequence grants", () => {
+  const unsafe = migrationSource.replace(
+    "grant select on sequence public.real_user_number_seq to service_role;",
+    "grant usage, update on sequence public.real_user_number_seq to authenticated;",
+  );
+  expectRejected(unsafe, "unsafe sequence grant");
+});
+
+test("historical migration digests are immutable", () => {
+  const sources = new Map(
+    HISTORICAL_MIGRATIONS.map((entry) => [
+      entry.path,
+      readFileSync(new URL(`../../${entry.path}`, import.meta.url)),
+    ]),
+  );
+  assert.deepEqual(validateHistoricalSources(sources), []);
+
+  const changed = new Map(sources);
+  changed.set(HISTORICAL_MIGRATIONS[0].path, Buffer.from(`${changed.get(HISTORICAL_MIGRATIONS[0].path)}\n-- drift\n`));
+  assert.deepEqual(
+    validateHistoricalSources(changed),
+    [`historical migration changed: ${HISTORICAL_MIGRATIONS[0].path}`],
+  );
+});
+
+test("CLI accepts only default HEAD or one explicit ref", () => {
+  assert.deepEqual(parseCliArgs([]), { commitish: "HEAD" });
+  assert.deepEqual(parseCliArgs(["--ref", "abc123"]), { commitish: "abc123" });
+  assert.throws(() => parseCliArgs(["--ref"]), /usage/u);
+  assert.throws(() => parseCliArgs(["--ref", "a", "--ref", "b"]), /usage/u);
+  assert.throws(() => parseCliArgs(["--unknown"]), /usage/u);
+  assert.throws(() => parseCliArgs(["HEAD"]), /usage/u);
+  assert.ok(REPO_ROOT.endsWith("fitness-user-number-safety-001") || REPO_ROOT.endsWith("fawxzzy-fitness"));
+});

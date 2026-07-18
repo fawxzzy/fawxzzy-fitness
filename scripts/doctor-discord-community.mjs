@@ -7,6 +7,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import { summarizeMemberNumberSafety } from "./member-number-safety-core.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -302,22 +303,6 @@ function matchesFeedbackPanelMessage(message, applicationId) {
   return authorId === applicationId
     && hasAcceptedCustomIds
     && (hasAcceptedTitle || hasAcceptedButtons);
-}
-
-function compactPositiveGaps(numbers) {
-  const positiveNumbers = [...new Set(numbers.filter((value) => Number.isInteger(value) && value >= 1))].sort((a, b) => a - b);
-  if (positiveNumbers.length === 0) {
-    return [];
-  }
-
-  const gaps = [];
-  for (let value = 1; value <= positiveNumbers[positiveNumbers.length - 1]; value += 1) {
-    if (!positiveNumbers.includes(value)) {
-      gaps.push(value);
-    }
-  }
-
-  return gaps;
 }
 
 function collectAutomationSignals(user) {
@@ -948,12 +933,10 @@ async function checkMemberNumbers(adminClient) {
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   const profileRows = profiles ?? [];
-  const zeroCount = profileRows.filter((profile) => profile.user_number === 0).length;
-  const automationProfilesWithNumbers = profileRows.filter((profile) => profile.user_kind === "automation" && profile.user_number !== null);
-  const humanPositiveNumbers = profileRows
-    .filter((profile) => profile.user_kind === "human" && typeof profile.user_number === "number" && profile.user_number >= 1)
-    .map((profile) => profile.user_number);
-  const positiveGaps = compactPositiveGaps(humanPositiveNumbers);
+  const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
+  const zeroCount = memberNumberSafety.zeroCount;
+  const automationProfilesWithNumbers = memberNumberSafety.automationProfilesWithNumbers;
+  const positiveGaps = memberNumberSafety.positiveGaps;
   const staleLinks = (links ?? []).filter((link) => {
     const profile = profilesById.get(link.fitness_user_id);
     return !profile || profile.user_number !== link.user_number || profile.user_kind !== link.user_kind;
@@ -970,7 +953,10 @@ async function checkMemberNumbers(adminClient) {
         return reasons.length > 0 ? [`${profile.id}: ${reasons.join("; ")}`] : [];
       });
 
-  const status = zeroCount !== 1 || automationProfilesWithNumbers.length > 0 || positiveGaps.length > 0
+  const status = zeroCount !== 1
+    || automationProfilesWithNumbers.length > 0
+    || memberNumberSafety.duplicateNumbers.length > 0
+    || memberNumberSafety.negativeHumanNumbers.length > 0
     ? "fail"
     : staleLinks.length > 0 || nicknameFailures.length > 0 || suspiciousNumberedProfiles.length > 0 || authUsersError
       ? "warn"
@@ -980,7 +966,7 @@ async function checkMemberNumbers(adminClient) {
     "member-numbers",
     status,
     status === "pass"
-      ? "Member number compaction and sync rows look healthy"
+      ? "Member number immutability and sync rows look healthy"
       : status === "warn"
         ? "Member numbers are usable, but there are sync or stale-row warnings to review"
         : "Member number integrity checks failed",
@@ -988,6 +974,10 @@ async function checkMemberNumbers(adminClient) {
       zeroCount,
       positiveGapCount: positiveGaps.length,
       positiveGaps,
+      duplicateNumberCount: memberNumberSafety.duplicateNumbers.length,
+      duplicateNumbers: memberNumberSafety.duplicateNumbers,
+      negativeHumanNumberCount: memberNumberSafety.negativeHumanNumbers.length,
+      negativeHumanNumbers: memberNumberSafety.negativeHumanNumbers,
       automationProfilesWithNumbers: automationProfilesWithNumbers.length,
       staleDiscordLinkRows: staleLinks.length,
       nicknameFailureSummary: nicknameFailures.reduce((counts, link) => {
@@ -1231,7 +1221,9 @@ function printPlainReport(report) {
     }
     if (check.zeroCount !== undefined) {
       console.log(`  #0 count: ${check.zeroCount}`);
-      console.log(`  positive gaps: ${check.positiveGapCount}`);
+      console.log(`  permanent positive gaps: ${check.positiveGapCount}`);
+      console.log(`  duplicate numbers: ${check.duplicateNumberCount}`);
+      console.log(`  negative human numbers: ${check.negativeHumanNumberCount}`);
       console.log(`  automation profiles with numbers: ${check.automationProfilesWithNumbers}`);
       console.log(`  stale discord_member_links rows: ${check.staleDiscordLinkRows}`);
       if (check.ownerZeroFailure) {
@@ -1294,7 +1286,9 @@ function buildMarkdownDetailLines(check) {
   }
   if (check.zeroCount !== undefined) {
     lines.push(`- #0 count: ${check.zeroCount}`);
-    lines.push(`- positive gaps: ${check.positiveGapCount}`);
+    lines.push(`- permanent positive gaps: ${check.positiveGapCount}`);
+    lines.push(`- duplicate numbers: ${check.duplicateNumberCount}`);
+    lines.push(`- negative human numbers: ${check.negativeHumanNumberCount}`);
     lines.push(`- automation profiles with numbers: ${check.automationProfilesWithNumbers}`);
     lines.push(`- stale discord_member_links rows: ${check.staleDiscordLinkRows}`);
     if (check.ownerZeroFailure) {

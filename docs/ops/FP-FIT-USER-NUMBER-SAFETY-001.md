@@ -1,0 +1,76 @@
+# FP-FIT-USER-NUMBER-SAFETY-001
+
+## Outcome
+
+This source packet retires automatic member-number compaction and defines Fitness human member numbers as immutable, unique, and never reused. It does not update an existing profile, execute a sequence, apply SQL to Supabase, or move allocation to the future shared platform.
+
+Source base: `bab188a51819a6fb2f8aeabe73627d4ed63dcaa4`.
+
+## Preimage
+
+The read-only preparation pass proved the source project still had both of these enabled trigger paths:
+
+- `profiles_assign_real_user_number_before_insert` -> `public.assign_real_user_number_on_profile_insert()`
+- `profiles_compact_human_member_numbers_after_delete` -> `public.compact_human_member_numbers_after_profile_delete()` -> `public.compact_human_member_numbers_preserving_zero()`
+
+The delete path rewrote surviving positive human numbers into a dense range and restarted `public.real_user_number_seq` downward. The same pass proved that own-profile insert/update/delete policies are enabled, the exposed profile columns were writable, and client roles held sequence privileges. Removing the delete trigger alone would therefore not satisfy immutable, never-reused identity semantics.
+
+No raw profile identifiers or secret values are part of this receipt.
+
+## Forward Migration Contract
+
+`20260718015422_retire_human_member_number_compaction.sql` is forward-only and transactional. It:
+
+1. Takes an `ACCESS EXCLUSIVE` lock on `public.profiles`.
+2. Fails closed unless the assignment trigger, function, sequence, and partial unique index are exact and enabled; compaction objects form either the exact legacy set or the fully retired set; profile identity invariants hold; and the sequence effective-next value is above the human-number high-water mark.
+3. Drops the compaction trigger, delete wrapper, and compactor with `IF EXISTS` and `RESTRICT`, never `CASCADE`.
+4. Redefines insert assignment so automation profiles are always unnumbered and every new human receives `nextval`, regardless of caller-supplied identity values.
+5. Adds `public.enforce_immutable_profile_member_identity()` and `profiles_enforce_immutable_member_identity_before_update`; same-value updates pass, while changes to `user_number`, `user_kind`, or `user_number_assigned_at` fail.
+6. Removes sequence mutation/allocation privileges from public client roles and `service_role`; `service_role` retains read-only `SELECT`, while the postgres-owned `SECURITY DEFINER` assignment function remains the allocator.
+7. Adds comments that freeze immutable, never-reused semantics.
+
+The migration contains no profile `UPDATE`, `setval`, sequence restart, sequence reseed, hard-coded next number, historical migration edit, or data backfill. Deletion remains allowed and creates a permanent gap.
+
+## Source Audit Contract
+
+`scripts/member-number-safety-core.mjs` is the shared deterministic model for the operator audit and Discord community doctor.
+
+- Permanent positive gaps are expected information.
+- Duplicate numbers remain failures.
+- Negative human numbers remain failures.
+- More than one `#0` remains a failure.
+- Automation profiles with numbers remain failures.
+
+The scripts do not claim to read the live sequence. They report the minimum safe next number from the observed high-water mark; action-time SQL must independently prove the real sequence effective-next value.
+
+## Verification
+
+The packet includes a committed-tree verifier and focused deterministic tests. The verifier pins the accepted base, disables Git replacement objects, reads the requested commit once as an immutable SHA, freezes the exact nine-path denominator, checks immutable historical migration digests, validates migration semantics, and proves this Playbook update is append-only.
+
+Required source gates:
+
+- `node --test scripts/member-number-safety-core.test.mjs scripts/migration/fp-fit-user-number-safety-verify.test.mjs`
+- `node scripts/migration/fp-fit-user-number-safety-verify.mjs --ref HEAD`
+- `npm run migration:validate`
+- branch-aware `npm run verify`
+- exact path, LF, migration-diff, credential, secret, and machine-path scans
+
+For the source-only branch, `npm run migration:validate` must identify this file as the sole pending migration and stop without applying it. A clean zero-pending result is only valid after a separately authorized provider apply; it is not a source-PR acceptance condition.
+
+`FULL_CHAIN_REPLAY: BLOCKED`
+
+The repository has no admitted disposable full-chain Supabase harness for this packet. Merge acceptance requires faithful replay of the complete chain, middle-number deletion with survivor mapping proof, concurrent human allocation above the prior high-water mark, automation-null proof, immutable-update proof, idempotent reapply, and denied sequence reset. Native PostgreSQL, remote Supabase, or provider SQL are not substitutes.
+
+`PROVIDER_APPLY: NOT_AUTHORIZED`
+
+Production application is a separate owner/provider packet. It requires an exact project and writer lease, current backup/PITR posture, an API/profile-write freeze, migration-list and dry-run proof, provider-side aggregate/mapping digests, exact object readback, and zero existing-row drift. No live synthetic human signup is required because even a rolled-back sequence allocation creates a permanent gap.
+
+## Rollback And Cutover
+
+Compaction must never be recreated as rollback. Application/source rollback may proceed while this migration remains applied. Any database rollback or temporary identity-trigger disable requires a separate forward migration, exclusive lock, exact disposition manifest, and explicit destructive authority.
+
+The later shared-platform cutover must calculate its floor at freeze time as the maximum of the source maximum plus one, the source sequence effective-next value, and the target global high-water plus one. It must never hard-code the currently observed successor. The target allocator must be admitted and proven before source allocation is disabled, with exactly one allocator active.
+
+## Separate Finding
+
+Profile-only deletion can leave a stale `discord_member_links` snapshot because that relationship follows `auth.users`, while snapshot refresh only joins extant profiles. That predates this migration and belongs to the account-deletion/data-lifecycle lane; this packet does not widen into it.

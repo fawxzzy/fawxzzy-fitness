@@ -4,6 +4,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import { summarizeMemberNumberSafety } from "./member-number-safety-core.mjs";
 
 const AUTOMATION_SIGNAL_PATTERN = /(^|[^a-z0-9])(codex|test|qa|example|preview|local)([^a-z0-9]|$)/i;
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
@@ -124,22 +125,6 @@ function collectAutomationSignals(user) {
   return Array.from(new Set(reasons));
 }
 
-function collectPositiveGaps(numbers) {
-  const sorted = [...new Set(numbers.filter((value) => Number.isInteger(value) && value >= 1))].sort((left, right) => left - right);
-  if (sorted.length === 0) {
-    return [];
-  }
-
-  const gaps = [];
-  for (let candidate = 1; candidate <= sorted[sorted.length - 1]; candidate += 1) {
-    if (!sorted.includes(candidate)) {
-      gaps.push(candidate);
-    }
-  }
-
-  return gaps;
-}
-
 async function listAllAuthUsers(adminClient) {
   const users = [];
   let page = 1;
@@ -210,6 +195,7 @@ async function main() {
   const profileRows = profiles ?? [];
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const profileById = new Map(profileRows.map((profile) => [profile.id, profile]));
+  const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
   const numberedHumanProfiles = profileRows.filter((profile) => profile.user_kind === "human" && profile.user_number !== null);
   const positiveHumanNumbers = numberedHumanProfiles
     .map((profile) => profile.user_number)
@@ -217,17 +203,11 @@ async function main() {
   const automationProfiles = profileRows.filter((profile) => profile.user_kind === "automation");
   const unknownProfiles = profileRows.filter((profile) => profile.user_kind === "unknown");
   const zeroProfiles = profileRows.filter((profile) => profile.user_number === 0);
-  const allNumbers = profileRows
-    .map((profile) => profile.user_number)
-    .filter((value) => Number.isInteger(value));
   const maxPositiveUserNumber = positiveHumanNumbers.length > 0 ? Math.max(...positiveHumanNumbers) : null;
-  const expectedNextSequence = maxPositiveUserNumber === null ? 1 : maxPositiveUserNumber + 1;
-  const positiveGaps = collectPositiveGaps(positiveHumanNumbers);
-  const duplicateNumbers = Array.from(
-    allNumbers.reduce((counts, value) => counts.set(value, (counts.get(value) ?? 0) + 1), new Map()).entries(),
-  )
-    .filter(([, count]) => count > 1)
-    .map(([value, count]) => `#${value} appears ${count} times`);
+  const minimumSafeNextNumber = maxPositiveUserNumber === null ? 1 : maxPositiveUserNumber + 1;
+  const positiveGaps = memberNumberSafety.positiveGaps;
+  const duplicateNumbers = memberNumberSafety.duplicateNumbers
+    .map(({ number, count }) => `#${number} appears ${count} times`);
 
   const suspiciousNumberedProfiles = authUsersError
     ? []
@@ -275,11 +255,11 @@ async function main() {
       });
 
   const problems = [];
-  if (positiveGaps.length > 0) {
-    problems.push(`Positive member-number gaps detected: ${positiveGaps.join(", ")}`);
-  }
   if (duplicateNumbers.length > 0) {
     problems.push(...duplicateNumbers.map((entry) => `Duplicate number: ${entry}`));
+  }
+  if (memberNumberSafety.negativeHumanNumbers.length > 0) {
+    problems.push(`Negative human member numbers detected: ${memberNumberSafety.negativeHumanNumbers.join(", ")}`);
   }
   if (zeroProfiles.length > 1) {
     problems.push(`More than one #0 profile exists (${zeroProfiles.length}).`);
@@ -310,15 +290,15 @@ async function main() {
 
   console.log("Member number audit");
   console.log(`Env file: ${envPath}`);
-  console.log("Compact numbering expected: no positive gaps.");
-  console.log("#0 is reserved and excluded from compaction.");
+  console.log("Immutable numbering expected: deletions leave permanent positive gaps.");
+  console.log("#0 is reserved; every assigned number is unique and never reused.");
   console.log(`Human numbered count: ${numberedHumanProfiles.length}`);
   console.log(`Automation count: ${automationProfiles.length}`);
   console.log(`Unknown count: ${unknownProfiles.length}`);
   console.log(`Max positive user_number: ${maxPositiveUserNumber ?? "none"}`);
-  console.log(`Expected next sequence: ${expectedNextSequence}`);
+  console.log(`Minimum safe next number: ${minimumSafeNextNumber}`);
   console.log(`#0 profile count: ${zeroProfiles.length}`);
-  console.log(`Positive member-number gaps: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
+  console.log(`Permanent positive gaps: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
   printList("Duplicate numbers", duplicateNumbers);
   if (authUsersError) {
     console.log(`Suspicious numbered profiles: unavailable (${authUsersError})`);
