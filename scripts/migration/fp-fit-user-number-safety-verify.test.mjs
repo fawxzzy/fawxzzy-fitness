@@ -210,6 +210,7 @@ test("migration reinstalls the exact immutable historical automation classifier"
 });
 
 test("migration rejects profile rewrites and sequence mutation", () => {
+  expectRejected(`${migrationSource}\ninsert into public.profiles (user_number) values (0);\n`, "profile seed or reservation insert");
   expectRejected(`${migrationSource}\nupdate public.profiles set user_number = 1;\n`, "existing profile update");
   expectRejected(`${migrationSource}\nselect setval('public.real_user_number_seq', 1);\n`, "setval call");
   expectRejected(`${migrationSource}\nalter sequence public.real_user_number_seq restart with 1;\n`, "sequence restart");
@@ -250,10 +251,10 @@ test("migration rejects loss of exact source allocator preconditions", () => {
   );
   expectRejected(
     migrationSource.replace(
-      "select sequence_catalog.seqincrement, sequence_catalog.seqcycle, sequence_catalog.seqcache",
-      "select sequence_catalog.seqincrement, false as seqcycle, sequence_catalog.seqcache",
+      "    sequence_catalog.seqcycle,",
+      "    false as seqcycle,",
     ),
-    "authoritative single-row sequence increment cycle and cache catalog proof",
+    "authoritative single-row sequence catalog proof",
   );
   expectRejected(
     migrationSource.replace("sequence_cycles is distinct from false", "sequence_cycles is distinct from true"),
@@ -274,16 +275,16 @@ test("migration rejects loss of exact source allocator preconditions", () => {
 
 test("migration requires one authoritative non-cycling single-value-cache sequence row", () => {
   expectRejected(
-    migrationSource.replace(", sequence_catalog.seqcache", ""),
-    "authoritative single-row sequence increment cycle and cache catalog proof",
+    migrationSource.replace("    sequence_catalog.seqcache\n", ""),
+    "authoritative single-row sequence catalog proof",
   );
   expectRejected(
     migrationSource.replace("sequence_catalog.seqcache", "null::bigint as seqcache"),
-    "authoritative single-row sequence increment cycle and cache catalog proof",
+    "authoritative single-row sequence catalog proof",
   );
   expectRejected(
-    migrationSource.replace("into strict sequence_increment", "into sequence_increment"),
-    "authoritative single-row sequence increment cycle and cache catalog proof",
+    migrationSource.replace("  into strict\n", "  into\n"),
+    "authoritative single-row sequence catalog proof",
   );
   expectRejected(
     migrationSource.replace("sequence_cache is distinct from 1", "sequence_cache is distinct from 0"),
@@ -292,6 +293,49 @@ test("migration requires one authoritative non-cycling single-value-cache sequen
   expectRejected(
     migrationSource.replace("sequence_cache is distinct from 1", "sequence_cache > 1"),
     "single-value sequence cache precondition",
+  );
+});
+
+test("migration admits only the exact pristine empty fresh-chain preimage", () => {
+  expectRejected(
+    migrationSource.replace("into profile_count\n  from public.profiles;", "into profile_count\n  from public.profiles\n  where user_number is not null;"),
+    "exact profile denominator query",
+  );
+  expectRejected(
+    migrationSource.replace("profile_count = 0 and reserved_zero_count <> 0", "profile_count = 0 and reserved_zero_count <> 1"),
+    "empty fresh-chain zero denominator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_type is distinct from 'integer'::regtype", "sequence_type is distinct from 'bigint'::regtype"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_start is distinct from 1", "sequence_start is distinct from 2"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_minimum is distinct from 1", "sequence_minimum is distinct from 0"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_maximum is distinct from 2147483647", "sequence_maximum is distinct from 2147483646"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_last_value is distinct from 1", "sequence_last_value is distinct from 2"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_called is distinct from false", "sequence_called is distinct from true"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_effective_next is distinct from 1", "sequence_effective_next is distinct from 2"),
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  expectRejected(
+    migrationSource.replace("empty fresh-chain allocator is not pristine", "empty allocator accepted after drift"),
+    "pristine empty allocator failure",
   );
 });
 
@@ -351,8 +395,8 @@ test("migration requires the exact healthy user_number unique index", () => {
 
 test("migration requires one valid human #0 and rejects every numbered nonhuman", () => {
   expectRejected(
-    migrationSource.replace("reserved_zero_count <> 1", "reserved_zero_count < 0"),
-    "exact-one reserved #0 precondition",
+    migrationSource.replace("profile_count > 0 and reserved_zero_count <> 1", "profile_count > 0 and reserved_zero_count < 0"),
+    "non-empty exact-one reserved #0 precondition",
   );
   expectRejected(
     migrationSource.replace(

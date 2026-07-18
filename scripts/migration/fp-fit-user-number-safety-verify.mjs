@@ -315,10 +315,27 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(
     issues,
     preflightBody,
+    /select count\(\*\)\s+into profile_count\s+from public\.profiles;/iu,
+    "exact profile denominator query",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
     /select count\(\*\)\s+into reserved_zero_count\s+from public\.profiles as profile\s+where profile\.user_number = 0;/iu,
     "exact reserved #0 count query",
   );
-  requirePattern(issues, preflightBody, /reserved_zero_count <> 1/iu, "exact-one reserved #0 precondition");
+  requirePattern(
+    issues,
+    preflightBody,
+    /profile_count = 0 and reserved_zero_count <> 0/iu,
+    "empty fresh-chain zero denominator precondition",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /profile_count > 0 and reserved_zero_count <> 1/iu,
+    "non-empty exact-one reserved #0 precondition",
+  );
   requirePattern(
     issues,
     preflightBody,
@@ -340,7 +357,8 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   forbidPattern(issues, preflightBody, /numbered_automation_exists/iu, "automation-only numbered-profile precondition");
   requirePattern(issues, sql, /duplicate member numbers exist/iu, "duplicate-number precondition");
   requirePattern(issues, sql, /negative human member numbers exist/iu, "negative-number precondition");
-  requirePattern(issues, preflightBody, /exactly one reserved #0 human profile is required/iu, "reserved #0 count failure");
+  requirePattern(issues, preflightBody, /empty fresh-chain profile denominator is ambiguous/iu, "ambiguous empty profile denominator failure");
+  requirePattern(issues, preflightBody, /exactly one reserved #0 human profile is required/iu, "non-empty reserved #0 count failure");
   requirePattern(issues, preflightBody, /reserved #0 profile has invalid human identity metadata/iu, "reserved #0 metadata failure");
   requirePattern(issues, preflightBody, /a numbered human profile is missing assignment metadata/iu, "numbered human metadata failure");
   requirePattern(issues, preflightBody, /a numbered profile is not human/iu, "numbered nonhuman failure");
@@ -354,13 +372,20 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(
     issues,
     preflightBody,
-    /select sequence_catalog\.seqincrement, sequence_catalog\.seqcycle, sequence_catalog\.seqcache\s+into strict sequence_increment, sequence_cycles, sequence_cache\s+from pg_sequence as sequence_catalog\s+where sequence_catalog\.seqrelid = 'public\.real_user_number_seq'::regclass;/iu,
-    "authoritative single-row sequence increment cycle and cache catalog proof",
+    /select\s+sequence_catalog\.seqtypid,\s+sequence_catalog\.seqstart,\s+sequence_catalog\.seqincrement,\s+sequence_catalog\.seqmin,\s+sequence_catalog\.seqmax,\s+sequence_catalog\.seqcycle,\s+sequence_catalog\.seqcache\s+into strict\s+sequence_type,\s+sequence_start,\s+sequence_increment,\s+sequence_minimum,\s+sequence_maximum,\s+sequence_cycles,\s+sequence_cache\s+from pg_sequence as sequence_catalog\s+where sequence_catalog\.seqrelid = 'public\.real_user_number_seq'::regclass;/iu,
+    "authoritative single-row sequence catalog proof",
   );
   requirePattern(issues, preflightBody, /sequence_increment is distinct from 1/iu, "sequence increment fail-closed proof");
   requirePattern(issues, preflightBody, /sequence_cycles is distinct from false/iu, "non-cycling sequence precondition");
   requirePattern(issues, preflightBody, /sequence_cache is distinct from 1/iu, "single-value sequence cache precondition");
   requirePattern(issues, preflightBody, /sequence_effective_next is null/iu, "unverifiable sequence fail-closed proof");
+  requirePattern(
+    issues,
+    preflightBody,
+    /if profile_count = 0 and \(\s*maximum_reserved_number is distinct from -1\s+or sequence_type is distinct from 'integer'::regtype\s+or sequence_start is distinct from 1\s+or sequence_minimum is distinct from 1\s+or sequence_maximum is distinct from 2147483647\s+or sequence_last_value is distinct from 1\s+or sequence_called is distinct from false\s+or sequence_effective_next is distinct from 1\s*\) then/iu,
+    "exact pristine empty fresh-chain allocator precondition",
+  );
+  requirePattern(issues, preflightBody, /empty fresh-chain allocator is not pristine/iu, "pristine empty allocator failure");
 
   if (!historicalClassifierDefinition) {
     issues.push("missing immutable historical automation classifier provenance");
@@ -453,6 +478,7 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(issues, sql, /Deleted numbers leave permanent gaps and are never reused\./u, "immutable number comment");
   requirePattern(issues, sql, /caller-supplied identity values are ignored\./u, "assignment function comment");
 
+  forbidPattern(issues, sql, /\binsert\s+into\s+public\.profiles\b/iu, "profile seed or reservation insert");
   forbidPattern(issues, sql, /\bupdate\s+public\.profiles\b/iu, "existing profile update");
   forbidPattern(issues, sql, /\bsetval\s*\(/iu, "setval call");
   forbidPattern(issues, sql, /alter\s+sequence[\s\S]{0,100}?\brestart\b/iu, "sequence restart");

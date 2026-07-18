@@ -14,6 +14,7 @@ declare
   negative_human_number_exists boolean;
   numbered_human_missing_assignment_metadata_exists boolean;
   numbered_nonhuman_exists boolean;
+  profile_count bigint;
   reserved_zero_count bigint;
   sequence_cache bigint;
   sequence_called boolean;
@@ -21,6 +22,10 @@ declare
   sequence_effective_next bigint;
   sequence_increment bigint;
   sequence_last_value bigint;
+  sequence_maximum bigint;
+  sequence_minimum bigint;
+  sequence_start bigint;
+  sequence_type oid;
 begin
   if to_regprocedure('public.assign_real_user_number_on_profile_insert()') is null then
     raise exception 'member-number safety precondition failed: assignment function is missing';
@@ -126,11 +131,17 @@ begin
   end if;
 
   select count(*)
+  into profile_count
+  from public.profiles;
+
+  select count(*)
   into reserved_zero_count
   from public.profiles as profile
   where profile.user_number = 0;
 
-  if reserved_zero_count <> 1 then
+  if profile_count = 0 and reserved_zero_count <> 0 then
+    raise exception 'member-number safety precondition failed: empty fresh-chain profile denominator is ambiguous';
+  elsif profile_count > 0 and reserved_zero_count <> 1 then
     raise exception 'member-number safety precondition failed: exactly one reserved #0 human profile is required';
   end if;
 
@@ -208,8 +219,22 @@ begin
   into sequence_last_value, sequence_called
   from public.real_user_number_seq as sequence_row;
 
-  select sequence_catalog.seqincrement, sequence_catalog.seqcycle, sequence_catalog.seqcache
-  into strict sequence_increment, sequence_cycles, sequence_cache
+  select
+    sequence_catalog.seqtypid,
+    sequence_catalog.seqstart,
+    sequence_catalog.seqincrement,
+    sequence_catalog.seqmin,
+    sequence_catalog.seqmax,
+    sequence_catalog.seqcycle,
+    sequence_catalog.seqcache
+  into strict
+    sequence_type,
+    sequence_start,
+    sequence_increment,
+    sequence_minimum,
+    sequence_maximum,
+    sequence_cycles,
+    sequence_cache
   from pg_sequence as sequence_catalog
   where sequence_catalog.seqrelid = 'public.real_user_number_seq'::regclass;
 
@@ -224,6 +249,19 @@ begin
     or sequence_effective_next is null
     or sequence_effective_next <= maximum_reserved_number then
     raise exception 'member-number safety precondition failed: sequence must be non-cycling, single-value cached, verifiable, and above the reserved-number high-water mark';
+  end if;
+
+  if profile_count = 0 and (
+    maximum_reserved_number is distinct from -1
+    or sequence_type is distinct from 'integer'::regtype
+    or sequence_start is distinct from 1
+    or sequence_minimum is distinct from 1
+    or sequence_maximum is distinct from 2147483647
+    or sequence_last_value is distinct from 1
+    or sequence_called is distinct from false
+    or sequence_effective_next is distinct from 1
+  ) then
+    raise exception 'member-number safety precondition failed: empty fresh-chain allocator is not pristine';
   end if;
 end;
 $$;
