@@ -242,6 +242,9 @@ export function getMemberNumberSafetyFatalReasons(summary) {
   if ((summary?.numberedHumanProfilesMissingAssignmentMetadata?.length ?? 0) > 0) {
     reasons.push("numbered-human-assignment-metadata-missing");
   }
+  if ((summary?.humanProfilesMissingNumberCount ?? 0) > 0) {
+    reasons.push("human-member-number-missing");
+  }
   if ((summary?.duplicateNumbers?.length ?? 0) > 0) {
     reasons.push("duplicate-member-number");
   }
@@ -327,6 +330,10 @@ export function summarizeMemberNumberSafety(profiles) {
       && profile?.user_number !== undefined
       && (profile?.user_number_assigned_at === null || profile?.user_number_assigned_at === undefined),
   ).map((profile) => profile.user_number);
+  const humanProfilesMissingNumberCount = profileRows.filter(
+    (profile) => profile?.user_kind === "human"
+      && (profile?.user_number === null || profile?.user_number === undefined),
+  ).length;
   const positiveGapSummary = reservedNumberHighWaterError
     ? {
       gapCount: null,
@@ -339,6 +346,7 @@ export function summarizeMemberNumberSafety(profiles) {
     automationProfilesWithNumbers,
     duplicateNumbers,
     hasExactlyOneHumanZero,
+    humanProfilesMissingNumberCount,
     invalidReservedNumbers,
     maxReservedNumber,
     minimumSafeNextNumber,

@@ -9,6 +9,7 @@ declare
   compaction_wrapper_exists boolean;
   compactor_exists boolean;
   duplicate_number_exists boolean;
+  human_missing_number_exists boolean;
   invalid_reserved_zero_exists boolean;
   maximum_reserved_number bigint;
   negative_human_number_exists boolean;
@@ -16,6 +17,7 @@ declare
   numbered_nonhuman_exists boolean;
   profile_count bigint;
   reserved_zero_count bigint;
+  current_role_oid oid;
   sequence_cache bigint;
   sequence_called boolean;
   sequence_cycles boolean;
@@ -24,8 +26,12 @@ declare
   sequence_last_value bigint;
   sequence_maximum bigint;
   sequence_minimum bigint;
+  sequence_owner oid;
+  sequence_owner_after oid;
   sequence_start bigint;
   sequence_type oid;
+  sequence_xmin text;
+  sequence_xmin_after text;
 begin
   if to_regprocedure('public.assign_real_user_number_on_profile_insert()') is null then
     raise exception 'member-number safety precondition failed: assignment function is missing';
@@ -41,6 +47,35 @@ begin
 
   if to_regclass('public.real_user_number_seq') is null then
     raise exception 'member-number safety precondition failed: assignment sequence is missing';
+  end if;
+
+  select role_row.oid
+  into strict current_role_oid
+  from pg_roles as role_row
+  where role_row.rolname = current_user;
+
+  select sequence_relation.relowner, sequence_relation.xmin::text
+  into strict sequence_owner, sequence_xmin
+  from pg_class as sequence_relation
+  where sequence_relation.oid = 'public.real_user_number_seq'::regclass
+    and sequence_relation.relkind = 'S';
+
+  if sequence_owner is distinct from current_role_oid then
+    raise exception 'member-number safety precondition failed: assignment sequence owner must equal CURRENT_USER';
+  end if;
+
+  execute 'alter sequence public.real_user_number_seq owner to current_user';
+
+  select sequence_relation.relowner, sequence_relation.xmin::text
+  into strict sequence_owner_after, sequence_xmin_after
+  from pg_class as sequence_relation
+  where sequence_relation.oid = 'public.real_user_number_seq'::regclass
+    and sequence_relation.relkind = 'S';
+
+  if sequence_owner_after is distinct from current_role_oid
+    or sequence_owner_after is distinct from sequence_owner
+    or sequence_xmin_after is distinct from sequence_xmin then
+    raise exception 'member-number safety precondition failed: assignment sequence owner or catalog identity changed during lock acquisition';
   end if;
 
   if to_regclass('public.profiles_user_number_uq') is null
@@ -158,6 +193,18 @@ begin
 
   if invalid_reserved_zero_exists then
     raise exception 'member-number safety precondition failed: reserved #0 profile has invalid human identity metadata';
+  end if;
+
+  select exists (
+    select 1
+    from public.profiles as profile
+    where profile.user_kind = 'human'
+      and profile.user_number is null
+  )
+  into human_missing_number_exists;
+
+  if human_missing_number_exists then
+    raise exception 'member-number safety precondition failed: a human profile is missing its member number';
   end if;
 
   select exists (

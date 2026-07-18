@@ -179,6 +179,16 @@ test("audit source reports exact gap count, truncation, and capped evidence", ()
     safetyCoreSource: incompleteNumberedHumanMetadata,
     doctorSource,
   }).includes("missing shared every-numbered-human metadata fatal reason"));
+
+  const incompleteMissingHumanNumber = safetyCoreSource.replace(
+    'reasons.push("human-member-number-missing");',
+    "// missing human-number failure",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: incompleteMissingHumanNumber,
+    doctorSource,
+  }).includes("missing shared missing-human-number fatal reason"));
 });
 
 test("migration reinstalls the exact immutable historical automation classifier", () => {
@@ -294,6 +304,45 @@ test("migration requires one authoritative non-cycling single-value-cache sequen
     migrationSource.replace("sequence_cache is distinct from 1", "sequence_cache > 1"),
     "single-value sequence cache precondition",
   );
+});
+
+test("migration serializes sequence validation with one verified same-owner lock", () => {
+  expectRejected(
+    migrationSource.replace("where role_row.rolname = current_user;", "where role_row.rolname = 'postgres';"),
+    "current sequence-owner role identity proof",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_owner is distinct from current_role_oid", "sequence_owner is null"),
+    "same-owner sequence lock precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "execute 'alter sequence public.real_user_number_seq owner to current_user';",
+      "execute 'alter sequence public.real_user_number_seq cache 1';",
+    ),
+    "same-owner sequence lock operation",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_xmin_after is distinct from sequence_xmin", "sequence_xmin_after is null"),
+    "unchanged sequence owner and xmin proof",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_owner_after is distinct from sequence_owner", "sequence_owner_after is null"),
+    "unchanged sequence owner and xmin proof",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "select count(*)\n  into profile_count\n  from public.profiles;",
+      "select count(*)\n  into profile_count\n  from public.profiles;\n\n  execute 'alter sequence public.real_user_number_seq owner to current_user';",
+    ).replace(
+      "  execute 'alter sequence public.real_user_number_seq owner to current_user';\n\n  select sequence_relation.relowner",
+      "  select sequence_relation.relowner",
+    ),
+    "profile-first sequence lock ordering",
+  );
+  expectRejected(`${migrationSource}\nlock table public.real_user_number_seq in access exclusive mode;\n`, "invalid sequence LOCK TABLE");
+  expectRejected(`${migrationSource}\nselect pg_advisory_xact_lock(1);\n`, "advisory sequence lock substitute");
+  expectRejected(`${migrationSource}\nalter sequence public.real_user_number_seq cache 1;\n`, "unsupported sequence alteration");
 });
 
 test("migration admits only the exact pristine empty fresh-chain preimage", () => {
@@ -425,6 +474,20 @@ test("migration requires one valid human #0 and rejects every numbered nonhuman"
       "numbered human metadata accepted",
     ),
     "numbered human metadata failure",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "where profile.user_kind = 'human'\n      and profile.user_number is null",
+      "where profile.user_kind = 'automation'\n      and profile.user_number is null",
+    ),
+    "every-human-number precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "a human profile is missing its member number",
+      "missing human number accepted",
+    ),
+    "missing human member-number failure",
   );
   expectRejected(
     migrationSource.replace(

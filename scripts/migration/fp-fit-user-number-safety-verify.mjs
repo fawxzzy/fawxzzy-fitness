@@ -227,6 +227,18 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
   );
   requirePattern(
     issues,
+    core,
+    /humanProfilesMissingNumberCount/u,
+    "shared missing-human-number evidence",
+  );
+  requirePattern(
+    issues,
+    core,
+    /human-member-number-missing/u,
+    "shared missing-human-number fatal reason",
+  );
+  requirePattern(
+    issues,
     doctor,
     /const memberNumberSafetyFatalReasons = completeProfileSafety\.fatalReasons;/u,
     "doctor shared complete fatal-reason result",
@@ -279,6 +291,48 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(issues, sql, /trigger_row\.tgtype = 9/iu, "AFTER DELETE trigger type precondition");
   requirePattern(issues, sql, /function_row\.prosecdef[\s\S]*?pg_get_userbyid\(function_row\.proowner\) = 'postgres'[\s\S]*?function_row\.proconfig = array\['search_path=public, auth, pg_temp'\]/iu, "assignment function security precondition");
   requirePattern(issues, sql, /to_regclass\('public\.real_user_number_seq'\)/iu, "sequence precondition");
+  requirePattern(
+    issues,
+    preflightBody,
+    /select role_row\.oid\s+into strict current_role_oid\s+from pg_roles as role_row\s+where role_row\.rolname = current_user;/iu,
+    "current sequence-owner role identity proof",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /select sequence_relation\.relowner, sequence_relation\.xmin::text\s+into strict sequence_owner, sequence_xmin\s+from pg_class as sequence_relation\s+where sequence_relation\.oid = 'public\.real_user_number_seq'::regclass\s+and sequence_relation\.relkind = 'S';/iu,
+    "pre-lock sequence owner and xmin proof",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /sequence_owner is distinct from current_role_oid[\s\S]*?assignment sequence owner must equal CURRENT_USER/iu,
+    "same-owner sequence lock precondition",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /execute 'alter sequence public\.real_user_number_seq owner to current_user';/iu,
+    "same-owner sequence lock operation",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /select sequence_relation\.relowner, sequence_relation\.xmin::text\s+into strict sequence_owner_after, sequence_xmin_after\s+from pg_class as sequence_relation\s+where sequence_relation\.oid = 'public\.real_user_number_seq'::regclass\s+and sequence_relation\.relkind = 'S';/iu,
+    "post-lock sequence owner and xmin proof",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /sequence_owner_after is distinct from current_role_oid\s+or sequence_owner_after is distinct from sequence_owner\s+or sequence_xmin_after is distinct from sequence_xmin/iu,
+    "unchanged sequence owner and xmin proof",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /assignment sequence owner or catalog identity changed during lock acquisition/iu,
+    "sequence lock drift failure",
+  );
   requirePattern(issues, sql, /to_regclass\('public\.profiles_user_number_uq'\)/iu, "unique index precondition");
   requirePattern(
     issues,
@@ -351,6 +405,12 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(
     issues,
     preflightBody,
+    /where profile\.user_kind = 'human'\s+and profile\.user_number is null/iu,
+    "every-human-number precondition",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
     /where profile\.user_number is not null\s+and profile\.user_kind is distinct from 'human'/iu,
     "all-numbered-profiles-human precondition",
   );
@@ -361,6 +421,7 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(issues, preflightBody, /exactly one reserved #0 human profile is required/iu, "non-empty reserved #0 count failure");
   requirePattern(issues, preflightBody, /reserved #0 profile has invalid human identity metadata/iu, "reserved #0 metadata failure");
   requirePattern(issues, preflightBody, /a numbered human profile is missing assignment metadata/iu, "numbered human metadata failure");
+  requirePattern(issues, preflightBody, /a human profile is missing its member number/iu, "missing human member-number failure");
   requirePattern(issues, preflightBody, /a numbered profile is not human/iu, "numbered nonhuman failure");
   requirePattern(
     issues,
@@ -386,6 +447,21 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
     "exact pristine empty fresh-chain allocator precondition",
   );
   requirePattern(issues, preflightBody, /empty fresh-chain allocator is not pristine/iu, "pristine empty allocator failure");
+
+  const profileLockIndex = sql.indexOf("lock table public.profiles in access exclusive mode;");
+  const preLockOwnerIndex = sql.indexOf("into strict sequence_owner, sequence_xmin");
+  const sequenceLockIndex = sql.indexOf("execute 'alter sequence public.real_user_number_seq owner to current_user';");
+  const postLockOwnerIndex = sql.indexOf("into strict sequence_owner_after, sequence_xmin_after");
+  const profileValidationIndex = sql.indexOf("into profile_count\n  from public.profiles;");
+  const sequenceValidationIndex = sql.indexOf("from public.real_user_number_seq as sequence_row;");
+  if (!(profileLockIndex >= 0
+    && preLockOwnerIndex > profileLockIndex
+    && sequenceLockIndex > preLockOwnerIndex
+    && postLockOwnerIndex > sequenceLockIndex
+    && profileValidationIndex > postLockOwnerIndex
+    && sequenceValidationIndex > postLockOwnerIndex)) {
+    issues.push("profile-first sequence lock ordering is not preserved");
+  }
 
   if (!historicalClassifierDefinition) {
     issues.push("missing immutable historical automation classifier provenance");
@@ -481,6 +557,17 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   forbidPattern(issues, sql, /\binsert\s+into\s+public\.profiles\b/iu, "profile seed or reservation insert");
   forbidPattern(issues, sql, /\bupdate\s+public\.profiles\b/iu, "existing profile update");
   forbidPattern(issues, sql, /\bsetval\s*\(/iu, "setval call");
+  const sqlWithoutExpectedSequenceLock = sql.replace(
+    /execute 'alter sequence public\.real_user_number_seq owner to current_user';/iu,
+    "",
+  );
+  if (countMatches(sql, /execute 'alter sequence public\.real_user_number_seq owner to current_user';/giu) !== 1) {
+    issues.push("same-owner sequence lock must appear exactly once");
+  }
+  forbidPattern(issues, sqlWithoutExpectedSequenceLock, /\balter\s+sequence\b/iu, "unsupported sequence alteration");
+  forbidPattern(issues, sql, /lock\s+table\s+public\.real_user_number_seq/iu, "invalid sequence LOCK TABLE");
+  forbidPattern(issues, sql, /pg_(?:try_)?advisory_(?:xact_)?lock/iu, "advisory sequence lock substitute");
+  forbidPattern(issues, sql, /\b(?:insert|update|delete)\s+(?:from\s+)?pg_(?:class|sequence)\b/iu, "direct sequence catalog mutation");
   forbidPattern(issues, sql, /alter\s+sequence[\s\S]{0,100}?\brestart\b/iu, "sequence restart");
   forbidPattern(issues, sql, /\breseed\b/iu, "sequence reseed");
   forbidPattern(issues, sql, /\bcascade\b/iu, "CASCADE");

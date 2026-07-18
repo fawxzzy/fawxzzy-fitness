@@ -346,6 +346,33 @@ test("shared fatal reasons require exact human #0 assignment metadata", () => {
   assert.ok(getMemberNumberSafetyFatalReasons(nonHumanZero).includes("invalid-zero-human-reservation"));
 });
 
+test("shared fatal reasons reject every human profile without a member number", () => {
+  for (const missingNumber of [null, undefined]) {
+    const summary = summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
+      { user_kind: "human", user_number: missingNumber, user_number_assigned_at: ASSIGNED_AT },
+    ]);
+
+    assert.equal(summary.humanProfilesMissingNumberCount, 1);
+    assert.ok(getMemberNumberSafetyFatalReasons(summary).includes("human-member-number-missing"));
+  }
+
+  const multipleMissing = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
+    { user_kind: "human", user_number: null, user_number_assigned_at: ASSIGNED_AT },
+    { user_kind: "human", user_number: undefined, user_number_assigned_at: null },
+  ]);
+  assert.equal(multipleMissing.humanProfilesMissingNumberCount, 2);
+
+  const valid = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
+    { user_kind: "human", user_number: 7, user_number_assigned_at: ASSIGNED_AT },
+    { user_kind: "automation", user_number: null, user_number_assigned_at: null },
+  ]);
+  assert.equal(valid.humanProfilesMissingNumberCount, 0);
+  assert.deepEqual(getMemberNumberSafetyFatalReasons(valid), []);
+});
+
 test("shared fatal reasons make audit inputs fail for missing #0 and every numbered nonhuman kind", () => {
   assert.ok(getMemberNumberSafetyFatalReasons(summarizeMemberNumberSafety([])).includes("invalid-zero-count"));
 
