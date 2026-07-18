@@ -123,6 +123,11 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
   const audit = String(auditSource ?? "");
   const core = String(safetyCoreSource ?? "");
   const doctor = String(doctorSource ?? "");
+  const paginationStart = core.indexOf("export async function collectCompleteMemberNumberProfileRows");
+  const paginationEnd = core.indexOf("export function summarizePositiveMemberNumberGaps");
+  const paginationSource = paginationStart >= 0 && paginationEnd > paginationStart
+    ? core.slice(paginationStart, paginationEnd)
+    : core;
 
   const pageSizeMatch = core.match(/export const MEMBER_NUMBER_PROFILE_PAGE_SIZE = ([0-9_]+);/u);
   const pageSize = Number(pageSizeMatch?.[1]?.replaceAll("_", ""));
@@ -137,15 +142,21 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
   );
   requirePattern(issues, core, /export async function collectCompleteMemberNumberProfileRows/u, "shared profile safety paginator");
   requirePattern(issues, core, /export async function loadCompleteMemberNumberSafety/u, "shared complete member-number loader");
-  requirePattern(issues, core, /\.select\(MEMBER_NUMBER_PROFILE_SELECT, \{ count: "exact" \}\)/u, "exact profile count request");
-  requirePattern(issues, core, /\.order\("id", \{ ascending: true \}\)/u, "stable unique profile ordering");
-  requirePattern(issues, core, /\.range\(from, to\)/u, "explicit profile page range");
-  requirePattern(issues, core, /result\.count !== exactCount/u, "profile count drift rejection");
+  requirePattern(issues, paginationSource, /\.select\(MEMBER_NUMBER_PROFILE_SELECT, \{ count: "exact", head: true \}\)/u, "exact unfiltered profile count request");
+  requirePattern(issues, paginationSource, /\.select\(MEMBER_NUMBER_PROFILE_SELECT\)/u, "exact profile page projection");
+  requirePattern(issues, paginationSource, /\.order\("id", \{ ascending: true \}\)/u, "stable unique profile ordering");
+  requirePattern(issues, paginationSource, /\.limit\(pageSize\)/u, "bounded profile page limit");
+  requirePattern(issues, paginationSource, /fetchPage\(\{ afterProfileId: lastProfileId, pageSize \}\)/u, "monotonic profile cursor propagation");
+  requirePattern(issues, paginationSource, /afterProfileId !== null/u, "nullable first-page profile cursor");
+  requirePattern(issues, paginationSource, /\.gt\("id", afterProfileId\)/u, "exclusive profile id cursor");
+  forbidPattern(issues, paginationSource, /\.range\(/u, "profile range pagination");
+  forbidPattern(issues, paginationSource, /\.offset\(/u, "profile offset pagination");
+  requirePattern(issues, paginationSource, /result\.count !== exactCount/u, "profile count drift rejection");
   requirePattern(issues, core, /profileId <= lastProfileId/u, "duplicate and non-increasing profile id rejection");
-  requirePattern(issues, core, /rows after the exact denominator/u, "after-denominator row rejection");
-  requirePattern(issues, core, /page ended before the exact denominator/u, "early short profile page rejection");
-  requirePattern(issues, core, /profile safety pagination overflow/u, "profile pagination overflow rejection");
-  requirePattern(issues, core, /profile safety pagination provider error/u, "sanitized profile provider failure");
+  requirePattern(issues, paginationSource, /rows after the exact denominator/u, "after-denominator row rejection");
+  requirePattern(issues, paginationSource, /page ended before the exact denominator/u, "early short profile page rejection");
+  requirePattern(issues, paginationSource, /profile safety pagination overflow/u, "profile pagination overflow rejection");
+  requirePattern(issues, paginationSource, /profile safety pagination provider error/u, "sanitized profile provider failure");
 
   for (const [label, source] of [["audit", audit], ["doctor", doctor]]) {
     requirePattern(

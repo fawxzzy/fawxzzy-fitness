@@ -30,14 +30,17 @@ function createPageFetcher(rows, override = () => null) {
   const calls = [];
   return {
     calls,
-    fetchPage: async ({ from, pageSize, to }) => {
-      const call = { from, pageSize, requestIndex, to };
+    fetchPage: async ({ afterProfileId, pageSize }) => {
+      const call = { afterProfileId, pageSize, requestIndex };
       calls.push(call);
       const replacement = override(call);
       requestIndex += 1;
+      const availableRows = afterProfileId === null
+        ? rows
+        : rows.filter((row) => row.id > afterProfileId);
       return replacement ?? {
         count: rows.length,
-        data: rows.slice(from, to + 1),
+        data: availableRows.slice(0, pageSize),
         error: null,
       };
     },
@@ -50,21 +53,35 @@ function createProfileClient(rows, calls) {
       const call = { table };
       calls.push(call);
       const builder = {
+        gt(column, value) {
+          call.gt = { column, value };
+          return builder;
+        },
+        limit(value) {
+          call.limit = value;
+          return builder;
+        },
         order(column, options) {
           call.order = { column, options };
           return builder;
         },
-        range(from, to) {
-          call.range = { from, to };
-          return Promise.resolve({
-            count: rows.length,
-            data: rows.slice(from, to + 1),
-            error: null,
-          });
-        },
         select(columns, options) {
           call.select = { columns, options };
           return builder;
+        },
+        then(resolve, reject) {
+          const isCountRequest = call.select?.options?.head === true;
+          const availableRows = call.gt
+            ? rows.filter((row) => row.id > call.gt.value)
+            : rows;
+          const result = isCountRequest
+            ? { count: rows.length, data: null, error: null }
+            : {
+              count: null,
+              data: availableRows.slice(0, call.limit),
+              error: null,
+            };
+          return Promise.resolve(result).then(resolve, reject);
         },
       };
       return builder;
@@ -396,17 +413,25 @@ test("complete profile pagination reads every row with exact stable evidence", a
   assert.equal(report.requestCount, 4);
   assert.equal(report.rows.length, 1_201);
   assert.deepEqual(report.fatalReasons, []);
-  assert.deepEqual(calls.map((call) => call.range), [
-    { from: 0, to: 499 },
-    { from: 500, to: 999 },
-    { from: 1_000, to: 1_499 },
-    { from: 1_201, to: 1_700 },
+  const countCalls = calls.filter((call) => call.select.options?.head === true);
+  const pageCalls = calls.filter((call) => call.select.options?.head !== true);
+  assert.equal(countCalls.length, 4);
+  assert.equal(pageCalls.length, 4);
+  assert.deepEqual(pageCalls.map((call) => call.gt?.value ?? null), [
+    null,
+    "profile-000499",
+    "profile-000999",
+    "profile-001200",
   ]);
   assert.ok(calls.every((call) => call.table === "profiles"));
   assert.ok(calls.every((call) => call.select.columns === MEMBER_NUMBER_PROFILE_SELECT));
-  assert.ok(calls.every((call) => call.select.options.count === "exact"));
-  assert.ok(calls.every((call) => call.order.column === "id"));
-  assert.ok(calls.every((call) => call.order.options.ascending === true));
+  assert.ok(countCalls.every((call) => call.select.options.count === "exact"));
+  assert.ok(countCalls.every((call) => call.select.options.head === true));
+  assert.ok(pageCalls.every((call) => call.order.column === "id"));
+  assert.ok(pageCalls.every((call) => call.order.options.ascending === true));
+  assert.ok(pageCalls.every((call) => call.limit === 500));
+  assert.ok(pageCalls.every((call) => !("range" in call) && !("offset" in call)));
+  assert.ok(pageCalls.slice(1).every((call) => call.gt.column === "id"));
 });
 
 test("complete profile pagination handles exact pages, final short pages, and empty denominators", async () => {
@@ -447,12 +472,17 @@ test("complete profile pagination includes safety violations after the first tho
   assert.equal(report.rows.length, 1_001);
   assert.ok(report.fatalReasons.includes("numbered-unknown-profile"));
   assert.equal(report.summary.unknownProfilesWithNumbers.length, 1);
+  assert.equal(JSON.stringify(report.summary).includes("profile-"), false);
 });
 
 test("complete profile pagination rejects duplicate, non-increasing, and repeated page identities", async () => {
   const duplicateProfiles = buildProfiles(501);
   duplicateProfiles[500] = { ...duplicateProfiles[500], id: duplicateProfiles[499].id };
-  const duplicateFetcher = createPageFetcher(duplicateProfiles);
+  const duplicateFetcher = createPageFetcher(duplicateProfiles, ({ requestIndex }) => (
+    requestIndex === 1
+      ? { count: duplicateProfiles.length, data: [duplicateProfiles[500]], error: null }
+      : null
+  ));
   await assert.rejects(
     collectCompleteMemberNumberProfileRows(duplicateFetcher.fetchPage, { pageSize: 500 }),
     /ids are not strictly increasing/u,
@@ -460,7 +490,11 @@ test("complete profile pagination rejects duplicate, non-increasing, and repeate
 
   const nonIncreasingProfiles = buildProfiles(501);
   nonIncreasingProfiles[500] = { ...nonIncreasingProfiles[500], id: "profile-000100" };
-  const nonIncreasingFetcher = createPageFetcher(nonIncreasingProfiles);
+  const nonIncreasingFetcher = createPageFetcher(nonIncreasingProfiles, ({ requestIndex }) => (
+    requestIndex === 1
+      ? { count: nonIncreasingProfiles.length, data: [nonIncreasingProfiles[500]], error: null }
+      : null
+  ));
   await assert.rejects(
     collectCompleteMemberNumberProfileRows(nonIncreasingFetcher.fetchPage, { pageSize: 500 }),
     /ids are not strictly increasing/u,
@@ -476,6 +510,47 @@ test("complete profile pagination rejects duplicate, non-increasing, and repeate
     collectCompleteMemberNumberProfileRows(repeatedFetcher.fetchPage, { pageSize: 500 }),
     /ids are not strictly increasing/u,
   );
+});
+
+test("keyset pagination does not skip the next row after an offset-shifting mutation", async () => {
+  const profiles = buildProfiles(1_000);
+  const calls = [];
+  const observedPageStarts = [];
+  const fetchPage = async ({ afterProfileId, pageSize, ...unexpected }) => {
+    assert.deepEqual(unexpected, {});
+    calls.push({ afterProfileId, pageSize });
+    if (calls.length === 2) {
+      profiles.splice(100, 1);
+      profiles.push({
+        ...buildProfiles(1)[0],
+        id: "profile-999999",
+        user_number: 999_999,
+      });
+    }
+    const availableRows = afterProfileId === null
+      ? profiles
+      : profiles.filter((row) => row.id > afterProfileId);
+    const data = availableRows.slice(0, pageSize);
+    observedPageStarts.push(data[0]?.id ?? null);
+    return { count: profiles.length, data, error: null };
+  };
+
+  await assert.rejects(
+    collectCompleteMemberNumberProfileRows(fetchPage, { pageSize: 500 }),
+    (error) => error.message === "profile safety pagination returned rows after the exact denominator"
+      && !error.message.includes("profile-"),
+  );
+  assert.deepEqual(calls.map((call) => call.afterProfileId), [
+    null,
+    "profile-000499",
+    "profile-000999",
+  ]);
+  assert.deepEqual(observedPageStarts, [
+    "profile-000000",
+    "profile-000500",
+    "profile-999999",
+  ]);
+  assert.ok(calls.every((call) => !("from" in call) && !("to" in call)));
 });
 
 test("complete profile pagination fails closed on count drift and incomplete denominators", async () => {

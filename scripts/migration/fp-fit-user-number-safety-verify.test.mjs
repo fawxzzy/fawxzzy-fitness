@@ -68,13 +68,13 @@ test("audit and doctor are bound to the shared complete fail-closed profile deno
   }).includes("missing doctor reserved high-water evidence"));
 });
 
-test("shared profile paginator source freezes exact count, ordering, ranges, and sanitized consumers", () => {
-  const missingExactCount = safetyCoreSource.replace('{ count: "exact" }', "{}");
+test("shared profile paginator freezes exact counts, keyset cursors, and sanitized consumers", () => {
+  const missingExactCount = safetyCoreSource.replace('{ count: "exact", head: true }', "{}");
   assert.ok(validateMemberNumberConsumerSources({
     auditSource,
     safetyCoreSource: missingExactCount,
     doctorSource,
-  }).includes("missing exact profile count request"));
+  }).includes("missing exact unfiltered profile count request"));
 
   const unstableOrder = safetyCoreSource.replace('.order("id", { ascending: true })', '.order("user_number", { ascending: true })');
   assert.ok(validateMemberNumberConsumerSources({
@@ -83,12 +83,36 @@ test("shared profile paginator source freezes exact count, ordering, ranges, and
     doctorSource,
   }).includes("missing stable unique profile ordering"));
 
-  const unpaged = safetyCoreSource.replace(".range(from, to)", ".limit(1000)");
+  const unbounded = safetyCoreSource.replace(".limit(pageSize)", "");
   assert.ok(validateMemberNumberConsumerSources({
     auditSource,
-    safetyCoreSource: unpaged,
+    safetyCoreSource: unbounded,
     doctorSource,
-  }).includes("missing explicit profile page range"));
+  }).includes("missing bounded profile page limit"));
+
+  const offsetPagination = safetyCoreSource.replace(".limit(pageSize)", ".range(0, pageSize - 1)");
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: offsetPagination,
+    doctorSource,
+  }).includes("forbidden profile range pagination"));
+
+  const inclusiveCursor = safetyCoreSource.replace('.gt("id", afterProfileId)', '.gte("id", afterProfileId)');
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: inclusiveCursor,
+    doctorSource,
+  }).includes("missing exclusive profile id cursor"));
+
+  const missingCursorPropagation = safetyCoreSource.replace(
+    "fetchPage({ afterProfileId: lastProfileId, pageSize })",
+    "fetchPage({ afterProfileId: null, pageSize })",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: missingCursorPropagation,
+    doctorSource,
+  }).includes("missing monotonic profile cursor propagation"));
 
   const directAuditQuery = `${auditSource}\nclient.from("profiles");\n`;
   assert.ok(validateMemberNumberConsumerSources({

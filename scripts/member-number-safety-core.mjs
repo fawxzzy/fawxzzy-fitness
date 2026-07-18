@@ -58,11 +58,9 @@ export async function collectCompleteMemberNumberProfileRows(
       throw new Error("profile safety pagination overflow");
     }
 
-    const from = rows.length;
-    const to = from + pageSize - 1;
     let result;
     try {
-      result = await fetchPage({ from, pageSize, to });
+      result = await fetchPage({ afterProfileId: lastProfileId, pageSize });
     } catch {
       throw new Error("profile safety pagination provider error");
     }
@@ -123,11 +121,26 @@ export async function loadCompleteMemberNumberSafety(client, options) {
   }
 
   const pagination = await collectCompleteMemberNumberProfileRows(
-    ({ from, to }) => client
-      .from("profiles")
-      .select(MEMBER_NUMBER_PROFILE_SELECT, { count: "exact" })
-      .order("id", { ascending: true })
-      .range(from, to),
+    async ({ afterProfileId, pageSize }) => {
+      const countRequest = client
+        .from("profiles")
+        .select(MEMBER_NUMBER_PROFILE_SELECT, { count: "exact", head: true });
+      let pageRequest = client
+        .from("profiles")
+        .select(MEMBER_NUMBER_PROFILE_SELECT)
+        .order("id", { ascending: true })
+        .limit(pageSize);
+      if (afterProfileId !== null) {
+        pageRequest = pageRequest.gt("id", afterProfileId);
+      }
+
+      const [countResult, pageResult] = await Promise.all([countRequest, pageRequest]);
+      return {
+        count: countResult?.count,
+        data: pageResult?.data,
+        error: countResult?.error ?? pageResult?.error ?? null,
+      };
+    },
     options,
   );
   const summary = summarizeMemberNumberSafety(pagination.rows);
@@ -298,19 +311,22 @@ export function summarizeMemberNumberSafety(profiles) {
     (profile) => profile?.user_kind === "automation"
       && profile?.user_number !== null
       && profile?.user_number !== undefined,
-  );
+  ).map((profile) => profile.user_number);
   const unknownProfilesWithNumbers = profileRows.filter(
     (profile) => profile?.user_kind !== "human"
       && profile?.user_kind !== "automation"
       && profile?.user_number !== null
       && profile?.user_number !== undefined,
-  );
+  ).map((profile) => ({
+    user_kind: profile?.user_kind ?? null,
+    user_number: profile.user_number,
+  }));
   const numberedHumanProfilesMissingAssignmentMetadata = profileRows.filter(
     (profile) => profile?.user_kind === "human"
       && profile?.user_number !== null
       && profile?.user_number !== undefined
       && (profile?.user_number_assigned_at === null || profile?.user_number_assigned_at === undefined),
-  );
+  ).map((profile) => profile.user_number);
   const positiveGapSummary = reservedNumberHighWaterError
     ? {
       gapCount: null,
