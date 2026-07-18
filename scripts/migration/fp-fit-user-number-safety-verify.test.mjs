@@ -179,10 +179,79 @@ test("migration rejects loss of exact source allocator preconditions", () => {
   );
   expectRejected(
     migrationSource.replace(
+      "select sequence_catalog.seqincrement, sequence_catalog.seqcycle",
+      "select sequence_catalog.seqincrement, false as seqcycle",
+    ),
+    "authoritative sequence identity and cycle catalog proof",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_cycles is distinct from false", "sequence_cycles is distinct from true"),
+    "non-cycling sequence precondition",
+  );
+  expectRejected(
+    migrationSource.replace("sequence_effective_next is null", "sequence_effective_next is not null"),
+    "unverifiable sequence fail-closed proof",
+  );
+  expectRejected(
+    migrationSource.replace(
       "where profile.user_number is not null;",
       "where profile.user_kind = 'human'\n    and profile.user_number is not null;",
     ),
     "all-reserved-number high-water query",
+  );
+});
+
+test("migration requires the exact healthy user_number unique index", () => {
+  expectRejected(
+    migrationSource.replace("index_schema.nspname = 'public'", "index_schema.nspname = 'other'"),
+    "unique index schema and table identity",
+  );
+  expectRejected(
+    migrationSource.replace("table_schema.nspname = 'public'", "table_schema.nspname = 'other'"),
+    "unique index schema and table identity",
+  );
+  expectRejected(
+    migrationSource.replace("user_number_attribute.attname = 'user_number'", "user_number_attribute.attname = 'id'"),
+    "unique index user_number attribute identity",
+  );
+  expectRejected(
+    migrationSource.replace("and index_row.indisunique", "and not index_row.indisunique"),
+    "unique index uniqueness",
+  );
+  expectRejected(
+    migrationSource.replace("and index_row.indisvalid", "and not index_row.indisvalid"),
+    "unique index validity",
+  );
+  expectRejected(
+    migrationSource.replace("and index_row.indisready", "and not index_row.indisready"),
+    "unique index readiness",
+  );
+  expectRejected(
+    migrationSource.replace("and index_row.indislive", "and not index_row.indislive"),
+    "unique index liveness",
+  );
+  expectRejected(
+    migrationSource.replace("index_row.indnkeyatts = 1", "index_row.indnkeyatts = 2"),
+    "unique index single key",
+  );
+  expectRejected(
+    migrationSource.replace("index_row.indnatts = 1", "index_row.indnatts = 2"),
+    "unique index excludes included columns",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "user_number_attribute.attnum = any(index_row.indkey)",
+      "user_number_attribute.attnum = all(index_row.indkey)",
+    ),
+    "unique index exact user_number key",
+  );
+  expectRejected(
+    migrationSource.replace("index_row.indexprs is null", "index_row.indexprs is not null"),
+    "unique index non-expression key",
+  );
+  expectRejected(
+    migrationSource.replace("(user_number IS NOT NULL)", "(id IS NOT NULL)"),
+    "unique index exact partial predicate",
   );
 });
 

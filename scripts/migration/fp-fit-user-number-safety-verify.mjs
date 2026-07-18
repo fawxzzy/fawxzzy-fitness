@@ -230,6 +230,37 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
   requirePattern(issues, sql, /function_row\.prosecdef[\s\S]*?pg_get_userbyid\(function_row\.proowner\) = 'postgres'[\s\S]*?function_row\.proconfig = array\['search_path=public, auth, pg_temp'\]/iu, "assignment function security precondition");
   requirePattern(issues, sql, /to_regclass\('public\.real_user_number_seq'\)/iu, "sequence precondition");
   requirePattern(issues, sql, /to_regclass\('public\.profiles_user_number_uq'\)/iu, "unique index precondition");
+  requirePattern(
+    issues,
+    preflightBody,
+    /index_schema\.nspname = 'public'[\s\S]*?index_relation\.relname = 'profiles_user_number_uq'[\s\S]*?table_schema\.nspname = 'public'[\s\S]*?table_relation\.relname = 'profiles'/iu,
+    "unique index schema and table identity",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /user_number_attribute\.attname = 'user_number'[\s\S]*?user_number_attribute\.attnum > 0[\s\S]*?not user_number_attribute\.attisdropped/iu,
+    "unique index user_number attribute identity",
+  );
+  requirePattern(issues, preflightBody, /and index_row\.indisunique\s*\n/iu, "unique index uniqueness");
+  requirePattern(issues, preflightBody, /and index_row\.indisvalid\s*\n/iu, "unique index validity");
+  requirePattern(issues, preflightBody, /and index_row\.indisready\s*\n/iu, "unique index readiness");
+  requirePattern(issues, preflightBody, /and index_row\.indislive\s*\n/iu, "unique index liveness");
+  requirePattern(issues, preflightBody, /index_row\.indnkeyatts = 1/iu, "unique index single key");
+  requirePattern(issues, preflightBody, /index_row\.indnatts = 1/iu, "unique index excludes included columns");
+  requirePattern(
+    issues,
+    preflightBody,
+    /user_number_attribute\.attnum = any\(index_row\.indkey\)/iu,
+    "unique index exact user_number key",
+  );
+  requirePattern(issues, preflightBody, /index_row\.indexprs is null/iu, "unique index non-expression key");
+  requirePattern(
+    issues,
+    preflightBody,
+    /pg_get_expr\(index_row\.indpred, index_row\.indrelid\) = '\(user_number IS NOT NULL\)'/iu,
+    "unique index exact partial predicate",
+  );
   requirePattern(issues, sql, /compaction objects are in a mixed state/iu, "idempotent compaction terminal-set precondition");
   requirePattern(
     issues,
@@ -263,6 +294,15 @@ export function validateMigrationSource(source, { historicalClassifierSource } =
     "all-reserved-number high-water query",
   );
   requirePattern(issues, sql, /sequence_effective_next <= maximum_reserved_number/iu, "sequence high-water precondition");
+  requirePattern(
+    issues,
+    preflightBody,
+    /select sequence_catalog\.seqincrement, sequence_catalog\.seqcycle\s+into sequence_increment, sequence_cycles\s+from pg_sequence as sequence_catalog\s+where sequence_catalog\.seqrelid = 'public\.real_user_number_seq'::regclass;/iu,
+    "authoritative sequence identity and cycle catalog proof",
+  );
+  requirePattern(issues, preflightBody, /sequence_increment is distinct from 1/iu, "sequence increment fail-closed proof");
+  requirePattern(issues, preflightBody, /sequence_cycles is distinct from false/iu, "non-cycling sequence precondition");
+  requirePattern(issues, preflightBody, /sequence_effective_next is null/iu, "unverifiable sequence fail-closed proof");
 
   if (!historicalClassifierDefinition) {
     issues.push("missing immutable historical automation classifier provenance");

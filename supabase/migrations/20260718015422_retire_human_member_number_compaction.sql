@@ -15,6 +15,7 @@ declare
   numbered_nonhuman_exists boolean;
   reserved_zero_count bigint;
   sequence_called boolean;
+  sequence_cycles boolean;
   sequence_effective_next bigint;
   sequence_increment bigint;
   sequence_last_value bigint;
@@ -39,9 +40,33 @@ begin
     or not exists (
       select 1
       from pg_index as index_row
-      where index_row.indexrelid = 'public.profiles_user_number_uq'::regclass
+      join pg_class as index_relation
+        on index_relation.oid = index_row.indexrelid
+      join pg_namespace as index_schema
+        on index_schema.oid = index_relation.relnamespace
+      join pg_class as table_relation
+        on table_relation.oid = index_row.indrelid
+      join pg_namespace as table_schema
+        on table_schema.oid = table_relation.relnamespace
+      join pg_attribute as user_number_attribute
+        on user_number_attribute.attrelid = table_relation.oid
+        and user_number_attribute.attname = 'user_number'
+        and user_number_attribute.attnum > 0
+        and not user_number_attribute.attisdropped
+      where index_schema.nspname = 'public'
+        and index_relation.relname = 'profiles_user_number_uq'
+        and table_schema.nspname = 'public'
+        and table_relation.relname = 'profiles'
+        and index_row.indexrelid = 'public.profiles_user_number_uq'::regclass
         and index_row.indrelid = 'public.profiles'::regclass
         and index_row.indisunique
+        and index_row.indisvalid
+        and index_row.indisready
+        and index_row.indislive
+        and index_row.indnkeyatts = 1
+        and index_row.indnatts = 1
+        and user_number_attribute.attnum = any(index_row.indkey)
+        and index_row.indexprs is null
         and pg_get_expr(index_row.indpred, index_row.indrelid) = '(user_number IS NOT NULL)'
     ) then
     raise exception 'member-number safety precondition failed: exact unique index is missing';
@@ -168,23 +193,21 @@ begin
   into sequence_last_value, sequence_called
   from public.real_user_number_seq as sequence_row;
 
-  select sequence_catalog.seqincrement
-  into sequence_increment
-  from pg_class as sequence_relation
-  join pg_namespace as sequence_schema
-    on sequence_schema.oid = sequence_relation.relnamespace
-  join pg_sequence as sequence_catalog
-    on sequence_catalog.seqrelid = sequence_relation.oid
-  where sequence_schema.nspname = 'public'
-    and sequence_relation.relname = 'real_user_number_seq';
+  select sequence_catalog.seqincrement, sequence_catalog.seqcycle
+  into sequence_increment, sequence_cycles
+  from pg_sequence as sequence_catalog
+  where sequence_catalog.seqrelid = 'public.real_user_number_seq'::regclass;
 
   sequence_effective_next := case
     when sequence_called then sequence_last_value + sequence_increment
     else sequence_last_value
   end;
 
-  if sequence_increment <> 1 or sequence_effective_next <= maximum_reserved_number then
-    raise exception 'member-number safety precondition failed: sequence is not above the reserved-number high-water mark';
+  if sequence_increment is distinct from 1
+    or sequence_cycles is distinct from false
+    or sequence_effective_next is null
+    or sequence_effective_next <= maximum_reserved_number then
+    raise exception 'member-number safety precondition failed: sequence is cycling, unverifiable, or not above the reserved-number high-water mark';
   end if;
 end;
 $$;
