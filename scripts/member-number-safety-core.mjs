@@ -46,6 +46,28 @@ export function deriveAssignedMemberIdentity({ isAutomation, nextNumber, assigne
 
 export function summarizeMemberNumberSafety(profiles) {
   const profileRows = Array.isArray(profiles) ? profiles : [];
+  const reservedNumberValues = profileRows
+    .map((profile) => profile?.user_number)
+    .filter((value) => value !== null && value !== undefined);
+  const invalidReservedNumbers = reservedNumberValues.filter(
+    (value) => !Number.isSafeInteger(value) || value < 0,
+  );
+  const validReservedNumbers = reservedNumberValues.filter(
+    (value) => Number.isSafeInteger(value) && value >= 0,
+  );
+  const maxReservedNumber = validReservedNumbers.length > 0
+    ? Math.max(...validReservedNumbers)
+    : null;
+  const reservedNumberHighWaterError = invalidReservedNumbers.length > 0
+    ? "invalid-reserved-number"
+    : maxReservedNumber === Number.MAX_SAFE_INTEGER
+      ? "safe-integer-successor-unavailable"
+      : null;
+  const minimumSafeNextNumber = reservedNumberHighWaterError
+    ? null
+    : maxReservedNumber === null
+      ? 1
+      : maxReservedNumber + 1;
   const allNumbers = profileRows
     .map((profile) => profile?.user_number)
     .filter(Number.isInteger);
@@ -70,8 +92,12 @@ export function summarizeMemberNumberSafety(profiles) {
   return {
     automationProfilesWithNumbers,
     duplicateNumbers,
+    invalidReservedNumbers,
+    maxReservedNumber,
+    minimumSafeNextNumber,
     negativeHumanNumbers,
     positiveGaps: collectPositiveMemberNumberGaps(positiveHumanNumbers),
+    reservedNumberHighWaterError,
     zeroCount: profileRows.filter((profile) => profile?.user_number === 0).length,
   };
 }

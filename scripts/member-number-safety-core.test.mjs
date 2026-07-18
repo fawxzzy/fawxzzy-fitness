@@ -19,6 +19,9 @@ test("permanent positive gaps are valid safety information", () => {
   assert.deepEqual(summary.duplicateNumbers, []);
   assert.deepEqual(summary.negativeHumanNumbers, []);
   assert.equal(summary.automationProfilesWithNumbers.length, 0);
+  assert.equal(summary.maxReservedNumber, 3);
+  assert.equal(summary.minimumSafeNextNumber, 4);
+  assert.equal(summary.reservedNumberHighWaterError, null);
   assert.equal(summary.zeroCount, 1);
   assert.deepEqual(collectPositiveMemberNumberGaps([5, 1, 3, 5]), [2, 4]);
 });
@@ -39,7 +42,84 @@ test("duplicates, negatives, multiple zero, and numbered automation remain inval
   ]);
   assert.deepEqual(summary.negativeHumanNumbers, [-2]);
   assert.equal(summary.automationProfilesWithNumbers.length, 1);
+  assert.equal(summary.maxReservedNumber, 9);
+  assert.equal(summary.minimumSafeNextNumber, null);
+  assert.equal(summary.reservedNumberHighWaterError, "invalid-reserved-number");
   assert.equal(summary.zeroCount, 2);
+});
+
+test("legacy unknown and numbered automation profiles reserve the all-profile high-water", () => {
+  const unknownHigh = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 12 },
+    { user_kind: "unknown", user_number: 80 },
+  ]);
+  assert.equal(unknownHigh.maxReservedNumber, 80);
+  assert.equal(unknownHigh.minimumSafeNextNumber, 81);
+
+  const automationHigh = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 12 },
+    { user_kind: "automation", user_number: 90 },
+  ]);
+  assert.equal(automationHigh.maxReservedNumber, 90);
+  assert.equal(automationHigh.minimumSafeNextNumber, 91);
+  assert.equal(automationHigh.automationProfilesWithNumbers.length, 1);
+});
+
+test("zero-only and empty profile sets have deterministic safe successors", () => {
+  const zeroOnly = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0 },
+  ]);
+  assert.equal(zeroOnly.maxReservedNumber, 0);
+  assert.equal(zeroOnly.minimumSafeNextNumber, 1);
+
+  const empty = summarizeMemberNumberSafety([]);
+  assert.equal(empty.maxReservedNumber, null);
+  assert.equal(empty.minimumSafeNextNumber, 1);
+  assert.equal(empty.reservedNumberHighWaterError, null);
+});
+
+test("duplicate high values remain invalid while reserving their high-water", () => {
+  const summary = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 51 },
+    { user_kind: "unknown", user_number: 51 },
+  ]);
+
+  assert.deepEqual(summary.duplicateNumbers, [{ number: 51, count: 2 }]);
+  assert.equal(summary.maxReservedNumber, 51);
+  assert.equal(summary.minimumSafeNextNumber, 52);
+});
+
+test("invalid and unsafe reserved values fail closed", () => {
+  const invalid = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: -1 },
+    { user_kind: "unknown", user_number: 2.5 },
+    { user_kind: "unknown", user_number: Number.MAX_SAFE_INTEGER + 1 },
+    { user_kind: "human", user_number: 10 },
+  ]);
+  assert.deepEqual(invalid.invalidReservedNumbers, [-1, 2.5, Number.MAX_SAFE_INTEGER + 1]);
+  assert.equal(invalid.maxReservedNumber, 10);
+  assert.equal(invalid.minimumSafeNextNumber, null);
+  assert.equal(invalid.reservedNumberHighWaterError, "invalid-reserved-number");
+
+  const noSafeSuccessor = summarizeMemberNumberSafety([
+    { user_kind: "unknown", user_number: Number.MAX_SAFE_INTEGER },
+  ]);
+  assert.equal(noSafeSuccessor.maxReservedNumber, Number.MAX_SAFE_INTEGER);
+  assert.equal(noSafeSuccessor.minimumSafeNextNumber, null);
+  assert.equal(noSafeSuccessor.reservedNumberHighWaterError, "safe-integer-successor-unavailable");
+});
+
+test("normal current 0 through 52 state reports 53 without filling gaps", () => {
+  const profiles = Array.from({ length: 53 }, (_, userNumber) => ({
+    user_kind: "human",
+    user_number: userNumber,
+  }));
+  const summary = summarizeMemberNumberSafety(profiles);
+
+  assert.equal(summary.maxReservedNumber, 52);
+  assert.equal(summary.minimumSafeNextNumber, 53);
+  assert.deepEqual(summary.positiveGaps, []);
+  assert.deepEqual(summary.duplicateNumbers, []);
 });
 
 test("member identity permits same-value updates and rejects any identity change", () => {

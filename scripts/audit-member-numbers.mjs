@@ -197,14 +197,9 @@ async function main() {
   const profileById = new Map(profileRows.map((profile) => [profile.id, profile]));
   const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
   const numberedHumanProfiles = profileRows.filter((profile) => profile.user_kind === "human" && profile.user_number !== null);
-  const positiveHumanNumbers = numberedHumanProfiles
-    .map((profile) => profile.user_number)
-    .filter((value) => typeof value === "number" && value >= 1);
   const automationProfiles = profileRows.filter((profile) => profile.user_kind === "automation");
   const unknownProfiles = profileRows.filter((profile) => profile.user_kind === "unknown");
   const zeroProfiles = profileRows.filter((profile) => profile.user_number === 0);
-  const maxPositiveUserNumber = positiveHumanNumbers.length > 0 ? Math.max(...positiveHumanNumbers) : null;
-  const minimumSafeNextNumber = maxPositiveUserNumber === null ? 1 : maxPositiveUserNumber + 1;
   const positiveGaps = memberNumberSafety.positiveGaps;
   const duplicateNumbers = memberNumberSafety.duplicateNumbers
     .map(({ number, count }) => `#${number} appears ${count} times`);
@@ -270,6 +265,11 @@ async function main() {
   if (automationProfilesWithNumbers.length > 0) {
     problems.push(...automationProfilesWithNumbers.map((entry) => `Automation profile still has a number: ${entry}`));
   }
+  if (memberNumberSafety.reservedNumberHighWaterError) {
+    problems.push(
+      `Reserved member-number high-water is invalid (${memberNumberSafety.reservedNumberHighWaterError}); minimum safe next number is unavailable.`,
+    );
+  }
 
   const warnings = [];
   if (authUsersError) {
@@ -295,8 +295,8 @@ async function main() {
   console.log(`Human numbered count: ${numberedHumanProfiles.length}`);
   console.log(`Automation count: ${automationProfiles.length}`);
   console.log(`Unknown count: ${unknownProfiles.length}`);
-  console.log(`Max positive user_number: ${maxPositiveUserNumber ?? "none"}`);
-  console.log(`Minimum safe next number: ${minimumSafeNextNumber}`);
+  console.log(`Max reserved user_number: ${memberNumberSafety.maxReservedNumber ?? "none"}`);
+  console.log(`Minimum safe next number: ${memberNumberSafety.minimumSafeNextNumber ?? "unavailable (fail-closed)"}`);
   console.log(`#0 profile count: ${zeroProfiles.length}`);
   console.log(`Permanent positive gaps: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
   printList("Duplicate numbers", duplicateNumbers);
