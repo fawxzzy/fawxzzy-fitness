@@ -105,6 +105,19 @@ function forbidPattern(issues, source, pattern, label) {
   }
 }
 
+function normalizeSqlDefinition(source) {
+  return String(source ?? "")
+    .replace(/\r\n?/gu, "\n")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+function extractAutomationClassifierDefinition(source) {
+  return String(source ?? "").match(
+    /create or replace function public\.is_automation_auth_user\(target_user_id uuid\)[\s\S]*?\n\$\$;/iu,
+  )?.[0] ?? "";
+}
+
 export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSource, doctorSource }) {
   const issues = [];
   const audit = String(auditSource ?? "");
@@ -129,12 +142,36 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
     /Permanent positive gap evidence:/u,
     "audit capped positive-gap examples",
   );
+  requirePattern(
+    issues,
+    audit,
+    /const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons\(memberNumberSafety\);/u,
+    "audit shared fatal-reason evaluation",
+  );
+  requirePattern(
+    issues,
+    audit,
+    /problems\.push\(\.\.\.memberNumberSafetyFatalReasons\.map\(/u,
+    "audit shared fatal-reason exit authority",
+  );
 
   requirePattern(
     issues,
     core,
     /export function getMemberNumberSafetyFatalReasons\(summary\)/u,
     "shared member-number fatal-reason helper",
+  );
+  requirePattern(
+    issues,
+    core,
+    /hasExactlyOneHumanZero/u,
+    "shared exactly-one-human-#0 evidence",
+  );
+  requirePattern(
+    issues,
+    core,
+    /reserved-zero-assignment-metadata-missing/u,
+    "shared reserved-#0 metadata fatal reason",
   );
   requirePattern(
     issues,
@@ -147,6 +184,12 @@ export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSou
     doctor,
     /memberNumberSafetyFatalReasons\.length > 0/u,
     "doctor fail-closed fatal-reason predicate",
+  );
+  requirePattern(
+    issues,
+    doctor,
+    /\.select\("id, user_number, user_kind, user_number_assigned_at"\)/u,
+    "doctor reserved-#0 metadata projection",
   );
   requirePattern(
     issues,
@@ -168,10 +211,12 @@ function countMatches(source, pattern) {
   return [...source.matchAll(pattern)].length;
 }
 
-export function validateMigrationSource(source) {
+export function validateMigrationSource(source, { historicalClassifierSource } = {}) {
   const sql = String(source).replace(/\r\n?/gu, "\n");
   const issues = [];
   const preflightBody = sql.match(/do \$\$[\s\S]*?\n\$\$;/iu)?.[0] ?? "";
+  const classifierDefinition = extractAutomationClassifierDefinition(sql);
+  const historicalClassifierDefinition = extractAutomationClassifierDefinition(historicalClassifierSource);
 
   requirePattern(issues, sql, /^begin;$/imu, "explicit transaction begin");
   requirePattern(issues, sql, /^commit;$/imu, "explicit transaction commit");
@@ -218,6 +263,39 @@ export function validateMigrationSource(source) {
     "all-reserved-number high-water query",
   );
   requirePattern(issues, sql, /sequence_effective_next <= maximum_reserved_number/iu, "sequence high-water precondition");
+
+  if (!historicalClassifierDefinition) {
+    issues.push("missing immutable historical automation classifier provenance");
+  } else if (normalizeSqlDefinition(classifierDefinition) !== normalizeSqlDefinition(historicalClassifierDefinition)) {
+    issues.push("automation classifier definition differs from immutable historical source");
+  }
+  if (countMatches(sql, /create or replace function public\.is_automation_auth_user\(target_user_id uuid\)/giu) !== 1) {
+    issues.push("automation classifier must be reinstalled exactly once");
+  }
+  requirePattern(
+    issues,
+    sql,
+    /alter function public\.is_automation_auth_user\(uuid\) owner to postgres;/iu,
+    "automation classifier postgres ownership",
+  );
+  requirePattern(
+    issues,
+    sql,
+    /revoke execute on function public\.is_automation_auth_user\(uuid\)\s+from public, anon, authenticated;/iu,
+    "automation classifier client execution revokes",
+  );
+  forbidPattern(
+    issues,
+    sql,
+    /revoke execute on function public\.is_automation_auth_user\(uuid\)[^;]*service_role/iu,
+    "service-role classifier execution revoke",
+  );
+  const classifierIndex = sql.indexOf(classifierDefinition);
+  const preflightEndIndex = sql.indexOf(preflightBody) + preflightBody.length;
+  const assignmentIndex = sql.indexOf("create or replace function public.assign_real_user_number_on_profile_insert()");
+  if (!classifierDefinition || classifierIndex < preflightEndIndex || classifierIndex > assignmentIndex) {
+    issues.push("automation classifier must be reinstalled after preflight and before classifier-dependent assignment");
+  }
 
   requirePattern(
     issues,
@@ -338,7 +416,9 @@ export function verifyCommit({ repoRoot = REPO_ROOT, commitish = "HEAD" } = {}) 
   }
 
   const migrationSource = sources.get(MIGRATION_PATH)?.toString("utf8") ?? "";
-  issues.push(...validateMigrationSource(migrationSource));
+  issues.push(...validateMigrationSource(migrationSource, {
+    historicalClassifierSource: sources.get("supabase/migrations/044_real_user_numbers.sql")?.toString("utf8") ?? "",
+  }));
   issues.push(...validateHistoricalSources(sources));
 
   const auditSource = sources.get("scripts/audit-member-numbers.mjs")?.toString("utf8") ?? "";

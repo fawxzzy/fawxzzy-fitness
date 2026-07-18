@@ -189,6 +189,29 @@ begin
 end;
 $$;
 
+create or replace function public.is_automation_auth_user(target_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  select exists (
+    select 1
+    from auth.users u
+    where u.id = target_user_id
+      and (
+        lower(coalesce(u.raw_app_meta_data ->> 'account_kind', '')) = 'automation'
+        or lower(coalesce(u.raw_user_meta_data ->> 'account_kind', '')) = 'automation'
+        or lower(coalesce(u.email, '')) ~ '(^|[^a-z0-9])(codex|test|qa|example|preview|local)([^a-z0-9]|$)'
+      )
+  );
+$$;
+
+alter function public.is_automation_auth_user(uuid) owner to postgres;
+revoke execute on function public.is_automation_auth_user(uuid)
+  from public, anon, authenticated;
+
 drop trigger if exists profiles_compact_human_member_numbers_after_delete
   on public.profiles restrict;
 drop function if exists public.compact_human_member_numbers_after_profile_delete() restrict;

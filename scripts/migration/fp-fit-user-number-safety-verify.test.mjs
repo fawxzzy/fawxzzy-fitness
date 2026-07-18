@@ -14,12 +14,16 @@ import {
 } from "./fp-fit-user-number-safety-verify.mjs";
 
 const migrationSource = readFileSync(new URL(`../../${MIGRATION_PATH}`, import.meta.url), "utf8");
+const historicalClassifierSource = readFileSync(
+  new URL("../../supabase/migrations/044_real_user_numbers.sql", import.meta.url),
+  "utf8",
+);
 const auditSource = readFileSync(new URL("../audit-member-numbers.mjs", import.meta.url), "utf8");
 const safetyCoreSource = readFileSync(new URL("../member-number-safety-core.mjs", import.meta.url), "utf8");
 const doctorSource = readFileSync(new URL("../doctor-discord-community.mjs", import.meta.url), "utf8");
 
 function expectRejected(source, expectedIssue) {
-  const issues = validateMigrationSource(source);
+  const issues = validateMigrationSource(source, { historicalClassifierSource });
   assert.ok(
     issues.some((issue) => issue.includes(expectedIssue)),
     `expected issue containing ${JSON.stringify(expectedIssue)}; got ${JSON.stringify(issues)}`,
@@ -27,7 +31,7 @@ function expectRejected(source, expectedIssue) {
 }
 
 test("accepted forward migration satisfies the static contract", () => {
-  assert.deepEqual(validateMigrationSource(migrationSource), []);
+  assert.deepEqual(validateMigrationSource(migrationSource, { historicalClassifierSource }), []);
 });
 
 test("doctor source is bound to the shared fail-closed member-number predicate", () => {
@@ -42,6 +46,16 @@ test("doctor source is bound to the shared fail-closed member-number predicate",
     safetyCoreSource,
     doctorSource: bypassedDoctor,
   }).includes("missing doctor shared fatal-reason evaluation"));
+
+  const missingMetadataProjection = doctorSource.replace(
+    '.select("id, user_number, user_kind, user_number_assigned_at")',
+    '.select("id, user_number, user_kind")',
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource,
+    doctorSource: missingMetadataProjection,
+  }).includes("missing doctor reserved-#0 metadata projection"));
 
   const incompleteEvidence = doctorSource.replace(
     "reservedNumberHighWaterError: memberNumberSafety.reservedNumberHighWaterError,",
@@ -74,6 +88,54 @@ test("audit source reports exact gap count, truncation, and capped evidence", ()
     safetyCoreSource,
     doctorSource,
   }).includes("missing audit positive-gap truncation evidence"));
+
+  const bypassedFatalReasons = auditSource.replace(
+    "const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);",
+    "const memberNumberSafetyFatalReasons = [];",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource: bypassedFatalReasons,
+    safetyCoreSource,
+    doctorSource,
+  }).includes("missing audit shared fatal-reason evaluation"));
+
+  const incompleteCore = safetyCoreSource.replace(
+    'reasons.push("reserved-zero-assignment-metadata-missing");',
+    "// missing reserved zero metadata failure",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
+    safetyCoreSource: incompleteCore,
+    doctorSource,
+  }).includes("missing shared reserved-#0 metadata fatal reason"));
+});
+
+test("migration reinstalls the exact immutable historical automation classifier", () => {
+  expectRejected(
+    migrationSource.replace(
+      "lower(coalesce(u.raw_app_meta_data ->> 'account_kind', '')) = 'automation'",
+      "lower(coalesce(u.raw_app_meta_data ->> 'account_kind', '')) = 'bot'",
+    ),
+    "automation classifier definition differs from immutable historical source",
+  );
+  expectRejected(
+    migrationSource.replace("stable\nsecurity definer", "volatile\nsecurity invoker"),
+    "automation classifier definition differs from immutable historical source",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "alter function public.is_automation_auth_user(uuid) owner to postgres;",
+      "",
+    ),
+    "automation classifier postgres ownership",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "revoke execute on function public.is_automation_auth_user(uuid)\n  from public, anon, authenticated;",
+      "",
+    ),
+    "automation classifier client execution revokes",
+  );
 });
 
 test("migration rejects profile rewrites and sequence mutation", () => {

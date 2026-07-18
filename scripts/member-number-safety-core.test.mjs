@@ -10,6 +10,8 @@ import {
   summarizePositiveMemberNumberGaps,
 } from "./member-number-safety-core.mjs";
 
+const ASSIGNED_AT = "2026-01-01T00:00:00.000Z";
+
 test("permanent positive gaps are valid safety information", () => {
   const summary = summarizeMemberNumberSafety([
     { user_kind: "human", user_number: 0 },
@@ -190,6 +192,7 @@ test("normal current 0 through 52 state reports 53 without filling gaps", () => 
   const profiles = Array.from({ length: 53 }, (_, userNumber) => ({
     user_kind: "human",
     user_number: userNumber,
+    user_number_assigned_at: ASSIGNED_AT,
   }));
   const summary = summarizeMemberNumberSafety(profiles);
 
@@ -199,6 +202,9 @@ test("normal current 0 through 52 state reports 53 without filling gaps", () => 
   assert.deepEqual(summary.positiveGaps, []);
   assert.equal(summary.positiveGapsTruncated, false);
   assert.deepEqual(summary.duplicateNumbers, []);
+  assert.equal(summary.hasExactlyOneHumanZero, true);
+  assert.equal(summary.reservedZeroAssignmentMetadataPresent, true);
+  assert.deepEqual(getMemberNumberSafetyFatalReasons(summary), []);
 });
 
 test("shared fatal reasons cover doctor pass and every member-number failure class", () => {
@@ -206,6 +212,7 @@ test("shared fatal reasons cover doctor pass and every member-number failure cla
     Array.from({ length: 53 }, (_, userNumber) => ({
       user_kind: "human",
       user_number: userNumber,
+      user_number_assigned_at: ASSIGNED_AT,
     })),
   );
   assert.deepEqual(getMemberNumberSafetyFatalReasons(valid), []);
@@ -213,24 +220,24 @@ test("shared fatal reasons cover doctor pass and every member-number failure cla
   const cases = [
     [summarizeMemberNumberSafety([]), "invalid-zero-count"],
     [summarizeMemberNumberSafety([
-      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
       { user_kind: "automation", user_number: 4 },
     ]), "numbered-automation-profile"],
     [summarizeMemberNumberSafety([
-      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
       { user_kind: "unknown", user_number: 4 },
     ]), "numbered-unknown-profile"],
     [summarizeMemberNumberSafety([
-      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
       { user_kind: "human", user_number: 4 },
       { user_kind: "human", user_number: 4 },
     ]), "duplicate-member-number"],
     [summarizeMemberNumberSafety([
-      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
       { user_kind: "human", user_number: -1 },
     ]), "negative-human-member-number"],
     [summarizeMemberNumberSafety([
-      { user_kind: "human", user_number: 0 },
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
       { user_kind: "unknown", user_number: Number.NaN },
     ]), "reserved-number-high-water:invalid-reserved-number"],
   ];
@@ -243,6 +250,35 @@ test("shared fatal reasons cover doctor pass and every member-number failure cla
     ...valid,
     minimumSafeNextNumber: null,
   }).includes("minimum-safe-next-number-unavailable"));
+});
+
+test("shared fatal reasons require exact human #0 assignment metadata", () => {
+  const missingMetadata = summarizeMemberNumberSafety([
+    { user_kind: "human", user_number: 0, user_number_assigned_at: null },
+  ]);
+  assert.equal(missingMetadata.hasExactlyOneHumanZero, true);
+  assert.equal(missingMetadata.reservedZeroAssignmentMetadataPresent, false);
+  assert.ok(getMemberNumberSafetyFatalReasons(missingMetadata).includes(
+    "reserved-zero-assignment-metadata-missing",
+  ));
+
+  const nonHumanZero = summarizeMemberNumberSafety([
+    { user_kind: "unknown", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
+  ]);
+  assert.equal(nonHumanZero.hasExactlyOneHumanZero, false);
+  assert.ok(getMemberNumberSafetyFatalReasons(nonHumanZero).includes("invalid-zero-human-reservation"));
+});
+
+test("shared fatal reasons make audit inputs fail for missing #0 and every numbered nonhuman kind", () => {
+  assert.ok(getMemberNumberSafetyFatalReasons(summarizeMemberNumberSafety([])).includes("invalid-zero-count"));
+
+  for (const userKind of ["unknown", null, "future-kind"]) {
+    const summary = summarizeMemberNumberSafety([
+      { user_kind: "human", user_number: 0, user_number_assigned_at: ASSIGNED_AT },
+      { user_kind: userKind, user_number: 7, user_number_assigned_at: ASSIGNED_AT },
+    ]);
+    assert.ok(getMemberNumberSafetyFatalReasons(summary).includes("numbered-unknown-profile"));
+  }
 });
 
 test("member identity permits same-value updates and rejects any identity change", () => {

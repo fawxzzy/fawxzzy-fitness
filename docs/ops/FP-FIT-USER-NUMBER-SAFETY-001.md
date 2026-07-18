@@ -23,11 +23,12 @@ No raw profile identifiers or secret values are part of this receipt.
 
 1. Takes an `ACCESS EXCLUSIVE` lock on `public.profiles`.
 2. Fails closed unless the assignment trigger, function, sequence, and partial unique index are exact and enabled; compaction objects form either the exact legacy set or the fully retired set; exactly one existing profile reserves `#0` as a human with assignment metadata; every numbered profile is human; profile identity invariants hold; and the sequence effective-next value is above every non-null member number already reserved by any profile.
-3. Drops the compaction trigger, delete wrapper, and compactor with `IF EXISTS` and `RESTRICT`, never `CASCADE`.
-4. Redefines insert assignment so automation profiles are always unnumbered and every new human receives `nextval`, regardless of caller-supplied identity values.
-5. Adds `public.enforce_immutable_profile_member_identity()` and `profiles_enforce_immutable_member_identity_before_update`; same-value updates pass, while changes to `user_number`, `user_kind`, or `user_number_assigned_at` fail.
-6. Removes sequence mutation/allocation privileges from public client roles and `service_role`; `service_role` retains read-only `SELECT`, while the postgres-owned `SECURITY DEFINER` assignment function remains the allocator.
-7. Adds comments that freeze immutable, never-reused semantics.
+3. Transactionally reinstalls the immutable historical `public.is_automation_auth_user(uuid)` SQL/STABLE/SECURITY DEFINER definition, `search_path`, postgres ownership, and client execution revokes before the assignment function can use it.
+4. Drops the compaction trigger, delete wrapper, and compactor with `IF EXISTS` and `RESTRICT`, never `CASCADE`.
+5. Redefines insert assignment so automation profiles are always unnumbered and every new human receives `nextval`, regardless of caller-supplied identity values.
+6. Adds `public.enforce_immutable_profile_member_identity()` and `profiles_enforce_immutable_member_identity_before_update`; same-value updates pass, while changes to `user_number`, `user_kind`, or `user_number_assigned_at` fail.
+7. Removes sequence mutation/allocation privileges from public client roles and `service_role`; `service_role` retains read-only `SELECT`, while the postgres-owned `SECURITY DEFINER` assignment function remains the allocator.
+8. Adds comments that freeze immutable, never-reused semantics.
 
 The migration contains no profile `UPDATE`, `setval`, sequence restart, sequence reseed, hard-coded next number, historical migration edit, or data backfill. Deletion remains allowed and creates a permanent gap.
 
@@ -42,6 +43,7 @@ The migration contains no profile `UPDATE`, `setval`, sequence restart, sequence
 - Missing, duplicate, non-human, or assignment-metadata-free `#0` remains a failure.
 - Automation profiles with numbers remain failures.
 - Legacy `unknown`, null-kind, or future unrecognized profiles with numbers remain failures.
+- Both consumers load `user_number_assigned_at`, and the shared fatal-reason predicate is the sole structural exit authority for the exactly-one-human-`#0` metadata invariant and every numbered nonhuman classification.
 
 The scripts do not claim to read the live sequence. They report the minimum safe next number from the observed high-water mark; action-time SQL must independently prove the real sequence effective-next value against every non-null profile number, not only rows already classified as human.
 

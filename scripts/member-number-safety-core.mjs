@@ -77,6 +77,10 @@ export function getMemberNumberSafetyFatalReasons(summary) {
 
   if (summary?.zeroCount !== 1) {
     reasons.push("invalid-zero-count");
+  } else if (!summary?.hasExactlyOneHumanZero) {
+    reasons.push("invalid-zero-human-reservation");
+  } else if (!summary?.reservedZeroAssignmentMetadataPresent) {
+    reasons.push("reserved-zero-assignment-metadata-missing");
   }
   if ((summary?.automationProfilesWithNumbers?.length ?? 0) > 0) {
     reasons.push("numbered-automation-profile");
@@ -102,6 +106,12 @@ export function getMemberNumberSafetyFatalReasons(summary) {
 
 export function summarizeMemberNumberSafety(profiles) {
   const profileRows = Array.isArray(profiles) ? profiles : [];
+  const zeroProfiles = profileRows.filter((profile) => profile?.user_number === 0);
+  const humanZeroProfiles = zeroProfiles.filter((profile) => profile?.user_kind === "human");
+  const hasExactlyOneHumanZero = zeroProfiles.length === 1 && humanZeroProfiles.length === 1;
+  const reservedZeroAssignmentMetadataPresent = hasExactlyOneHumanZero
+    && humanZeroProfiles[0]?.user_number_assigned_at !== null
+    && humanZeroProfiles[0]?.user_number_assigned_at !== undefined;
   const reservedNumberValues = profileRows
     .map((profile) => profile?.user_number)
     .filter((value) => value !== null && value !== undefined);
@@ -165,6 +175,7 @@ export function summarizeMemberNumberSafety(profiles) {
   return {
     automationProfilesWithNumbers,
     duplicateNumbers,
+    hasExactlyOneHumanZero,
     invalidReservedNumbers,
     maxReservedNumber,
     minimumSafeNextNumber,
@@ -172,8 +183,9 @@ export function summarizeMemberNumberSafety(profiles) {
     positiveGapCount: positiveGapSummary.gapCount,
     positiveGaps: positiveGapSummary.reportedGaps,
     positiveGapsTruncated: positiveGapSummary.truncated,
+    reservedZeroAssignmentMetadataPresent,
     reservedNumberHighWaterError,
     unknownProfilesWithNumbers,
-    zeroCount: profileRows.filter((profile) => profile?.user_number === 0).length,
+    zeroCount: zeroProfiles.length,
   };
 }

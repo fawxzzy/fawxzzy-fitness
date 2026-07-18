@@ -4,7 +4,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
-import { summarizeMemberNumberSafety } from "./member-number-safety-core.mjs";
+import {
+  getMemberNumberSafetyFatalReasons,
+  summarizeMemberNumberSafety,
+} from "./member-number-safety-core.mjs";
 
 const AUTOMATION_SIGNAL_PATTERN = /(^|[^a-z0-9])(codex|test|qa|example|preview|local)([^a-z0-9]|$)/i;
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
@@ -196,6 +199,7 @@ async function main() {
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const profileById = new Map(profileRows.map((profile) => [profile.id, profile]));
   const memberNumberSafety = summarizeMemberNumberSafety(profileRows);
+  const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);
   const numberedHumanProfiles = profileRows.filter((profile) => profile.user_kind === "human" && profile.user_number !== null);
   const automationProfiles = profileRows.filter((profile) => profile.user_kind === "automation");
   const unknownProfiles = profileRows.filter((profile) => profile.user_kind === "unknown");
@@ -250,25 +254,9 @@ async function main() {
       });
 
   const problems = [];
-  if (duplicateNumbers.length > 0) {
-    problems.push(...duplicateNumbers.map((entry) => `Duplicate number: ${entry}`));
-  }
-  if (memberNumberSafety.negativeHumanNumbers.length > 0) {
-    problems.push(`Negative human member numbers detected: ${memberNumberSafety.negativeHumanNumbers.join(", ")}`);
-  }
-  if (zeroProfiles.length > 1) {
-    problems.push(`More than one #0 profile exists (${zeroProfiles.length}).`);
-  }
+  problems.push(...memberNumberSafetyFatalReasons.map((reason) => `Member-number safety failure: ${reason}`));
   if (nonZacZeroProfiles.length > 0) {
     problems.push(...nonZacZeroProfiles.map((entry) => `Non-Zac #0 profile: ${entry}`));
-  }
-  if (automationProfilesWithNumbers.length > 0) {
-    problems.push(...automationProfilesWithNumbers.map((entry) => `Automation profile still has a number: ${entry}`));
-  }
-  if (memberNumberSafety.reservedNumberHighWaterError) {
-    problems.push(
-      `Reserved member-number high-water is invalid (${memberNumberSafety.reservedNumberHighWaterError}); minimum safe next number is unavailable.`,
-    );
   }
 
   const warnings = [];
@@ -298,6 +286,8 @@ async function main() {
   console.log(`Max reserved user_number: ${memberNumberSafety.maxReservedNumber ?? "none"}`);
   console.log(`Minimum safe next number: ${memberNumberSafety.minimumSafeNextNumber ?? "unavailable (fail-closed)"}`);
   console.log(`#0 profile count: ${zeroProfiles.length}`);
+  console.log(`Exactly one human #0: ${memberNumberSafety.hasExactlyOneHumanZero ? "yes" : "no"}`);
+  console.log(`Reserved #0 assignment metadata present: ${memberNumberSafety.reservedZeroAssignmentMetadataPresent ? "yes" : "no"}`);
   console.log(`Permanent positive gap count: ${memberNumberSafety.positiveGapCount ?? "unavailable"}`);
   console.log(`Permanent positive gap evidence truncated: ${memberNumberSafety.positiveGapsTruncated ? "yes" : "no"}`);
   console.log(`Permanent positive gap evidence: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);

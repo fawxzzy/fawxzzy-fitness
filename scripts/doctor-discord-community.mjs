@@ -905,7 +905,7 @@ async function checkMemberNumbers(adminClient) {
 
   const { data: profiles, error: profilesError } = await adminClient
     .from("profiles")
-    .select("id, user_number, user_kind")
+    .select("id, user_number, user_kind, user_number_assigned_at")
     .order("user_number", { ascending: true, nullsFirst: true });
 
   if (profilesError) {
@@ -974,6 +974,8 @@ async function checkMemberNumbers(adminClient) {
         : "Member number integrity checks failed",
     {
       zeroCount,
+      hasExactlyOneHumanZero: memberNumberSafety.hasExactlyOneHumanZero,
+      reservedZeroAssignmentMetadataPresent: memberNumberSafety.reservedZeroAssignmentMetadataPresent,
       maxReservedNumber: memberNumberSafety.maxReservedNumber,
       minimumSafeNextNumber: memberNumberSafety.minimumSafeNextNumber,
       reservedNumberHighWaterError: memberNumberSafety.reservedNumberHighWaterError,
