@@ -22,7 +22,7 @@ No raw profile identifiers or secret values are part of this receipt.
 `20260718015422_retire_human_member_number_compaction.sql` is forward-only and transactional. It:
 
 1. Takes an `ACCESS EXCLUSIVE` lock on `public.profiles`.
-2. Fails closed unless the assignment trigger, function, sequence, and partial unique index are exact and enabled; compaction objects form either the exact legacy set or the fully retired set; profile identity invariants hold; and the sequence effective-next value is above every non-null member number already reserved by any profile, including legacy `unknown` profiles.
+2. Fails closed unless the assignment trigger, function, sequence, and partial unique index are exact and enabled; compaction objects form either the exact legacy set or the fully retired set; exactly one existing profile reserves `#0` as a human with assignment metadata; every numbered profile is human; profile identity invariants hold; and the sequence effective-next value is above every non-null member number already reserved by any profile.
 3. Drops the compaction trigger, delete wrapper, and compactor with `IF EXISTS` and `RESTRICT`, never `CASCADE`.
 4. Redefines insert assignment so automation profiles are always unnumbered and every new human receives `nextval`, regardless of caller-supplied identity values.
 5. Adds `public.enforce_immutable_profile_member_identity()` and `profiles_enforce_immutable_member_identity_before_update`; same-value updates pass, while changes to `user_number`, `user_kind`, or `user_number_assigned_at` fail.
@@ -36,10 +36,12 @@ The migration contains no profile `UPDATE`, `setval`, sequence restart, sequence
 `scripts/member-number-safety-core.mjs` is the shared deterministic model for the operator audit and Discord community doctor.
 
 - Permanent positive gaps are expected information.
+- Gap output reports the exact gap count, whether the displayed evidence is capped, and at most 100 example values.
 - Duplicate numbers remain failures.
 - Negative human numbers remain failures.
-- More than one `#0` remains a failure.
+- Missing, duplicate, non-human, or assignment-metadata-free `#0` remains a failure.
 - Automation profiles with numbers remain failures.
+- Legacy `unknown`, null-kind, or future unrecognized profiles with numbers remain failures.
 
 The scripts do not claim to read the live sequence. They report the minimum safe next number from the observed high-water mark; action-time SQL must independently prove the real sequence effective-next value against every non-null profile number, not only rows already classified as human.
 

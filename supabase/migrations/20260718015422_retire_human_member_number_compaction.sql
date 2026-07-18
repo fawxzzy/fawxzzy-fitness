@@ -9,9 +9,11 @@ declare
   compaction_wrapper_exists boolean;
   compactor_exists boolean;
   duplicate_number_exists boolean;
+  invalid_reserved_zero_exists boolean;
   maximum_reserved_number bigint;
   negative_human_number_exists boolean;
-  numbered_automation_exists boolean;
+  numbered_nonhuman_exists boolean;
+  reserved_zero_count bigint;
   sequence_called boolean;
   sequence_effective_next bigint;
   sequence_increment bigint;
@@ -96,6 +98,30 @@ begin
     raise exception 'member-number safety precondition failed: compaction objects are in a mixed state';
   end if;
 
+  select count(*)
+  into reserved_zero_count
+  from public.profiles as profile
+  where profile.user_number = 0;
+
+  if reserved_zero_count <> 1 then
+    raise exception 'member-number safety precondition failed: exactly one reserved #0 human profile is required';
+  end if;
+
+  select exists (
+    select 1
+    from public.profiles as profile
+    where profile.user_number = 0
+      and (
+        profile.user_kind is distinct from 'human'
+        or profile.user_number_assigned_at is null
+      )
+  )
+  into invalid_reserved_zero_exists;
+
+  if invalid_reserved_zero_exists then
+    raise exception 'member-number safety precondition failed: reserved #0 profile has invalid human identity metadata';
+  end if;
+
   select exists (
     select 1
     from public.profiles as profile
@@ -124,13 +150,13 @@ begin
   select exists (
     select 1
     from public.profiles as profile
-    where profile.user_kind = 'automation'
-      and profile.user_number is not null
+    where profile.user_number is not null
+      and profile.user_kind is distinct from 'human'
   )
-  into numbered_automation_exists;
+  into numbered_nonhuman_exists;
 
-  if numbered_automation_exists then
-    raise exception 'member-number safety precondition failed: an automation profile has a member number';
+  if numbered_nonhuman_exists then
+    raise exception 'member-number safety precondition failed: a numbered profile is not human';
   end if;
 
   select coalesce(max(profile.user_number), -1)

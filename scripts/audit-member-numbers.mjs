@@ -298,7 +298,9 @@ async function main() {
   console.log(`Max reserved user_number: ${memberNumberSafety.maxReservedNumber ?? "none"}`);
   console.log(`Minimum safe next number: ${memberNumberSafety.minimumSafeNextNumber ?? "unavailable (fail-closed)"}`);
   console.log(`#0 profile count: ${zeroProfiles.length}`);
-  console.log(`Permanent positive gaps: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
+  console.log(`Permanent positive gap count: ${memberNumberSafety.positiveGapCount ?? "unavailable"}`);
+  console.log(`Permanent positive gap evidence truncated: ${memberNumberSafety.positiveGapsTruncated ? "yes" : "no"}`);
+  console.log(`Permanent positive gap evidence: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
   printList("Duplicate numbers", duplicateNumbers);
   if (authUsersError) {
     console.log(`Suspicious numbered profiles: unavailable (${authUsersError})`);

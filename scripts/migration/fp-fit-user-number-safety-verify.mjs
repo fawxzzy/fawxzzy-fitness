@@ -105,10 +105,30 @@ function forbidPattern(issues, source, pattern, label) {
   }
 }
 
-export function validateMemberNumberConsumerSources({ safetyCoreSource, doctorSource }) {
+export function validateMemberNumberConsumerSources({ auditSource, safetyCoreSource, doctorSource }) {
   const issues = [];
+  const audit = String(auditSource ?? "");
   const core = String(safetyCoreSource ?? "");
   const doctor = String(doctorSource ?? "");
+
+  requirePattern(
+    issues,
+    audit,
+    /Permanent positive gap count: \$\{memberNumberSafety\.positiveGapCount \?\? "unavailable"\}/u,
+    "audit exact positive-gap count evidence",
+  );
+  requirePattern(
+    issues,
+    audit,
+    /Permanent positive gap evidence truncated: \$\{memberNumberSafety\.positiveGapsTruncated \? "yes" : "no"\}/u,
+    "audit positive-gap truncation evidence",
+  );
+  requirePattern(
+    issues,
+    audit,
+    /Permanent positive gap evidence:/u,
+    "audit capped positive-gap examples",
+  );
 
   requirePattern(
     issues,
@@ -151,6 +171,7 @@ function countMatches(source, pattern) {
 export function validateMigrationSource(source) {
   const sql = String(source).replace(/\r\n?/gu, "\n");
   const issues = [];
+  const preflightBody = sql.match(/do \$\$[\s\S]*?\n\$\$;/iu)?.[0] ?? "";
 
   requirePattern(issues, sql, /^begin;$/imu, "explicit transaction begin");
   requirePattern(issues, sql, /^commit;$/imu, "explicit transaction commit");
@@ -165,9 +186,31 @@ export function validateMigrationSource(source) {
   requirePattern(issues, sql, /to_regclass\('public\.real_user_number_seq'\)/iu, "sequence precondition");
   requirePattern(issues, sql, /to_regclass\('public\.profiles_user_number_uq'\)/iu, "unique index precondition");
   requirePattern(issues, sql, /compaction objects are in a mixed state/iu, "idempotent compaction terminal-set precondition");
+  requirePattern(
+    issues,
+    preflightBody,
+    /select count\(\*\)\s+into reserved_zero_count\s+from public\.profiles as profile\s+where profile\.user_number = 0;/iu,
+    "exact reserved #0 count query",
+  );
+  requirePattern(issues, preflightBody, /reserved_zero_count <> 1/iu, "exact-one reserved #0 precondition");
+  requirePattern(
+    issues,
+    preflightBody,
+    /where profile\.user_number = 0\s+and \(\s*profile\.user_kind is distinct from 'human'\s+or profile\.user_number_assigned_at is null\s*\)/iu,
+    "reserved #0 human metadata precondition",
+  );
+  requirePattern(
+    issues,
+    preflightBody,
+    /where profile\.user_number is not null\s+and profile\.user_kind is distinct from 'human'/iu,
+    "all-numbered-profiles-human precondition",
+  );
+  forbidPattern(issues, preflightBody, /numbered_automation_exists/iu, "automation-only numbered-profile precondition");
   requirePattern(issues, sql, /duplicate member numbers exist/iu, "duplicate-number precondition");
   requirePattern(issues, sql, /negative human member numbers exist/iu, "negative-number precondition");
-  requirePattern(issues, sql, /an automation profile has a member number/iu, "automation-number precondition");
+  requirePattern(issues, preflightBody, /exactly one reserved #0 human profile is required/iu, "reserved #0 count failure");
+  requirePattern(issues, preflightBody, /reserved #0 profile has invalid human identity metadata/iu, "reserved #0 metadata failure");
+  requirePattern(issues, preflightBody, /a numbered profile is not human/iu, "numbered nonhuman failure");
   requirePattern(
     issues,
     sql,
@@ -308,10 +351,12 @@ export function verifyCommit({ repoRoot = REPO_ROOT, commitish = "HEAD" } = {}) 
   requirePattern(issues, auditSource, /summarizeMemberNumberSafety/u, "shared member-number safety audit usage");
   forbidPattern(issues, auditSource, /Compact numbering expected/u, "stale compact-number audit contract");
   requirePattern(issues, doctorSource, /summarizeMemberNumberSafety/u, "shared member-number safety doctor usage");
-  issues.push(...validateMemberNumberConsumerSources({ safetyCoreSource, doctorSource }));
+  issues.push(...validateMemberNumberConsumerSources({ auditSource, safetyCoreSource, doctorSource }));
   forbidPattern(issues, doctorSource, /Member number compaction and sync rows look healthy/u, "stale compact-number doctor contract");
   requirePattern(issues, contractSource, /FULL_CHAIN_REPLAY: BLOCKED/u, "honest replay blocker");
   requirePattern(issues, contractSource, /PROVIDER_APPLY: NOT_AUTHORIZED/u, "provider apply boundary");
+  requirePattern(issues, contractSource, /exactly one existing profile reserves `#0` as a human with assignment metadata/u, "documented reserved #0 precondition");
+  requirePattern(issues, contractSource, /every numbered profile is human/u, "documented numbered-human precondition");
   if (!candidatePlaybook.startsWith(basePlaybook)) {
     issues.push("docs/PLAYBOOK_NOTES.md must be append-only");
   }

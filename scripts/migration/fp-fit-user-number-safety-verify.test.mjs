@@ -14,6 +14,7 @@ import {
 } from "./fp-fit-user-number-safety-verify.mjs";
 
 const migrationSource = readFileSync(new URL(`../../${MIGRATION_PATH}`, import.meta.url), "utf8");
+const auditSource = readFileSync(new URL("../audit-member-numbers.mjs", import.meta.url), "utf8");
 const safetyCoreSource = readFileSync(new URL("../member-number-safety-core.mjs", import.meta.url), "utf8");
 const doctorSource = readFileSync(new URL("../doctor-discord-community.mjs", import.meta.url), "utf8");
 
@@ -30,13 +31,14 @@ test("accepted forward migration satisfies the static contract", () => {
 });
 
 test("doctor source is bound to the shared fail-closed member-number predicate", () => {
-  assert.deepEqual(validateMemberNumberConsumerSources({ safetyCoreSource, doctorSource }), []);
+  assert.deepEqual(validateMemberNumberConsumerSources({ auditSource, safetyCoreSource, doctorSource }), []);
 
   const bypassedDoctor = doctorSource.replace(
     "const memberNumberSafetyFatalReasons = getMemberNumberSafetyFatalReasons(memberNumberSafety);",
     "const memberNumberSafetyFatalReasons = [];",
   );
   assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
     safetyCoreSource,
     doctorSource: bypassedDoctor,
   }).includes("missing doctor shared fatal-reason evaluation"));
@@ -46,9 +48,32 @@ test("doctor source is bound to the shared fail-closed member-number predicate",
     "reservedNumberHighWaterError: null,",
   );
   assert.ok(validateMemberNumberConsumerSources({
+    auditSource,
     safetyCoreSource,
     doctorSource: incompleteEvidence,
   }).includes("missing doctor reserved high-water evidence"));
+});
+
+test("audit source reports exact gap count, truncation, and capped evidence", () => {
+  const missingCount = auditSource.replace(
+    "memberNumberSafety.positiveGapCount ?? \"unavailable\"",
+    "positiveGaps.length",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource: missingCount,
+    safetyCoreSource,
+    doctorSource,
+  }).includes("missing audit exact positive-gap count evidence"));
+
+  const missingTruncation = auditSource.replace(
+    "memberNumberSafety.positiveGapsTruncated ? \"yes\" : \"no\"",
+    "\"no\"",
+  );
+  assert.ok(validateMemberNumberConsumerSources({
+    auditSource: missingTruncation,
+    safetyCoreSource,
+    doctorSource,
+  }).includes("missing audit positive-gap truncation evidence"));
 });
 
 test("migration rejects profile rewrites and sequence mutation", () => {
@@ -96,6 +121,34 @@ test("migration rejects loss of exact source allocator preconditions", () => {
       "where profile.user_kind = 'human'\n    and profile.user_number is not null;",
     ),
     "all-reserved-number high-water query",
+  );
+});
+
+test("migration requires one valid human #0 and rejects every numbered nonhuman", () => {
+  expectRejected(
+    migrationSource.replace("reserved_zero_count <> 1", "reserved_zero_count < 0"),
+    "exact-one reserved #0 precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "profile.user_kind is distinct from 'human'\n        or profile.user_number_assigned_at is null",
+      "profile.user_kind = 'human'",
+    ),
+    "reserved #0 human metadata precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "profile.user_kind is distinct from 'human'\n  )\n  into numbered_nonhuman_exists",
+      "profile.user_kind = 'automation'\n  )\n  into numbered_nonhuman_exists",
+    ),
+    "all-numbered-profiles-human precondition",
+  );
+  expectRejected(
+    migrationSource.replace(
+      "where profile.user_number = 0;",
+      "where profile.user_number = 1;",
+    ),
+    "exact reserved #0 count query",
   );
 });
 
