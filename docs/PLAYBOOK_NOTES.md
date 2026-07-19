@@ -585,3 +585,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Keep the legacy fallback until Preview and separately approved Production verification prove the modern key across every consumer; scripts, browser publishable keys, provider mutation, deployments, and deactivation remain separate governed packets.
 - Evidence: `src/lib/supabase/admin.ts`, `src/lib/env.test.ts`, `src/app/auth/actions.ts`, `src/lib/atlas-contracts.ts`, `src/lib/discord/message-command-claims.ts`
 - Status: Proposed
+
+## 2026-07-19 - CI contract evidence must preserve explicit targets and local ownership
+- Type: Guardrail
+- WHAT changed: Atlas health classification now treats an explicit Vercel Preview or Production target as authoritative even when CI is also set, and the Fitness metrics evidence pack plus its Atlas/Codex context runbook now use maintained repository-local ownership evidence.
+- WHY it changed: Ambient CI incorrectly masked explicit deployment-target evidence in contract tests, while stale Atlas-root paths made an otherwise local Fitness evidence pack unverifiable from this repository.
+- Rule: CI is a fallback environment classification, not an override for an explicit deployment target; source evidence referenced by Fitness runbooks and packs must be retrievable from the Fitness repository or be replaced with a maintained local ownership contract.
+- Pattern: explicit Vercel target -> environment classification -> CI fallback, and frozen metrics-pack reference -> local runbook -> maintained Fitness adoption contract.
+- Failure Mode: Letting ambient CI override target evidence misclassifies Preview or Production contracts, while cross-repository documentation paths leave local operators unable to validate the asserted ownership boundary.
+- Evidence: `src/lib/atlas-contracts.ts`, `src/lib/atlas-contracts.test.ts`, `docs/ops/ATLAS-CODEX-CONTEXT-RUNBOOK.md`, `docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md`, `src/lib/ecosystem/fitness-metrics-pack.test.ts`
+- Status: Proposed

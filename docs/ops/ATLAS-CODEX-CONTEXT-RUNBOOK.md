@@ -18,7 +18,7 @@ The pack is supported by these maintained sources:
 - `src/lib/ecosystem/fitness-shadow-events.ts` for shadow-mode lineage behavior.
 - `src/lib/session-follow-up-jobs.ts` for session follow-up emission boundaries.
 - `truth-pack/fitness/signals.json`, `state-snapshots.json`, and `actions-and-receipts.json` for frozen event evidence.
-- `docs/registry/STACK-SYNERGY-REGISTRY.json` for stack-level ownership context.
+- `docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md` for the Fitness-owned ATLAS ownership boundary.
 
 ## Verification
 
