@@ -3,9 +3,8 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
-import { optionalEnv } from "@/lib/env";
 import { isSafeAppPath } from "@/lib/navigation-return";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { hasSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
@@ -29,7 +28,7 @@ async function resolveEmailForLogin(identifier: string) {
     return null;
   }
 
-  if (!optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+  if (!hasSupabaseAdminCredential()) {
     return null;
   }
 
@@ -212,7 +211,7 @@ export async function requestPasswordReset(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent("Enter your email or username to reset your password.")}`);
   }
 
-  if (usesUsernameIdentifier && !optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+  if (usesUsernameIdentifier && !hasSupabaseAdminCredential()) {
     redirect(`/login?error=${encodeURIComponent("Use your email to reset your password.")}`);
   }
 
@@ -257,7 +256,7 @@ export async function requestPasswordResetInline(identifier: string) {
     };
   }
 
-  if (usesUsernameIdentifier && !optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+  if (usesUsernameIdentifier && !hasSupabaseAdminCredential()) {
     return {
       ok: false,
       error: "Use your email to reset your password.",
