@@ -4,7 +4,7 @@
 
 This source packet retires automatic member-number compaction and defines Fitness human member numbers as immutable, unique, and never reused. It does not update an existing profile, execute a sequence, apply SQL to Supabase, or move allocation to the future shared platform.
 
-Source base: `bab188a51819a6fb2f8aeabe73627d4ed63dcaa4`.
+Source base: `c81b582b1ec4175788160a0467ec58e60f81b316`.
 
 ## Preimage
 

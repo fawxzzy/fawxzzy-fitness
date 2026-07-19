@@ -575,6 +575,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `supabase/migrations/20260713013116_exercise_timer_truth.sql`, `supabase/migrations/20260713020801_set_timing_truth.sql`, `supabase/migrations/20260716033653_routine_day_optional.sql`, `scripts/migration/fp-fit-rec-001-verify.mjs`, `docs/ops/FP-FIT-REC-001-SOURCE-RECOVERY-RECEIPT.md`
 - Status: Proposed
 
+## 2026-07-18 - Server admin credentials need one modern-first resolution boundary
+- Type: Guardrail
+- WHAT changed: Fitness server runtime credential selection now lives in the server-only Supabase admin module, prefers `SUPABASE_SECRET_KEY`, and retains `SUPABASE_SERVICE_ROLE_KEY` only as a temporary rollback fallback for the staged security migration.
+- WHY it changed: Runtime guards and health checks were coupled directly to the legacy variable name, so installing an independently revocable Supabase secret key would still make valid admin flows appear unavailable or continue selecting the historically exposed legacy credential.
+- Rule: Backend Supabase credentials must resolve through one server-only boundary; blank preferred values may fall back, missing total input fails with sanitized configuration text, and no value metadata may enter diagnostics or browser code.
+- Pattern: modern server secret -> bounded legacy rollback fallback -> stable fail-closed configuration error -> source-neutral readiness checks.
+- Failure Mode: Scattered environment-name checks can select different credentials, leak source details through diagnostics, or falsely treat source compatibility as proof that the legacy credential is deactivated.
+- Decision: Keep the legacy fallback until Preview and separately approved Production verification prove the modern key across every consumer; scripts, browser publishable keys, provider mutation, deployments, and deactivation remain separate governed packets.
+- Evidence: `src/lib/supabase/admin.ts`, `src/lib/env.test.ts`, `src/app/auth/actions.ts`, `src/lib/atlas-contracts.ts`, `src/lib/discord/message-command-claims.ts`
+- Status: Proposed
+
 ## 2026-07-17 - Member numbers are immutable and never reused
 - Type: Decision
 - WHAT changed: Fitness source numbering now retires delete-driven compaction, ignores caller-supplied human identity values on insert, rejects member-identity changes after creation, and removes client authority to reset the source sequence.
@@ -585,15 +596,4 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating member numbers as dense display slots destroys stable identity, makes Discord snapshots drift, and lets deletion or client-supplied values renumber existing users.
 - Decision: Never recreate compaction as rollback and never hard-code a target sequence floor; calculate the floor from freeze-time source and target high-water evidence.
 - Evidence: `supabase/migrations/20260718015422_retire_human_member_number_compaction.sql`, `scripts/member-number-safety-core.mjs`, `scripts/migration/fp-fit-user-number-safety-verify.mjs`, `docs/ops/FP-FIT-USER-NUMBER-SAFETY-001.md`
-- Status: Proposed
-
-## 2026-07-18 - Server admin credentials need one modern-first resolution boundary
-- Type: Guardrail
-- WHAT changed: Fitness server runtime credential selection now lives in the server-only Supabase admin module, prefers `SUPABASE_SECRET_KEY`, and retains `SUPABASE_SERVICE_ROLE_KEY` only as a temporary rollback fallback for the staged security migration.
-- WHY it changed: Runtime guards and health checks were coupled directly to the legacy variable name, so installing an independently revocable Supabase secret key would still make valid admin flows appear unavailable or continue selecting the historically exposed legacy credential.
-- Rule: Backend Supabase credentials must resolve through one server-only boundary; blank preferred values may fall back, missing total input fails with sanitized configuration text, and no value metadata may enter diagnostics or browser code.
-- Pattern: modern server secret -> bounded legacy rollback fallback -> stable fail-closed configuration error -> source-neutral readiness checks.
-- Failure Mode: Scattered environment-name checks can select different credentials, leak source details through diagnostics, or falsely treat source compatibility as proof that the legacy credential is deactivated.
-- Decision: Keep the legacy fallback until Preview and separately approved Production verification prove the modern key across every consumer; scripts, browser publishable keys, provider mutation, deployments, and deactivation remain separate governed packets.
-- Evidence: `src/lib/supabase/admin.ts`, `src/lib/env.test.ts`, `src/app/auth/actions.ts`, `src/lib/atlas-contracts.ts`, `src/lib/discord/message-command-claims.ts`
 - Status: Proposed
