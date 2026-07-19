@@ -38,16 +38,17 @@ function normalizeAtlasEnvironment(): AtlasEnvironment {
     return "test";
   }
 
-  if (process.env.CI === "true") {
-    return "ci";
-  }
-
   if (process.env.VERCEL_ENV === "production") {
     return "production";
   }
 
   if (process.env.VERCEL_ENV === "preview") {
     return "preview";
+  }
+
+  // An explicit Vercel target describes the deployed surface even inside CI.
+  if (process.env.CI === "true") {
+    return "ci";
   }
 
   if (process.env.NODE_ENV === "production") {
