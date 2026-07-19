@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### WHAT
+- Corrected clean-environment CI to require only the planning artifacts produced by its non-applying Playbook ladder. `.playbook/last-run.json` remains an apply execution-state artifact.
+
+### WHY
+- Prevents CI from requiring an artifact that the documented read-only ladder cannot produce, while preserving execution-state evidence for governed apply paths.
+
 ## 1.0.1 - 2026-06-24
 
 ### WHAT

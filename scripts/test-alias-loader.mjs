@@ -1,9 +1,24 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const extensionCandidates = [".ts", ".tsx", ".js", ".mjs", ".cjs"];
+const require = createRequire(import.meta.url);
+const typescript = require("typescript");
+
+export function transpileTypeScriptForTest(source, fileName) {
+  return typescript.transpileModule(source, {
+    compilerOptions: {
+      jsx: typescript.JsxEmit.ReactJSX,
+      module: typescript.ModuleKind.ESNext,
+      target: typescript.ScriptTarget.ES2022,
+    },
+    fileName,
+    reportDiagnostics: true,
+  }).outputText;
+}
 
 function resolveCandidatePath(basePath) {
   if (fs.existsSync(basePath) && fs.statSync(basePath).isFile()) {
@@ -66,4 +81,16 @@ export async function resolve(specifier, context, defaultResolve) {
   }
 
   return defaultResolve(specifier, context, defaultResolve);
+}
+
+export async function load(url, context, defaultLoad) {
+  if (url.startsWith("file:") && /\.tsx?$/u.test(fileURLToPath(url))) {
+    return {
+      format: "module",
+      source: transpileTypeScriptForTest(fs.readFileSync(fileURLToPath(url), "utf8"), fileURLToPath(url)),
+      shortCircuit: true,
+    };
+  }
+
+  return defaultLoad(url, context, defaultLoad);
 }
