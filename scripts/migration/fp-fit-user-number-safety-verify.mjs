@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const currentFilePath = fileURLToPath(import.meta.url);
 export const REPO_ROOT = path.resolve(path.dirname(currentFilePath), "..", "..");
-export const BASE_COMMIT = "c81b582b1ec4175788160a0467ec58e60f81b316";
+export const BASE_COMMIT = "317568f9dcbc7d6c9dcf2ad30ef1cd80022ce8b3";
 export const MIGRATION_PATH = "supabase/migrations/20260718015422_retire_human_member_number_compaction.sql";
 export const EXPECTED_CHANGED_PATHS = Object.freeze([
   "docs/PLAYBOOK_NOTES.md",
