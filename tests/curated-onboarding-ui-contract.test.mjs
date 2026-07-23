@@ -57,6 +57,10 @@ test("curated questionnaire reuses app cards and accessible selectable controls"
   assert.match(questionnaire, /data-curated-question-card/);
   assert.match(questionnaire, /!bg-\[rgb\(var\(--accent\)\/0\.18\)\]/);
   assert.match(questionnaire, /!border-\[rgb\(var\(--accent\)\/0\.72\)\]/);
+  assert.match(questionnaire, /aria-labelledby=\{promptId\}/);
+  assert.match(questionnaire, /aria-describedby=\{invalid \? errorId : undefined\}/);
+  assert.match(questionnaire, /aria-label=\{`\$\{question\.label\} other response`\}/);
+  assert.match(questionnaire, /id=\{errorId\}/);
   assert.doesNotMatch(questionnaire, /divide-y/);
   assert.doesNotMatch(stepSources, /AuthField|appTokens\.curated/);
 });

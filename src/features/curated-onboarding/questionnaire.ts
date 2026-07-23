@@ -719,17 +719,57 @@ function deriveExperience(responses: CuratedIntakeResponses): ExperienceLevel {
   return "intermediate";
 }
 
+function parseBoundedIntegerResponse(
+  responses: CuratedIntakeResponses,
+  questionId: string,
+  minimum: number,
+  maximum: number,
+) {
+  const selectedValue = getStringResponse(responses, questionId);
+  const responseValue = selectedValue === "other"
+    ? getStringResponse(responses, `${questionId}Other`)
+    : selectedValue;
+  const normalized = responseValue.trim();
+  if (!/^\d+$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : null;
+}
+
 function deriveEquipment(responses: CuratedIntakeResponses): EquipmentAccess[] {
   const selected = new Set<EquipmentAccess>();
   const locations = getArrayResponse(responses, "trainingLocations");
   const equipment = getArrayResponse(responses, "availableEquipment");
+  const otherEquipment = [
+    locations.includes("other") ? getStringResponse(responses, "trainingLocationsOther") : "",
+    equipment.includes("other") ? getStringResponse(responses, "availableEquipmentOther") : "",
+  ].join(" ").toLowerCase();
 
-  if (locations.some((value) => ["commercial-gym", "planet-fitness", "school-gym", "apartment-gym"].includes(value))) selected.add("full-gym");
-  if (equipment.some((value) => ["barbells", "bench", "incline-bench", "squat-rack"].includes(value))) selected.add("barbell");
-  if (equipment.some((value) => ["dumbbells", "kettlebells"].includes(value))) selected.add("dumbbells");
-  if (equipment.some((value) => ["smith-machine", "cables", "machines", "treadmill", "bike"].includes(value))) selected.add("machines");
-  if (equipment.includes("resistance-bands")) selected.add("bands");
-  if (equipment.includes("bodyweight") || locations.includes("outside")) selected.add("bodyweight");
+  if (
+    locations.some((value) => ["commercial-gym", "planet-fitness", "school-gym", "apartment-gym"].includes(value))
+    || /\b(?:commercial gym|planet fitness|school gym|apartment gym|full gym)\b/.test(otherEquipment)
+  ) selected.add("full-gym");
+  if (
+    equipment.some((value) => ["barbells", "bench", "incline-bench", "squat-rack"].includes(value))
+    || /\b(?:barbells?|benches?|squat racks?)\b/.test(otherEquipment)
+  ) selected.add("barbell");
+  if (
+    equipment.some((value) => ["dumbbells", "kettlebells"].includes(value))
+    || /\b(?:dumbbells?|kettlebells?)\b/.test(otherEquipment)
+  ) selected.add("dumbbells");
+  if (
+    equipment.some((value) => ["smith-machine", "cables", "machines", "treadmill", "bike"].includes(value))
+    || /\b(?:smith machines?|cable towers?|cables?|machines?|treadmills?|stationary bikes?|exercise bikes?)\b/.test(otherEquipment)
+  ) selected.add("machines");
+  if (
+    equipment.includes("resistance-bands")
+    || /\b(?:resistance bands?|mini bands?|loop bands?)\b/.test(otherEquipment)
+  ) selected.add("bands");
+  if (
+    equipment.includes("bodyweight")
+    || locations.includes("outside")
+    || /\b(?:body[\s-]?weight|calisthenics|pull[\s-]?up bars?|trx|suspension trainers?)\b/.test(otherEquipment)
+  ) selected.add("bodyweight");
 
   if (selected.size === 0) selected.add("bodyweight");
   return Array.from(selected);
@@ -754,7 +794,7 @@ export function deriveCuratedEngineData(
   responses: CuratedIntakeResponses,
   fallback?: Partial<CuratedOnboardingData>,
 ): Omit<CuratedOnboardingData, "intakeResponses"> {
-  const parsedDays = Number.parseInt(getStringResponse(responses, "trainingDaysPerWeek"), 10);
+  const parsedDays = parseBoundedIntegerResponse(responses, "trainingDaysPerWeek", 1, 7);
   const workoutLength = getStringResponse(responses, "workoutLength");
   const sessionLengthByAnswer: Record<string, number> = {
     "20-30": 30,
@@ -763,6 +803,9 @@ export function deriveCuratedEngineData(
     "60-90": 75,
     "90-plus": 90,
   };
+  const parsedSessionLength = workoutLength === "other"
+    ? parseBoundedIntegerResponse(responses, "workoutLength", 10, 180)
+    : sessionLengthByAnswer[workoutLength] ?? null;
   const exerciseLikes = splitTextList(getStringResponse(responses, "exerciseEnjoy"));
   const exerciseDislikes = splitTextList(
     getStringResponse(responses, "exerciseHate") || getStringResponse(responses, "exercisesCannotDo"),
@@ -775,8 +818,8 @@ export function deriveCuratedEngineData(
       ? deriveTrainingGoal(responses)
       : fallback?.trainingGoal ?? null,
     experience: getStringResponse(responses, "trainingExperience") ? deriveExperience(responses) : fallback?.experience ?? null,
-    daysPerWeek: Number.isInteger(parsedDays) && parsedDays >= 1 && parsedDays <= 7 ? parsedDays : fallback?.daysPerWeek ?? null,
-    sessionLengthMinutes: sessionLengthByAnswer[workoutLength] ?? fallback?.sessionLengthMinutes ?? null,
+    daysPerWeek: parsedDays ?? fallback?.daysPerWeek ?? null,
+    sessionLengthMinutes: parsedSessionLength ?? fallback?.sessionLengthMinutes ?? null,
     equipment: getArrayResponse(responses, "availableEquipment").length > 0 || getArrayResponse(responses, "trainingLocations").length > 0
       ? deriveEquipment(responses)
       : [...(fallback?.equipment ?? [])],

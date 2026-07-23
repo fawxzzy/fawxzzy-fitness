@@ -32,11 +32,15 @@ function TextQuestion({
   question,
   responses,
   invalid,
+  promptId,
+  errorId,
   onResponseChange,
 }: {
   question: CuratedQuestionDefinition;
   responses: CuratedIntakeResponses;
   invalid: boolean;
+  promptId: string;
+  errorId: string;
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
   const sharedClassName = cn(
@@ -52,6 +56,8 @@ function TextQuestion({
         placeholder={question.placeholder ?? "Your answer"}
         rows={3}
         aria-invalid={invalid || undefined}
+        aria-labelledby={promptId}
+        aria-describedby={invalid ? errorId : undefined}
         className={cn(sharedClassName, "min-h-24 resize-y leading-6")}
       />
     );
@@ -64,6 +70,8 @@ function TextQuestion({
       placeholder={question.placeholder ?? "Your answer"}
       readOnly={question.readOnly}
       aria-invalid={invalid || undefined}
+      aria-labelledby={promptId}
+      aria-describedby={invalid ? errorId : undefined}
       className={cn(sharedClassName, question.readOnly && "cursor-default text-[rgb(var(--text-secondary))]")}
     />
   );
@@ -73,11 +81,15 @@ function ChoiceQuestion({
   question,
   responses,
   invalid,
+  promptId,
+  errorId,
   onResponseChange,
 }: {
   question: CuratedQuestionDefinition;
   responses: CuratedIntakeResponses;
   invalid: boolean;
+  promptId: string;
+  errorId: string;
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
   const multiple = question.type === "multi";
@@ -105,7 +117,13 @@ function ChoiceQuestion({
   const otherSelected = multiple ? selectedValues.includes("other") : selectedValue === "other";
 
   return (
-    <div className="space-y-2" role={multiple ? "group" : "radiogroup"} aria-invalid={invalid || undefined}>
+    <div
+      className="space-y-2"
+      role={multiple ? "group" : "radiogroup"}
+      aria-invalid={invalid || undefined}
+      aria-labelledby={promptId}
+      aria-describedby={invalid ? errorId : undefined}
+    >
       {choices.map((option) => {
         const selected = multiple ? selectedValues.includes(option.value) : selectedValue === option.value;
         return (
@@ -133,6 +151,9 @@ function ChoiceQuestion({
           value={getStringResponse(responses, `${question.id}Other`)}
           onChange={(event) => onResponseChange(`${question.id}Other`, event.target.value)}
           placeholder="Other response"
+          aria-label={`${question.label} other response`}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? errorId : undefined}
           className="mt-1 w-full border-0 border-b border-[rgb(var(--border-strong)/0.34)] bg-transparent px-0 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]"
         />
       ) : null}
@@ -144,11 +165,13 @@ function AcknowledgmentQuestion({
   question,
   responses,
   invalid,
+  errorId,
   onResponseChange,
 }: {
   question: CuratedQuestionDefinition;
   responses: CuratedIntakeResponses;
   invalid: boolean;
+  errorId: string;
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
   const selected = responses[question.id] === true;
@@ -158,6 +181,7 @@ function AcknowledgmentQuestion({
       role="checkbox"
       aria-checked={selected}
       aria-invalid={invalid || undefined}
+      aria-describedby={invalid ? errorId : undefined}
       onClick={() => onResponseChange(question.id, !selected)}
       className={cn(
         "flex w-full items-start gap-3 rounded-xl !border px-2.5 py-2.5 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,box-shadow]",
@@ -215,6 +239,8 @@ export function QuestionnaireStep({
       {section.questions.map((question) => {
         const invalid = invalidQuestionIds.includes(question.id);
         const notice = section.notices?.find((entry) => entry.afterQuestionId === question.id);
+        const promptId = `curated-question-${question.id}-prompt`;
+        const errorId = `curated-question-${question.id}-error`;
         return (
           <div key={question.id} className="space-y-3">
             <CuratedInfoCard
@@ -224,7 +250,7 @@ export function QuestionnaireStep({
             >
               <div className={cn("space-y-3 px-4 py-4", invalid && "bg-[rgb(var(--danger-rgb)/0.035)]")}>
                 {question.type !== "acknowledgment" ? (
-                  <p className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
+                  <p id={promptId} className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
                     {question.label}
                     {question.required ? <span className="ml-1 text-[rgb(var(--warning-rgb))]">*</span> : null}
                   </p>
@@ -235,6 +261,8 @@ export function QuestionnaireStep({
                     question={question}
                     responses={responses}
                     invalid={invalid}
+                    promptId={promptId}
+                    errorId={errorId}
                     onResponseChange={onResponseChange}
                   />
                 ) : question.type === "acknowledgment" ? (
@@ -242,6 +270,7 @@ export function QuestionnaireStep({
                     question={question}
                     responses={responses}
                     invalid={invalid}
+                    errorId={errorId}
                     onResponseChange={onResponseChange}
                   />
                 ) : (
@@ -249,12 +278,16 @@ export function QuestionnaireStep({
                     question={question}
                     responses={responses}
                     invalid={invalid}
+                    promptId={promptId}
+                    errorId={errorId}
                     onResponseChange={onResponseChange}
                   />
                 )}
 
                 {invalid ? (
-                  <p role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">This is a required question</p>
+                  <p id={errorId} role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
+                    This is a required question
+                  </p>
                 ) : null}
               </div>
             </CuratedInfoCard>

@@ -75,6 +75,46 @@ test("selecting Other requires its companion response before the page can advanc
   assert.deepEqual(getMissingRequiredQuestionIds("goals", responses), []);
 });
 
+test("a complete intake derives supported Other schedule and equipment responses", () => {
+  const responses = createCuratedParityFixture("standard");
+  responses.trainingDaysPerWeek = "other";
+  responses.trainingDaysPerWeekOther = "3";
+  responses.workoutLength = "other";
+  responses.workoutLengthOther = "45";
+  responses.trainingLocations = ["other"];
+  responses.trainingLocationsOther = "Home";
+  responses.availableEquipment = ["other"];
+  responses.availableEquipmentOther = "TRX suspension trainer and resistance bands";
+
+  for (const section of CURATED_INTAKE_SECTIONS) {
+    assert.deepEqual(getMissingRequiredQuestionIds(section.stepId, responses), []);
+  }
+
+  const derived = deriveCuratedEngineData(responses);
+  assert.equal(derived.daysPerWeek, 3);
+  assert.equal(derived.sessionLengthMinutes, 45);
+  assert.deepEqual(derived.equipment, ["bands", "bodyweight"]);
+
+  const data = {
+    ...createCuratedOnboardingState().draft.data,
+    ...derived,
+    intakeResponses: responses,
+  };
+  assert.equal(canAdvanceCuratedStep("review", data), true);
+});
+
+test("Other schedule responses fail closed instead of partially parsing unsupported values", () => {
+  const responses = createCuratedParityFixture("standard");
+  responses.trainingDaysPerWeek = "other";
+  responses.trainingDaysPerWeekOther = "3 days";
+  responses.workoutLength = "other";
+  responses.workoutLengthOther = "45 minutes";
+
+  const derived = deriveCuratedEngineData(responses);
+  assert.equal(derived.daysPerWeek, null);
+  assert.equal(derived.sessionLengthMinutes, null);
+});
+
 test("both simulated intake paths advance page by page and render all 60 review answers", () => {
   for (const variant of ["standard", "limitations"] as const) {
     const fixture = createCuratedParityFixture(variant);
