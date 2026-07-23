@@ -103,16 +103,31 @@ test("a complete intake derives supported Other schedule and equipment responses
   assert.equal(canAdvanceCuratedStep("review", data), true);
 });
 
-test("Other schedule responses fail closed instead of partially parsing unsupported values", () => {
+test("Other schedule responses fail closed without retaining prior derived values", () => {
+  const fallback = {
+    daysPerWeek: 5,
+    sessionLengthMinutes: 60,
+  };
+  const absent = deriveCuratedEngineData({}, fallback);
+  assert.equal(absent.daysPerWeek, 5);
+  assert.equal(absent.sessionLengthMinutes, 60);
+
   const responses = createCuratedParityFixture("standard");
   responses.trainingDaysPerWeek = "other";
   responses.trainingDaysPerWeekOther = "3 days";
   responses.workoutLength = "other";
   responses.workoutLengthOther = "45 minutes";
 
-  const derived = deriveCuratedEngineData(responses);
+  const derived = deriveCuratedEngineData(responses, fallback);
   assert.equal(derived.daysPerWeek, null);
   assert.equal(derived.sessionLengthMinutes, null);
+
+  const data = {
+    ...createCuratedOnboardingState().draft.data,
+    ...derived,
+    intakeResponses: responses,
+  };
+  assert.equal(canAdvanceCuratedStep("review", data), false);
 });
 
 test("both simulated intake paths advance page by page and render all 60 review answers", () => {

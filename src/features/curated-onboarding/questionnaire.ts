@@ -794,6 +794,7 @@ export function deriveCuratedEngineData(
   responses: CuratedIntakeResponses,
   fallback?: Partial<CuratedOnboardingData>,
 ): Omit<CuratedOnboardingData, "intakeResponses"> {
+  const trainingDays = getStringResponse(responses, "trainingDaysPerWeek");
   const parsedDays = parseBoundedIntegerResponse(responses, "trainingDaysPerWeek", 1, 7);
   const workoutLength = getStringResponse(responses, "workoutLength");
   const sessionLengthByAnswer: Record<string, number> = {
@@ -818,8 +819,8 @@ export function deriveCuratedEngineData(
       ? deriveTrainingGoal(responses)
       : fallback?.trainingGoal ?? null,
     experience: getStringResponse(responses, "trainingExperience") ? deriveExperience(responses) : fallback?.experience ?? null,
-    daysPerWeek: parsedDays ?? fallback?.daysPerWeek ?? null,
-    sessionLengthMinutes: parsedSessionLength ?? fallback?.sessionLengthMinutes ?? null,
+    daysPerWeek: trainingDays ? parsedDays : fallback?.daysPerWeek ?? null,
+    sessionLengthMinutes: workoutLength ? parsedSessionLength : fallback?.sessionLengthMinutes ?? null,
     equipment: getArrayResponse(responses, "availableEquipment").length > 0 || getArrayResponse(responses, "trainingLocations").length > 0
       ? deriveEquipment(responses)
       : [...(fallback?.equipment ?? [])],
