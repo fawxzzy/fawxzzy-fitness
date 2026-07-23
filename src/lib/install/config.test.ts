@@ -119,3 +119,14 @@ test("install guidance requires an explicit continuation and preserves iOS auth 
   assert.match(iosSource, /primaryHref=\{primaryHref\}/);
   assert.match(iosSource, /primaryLabel="Continue"/);
 });
+
+test("browser fallback preserves the full install presentation alongside explicit continuation", () => {
+  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+
+  assert.match(installSource, /Use the browser install prompt here, or open Fitness directly\./);
+  assert.match(installSource, /Menu Install/);
+  assert.match(installSource, /This browser is not offering the one-tap install prompt right now\./);
+  assert.match(installSource, /Look for Share, Add to Home Screen, or Install app depending on your browser\./);
+  assert.match(installSource, /primaryLabel=\{installPrompt\.canPromptInstall \? undefined : "Open Fitness"\}/);
+  assert.doesNotMatch(installSource, /Manual Open/);
+});

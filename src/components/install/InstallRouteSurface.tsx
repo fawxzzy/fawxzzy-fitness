@@ -101,6 +101,11 @@ export function InstallRouteSurface({
           Install
         </BottomDockButton>
       ) : undefined}
+      subtitle={
+        context.isStandalone
+          ? "Fitness is already running in installed mode on this device."
+          : "Use the browser install prompt here, or open Fitness directly."
+      }
       title={context.isStandalone ? "Fitness is already installed" : "Install Fitness"}
     >
       <div className="space-y-3 text-center">
@@ -108,8 +113,8 @@ export function InstallRouteSurface({
           <AppBadge tone={context.isStandalone ? "success" : "default"}>
             {context.isStandalone ? "Installed" : installSurfaceLabel}
           </AppBadge>
-          <AppBadge tone={installPrompt.canPromptInstall ? "success" : "default"}>
-            {installPrompt.canPromptInstall ? "Prompt Ready" : "Manual Open"}
+          <AppBadge tone={installPrompt.canPromptInstall ? "success" : "warning"}>
+            {installPrompt.canPromptInstall ? "Prompt Ready" : "Menu Install"}
           </AppBadge>
         </div>
         <MetricAccentBar variant="thin" className="mx-auto w-full max-w-[18rem] opacity-85" />
@@ -122,9 +127,15 @@ export function InstallRouteSurface({
           <li>3. Open Fitness from the new app icon.</li>
         </ol>
       ) : (
-        <p className="rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
-          The install prompt is not available in this browser. You can continue to Fitness and install later.
-        </p>
+        <div className="rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
+          <p>
+            This browser is not offering the one-tap install prompt right now. You can still open Fitness normally,
+            or use your browser menu to add it to your home screen.
+          </p>
+          <p className="mt-2 text-[0.82rem] leading-5 text-[rgb(var(--text-muted)/0.9)]">
+            Look for Share, Add to Home Screen, or Install app depending on your browser.
+          </p>
+        </div>
       )}
     </InstallGateChrome>
   );
