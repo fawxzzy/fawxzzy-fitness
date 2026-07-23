@@ -8,10 +8,14 @@ import {
   CURATED_QUESTION_IDS,
   createCuratedParityFixture,
   deriveCuratedEngineData,
+  getCuratedQuestion,
   getMissingRequiredQuestionIds,
+  isCuratedQuestionVisible,
+  removeHiddenCuratedResponses,
 } from "./questionnaire.ts";
 import { curatedOnboardingReducer } from "./reducer.ts";
 import { canAdvanceCuratedStep, getCuratedReviewSections } from "./selectors.ts";
+import type { CuratedIntakeResponse } from "./types.ts";
 
 const EXPECTED_SECTION_TITLES = [
   "Your Details",
@@ -75,6 +79,67 @@ test("selecting Other requires its companion response before the page can advanc
   assert.deepEqual(getMissingRequiredQuestionIds("goals", responses), []);
 });
 
+test("dependent questions appear only for the responses that make them relevant", () => {
+  const cases: Array<[string, string, CuratedIntakeResponse, CuratedIntakeResponse]> = [
+    ["guardianPermission", "under18", "no", "yes"],
+    ["trackingTool", "tracksWorkouts", "no", "sometimes"],
+    ["heaviestDumbbells", "availableEquipment", ["bodyweight"], ["dumbbells"]],
+    ["painDetails", "hasPainOrLimitations", "no", "yes"],
+    ["restrictedMovements", "professionalRestrictions", "no", "yes"],
+    ["medicationConsiderations", "medications", "no", "yes"],
+  ];
+
+  for (const [questionId, parentId, hiddenValue, visibleValue] of cases) {
+    const question = getCuratedQuestion(questionId);
+    assert.ok(question);
+    assert.equal(isCuratedQuestionVisible(question, { [parentId]: hiddenValue }), false, questionId);
+    assert.equal(isCuratedQuestionVisible(question, { [parentId]: visibleValue }), true, questionId);
+  }
+});
+
+test("changing a parent response clears stale hidden dependent answers", () => {
+  const responses = removeHiddenCuratedResponses({
+    ...createCuratedParityFixture("limitations"),
+    under18: "no",
+    guardianPermission: "yes",
+    tracksWorkouts: "no",
+    trackingTool: "Spreadsheet",
+    hasPainOrLimitations: "no",
+    painDetails: "Old limitation",
+  });
+
+  assert.equal("guardianPermission" in responses, false);
+  assert.equal("trackingTool" in responses, false);
+  assert.equal("painDetails" in responses, false);
+  assert.deepEqual(getMissingRequiredQuestionIds("intro", responses), []);
+});
+
+test("required acknowledgments block page and review completion until checked", () => {
+  const responses = createCuratedParityFixture("standard");
+  responses.safetyAcknowledgment = false;
+  responses.accuracyAcknowledgment = false;
+  responses.fitnessGuidanceAcknowledgment = false;
+
+  assert.deepEqual(getMissingRequiredQuestionIds("constraints", responses), ["safetyAcknowledgment"]);
+  assert.deepEqual(
+    getMissingRequiredQuestionIds("delivery", responses),
+    ["accuracyAcknowledgment", "fitnessGuidanceAcknowledgment"],
+  );
+
+  const data = {
+    ...createCuratedOnboardingState().draft.data,
+    ...deriveCuratedEngineData(responses),
+    intakeResponses: responses,
+  };
+  assert.equal(canAdvanceCuratedStep("review", data), false);
+
+  responses.safetyAcknowledgment = true;
+  responses.accuracyAcknowledgment = true;
+  responses.fitnessGuidanceAcknowledgment = true;
+  assert.deepEqual(getMissingRequiredQuestionIds("constraints", responses), []);
+  assert.deepEqual(getMissingRequiredQuestionIds("delivery", responses), []);
+});
+
 test("a complete intake derives supported Other schedule and equipment responses", () => {
   const responses = createCuratedParityFixture("standard");
   responses.trainingDaysPerWeek = "other";
@@ -130,7 +195,7 @@ test("Other schedule responses fail closed without retaining prior derived value
   assert.equal(canAdvanceCuratedStep("review", data), false);
 });
 
-test("both simulated intake paths advance page by page and render all 60 review answers", () => {
+test("both simulated intake paths advance page by page and omit irrelevant review answers", () => {
   for (const variant of ["standard", "limitations"] as const) {
     const fixture = createCuratedParityFixture(variant);
     let state = createCuratedOnboardingState();
@@ -163,6 +228,14 @@ test("both simulated intake paths advance page by page and render all 60 review 
     assert.equal(canAdvanceCuratedStep("review", state.draft.data), true);
     const review = getCuratedReviewSections(state.draft.data);
     assert.equal(review.length, 9);
-    assert.equal(review.flatMap((section) => section.answers).length, 60);
+    const reviewedAnswerIds = review.flatMap((section) => section.answers).map((answer) => answer.id);
+    const hiddenAnswerIds = variant === "standard"
+      ? ["guardianPermission"]
+      : ["guardianPermission", "medicationConsiderations"];
+    assert.equal(reviewedAnswerIds.length, 60 - hiddenAnswerIds.length);
+    for (const hiddenAnswerId of hiddenAnswerIds) {
+      assert.equal(reviewedAnswerIds.includes(hiddenAnswerId), false);
+    }
+    assert.equal(review.every((section) => section.complete), true);
   }
 });

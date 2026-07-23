@@ -14,7 +14,7 @@ test("curated onboarding uses the signed-in Fitness screen and bottom-action con
   assert.match(shell, /AppShell/);
   assert.match(shell, /MobileScreenScaffold/);
   assert.match(shell, /SharedScreenHeader/);
-  assert.match(shell, /SignatureInlineList/);
+  assert.match(shell, /CuratedOnboardingProgress/);
   assert.match(shell, /BottomActionSingle/);
   assert.match(shell, /BottomActionSplit/);
   assert.match(shell, /BottomDockButton/);
@@ -28,6 +28,7 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   const review = readComponent("ReviewStep.tsx");
 
   assert.match(shell, /ROUTINE_CARD_DELETE_TEXT_CLASS_NAME/);
+  assert.match(shell, /actionClassName="!left-0 !right-0/);
   assert.match(shell, /canAccessCuratedStep/);
   assert.match(shell, /type: "go-to-step"/);
   assert.match(shell, /CURATED_FORM_STEP_ORDER/);
@@ -36,6 +37,12 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   assert.match(progress, /aria-label="Edit setup pages"/);
   assert.match(progress, /aria-current/);
   assert.match(progress, /steps\.length/);
+  assert.match(progress, /<h1/);
+  assert.match(progress, /!bg-\[rgb\(var\(--accent\)\)\]/);
+  assert.match(review, /data-section-status/);
+  assert.match(review, /"Completed" : "Incomplete"/);
+  assert.match(review, /warning-rgb/);
+  assert.doesNotMatch(review, /\{section\.answers\.length\} answers/);
 });
 test("curated user UI does not expose raw intake state or implementation-oriented snapshot chrome", () => {
   const handoff = readComponent("GenerationHandoffStep.tsx");
@@ -53,14 +60,17 @@ test("curated questionnaire reuses app cards and accessible selectable controls"
   assert.match(stepSources, /aria-checked/);
   assert.match(stepSources, /role=\{multiple \? "checkbox" : "radio"\}/);
   assert.match(stepSources, /data-curated-question/);
-  assert.match(questionnaire, /data-curated-section-header/);
+  assert.match(questionnaire, /data-curated-section=/);
   assert.match(questionnaire, /data-curated-question-card/);
   assert.match(questionnaire, /!bg-\[rgb\(var\(--accent\)\/0\.18\)\]/);
   assert.match(questionnaire, /!border-\[rgb\(var\(--accent\)\/0\.72\)\]/);
   assert.match(questionnaire, /aria-labelledby=\{promptId\}/);
   assert.match(questionnaire, /aria-describedby=\{invalid \? errorId : undefined\}/);
+  assert.match(questionnaire, /aria-required=\{question\.required \|\| undefined\}/);
+  assert.match(questionnaire, /isCuratedQuestionVisible/);
   assert.match(questionnaire, /aria-label=\{`\$\{question\.label\} other response`\}/);
   assert.match(questionnaire, /id=\{errorId\}/);
+  assert.doesNotMatch(questionnaire, /questions\.length\} questions|requiredCount/);
   assert.doesNotMatch(questionnaire, /divide-y/);
   assert.doesNotMatch(stepSources, /AuthField|appTokens\.curated/);
 });

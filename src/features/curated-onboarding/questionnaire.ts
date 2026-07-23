@@ -44,13 +44,11 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
       { id: "under18", label: "Are you under 18?", type: "single", required: true, options: yesNo },
       {
         id: "guardianPermission",
-        label: "If under 18, do you have parent/guardian permission to follow a general workout routine? Mark Yes if previous was Yes.",
+        label: "Do you have parent/guardian permission to follow a general workout routine?",
         type: "single",
         required: true,
-        options: [
-          ...yesNo,
-          { value: "not-applicable", label: "Not Applicable" },
-        ],
+        visibleWhen: { questionId: "under18", values: ["yes"] },
+        options: yesNo,
       },
     ],
   },
@@ -186,7 +184,13 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
           { value: "no", label: "No" },
         ],
       },
-      { id: "trackingTool", label: "If yes, what do you use to track?", type: "short-text", placeholder: "App, notes, spreadsheet" },
+      {
+        id: "trackingTool",
+        label: "What do you use to track?",
+        type: "short-text",
+        placeholder: "App, notes, spreadsheet",
+        visibleWhen: { questionId: "tracksWorkouts", values: ["yes", "sometimes"] },
+      },
       {
         id: "mainLiftNumbers",
         label: "What are your current rough numbers for main lifts, if you know them?",
@@ -313,9 +317,10 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
       },
       {
         id: "heaviestDumbbells",
-        label: "If you use dumbbells, what is the heaviest pair you have access to?",
+        label: "What is the heaviest pair of dumbbells you have access to?",
         type: "short-text",
         placeholder: "50 lbs",
+        visibleWhen: { questionId: "availableEquipment", values: ["dumbbells"] },
       },
       { id: "equipmentAvoid", label: "Any equipment you do NOT want to use?", type: "long-text", placeholder: "N.A." },
     ],
@@ -332,7 +337,13 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
         allowOther: true,
         options: yesNoOther,
       },
-      { id: "painDetails", label: "If yes, explain what's going on. (N.A. if unavailable)", type: "long-text", placeholder: "N.A." },
+      {
+        id: "painDetails",
+        label: "Explain what's going on.",
+        type: "long-text",
+        placeholder: "Describe the pain, injury, or limitation",
+        visibleWhen: { questionId: "hasPainOrLimitations", values: ["yes"] },
+      },
       {
         id: "exercisesCannotDo",
         label: "Are there any exercises you cannot do or should avoid? (N.A. if unavailable)",
@@ -353,7 +364,13 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
         allowOther: true,
         options: yesNoOther,
       },
-      { id: "restrictedMovements", label: "If yes, what were you told to avoid? (N.A. if unavailable)", type: "long-text", placeholder: "N.A." },
+      {
+        id: "restrictedMovements",
+        label: "What were you told to avoid?",
+        type: "long-text",
+        placeholder: "Movements or activities to avoid",
+        visibleWhen: { questionId: "professionalRestrictions", values: ["yes"] },
+      },
       {
         id: "warningSymptoms",
         label: "Do you experience any of these during exercise?",
@@ -390,9 +407,10 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
       },
       {
         id: "medicationConsiderations",
-        label: "If yes, anything important I should plan around?",
+        label: "Is there anything important I should plan around?",
         type: "long-text",
-        placeholder: "N.A.",
+        placeholder: "Relevant exercise or recovery considerations",
+        visibleWhen: { questionId: "medications", values: ["yes"] },
       },
       {
         id: "safetyAcknowledgment",
@@ -653,7 +671,36 @@ export function getArrayResponse(responses: CuratedIntakeResponses, questionId: 
   return Array.isArray(value) ? value : [];
 }
 
-function hasResponse(question: CuratedQuestionDefinition, responses: CuratedIntakeResponses) {
+export function isCuratedQuestionVisible(
+  question: CuratedQuestionDefinition,
+  responses: CuratedIntakeResponses,
+) {
+  if (!question.visibleWhen) return true;
+
+  const parentResponse = responses[question.visibleWhen.questionId];
+  if (Array.isArray(parentResponse)) {
+    return question.visibleWhen.values.some((value) => parentResponse.includes(value));
+  }
+
+  return typeof parentResponse === "string" && question.visibleWhen.values.includes(parentResponse);
+}
+
+export function removeHiddenCuratedResponses(responses: CuratedIntakeResponses) {
+  const visibleResponses = { ...responses };
+
+  for (const question of CURATED_QUESTIONS) {
+    if (isCuratedQuestionVisible(question, visibleResponses)) continue;
+    delete visibleResponses[question.id];
+    delete visibleResponses[`${question.id}Other`];
+  }
+
+  return visibleResponses;
+}
+
+export function hasCuratedQuestionResponse(
+  question: CuratedQuestionDefinition,
+  responses: CuratedIntakeResponses,
+) {
   const value = responses[question.id];
   const hasOtherResponse = getStringResponse(responses, `${question.id}Other`).trim().length > 0;
 
@@ -672,7 +719,13 @@ export function getMissingRequiredQuestionIds(stepId: CuratedStepId, responses: 
   const section = getCuratedIntakeSection(stepId);
   if (!section) return [];
 
-  return section.questions.filter((question) => question.required && !hasResponse(question, responses)).map((question) => question.id);
+  return section.questions
+    .filter((question) =>
+      isCuratedQuestionVisible(question, responses)
+      && question.required
+      && !hasCuratedQuestionResponse(question, responses),
+    )
+    .map((question) => question.id);
 }
 
 function optionLabel(questionId: string, value: string) {
@@ -859,7 +912,6 @@ export function createCuratedParityFixture(variant: "standard" | "limitations"):
   responses.contactMethod = "N/A";
   responses.socialUsername = "N/A";
   responses.under18 = "no";
-  responses.guardianPermission = "not-applicable";
 
   if (variant === "limitations") {
     responses.hasPainOrLimitations = "yes";
@@ -871,5 +923,5 @@ export function createCuratedParityFixture(variant: "standard" | "limitations"):
     responses.workoutLength = "45-60";
   }
 
-  return responses;
+  return removeHiddenCuratedResponses(responses);
 }

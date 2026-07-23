@@ -3,6 +3,7 @@ import {
   CURATED_INTAKE_SECTIONS,
   formatCuratedResponse,
   getMissingRequiredQuestionIds,
+  isCuratedQuestionVisible,
 } from "./questionnaire.ts";
 import type { CuratedOnboardingData, CuratedOnboardingDraft, CuratedStepId } from "./types.ts";
 
@@ -111,10 +112,13 @@ export function getCuratedReviewSections(data: CuratedOnboardingDraft["data"]) {
   return CURATED_INTAKE_SECTIONS.map((section) => ({
     stepId: section.stepId,
     title: section.title,
-    answers: section.questions.map((question) => ({
-      id: question.id,
-      label: question.label,
-      value: formatCuratedResponse(question, data.intakeResponses),
-    })),
+    complete: getMissingRequiredQuestionIds(section.stepId, data.intakeResponses).length === 0,
+    answers: section.questions
+      .filter((question) => isCuratedQuestionVisible(question, data.intakeResponses))
+      .map((question) => ({
+        id: question.id,
+        label: question.label,
+        value: formatCuratedResponse(question, data.intakeResponses),
+      })),
   }));
 }

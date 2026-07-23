@@ -2,6 +2,7 @@ import { cn } from "@/lib/cn";
 import {
   getArrayResponse,
   getStringResponse,
+  isCuratedQuestionVisible,
 } from "../questionnaire.ts";
 import type {
   CuratedIntakeResponse,
@@ -55,6 +56,8 @@ function TextQuestion({
         onChange={(event) => onResponseChange(question.id, event.target.value)}
         placeholder={question.placeholder ?? "Your answer"}
         rows={3}
+        required={question.required}
+        aria-required={question.required || undefined}
         aria-invalid={invalid || undefined}
         aria-labelledby={promptId}
         aria-describedby={invalid ? errorId : undefined}
@@ -69,6 +72,8 @@ function TextQuestion({
       onChange={(event) => onResponseChange(question.id, event.target.value)}
       placeholder={question.placeholder ?? "Your answer"}
       readOnly={question.readOnly}
+      required={question.required}
+      aria-required={question.required || undefined}
       aria-invalid={invalid || undefined}
       aria-labelledby={promptId}
       aria-describedby={invalid ? errorId : undefined}
@@ -120,6 +125,7 @@ function ChoiceQuestion({
     <div
       className="space-y-2"
       role={multiple ? "group" : "radiogroup"}
+      aria-required={question.required || undefined}
       aria-invalid={invalid || undefined}
       aria-labelledby={promptId}
       aria-describedby={invalid ? errorId : undefined}
@@ -180,6 +186,7 @@ function AcknowledgmentQuestion({
       type="button"
       role="checkbox"
       aria-checked={selected}
+      aria-required={question.required || undefined}
       aria-invalid={invalid || undefined}
       aria-describedby={invalid ? errorId : undefined}
       onClick={() => onResponseChange(question.id, !selected)}
@@ -193,7 +200,10 @@ function AcknowledgmentQuestion({
       )}
     >
       <ChoiceIndicator selected={selected} multiple />
-      <span>{question.label}</span>
+      <span>
+        {question.label}
+        {question.required ? <span className="ml-1 text-[rgb(var(--warning-rgb))]">*</span> : null}
+      </span>
     </button>
   );
 }
@@ -209,34 +219,20 @@ export function QuestionnaireStep({
   invalidQuestionIds: readonly string[];
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
-  const requiredCount = section.questions.filter((question) => question.required).length;
+  const visibleQuestions = section.questions.filter((question) => isCuratedQuestionVisible(question, responses));
 
   return (
-    <div className="space-y-3">
-      <CuratedInfoCard data-curated-section-header={section.stepId} className="!p-0">
-        <div className="h-1 bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)),rgb(var(--accent)),rgb(var(--accent-divider-rgb)/0.32))]" />
-        <div className="space-y-2 px-4 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <p className="text-base font-semibold leading-6 tracking-[-0.015em] text-[rgb(var(--text-primary))]">{section.title}</p>
-            <span className="shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.92)]">
-              {section.questions.length} questions
-            </span>
-          </div>
-          {section.description ? (
-            <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{section.description}</p>
-          ) : null}
-          {section.stepId === "intro" ? (
-            <p className="text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">
-              This is general fitness guidance, not medical advice. If you have pain, injuries, medical conditions, or symptoms during exercise, talk to a qualified medical professional before starting or changing your routine.
-            </p>
-          ) : null}
-          <p className="text-[10px] font-medium text-[rgb(var(--text-muted)/0.84)]">
-            <span className="text-[rgb(var(--warning-rgb))]">*</span> {requiredCount} required
-          </p>
-        </div>
-      </CuratedInfoCard>
+    <div className="space-y-3" data-curated-section={section.stepId}>
+      {section.description ? (
+        <p className="px-1 text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{section.description}</p>
+      ) : null}
+      {section.stepId === "intro" ? (
+        <p className="px-1 text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">
+          This is general fitness guidance, not medical advice. If you have pain, injuries, medical conditions, or symptoms during exercise, talk to a qualified medical professional before starting or changing your routine.
+        </p>
+      ) : null}
 
-      {section.questions.map((question) => {
+      {visibleQuestions.map((question) => {
         const invalid = invalidQuestionIds.includes(question.id);
         const notice = section.notices?.find((entry) => entry.afterQuestionId === question.id);
         const promptId = `curated-question-${question.id}-prompt`;
@@ -286,7 +282,9 @@ export function QuestionnaireStep({
 
                 {invalid ? (
                   <p id={errorId} role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
-                    This is a required question
+                    {question.type === "acknowledgment"
+                      ? "Check this required acknowledgment to continue"
+                      : "This is a required question"}
                   </p>
                 ) : null}
               </div>

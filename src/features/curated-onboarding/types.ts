@@ -37,6 +37,10 @@ export interface CuratedQuestionDefinition {
   allowOther?: boolean;
   placeholder?: string;
   readOnly?: boolean;
+  visibleWhen?: {
+    questionId: string;
+    values: readonly string[];
+  };
 }
 
 export interface CuratedSectionNotice {

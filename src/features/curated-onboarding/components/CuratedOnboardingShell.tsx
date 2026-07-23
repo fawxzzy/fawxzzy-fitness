@@ -17,7 +17,6 @@ import { RouteLoading } from "@/components/RouteLoading";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import {
   trackCuratedAbandoned,
@@ -31,6 +30,7 @@ import {
   deriveCuratedEngineData,
   getCuratedIntakeSection,
   getMissingRequiredQuestionIds,
+  removeHiddenCuratedResponses,
 } from "../questionnaire.ts";
 import { curatedOnboardingReducer } from "../reducer.ts";
 import {
@@ -80,11 +80,11 @@ function nowIso() {
 }
 
 function withCuratedIdentity(state: CuratedOnboardingState, userEmail: string, userName: string) {
-  const intakeResponses: CuratedIntakeResponses = {
+  const intakeResponses: CuratedIntakeResponses = removeHiddenCuratedResponses({
     ...state.draft.data.intakeResponses,
     ...(userEmail.trim() ? { email: userEmail.trim() } : {}),
     ...(!state.draft.data.intakeResponses.name && userName.trim() ? { name: userName.trim() } : {}),
-  };
+  });
   const derived = deriveCuratedEngineData(intakeResponses, state.draft.data);
 
   return {
@@ -293,19 +293,6 @@ export function CuratedOnboardingShell({
     ? getMissingRequiredQuestionIds(state.draft.stepId, state.draft.data.intakeResponses)
     : [];
   const missingRequestedDraft = Boolean(requestedDraftId && hasHydrated && !didResumeDraft);
-  const saveLabel =
-    saveState === "error"
-      ? "Save failed"
-      : saveState === "saving"
-        ? "Saving"
-        : saveState === "saved" && state.lifecycle.intakeStatus === "completed"
-          ? "Setup saved"
-          : saveState === "saved"
-            ? "Draft saved"
-            : didResumeDraft
-              ? "Draft restored"
-              : "Autosave on";
-
   function patchData(patch: Partial<CuratedOnboardingData>) {
     dispatch({
       type: "patch-data",
@@ -315,10 +302,10 @@ export function CuratedOnboardingShell({
   }
 
   function patchResponse(questionId: string, value: CuratedIntakeResponse) {
-    const intakeResponses = {
+    const intakeResponses = removeHiddenCuratedResponses({
       ...state.draft.data.intakeResponses,
       [questionId]: value,
-    };
+    });
     const derived = deriveCuratedEngineData(intakeResponses, state.draft.data);
 
     patchData({
@@ -499,18 +486,21 @@ export function CuratedOnboardingShell({
               <SharedScreenHeader
                 recipe="editDay"
                 title="Curated Routine"
-                subtitle={(
-                  <SignatureInlineList
-                    separator="pipe"
-                    items={isGenerationStep
-                      ? [stepDefinition.eyebrow]
-                      : [stepDefinition.eyebrow, `${currentStep} of ${CURATED_FORM_STEP_ORDER.length}`]}
-                    className="justify-center"
-                  />
-                )}
                 align="center"
                 withPanel={false}
-                action={<TopRightBackButton href="/today" historyBehavior="fallback-only" ariaLabel="Resume setup later" />}
+                action={(
+                  <div className="flex w-full items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className={ROUTINE_CARD_DELETE_TEXT_CLASS_NAME}
+                    >
+                      Start over
+                    </button>
+                    <TopRightBackButton href="/today" historyBehavior="fallback-only" ariaLabel="Resume setup later" />
+                  </div>
+                )}
+                actionClassName="!left-0 !right-0 [&>div]:w-full"
               />
             </ScreenScaffold>
           </ContentRail>
@@ -528,6 +518,7 @@ export function CuratedOnboardingShell({
                 currentStep={currentStep}
                 totalSteps={CURATED_FORM_STEP_ORDER.length}
                 progress={progressValue}
+                title={stepDefinition.title}
                 steps={CURATED_FORM_STEP_ORDER.map((stepId) => ({
                   id: stepId,
                   label: getCuratedStepDefinition(stepId).eyebrow,
@@ -540,26 +531,17 @@ export function CuratedOnboardingShell({
               />
             ) : null}
 
-            <header className="space-y-2 px-1 text-center">
-              <h1 className="text-[1.32rem] font-semibold leading-tight tracking-[-0.025em] text-[rgb(var(--text-primary))] sm:text-[1.5rem]">
+            {isGenerationStep ? (
+              <h1 className="px-1 text-center text-[1.32rem] font-semibold leading-tight tracking-[-0.025em] text-[rgb(var(--text-primary))] sm:text-[1.5rem]">
                 {stepDefinition.title}
               </h1>
-              <div className="flex items-center justify-between gap-3 text-[9px] font-semibold uppercase tracking-[0.13em]">
-                <span
-                  data-save-state={saveState}
-                  className={saveState === "error" ? "text-[rgb(var(--danger-rgb))]" : "text-[rgb(var(--accent)/0.9)]"}
-                >
-                  {saveLabel}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className={ROUTINE_CARD_DELETE_TEXT_CLASS_NAME}
-                >
-                  Start over
-                </button>
-              </div>
-            </header>
+            ) : null}
+
+            {saveState === "error" ? (
+              <p role="alert" className="px-2 text-center text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
+                Changes could not be saved. Try again before leaving this page.
+              </p>
+            ) : null}
 
             {missingRequestedDraft ? (
               <CuratedInfoCard compact tone="warning">

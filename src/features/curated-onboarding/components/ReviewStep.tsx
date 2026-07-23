@@ -1,7 +1,8 @@
-import { appTokens } from "@/components/ui/app/tokens";
+import { cn } from "@/lib/cn";
 import { getCuratedReviewSections } from "../selectors.ts";
 import type { CuratedOnboardingData, CuratedStepId } from "../types.ts";
-import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
+
+const EDIT_ACTION_CLASS_NAME = "relative appearance-none !border-0 !bg-transparent !px-0 !pb-1 !pt-0 !text-[rgb(var(--warning-rgb))] !shadow-none text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:rounded-full after:bg-[linear-gradient(90deg,rgb(var(--warning-rgb)/0.14),rgb(var(--warning-rgb)/0.9),rgb(var(--warning-rgb)/0.14))] after:shadow-[0_0_14px_rgb(var(--warning-rgb)/0.18)] hover:!text-[rgb(255_242_200)] focus-visible:!outline-none focus-visible:after:h-[2px]";
 
 export function ReviewStep({
   data,
@@ -14,21 +15,20 @@ export function ReviewStep({
 
   return (
     <div className="space-y-3">
-      <CuratedInfoCard tone="accent" compact>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">Complete intake</p>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.92)]">
-            {sections.length} sections
-          </p>
-        </div>
-      </CuratedInfoCard>
-
       {sections.map((section, index) => (
         <details key={section.stepId} className="group overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.34)]" open={index === 0}>
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 border-l-[3px] border-[rgb(var(--accent))] px-3.5 py-3 [-webkit-tap-highlight-color:transparent] marker:hidden">
             <span className="text-xs font-semibold uppercase tracking-[0.11em] text-[rgb(var(--text-primary))]">{section.title}</span>
-            <span className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.11em] text-[rgb(var(--accent)/0.92)]">
-              {section.answers.length} answers
+            <span
+              data-section-status={section.complete ? "completed" : "incomplete"}
+              className={cn(
+                "flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.11em]",
+                section.complete
+                  ? "text-[rgb(var(--accent)/0.96)]"
+                  : "text-[rgb(var(--warning-rgb)/0.98)]",
+              )}
+            >
+              {section.complete ? "Completed" : "Incomplete"}
               <span aria-hidden="true" className="text-sm transition-transform group-open:rotate-90">&gt;</span>
             </span>
           </summary>
@@ -38,7 +38,7 @@ export function ReviewStep({
               <button
                 type="button"
                 onClick={() => onEdit(section.stepId)}
-                className={`${appTokens.authInlineButton} text-[10px] font-semibold uppercase tracking-[0.12em]`}
+                className={EDIT_ACTION_CLASS_NAME}
               >
                 Edit
               </button>
