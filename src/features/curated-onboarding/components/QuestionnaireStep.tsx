@@ -32,21 +32,21 @@ function ChoiceIndicator({ selected, multiple }: { selected: boolean; multiple: 
 function TextQuestion({
   question,
   responses,
-  invalid,
+  incomplete,
   promptId,
   errorId,
   onResponseChange,
 }: {
   question: CuratedQuestionDefinition;
   responses: CuratedIntakeResponses;
-  invalid: boolean;
+  incomplete: boolean;
   promptId: string;
   errorId: string;
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
   const sharedClassName = cn(
     "w-full border-0 border-b bg-transparent px-0 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none transition-colors placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]",
-    invalid ? "border-[rgb(var(--danger-rgb)/0.82)]" : "border-[rgb(var(--border-strong)/0.34)]",
+    incomplete ? "border-[rgb(var(--danger-rgb)/0.82)]" : "border-[rgb(var(--border-strong)/0.34)]",
   );
 
   if (question.type === "long-text") {
@@ -58,9 +58,9 @@ function TextQuestion({
         rows={3}
         required={question.required}
         aria-required={question.required || undefined}
-        aria-invalid={invalid || undefined}
+        aria-invalid={incomplete || undefined}
         aria-labelledby={promptId}
-        aria-describedby={invalid ? errorId : undefined}
+        aria-describedby={incomplete ? errorId : undefined}
         className={cn(sharedClassName, "min-h-24 resize-y leading-6")}
       />
     );
@@ -74,9 +74,9 @@ function TextQuestion({
       readOnly={question.readOnly}
       required={question.required}
       aria-required={question.required || undefined}
-      aria-invalid={invalid || undefined}
+      aria-invalid={incomplete || undefined}
       aria-labelledby={promptId}
-      aria-describedby={invalid ? errorId : undefined}
+      aria-describedby={incomplete ? errorId : undefined}
       className={cn(sharedClassName, question.readOnly && "cursor-default text-[rgb(var(--text-secondary))]")}
     />
   );
@@ -85,14 +85,14 @@ function TextQuestion({
 function ChoiceQuestion({
   question,
   responses,
-  invalid,
+  incomplete,
   promptId,
   errorId,
   onResponseChange,
 }: {
   question: CuratedQuestionDefinition;
   responses: CuratedIntakeResponses;
-  invalid: boolean;
+  incomplete: boolean;
   promptId: string;
   errorId: string;
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
@@ -126,9 +126,9 @@ function ChoiceQuestion({
       className="space-y-2"
       role={multiple ? "group" : "radiogroup"}
       aria-required={question.required || undefined}
-      aria-invalid={invalid || undefined}
+      aria-invalid={incomplete || undefined}
       aria-labelledby={promptId}
-      aria-describedby={invalid ? errorId : undefined}
+      aria-describedby={incomplete ? errorId : undefined}
     >
       {choices.map((option) => {
         const selected = multiple ? selectedValues.includes(option.value) : selectedValue === option.value;
@@ -158,9 +158,14 @@ function ChoiceQuestion({
           onChange={(event) => onResponseChange(`${question.id}Other`, event.target.value)}
           placeholder="Other response"
           aria-label={`${question.label} other response`}
-          aria-invalid={invalid || undefined}
-          aria-describedby={invalid ? errorId : undefined}
-          className="mt-1 w-full border-0 border-b border-[rgb(var(--border-strong)/0.34)] bg-transparent px-0 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]"
+          aria-invalid={incomplete || undefined}
+          aria-describedby={incomplete ? errorId : undefined}
+          className={cn(
+            "mt-1 w-full border-0 border-b bg-transparent px-0 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]",
+            incomplete
+              ? "border-[rgb(var(--danger-rgb)/0.82)]"
+              : "border-[rgb(var(--border-strong)/0.34)]",
+          )}
         />
       ) : null}
     </div>
@@ -170,13 +175,13 @@ function ChoiceQuestion({
 function AcknowledgmentQuestion({
   question,
   responses,
-  invalid,
+  incomplete,
   errorId,
   onResponseChange,
 }: {
   question: CuratedQuestionDefinition;
   responses: CuratedIntakeResponses;
-  invalid: boolean;
+  incomplete: boolean;
   errorId: string;
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
@@ -187,14 +192,14 @@ function AcknowledgmentQuestion({
       role="checkbox"
       aria-checked={selected}
       aria-required={question.required || undefined}
-      aria-invalid={invalid || undefined}
-      aria-describedby={invalid ? errorId : undefined}
+      aria-invalid={incomplete || undefined}
+      aria-describedby={incomplete ? errorId : undefined}
       onClick={() => onResponseChange(question.id, !selected)}
       className={cn(
         "flex w-full items-start gap-3 rounded-xl !border px-2.5 py-2.5 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,box-shadow]",
         selected
           ? "!border-[rgb(var(--accent)/0.72)] !bg-[rgb(var(--accent)/0.18)] !text-[rgb(var(--text-primary))] !shadow-[0_0_0_1px_rgb(var(--accent)/0.12),0_8px_18px_rgb(var(--accent)/0.08)]"
-          : invalid
+          : incomplete
             ? "!border-[rgb(var(--danger-rgb)/0.42)] !bg-[rgb(var(--danger-rgb)/0.07)] !text-[rgb(var(--text-secondary))]"
             : "!border-transparent !bg-transparent !text-[rgb(var(--text-secondary))] hover:!border-[rgb(var(--border-strong)/0.18)] hover:!bg-[rgb(var(--surface-0-rgb)/0.38)]",
       )}
@@ -211,12 +216,12 @@ function AcknowledgmentQuestion({
 export function QuestionnaireStep({
   section,
   responses,
-  invalidQuestionIds,
+  incompleteQuestionIds,
   onResponseChange,
 }: {
   section: CuratedIntakeSection;
   responses: CuratedIntakeResponses;
-  invalidQuestionIds: readonly string[];
+  incompleteQuestionIds: readonly string[];
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
   const visibleQuestions = section.questions.filter((question) => isCuratedQuestionVisible(question, responses));
@@ -233,7 +238,7 @@ export function QuestionnaireStep({
       ) : null}
 
       {visibleQuestions.map((question) => {
-        const invalid = invalidQuestionIds.includes(question.id);
+        const incomplete = incompleteQuestionIds.includes(question.id);
         const notice = section.notices?.find((entry) => entry.afterQuestionId === question.id);
         const promptId = `curated-question-${question.id}-prompt`;
         const errorId = `curated-question-${question.id}-error`;
@@ -242,9 +247,10 @@ export function QuestionnaireStep({
             <CuratedInfoCard
               data-curated-question-card={question.id}
               data-curated-question={question.id}
-              className={cn("!p-0", invalid && "border-[rgb(var(--danger-rgb)/0.48)]")}
+              data-question-status={incomplete ? "incomplete" : "complete"}
+              className={cn("!p-0", incomplete && "border-[rgb(var(--danger-rgb)/0.48)]")}
             >
-              <div className={cn("space-y-3 px-4 py-4", invalid && "bg-[rgb(var(--danger-rgb)/0.035)]")}>
+              <div className={cn("space-y-3 px-4 py-4", incomplete && "bg-[rgb(var(--danger-rgb)/0.035)]")}>
                 {question.type !== "acknowledgment" ? (
                   <p id={promptId} className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
                     {question.label}
@@ -256,7 +262,7 @@ export function QuestionnaireStep({
                   <TextQuestion
                     question={question}
                     responses={responses}
-                    invalid={invalid}
+                    incomplete={incomplete}
                     promptId={promptId}
                     errorId={errorId}
                     onResponseChange={onResponseChange}
@@ -265,7 +271,7 @@ export function QuestionnaireStep({
                   <AcknowledgmentQuestion
                     question={question}
                     responses={responses}
-                    invalid={invalid}
+                    incomplete={incomplete}
                     errorId={errorId}
                     onResponseChange={onResponseChange}
                   />
@@ -273,18 +279,18 @@ export function QuestionnaireStep({
                   <ChoiceQuestion
                     question={question}
                     responses={responses}
-                    invalid={invalid}
+                    incomplete={incomplete}
                     promptId={promptId}
                     errorId={errorId}
                     onResponseChange={onResponseChange}
                   />
                 )}
 
-                {invalid ? (
+                {incomplete ? (
                   <p id={errorId} role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
                     {question.type === "acknowledgment"
-                      ? "Check this required acknowledgment to continue"
-                      : "This is a required question"}
+                      ? "Required acknowledgment - incomplete"
+                      : "Required - incomplete"}
                   </p>
                 ) : null}
               </div>

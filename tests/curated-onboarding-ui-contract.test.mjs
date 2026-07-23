@@ -40,8 +40,9 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   assert.match(progress, /<h1/);
   assert.match(progress, /!bg-\[rgb\(var\(--accent\)\)\]/);
   assert.match(review, /data-section-status/);
+  assert.match(review, /data-answer-status/);
   assert.match(review, /"Completed" : "Incomplete"/);
-  assert.match(review, /warning-rgb/);
+  assert.match(review, /danger-rgb/);
   assert.doesNotMatch(review, /\{section\.answers\.length\} answers/);
 });
 test("curated user UI does not expose raw intake state or implementation-oriented snapshot chrome", () => {
@@ -62,10 +63,11 @@ test("curated questionnaire reuses app cards and accessible selectable controls"
   assert.match(stepSources, /data-curated-question/);
   assert.match(questionnaire, /data-curated-section=/);
   assert.match(questionnaire, /data-curated-question-card/);
+  assert.match(questionnaire, /data-question-status/);
   assert.match(questionnaire, /!bg-\[rgb\(var\(--accent\)\/0\.18\)\]/);
   assert.match(questionnaire, /!border-\[rgb\(var\(--accent\)\/0\.72\)\]/);
   assert.match(questionnaire, /aria-labelledby=\{promptId\}/);
-  assert.match(questionnaire, /aria-describedby=\{invalid \? errorId : undefined\}/);
+  assert.match(questionnaire, /aria-describedby=\{incomplete \? errorId : undefined\}/);
   assert.match(questionnaire, /aria-required=\{question\.required \|\| undefined\}/);
   assert.match(questionnaire, /isCuratedQuestionVisible/);
   assert.match(questionnaire, /aria-label=\{`\$\{question\.label\} other response`\}/);

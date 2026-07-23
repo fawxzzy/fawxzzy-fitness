@@ -70,7 +70,7 @@ test("standard and limitations fixtures satisfy every required page and derive e
   assert.match(deriveCuratedEngineData(limitations).limitations ?? "", /Avoid painful overhead range/);
 });
 
-test("selecting Other requires its companion response before the page can advance", () => {
+test("selecting Other remains incomplete until its companion response is supplied", () => {
   const responses = createCuratedParityFixture("standard");
   responses.mainGoals = ["other"];
 
@@ -114,7 +114,7 @@ test("changing a parent response clears stale hidden dependent answers", () => {
   assert.deepEqual(getMissingRequiredQuestionIds("intro", responses), []);
 });
 
-test("required acknowledgments block page and review completion until checked", () => {
+test("required acknowledgments remain incomplete without blocking page navigation", () => {
   const responses = createCuratedParityFixture("standard");
   responses.safetyAcknowledgment = false;
   responses.accuracyAcknowledgment = false;
@@ -131,6 +131,8 @@ test("required acknowledgments block page and review completion until checked", 
     ...deriveCuratedEngineData(responses),
     intakeResponses: responses,
   };
+  assert.equal(canAdvanceCuratedStep("constraints", data), true);
+  assert.equal(canAdvanceCuratedStep("delivery", data), true);
   assert.equal(canAdvanceCuratedStep("review", data), false);
 
   responses.safetyAcknowledgment = true;
@@ -138,6 +140,35 @@ test("required acknowledgments block page and review completion until checked", 
   responses.fitnessGuidanceAcknowledgment = true;
   assert.deepEqual(getMissingRequiredQuestionIds("constraints", responses), []);
   assert.deepEqual(getMissingRequiredQuestionIds("delivery", responses), []);
+});
+
+test("review sections expose exact missing required answers while pages remain accessible", () => {
+  const responses = createCuratedParityFixture("standard");
+  responses.primaryGoal = "";
+  responses.accuracyAcknowledgment = false;
+
+  const data = {
+    ...createCuratedOnboardingState().draft.data,
+    ...deriveCuratedEngineData(responses),
+    intakeResponses: responses,
+  };
+  const review = getCuratedReviewSections(data);
+  const goals = review.find((section) => section.stepId === "goals");
+  const delivery = review.find((section) => section.stepId === "delivery");
+
+  assert.equal(canAdvanceCuratedStep("goals", data), true);
+  assert.equal(canAdvanceCuratedStep("delivery", data), true);
+  assert.equal(canAdvanceCuratedStep("review", data), false);
+  assert.equal(goals?.complete, false);
+  assert.equal(
+    goals?.answers.find((answer) => answer.id === "primaryGoal")?.incomplete,
+    true,
+  );
+  assert.equal(delivery?.complete, false);
+  assert.equal(
+    delivery?.answers.find((answer) => answer.id === "accuracyAcknowledgment")?.incomplete,
+    true,
+  );
 });
 
 test("a complete intake derives supported Other schedule and equipment responses", () => {

@@ -3,6 +3,7 @@ import {
   CURATED_INTAKE_SECTIONS,
   formatCuratedResponse,
   getMissingRequiredQuestionIds,
+  hasCuratedQuestionResponse,
   isCuratedQuestionVisible,
 } from "./questionnaire.ts";
 import type { CuratedOnboardingData, CuratedOnboardingDraft, CuratedStepId } from "./types.ts";
@@ -90,22 +91,11 @@ export function hasCuratedOnboardingProgress(draft: CuratedOnboardingDraft) {
 export function canAdvanceCuratedStep(stepId: CuratedStepId, data: CuratedOnboardingData) {
   if (stepId === "generation-handoff") return true;
   if (stepId === "review") return isCuratedOnboardingReadyForHandoff(data);
-  return getMissingRequiredQuestionIds(stepId, data.intakeResponses).length === 0;
+  return true;
 }
 
-export function canAccessCuratedStep(stepId: CuratedStepId, data: CuratedOnboardingData) {
-  if (stepId === "generation-handoff") return false;
-
-  const targetIndex = getCuratedStepIndex(stepId);
-  return CURATED_FORM_STEP_ORDER
-    .slice(0, targetIndex)
-    .every((previousStepId) => canAdvanceCuratedStep(previousStepId, data));
-}
-
-export function getCuratedStepBlockingMessage(stepId: CuratedStepId) {
-  if (stepId === "review") return "Complete each required question before generating the routine.";
-  if (stepId === "generation-handoff") return null;
-  return "Answer each required question on this page to continue.";
+export function canAccessCuratedStep(stepId: CuratedStepId, _data: CuratedOnboardingData) {
+  return stepId !== "generation-handoff";
 }
 
 export function getCuratedReviewSections(data: CuratedOnboardingDraft["data"]) {
@@ -119,6 +109,10 @@ export function getCuratedReviewSections(data: CuratedOnboardingDraft["data"]) {
         id: question.id,
         label: question.label,
         value: formatCuratedResponse(question, data.intakeResponses),
+        incomplete: Boolean(
+          question.required
+          && !hasCuratedQuestionResponse(question, data.intakeResponses)
+        ),
       })),
   }));
 }

@@ -38,7 +38,6 @@ import {
   canAccessCuratedStep,
   canGoBackCuratedStep,
   getCuratedProgressValue,
-  getCuratedStepBlockingMessage,
   getCuratedStepIndex,
   hasCuratedOnboardingProgress,
 } from "../selectors.ts";
@@ -115,7 +114,6 @@ export function CuratedOnboardingShell({
   const [didResumeDraft, setDidResumeDraft] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<CuratedWorkoutPlan | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [validationStepId, setValidationStepId] = useState<CuratedStepId | null>(null);
   const [isCreatingDraft, startCreatingDraft] = useTransition();
   const journeyTrackedRef = useRef(false);
   const completionTrackedRef = useRef(false);
@@ -286,10 +284,9 @@ export function CuratedOnboardingShell({
     ? CURATED_FORM_STEP_ORDER.length
     : getCuratedStepIndex(state.draft.stepId) + 1;
   const canAdvance = canAdvanceCuratedStep(state.draft.stepId, state.draft.data);
-  const blockingMessage = getCuratedStepBlockingMessage(state.draft.stepId);
   const showBack = canGoBackCuratedStep(state.draft.stepId);
   const activeSection = getCuratedIntakeSection(state.draft.stepId);
-  const invalidQuestionIds = validationStepId === state.draft.stepId
+  const incompleteQuestionIds = activeSection
     ? getMissingRequiredQuestionIds(state.draft.stepId, state.draft.data.intakeResponses)
     : [];
   const missingRequestedDraft = Boolean(requestedDraftId && hasHydrated && !didResumeDraft);
@@ -325,7 +322,6 @@ export function CuratedOnboardingShell({
     setCompletionSource("fresh");
     setDidResumeDraft(false);
     setSaveState("idle");
-    setValidationStepId(null);
     dispatch({
       type: "reset",
       nextState: withCuratedIdentity(createCuratedOnboardingState(), userEmail, userName),
@@ -336,28 +332,13 @@ export function CuratedOnboardingShell({
     const at = nowIso();
 
     if (state.draft.stepId === "review") {
-      if (previewOnly) {
+      if (previewOnly || !canAdvance) {
         return;
       }
       dispatch({ type: "complete-intake", at });
       return;
     }
 
-    const missingQuestionIds = getMissingRequiredQuestionIds(
-      state.draft.stepId,
-      state.draft.data.intakeResponses,
-    );
-    if (missingQuestionIds.length > 0) {
-      setValidationStepId(state.draft.stepId);
-      window.requestAnimationFrame(() => {
-        document
-          .querySelector(`[data-curated-question="${missingQuestionIds[0]}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-      return;
-    }
-
-    setValidationStepId(null);
     dispatch({ type: "go-next", at });
   }
 
@@ -390,7 +371,7 @@ export function CuratedOnboardingShell({
         <QuestionnaireStep
           section={activeSection}
           responses={state.draft.data.intakeResponses}
-          invalidQuestionIds={invalidQuestionIds}
+          incompleteQuestionIds={incompleteQuestionIds}
           onResponseChange={patchResponse}
         />
       );
@@ -401,7 +382,6 @@ export function CuratedOnboardingShell({
         <ReviewStep
           data={state.draft.data}
           onEdit={(stepId) => {
-            setValidationStepId(null);
             dispatch({ type: "go-to-step", stepId, at: nowIso() });
           }}
         />
@@ -525,7 +505,6 @@ export function CuratedOnboardingShell({
                   available: canAccessCuratedStep(stepId, state.draft.data),
                 }))}
                 onStepSelect={(stepId: CuratedStepId) => {
-                  setValidationStepId(null);
                   dispatch({ type: "go-to-step", stepId, at: nowIso() });
                 }}
               />
@@ -552,10 +531,6 @@ export function CuratedOnboardingShell({
             <section className="space-y-3" aria-label={stepDefinition.title}>
               {renderStepBody()}
             </section>
-
-            {blockingMessage && validationStepId === state.draft.stepId && !canAdvance ? (
-              <p className="px-2 text-center text-[11px] leading-5 text-[rgb(var(--text-muted)/0.9)]">{blockingMessage}</p>
-            ) : null}
 
             {state.message ? (
               <CuratedInfoCard compact tone={state.lifecycle.generationStatus === "failed" ? "danger" : "default"}>

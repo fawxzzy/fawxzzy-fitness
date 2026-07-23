@@ -17,7 +17,14 @@ export function ReviewStep({
     <div className="space-y-3">
       {sections.map((section, index) => (
         <details key={section.stepId} className="group overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.34)]" open={index === 0}>
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 border-l-[3px] border-[rgb(var(--accent))] px-3.5 py-3 [-webkit-tap-highlight-color:transparent] marker:hidden">
+          <summary
+            className={cn(
+              "flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 border-l-[3px] px-3.5 py-3 [-webkit-tap-highlight-color:transparent] marker:hidden",
+              section.complete
+                ? "border-[rgb(var(--accent))]"
+                : "border-[rgb(var(--danger-rgb))]",
+            )}
+          >
             <span className="text-xs font-semibold uppercase tracking-[0.11em] text-[rgb(var(--text-primary))]">{section.title}</span>
             <span
               data-section-status={section.complete ? "completed" : "incomplete"}
@@ -25,7 +32,7 @@ export function ReviewStep({
                 "flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.11em]",
                 section.complete
                   ? "text-[rgb(var(--accent)/0.96)]"
-                  : "text-[rgb(var(--warning-rgb)/0.98)]",
+                  : "text-[rgb(var(--danger-rgb)/0.98)]",
               )}
             >
               {section.complete ? "Completed" : "Incomplete"}
@@ -45,9 +52,34 @@ export function ReviewStep({
             </div>
             <dl className="divide-y divide-[rgb(var(--border-strong)/0.12)]">
               {section.answers.map((answer) => (
-                <div key={answer.id} className="space-y-1 px-3.5 py-3">
-                  <dt className="text-[9px] font-semibold uppercase leading-4 tracking-[0.11em] text-[rgb(var(--accent)/0.9)]">{answer.label}</dt>
-                  <dd className="whitespace-pre-wrap text-xs font-medium leading-5 text-[rgb(var(--text-secondary)/0.96)]">{answer.value}</dd>
+                <div
+                  key={answer.id}
+                  data-answer-status={answer.incomplete ? "incomplete" : "complete"}
+                  className={cn(
+                    "space-y-1 px-3.5 py-3",
+                    answer.incomplete && "bg-[rgb(var(--danger-rgb)/0.055)]",
+                  )}
+                >
+                  <dt
+                    className={cn(
+                      "text-[9px] font-semibold uppercase leading-4 tracking-[0.11em]",
+                      answer.incomplete
+                        ? "text-[rgb(var(--danger-rgb))]"
+                        : "text-[rgb(var(--accent)/0.9)]",
+                    )}
+                  >
+                    {answer.label}
+                  </dt>
+                  <dd
+                    className={cn(
+                      "whitespace-pre-wrap text-xs font-medium leading-5",
+                      answer.incomplete
+                        ? "text-[rgb(var(--danger-rgb)/0.96)]"
+                        : "text-[rgb(var(--text-secondary)/0.96)]",
+                    )}
+                  >
+                    {answer.value}
+                  </dd>
                 </div>
               ))}
             </dl>
