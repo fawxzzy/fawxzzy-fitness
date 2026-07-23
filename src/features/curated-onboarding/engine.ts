@@ -407,6 +407,12 @@ function generateCuratedWorkoutPlanWithSignals(
         };
       }),
   }));
+  const emptyDay = days.find((day) => day.exercises.length === 0);
+  if (emptyDay) {
+    throw new Error(
+      `No safe exercises remain for ${emptyDay.name}. Adjust the selected equipment or constraints before generating the plan.`,
+    );
+  }
   const nameByGoal: Record<TrainingGoal, string> = {
     "build-muscle": "Atlas Muscle",
     "get-leaner": "Atlas Lean",

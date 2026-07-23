@@ -132,6 +132,16 @@ test("curated engine omits roles without an equipment-compatible safe candidate"
   assert.ok(plan.days.every((day) => day.exercises.length > 0));
 });
 
+test("curated engine rejects a schedule containing an empty filtered workout day", () => {
+  assert.throws(
+    () => generateCuratedWorkoutPlan(intake({
+      equipment: ["barbell"],
+      limitations: "Avoid Barbell Bench Press, Overhead Press, Barbell Row, and Plank.",
+    })),
+    /No safe exercises remain for Upper A\. Adjust the selected equipment or constraints/i,
+  );
+});
+
 test("curated engine deterministically prioritizes exercise likes and target areas", () => {
   const baseline = generateCuratedWorkoutPlan(intake({
     equipment: ["full-gym", "bodyweight"],
