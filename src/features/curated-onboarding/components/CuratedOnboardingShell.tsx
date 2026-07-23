@@ -69,6 +69,7 @@ type CuratedOnboardingShellProps = {
   userEmail: string;
   userName: string;
   requestedDraftId?: string | null;
+  previewOnly?: boolean;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -104,6 +105,7 @@ export function CuratedOnboardingShell({
   userEmail,
   userName,
   requestedDraftId,
+  previewOnly = false,
 }: CuratedOnboardingShellProps) {
   const router = useRouter();
   const [state, dispatch] = useReducer(curatedOnboardingReducer, undefined, () => createCuratedOnboardingState());
@@ -219,7 +221,7 @@ export function CuratedOnboardingShell({
   }, [completionSource, hasHydrated, state.draft.draftId, state.lifecycle.completedAt, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
-    if (!hasHydrated || state.draft.stepId !== "generation-handoff" || state.lifecycle.intakeStatus !== "completed" || generationRequestedRef.current) {
+    if (previewOnly || !hasHydrated || state.draft.stepId !== "generation-handoff" || state.lifecycle.intakeStatus !== "completed" || generationRequestedRef.current) {
       return;
     }
 
@@ -238,7 +240,7 @@ export function CuratedOnboardingShell({
         setGenerationError(message);
         dispatch({ type: "generation-resolved", status: "failed", message });
       });
-  }, [hasHydrated, state.draft.data, state.draft.stepId, state.lifecycle.intakeStatus, userId]);
+  }, [hasHydrated, previewOnly, state.draft.data, state.draft.stepId, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
     if (!hasHydrated || typeof window === "undefined") {
@@ -347,6 +349,9 @@ export function CuratedOnboardingShell({
     const at = nowIso();
 
     if (state.draft.stepId === "review") {
+      if (previewOnly) {
+        return;
+      }
       dispatch({ type: "complete-intake", at });
       return;
     }
@@ -370,6 +375,10 @@ export function CuratedOnboardingShell({
   }
 
   function handleCreateDraft() {
+    if (previewOnly) {
+      return;
+    }
+
     startCreatingDraft(async () => {
       setGenerationError(null);
       try {
@@ -431,6 +440,7 @@ export function CuratedOnboardingShell({
 
   const isGenerationStep = state.draft.stepId === "generation-handoff";
   const generationIsLoading = isGenerationStep
+    && !previewOnly
     && !generationError
     && (!generatedPlan || isCreatingDraft);
   const bottomActions = isGenerationStep ? (
@@ -438,7 +448,7 @@ export function CuratedOnboardingShell({
       <BottomDockButton
         type="button"
         intent="positive"
-        disabled={!generatedPlan || state.lifecycle.generationStatus !== "ready"}
+        disabled={previewOnly || !generatedPlan || state.lifecycle.generationStatus !== "ready"}
         loading={generationIsLoading}
         loadingLabel={isCreatingDraft ? "Creating editable draft" : "Building routine"}
         onClick={handleCreateDraft}
@@ -461,7 +471,7 @@ export function CuratedOnboardingShell({
         <BottomDockButton
           type="button"
           intent="positive"
-          disabled={state.draft.stepId === "review" && !canAdvance}
+          disabled={state.draft.stepId === "review" && (previewOnly || !canAdvance)}
           onClick={handlePrimaryAction}
         >
           {stepDefinition.nextLabel}

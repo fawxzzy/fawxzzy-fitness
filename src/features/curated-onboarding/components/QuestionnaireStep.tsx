@@ -16,7 +16,7 @@ function ChoiceIndicator({ selected, multiple }: { selected: boolean; multiple: 
     <span
       aria-hidden="true"
       className={cn(
-        "grid h-[18px] w-[18px] shrink-0 place-items-center border transition-colors",
+        "grid h-5 w-5 shrink-0 place-items-center border transition-colors",
         multiple ? "rounded-[4px]" : "rounded-full",
         selected
           ? "border-[rgb(var(--accent))] bg-[rgb(var(--accent)/0.22)] shadow-[0_0_10px_rgb(var(--accent)/0.2)]"
@@ -116,10 +116,10 @@ function ChoiceQuestion({
             aria-checked={selected}
             onClick={() => toggle(option.value)}
             className={cn(
-              "flex min-h-11 w-full items-center gap-3 rounded-[calc(var(--card-radius)-6px)] border px-3 py-2.5 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,color,box-shadow]",
+              "flex min-h-11 w-full items-center gap-3 rounded-xl !border px-2.5 py-2 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,color,box-shadow]",
               selected
-                ? "border-[rgb(var(--accent)/0.62)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))] shadow-[0_0_0_1px_rgb(var(--accent)/0.08)]"
-                : "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-0-rgb)/0.24)] text-[rgb(var(--text-secondary))] hover:border-[rgb(var(--accent)/0.34)]",
+                ? "!border-[rgb(var(--accent)/0.72)] !bg-[rgb(var(--accent)/0.18)] !text-[rgb(var(--text-primary))] !shadow-[0_0_0_1px_rgb(var(--accent)/0.12),0_8px_18px_rgb(var(--accent)/0.08)]"
+                : "!border-transparent !bg-transparent !text-[rgb(var(--text-secondary))] hover:!border-[rgb(var(--border-strong)/0.18)] hover:!bg-[rgb(var(--surface-0-rgb)/0.38)]",
             )}
           >
             <ChoiceIndicator selected={selected} multiple={multiple} />
@@ -160,12 +160,12 @@ function AcknowledgmentQuestion({
       aria-invalid={invalid || undefined}
       onClick={() => onResponseChange(question.id, !selected)}
       className={cn(
-        "flex w-full items-start gap-3 rounded-[calc(var(--card-radius)-6px)] border px-3 py-3 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color]",
+        "flex w-full items-start gap-3 rounded-xl !border px-2.5 py-2.5 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,box-shadow]",
         selected
-          ? "border-[rgb(var(--accent)/0.62)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
+          ? "!border-[rgb(var(--accent)/0.72)] !bg-[rgb(var(--accent)/0.18)] !text-[rgb(var(--text-primary))] !shadow-[0_0_0_1px_rgb(var(--accent)/0.12),0_8px_18px_rgb(var(--accent)/0.08)]"
           : invalid
-            ? "border-[rgb(var(--danger-rgb)/0.58)] bg-[rgb(var(--danger-rgb)/0.06)] text-[rgb(var(--text-secondary))]"
-            : "border-[rgb(var(--border-strong)/0.2)] bg-[rgb(var(--surface-0-rgb)/0.24)] text-[rgb(var(--text-secondary))]",
+            ? "!border-[rgb(var(--danger-rgb)/0.42)] !bg-[rgb(var(--danger-rgb)/0.07)] !text-[rgb(var(--text-secondary))]"
+            : "!border-transparent !bg-transparent !text-[rgb(var(--text-secondary))] hover:!border-[rgb(var(--border-strong)/0.18)] hover:!bg-[rgb(var(--surface-0-rgb)/0.38)]",
       )}
     >
       <ChoiceIndicator selected={selected} multiple />
@@ -185,78 +185,89 @@ export function QuestionnaireStep({
   invalidQuestionIds: readonly string[];
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
+  const requiredCount = section.questions.filter((question) => question.required).length;
+
   return (
     <div className="space-y-3">
-      {section.stepId === "intro" ? (
-        <CuratedInfoCard tone="accent" className="space-y-2">
-          <p className="text-sm font-semibold leading-6 text-[rgb(var(--text-primary))]">{section.description}</p>
-          <p className="text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">
-            This is general fitness guidance, not medical advice. If you have pain, injuries, medical conditions, or symptoms during exercise, talk to a qualified medical professional before starting or changing your routine.
+      <CuratedInfoCard data-curated-section-header={section.stepId} className="!p-0">
+        <div className="h-1 bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)),rgb(var(--accent)),rgb(var(--accent-divider-rgb)/0.32))]" />
+        <div className="space-y-2 px-4 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-base font-semibold leading-6 tracking-[-0.015em] text-[rgb(var(--text-primary))]">{section.title}</p>
+            <span className="shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.92)]">
+              {section.questions.length} questions
+            </span>
+          </div>
+          {section.description ? (
+            <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{section.description}</p>
+          ) : null}
+          {section.stepId === "intro" ? (
+            <p className="text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">
+              This is general fitness guidance, not medical advice. If you have pain, injuries, medical conditions, or symptoms during exercise, talk to a qualified medical professional before starting or changing your routine.
+            </p>
+          ) : null}
+          <p className="text-[10px] font-medium text-[rgb(var(--text-muted)/0.84)]">
+            <span className="text-[rgb(var(--warning-rgb))]">*</span> {requiredCount} required
           </p>
-        </CuratedInfoCard>
-      ) : null}
-
-      <CuratedInfoCard className="!p-0">
-        <div className="border-b border-[rgb(var(--accent)/0.34)] bg-[linear-gradient(90deg,rgb(var(--accent)/0.2),rgb(var(--surface-1-rgb)/0.44))] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.96)]">{section.title}</p>
-        </div>
-
-        <div className="divide-y divide-[rgb(var(--border-strong)/0.14)]">
-          {section.questions.map((question) => {
-            const invalid = invalidQuestionIds.includes(question.id);
-            const notice = section.notices?.find((entry) => entry.afterQuestionId === question.id);
-            return (
-              <div key={question.id}>
-                <div
-                  data-curated-question={question.id}
-                  className={cn("space-y-3 px-4 py-4", invalid && "bg-[rgb(var(--danger-rgb)/0.035)]")}
-                >
-                  {question.type !== "acknowledgment" ? (
-                    <p className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
-                      {question.label}
-                      {question.required ? <span className="ml-1 text-[rgb(var(--warning-rgb))]">*</span> : null}
-                    </p>
-                  ) : null}
-
-                  {question.type === "short-text" || question.type === "long-text" ? (
-                    <TextQuestion
-                      question={question}
-                      responses={responses}
-                      invalid={invalid}
-                      onResponseChange={onResponseChange}
-                    />
-                  ) : question.type === "acknowledgment" ? (
-                    <AcknowledgmentQuestion
-                      question={question}
-                      responses={responses}
-                      invalid={invalid}
-                      onResponseChange={onResponseChange}
-                    />
-                  ) : (
-                    <ChoiceQuestion
-                      question={question}
-                      responses={responses}
-                      invalid={invalid}
-                      onResponseChange={onResponseChange}
-                    />
-                  )}
-
-                  {invalid ? (
-                    <p role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">This is a required question</p>
-                  ) : null}
-                </div>
-
-                {notice ? (
-                  <div className="border-t border-[rgb(var(--warning-rgb)/0.25)] bg-[rgb(var(--warning-rgb)/0.07)] px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--warning-rgb))]">{notice.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{notice.body}</p>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
         </div>
       </CuratedInfoCard>
+
+      {section.questions.map((question) => {
+        const invalid = invalidQuestionIds.includes(question.id);
+        const notice = section.notices?.find((entry) => entry.afterQuestionId === question.id);
+        return (
+          <div key={question.id} className="space-y-3">
+            <CuratedInfoCard
+              data-curated-question-card={question.id}
+              data-curated-question={question.id}
+              className={cn("!p-0", invalid && "border-[rgb(var(--danger-rgb)/0.48)]")}
+            >
+              <div className={cn("space-y-3 px-4 py-4", invalid && "bg-[rgb(var(--danger-rgb)/0.035)]")}>
+                {question.type !== "acknowledgment" ? (
+                  <p className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
+                    {question.label}
+                    {question.required ? <span className="ml-1 text-[rgb(var(--warning-rgb))]">*</span> : null}
+                  </p>
+                ) : null}
+
+                {question.type === "short-text" || question.type === "long-text" ? (
+                  <TextQuestion
+                    question={question}
+                    responses={responses}
+                    invalid={invalid}
+                    onResponseChange={onResponseChange}
+                  />
+                ) : question.type === "acknowledgment" ? (
+                  <AcknowledgmentQuestion
+                    question={question}
+                    responses={responses}
+                    invalid={invalid}
+                    onResponseChange={onResponseChange}
+                  />
+                ) : (
+                  <ChoiceQuestion
+                    question={question}
+                    responses={responses}
+                    invalid={invalid}
+                    onResponseChange={onResponseChange}
+                  />
+                )}
+
+                {invalid ? (
+                  <p role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">This is a required question</p>
+                ) : null}
+              </div>
+            </CuratedInfoCard>
+
+            {notice ? (
+              <CuratedInfoCard compact tone="warning" data-curated-notice={notice.title}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--warning-rgb))]">{notice.title}</p>
+                <p className="mt-1 text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{notice.body}</p>
+              </CuratedInfoCard>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

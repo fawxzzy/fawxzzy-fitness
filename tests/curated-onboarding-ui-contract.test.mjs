@@ -46,16 +46,41 @@ test("curated user UI does not expose raw intake state or implementation-oriente
 });
 
 test("curated questionnaire reuses app cards and accessible selectable controls", () => {
-  const stepSources = [
-    "QuestionnaireStep.tsx",
-    "ReviewStep.tsx",
-  ].map(readComponent).join("\n");
+  const questionnaire = readComponent("QuestionnaireStep.tsx");
+  const stepSources = [questionnaire, readComponent("ReviewStep.tsx")].join("\n");
 
   assert.match(stepSources, /CuratedInfoCard/);
   assert.match(stepSources, /aria-checked/);
   assert.match(stepSources, /role=\{multiple \? "checkbox" : "radio"\}/);
   assert.match(stepSources, /data-curated-question/);
+  assert.match(questionnaire, /data-curated-section-header/);
+  assert.match(questionnaire, /data-curated-question-card/);
+  assert.match(questionnaire, /!bg-\[rgb\(var\(--accent\)\/0\.18\)\]/);
+  assert.match(questionnaire, /!border-\[rgb\(var\(--accent\)\/0\.72\)\]/);
+  assert.doesNotMatch(questionnaire, /divide-y/);
   assert.doesNotMatch(stepSources, /AuthField|appTokens\.curated/);
+});
+
+test("curated onboarding has an auth-free non-production route for actual-shell mobile proof", () => {
+  const route = readFileSync(new URL("../src/app/dev/curated-onboarding/page.tsx", import.meta.url), "utf8");
+
+  assert.match(route, /HISTORY_QA_PREVIEW_ENABLED/);
+  assert.match(route, /NODE_ENV === "production"/);
+  assert.match(route, /notFound\(\)/);
+  assert.match(route, /CuratedOnboardingShell/);
+  assert.match(route, /previewOnly/);
+  assert.doesNotMatch(route, /requireUser|SUPABASE|SERVICE_ROLE/);
+
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+  assert.match(shell, /previewOnly \|\| !hasHydrated/);
+  assert.match(shell, /if \(previewOnly\) \{\s+return;\s+\}/);
+  assert.match(shell, /disabled=\{previewOnly \|\| !generatedPlan/);
+});
+
+test("Tailwind compiles feature-owned onboarding styles", () => {
+  const tailwindConfig = readFileSync(new URL("../tailwind.config.ts", import.meta.url), "utf8");
+
+  assert.match(tailwindConfig, /\.\/src\/features\/\*\*\/\*\.\{js,ts,jsx,tsx,mdx\}/);
 });
 
 test("the live shell renders the parity questionnaire rather than the legacy six-step components", () => {
