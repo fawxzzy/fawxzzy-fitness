@@ -571,3 +571,35 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Rebuilding recap bullets per screen reintroduces text-touching-dot bugs, spacing drift, and inconsistent progress/progression panels across exercise info, history, and logged-session detail.
 - Evidence: `src/components/ui/DetailSectionList.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/ExerciseInfoSheet.tsx`
 - Status: Proposed
+
+## 2026-07-17 - Migration source recovery must preserve immutable provenance and parity uncertainty
+- Type: Guardrail
+- WHAT changed: Three missing Fitness migration sources were restored as exact Git blobs from an immutable historical commit and locked by raw SHA-256 plus a complete source-tree manifest; provider-returned canonical statements remain a separate evidence class.
+- WHY it changed: Live migration history had 101 versions while `origin/main` had 98 sources, and provider-canonical text cannot prove the original applied bytes for every statement or justify rewriting substantive mismatches.
+- Rule: Never silently rewrite historical migration bytes to match provider-returned text; require immutable provenance, explicit uncertainty, and a faithful replay or separately governed ledger-repair path before changing applied migration truth.
+- Pattern: freeze source/live denominators -> recover exact historical blobs -> verify raw and tree manifests -> classify canonical/whitespace/raw parity separately -> route unresolved content mismatches to a bounded successor.
+- Failure Mode: Treating provider-canonical or whitespace-normalized equality as raw-byte proof creates false parity, hides source drift, and makes migration history irreproducible.
+- Decision: Keep raw parity `UNKNOWN` where the provider cannot prove applied bytes, and do not let source recovery absorb unrelated application changes or unresolved content repair.
+- Evidence: `supabase/migrations/20260713013116_exercise_timer_truth.sql`, `supabase/migrations/20260713020801_set_timing_truth.sql`, `supabase/migrations/20260716033653_routine_day_optional.sql`, `scripts/migration/fp-fit-rec-001-verify.mjs`, `docs/ops/FP-FIT-REC-001-SOURCE-RECOVERY-RECEIPT.md`
+- Status: Proposed
+
+## 2026-07-18 - Server admin credentials need one modern-first resolution boundary
+- Type: Guardrail
+- WHAT changed: Fitness server runtime credential selection now lives in the server-only Supabase admin module, prefers `SUPABASE_SECRET_KEY`, and retains `SUPABASE_SERVICE_ROLE_KEY` only as a temporary rollback fallback for the staged security migration.
+- WHY it changed: Runtime guards and health checks were coupled directly to the legacy variable name, so installing an independently revocable Supabase secret key would still make valid admin flows appear unavailable or continue selecting the historically exposed legacy credential.
+- Rule: Backend Supabase credentials must resolve through one server-only boundary; blank preferred values may fall back, missing total input fails with sanitized configuration text, and no value metadata may enter diagnostics or browser code.
+- Pattern: modern server secret -> bounded legacy rollback fallback -> stable fail-closed configuration error -> source-neutral readiness checks.
+- Failure Mode: Scattered environment-name checks can select different credentials, leak source details through diagnostics, or falsely treat source compatibility as proof that the legacy credential is deactivated.
+- Decision: Keep the legacy fallback until Preview and separately approved Production verification prove the modern key across every consumer; scripts, browser publishable keys, provider mutation, deployments, and deactivation remain separate governed packets.
+- Evidence: `src/lib/supabase/admin.ts`, `src/lib/env.test.ts`, `src/app/auth/actions.ts`, `src/lib/atlas-contracts.ts`, `src/lib/discord/message-command-claims.ts`
+- Status: Proposed
+
+## 2026-07-19 - CI contract evidence must preserve explicit targets and local ownership
+- Type: Guardrail
+- WHAT changed: Atlas health classification now treats an explicit Vercel Preview or Production target as authoritative even when CI is also set, and the Fitness metrics evidence pack plus its Atlas/Codex context runbook now use maintained repository-local ownership evidence.
+- WHY it changed: Ambient CI incorrectly masked explicit deployment-target evidence in contract tests, while stale Atlas-root paths made an otherwise local Fitness evidence pack unverifiable from this repository.
+- Rule: CI is a fallback environment classification, not an override for an explicit deployment target; source evidence referenced by Fitness runbooks and packs must be retrievable from the Fitness repository or be replaced with a maintained local ownership contract.
+- Pattern: explicit Vercel target -> environment classification -> CI fallback, and frozen metrics-pack reference -> local runbook -> maintained Fitness adoption contract.
+- Failure Mode: Letting ambient CI override target evidence misclassifies Preview or Production contracts, while cross-repository documentation paths leave local operators unable to validate the asserted ownership boundary.
+- Evidence: `src/lib/atlas-contracts.ts`, `src/lib/atlas-contracts.test.ts`, `docs/ops/ATLAS-CODEX-CONTEXT-RUNBOOK.md`, `docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md`, `src/lib/ecosystem/fitness-metrics-pack.test.ts`
+- Status: Proposed

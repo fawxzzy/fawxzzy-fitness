@@ -4,11 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
-### Fixed
-- Aligned the clean-environment Playbook CI artifact assertion with its non-applying command ladder: it now requires `findings.json`, `plan.json`, and `repo-graph.json`, while reserving `last-run.json` for governed `playbook apply --json` execution paths.
+### WHAT
+- Corrected clean-environment CI to require only the planning artifacts produced by its non-applying Playbook ladder. `.playbook/last-run.json` remains an apply execution-state artifact.
 
 ### WHY
-- A validation job must not require apply-owned execution state when it intentionally does not invoke apply; fabricating that artifact or adding apply would weaken the governed execution boundary.
+- Prevents CI from requiring an artifact that the documented read-only ladder cannot produce, while preserving execution-state evidence for governed apply paths.
 
 ## 1.0.1 - 2026-06-24
 
