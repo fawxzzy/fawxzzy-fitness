@@ -105,6 +105,38 @@ test("curated engine deterministically excludes stated exercise constraints", ()
   assert.match(disliked.rationale.join(" "), /exercise exclusions removed/i);
 });
 
+test("curated engine maps common limitation language to unsafe movement roles", () => {
+  const plan = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym"],
+    limitations: "Shoulder irritation overhead",
+  }));
+  const slugs = plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+
+  assert.equal(slugs.includes("overhead-press"), false);
+  assert.equal(slugs.includes("seated-dumbbell-shoulder-press"), false);
+  assert.equal(slugs.includes("machine-shoulder-press"), false);
+  assert.match(plan.rationale.join(" "), /limitations or exercise exclusions removed/i);
+});
+
+test("curated engine deterministically prioritizes exercise likes and target areas", () => {
+  const baseline = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym", "bodyweight"],
+  }));
+  const preferred = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym", "bodyweight"],
+    exerciseLikes: ["Dumbbell Bench Press"],
+    targetAreas: ["Glutes"],
+  }));
+  const baselineSlugs = baseline.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+  const preferredSlugs = preferred.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+
+  assert.ok(baselineSlugs.includes("barbell-bench-press"));
+  assert.ok(preferredSlugs.includes("dumbbell-bench-press"));
+  assert.ok(preferredSlugs.includes("single-leg-romanian-deadlift") || preferredSlugs.includes("glute-bridge"));
+  assert.notDeepEqual(preferredSlugs, baselineSlugs);
+  assert.match(preferred.rationale.join(" "), /preferred exercises and target areas/i);
+});
+
 test("curated engine fails safely when every equipment-compatible candidate is excluded", () => {
   assert.throws(
     () => generateCuratedWorkoutPlan(intake({

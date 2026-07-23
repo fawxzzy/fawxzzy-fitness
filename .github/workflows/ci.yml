@@ -26,6 +26,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Verify curated engine and roadmap contracts
+        run: |
+          node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts
+          node --test scripts/seed-feedback-monetization-roadmap.test.mjs
+
       - name: Build
         run: npm run build
 

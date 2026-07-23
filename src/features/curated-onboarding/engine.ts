@@ -61,6 +61,7 @@ type ExerciseCandidate = {
   equipment: EquipmentAccess[];
   measurementType?: "reps" | "time";
   targetDurationSeconds?: number;
+  emphasisTags?: string[];
 };
 
 const CANDIDATES: Record<MovementRole, ExerciseCandidate[]> = {
@@ -72,9 +73,9 @@ const CANDIDATES: Record<MovementRole, ExerciseCandidate[]> = {
   ],
   hinge: [
     { slug: "romanian-deadlift", name: "Romanian Deadlift", equipment: ["full-gym", "barbell"] },
-    { slug: "single-leg-romanian-deadlift", name: "Single-Leg Romanian Deadlift", equipment: ["full-gym", "dumbbells"] },
+    { slug: "single-leg-romanian-deadlift", name: "Single-Leg Romanian Deadlift", equipment: ["full-gym", "dumbbells"], emphasisTags: ["glute", "hamstring", "balance"] },
     { slug: "smith-machine-romanian-deadlift", name: "Smith Machine Romanian Deadlift", equipment: ["full-gym", "machines"] },
-    { slug: "glute-bridge", name: "Glute Bridge", equipment: ["bodyweight", "bands"] },
+    { slug: "glute-bridge", name: "Glute Bridge", equipment: ["bodyweight", "bands"], emphasisTags: ["glute", "hip"] },
   ],
   "horizontal-push": [
     { slug: "barbell-bench-press", name: "Barbell Bench Press", equipment: ["full-gym", "barbell"] },
@@ -166,6 +167,25 @@ const MOVEMENT_CONSTRAINT_TOKENS = new Set([
   "bridge",
 ]);
 
+const LIMITATION_ROLE_CONSTRAINTS: Array<{ phrases: string[]; roles: MovementRole[] }> = [
+  { phrases: ["overhead", "shoulder"], roles: ["vertical-push"] },
+  { phrases: ["knee"], roles: ["squat", "lunge"] },
+  { phrases: ["low back", "lower back"], roles: ["squat", "hinge"] },
+];
+
+const TARGET_AREA_ROLES: Record<string, MovementRole[]> = {
+  ab: ["core"],
+  back: ["horizontal-pull", "vertical-pull"],
+  cardio: ["cardio"],
+  chest: ["horizontal-push"],
+  conditioning: ["cardio"],
+  glute: ["hinge", "squat", "lunge"],
+  hamstring: ["hinge"],
+  leg: ["squat", "hinge", "lunge"],
+  quad: ["squat", "lunge"],
+  shoulder: ["vertical-push"],
+};
+
 function constraintTokens(value: string) {
   return normalizeConstraint(value)
     .split(" ")
@@ -178,8 +198,14 @@ function buildIntakeConstraintExclusions(data: CuratedOnboardingData) {
   const limitationText = normalizeConstraint(data.limitations ?? "");
   const limitationTokens = new Set(constraintTokens(data.limitations ?? ""));
   const excluded = new Set<string>();
+  const limitationExcluded = new Set<string>();
+  const limitationRoles = new Set(
+    LIMITATION_ROLE_CONSTRAINTS
+      .filter(({ phrases }) => phrases.some((phrase) => limitationText.includes(phrase)))
+      .flatMap(({ roles }) => roles),
+  );
 
-  for (const candidates of Object.values(CANDIDATES)) {
+  for (const [role, candidates] of Object.entries(CANDIDATES) as Array<[MovementRole, ExerciseCandidate[]]>) {
     for (const candidate of candidates) {
       const normalizedSlug = normalizeConstraint(candidate.slug);
       const normalizedName = normalizeConstraint(candidate.name);
@@ -191,22 +217,86 @@ function buildIntakeConstraintExclusions(data: CuratedOnboardingData) {
           || limitationText.includes(normalizedName)
           || candidateMovementTokens.some((token) => limitationTokens.has(token))),
       );
-      if (explicitlyDisliked || namedInLimitations) {
+      const roleLimited = limitationRoles.has(role);
+      if (namedInLimitations || roleLimited) {
+        limitationExcluded.add(candidate.slug);
+      }
+      if (explicitlyDisliked || namedInLimitations || roleLimited) {
         excluded.add(candidate.slug);
       }
     }
   }
 
-  return excluded;
+  return { excluded, limitationExcluded };
 }
 
-function chooseExercise(role: MovementRole, equipment: EquipmentAccess[], excludedSlugs = new Set<string>()) {
+type PreferenceProfile = {
+  exerciseLikes: string[];
+  preferredRoles: Set<MovementRole>;
+  targetTokens: Set<string>;
+};
+
+function buildPreferenceProfile(data: CuratedOnboardingData): PreferenceProfile {
+  const targetTokens = new Set(data.targetAreas.flatMap(constraintTokens));
+  return {
+    exerciseLikes: data.exerciseLikes.map(normalizeConstraint).filter(Boolean),
+    preferredRoles: new Set(
+      [...targetTokens].flatMap((token) => TARGET_AREA_ROLES[token] ?? []),
+    ),
+    targetTokens,
+  };
+}
+
+function candidatePreferenceScore(candidate: ExerciseCandidate, preferences: PreferenceProfile) {
+  const normalizedName = normalizeConstraint(candidate.name);
+  const normalizedSlug = normalizeConstraint(candidate.slug);
+  const likeScore = preferences.exerciseLikes.reduce((score, like) => {
+    if (like === normalizedName || like === normalizedSlug) return Math.max(score, 3);
+    if (normalizedName.includes(like) || normalizedSlug.includes(like)) return Math.max(score, 2);
+    return score;
+  }, 0);
+  const targetScore = (candidate.emphasisTags ?? [])
+    .map(normalizeConstraint)
+    .filter((tag) => preferences.targetTokens.has(tag))
+    .length;
+  return likeScore * 10 + targetScore;
+}
+
+function rankRolesByTargetAreas(roles: MovementRole[], preferences: PreferenceProfile) {
+  return roles
+    .map((role, index) => ({ role, index }))
+    .sort((left, right) => (
+      Number(preferences.preferredRoles.has(right.role))
+      - Number(preferences.preferredRoles.has(left.role))
+      || left.index - right.index
+    ))
+    .map(({ role }) => role);
+}
+
+function chooseExercise(
+  role: MovementRole,
+  equipment: EquipmentAccess[],
+  excludedSlugs: Set<string>,
+  limitationExcludedSlugs: Set<string>,
+  preferences: PreferenceProfile,
+) {
   const available = CANDIDATES[role].filter((candidate) => candidate.equipment.some((value) => equipment.includes(value)));
-  const selected = available.find((candidate) => !excludedSlugs.has(candidate.slug));
+  const selected = available
+    .map((candidate, index) => ({
+      candidate,
+      index,
+      score: candidatePreferenceScore(candidate, preferences),
+    }))
+    .filter(({ candidate }) => !excludedSlugs.has(candidate.slug))
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .at(0)?.candidate;
   if (selected) {
     return selected;
   }
   if (available.length > 0) {
+    if (available.some((candidate) => limitationExcludedSlugs.has(candidate.slug))) {
+      return null;
+    }
     throw new Error(`No safe ${role.replace(/-/g, " ")} exercise matches the selected equipment and constraints.`);
   }
   return CANDIDATES[role][CANDIDATES[role].length - 1];
@@ -284,25 +374,38 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(signals?.failedExerciseSlugs ?? []),
     ...(signals?.fatiguedExerciseSlugs ?? []),
   ]);
-  const intakeExcludedSlugs = buildIntakeConstraintExclusions(data);
-  const excludedSlugs = new Set([...adaptiveExcludedSlugs, ...intakeExcludedSlugs]);
+  const intakeConstraints = buildIntakeConstraintExclusions(data);
+  const excludedSlugs = new Set([...adaptiveExcludedSlugs, ...intakeConstraints.excluded]);
+  const preferences = buildPreferenceProfile(data);
   const exerciseLimit = sessionLengthMinutes <= 30 ? 4 : sessionLengthMinutes <= 45 ? 5 : sessionLengthMinutes <= 60 ? 6 : 7;
   const baseSets = data.experience === "beginner" ? 3 : goal === "get-stronger" ? 4 : 3;
   const split = SPLITS[daysPerWeek];
   const days = split.map((day) => ({
     name: day.name,
-    exercises: day.roles.slice(0, exerciseLimit).map((role, index) => {
-      const exercise = chooseExercise(role, equipment, excludedSlugs);
-      const range = getTargetRange(goal, role);
-      return {
-        ...exercise,
-        measurementType: exercise.measurementType ?? "reps",
-        targetSets: role === "cardio" ? 1 : role === "core" || index >= 3 ? Math.min(baseSets, 3) : baseSets,
-        targetRepsMin: range.min,
-        targetRepsMax: range.max,
-        progressionPlaybookId: "double_progression" as const,
-      };
-    }),
+    exercises: rankRolesByTargetAreas(day.roles, preferences)
+      .map((role) => ({
+        role,
+        exercise: chooseExercise(
+          role,
+          equipment,
+          excludedSlugs,
+          intakeConstraints.limitationExcluded,
+          preferences,
+        ),
+      }))
+      .filter((selection): selection is { role: MovementRole; exercise: ExerciseCandidate } => Boolean(selection.exercise))
+      .slice(0, exerciseLimit)
+      .map(({ role, exercise }, index) => {
+        const range = getTargetRange(goal, role);
+        return {
+          ...exercise,
+          measurementType: exercise.measurementType ?? "reps",
+          targetSets: role === "cardio" ? 1 : role === "core" || index >= 3 ? Math.min(baseSets, 3) : baseSets,
+          targetRepsMin: range.min,
+          targetRepsMax: range.max,
+          progressionPlaybookId: "double_progression" as const,
+        };
+      }),
   }));
   const nameByGoal: Record<TrainingGoal, string> = {
     "build-muscle": "Atlas Muscle",
@@ -320,6 +423,8 @@ function generateCuratedWorkoutPlanWithSignals(
     cardioPreference: data.cardioPreference ?? null,
     limitations: normalizeConstraint(data.limitations ?? ""),
     exerciseDislikes: data.exerciseDislikes.map(normalizeConstraint).filter(Boolean).sort(),
+    exerciseLikes: data.exerciseLikes.map(normalizeConstraint).filter(Boolean).sort(),
+    targetAreas: data.targetAreas.map(normalizeConstraint).filter(Boolean).sort(),
     adaptiveSignals: signals ? {
       completionRate: signals.completionRate,
       missedWorkoutCount: signals.missedWorkoutCount,
@@ -335,8 +440,11 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(adaptiveExcludedSlugs.size > 0
       ? [`Recent failed-target or fatigue signals replaced ${adaptiveExcludedSlugs.size} exercise choice${adaptiveExcludedSlugs.size === 1 ? "" : "s"} where an equipment-compatible alternative existed.`]
       : []),
-    ...(intakeExcludedSlugs.size > 0
-      ? [`Your stated limitations or exercise exclusions removed ${intakeExcludedSlugs.size} exercise choice${intakeExcludedSlugs.size === 1 ? "" : "s"}.`]
+    ...(intakeConstraints.excluded.size > 0
+      ? [`Your stated limitations or exercise exclusions removed ${intakeConstraints.excluded.size} exercise choice${intakeConstraints.excluded.size === 1 ? "" : "s"}.`]
+      : []),
+    ...(preferences.exerciseLikes.length > 0 || preferences.targetTokens.size > 0
+      ? ["Your preferred exercises and target areas shape the order of safe, equipment-compatible choices."]
       : []),
   ];
 
