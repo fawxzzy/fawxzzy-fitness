@@ -118,6 +118,20 @@ test("curated engine maps common limitation language to unsafe movement roles", 
   assert.match(plan.rationale.join(" "), /limitations or exercise exclusions removed/i);
 });
 
+test("curated engine omits roles without an equipment-compatible safe candidate", () => {
+  const plan = generateCuratedWorkoutPlan(intake({
+    equipment: ["barbell"],
+    limitations: "Shoulder irritation overhead",
+  }));
+  const slugs = plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+
+  assert.equal(slugs.includes("overhead-press"), false);
+  assert.equal(slugs.includes("pike-push-up"), false);
+  assert.equal(slugs.includes("seated-dumbbell-shoulder-press"), false);
+  assert.equal(slugs.includes("machine-shoulder-press"), false);
+  assert.ok(plan.days.every((day) => day.exercises.length > 0));
+});
+
 test("curated engine deterministically prioritizes exercise likes and target areas", () => {
   const baseline = generateCuratedWorkoutPlan(intake({
     equipment: ["full-gym", "bodyweight"],

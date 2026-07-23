@@ -299,7 +299,7 @@ function chooseExercise(
     }
     throw new Error(`No safe ${role.replace(/-/g, " ")} exercise matches the selected equipment and constraints.`);
   }
-  return CANDIDATES[role][CANDIDATES[role].length - 1];
+  return null;
 }
 
 export function deriveCuratedExerciseTarget(exercise: CuratedPlanExercise) {
