@@ -4,6 +4,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  loadCompleteMemberNumberSafety,
+} from "./member-number-safety-core.mjs";
 
 const AUTOMATION_SIGNAL_PATTERN = /(^|[^a-z0-9])(codex|test|qa|example|preview|local)([^a-z0-9]|$)/i;
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
@@ -54,40 +57,6 @@ function createServiceClient() {
   });
 }
 
-function maskEmail(email) {
-  if (!email || !email.includes("@")) {
-    return "(missing)";
-  }
-
-  const [localPart, domain] = email.split("@");
-  if (!localPart || !domain) {
-    return "(invalid)";
-  }
-
-  const visibleLocal = localPart.slice(0, Math.min(localPart.length, 2));
-  const maskedLocal = `${visibleLocal}${"*".repeat(Math.max(localPart.length - visibleLocal.length, 1))}`;
-  const domainParts = domain.split(".");
-  const domainName = domainParts.shift() ?? "";
-  const maskedDomainName = domainName.length <= 2
-    ? `${domainName[0] ?? "*"}*`
-    : `${domainName.slice(0, 2)}${"*".repeat(domainName.length - 2)}`;
-
-  return `${maskedLocal}@${[maskedDomainName, ...domainParts].filter(Boolean).join(".")}`;
-}
-
-function maskDiscordUserId(value) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) {
-    return "(missing)";
-  }
-
-  if (normalized.length <= 4) {
-    return `${"*".repeat(Math.max(normalized.length - 1, 0))}${normalized.slice(-1)}`;
-  }
-
-  return `${"*".repeat(normalized.length - 4)}${normalized.slice(-4)}`;
-}
-
 function collectAutomationSignals(user) {
   const reasons = [];
   const email = String(user?.email ?? "").trim().toLowerCase();
@@ -124,22 +93,6 @@ function collectAutomationSignals(user) {
   return Array.from(new Set(reasons));
 }
 
-function collectPositiveGaps(numbers) {
-  const sorted = [...new Set(numbers.filter((value) => Number.isInteger(value) && value >= 1))].sort((left, right) => left - right);
-  if (sorted.length === 0) {
-    return [];
-  }
-
-  const gaps = [];
-  for (let candidate = 1; candidate <= sorted[sorted.length - 1]; candidate += 1) {
-    if (!sorted.includes(candidate)) {
-      gaps.push(candidate);
-    }
-  }
-
-  return gaps;
-}
-
 async function listAllAuthUsers(adminClient) {
   const users = [];
   let page = 1;
@@ -172,7 +125,7 @@ function printList(label, rows) {
 async function loadDiscordMemberLinks(client) {
   const { data, error } = await client
     .from("discord_member_links")
-    .select("id, fitness_user_id, discord_user_id, user_number, user_kind, nickname_sync_status, updated_at");
+    .select("fitness_user_id, user_number, user_kind");
 
   if (error) {
     if (/does not exist|Could not find the table|schema cache/i.test(error.message)) {
@@ -188,14 +141,7 @@ async function loadDiscordMemberLinks(client) {
 async function main() {
   const client = createServiceClient();
   const zacEmail = getOptionalEnv(FITNESS_ZAC_EMAIL_ENV)?.toLowerCase() ?? null;
-  const { data: profiles, error: profilesError } = await client
-    .from("profiles")
-    .select("id, user_number, user_kind, user_number_assigned_at")
-    .order("user_number", { ascending: true, nullsFirst: true });
-
-  if (profilesError) {
-    throw new Error(`Unable to load profiles: ${profilesError.message}`);
-  }
+  const completeProfileSafety = await loadCompleteMemberNumberSafety(client);
 
   let authUsers = [];
   let authUsersError = null;
@@ -207,27 +153,18 @@ async function main() {
   }
 
   const discordLinksResult = await loadDiscordMemberLinks(client);
-  const profileRows = profiles ?? [];
+  const profileRows = completeProfileSafety.rows;
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const profileById = new Map(profileRows.map((profile) => [profile.id, profile]));
+  const memberNumberSafety = completeProfileSafety.summary;
+  const memberNumberSafetyFatalReasons = completeProfileSafety.fatalReasons;
   const numberedHumanProfiles = profileRows.filter((profile) => profile.user_kind === "human" && profile.user_number !== null);
-  const positiveHumanNumbers = numberedHumanProfiles
-    .map((profile) => profile.user_number)
-    .filter((value) => typeof value === "number" && value >= 1);
   const automationProfiles = profileRows.filter((profile) => profile.user_kind === "automation");
   const unknownProfiles = profileRows.filter((profile) => profile.user_kind === "unknown");
   const zeroProfiles = profileRows.filter((profile) => profile.user_number === 0);
-  const allNumbers = profileRows
-    .map((profile) => profile.user_number)
-    .filter((value) => Number.isInteger(value));
-  const maxPositiveUserNumber = positiveHumanNumbers.length > 0 ? Math.max(...positiveHumanNumbers) : null;
-  const expectedNextSequence = maxPositiveUserNumber === null ? 1 : maxPositiveUserNumber + 1;
-  const positiveGaps = collectPositiveGaps(positiveHumanNumbers);
-  const duplicateNumbers = Array.from(
-    allNumbers.reduce((counts, value) => counts.set(value, (counts.get(value) ?? 0) + 1), new Map()).entries(),
-  )
-    .filter(([, count]) => count > 1)
-    .map(([value, count]) => `#${value} appears ${count} times`);
+  const positiveGaps = memberNumberSafety.positiveGaps;
+  const duplicateNumbers = memberNumberSafety.duplicateNumbers
+    .map(({ number, count }) => `#${number} appears ${count} times`);
 
   const suspiciousNumberedProfiles = authUsersError
     ? []
@@ -238,29 +175,26 @@ async function main() {
           return [];
         }
 
-        return [`${profile.id} -> #${profile.user_number} -> ${maskEmail(authUser?.email ?? "")} -> ${reasons.join("; ")}`];
+        return [`#${profile.user_number} -> ${reasons.join("; ")}`];
       });
 
   const automationProfilesWithNumbers = automationProfiles
     .filter((profile) => profile.user_number !== null)
-    .map((profile) => `${profile.id} -> #${profile.user_number}`);
+    .map((profile) => `#${profile.user_number}`);
 
   const nonZacZeroProfiles = authUsersError || !zacEmail
     ? []
     : zeroProfiles.filter((profile) => {
         const authUser = authUsersById.get(profile.id);
         return String(authUser?.email ?? "").trim().toLowerCase() !== zacEmail;
-      }).map((profile) => {
-        const authUser = authUsersById.get(profile.id);
-        return `${profile.id} -> ${maskEmail(authUser?.email ?? "")}`;
-      });
+      }).map(() => "configured owner email does not match reserved #0");
 
   const staleDiscordLinkRows = !discordLinksResult.ok
     ? []
     : discordLinksResult.rows.flatMap((link) => {
         const profile = profileById.get(link.fitness_user_id);
         if (!profile) {
-          return [`link ${link.id} -> discord ${maskDiscordUserId(link.discord_user_id)} -> profile missing`];
+          return ["discord_member_links row points to a missing profile"];
         }
 
         const profileNumber = typeof profile.user_number === "number" ? profile.user_number : null;
@@ -270,25 +204,14 @@ async function main() {
         }
 
         return [
-          `link ${link.id} -> discord ${maskDiscordUserId(link.discord_user_id)} -> stored #${link.user_number ?? "null"} (${link.user_kind}) vs profile #${profileNumber ?? "null"} (${profileKind})`,
+          `stored #${link.user_number ?? "null"} (${link.user_kind}) does not match profile #${profileNumber ?? "null"} (${profileKind})`,
         ];
       });
 
   const problems = [];
-  if (positiveGaps.length > 0) {
-    problems.push(`Positive member-number gaps detected: ${positiveGaps.join(", ")}`);
-  }
-  if (duplicateNumbers.length > 0) {
-    problems.push(...duplicateNumbers.map((entry) => `Duplicate number: ${entry}`));
-  }
-  if (zeroProfiles.length > 1) {
-    problems.push(`More than one #0 profile exists (${zeroProfiles.length}).`);
-  }
+  problems.push(...memberNumberSafetyFatalReasons.map((reason) => `Member-number safety failure: ${reason}`));
   if (nonZacZeroProfiles.length > 0) {
     problems.push(...nonZacZeroProfiles.map((entry) => `Non-Zac #0 profile: ${entry}`));
-  }
-  if (automationProfilesWithNumbers.length > 0) {
-    problems.push(...automationProfilesWithNumbers.map((entry) => `Automation profile still has a number: ${entry}`));
   }
 
   const warnings = [];
@@ -310,15 +233,23 @@ async function main() {
 
   console.log("Member number audit");
   console.log(`Env file: ${envPath}`);
-  console.log("Compact numbering expected: no positive gaps.");
-  console.log("#0 is reserved and excluded from compaction.");
+  console.log("Immutable numbering expected: deletions leave permanent positive gaps.");
+  console.log("#0 is reserved; every assigned number is unique and never reused.");
+  console.log(`Profile safety exact count: ${completeProfileSafety.exactCount}`);
+  console.log(`Profile safety data pages: ${completeProfileSafety.dataPageCount}`);
+  console.log(`Profile safety page size: ${completeProfileSafety.pageSize}`);
+  console.log(`Profile safety requests: ${completeProfileSafety.requestCount}`);
   console.log(`Human numbered count: ${numberedHumanProfiles.length}`);
   console.log(`Automation count: ${automationProfiles.length}`);
   console.log(`Unknown count: ${unknownProfiles.length}`);
-  console.log(`Max positive user_number: ${maxPositiveUserNumber ?? "none"}`);
-  console.log(`Expected next sequence: ${expectedNextSequence}`);
+  console.log(`Max reserved user_number: ${memberNumberSafety.maxReservedNumber ?? "none"}`);
+  console.log(`Minimum safe next number: ${memberNumberSafety.minimumSafeNextNumber ?? "unavailable (fail-closed)"}`);
   console.log(`#0 profile count: ${zeroProfiles.length}`);
-  console.log(`Positive member-number gaps: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
+  console.log(`Exactly one human #0: ${memberNumberSafety.hasExactlyOneHumanZero ? "yes" : "no"}`);
+  console.log(`Reserved #0 assignment metadata present: ${memberNumberSafety.reservedZeroAssignmentMetadataPresent ? "yes" : "no"}`);
+  console.log(`Permanent positive gap count: ${memberNumberSafety.positiveGapCount ?? "unavailable"}`);
+  console.log(`Permanent positive gap evidence truncated: ${memberNumberSafety.positiveGapsTruncated ? "yes" : "no"}`);
+  console.log(`Permanent positive gap evidence: ${positiveGaps.length === 0 ? "none" : positiveGaps.join(", ")}`);
   printList("Duplicate numbers", duplicateNumbers);
   if (authUsersError) {
     console.log(`Suspicious numbered profiles: unavailable (${authUsersError})`);

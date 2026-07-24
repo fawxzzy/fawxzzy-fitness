@@ -603,3 +603,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Letting ambient CI override target evidence misclassifies Preview or Production contracts, while cross-repository documentation paths leave local operators unable to validate the asserted ownership boundary.
 - Evidence: `src/lib/atlas-contracts.ts`, `src/lib/atlas-contracts.test.ts`, `docs/ops/ATLAS-CODEX-CONTEXT-RUNBOOK.md`, `docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md`, `src/lib/ecosystem/fitness-metrics-pack.test.ts`
 - Status: Proposed
+
+## 2026-07-17 - Member numbers are immutable and never reused
+- Type: Decision
+- WHAT changed: Fitness source numbering now retires delete-driven compaction, ignores caller-supplied human identity values on insert, rejects member-identity changes after creation, and removes client authority to reset the source sequence.
+- WHY it changed: Compact public slots rewrote surviving human identities after deletion, while profile grants and the assignment function still left alternate renumbering paths. Removing only the delete trigger would not make the identity contract true.
+- Rule: Human `user_number`, `user_kind`, and `user_number_assigned_at` are immutable after assignment; deleted numbers leave permanent gaps and are never reused.
+- Rule: Automation profiles remain unnumbered, and new human numbers come only from the source allocator until the governed target cutover activates exactly one replacement allocator.
+- Pattern: fail-closed catalog and high-water preconditions -> retire compaction with `RESTRICT` -> harden insert assignment -> enforce immutable updates -> revoke sequence mutation authority -> prove survivor mapping and concurrent allocation in disposable replay.
+- Failure Mode: Treating member numbers as dense display slots destroys stable identity, makes Discord snapshots drift, and lets deletion or client-supplied values renumber existing users.
+- Decision: Never recreate compaction as rollback and never hard-code a target sequence floor; calculate the floor from freeze-time source and target high-water evidence.
+- Evidence: `supabase/migrations/20260718015422_retire_human_member_number_compaction.sql`, `scripts/member-number-safety-core.mjs`, `scripts/migration/fp-fit-user-number-safety-verify.mjs`, `docs/ops/FP-FIT-USER-NUMBER-SAFETY-001.md`
+- Status: Proposed
