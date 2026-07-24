@@ -1,6 +1,15 @@
-This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
+﻿This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+
+## 2026-07-24 - Curated onboarding screens should keep shared, reviewable progress contracts while allowing safe in-progress navigation
+- Type: Pattern
+- WHAT changed: Curated onboarding now treats selected sections and required controls as completion status indicators, allows page navigation with explicit incomplete-state highlighting, and updates review/dropdown visibility and button/label UX while preserving the stricter "complete" contract when review-ready handoff is attempted.
+- WHY it changed: The onboarding flow needed clearer user feedback and less rigid gating for exploratory edits, plus consistent completed/incomplete state surfacing across section summaries and in-page controls.
+- Rule: Required onboarding responses should still be enforced before Review advancement, but the screen should explicitly mark incomplete inputs and pages instead of blocking all forward navigation.
+- Pattern: shared selector-derived progression state + section completion indicators + deterministic malformed-response filtering + explicit review-safe advancement checks.
+- Evidence: `src/app/curated-onboarding/page.tsx`, `src/app/dev/curated-onboarding/page.tsx`, `src/app/routines/CreateRoutineClient.tsx`, `src/app/routines/CreateRoutineRouteHeader.contract.test.ts`, `src/app/routines/RoutinesPageClient.contract.test.ts`, `src/app/routines/RoutinesPageClient.tsx`, `src/app/routines/page.tsx`, `src/features/curated-onboarding/components/ConstraintsStep.tsx`, `src/features/curated-onboarding/components/CuratedIntroStep.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingPrimitives.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingProgress.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingShell.tsx`, `src/features/curated-onboarding/components/EquipmentStep.tsx`, `src/features/curated-onboarding/components/ExperienceStep.tsx`, `src/features/curated-onboarding/components/GenerationHandoffStep.tsx`, `src/features/curated-onboarding/components/GoalsStep.tsx`, `src/features/curated-onboarding/components/PreferencesStep.tsx`, `src/features/curated-onboarding/components/QuestionnaireStep.tsx`, `src/features/curated-onboarding/components/ReviewStep.tsx`, `src/features/curated-onboarding/components/ScheduleStep.tsx`, `src/features/curated-onboarding/constants.ts`, `src/features/curated-onboarding/engine.test.ts`, `src/features/curated-onboarding/engine.ts`, `src/features/curated-onboarding/fixtures.ts`, `src/features/curated-onboarding/questionnaire.test.ts`, `src/features/curated-onboarding/questionnaire.ts`, `src/features/curated-onboarding/schema.ts`, `src/features/curated-onboarding/selectors.test.ts`, `src/features/curated-onboarding/selectors.ts`, `src/features/curated-onboarding/step-registry.ts`, `src/features/curated-onboarding/storage.test.ts`, `src/features/curated-onboarding/storage.ts`, `src/features/curated-onboarding/types.ts`, `tailwind.config.ts`, `tests/curated-onboarding-ui-contract.test.mjs`, `docs/CHANGELOG.md`
+- Status: Proposed
 ## 2026-07-14 - Explicit deployment classification must outrank the CI execution context
 - Type: Guardrail
 - WHAT changed: Atlas health contracts now classify explicit Vercel production and preview values before the inherited CI execution signal.
@@ -501,7 +510,6 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Letting users create messages or threads in `#verify` turns access setup into clutter and makes the server feel unpolished.
 - Status: Proposed
 
-<<<<<<< HEAD
 ## 2026-06-05 - Logged session exercise lanes should reuse the progression scroll-box shell
 - Type: Pattern
 - WHAT changed: The history/logged-session detail route now wraps the lower exercise-card lane in the same bounded glass scroll-box treatment used by progression measurement panels, sizes that viewport from a stable wrapper in normal page flow, keeps the sticky shell pinned above the bottom action dock, swaps the expanded state to a focused exercise overview card that reuses the exercise-info metric grid styling for session-specific stats, and folds exercise notes into that same overview card instead of a separate footer lane.
@@ -525,7 +533,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 ## 2026-06-05 - Progression analytics should be summarized once and reused across history-family surfaces
 - Type: Pattern
 - WHAT changed: Session history cards, exercise history cards, the exercise info sheet, logged-session exercise focus, and the account storage snapshot now all consume one shared progression lifeline summary built from `progression_events`, exposing promotion counts, target lifelines, latest target changes, and progressed-exercise rollups without each route inventing its own wording or counting rules.
-- WHY it changed: The app already stored progression events, but most history-family surfaces only showed performance metrics or readiness state, which made promotion history feel invisible and forced users to mentally reconstruct target changes from raw workouts instead of seeing a clean “started here -> moved here -> latest change” story.
+- WHY it changed: The app already stored progression events, but most history-family surfaces only showed performance metrics or readiness state, which made promotion history feel invisible and forced users to mentally reconstruct target changes from raw workouts instead of seeing a clean "started here -> moved here -> latest change" story.
 - Rule: When a surface needs promotion or target-evolution analytics, derive them from a shared progression-event summary layer before adding route-local counters or copy.
 - Pattern: load scoped progression events -> build shared session or exercise lifeline summary -> feed cards, detail panels, and account storage metrics from that same summary.
 - Failure Mode: Recomputing promotion analytics separately on each screen creates drift in counts, wording, and target labels, and makes account/export summaries disagree with history or exercise detail surfaces.
@@ -615,3 +623,5 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Never recreate compaction as rollback and never hard-code a target sequence floor; calculate the floor from freeze-time source and target high-water evidence.
 - Evidence: `supabase/migrations/20260718015422_retire_human_member_number_compaction.sql`, `scripts/member-number-safety-core.mjs`, `scripts/migration/fp-fit-user-number-safety-verify.mjs`, `docs/ops/FP-FIT-USER-NUMBER-SAFETY-001.md`
 - Status: Proposed
+
+
