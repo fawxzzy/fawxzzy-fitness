@@ -16,12 +16,6 @@ export const FITNESS_FEATURE_FLAGS = {
     defaultValue: true,
     description: "Allows earned post-workout install prompts to render when the device supports install.",
   },
-  premiumCycleAnalyticsPreview: {
-    label: "Premium cycle analytics preview",
-    envVar: "FITNESS_FLAG_PREMIUM_CYCLE_ANALYTICS_PREVIEW",
-    defaultValue: false,
-    description: "Gates future premium/cycle analytics preview placement.",
-  },
   progressionUpdatesSurface: {
     label: "Progression Updates surface",
     envVar: "FITNESS_FLAG_PROGRESSION_UPDATES_SURFACE",

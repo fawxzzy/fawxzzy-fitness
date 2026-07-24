@@ -2755,7 +2755,6 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             currentRoutineWeeklyProgress={mockHistoryWeeklyProgress}
             currentCycleWeeklyProgress={mockHistoryWeeklyProgress}
             weeklyProgressByWeek={[mockHistoryWeeklyProgress]}
-            premiumCycleAnalyticsPreviewEnabled
             currentRoutineWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             currentCycleWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             selectedSessionId="history-session-2"
