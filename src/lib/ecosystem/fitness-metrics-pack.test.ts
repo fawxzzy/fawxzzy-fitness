@@ -24,6 +24,7 @@ const metricsSchemaPath = path.join(
   "schemas",
   "atlas-fitness-wave-2-metrics-pack.schema.v1.json",
 );
+const atlasCodexContextRunbookPath = path.join(repoRoot, "docs", "ops", "ATLAS-CODEX-CONTEXT-RUNBOOK.md");
 
 type MetricsPack = {
   pack_id: string;
@@ -141,6 +142,14 @@ test("metrics pack satisfies the declared schema contract shell", () => {
       "dashboard_acceptance_checks",
     ],
   );
+});
+
+test("Atlas Codex context runbook keeps ownership evidence repository-local", () => {
+  const runbook = fs.readFileSync(atlasCodexContextRunbookPath, "utf8");
+
+  assert.match(runbook, /`docs\/ops\/FITNESS-ATLAS-CONTRACT-ADOPTION\.md`/);
+  assert.doesNotMatch(runbook, /docs\/registry\/STACK-SYNERGY-REGISTRY\.json/);
+  assertRefExists("docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md");
 });
 
 test("metrics pack remains internally coherent and evidence-backed", () => {

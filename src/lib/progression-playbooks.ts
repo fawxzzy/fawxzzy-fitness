@@ -705,6 +705,7 @@ export type ProgressionReviewCandidate = {
   cycleWindow?: ProgressionReviewCycleWindow | null;
   sourceSession?: {
     sessionId: string;
+    sessionRecordId?: string | null;
     performedAt: string;
     isLatest: boolean;
   } | null;
@@ -1804,6 +1805,7 @@ function buildSourceSession(session: ProgressionHistorySession, latestSession: P
 
   return {
     sessionId: sessionRecordId,
+    sessionRecordId,
     performedAt: session.performedAt,
     isLatest: latestSessionRecordId === sessionRecordId,
   };
@@ -2890,7 +2892,7 @@ export function buildProgressionHistorySessions(args: {
   }
 
   const sessions = [...grouped.entries()]
-    .map(([sessionId, rows]) => {
+    .map(([sessionId, rows]): ProgressionHistorySession | null => {
       const ordered = [...rows]
         .filter((row) => !row.isWarmup)
         .sort((a, b) => a.setIndex - b.setIndex)
@@ -2921,7 +2923,7 @@ export function buildProgressionHistorySessions(args: {
         maxReps: repsBySet.length ? Math.max(...repsBySet) : null,
         coveredTargetSets: ordered.length >= targetSetCount,
         allSetsAtOrAboveTopRep: ordered.length >= targetSetCount && repsBySet.length >= targetSetCount && repsBySet.every((reps) => reps >= topRepTarget),
-      } satisfies ProgressionHistorySession;
+      };
     })
     .filter((entry): entry is ProgressionHistorySession => Boolean(entry))
     .sort((a, b) => b.performedAt.localeCompare(a.performedAt));

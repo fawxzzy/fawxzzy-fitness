@@ -61,6 +61,7 @@ import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
 import type { ExerciseTimerStatus } from "@/lib/exercise-timer";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -164,6 +165,23 @@ const PREVIEW_CREATE_ROUTINE_NAME = "Atlas Builder";
 async function noopActionResult(_: unknown) {
   "use server";
   return { ok: true as const };
+}
+
+async function noopCopilotFeedbackAction(payload: {
+  signal: SessionCopilotFeedbackSignal | null;
+  note: string | null;
+  effort: number | null;
+}) {
+  "use server";
+  return {
+    ok: true as const,
+    data: {
+      signal: payload.signal,
+      note: payload.note,
+      effort: payload.effort,
+      updatedAt: "2026-07-17T04:00:00.000Z",
+    },
+  };
 }
 
 async function noopSessionSaveWithPromotion(_: unknown) {
@@ -2347,7 +2365,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         removeExerciseAction={noopActionResult}
         deleteSetAction={noopActionResult}
         updateSessionExerciseProgressionAction={noopActionResult}
-        updateSessionExerciseCopilotFeedbackAction={noopActionResult}
+        updateSessionExerciseCopilotFeedbackAction={noopCopilotFeedbackAction}
         updateSessionExerciseTimerAction={noopExerciseTimerAction}
         disableDraftPersistence
       />

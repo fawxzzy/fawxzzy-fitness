@@ -36,14 +36,19 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
-import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
-import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel, buildSessionSavedFeedbackLabel } from "@/lib/session-feedback-ui";
+import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import {
+  areSessionLoggerDraftStatesEqual,
+  buildSessionProgressionFeedbackSummaryLabel,
+  buildSessionSavedFeedbackLabel,
+  hasSavedSessionExerciseFeedback,
+} from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
-import { hasSavedSessionExerciseFeedback, SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
+import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
@@ -988,6 +993,7 @@ export function SessionExerciseFocus({
                     <SessionExerciseFeedbackPrompt
                       sessionId={sessionId}
                       sessionExerciseId={exercise.id}
+                      initialFeedback={savedFeedback}
                       updateFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                       onSaved={(feedback) => {
                         const cachedState = sessionExerciseLocalStateCache.get(sessionId);

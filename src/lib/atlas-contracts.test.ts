@@ -32,10 +32,12 @@ test("buildAtlasHealthPayload reports ok when the canonical auth env is present"
   const payload = withEnv(
     {
       NODE_ENV: "production",
+      CI: "true",
       VERCEL_ENV: "production",
       VERCEL_GIT_COMMIT_SHA: "abcdef1234567890",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SECRET_KEY: "modern-secret-key",
       SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
       NEXT_PUBLIC_APP_URL: "https://fitness.example.com",
     },
@@ -48,14 +50,37 @@ test("buildAtlasHealthPayload reports ok when the canonical auth env is present"
   assert.equal(payload.checks.every((check) => check.status === "ok"), true);
 });
 
-test("buildAtlasHealthPayload degrades when the service-role key is absent", () => {
+test("buildAtlasHealthPayload accepts the bounded legacy admin credential fallback", () => {
   const payload = withEnv(
     {
       NODE_ENV: "production",
+      CI: "true",
       VERCEL_ENV: "preview",
       VERCEL_GIT_COMMIT_SHA: "abcdef1",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SECRET_KEY: "   ",
+      SUPABASE_SERVICE_ROLE_KEY: "legacy-fallback-key",
+      NEXT_PUBLIC_APP_URL: "https://preview.fitness.example.com",
+    },
+    () => buildAtlasHealthPayload({ checkedAt: "2026-05-09T23:30:00.000Z" }),
+  );
+
+  assert.equal(payload.environment, "preview");
+  assert.equal(payload.checks.find((check) => check.name === "supabase-admin-env")?.status, "ok");
+  assert.equal(payload.checks.find((check) => check.name === "supabase-admin-env")?.summary.includes("legacy"), false);
+});
+
+test("buildAtlasHealthPayload degrades when the service-role key is absent", () => {
+  const payload = withEnv(
+    {
+      NODE_ENV: "production",
+      CI: "true",
+      VERCEL_ENV: "preview",
+      VERCEL_GIT_COMMIT_SHA: "abcdef1",
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SECRET_KEY: undefined,
       SUPABASE_SERVICE_ROLE_KEY: undefined,
       NEXT_PUBLIC_APP_URL: "https://preview.fitness.example.com",
     },
@@ -65,4 +90,27 @@ test("buildAtlasHealthPayload degrades when the service-role key is absent", () 
   assert.equal(payload.environment, "preview");
   assert.equal(payload.status, "degraded");
   assert.equal(payload.checks.find((check) => check.name === "supabase-admin-env")?.status, "degraded");
+});
+
+test("buildAtlasHealthPayload reports ci without an explicit deployment target", () => {
+  const payload = withEnv(
+    {
+      NODE_ENV: "production",
+      CI: "true",
+      VERCEL_ENV: undefined,
+      VERCEL_GIT_COMMIT_SHA: undefined,
+      NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: undefined,
+      NEXT_PUBLIC_SUPABASE_URL: undefined,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined,
+      SUPABASE_SECRET_KEY: undefined,
+      SUPABASE_SERVICE_ROLE_KEY: undefined,
+      NEXT_PUBLIC_APP_URL: undefined,
+      APP_URL: undefined,
+      VERCEL_URL: undefined,
+      VERCEL_PROJECT_PRODUCTION_URL: undefined,
+    },
+    () => buildAtlasHealthPayload({ checkedAt: "2026-05-09T23:30:00.000Z" }),
+  );
+
+  assert.equal(payload.environment, "ci");
 });

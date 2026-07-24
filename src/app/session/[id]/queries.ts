@@ -10,6 +10,7 @@ import {
 } from "@/lib/progression-schema-compat";
 import { buildSessionTargetsFromRows } from "@/lib/session-targets";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { loadSessionExercisesWithSchemaFallback } from "@/lib/session-exercise-schema-fallback";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -138,41 +139,23 @@ export async function getSessionPageDataForUser(
     : { data: null };
   const routine = routineWithProgression ?? legacyRoutine ?? null;
 
-  const { data: sessionExercisesWithEffort, error: sessionExercisesWithEffortError } = await supabase
-    .from("session_exercises")
-    .select(SESSION_EXERCISE_SELECT_WITH_EFFORT_AND_TIMER)
-    .eq("session_id", sessionId)
-    .eq("user_id", userId)
-    .order("position", { ascending: true });
-  let sessionExercisesData: unknown[] | null = sessionExercisesWithEffort;
-  if (sessionExercisesWithEffortError && isMissingExerciseTimerColumnError(sessionExercisesWithEffortError)) {
-    const fallback = await supabase
+  const sessionExercisesResult = await loadSessionExercisesWithSchemaFallback<unknown>({
+    runSelect: async (select) => await supabase
       .from("session_exercises")
-      .select(SESSION_EXERCISE_SELECT_WITH_EFFORT)
+      .select(select)
       .eq("session_id", sessionId)
       .eq("user_id", userId)
-      .order("position", { ascending: true });
-    if (fallback.error && isMissingSessionCopilotFeedbackEffortColumnError(fallback.error)) {
-      const legacy = await supabase
-        .from("session_exercises")
-        .select(SESSION_EXERCISE_SELECT_LEGACY)
-        .eq("session_id", sessionId)
-        .eq("user_id", userId)
-        .order("position", { ascending: true });
-      sessionExercisesData = legacy.data;
-    } else {
-      sessionExercisesData = fallback.data;
-    }
-  } else if (sessionExercisesWithEffortError && isMissingSessionCopilotFeedbackEffortColumnError(sessionExercisesWithEffortError)) {
-    const fallback = await supabase
-      .from("session_exercises")
-      .select(SESSION_EXERCISE_SELECT_WITH_TIMER)
-      .eq("session_id", sessionId)
-      .eq("user_id", userId)
-      .order("position", { ascending: true });
-    sessionExercisesData = fallback.data;
-  }
-  sessionExercisesData = sessionExercisesData ?? [];
+      .order("position", { ascending: true }),
+    selects: {
+      rich: SESSION_EXERCISE_SELECT_WITH_EFFORT_AND_TIMER,
+      effort: SESSION_EXERCISE_SELECT_WITH_EFFORT,
+      timer: SESSION_EXERCISE_SELECT_WITH_TIMER,
+      legacy: SESSION_EXERCISE_SELECT_LEGACY,
+    },
+    isMissingEffortColumnError: isMissingSessionCopilotFeedbackEffortColumnError,
+    isMissingTimerColumnError: isMissingExerciseTimerColumnError,
+  });
+  const sessionExercisesData = sessionExercisesResult.data ?? [];
 
   const { data: routineDaysData } = session.routine_id
     ? await supabase

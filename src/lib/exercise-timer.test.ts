@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   applyExerciseTimerCommand,
   formatExerciseTimerClock,
+  finalizeRunningExerciseTimer,
   getExerciseTimerDisplaySeconds,
   getExerciseTimerElapsedSeconds,
   isExerciseTimerTargetComplete,
@@ -50,4 +52,26 @@ test("exercise timer setup is off by default and supports count-up timers", () =
     ok: true,
     config: { mode: "count_up", targetSeconds: null },
   });
+});
+
+test("session completion finalizes a running timer once with exact elapsed time", () => {
+  const running = { ...base, status: "running" as const, startedAt: "2026-07-13T01:00:00.000Z" };
+  const completed = finalizeRunningExerciseTimer(running, "2026-07-13T01:00:20.000Z");
+  const replayed = finalizeRunningExerciseTimer(completed, "2026-07-13T01:01:00.000Z");
+
+  assert.equal(completed.elapsedSeconds, 35);
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.startedAt, null);
+  assert.equal(completed.completedAt, "2026-07-13T01:00:20.000Z");
+  assert.deepEqual(replayed, completed);
+});
+
+test("session save finalizes exercise timers before marking the session completed", () => {
+  const source = readFileSync(new URL("../app/session/[id]/actions.ts", import.meta.url), "utf8");
+  const saveAction = source.slice(source.indexOf("export async function saveSessionAction"));
+  const finalizationIndex = saveAction.indexOf("finalizeRunningExerciseTimersForSession");
+  const completionIndex = saveAction.indexOf('update({ duration_seconds: durationSeconds, status: "completed" })');
+
+  assert.ok(finalizationIndex >= 0);
+  assert.ok(completionIndex > finalizationIndex);
 });

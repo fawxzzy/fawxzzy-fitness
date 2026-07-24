@@ -33,6 +33,7 @@ import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-dis
 import { shouldApplyAutomaticSessionPromotion } from "@/lib/session-auto-progression";
 import {
   applyExerciseTimerCommand,
+  finalizeRunningExerciseTimer,
   parseExerciseTimerConfig as parseExerciseTimerConfigInput,
   type ExerciseTimerCommand,
   type ExerciseTimerMode,
@@ -219,7 +220,7 @@ async function applyEligibleAutomaticProgressionUpdates(args: {
     if (!shouldApplyAutomaticSessionPromotion({
       candidateType: item.type,
       autoUpdateRoutineGoals,
-      sourceSessionId: item.sourceSession?.sessionId,
+      sourceSessionRecordId: item.sourceSession?.sessionRecordId,
       completedSessionId: args.sessionId,
     })) {
       continue;
@@ -258,6 +259,55 @@ function isMissingExerciseTimerColumnError(error: { message?: string } | null | 
 function isMissingSetLoggedAtColumnError(error: { message?: string } | null | undefined) {
   const message = error?.message?.toLowerCase() ?? "";
   return message.includes("logged_at") && (message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find"));
+}
+
+async function finalizeRunningExerciseTimersForSession(args: {
+  sessionId: string;
+  userId: string;
+  supabase: ReturnType<typeof supabaseServer>;
+  nowIso: string;
+}): Promise<ActionResult> {
+  const result = await args.supabase
+    .from("session_exercises")
+    .select("id, exercise_timer_enabled, exercise_timer_mode, exercise_timer_target_seconds, exercise_timer_elapsed_seconds, exercise_timer_status, exercise_timer_started_at, exercise_timer_completed_at")
+    .eq("session_id", args.sessionId)
+    .eq("user_id", args.userId)
+    .eq("exercise_timer_status", "running");
+
+  if (result.error) {
+    return isMissingExerciseTimerColumnError(result.error)
+      ? { ok: true }
+      : { ok: false, error: result.error.message };
+  }
+
+  for (const row of result.data ?? []) {
+    const timer = finalizeRunningExerciseTimer({
+      enabled: row.exercise_timer_enabled === true,
+      mode: row.exercise_timer_mode as ExerciseTimerMode | null,
+      targetSeconds: row.exercise_timer_target_seconds ?? null,
+      elapsedSeconds: row.exercise_timer_elapsed_seconds ?? 0,
+      status: row.exercise_timer_status as ExerciseTimerStatus,
+      startedAt: row.exercise_timer_started_at ?? null,
+      completedAt: row.exercise_timer_completed_at ?? null,
+    }, args.nowIso);
+    const update = await args.supabase
+      .from("session_exercises")
+      .update({
+        exercise_timer_elapsed_seconds: timer.elapsedSeconds,
+        exercise_timer_status: timer.status,
+        exercise_timer_started_at: timer.startedAt,
+        exercise_timer_completed_at: timer.completedAt,
+      })
+      .eq("id", row.id)
+      .eq("session_id", args.sessionId)
+      .eq("user_id", args.userId)
+      .eq("exercise_timer_status", "running");
+    if (update.error) {
+      return { ok: false, error: update.error.message };
+    }
+  }
+
+  return { ok: true };
 }
 
 function parseExerciseTimerConfig(formData: FormData) {
@@ -1283,6 +1333,16 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
 
   if (!liveSession.ok) {
     return liveSession;
+  }
+
+  const timerFinalization = await finalizeRunningExerciseTimersForSession({
+    sessionId,
+    userId: user.id,
+    supabase,
+    nowIso: new Date().toISOString(),
+  });
+  if (!timerFinalization.ok) {
+    return timerFinalization;
   }
 
   const { error } = await supabase

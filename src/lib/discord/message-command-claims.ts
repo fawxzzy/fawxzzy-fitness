@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { hasSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 
 export type DiscordMessageCommandClaimClient = {
   from: (table: "discord_message_command_claims") => any;
@@ -12,7 +12,7 @@ function readOptionalEnv(name: string, env: NodeJS.ProcessEnv) {
 export function isDiscordMessageCommandClaimStoreConfigured(env: NodeJS.ProcessEnv = process.env) {
   const hasAdminEnv = Boolean(
     readOptionalEnv("NEXT_PUBLIC_SUPABASE_URL", env)
-    && readOptionalEnv("SUPABASE_SERVICE_ROLE_KEY", env),
+    && hasSupabaseAdminCredential(env),
   );
   if (!hasAdminEnv) {
     return false;
