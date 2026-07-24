@@ -94,7 +94,7 @@ Consumer-integration success criteria (must be reproducible in a clean environme
 - CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable verified upstream coordinate and must not depend on a known-missing or non-authoritative npm package path for clean-environment bootstrap.
 - With `PLAYBOOK_BIN` unset, commands resolve through repo-local installs first if present, then through the official fallback install.
 - Runtime outputs continue to land only under `.playbook/`.
-- CI/local validation must assert required runtime artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
+- The non-applying CI ladder must assert its planning artifacts: `.playbook/findings.json`, `.playbook/plan.json`, and `.playbook/repo-graph.json`. `.playbook/last-run.json` is apply execution state and is required only when an apply/governed execution path runs.
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.

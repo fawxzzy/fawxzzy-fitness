@@ -4,12 +4,14 @@ type IOSAddToHomeScreenGateProps = {
   copyState: InstallCopyState;
   installUrl: string;
   onCopy: () => void;
+  primaryHref: string;
 };
 
 export function IOSAddToHomeScreenGate({
   copyState,
   installUrl,
   onCopy,
+  primaryHref,
 }: IOSAddToHomeScreenGateProps) {
   return (
     <InstallGateChrome
@@ -17,6 +19,8 @@ export function IOSAddToHomeScreenGate({
       eyebrow="Install Flow"
       installUrl={installUrl}
       onCopy={onCopy}
+      primaryHref={primaryHref}
+      primaryLabel="Continue"
       title="Add Fitness to your Home Screen"
     >
       <ol className="space-y-2 rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">

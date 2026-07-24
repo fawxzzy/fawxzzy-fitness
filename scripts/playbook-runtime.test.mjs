@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 import {
   classifyFallbackSpec,
@@ -11,6 +12,8 @@ import {
   normalizeFallbackInstallTarget,
   shouldUseShellForExecutable
 } from './playbook-runtime.mjs';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('package acquisition stays disabled unless explicitly enabled by env or spec override', () => {
   assert.equal(isPackageAcquisitionEnabled({}), false);
@@ -114,6 +117,22 @@ test('install-official-fallback rejects registry-like fallback specs', () => {
   assert.match(run.stderr, /not part of the canonical fallback distribution contract/);
 });
 
+test('clean-environment CI does not require apply-only execution state without invoking apply', () => {
+  const workflow = readFileSync(path.join(process.cwd(), '.github', 'workflows', 'ci.yml'), 'utf8');
+  const cleanEnvironmentJob = workflow.slice(workflow.indexOf('  playbook-clean-environment:'));
+
+  assert.match(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs ai-context/);
+  assert.match(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs plan/);
+  assert.match(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs pilot/);
+  assert.doesNotMatch(cleanEnvironmentJob, /node scripts\/playbook-runtime\.mjs apply(?:\s|$)/);
+
+  const artifactAssertion = cleanEnvironmentJob.slice(cleanEnvironmentJob.indexOf('required_artifacts=('));
+  assert.match(artifactAssertion, /\.playbook\/findings\.json/);
+  assert.match(artifactAssertion, /\.playbook\/plan\.json/);
+  assert.match(artifactAssertion, /\.playbook\/repo-graph\.json/);
+  assert.doesNotMatch(artifactAssertion, /\.playbook\/last-run\.json/);
+});
+
 test('install-official-fallback reports detailed download failures for https fallback specs', () => {
   const run = spawnSync('node', ['scripts/playbook-runtime.mjs', '--install-official-fallback'], {
     encoding: 'utf8',
@@ -127,4 +146,15 @@ test('install-official-fallback reports detailed download failures for https fal
   assert.match(run.stderr, /Downloading official fallback URL/);
   assert.match(run.stderr, /Download failure detail:/);
   assert.match(run.stderr, /Failed to download fallback artifact from https:\/\/127.0.0.1:9\/never-there.tgz/);
+});
+
+test('the non-applying clean-environment ladder asserts planning artifacts but not apply state', () => {
+  const workflow = readFileSync(path.join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const governance = readFileSync(path.join(repoRoot, 'docs', 'PROJECT_GOVERNANCE.md'), 'utf8');
+
+  assert.match(workflow, /"\.playbook\/findings\.json"/u);
+  assert.match(workflow, /"\.playbook\/plan\.json"/u);
+  assert.match(workflow, /"\.playbook\/repo-graph\.json"/u);
+  assert.doesNotMatch(workflow, /"\.playbook\/last-run\.json"/u);
+  assert.match(governance, /`\.playbook\/last-run\.json` is apply execution state/u);
 });

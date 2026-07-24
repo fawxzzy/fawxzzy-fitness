@@ -116,7 +116,7 @@ test("buildRoadmapInsertValues maps roadmap cards into bounded feature rows", ()
   });
 
   assert.equal(values.card_id, "FF-CORE-001");
-  assert.equal(values.status, "confirmed");
+  assert.equal(values.status, "fixed");
   assert.equal(values.discord_forum_channel_id, "forum-1");
   assert.equal(values.reporter_discord_user_id, "1504700208251146371");
   assert.match(values.details, /^Roadmap Type:/);
@@ -144,6 +144,14 @@ test("premium cycle analytics returns to planning without placeholder UI claims"
   assert.equal(card.title, "Plan Premium Cycle Analytics Experience");
   assert.match(card.description, /Do not render locked placeholder metrics/i);
   assert.ok(card.acceptanceCriteria.some((criterion) => /No premium analytics UI renders/i.test(criterion)));
+});
+
+test("hosted CI runs the curated engine and roadmap contract suites", () => {
+  const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
+
+  assert.match(workflow, /--test src\/features\/curated-onboarding\/engine\.test\.ts/);
+  assert.match(workflow, /--test scripts\/seed-feedback-monetization-roadmap\.test\.mjs/);
 });
 
 test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {

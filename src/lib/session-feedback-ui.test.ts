@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -10,6 +11,9 @@ import {
   buildSessionEffortNotePlaceholder,
   buildSessionProgressionFeedbackSummaryLabel,
   buildSessionProgressionStateLabel,
+  hasSavedSessionExerciseFeedback,
+  isSessionExerciseFeedbackComplete,
+  resolveSessionExerciseFeedbackSaveOutcome,
   type ComparableSessionLoggerDraftState,
 } from "./session-feedback-ui.ts";
 
@@ -234,4 +238,46 @@ test("areSessionLoggerDraftStatesEqual detects feedback and form drift", () => {
     ),
     false,
   );
+});
+
+test("feedback finalization waits for both a text signal and effort score", () => {
+  assert.equal(isSessionExerciseFeedbackComplete({ signal: "too_hard", effortValue: null }), false);
+  assert.equal(isSessionExerciseFeedbackComplete({ signal: null, effortValue: 8 }), false);
+  assert.equal(isSessionExerciseFeedbackComplete({ signal: "too_hard", effortValue: 8 }), true);
+});
+
+test("feedback prompt acknowledges partial saves without dismissing until complete", () => {
+  const source = readFileSync(new URL("../components/session/SessionExerciseFeedbackPrompt.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /resolveSessionExerciseFeedbackSaveOutcome/);
+  assert.match(source, /useState<SessionCopilotFeedbackSignal \| null>\(initialFeedback\.signal\)/);
+  assert.match(source, /useState<number \| null>\(initialFeedback\.effort\)/);
+  assert.match(source, /useState\(initialFeedback\.note \?\? ""\)/);
+  assert.match(source, /onSaved\(persistedFeedback\)/);
+  assert.match(source, /if \(outcome\.shouldRetry\) \{\s*savedSignatureRef\.current = null;/);
+  assert.doesNotMatch(source, /if \(result\.ok && canFinalize\)/);
+});
+
+test("persisted partial feedback remains eligible for completion after reload", () => {
+  assert.equal(hasSavedSessionExerciseFeedback({ signal: "too_hard", effort: null, note: null }), false);
+  assert.equal(hasSavedSessionExerciseFeedback({ signal: null, effort: 8, note: "Hard set" }), false);
+  assert.equal(hasSavedSessionExerciseFeedback({ signal: "too_hard", effort: 8, note: null }), true);
+});
+
+test("feedback save outcomes acknowledge partial writes and trust persisted completion truth", () => {
+  assert.deepEqual(resolveSessionExerciseFeedbackSaveOutcome({
+    saveSucceeded: true,
+    persistedSignal: "too_hard",
+    persistedEffort: null,
+  }), { shouldDismiss: false, shouldRetry: false });
+  assert.deepEqual(resolveSessionExerciseFeedbackSaveOutcome({
+    saveSucceeded: true,
+    persistedSignal: "too_hard",
+    persistedEffort: 8,
+  }), { shouldDismiss: true, shouldRetry: false });
+  assert.deepEqual(resolveSessionExerciseFeedbackSaveOutcome({
+    saveSucceeded: false,
+    persistedSignal: "too_hard",
+    persistedEffort: 8,
+  }), { shouldDismiss: false, shouldRetry: true });
 });

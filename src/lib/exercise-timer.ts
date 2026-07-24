@@ -107,3 +107,17 @@ export function applyExerciseTimerCommand(
   }
   return { ...snapshot, status: "running", startedAt: nowIso, completedAt: null };
 }
+
+export function finalizeRunningExerciseTimer(snapshot: ExerciseTimerSnapshot, nowIso: string) {
+  if (snapshot.status !== "running") {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    elapsedSeconds: getExerciseTimerElapsedSeconds(snapshot, Date.parse(nowIso)),
+    status: "completed" as const,
+    startedAt: null,
+    completedAt: nowIso,
+  };
+}

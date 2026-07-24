@@ -37,14 +37,14 @@ import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
 import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
-import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel } from "@/lib/session-feedback-ui";
+import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel, hasSavedSessionExerciseFeedback } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
-import { hasSavedSessionExerciseFeedback, SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
+import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -949,6 +949,7 @@ export function SessionExerciseFocus({
                     <SessionExerciseFeedbackPrompt
                       sessionId={sessionId}
                       sessionExerciseId={exercise.id}
+                      initialFeedback={savedFeedback}
                       updateFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                       onSaved={(feedback) => {
                         setAnsweredFeedbackExerciseIds((current) => new Set([...current, exercise.id]));

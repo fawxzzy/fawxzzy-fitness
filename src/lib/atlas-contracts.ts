@@ -1,5 +1,6 @@
 import { CURRENT_APP_BUILD } from "@/lib/app-build";
 import { optionalEnv } from "@/lib/env";
+import { hasSupabaseAdminCredential } from "@/lib/supabase/admin";
 
 export const ATLAS_REPO_ID = "fitness" as const;
 export const ATLAS_APP_ID = "fawxzzy-fitness" as const;
@@ -37,10 +38,6 @@ function normalizeAtlasEnvironment(): AtlasEnvironment {
     return "test";
   }
 
-  if (process.env.CI === "true") {
-    return "ci";
-  }
-
   if (process.env.VERCEL_ENV === "production") {
     return "production";
   }
@@ -49,8 +46,17 @@ function normalizeAtlasEnvironment(): AtlasEnvironment {
     return "preview";
   }
 
+  // An explicit Vercel target describes the deployed surface even inside CI.
+  if (process.env.CI === "true") {
+    return "ci";
+  }
+
   if (process.env.NODE_ENV === "production") {
     return "production";
+  }
+
+  if (process.env.CI === "true") {
+    return "ci";
   }
 
   return "local";
@@ -96,7 +102,7 @@ export function buildAtlasHealthPayload(args?: {
   const publicSupabaseReady =
     Boolean(optionalEnv("NEXT_PUBLIC_SUPABASE_URL"))
     && Boolean(optionalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
-  const serviceRoleReady = Boolean(optionalEnv("SUPABASE_SERVICE_ROLE_KEY"));
+  const supabaseAdminReady = hasSupabaseAdminCredential();
   const appOriginReady = Boolean(
     optionalEnv("NEXT_PUBLIC_APP_URL")
     || optionalEnv("APP_URL")
@@ -115,10 +121,10 @@ export function buildAtlasHealthPayload(args?: {
     },
     {
       name: "supabase-admin-env",
-      status: serviceRoleReady ? "ok" : "degraded",
-      summary: serviceRoleReady
-        ? "Service-role access is available for admin and recovery flows."
-        : "SUPABASE_SERVICE_ROLE_KEY is missing, so admin-only auth helpers stay limited.",
+      status: supabaseAdminReady ? "ok" : "degraded",
+      summary: supabaseAdminReady
+        ? "Supabase admin access is available for admin and recovery flows."
+        : "A Supabase admin credential is missing, so admin-only auth helpers stay limited.",
       latency_ms: null,
     },
     {
