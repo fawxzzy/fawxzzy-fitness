@@ -1,6 +1,6 @@
 import { appTokens } from "@/components/ui/app/tokens";
 import type { CuratedGenerationStatus, CuratedOnboardingData } from "../types.ts";
-import type { CuratedWorkoutPlan } from "../engine.ts";
+import { formatCuratedExerciseTarget, type CuratedWorkoutPlan } from "../engine.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
 import { PrimaryButton } from "@/components/ui/AppButton";
 
@@ -64,13 +64,6 @@ function formatGenerationStatus(status: CuratedGenerationStatus) {
   return "Idle";
 }
 
-function formatExerciseTarget(exercise: CuratedWorkoutPlan["days"][number]["exercises"][number]) {
-  if (exercise.targetDurationSeconds) {
-    return `${exercise.targetSets}x${Math.round(exercise.targetDurationSeconds / 60)} min`;
-  }
-  return `${exercise.targetSets}x${exercise.targetRepsMin}-${exercise.targetRepsMax}`;
-}
-
 export function GenerationHandoffStep({
   data,
   generationStatus,
@@ -117,7 +110,7 @@ export function GenerationHandoffStep({
             <CuratedInfoCard key={day.name}>
               <p className={appTokens.curatedCardTitle}>{day.name}</p>
               <p className={appTokens.curatedCardBodyStrong}>
-                {day.exercises.map((exercise) => `${exercise.name} ${formatExerciseTarget(exercise)}`).join(" | ")}
+                {day.exercises.map((exercise) => `${exercise.name} ${formatCuratedExerciseTarget(exercise)}`).join(" | ")}
               </p>
             </CuratedInfoCard>
           ))}

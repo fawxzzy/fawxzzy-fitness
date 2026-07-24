@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
+import { buildCuratedRoutineSchedule, deriveCuratedExerciseTarget, formatCuratedExerciseTarget, generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
 import type { CuratedOnboardingData } from "./types.ts";
 
 function intake(overrides: Partial<CuratedOnboardingData> = {}): CuratedOnboardingData {
@@ -88,4 +88,126 @@ test("adaptive curated engine swaps failed exercises within available equipment"
   });
   assert.equal(plan.days.flatMap((day) => day.exercises).some((exercise) => exercise.slug === "barbell-bench-press"), false);
   assert.match(plan.rationale.join(" "), /equipment-compatible alternative/i);
+});
+
+test("curated engine deterministically excludes stated exercise constraints", () => {
+  const disliked = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym"],
+    exerciseDislikes: ["Back Squat"],
+  }));
+  const limited = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym"],
+    limitations: "Avoid back squats due to knee pain.",
+  }));
+
+  assert.equal(disliked.days.flatMap((day) => day.exercises).some((exercise) => exercise.slug === "back-squat"), false);
+  assert.equal(limited.days.flatMap((day) => day.exercises).some((exercise) => exercise.slug === "back-squat"), false);
+  assert.match(disliked.rationale.join(" "), /exercise exclusions removed/i);
+});
+
+test("curated engine maps common limitation language to unsafe movement roles", () => {
+  const plan = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym"],
+    limitations: "Shoulder irritation overhead",
+  }));
+  const slugs = plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+
+  assert.equal(slugs.includes("overhead-press"), false);
+  assert.equal(slugs.includes("seated-dumbbell-shoulder-press"), false);
+  assert.equal(slugs.includes("machine-shoulder-press"), false);
+  assert.match(plan.rationale.join(" "), /limitations or exercise exclusions removed/i);
+});
+
+test("curated engine omits roles without an equipment-compatible safe candidate", () => {
+  const plan = generateCuratedWorkoutPlan(intake({
+    equipment: ["barbell"],
+    limitations: "Shoulder irritation overhead",
+  }));
+  const slugs = plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+
+  assert.equal(slugs.includes("overhead-press"), false);
+  assert.equal(slugs.includes("pike-push-up"), false);
+  assert.equal(slugs.includes("seated-dumbbell-shoulder-press"), false);
+  assert.equal(slugs.includes("machine-shoulder-press"), false);
+  assert.ok(plan.days.every((day) => day.exercises.length > 0));
+});
+
+test("curated engine rejects a schedule containing an empty filtered workout day", () => {
+  assert.throws(
+    () => generateCuratedWorkoutPlan(intake({
+      equipment: ["barbell"],
+      limitations: "Avoid Barbell Bench Press, Overhead Press, Barbell Row, and Plank.",
+    })),
+    /No safe exercises remain for Upper A\. Adjust the selected equipment or constraints/i,
+  );
+});
+
+test("curated engine deterministically prioritizes exercise likes and target areas", () => {
+  const baseline = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym", "bodyweight"],
+  }));
+  const preferred = generateCuratedWorkoutPlan(intake({
+    equipment: ["full-gym", "bodyweight"],
+    exerciseLikes: ["Dumbbell Bench Press"],
+    targetAreas: ["Glutes"],
+  }));
+  const baselineSlugs = baseline.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+  const preferredSlugs = preferred.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+
+  assert.ok(baselineSlugs.includes("barbell-bench-press"));
+  assert.ok(preferredSlugs.includes("dumbbell-bench-press"));
+  assert.ok(preferredSlugs.includes("single-leg-romanian-deadlift") || preferredSlugs.includes("glute-bridge"));
+  assert.notDeepEqual(preferredSlugs, baselineSlugs);
+  assert.match(preferred.rationale.join(" "), /preferred exercises and target areas/i);
+});
+
+test("curated engine fails safely when every equipment-compatible candidate is excluded", () => {
+  assert.throws(
+    () => generateCuratedWorkoutPlan(intake({
+      daysPerWeek: 2,
+      equipment: ["bodyweight"],
+      exerciseDislikes: ["Plank"],
+    })),
+    /No safe core exercise matches/i,
+  );
+});
+
+test("curated preview and draft target derivation agree for time-based exercises", () => {
+  const plan = generateCuratedWorkoutPlan(intake({
+    daysPerWeek: 2,
+    equipment: ["bodyweight"],
+  }));
+  const exercises = plan.days.flatMap((day) => day.exercises);
+  const plank = exercises.find((exercise) => exercise.slug === "plank");
+  const mountainClimber = exercises.find((exercise) => exercise.slug === "mountain-climber");
+
+  assert.ok(plank);
+  assert.ok(mountainClimber);
+  assert.deepEqual(deriveCuratedExerciseTarget(plank), {
+    measurementType: "time",
+    targetRepsMin: null,
+    targetRepsMax: null,
+    targetDurationSeconds: 60,
+  });
+  assert.equal(formatCuratedExerciseTarget(plank), `${plank.targetSets}x1 min`);
+  assert.equal(formatCuratedExerciseTarget(mountainClimber), `${mountainClimber.targetSets}x1 min`);
+});
+
+test("curated routine schedule preserves weekly frequency with explicit rest days", () => {
+  const plan = generateCuratedWorkoutPlan(intake({ daysPerWeek: 3 }));
+  const schedule = buildCuratedRoutineSchedule(plan);
+
+  assert.equal(schedule.length, 7);
+  assert.deepEqual(
+    schedule.filter((day) => day.planDay).map((day) => day.dayIndex),
+    [1, 3, 5],
+  );
+  assert.deepEqual(
+    schedule.filter((day) => !day.planDay).map((day) => day.dayIndex),
+    [2, 4, 6, 7],
+  );
+  assert.deepEqual(
+    schedule.flatMap((day) => day.planDay?.name ?? []),
+    plan.days.map((day) => day.name),
+  );
 });

@@ -4,7 +4,12 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { assertExpectedFitnessSupabaseHost, parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  assertExpectedFitnessSupabaseHost,
+  mergeEnvFileWithShell,
+  parseDotenvFile,
+  resolveEnvFilePath,
+} from "./env-file.mjs";
 
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
@@ -19,10 +24,7 @@ export const repoRoot = path.resolve(scriptDir, "..");
 export const DISCORD_FEEDBACK_EXPORTS_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-DISCORD-FEEDBACK-EXPORTS.md");
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
-const resolvedEnv = {
-  ...process.env,
-  ...fileEnv,
-};
+const resolvedEnv = mergeEnvFileWithShell({ fileEnv, shellEnv: process.env });
 
 Object.assign(process.env, resolvedEnv);
 

@@ -48,7 +48,7 @@ test("Discord message command claims return claimed=false on duplicate insert", 
     adminClient: client,
     env: {
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
-      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      SUPABASE_SECRET_KEY: "modern-secret-key",
       NODE_ENV: "production",
     },
   });
@@ -58,6 +58,15 @@ test("Discord message command claims return claimed=false on duplicate insert", 
     claimed: false,
     skippedStore: false,
   });
+});
+
+test("Discord message command claims retain the bounded legacy admin credential fallback", () => {
+  assert.equal(isDiscordMessageCommandClaimStoreConfigured({
+    NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+    SUPABASE_SECRET_KEY: "  ",
+    SUPABASE_SERVICE_ROLE_KEY: "legacy-fallback-key",
+    NODE_ENV: "production",
+  }), true);
 });
 
 test("Discord message command claim finalization records completion fields", async () => {

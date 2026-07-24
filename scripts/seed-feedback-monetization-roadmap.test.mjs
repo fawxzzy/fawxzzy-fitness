@@ -116,7 +116,7 @@ test("buildRoadmapInsertValues maps roadmap cards into bounded feature rows", ()
   });
 
   assert.equal(values.card_id, "FF-CORE-001");
-  assert.equal(values.status, "confirmed");
+  assert.equal(values.status, "fixed");
   assert.equal(values.discord_forum_channel_id, "forum-1");
   assert.equal(values.reporter_discord_user_id, "1504700208251146371");
   assert.match(values.details, /^Roadmap Type:/);
@@ -134,6 +134,14 @@ test("buildRoadmapInsertValues preserves closed launch gate status", () => {
   });
 
   assert.equal(values.status, "fixed");
+});
+
+test("hosted CI runs the curated engine and roadmap contract suites", () => {
+  const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
+
+  assert.match(workflow, /--test src\/features\/curated-onboarding\/engine\.test\.ts/);
+  assert.match(workflow, /--test scripts\/seed-feedback-monetization-roadmap\.test\.mjs/);
 });
 
 test("implementation order covers every roadmap card exactly once and respects internal dependencies", () => {

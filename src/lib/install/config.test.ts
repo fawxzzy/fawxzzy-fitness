@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   getCanonicalInstallUrl,
   getInstalledAppHref,
@@ -105,4 +106,27 @@ test("installed app href returns to the intended route without reopening install
 test("install return and bypass helpers reject external targets", () => {
   assert.equal(getInstallRouteHrefForReturnTo("https://evil.example/login"), "/install?returnTo=%2Flogin");
   assert.equal(getInstallBypassHref("//evil.example/login"), "/login?installBypass=1");
+});
+
+test("install guidance requires an explicit continuation and preserves iOS auth return paths", () => {
+  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+  const iosSource = readFileSync(new URL("../../components/install/IOSAddToHomeScreenGate.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(installSource, /shouldAutoContinueWithoutGuide/);
+  assert.doesNotMatch(installSource, /router\.replace\(getInstallBypassHref/);
+  assert.match(installSource, /primaryHref=\{installPrompt\.canPromptInstall \? undefined : continueHref\}/);
+  assert.match(installSource, /primaryHref=\{continueHref\}/);
+  assert.match(iosSource, /primaryHref=\{primaryHref\}/);
+  assert.match(iosSource, /primaryLabel="Continue"/);
+});
+
+test("browser fallback preserves the full install presentation alongside explicit continuation", () => {
+  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+
+  assert.match(installSource, /Use the browser install prompt here, or open Fitness directly\./);
+  assert.match(installSource, /Menu Install/);
+  assert.match(installSource, /This browser is not offering the one-tap install prompt right now\./);
+  assert.match(installSource, /Look for Share, Add to Home Screen, or Install app depending on your browser\./);
+  assert.match(installSource, /primaryLabel=\{installPrompt\.canPromptInstall \? undefined : "Open Fitness"\}/);
+  assert.doesNotMatch(installSource, /Manual Open/);
 });

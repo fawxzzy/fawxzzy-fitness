@@ -5,7 +5,12 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { assertExpectedFitnessSupabaseHost, parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  assertExpectedFitnessSupabaseHost,
+  mergeEnvFileWithShell,
+  parseDotenvFile,
+  resolveEnvFilePath,
+} from "./env-file.mjs";
 import {
   applyResolvedFeedbackCardDependencies,
   normalizeFeedbackCardId,
@@ -36,10 +41,7 @@ register("./test-alias-loader.mjs", pathToFileURL(`${scriptDir}${path.sep}`));
 const feedbackHelpers = await import(pathToFileURL(path.join(repoRoot, "src", "lib", "discord", "bug-reports.ts")).href);
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
-const resolvedEnv = {
-  ...process.env,
-  ...fileEnv,
-};
+const resolvedEnv = mergeEnvFileWithShell({ fileEnv, shellEnv: process.env });
 
 Object.assign(process.env, resolvedEnv);
 
