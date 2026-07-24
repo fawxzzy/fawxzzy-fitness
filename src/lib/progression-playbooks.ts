@@ -658,6 +658,7 @@ export type ProgressionHistorySetRow = {
 
 export type ProgressionHistorySession = {
   sessionId: string;
+  sessionRecordId?: string | null;
   performedAt: string;
   workingSetCount: number;
   targetSetCount: number;
@@ -704,6 +705,7 @@ export type ProgressionReviewCandidate = {
   cycleWindow?: ProgressionReviewCycleWindow | null;
   sourceSession?: {
     sessionId: string;
+    sessionRecordId?: string | null;
     performedAt: string;
     isLatest: boolean;
   } | null;
@@ -1800,6 +1802,7 @@ function findBestTopRangeSession(args: {
 function buildSourceSession(session: ProgressionHistorySession, latestSession: ProgressionHistorySession | null) {
   return {
     sessionId: session.sessionId,
+    sessionRecordId: session.sessionRecordId ?? null,
     performedAt: session.performedAt,
     isLatest: latestSession?.sessionId === session.sessionId,
   };
@@ -2886,7 +2889,7 @@ export function buildProgressionHistorySessions(args: {
   }
 
   const sessions = [...grouped.entries()]
-    .map(([sessionId, rows]) => {
+    .map(([sessionId, rows]): ProgressionHistorySession | null => {
       const ordered = [...rows]
         .filter((row) => !row.isWarmup)
         .sort((a, b) => a.setIndex - b.setIndex)
@@ -2905,6 +2908,7 @@ export function buildProgressionHistorySessions(args: {
 
       return {
         sessionId,
+        sessionRecordId: ordered[0]?.sessionRecordId ?? null,
         performedAt: ordered[0]?.performedAt ?? "",
         workingSetCount: ordered.length,
         targetSetCount,
@@ -2916,7 +2920,7 @@ export function buildProgressionHistorySessions(args: {
         maxReps: repsBySet.length ? Math.max(...repsBySet) : null,
         coveredTargetSets: ordered.length >= targetSetCount,
         allSetsAtOrAboveTopRep: ordered.length >= targetSetCount && repsBySet.length >= targetSetCount && repsBySet.every((reps) => reps >= topRepTarget),
-      } satisfies ProgressionHistorySession;
+      };
     })
     .filter((entry): entry is ProgressionHistorySession => Boolean(entry))
     .sort((a, b) => b.performedAt.localeCompare(a.performedAt));

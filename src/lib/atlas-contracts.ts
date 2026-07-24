@@ -55,6 +55,10 @@ function normalizeAtlasEnvironment(): AtlasEnvironment {
     return "production";
   }
 
+  if (process.env.CI === "true") {
+    return "ci";
+  }
+
   return "local";
 }
 

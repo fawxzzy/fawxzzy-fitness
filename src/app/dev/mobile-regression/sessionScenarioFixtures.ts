@@ -49,6 +49,13 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       effort: 3,
     },
   },
+  "session-post-close-feedback": {
+    // Starts expanded so the fixture can prove the prompt appears only after close.
+    selectedExerciseId: "session-ex-4",
+  },
+  "session-auto-progression-confirmation": {
+    selectedExerciseId: null,
+  },
   "session-logger-cardio-time": {
     selectedExerciseId: "session-ex-5",
     feedback: {

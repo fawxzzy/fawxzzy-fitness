@@ -10,7 +10,7 @@ import {
 } from "@/components/day-list/RoutineDayCardPresentation";
 import { RoutinesListItemCard } from "@/components/routines/RoutinesScreenFamily";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -40,22 +40,18 @@ export type RoutineBrowseCardItem = {
 };
 
 const ROUTINES_BROWSE_CARD_BODY_CLASS_NAME = "min-h-[7.2rem] py-[0.72rem]";
-const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 pt-[0.3rem] pb-0";
+const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 pt-[0.1rem] pb-0";
 const ROUTINES_BROWSE_CARD_PREVIEW_GRID_CLASS_NAME = "grid gap-2 pt-1";
 const ROUTINES_BROWSE_CARD_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
 const ROUTINES_BROWSE_CARD_PREVIEW_SCROLL_CLASS_NAME = "pl-1 pr-[1.7rem] pb-1 sm:pr-[1.2rem]";
 const ROUTINES_BROWSE_CARD_PREVIEW_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-2 pr-[1.35rem] sm:justify-center sm:pr-0";
-const ROUTINES_BROWSE_CARD_PREVIEW_TILE_CLASS_NAME = "grid min-h-[6.1rem] w-[9.95rem] min-w-[9.95rem] content-start gap-2 rounded-[1rem] border-2 border-[rgb(var(--accent-divider-rgb)/0.4)] bg-[rgb(var(--surface-2-rgb)/0.58)] px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgb(var(--accent-divider-rgb)/0.08)] sm:w-[10.75rem] sm:min-w-[10.75rem] sm:px-3";
+const ROUTINES_BROWSE_CARD_PREVIEW_TILE_CLASS_NAME = "grid min-h-[6.1rem] w-[15rem] min-w-[15rem] content-start gap-2 rounded-[1rem] border-2 border-[rgb(var(--accent-divider-rgb)/0.4)] bg-[rgb(var(--surface-2-rgb)/0.58)] px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgb(var(--accent-divider-rgb)/0.08)] sm:w-[17rem] sm:min-w-[17rem] sm:px-3";
 const ROUTINES_BROWSE_CARD_REST_PREVIEW_TILE_CLASS_NAME = "min-h-[2.05rem] w-[6.8rem] min-w-[6.8rem] content-center gap-0 border-[rgb(var(--accent-yellow-on)/0.5)] bg-[rgb(var(--accent-yellow-off)/0.1)] px-2 py-[0.45rem] sm:w-[7.15rem] sm:min-w-[7.15rem]";
 const ROUTINES_BROWSE_CARD_PREVIEW_HEADER_CLASS_NAME = "grid w-full min-w-0 justify-items-center gap-1";
 const ROUTINES_BROWSE_CARD_PREVIEW_TITLE_CLASS_NAME = "block max-w-full text-center text-[0.88rem] font-semibold leading-tight [text-wrap:balance]";
 const ROUTINES_BROWSE_CARD_PREVIEW_META_LINE_CLASS_NAME = "inline-flex min-w-0 max-w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_WRAPPER_CLASS_NAME = "-mx-0.5";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_CLASS_NAME = "pl-0.5 pr-[1rem] pb-0.5 sm:px-0.5";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1 sm:justify-center sm:gap-1.5";
+const ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME = "flex min-w-0 flex-wrap items-center justify-center gap-1 sm:gap-1.5";
 const ROUTINES_BROWSE_CARD_PREVIEW_TAG_CLASS_NAME = `${ROUTINE_SURFACE_TAG_CLASS_NAME} max-w-full whitespace-normal px-[0.48rem] py-[0.22rem] text-center text-[9.5px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`;
-const ROUTINES_BROWSE_CARD_META_CLASS_NAME = "flex justify-end pt-1";
-const ROUTINES_BROWSE_CARD_CREATED_TAG_CLASS_NAME = "inline-flex items-center rounded-full bg-[rgb(var(--surface-2-rgb)/0.7)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.94)]";
 const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
 const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_CLASS_NAME = "pl-1 pr-[1.55rem] pb-0.5 sm:px-1";
 const ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1 pr-[1.35rem] sm:justify-center sm:gap-1.5 sm:pr-0";
@@ -143,14 +139,7 @@ function renderRoutinePreviewHeader(day: NonNullable<RoutineBrowseCardItem["prev
 
 function renderRoutinePreviewMeta(day: NonNullable<RoutineBrowseCardItem["previewDays"]>[number]) {
   const renderTagRail = (content: ReactNode) => (
-    <HorizontalScrollHint
-      className={ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_WRAPPER_CLASS_NAME}
-      scrollClassName={ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_CLASS_NAME}
-      contentClassName={ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME}
-      showEdgeFades={false}
-    >
-      {content}
-    </HorizontalScrollHint>
+    <div className={ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME}>{content}</div>
   );
 
   if (day.isRest) {
@@ -229,24 +218,6 @@ function renderRoutineSummaryTags(routine: RoutineBrowseCardItem) {
   );
 }
 
-function RoutineBrowseMeta({
-  routine,
-}: {
-  routine: RoutineBrowseCardItem;
-}) {
-  const createdTag = renderRoutineCreatedTag(routine.createdAt);
-  if (!createdTag) {
-    return null;
-  }
-  return (
-    <div className={ROUTINES_BROWSE_CARD_META_CLASS_NAME}>
-      <span className={ROUTINES_BROWSE_CARD_CREATED_TAG_CLASS_NAME}>
-        {createdTag}
-      </span>
-    </div>
-  );
-}
-
 function RoutineBrowsePreview({
   routine,
 }: {
@@ -277,7 +248,6 @@ function RoutineBrowsePreview({
           </div>
         ))}
       </HorizontalScrollHint>
-      <RoutineBrowseMeta routine={routine} />
     </div>
   );
 }
@@ -304,14 +274,29 @@ export function RoutineBrowseCard({
   className,
   bodyClassName = ROUTINES_BROWSE_CARD_BODY_CLASS_NAME,
   contentClassName = ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME,
-  titleClassName = "text-center",
+  titleClassName = "!items-start !pr-24 text-left",
   variant = "standard",
   semanticTone,
   showPreviewDays = true,
 }: RoutineBrowseCardProps) {
+  const createdTag = renderRoutineCreatedTag(routine.createdAt);
+
   return (
     <RoutinesListItemCard
-      title={routine.name}
+      title={(
+        <span className="inline-flex min-w-0 max-w-full flex-wrap items-start gap-x-2 gap-y-1 text-left">
+          <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start gap-1 text-left">
+            <span className="text-[rgb(var(--accent)/0.98)]">{routine.name}</span>
+            <MetricAccentBar variant="thin" className="w-full opacity-90" />
+          </span>
+          {createdTag ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 pt-[0.08rem] text-[9.5px] font-semibold uppercase leading-[1.1] tracking-[0.1em] text-[rgb(var(--text-secondary)/0.82)] sm:text-[10px]">
+              <SignatureMiniPipe className="h-[0.88em] w-[0.38rem]" barClassName="w-[2px]" />
+              <span>{createdTag}</span>
+            </span>
+          ) : null}
+        </span>
+      )}
       subtitle={renderRoutineSummaryTags(routine)}
       subtitleTone="plain"
       onPress={onPress}
@@ -327,7 +312,7 @@ export function RoutineBrowseCard({
       variant={variant}
       semanticTone={semanticTone}
     >
-      {showPreviewDays ? <RoutineBrowsePreview routine={routine} /> : <RoutineBrowseMeta routine={routine} />}
+      {showPreviewDays ? <RoutineBrowsePreview routine={routine} /> : null}
     </RoutinesListItemCard>
   );
 }

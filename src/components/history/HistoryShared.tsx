@@ -82,12 +82,14 @@ export function HistorySection({
   action,
   children,
   className,
+  headerAlign = "left",
 }: {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  headerAlign?: "left" | "center";
 }) {
   return (
     <SharedSectionShell
@@ -96,6 +98,8 @@ export function HistorySection({
       context={description ? <span className={appTokens.historySectionDescription}>{description}</span> : undefined}
       action={action}
       className={cn("pl-1", appTokens.historySectionPanel, className)}
+      headerClassName={headerAlign === "center" ? "justify-center" : undefined}
+      headerContentClassName={headerAlign === "center" ? "w-full text-center" : undefined}
       bodyClassName={appTokens.historySectionBody}
     >
       {children}

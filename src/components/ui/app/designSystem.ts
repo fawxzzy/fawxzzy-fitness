@@ -202,7 +202,7 @@ export const fitnessDesignPrimitiveClassNames = {
     pendingTextClassName: `text-sm leading-6 text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.92")}]`,
   },
   badge: {
-    baseClassName: `inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-[${fitnessDesignTokens.radii.pill}] border px-[${toArbitraryValue(fitnessDesignTokens.spacing["2.5"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] ${fitnessDesignTokens.typography.badge}`,
+    baseClassName: `inline-flex min-h-[1.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-[${fitnessDesignTokens.radii.pill}] border px-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["1.5"])}] leading-[1.08] ${fitnessDesignTokens.typography.badge}`,
     todayClassName: `border-[rgb(var(--selection-rgb)/0.36)] bg-[rgb(var(--selection-rgb)/0.14)] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
     defaultClassName: `border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["3"], "0.92")}] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.9")}]`,
     successClassName: `border-[rgb(var(--success-rgb)/0.34)] bg-[rgb(var(--success-rgb)/0.14)] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,

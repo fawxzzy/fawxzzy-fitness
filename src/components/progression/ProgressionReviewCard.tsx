@@ -362,7 +362,7 @@ export function ProgressionReviewCard({
                         const applied = appliedById[item.id] ?? null;
                         const isStaleSourceDeleted = applied?.lifecycleState === "stale_source_deleted";
                         const isRevertSettling = Boolean(revertSettlingById[item.id]);
-                        const canApply = item.type === "promote" || item.type === "deload";
+                        const canApply = item.type === "deload";
                         const isItemPending = isPending && pendingItemId === item.id;
                         const targetDisplay = resolveTargetDisplayPair({ item, applied });
                         const linkedTargets = item.linkedUpdate?.targets ?? [];
@@ -371,7 +371,7 @@ export function ProgressionReviewCard({
                           : [];
                         const selectedLinkedTargets = linkedTargets.filter((target) => selectedLinkedIds.includes(target.routineDayExerciseId));
                         const canApplyLinkedSelection = linkedTargets.length <= 1 || selectedLinkedIds.length > 0;
-                        const linkedActionLabel = linkedTargets.length > 1 ? "Promote selected" : item.actionLabel;
+                        const linkedActionLabel = linkedTargets.length > 1 ? "Apply regression to selected" : item.actionLabel;
                         const itemForAction = item.linkedUpdate && linkedTargets.length > 1 ? {
                           ...item,
                           linkedUpdate: {
@@ -420,12 +420,12 @@ export function ProgressionReviewCard({
                                     Source session was removed. Recheck this update.
                                   </p>
                                 ) : null}
-                                {item.linkedUpdate && item.linkedUpdate.dayNames.length > 1 ? (
+                                {canApply && item.linkedUpdate && item.linkedUpdate.dayNames.length > 1 ? (
                                   <p className="text-[11px] font-semibold leading-snug text-[rgb(var(--accent-divider-rgb)/0.86)]">
-                                    Linked ready update across {item.linkedUpdate.dayNames.join(" + ")}. Promote applies to selected days.
+                                    Linked regression across {item.linkedUpdate.dayNames.join(" + ")}. Apply it only to the selected days.
                                   </p>
                                 ) : null}
-                                {!applied && linkedTargets.length > 1 ? (
+                                {!applied && canApply && linkedTargets.length > 1 ? (
                                   <div className="mt-1.5 rounded-[0.75rem] border border-[rgb(var(--border-strong)/0.10)] bg-[rgb(var(--surface-2-rgb)/0.16)] p-1.5">
                                     <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
                                       Apply to
@@ -526,7 +526,7 @@ export function ProgressionReviewCard({
                                     {isItemPending || isRevertSettling ? "Reverting..." : "Revert"}
                                   </button>
                                 </div>
-                              ) : (
+                              ) : canApply ? (
                                 <button
                                   type="button"
                                   disabled={isPending || !canApply || !canApplyLinkedSelection}
@@ -584,7 +584,7 @@ export function ProgressionReviewCard({
                                 >
                                   {isItemPending && canApply ? "Applying..." : linkedActionLabel}
                                 </button>
-                              )}
+                              ) : null}
                             </div>
                           </li>
                         );

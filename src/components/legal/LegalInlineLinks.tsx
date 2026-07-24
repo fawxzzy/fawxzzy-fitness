@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
 
 function buildLegalHref(pathname: "/privacy" | "/terms", returnTo?: string) {
@@ -34,9 +35,7 @@ export function LegalInlineLinks({
         Privacy Policy
       </Link>
       {separator ?? (
-        <span aria-hidden="true" className={cn("text-[rgb(var(--text-muted)/0.72)]", separatorClassName)}>
-          |
-        </span>
+        <SignatureMiniPipe className={separatorClassName} />
       )}
       <Link href={buildLegalHref("/terms", returnTo)} className={cn("underline-offset-4 hover:underline", linkClassName)}>
         Terms of Service

@@ -77,20 +77,29 @@ Recommended order:
 4. `FF-LEGAL-001` Add Privacy Policy and Terms of Service
 5. `FF-MON-002` Implement Stripe Pro Subscription Checkout Flow
 6. `FF-SEC-001` Supabase Production Hardening Before Paid Launch
-7. `FF-MON-001` Monetization Readiness Gate
-8. `FF-QA-001` Monetization Launch Smoke Test Checklist
-9. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
-10. `FF-MON-003` Define Pro Plan Pricing and Gated Value Copy
-11. `FF-MKT-001` Founding User Launch Plan
-12. `FF-RET-001` Add Calendar View
+7. `FF-MON-003` Define Pro Plan Pricing and Gated Value Copy
+8. `FF-MON-001` Monetization Readiness Gate
+9. `FF-QA-001` Monetization Launch Smoke Test Checklist
+10. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
+11. `FF-RET-001` Add Calendar View
+12. `FF-RET-004` Add Weekly and Monthly Progress Summaries
 13. `FF-RET-002` Add Workout Streaks
 14. `FF-RET-003` Add Consistency Heatmap
-15. `FF-RET-004` Add Weekly and Monthly Progress Summaries
+15. `FF-PWA-003` Expand Earned Install Promotion Moments
 16. `FF-ENGINE-001` Build Curated Workout Engine V1
-17. `FF-GAM-001` Add Achievements and Badges
-18. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
-19. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
-20. `FF-SOC-001` Explore Social Features
+17. `FF-ONBOARD-001` Ship Curated Onboarding Intake And Generator Handoff
+18. `FF-RECAP-001` Ship Shareable Workout Recap Artifacts
+19. `FF-ANALYTICS-002` Add Premium Cycle Analytics Preview Placement
+20. `FF-MKT-001` Founding User Launch Plan
+21. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
+22. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1
+23. `FF-GAM-001` Add Achievements and Badges
+24. `FF-SOC-001` Explore Social Features
+25. `FF-PROG-001` Ship Today And Routines Progression Updates Surface
+26. `FF-ACCOUNT-001` Add Account Workout Data Export
+
+Backfilled shipped cards:
+- `FF-PROG-001` and `FF-ACCOUNT-001` stay in the roadmap for coverage, but they are intentionally placed below active future implementation lanes so resolved work does not crowd the live queue.
 
 Do not start yet:
 - `FF-ENGINE-002` waits on `FF-ENGINE-001` and `FF-RET-004`.

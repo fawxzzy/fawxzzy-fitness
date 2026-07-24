@@ -7,6 +7,7 @@ export function deriveCompletedVisibilityOverride(args: {
   targetSetsMin?: number | null;
   targetSetsMax?: number | null;
   previousShowWhenCompleted: boolean;
+  retainWhenFirstCompleted?: boolean;
 }) {
   const wasGoalCompleted = deriveSessionExerciseProgressState({
     loggedSetCount: args.previousLoggedSetCount,
@@ -26,5 +27,5 @@ export function deriveCompletedVisibilityOverride(args: {
     return args.previousShowWhenCompleted;
   }
 
-  return wasGoalCompleted ? args.previousShowWhenCompleted : false;
+  return wasGoalCompleted ? args.previousShowWhenCompleted : Boolean(args.retainWhenFirstCompleted);
 }

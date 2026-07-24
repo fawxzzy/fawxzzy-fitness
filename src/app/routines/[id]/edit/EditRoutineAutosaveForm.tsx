@@ -32,14 +32,15 @@ import {
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
+import { normalizeRoutineTimezone } from "@/lib/timezones";
 
 function getDeviceTimezone(fallback: string) {
   if (typeof window === "undefined") {
-    return fallback;
+    return normalizeRoutineTimezone(fallback);
   }
 
   const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone?.trim();
-  return resolved || fallback;
+  return normalizeRoutineTimezone(resolved || fallback);
 }
 
 type Props = {

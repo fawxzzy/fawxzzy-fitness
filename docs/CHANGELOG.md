@@ -1909,7 +1909,7 @@ A shared bottom action component enforces a default ordering, causing unintended
 ### WHAT
 - Updated `.github/workflows/ci.yml` to define `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` at job scope as a required deterministic input and fail fast when it is missing.
 - Refined Playbook acquisition logic in CI to follow the explicit sequence `install -> acquire package -> acquire official fallback -> run`, including an opt-in `PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1` path for deterministic fallback-only simulations.
-- Tightened CI runtime validation to require `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json` instead of only checking for any file under `.playbook/`.
+- Tightened CI runtime validation to require the artifacts emitted by its command ladder: `.playbook/findings.json`, `.playbook/plan.json`, and `.playbook/repo-graph.json`; `.playbook/last-run.json` remains apply-only execution state.
 - Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to codify the deterministic fallback requirement and required artifact contract.
 
 ### WHY

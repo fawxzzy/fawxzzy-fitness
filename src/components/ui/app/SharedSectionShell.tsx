@@ -16,6 +16,8 @@ export function SharedSectionShell({
   footer,
   listState,
   className,
+  headerClassName,
+  headerContentClassName,
   bodyClassName,
 }: {
   recipe: ScreenContractName;
@@ -28,6 +30,8 @@ export function SharedSectionShell({
   footer?: ReactNode;
   listState?: ReactNode;
   className?: string;
+  headerClassName?: string;
+  headerContentClassName?: string;
   bodyClassName?: string;
 }) {
   const screenRecipe = resolveScreenRecipe(recipe);
@@ -41,8 +45,8 @@ export function SharedSectionShell({
       className={cn(screenRecipe.sectionShellClassName, className)}
     >
       {hasSectionHeader ? (
-        <div className={sectionTokens.sectionHeaderClassName}>
-          <div className="min-w-0 space-y-1">
+        <div className={cn(sectionTokens.sectionHeaderClassName, headerClassName)}>
+          <div className={cn("min-w-0 space-y-1", headerContentClassName)}>
             {label ? (
               <p className={sectionTokens.sectionLabelClassName}>{label}</p>
             ) : null}

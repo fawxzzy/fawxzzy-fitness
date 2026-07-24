@@ -56,6 +56,7 @@ export function ConfirmDestructiveModal({
   confirmVariant = "destructive",
   titleVariant = "confirm",
   hideBottomActions = false,
+  hideCancelAction = false,
   onCancel,
   onConfirm,
 }: {
@@ -76,6 +77,7 @@ export function ConfirmDestructiveModal({
   confirmVariant?: "primary" | "destructive";
   titleVariant?: "confirm" | "raw";
   hideBottomActions?: boolean;
+  hideCancelAction?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -228,32 +230,46 @@ export function ConfirmDestructiveModal({
         <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-20 ${MODAL_BOTTOM_BAR_SURFACE_CLASSNAME}`}>
           <div className="pointer-events-auto mx-auto w-full max-w-[720px] px-4">
             <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
-              <BottomActionSplit
-                secondary={(
-                  <BottomDockButton
-                    type="button"
-                    intent="toggleInactive"
-                    onClick={onCancel}
-                    disabled={isLoading}
-                    data-confirm-modal-action="cancel"
-                  >
-                    {cancelLabel}
-                  </BottomDockButton>
-                )}
-                primary={(
-                  <BottomDockButton
-                    type="button"
-                    variant={confirmVariant}
-                    onClick={onConfirm}
-                    disabled={isLoading || confirmDisabled}
-                    loading={isLoading}
-                    loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
-                    data-confirm-modal-action="confirm"
-                  >
-                    {confirmActionLabel}
-                  </BottomDockButton>
-                )}
-              />
+              {hideCancelAction ? (
+                <BottomDockButton
+                  type="button"
+                  variant={confirmVariant}
+                  onClick={onConfirm}
+                  disabled={isLoading || confirmDisabled}
+                  loading={isLoading}
+                  loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
+                  data-confirm-modal-action="confirm"
+                >
+                  {confirmActionLabel}
+                </BottomDockButton>
+              ) : (
+                <BottomActionSplit
+                  secondary={(
+                    <BottomDockButton
+                      type="button"
+                      intent="toggleInactive"
+                      onClick={onCancel}
+                      disabled={isLoading}
+                      data-confirm-modal-action="cancel"
+                    >
+                      {cancelLabel}
+                    </BottomDockButton>
+                  )}
+                  primary={(
+                    <BottomDockButton
+                      type="button"
+                      variant={confirmVariant}
+                      onClick={onConfirm}
+                      disabled={isLoading || confirmDisabled}
+                      loading={isLoading}
+                      loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
+                      data-confirm-modal-action="confirm"
+                    >
+                      {confirmActionLabel}
+                    </BottomDockButton>
+                  )}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -251,6 +251,26 @@ function createDiscordApi(fetchImpl = globalThis.fetch) {
           message: data && typeof data === "object" && "message" in data ? String(data.message ?? response.statusText) : response.statusText,
         };
     },
+    async reopenReviewThread({ threadId }) {
+      const response = await fetchImpl(`https://discord.com/api/v10/channels/${threadId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bot ${getRequiredEnv(DISCORD_BOT_TOKEN_ENV)}`,
+          "Content-Type": "application/json",
+          "User-Agent": "fawxzzy-fitness-feedback-sync/1.0",
+        },
+        body: JSON.stringify({ archived: false, locked: false }),
+      });
+      const data = await parseDiscordJson(response);
+
+      return response.ok
+        ? { ok: true }
+        : {
+          ok: false,
+          status: response.status,
+          message: data && typeof data === "object" && "message" in data ? String(data.message ?? response.statusText) : response.statusText,
+        };
+    },
     async resolveTagIdsByName({ channelId, tagNames }) {
       const response = await fetchImpl(`https://discord.com/api/v10/channels/${channelId}`, {
         method: "GET",
@@ -433,6 +453,17 @@ export async function runSyncFeedbackForumPosts({
       dryRunCount += 1;
       notes.push(`DRY-RUN ${descriptor}`);
       continue;
+    }
+
+    if (row.status === "fawxzzy_review") {
+      const reopenResult = await discordApi.reopenReviewThread?.({
+        threadId: row.discord_forum_thread_id,
+      });
+      if (reopenResult && !reopenResult.ok) {
+        failedCount += 1;
+        notes.push(`FAIL ${shortId}: review-thread reopen returned ${reopenResult.status ?? "unknown"}${reopenResult.message ? ` (${reopenResult.message})` : ""}`);
+        continue;
+      }
     }
 
     if (typeof row.discord_forum_channel_id === "string" && row.discord_forum_channel_id.trim().length > 0) {

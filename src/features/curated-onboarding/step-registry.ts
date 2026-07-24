@@ -63,15 +63,15 @@ export const CURATED_STEP_REGISTRY: CuratedStepDefinition[] = [
     id: "review",
     eyebrow: "Review",
     title: "Review the saved intake",
-    body: "This is the intake payload we will save now and hand to the curated engine once generation is live.",
-    nextLabel: "Save intake",
+    body: "Confirm the inputs the curated engine will use to build your editable routine draft.",
+    nextLabel: "Generate plan",
   },
   {
     id: "generation-handoff",
-    eyebrow: "Generator Handoff",
-    title: "Your intake is saved",
-    body: "The handoff contract is connected, but real routine generation is still intentionally out of scope for this pass.",
-    nextLabel: "Open Today",
+    eyebrow: "Generated Plan",
+    title: "Review your curated routine",
+    body: "Review the deterministic plan, then open it as a normal editable routine draft before publishing.",
+    nextLabel: "Create editable draft",
   },
 ];
 

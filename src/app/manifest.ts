@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "FawxzzyFitness",
     short_name: "FawxzzyFitness",
     description: "Track sessions and progress with a focused training workflow.",
-    start_url: "/",
+    start_url: "/login?installedApp=1",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

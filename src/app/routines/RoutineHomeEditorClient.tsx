@@ -28,14 +28,15 @@ import {
   writeRoutineDraftSession,
 } from "@/lib/routine-draft-session";
 import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
+import { normalizeRoutineTimezone } from "@/lib/timezones";
 
 function getDeviceTimezone(fallback: string) {
   if (typeof window === "undefined") {
-    return fallback;
+    return normalizeRoutineTimezone(fallback);
   }
 
   const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone?.trim();
-  return resolved || fallback;
+  return normalizeRoutineTimezone(resolved || fallback);
 }
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {

@@ -279,7 +279,9 @@ test("history detail compact exercise rows keep the session-native summary rhyth
   const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
 
   assert.match(source, /summaryLabel=\{bestSet \? "Top Set" : "Session"\}/);
-  assert.match(source, /metadata=\{renderMetaTags\(collapsedCardBadgeItems\.signalItems\)\}/);
+  assert.match(source, /metadata=\{renderMetaTags\(\[\s*\.\.\.collapsedCardBadgeItems\.signalItems,/);
+  assert.match(source, /\.\.\.\(timerSignalItem \? \[timerSignalItem\] : \[\]\)/);
+  assert.match(source, /\.\.\.\(recoveryInsight \? \[recoveryInsight\.label\] : \[\]\)/);
   assert.match(source, /buildCollapsedExerciseCardBadgeItems/);
   assert.match(source, /badgeItems=\{\[collapsedCardBadgeItems\.countLabel\]\}/);
 });

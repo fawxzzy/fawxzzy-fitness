@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { DayList } from "@/components/day-list/DayList";
 import {
   ROUTINE_CONTENT_GAP_CLASS_NAME,
@@ -22,6 +21,10 @@ import {
   RoutinesPageScaffold,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
+import {
+  ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME,
+  ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
+} from "@/components/routines/routineCardChrome";
 import {
   RoutineChooserOptionCard,
   RoutineDuplicateChooserPanel,
@@ -107,25 +110,11 @@ const ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonCl
   intent: "positive",
   className: "translate-x-px !border-l-0 focus-visible:ring-[rgb(var(--accent)/0.24)]",
 });
-const ROUTINE_HOME_DELETE_PILL_CLASS_NAME = cn(
-  getBottomActionButtonClassName({
-    intent: "danger",
-    fullWidth: false,
-    className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-  }),
-  "shrink-0 self-center",
-);
-const ROUTINE_HOME_CORNER_DELETE_PILL_CLASS_NAME = cn(
-  ROUTINE_HOME_DELETE_PILL_CLASS_NAME,
-  "!rounded-tl-[0.5rem] !rounded-tr-none !rounded-bl-none !rounded-br-none",
-  "!border-[rgb(var(--danger-rgb)/0.98)] !bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(132_31_31/0.98))] !text-[rgb(255_245_245)] shadow-[0_2px_10px_rgb(var(--danger-rgb)/0.16)]",
-);
 const ROUTINE_HOME_REORDER_HANDLE_CLASS_NAME = cn(
   appTokens.routineEditorReorderHandle,
   "relative z-[2] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
-const ROUTINE_HOME_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
 const ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME = cn(
   overlayChromeClassNames.panelBase,
   `relative z-10 mx-auto flex max-h-[min(100dvh-2rem,42rem)] min-w-0 w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} flex-col overflow-hidden rounded-[1.25rem]`,
@@ -600,6 +589,7 @@ export function RoutineHomeClient({
                     isSelected={day.isToday}
                     isExpanded={isExpanded}
                     onPress={() => handleToggleDayExpansion(day.id)}
+                    headerLayout="cornered"
                     reorderHandle={reorderRoutineDaysAction && displayDays.length > 1 ? (
                       <button
                         type="button"
@@ -625,7 +615,7 @@ export function RoutineHomeClient({
                     ) : undefined}
                     wrapper={(card) => (
                       <div className="relative min-w-0" data-routine-day-id={day.id}>
-                        <div className={ROUTINE_HOME_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME}>
+                        <div className={ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME}>
                           <button
                             type="button"
                             onClick={(event) => {
@@ -635,9 +625,8 @@ export function RoutineHomeClient({
                             }}
                             disabled={isBusy}
                             aria-label={`Delete ${day.title ?? day.name ?? `workout plan ${day.dayIndex}`}`}
-                            data-bottom-action-intent="danger"
                             className={cn(
-                              ROUTINE_HOME_CORNER_DELETE_PILL_CLASS_NAME,
+                              ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
                               "pointer-events-auto",
                               isBusy ? "opacity-75" : undefined,
                             )}

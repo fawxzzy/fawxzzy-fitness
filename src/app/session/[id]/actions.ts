@@ -27,8 +27,31 @@ import type { SetRow } from "@/types/db";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
+import { applyProgressionReviewCandidateAction } from "@/app/progression-review/actions";
+import { loadProgressionReviewItems } from "@/lib/progression-review-loader";
+import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
+import { shouldApplyAutomaticSessionPromotion } from "@/lib/session-auto-progression";
+import {
+  applyExerciseTimerCommand,
+  finalizeRunningExerciseTimer,
+  parseExerciseTimerConfig as parseExerciseTimerConfigInput,
+  type ExerciseTimerCommand,
+  type ExerciseTimerMode,
+  type ExerciseTimerSnapshot,
+  type ExerciseTimerStatus,
+} from "@/lib/exercise-timer";
+import { validateProgressionPlaybookSelection, type ProgressionTargetPlan } from "@/lib/progression-playbooks";
+import type { RoutineDayExerciseRow } from "@/types/db";
 
 const SHOULD_DEBUG_CANONICAL_LINKING = process.env.NODE_ENV === "development";
+const AUTO_PROGRESSION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
+
+type SessionAutoPromotionUpdate = {
+  exerciseName: string;
+  previousTarget: string | null;
+  appliedTarget: string | null;
+  linkedTargetCount: number;
+};
 
 function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
   return {
@@ -110,6 +133,209 @@ async function ensurePerformedIndex(payload: {
 
 function hasSelectedProgressionPlaybook(payload: Record<string, unknown>) {
   return typeof payload.progression_playbook_id === "string" && payload.progression_playbook_id.length > 0;
+}
+
+async function applyEligibleAutomaticProgressionUpdates(args: {
+  sessionId: string;
+  userId: string;
+  supabase: ReturnType<typeof supabaseServer>;
+}): Promise<SessionAutoPromotionUpdate[]> {
+  const { data: session } = await args.supabase
+    .from("sessions")
+    .select("routine_id")
+    .eq("id", args.sessionId)
+    .eq("user_id", args.userId)
+    .maybeSingle();
+
+  if (!session?.routine_id) {
+    return [];
+  }
+
+  const routineId = session.routine_id;
+  const { data: routine } = await args.supabase
+    .from("routines")
+    .select("weight_unit")
+    .eq("id", routineId)
+    .eq("user_id", args.userId)
+    .maybeSingle();
+  const { data: routineDays } = await args.supabase
+    .from("routine_days")
+    .select("id, name, day_index")
+    .eq("routine_id", routineId)
+    .eq("user_id", args.userId);
+
+  if (!routine || !routineDays?.length) {
+    return [];
+  }
+
+  const routineDayIds = routineDays.map((day) => day.id);
+  const { data: exerciseRows } = await args.supabase
+    .from("routine_day_exercises")
+    .select(AUTO_PROGRESSION_EXERCISE_SELECT)
+    .eq("user_id", args.userId)
+    .in("routine_day_id", routineDayIds);
+  const exercises = (exerciseRows ?? []) as RoutineDayExerciseRow[];
+  if (exercises.length === 0) {
+    return [];
+  }
+
+  const exerciseIds = Array.from(new Set(exercises.map((exercise) => exercise.exercise_id)));
+  const { data: exerciseNames } = await args.supabase
+    .from("exercises")
+    .select("id, name")
+    .in("id", exerciseIds);
+  const exerciseNameByRoutineExerciseId = new Map(
+    exercises.map((exercise) => [
+      exercise.id,
+      (exerciseNames ?? []).find((candidate) => candidate.id === exercise.exercise_id)?.name ?? "Exercise",
+    ] as const),
+  );
+  const routineDayNameById = new Map(routineDays.map((day) => [day.id, day.name?.trim() || `Day ${day.day_index}`] as const));
+  const routineDayIndexById = new Map(routineDays.map((day) => [day.id, day.day_index] as const));
+
+  const readyItems = await loadProgressionReviewItems({
+    supabase: args.supabase,
+    userId: args.userId,
+    routineId,
+    fallbackWeightUnit: routine.weight_unit === "kg" ? "kg" : "lbs",
+    exercises,
+    exerciseNameByRoutineExerciseId,
+    routineDayNameById,
+    routineDayIndexById,
+  });
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise] as const));
+  const updates: SessionAutoPromotionUpdate[] = [];
+
+  for (const item of readyItems) {
+    const exercise = exerciseById.get(item.id);
+    const selection = exercise
+      ? validateProgressionPlaybookSelection({
+          playbookId: exercise.progression_playbook_id,
+          config: exercise.progression_playbook_config,
+        })
+      : null;
+    const autoUpdateRoutineGoals = selection && "autoUpdateRoutineGoals" in selection.config
+      ? selection.config.autoUpdateRoutineGoals
+      : false;
+    if (!shouldApplyAutomaticSessionPromotion({
+      candidateType: item.type,
+      autoUpdateRoutineGoals,
+      sourceSessionRecordId: item.sourceSession?.sessionRecordId,
+      completedSessionId: args.sessionId,
+    })) {
+      continue;
+    }
+
+    const result = await applyProgressionReviewCandidateAction({
+      routineId,
+      routineDayExerciseId: item.id,
+      candidateType: "promote",
+      linkedRoutineDayExerciseIds: item.linkedUpdate?.routineDayExerciseIds,
+    });
+    if (!result.ok || !result.data) {
+      continue;
+    }
+
+    updates.push({
+      exerciseName: item.exerciseName,
+      previousTarget: formatProgressionReviewTargetLabel(result.data.previousTarget as ProgressionTargetPlan),
+      appliedTarget: formatProgressionReviewTargetLabel(result.data.appliedTarget as ProgressionTargetPlan),
+      linkedTargetCount: result.data.linkedTargets?.length ?? 1,
+    });
+  }
+
+  return updates;
+}
+
+function isMissingExerciseTimerColumnError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("exercise_timer_") && (
+    message.includes("does not exist")
+    || message.includes("schema cache")
+    || message.includes("could not find")
+  );
+}
+
+function isMissingSetLoggedAtColumnError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("logged_at") && (message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find"));
+}
+
+async function finalizeRunningExerciseTimersForSession(args: {
+  sessionId: string;
+  userId: string;
+  supabase: ReturnType<typeof supabaseServer>;
+  nowIso: string;
+}): Promise<ActionResult> {
+  const result = await args.supabase
+    .from("session_exercises")
+    .select("id, exercise_timer_enabled, exercise_timer_mode, exercise_timer_target_seconds, exercise_timer_elapsed_seconds, exercise_timer_status, exercise_timer_started_at, exercise_timer_completed_at")
+    .eq("session_id", args.sessionId)
+    .eq("user_id", args.userId)
+    .eq("exercise_timer_status", "running");
+
+  if (result.error) {
+    return isMissingExerciseTimerColumnError(result.error)
+      ? { ok: true }
+      : { ok: false, error: result.error.message };
+  }
+
+  for (const row of result.data ?? []) {
+    const timer = finalizeRunningExerciseTimer({
+      enabled: row.exercise_timer_enabled === true,
+      mode: row.exercise_timer_mode as ExerciseTimerMode | null,
+      targetSeconds: row.exercise_timer_target_seconds ?? null,
+      elapsedSeconds: row.exercise_timer_elapsed_seconds ?? 0,
+      status: row.exercise_timer_status as ExerciseTimerStatus,
+      startedAt: row.exercise_timer_started_at ?? null,
+      completedAt: row.exercise_timer_completed_at ?? null,
+    }, args.nowIso);
+    const update = await args.supabase
+      .from("session_exercises")
+      .update({
+        exercise_timer_elapsed_seconds: timer.elapsedSeconds,
+        exercise_timer_status: timer.status,
+        exercise_timer_started_at: timer.startedAt,
+        exercise_timer_completed_at: timer.completedAt,
+      })
+      .eq("id", row.id)
+      .eq("session_id", args.sessionId)
+      .eq("user_id", args.userId)
+      .eq("exercise_timer_status", "running");
+    if (update.error) {
+      return { ok: false, error: update.error.message };
+    }
+  }
+
+  return { ok: true };
+}
+
+function parseExerciseTimerConfig(formData: FormData) {
+  const enabled = String(formData.get("exerciseTimerEnabled") ?? "false") === "true";
+  const parsed = parseExerciseTimerConfigInput({
+    enabled,
+    mode: formData.get("exerciseTimerMode"),
+    targetSeconds: formData.get("exerciseTimerTargetSeconds"),
+  });
+  if (!parsed.ok) {
+    return parsed;
+  }
+  if (!parsed.config) {
+    return { ok: true as const, values: {} };
+  }
+
+  return {
+    ok: true as const,
+    values: {
+      exercise_timer_enabled: true,
+      exercise_timer_mode: parsed.config.mode,
+      exercise_timer_target_seconds: parsed.config.targetSeconds,
+      exercise_timer_elapsed_seconds: 0,
+      exercise_timer_status: "idle" as const,
+      exercise_timer_started_at: null,
+      exercise_timer_completed_at: null,
+    },
+  };
 }
 
 function parseSessionExercisePayload(formData: FormData) {
@@ -215,6 +441,7 @@ export async function addSetAction(payload: {
   // A unique DB constraint plus retry-on-conflict prevents duplicate indexes when offline
   // actions reconnect and flush concurrently for the same session exercise.
   const MAX_SET_INDEX_RETRIES = 5;
+  const loggedAt = new Date().toISOString();
 
   for (let attempt = 0; attempt < MAX_SET_INDEX_RETRIES; attempt += 1) {
     const { data: latestSet, error: latestSetError } = await supabase
@@ -246,17 +473,28 @@ export async function addSetAction(payload: {
       rpe: null,
       notes,
       weight_unit: weightUnit,
+      logged_at: loggedAt,
     } as Record<string, unknown>;
 
     if (clientLogId) {
       insertPayload.client_log_id = clientLogId;
     }
 
-    const { data: insertedSet, error } = await supabase
+    let insertResult = await supabase
       .from("sets")
       .insert(insertPayload)
       .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
       .single();
+    if (insertResult.error && isMissingSetLoggedAtColumnError(insertResult.error)) {
+      delete insertPayload.logged_at;
+      insertResult = await supabase
+        .from("sets")
+        .insert(insertPayload)
+        .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+        .single();
+    }
+    const insertedSet = insertResult.data;
+    const error = insertResult.error;
 
     if (!error && insertedSet) {
       if (SHOULD_DEBUG_CANONICAL_LINKING) {
@@ -273,7 +511,7 @@ export async function addSetAction(payload: {
         userId: user.id,
         supabase,
       });
-      return { ok: true, data: { set: insertedSet as SetRow } };
+      return { ok: true, data: { set: { ...insertedSet, logged_at: loggedAt } as SetRow } };
     }
 
     if (error?.code !== "23505") {
@@ -475,7 +713,8 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
     return { ok: false, error: error.message };
   }
 
-  revalidateSessionViews(sessionId);
+  // Avoid refreshing the active session while its inline feedback controls are saving.
+  revalidateHistoryViews();
 
   return {
     ok: true,
@@ -597,6 +836,10 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   const parsedPayload = parseSessionExercisePayload(formData);
   if (!parsedPayload.ok) {
     return { ok: false, error: parsedPayload.error };
+  }
+  const timerConfig = parseExerciseTimerConfig(formData);
+  if (!timerConfig.ok) {
+    return { ok: false, error: timerConfig.error };
   }
   let canonicalExerciseId = selectedExerciseId;
   let resolvedExerciseMeasurementType: "reps" | "time" | "distance" | "time_distance" | "none" | null = null;
@@ -732,11 +975,36 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       routine_day_exercise_id: routineDayExerciseId,
       is_skipped: false,
       ...mappedGoalColumns,
+      ...timerConfig.values,
       measurement_type: measurementType,
       default_unit: defaultUnit,
     },
     select: "id, exercise_id",
   });
+
+  if (error && isMissingExerciseTimerColumnError(error)) {
+    if (timerConfig.values.exercise_timer_enabled) {
+      return { ok: false, error: "Exercise timer schema is pending migration review." };
+    }
+    const fallback = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
+      supabase,
+      sessionId,
+      userId: user.id,
+      values: {
+        session_id: sessionId,
+        user_id: user.id,
+        exercise_id: canonicalExerciseId,
+        routine_day_exercise_id: routineDayExerciseId,
+        is_skipped: false,
+        ...mappedGoalColumns,
+        measurement_type: measurementType,
+        default_unit: defaultUnit,
+      },
+      select: "id, exercise_id",
+    });
+    insertedExercise = fallback.data;
+    error = fallback.error;
+  }
 
   if (error && isMissingProgressionPlaybookColumnError(error) && !hasSelectedProgressionPlaybook(parsedPayload.payload)) {
     const fallback = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
@@ -750,6 +1018,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
         routine_day_exercise_id: routineDayExerciseId,
         is_skipped: false,
         ...omitProgressionPlaybookColumns(mappedGoalColumns),
+        ...timerConfig.values,
         measurement_type: measurementType,
         default_unit: defaultUnit,
       },
@@ -777,6 +1046,65 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   }
 
   return { ok: true };
+}
+
+export async function updateSessionExerciseTimerAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  command: ExerciseTimerCommand;
+}): Promise<ActionResult<{ timer: ExerciseTimerSnapshot }>> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId: payload.sessionId,
+    sessionExerciseId: payload.sessionExerciseId,
+  });
+  if (!liveSession.ok) {
+    return liveSession;
+  }
+
+  const { data, error } = await supabase
+    .from("session_exercises")
+    .select("exercise_timer_enabled, exercise_timer_mode, exercise_timer_target_seconds, exercise_timer_elapsed_seconds, exercise_timer_status, exercise_timer_started_at, exercise_timer_completed_at")
+    .eq("id", payload.sessionExerciseId)
+    .eq("session_id", payload.sessionId)
+    .eq("user_id", user.id)
+    .single();
+  if (error || !data) {
+    return { ok: false, error: isMissingExerciseTimerColumnError(error) ? "Exercise timer schema is pending migration review." : (error?.message ?? "Exercise timer not found.") };
+  }
+
+  const timer = applyExerciseTimerCommand({
+    enabled: data.exercise_timer_enabled === true,
+    mode: data.exercise_timer_mode as ExerciseTimerMode | null,
+    targetSeconds: data.exercise_timer_target_seconds ?? null,
+    elapsedSeconds: data.exercise_timer_elapsed_seconds ?? 0,
+    status: data.exercise_timer_status as ExerciseTimerStatus,
+    startedAt: data.exercise_timer_started_at ?? null,
+    completedAt: data.exercise_timer_completed_at ?? null,
+  }, payload.command, new Date().toISOString());
+  if (!timer.enabled || !timer.mode) {
+    return { ok: false, error: "Exercise timer is not enabled for this exercise." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("session_exercises")
+    .update({
+      exercise_timer_elapsed_seconds: timer.elapsedSeconds,
+      exercise_timer_status: timer.status,
+      exercise_timer_started_at: timer.startedAt,
+      exercise_timer_completed_at: timer.completedAt,
+    })
+    .eq("id", payload.sessionExerciseId)
+    .eq("session_id", payload.sessionId)
+    .eq("user_id", user.id);
+  if (updateError) {
+    return { ok: false, error: updateError.message };
+  }
+
+  revalidatePath(`/session/${payload.sessionId}`);
+  return { ok: true, data: { timer } };
 }
 
 export async function removeExerciseAction(formData: FormData): Promise<ActionResult> {
@@ -979,7 +1307,7 @@ export async function updateSessionExerciseProgressionAction(formData: FormData)
   return { ok: true };
 }
 
-export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string }>> {
+export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string; progressionUpdates: SessionAutoPromotionUpdate[] }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -1004,6 +1332,16 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
     return liveSession;
   }
 
+  const timerFinalization = await finalizeRunningExerciseTimersForSession({
+    sessionId,
+    userId: user.id,
+    supabase,
+    nowIso: new Date().toISOString(),
+  });
+  if (!timerFinalization.ok) {
+    return timerFinalization;
+  }
+
   const { error } = await supabase
     .from("sessions")
     .update({ duration_seconds: durationSeconds, status: "completed" })
@@ -1015,6 +1353,7 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
   }
 
   const affectedExerciseIds = await getExerciseIdsForSession(user.id, sessionId);
+  let progressionUpdates: SessionAutoPromotionUpdate[] = [];
 
   try {
     const followUp = await processSessionFollowUpJobs({
@@ -1039,7 +1378,22 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
     });
   }
 
+  try {
+    progressionUpdates = await applyEligibleAutomaticProgressionUpdates({
+      sessionId,
+      userId: user.id,
+      supabase,
+    });
+  } catch (error) {
+    console.error("[session-auto-progression] unable to apply eligible updates after session save", {
+      sessionId,
+      userId: user.id,
+      error: error instanceof Error ? error.message : "Unknown automatic progression error",
+    });
+  }
+
   revalidatePath("/today");
   revalidateHistoryViews();
-  return { ok: true, data: { sessionId } };
+  revalidateRoutinesViews();
+  return { ok: true, data: { sessionId, progressionUpdates } };
 }

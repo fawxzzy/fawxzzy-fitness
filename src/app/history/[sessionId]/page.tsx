@@ -458,6 +458,12 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         copilot_feedback_signal: exercise.copilot_feedback_signal ?? null,
         copilot_feedback_note: exercise.copilot_feedback_note ?? null,
         copilot_feedback_effort: exercise.copilot_feedback_effort ?? null,
+        exercise_timer_enabled: exercise.exercise_timer_enabled === true,
+        exercise_timer_mode: exercise.exercise_timer_mode ?? null,
+        exercise_timer_target_seconds: exercise.exercise_timer_target_seconds ?? null,
+        exercise_timer_elapsed_seconds: exercise.exercise_timer_elapsed_seconds ?? 0,
+        exercise_timer_status: exercise.exercise_timer_status ?? "idle",
+        exercise_timer_completed_at: exercise.exercise_timer_completed_at ?? null,
         measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
         default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
         target_sets_min: exercise.target_sets_min ?? null,
@@ -482,6 +488,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
           distance_unit: set.distance_unit,
           calories: set.calories,
           weight_unit: set.weight_unit,
+          logged_at: set.logged_at ?? null,
         })),
       });
     }));
