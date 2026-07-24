@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChipButton } from "@/components/ui/Chip";
+import { cn } from "@/lib/cn";
 import type { ActionResult } from "@/lib/action-result";
 import { resolveSessionExerciseFeedbackSaveOutcome } from "@/lib/session-feedback-ui";
 import {
   formatSessionCopilotFeedbackLabel,
   getSessionCopilotFeedbackTone,
+  isSessionCopilotFeedbackComplete,
   normalizeSessionCopilotFeedbackNote,
   SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH,
   SESSION_COPILOT_FEEDBACK_SIGNALS,
@@ -33,7 +35,9 @@ function hasFeedbackAnswer(args: {
   note: string;
   effort: number | null;
 }) {
-  return Boolean(args.signal) || Boolean(normalizeSessionCopilotFeedbackNote(args.note)) || args.effort !== null;
+  // A note is supporting context, not a standalone answer. Keep the card open until
+  // the user has supplied both the qualitative signal and the effort rating.
+  return isSessionCopilotFeedbackComplete(args);
 }
 
 export function SessionExerciseFeedbackPrompt({
@@ -111,10 +115,16 @@ export function SessionExerciseFeedbackPrompt({
           <ChipButton
             key={value}
             type="button"
+            active={signal === value}
             tone={signal === value ? getSessionCopilotFeedbackTone(value) : "default"}
             aria-pressed={signal === value}
             onClick={() => setSignal((current) => current === value ? null : value)}
-            className="shrink-0 px-2.5 py-1 text-[9px] font-semibold tracking-[0.12em]"
+            className={cn(
+              "shrink-0 px-2.5 py-1 text-[9px] font-semibold tracking-[0.12em]",
+              signal === value
+                ? "!border-[rgb(var(--accent)/0.96)] !bg-[rgb(var(--accent)/0.3)] !text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent)/0.7)] shadow-[0_0_14px_rgb(var(--accent)/0.28)]"
+                : undefined,
+            )}
           >
             {formatSessionCopilotFeedbackLabel(value)}
           </ChipButton>
@@ -125,11 +135,17 @@ export function SessionExerciseFeedbackPrompt({
           <ChipButton
             key={value}
             type="button"
+            active={effort === value}
             tone={effort === value ? "success" : "default"}
             aria-pressed={effort === value}
             aria-label={`Effort ${value} out of 10`}
             onClick={() => setEffort((current) => current === value ? null : value)}
-            className="inline-flex h-6 w-6 shrink-0 items-center justify-center px-0 py-0 text-[10px] font-semibold tracking-normal"
+            className={cn(
+              "inline-flex h-6 w-6 shrink-0 items-center justify-center px-0 py-0 text-[10px] font-semibold tracking-normal",
+              effort === value
+                ? "!border-[rgb(var(--accent)/0.96)] !bg-[rgb(var(--accent)/0.3)] !text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent)/0.7)] shadow-[0_0_14px_rgb(var(--accent)/0.28)]"
+                : undefined,
+            )}
           >
             {value}
           </ChipButton>

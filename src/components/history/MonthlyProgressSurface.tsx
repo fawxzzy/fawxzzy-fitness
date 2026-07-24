@@ -1,7 +1,7 @@
 "use client";
 
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
+import { HistoryDisclosureTitle, HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import type { HistoryMonthlyProgressSummary } from "@/lib/history-monthly-progress";
 
 function formatVolume(summary: HistoryMonthlyProgressSummary) {
@@ -25,18 +25,22 @@ function buildMetrics(summary: HistoryMonthlyProgressSummary): MetricDatum[] {
 }
 
 export function MonthlyProgressSurface({ summary, viewMode }: { summary: HistoryMonthlyProgressSummary; viewMode: "compact" | "detailed" }) {
-  const supportingLine = summary.topExerciseName
-    ? `${summary.trend.detail} Most repeated: ${summary.topExerciseName}.`
-    : summary.trend.detail;
+  const supportingLine = summary.completedWorkoutCount > 0
+    ? summary.topExerciseName
+      ? `${summary.trend.detail} Most repeated: ${summary.topExerciseName}.`
+      : summary.trend.detail
+    : undefined;
+  const compactSummaryItems = [
+    summary.trend.label,
+    `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`,
+    `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`,
+  ];
 
   return (
     <HistoryMetricsDisclosure
-      title={(
-        <>
-          Monthly <span className="px-1 text-[rgb(var(--accent-yellow-on)/0.98)]">|</span><span className="text-[rgb(var(--accent-yellow-on)/0.98)]">{summary.monthLabel}</span>
-        </>
-      )}
+      title={<HistoryDisclosureTitle label="Monthly" meta={summary.monthLabel} metaTone="yellow" />}
       summary={viewMode === "detailed" ? supportingLine : undefined}
+      compactSummaryItems={compactSummaryItems}
       items={buildMetrics(summary)}
       viewMode={viewMode}
     />

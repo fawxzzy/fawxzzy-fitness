@@ -1,6 +1,7 @@
 "use client";
 
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
+import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
@@ -15,6 +16,7 @@ import {
 import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
+import type { HistoryAchievement } from "@/lib/history-achievements";
 
 type SettingsSectionMeta = {
   title: string;
@@ -25,6 +27,8 @@ export function getSettingsSectionMeta(section: Exclude<SettingsSectionKey, null
   switch (section) {
     case "account":
       return { title: "Account" };
+    case "achievements":
+      return { title: "Achievements" };
     case "theme":
       return { title: "App Theme" };
     case "pro":
@@ -87,6 +91,7 @@ export function SettingsAccordionClient({
   initialExportDateTo,
   proAccess,
   billingNotice,
+  achievements,
 }: {
   email: string;
   username: string;
@@ -99,10 +104,12 @@ export function SettingsAccordionClient({
   initialExportDateTo: string;
   proAccess: ProAccessSnapshot;
   billingNotice?: "success" | "cancel" | null;
+  achievements: HistoryAchievement[];
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
   const showAccount = expandedSection === null || expandedSection === "account";
+  const showAchievements = expandedSection === null || expandedSection === "achievements";
   const showPro = expandedSection === null || expandedSection === "pro";
   const showData = expandedSection === null || expandedSection === "data";
   const showLegacy = SETTINGS_LEGACY_MIGRATION_ENABLED && (expandedSection === null || expandedSection === "legacy");
@@ -121,6 +128,19 @@ export function SettingsAccordionClient({
             />
           ) : null}
           {expandedSection === "account" ? <AccountSettingsForm email={email} username={username} /> : null}
+        </div>
+      ) : null}
+
+      {showAchievements ? (
+        <div className="space-y-3">
+          {expandedSection !== "achievements" ? (
+            <SettingsAccordionTrigger
+              title="Achievements"
+              expanded={false}
+              onClick={() => setExpandedSection("achievements")}
+            />
+          ) : null}
+          {expandedSection === "achievements" ? <AccountAchievementsSection achievements={achievements} /> : null}
         </div>
       ) : null}
 

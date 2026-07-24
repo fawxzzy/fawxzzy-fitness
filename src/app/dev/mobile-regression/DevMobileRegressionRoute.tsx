@@ -194,7 +194,7 @@ async function noopSessionSaveWithPromotion(_: unknown) {
         exerciseName: "Back Squat",
         previousTarget: "4 sets x 5 reps x 225 lbs",
         appliedTarget: "4 sets x 6 reps x 225 lbs",
-        linkedTargetCount: 2,
+        linkedDayNames: ["Lower A", "Lower B"],
       }],
     },
   };
@@ -215,36 +215,55 @@ async function noopDeleteRoutineDayAction(_: unknown) {
   return { ok: true as const };
 }
 
-async function noopSetAction(_: unknown) {
+const regressionSetIndexByExercise = new Map<string, number>();
+
+async function noopSetAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  weight: number;
+  reps: number;
+  durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | "steps" | null;
+  calories: number | null;
+  isWarmup: boolean;
+  notes: string | null;
+  weightUnit: "lbs" | "kg";
+  clientLogId?: string;
+}) {
   "use server";
+  const nextSetIndex = regressionSetIndexByExercise.get(payload.sessionExerciseId) ?? 0;
+  regressionSetIndexByExercise.set(payload.sessionExerciseId, nextSetIndex + 1);
+
   return {
     ok: true as const,
     data: {
       set: {
-        id: "regression-set",
-        session_exercise_id: "session-ex-1",
+        id: payload.clientLogId ?? `regression-set-${nextSetIndex}`,
+        client_log_id: payload.clientLogId ?? null,
+        session_exercise_id: payload.sessionExerciseId,
         user_id: "dev-user",
-        set_index: 0,
-        weight: 225,
-        reps: 5,
-        is_warmup: false,
-        notes: null,
-        duration_seconds: null,
-        distance: null,
-        distance_unit: null,
-        calories: null,
-        rpe: 8,
-        weight_unit: "lbs" as const,
+        set_index: nextSetIndex,
+        weight: payload.weight,
+        reps: payload.reps,
+        is_warmup: payload.isWarmup,
+        notes: payload.notes,
+        duration_seconds: payload.durationSeconds,
+        distance: payload.distance,
+        distance_unit: payload.distanceUnit,
+        calories: payload.calories,
+        rpe: null,
+        weight_unit: payload.weightUnit,
       },
     },
   };
 }
 
-async function noopExerciseTimerAction(payload: { command: "start" | "pause" | "reset" | "complete" }) {
+async function noopExerciseTimerAction(payload: { command: "enable" | "disable" | "start" | "pause" | "reset" | "complete" }) {
   "use server";
-  const status: ExerciseTimerStatus = payload.command === "start"
+  const status: ExerciseTimerStatus = payload.command === "enable" || payload.command === "start"
     ? "running"
-    : payload.command === "pause"
+    : payload.command === "disable" || payload.command === "pause"
       ? "paused"
       : payload.command === "complete"
         ? "completed"
@@ -253,9 +272,9 @@ async function noopExerciseTimerAction(payload: { command: "start" | "pause" | "
     ok: true as const,
     data: {
       timer: {
-        enabled: true,
-        mode: "countdown" as const,
-        targetSeconds: 90,
+        enabled: payload.command !== "disable",
+        mode: "count_up" as const,
+        targetSeconds: null,
         elapsedSeconds: payload.command === "reset" ? 0 : 24,
         status,
         startedAt: status === "running" ? new Date().toISOString() : null,
@@ -778,8 +797,8 @@ const mockSessionExercises = [
     slug: "incline-walk",
     exerciseTimer: {
       enabled: true,
-      mode: "countdown" as const,
-      targetSeconds: 90,
+      mode: "count_up" as const,
+      targetSeconds: null,
       elapsedSeconds: 24,
       status: "paused" as const,
       startedAt: null,
@@ -2303,7 +2322,24 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
   }
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
-  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
+  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt)
+    .map((exercise) => {
+      if (scenario.id !== "session-auto-progression-confirmation" || exercise.id !== "session-ex-1") {
+        return exercise;
+      }
+
+      const sourceSet = exercise.initialSets[0];
+      const targetSetCount = exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0;
+      return {
+        ...exercise,
+        initialSets: Array.from({ length: targetSetCount }, (_, index) => ({
+          ...sourceSet,
+          id: `set-auto-progression-${index + 1}`,
+          set_index: index,
+        })),
+        loggedSetCount: targetSetCount,
+      };
+    });
   const regressionSessionId = `dev-session-${scenario.fixtureState}`;
 
   return (
@@ -2889,7 +2925,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className={appTokens.settingsContentRail}>
           <SurfaceCard>
-            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : null}>
+            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : scenario.fixture === "achievements" ? "achievements" : null}>
               <div className="pointer-events-none">
                 <SettingsAccordionClient
                   email="dev-regression@example.com"
@@ -2917,6 +2953,12 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                     supportNote: "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
                   }}
                   billingNotice={null}
+                  achievements={[
+                    { id: "first-workout", title: "First Workout", description: "Complete one workout.", unlocked: true },
+                    { id: "ten-sessions", title: "Ten Sessions", description: "Complete ten workouts over time.", unlocked: true },
+                    { id: "three-week-streak", title: "Three Session Streak", description: "Log three consecutive planned workout days.", unlocked: true },
+                    { id: "first-pr", title: "PR Logged", description: "Record one history-backed PR moment.", unlocked: true },
+                  ]}
                 />
               </div>
             </SettingsScreenStateProvider>

@@ -658,7 +658,7 @@ export type ProgressionHistorySetRow = {
 
 export type ProgressionHistorySession = {
   sessionId: string;
-  sessionRecordId?: string | null;
+  sessionRecordId: string | null;
   performedAt: string;
   workingSetCount: number;
   targetSetCount: number;
@@ -1800,11 +1800,14 @@ function findBestTopRangeSession(args: {
 }
 
 function buildSourceSession(session: ProgressionHistorySession, latestSession: ProgressionHistorySession | null) {
+  const sessionRecordId = session.sessionRecordId ?? session.sessionId;
+  const latestSessionRecordId = latestSession?.sessionRecordId ?? latestSession?.sessionId ?? null;
+
   return {
-    sessionId: session.sessionId,
-    sessionRecordId: session.sessionRecordId ?? null,
+    sessionId: sessionRecordId,
+    sessionRecordId,
     performedAt: session.performedAt,
-    isLatest: latestSession?.sessionId === session.sessionId,
+    isLatest: latestSessionRecordId === sessionRecordId,
   };
 }
 
@@ -2908,7 +2911,7 @@ export function buildProgressionHistorySessions(args: {
 
       return {
         sessionId,
-        sessionRecordId: ordered[0]?.sessionRecordId ?? null,
+        sessionRecordId: ordered.find((row) => row.sessionRecordId)?.sessionRecordId ?? null,
         performedAt: ordered[0]?.performedAt ?? "",
         workingSetCount: ordered.length,
         targetSetCount,

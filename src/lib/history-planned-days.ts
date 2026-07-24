@@ -1,5 +1,6 @@
 import type { SessionSummary } from "@/app/history/session-summary";
 import { getWeeklyProgressDayKey, shiftWeeklyProgressDay } from "@/lib/history-weekly-progress";
+import { isRequiredRoutineDay } from "@/lib/routine-day-kind";
 
 export type HistoryPlannedRoutine = {
   id: string;
@@ -13,6 +14,7 @@ export type HistoryPlannedRoutineDay = {
   routineId: string;
   dayIndex: number;
   isRest: boolean;
+  isOptional?: boolean;
 };
 
 export type HistorySkippedWorkoutDay = {
@@ -52,7 +54,7 @@ export function buildHistorySkippedWorkoutDays({
 
   const daysByRoutineId = new Map<string, HistoryPlannedRoutineDay[]>();
   for (const day of routineDays) {
-    if (day.isRest || day.dayIndex < 1) continue;
+    if (!isRequiredRoutineDay({ is_rest: day.isRest, is_optional: day.isOptional }) || day.dayIndex < 1) continue;
     const current = daysByRoutineId.get(day.routineId) ?? [];
     current.push(day);
     daysByRoutineId.set(day.routineId, current);

@@ -70,6 +70,7 @@ export function ExerciseDisclosureCard({
   progressFill,
   stickyHeaderWhenExpanded = false,
   collapsedContent,
+  collapsedCardFooter,
   title,
   rightIcon,
   surface,
@@ -119,6 +120,7 @@ export function ExerciseDisclosureCard({
   progressFill?: ProgressionProgressFill | null;
   stickyHeaderWhenExpanded?: boolean;
   collapsedContent?: ReactNode;
+  collapsedCardFooter?: ReactNode;
   title?: ReactNode;
   rightIcon?: ReactNode;
   surface?: WorkoutCardSurface;
@@ -187,6 +189,7 @@ export function ExerciseDisclosureCard({
           rightIconMode={resolvedRightIconMode}
           contentVerticalAlign={contentVerticalAlign}
           progressFill={progressFill}
+          footer={!expanded ? collapsedCardFooter : undefined}
           rightIcon={rightIcon === undefined ? (
             <StateChevron
               expanded={expanded}

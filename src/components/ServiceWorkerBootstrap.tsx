@@ -40,6 +40,11 @@ function shouldPrioritizeImmediateUpdate(route: string) {
 }
 
 function shouldRunSessionKeepalive(route: string) {
+  // Review fixtures are deliberately public and do not load account data.
+  if (route === "/review" || route.startsWith("/review/")) {
+    return false;
+  }
+
   if (route === "/" || route === "/entry") {
     return true;
   }

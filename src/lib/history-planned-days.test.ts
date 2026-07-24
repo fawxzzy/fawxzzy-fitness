@@ -50,6 +50,29 @@ test("history planned days identify past missed workout dates without marking to
   ]);
 });
 
+test("optional planned days do not produce missed-day history", () => {
+  const result = buildHistorySkippedWorkoutDays({
+    routines: [{
+      id: "routine-1",
+      startDate: "2026-04-06",
+      cycleLengthDays: 2,
+      timeZone: "America/New_York",
+      isActive: true,
+    }],
+    routineDays: [
+      { routineId: "routine-1", dayIndex: 1, isRest: false },
+      { routineId: "routine-1", dayIndex: 2, isRest: false, isOptional: true },
+    ],
+    sessions: [session("session-1", "2026-04-06T14:00:00.000Z")],
+    now: "2026-04-11T14:00:00.000Z",
+  });
+
+  assert.deepEqual(result, [
+    { dayKey: "2026-04-08", routineId: "routine-1" },
+    { dayKey: "2026-04-10", routineId: "routine-1" },
+  ]);
+});
+
 test("inactive routines stop accumulating missed dates after their last completed session", () => {
   const result = buildHistorySkippedWorkoutDays({
     routines: [{

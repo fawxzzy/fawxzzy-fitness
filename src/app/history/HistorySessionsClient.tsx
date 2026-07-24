@@ -5,8 +5,6 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
-import { HistoryAchievementsSurface } from "@/components/history/HistoryAchievementsSurface";
-import { buildHistoryAchievements } from "@/lib/history-achievements";
 import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
 import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
@@ -23,7 +21,11 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
 import { buildHistoryMonthlyProgress } from "@/lib/history-monthly-progress";
-import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
+import {
+  buildHistoryWorkoutStreak,
+  filterHistorySkippedDayKeysForTimeline,
+  shouldShowHistoryWorkoutStreak,
+} from "@/lib/history-workout-streak";
 import { getWeeklyProgressDayKey, getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
@@ -45,6 +47,23 @@ function normalizeSessionTagValue(prefix: string, value: string) {
 
 function formatSessionTagLabel(value: string) {
   return value.trim();
+}
+
+function formatHistoryTimelineDay(dayKey: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${dayKey}T12:00:00.000Z`));
+}
+
+function formatHistoryTimelineMonth(monthKey: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${monthKey}-01T12:00:00.000Z`));
 }
 
 function buildFilterStateKey(filterState: ExerciseInfoFilterState) {
@@ -81,6 +100,10 @@ type HistorySessionsScopePayload = {
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
   routineTitle: string | null;
+};
+type HistoryTimelineFilterOption = {
+  key: string;
+  label: string;
 };
 const EMPTY_SESSION_ITEMS: SessionSummary[] = [];
 const EMPTY_WEEKLY_PROGRESS_BY_WEEK: WeeklyProgressSummary[] = [];
@@ -167,8 +190,14 @@ function HistorySessionFilters({
   filterState,
   filterOptions,
   onFilterStateChange,
-  selectedCalendarDayLabel,
-  onClearCalendarDay,
+  selectedCalendarDayKey,
+  onCalendarDayChange,
+  calendarDayOptions,
+  selectedMonthKey,
+  onMonthChange,
+  monthOptions,
+  showClearAll,
+  onClearAll,
 }: {
   query: string;
   onQueryChange: (next: string) => void;
@@ -180,8 +209,14 @@ function HistorySessionFilters({
   filterState: ExerciseInfoFilterState;
   filterOptions: ExerciseInfoFilterOptions;
   onFilterStateChange: (next: ExerciseInfoFilterState) => void;
-  selectedCalendarDayLabel: string | null;
-  onClearCalendarDay: () => void;
+  selectedCalendarDayKey: string | null;
+  onCalendarDayChange: (next: string | null) => void;
+  calendarDayOptions: HistoryTimelineFilterOption[];
+  selectedMonthKey: string | null;
+  onMonthChange: (next: string | null) => void;
+  monthOptions: HistoryTimelineFilterOption[];
+  showClearAll: boolean;
+  onClearAll: () => void;
 }) {
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const routineOptions = Array.isArray(filterOptions.routines) ? filterOptions.routines : [];
@@ -191,7 +226,15 @@ function HistorySessionFilters({
     : defaultRoutineOption;
   const selectedCycleStartDate = normalizedFilterState.cycleStartDate;
   const orderedRoutineOptions = orderSelectedFirst(routineOptions, (routine) => routine.id === selectedRoutine?.id);
-  const orderedCycleOptions = orderSelectedFirst(selectedRoutine?.cycleOptions ?? [], (cycle) => cycle.startDate === selectedCycleStartDate);
+  const cycleOptions = routineOptions.flatMap((routine) => routine.cycleOptions.map((cycle) => ({
+    ...cycle,
+    routineId: routine.id,
+    routineTitle: routine.title,
+  })));
+  const orderedCycleOptions = orderSelectedFirst(
+    cycleOptions,
+    (cycle) => cycle.startDate === selectedCycleStartDate && cycle.routineId === normalizedFilterState.routineId,
+  );
 
   const applyFilterState = (nextState: Partial<ExerciseInfoFilterState>) => {
     onFilterStateChange(normalizeExerciseInfoFilterState(nextState));
@@ -299,49 +342,79 @@ function HistorySessionFilters({
         </FilterSection>
       ) : null}
 
-      {normalizedFilterState.analyticsScope !== "all_time" && selectedRoutine?.cycleOptions.length ? (
+      {orderedCycleOptions.length > 0 ? (
         <FilterSection
           title="Cycle"
           showClear={Boolean(selectedCycleStartDate)}
-          onClear={() => applyFilterState({
-            analyticsScope: "current_routine",
-            routineId: selectedRoutine.id,
-            cycleStartDate: null,
-          })}
+          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
         >
           {orderedCycleOptions.map((cycle) => {
-            const isSelected = cycle.startDate === selectedCycleStartDate;
+            const isSelected = cycle.startDate === selectedCycleStartDate && cycle.routineId === normalizedFilterState.routineId;
             return (
               <PillButton
-                key={cycle.startDate}
+                key={`${cycle.routineId}:${cycle.startDate}`}
                 type="button"
                 active={isSelected}
                 className={cn(
                   "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
                   isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                 )}
-                onClick={() => applyFilterState({
-                  analyticsScope: "current_cycle",
-                  routineId: selectedRoutine.id,
-                  cycleStartDate: cycle.startDate,
-                })}
+                onClick={() => {
+                  onCalendarDayChange(null);
+                  onMonthChange(null);
+                  applyFilterState({
+                    analyticsScope: "current_cycle",
+                    routineId: cycle.routineId,
+                    cycleStartDate: cycle.startDate,
+                  });
+                }}
               >
-                {cycle.label}
+                {routineOptions.length > 1 ? `${cycle.routineTitle}: ${cycle.label}` : cycle.label}
               </PillButton>
             );
           })}
         </FilterSection>
       ) : null}
-      {selectedCalendarDayLabel ? (
-        <FilterSection title="Calendar" showClear onClear={onClearCalendarDay}>
-          <PillButton
-            type="button"
-            active
-            className="shrink-0 whitespace-nowrap px-2 py-1 text-[10px] !border-[rgb(var(--success-rgb)/0.68)] !bg-[rgb(var(--success-rgb)/0.18)] !text-[rgb(var(--text-primary)/0.98)]"
-            onClick={onClearCalendarDay}
-          >
-            {selectedCalendarDayLabel}
-          </PillButton>
+      {calendarDayOptions.length > 0 ? (
+        <FilterSection title="Session Date" showClear={Boolean(selectedCalendarDayKey)} onClear={() => onCalendarDayChange(null)}>
+          {calendarDayOptions.map((option) => {
+            const isSelected = option.key === selectedCalendarDayKey;
+            return (
+              <PillButton
+                key={option.key}
+                type="button"
+                active={isSelected}
+                className={cn(
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)]" : undefined,
+                )}
+                onClick={() => onCalendarDayChange(isSelected ? null : option.key)}
+              >
+                {option.label}
+              </PillButton>
+            );
+          })}
+        </FilterSection>
+      ) : null}
+      {monthOptions.length > 0 ? (
+        <FilterSection title="Month" showClear={Boolean(selectedMonthKey)} onClear={() => onMonthChange(null)}>
+          {monthOptions.map((option) => {
+            const isSelected = option.key === selectedMonthKey;
+            return (
+              <PillButton
+                key={option.key}
+                type="button"
+                active={isSelected}
+                className={cn(
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)]" : undefined,
+                )}
+                onClick={() => onMonthChange(isSelected ? null : option.key)}
+              >
+                {option.label}
+              </PillButton>
+            );
+          })}
         </FilterSection>
       ) : null}
     </>
@@ -372,6 +445,18 @@ function HistorySessionFilters({
       resultPluralLabel="sessions"
       clearSearchAriaLabel="Clear session search"
       toggleFiltersAriaLabel="Toggle session filters"
+      additionalFilterCount={(normalizedFilterState.analyticsScope !== "all_time" ? 1 : 0) + (selectedCalendarDayKey ? 1 : 0) + (selectedMonthKey ? 1 : 0)}
+      trailingControls={showClearAll ? (
+        <button
+          type="button"
+          onClick={onClearAll}
+          aria-label="Clear all History filters"
+          title="Clear all filters"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[rgb(var(--success-rgb)/0.46)] bg-[rgb(var(--surface-2-rgb)/0.62)] text-[1rem] leading-none text-[rgb(var(--success-rgb)/0.96)] shadow-[0_0_10px_rgb(var(--success-rgb)/0.1)] transition-colors hover:bg-[rgb(var(--success-rgb)/0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.3)]"
+        >
+          &times;
+        </button>
+      ) : null}
       defaultFilterOpen={initialOpen}
       chromeVariant="history"
       filterExtraContent={filterExtraContent}
@@ -435,6 +520,7 @@ export function HistorySessionsClient({
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(initialSelectedDayKey);
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const [filterState, setFilterState] = useState<ExerciseInfoFilterState>(createDefaultExerciseInfoFilterState());
   const [payloadsByFilterKey, setPayloadsByFilterKey] = useState<Record<string, HistorySessionsScopePayload>>(() => {
@@ -507,6 +593,27 @@ export function HistorySessionsClient({
   const scopedWeeklyProgress = scopedPayload?.weeklyProgress ?? weeklyProgress;
   const scopedWeeklyProgressByWeek = scopedPayload?.weeklyProgressByWeek ?? weeklyProgressByWeek ?? EMPTY_WEEKLY_PROGRESS_BY_WEEK;
   const scopedRoutineTitle = scopedPayload?.routineTitle ?? activeRoutineTitle;
+  const handleCalendarDayChange = (nextDayKey: string | null) => {
+    setSelectedDayKey(nextDayKey);
+    if (nextDayKey) {
+      setSelectedMonthKey(null);
+      setFilterState(createDefaultExerciseInfoFilterState());
+    }
+  };
+  const handleMonthChange = (nextMonthKey: string | null) => {
+    setSelectedMonthKey(nextMonthKey);
+    if (nextMonthKey) {
+      setSelectedDayKey(null);
+      setFilterState(createDefaultExerciseInfoFilterState());
+    }
+  };
+  const clearAllFilters = () => {
+    setQuery("");
+    setSelectedTags([]);
+    setSelectedDayKey(null);
+    setSelectedMonthKey(null);
+    setFilterState(createDefaultExerciseInfoFilterState());
+  };
 
   useEffect(() => {
     const summaries: SessionSummary[] = [];
@@ -684,16 +791,41 @@ export function HistorySessionsClient({
     });
   }, [deferredQuery, scopedSessions, selectedTags, sessionTagsById]);
 
+  const calendarDayOptions = useMemo<HistoryTimelineFilterOption[]>(() => {
+    const dayKeys = new Set<string>();
+    for (const session of scopedSessions) {
+      const dayKey = scopedSessionDayKeysById.get(session.id);
+      if (dayKey) dayKeys.add(dayKey);
+    }
+    return [...dayKeys]
+      .sort((left, right) => right.localeCompare(left))
+      .map((dayKey) => ({ key: dayKey, label: formatHistoryTimelineDay(dayKey) }));
+  }, [scopedSessionDayKeysById, scopedSessions]);
+
+  const monthOptions = useMemo<HistoryTimelineFilterOption[]>(() => {
+    const monthKeys = new Set(calendarDayOptions.map((option) => option.key.slice(0, 7)));
+    return [...monthKeys]
+      .sort((left, right) => right.localeCompare(left))
+      .map((monthKey) => ({ key: monthKey, label: formatHistoryTimelineMonth(monthKey) }));
+  }, [calendarDayOptions]);
+
+  const monthFilteredSessions = useMemo(() => {
+    if (!selectedMonthKey) {
+      return queryFilteredSessions;
+    }
+    return queryFilteredSessions.filter((session) => scopedSessionDayKeysById.get(session.id)?.startsWith(selectedMonthKey));
+  }, [queryFilteredSessions, scopedSessionDayKeysById, selectedMonthKey]);
+
   const selectableDayKeys = useMemo(() => {
     const dayKeys = new Set<string>();
-    for (const session of queryFilteredSessions) {
+    for (const session of monthFilteredSessions) {
       const dayKey = scopedSessionDayKeysById.get(session.id);
       if (dayKey) {
         dayKeys.add(dayKey);
       }
     }
     return dayKeys;
-  }, [queryFilteredSessions, scopedSessionDayKeysById]);
+  }, [monthFilteredSessions, scopedSessionDayKeysById]);
 
   const effectiveSelectedDayKey = selectedDayKey && selectableDayKeys.has(selectedDayKey)
     ? selectedDayKey
@@ -706,29 +838,46 @@ export function HistorySessionsClient({
   }, [selectableDayKeys, selectedDayKey]);
 
   const calendarView = useMemo(() => buildHistoryCalendarView({
-    sessions: queryFilteredSessions,
+    sessions: monthFilteredSessions,
     timezone: scopedWeeklyProgress.timezone,
     selectedDayKey: effectiveSelectedDayKey,
+    selectedMonthKey,
     skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
-  }), [effectiveSelectedDayKey, queryFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone]);
+  }), [effectiveSelectedDayKey, monthFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone, selectedMonthKey]);
 
   const monthlyProgress = useMemo(() => buildHistoryMonthlyProgress({
     sessions: queryFilteredSessions,
     timezone: scopedWeeklyProgress.timezone,
-  }), [queryFilteredSessions, scopedWeeklyProgress.timezone]);
+    monthKey: selectedMonthKey,
+  }), [queryFilteredSessions, scopedWeeklyProgress.timezone, selectedMonthKey]);
 
   const workoutStreak = useMemo(() => buildHistoryWorkoutStreak({
     sessions: queryFilteredSessions,
     timezone: scopedWeeklyProgress.timezone,
-  }), [queryFilteredSessions, scopedWeeklyProgress.timezone]);
+    skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
+  }), [queryFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone]);
 
   const filteredSessions = useMemo(() => {
     if (!effectiveSelectedDayKey) {
-      return queryFilteredSessions;
+      return monthFilteredSessions;
     }
 
-    return queryFilteredSessions.filter((session) => scopedSessionDayKeysById.get(session.id) === effectiveSelectedDayKey);
-  }, [effectiveSelectedDayKey, queryFilteredSessions, scopedSessionDayKeysById]);
+    return monthFilteredSessions.filter((session) => scopedSessionDayKeysById.get(session.id) === effectiveSelectedDayKey);
+  }, [effectiveSelectedDayKey, monthFilteredSessions, scopedSessionDayKeysById]);
+
+  const filteredTimelineSkippedDayKeys = useMemo(() => {
+    return filterHistorySkippedDayKeysForTimeline({
+      skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
+      selectedDayKey: effectiveSelectedDayKey,
+      selectedMonthKey,
+    });
+  }, [effectiveSelectedDayKey, scopedPlannedSkippedDayKeys, selectedMonthKey]);
+
+  const filteredTimelineWorkoutStreak = useMemo(() => buildHistoryWorkoutStreak({
+    sessions: filteredSessions,
+    timezone: scopedWeeklyProgress.timezone,
+    skippedDayKeys: filteredTimelineSkippedDayKeys,
+  }), [filteredSessions, filteredTimelineSkippedDayKeys, scopedWeeklyProgress.timezone]);
 
   const sessionWeekStarts = useMemo(
     () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, scopedWeeklyProgress.timezone)])),
@@ -742,11 +891,17 @@ export function HistorySessionsClient({
     () => new Map(scopedWeeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
     [scopedWeeklyProgressByWeek],
   );
-  const achievements = useMemo(() => buildHistoryAchievements({
-    completedWorkoutCount: scopedScopeSummary.completedWorkoutCount,
-    bestWeekCount: workoutStreak.bestWeekCount,
-    prMomentCount: scopedScopeSummary.prMomentCount,
-  }), [scopedScopeSummary.completedWorkoutCount, scopedScopeSummary.prMomentCount, workoutStreak.bestWeekCount]);
+  const hasCycleTimelineFilter = normalizedFilterState.analyticsScope === "current_cycle";
+  const hasSpecificTimelineFilter = Boolean(effectiveSelectedDayKey || selectedMonthKey || hasCycleTimelineFilter);
+  const displayedWorkoutStreak = hasSpecificTimelineFilter ? filteredTimelineWorkoutStreak : workoutStreak;
+  const showWorkoutStreak = shouldShowHistoryWorkoutStreak({
+    hasSpecificTimelineFilter,
+    visibleSessionCount: filteredSessions.length,
+  });
+  const hasStructuredFilters = selectedTags.length > 0
+    || normalizedFilterState.analyticsScope !== "all_time"
+    || Boolean(effectiveSelectedDayKey)
+    || Boolean(selectedMonthKey);
 
   return (
     <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
@@ -770,33 +925,47 @@ export function HistorySessionsClient({
                   filterState={filterState}
                   filterOptions={filterOptions}
                   onFilterStateChange={setFilterState}
-                  selectedCalendarDayLabel={calendarView.selectedDay?.label ?? null}
-                  onClearCalendarDay={() => setSelectedDayKey(null)}
+                  selectedCalendarDayKey={effectiveSelectedDayKey}
+                  onCalendarDayChange={handleCalendarDayChange}
+                  calendarDayOptions={calendarDayOptions}
+                  selectedMonthKey={selectedMonthKey}
+                  onMonthChange={handleMonthChange}
+                  monthOptions={monthOptions}
+                  showClearAll={hasStructuredFilters}
+                  onClearAll={clearAllFilters}
                 />
               </HistoryTitleControlShell>
             </div>
           </div>
         </div>
       ) : null}
-      <HistoryAchievementsSurface achievements={achievements} />
       {queryFilteredSessions.length > 0 ? (
         <div data-history-retention-surface="calendar">
           <HistoryCalendarSurface
             calendarView={calendarView}
-            onSelectDayKey={setSelectedDayKey}
+            onSelectDayKey={handleCalendarDayChange}
+            viewMode={viewMode}
           />
         </div>
       ) : null}
-      <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-      <div data-history-retention-surface="monthly">
-        <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
-      </div>
-      <div data-history-retention-surface="streak">
-        <WorkoutStreakSurface summary={workoutStreak} viewMode={viewMode} />
-      </div>
-      <div data-history-retention-surface="current-week-progression">
-        <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-      </div>
+      {showWorkoutStreak ? (
+        <div data-history-retention-surface="streak">
+          <WorkoutStreakSurface summary={displayedWorkoutStreak} viewMode={viewMode} />
+        </div>
+      ) : null}
+      {!effectiveSelectedDayKey && !selectedMonthKey ? (
+        <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+      ) : null}
+      {!effectiveSelectedDayKey && !hasCycleTimelineFilter ? (
+        <div data-history-retention-surface="monthly">
+          <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
+        </div>
+      ) : null}
+      {!effectiveSelectedDayKey && !selectedMonthKey ? (
+        <div data-history-retention-surface="current-week-progression">
+          <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+        </div>
+      ) : null}
       {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
         <ul className={cn(

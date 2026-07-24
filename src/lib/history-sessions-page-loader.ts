@@ -40,6 +40,7 @@ import {
   type HistoryPlannedRoutineDay,
   type HistorySkippedWorkoutDay,
 } from "@/lib/history-planned-days";
+import { isRequiredRoutineDay } from "@/lib/routine-day-kind";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
 
@@ -552,8 +553,9 @@ function normalizeRoutineDayCounts(rows: unknown[]) {
     const routineId = record ? asTrimmedString(record.routine_id) : null;
     const dayIndex = record ? asNullableInteger(record.day_index) : null;
     const isRest = record?.is_rest === true;
+    const isOptional = record?.is_optional === true;
 
-    if (!routineId || dayIndex === null || isRest) {
+    if (!routineId || dayIndex === null || !isRequiredRoutineDay({ is_rest: isRest, is_optional: isOptional })) {
       continue;
     }
 
@@ -578,6 +580,7 @@ function normalizePlannedRoutineDays(rows: unknown[]): HistoryPlannedRoutineDay[
         routineId,
         dayIndex,
         isRest: record?.is_rest === true,
+        isOptional: record?.is_optional === true,
       };
     })
     .filter((day): day is HistoryPlannedRoutineDay => Boolean(day));
@@ -996,7 +999,7 @@ async function loadHistorySessionsScopeContext({
       label: "routine day metadata",
       load: () => supabase
         .from("routine_days")
-        .select("routine_id, day_index, name, is_rest")
+        .select("routine_id, day_index, name, is_rest, is_optional")
         .in("routine_id", routineIds)
         .eq("user_id", userId),
       logger,

@@ -84,6 +84,7 @@ type TodayDay = {
   name: string;
   occurrenceWeekday?: string | null;
   isRest: boolean;
+  isOptional?: boolean;
   state: TodayPickerDayState;
   invalidExerciseCount: number;
   exercises: TodayExercise[];

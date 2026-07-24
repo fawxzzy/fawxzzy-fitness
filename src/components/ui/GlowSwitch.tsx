@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/cn";
 
-export const GLOW_SWITCH_STANDARD_CLASS_NAME = "h-11 w-[7.35rem] shrink-0";
-export const GLOW_SWITCH_STANDARD_STATE_CLASS_NAME = "min-w-[3.15rem]";
+export const GLOW_SWITCH_STANDARD_CLASS_NAME = "h-11 w-[7rem] shrink-0";
+export const GLOW_SWITCH_STANDARD_STATE_CLASS_NAME = "min-w-[3rem]";
 export const GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME = "relative top-[4px] inline-flex h-11 shrink-0 items-center justify-center self-center";
 
 export function GlowSwitch({
@@ -48,7 +48,7 @@ export function GlowSwitch({
     >
       <span
         className={cn(
-          "inline-flex min-w-0 flex-1 items-center justify-center px-1 text-center leading-none transition-[color]",
+          "inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap px-1 text-center leading-none transition-[color]",
           checked ? "text-[rgb(var(--accent-strong)/0.98)]" : "text-[rgb(var(--accent-yellow-on)/0.96)]",
           stateClassName,
         )}

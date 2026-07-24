@@ -146,6 +146,7 @@ test("buildTodayRoutinePayloadState preserves an active routine when downstream 
     dayName: "Day 3",
     dayWeekday: null,
     isRest: false,
+    isOptional: false,
     state: "empty",
     routineId: "routine-1",
     routineDayId: null,

@@ -29,6 +29,7 @@ import {
   GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
 } from "@/components/ui/GlowSwitch";
 import { appTokens } from "@/components/ui/app/tokens";
+import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
@@ -42,7 +43,7 @@ import {
 } from "@/lib/exercise-goal-validation";
 import { getLiveSetInputOrder, type LiveSetMetricFlags } from "@/lib/live-set-input-order";
 import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
-import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues, sanitizeLoggedMeasurementValues } from "@/lib/measurement-sanitization";
 import {
   addDeletedSetIdentityKeys,
   filterDeletedDisplaySets,
@@ -51,7 +52,7 @@ import {
 import { deriveSimpleSessionPrToast } from "@/lib/session-set-entry";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
-import { toQuickLogTargetFromSuggestedValues, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import { resolveSetFlowQuickLogTarget, toQuickLogTargetFromSuggestedValues, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 import { type ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { estimateCaloriesFromExerciseMetrics, resolveCaloriesEstimationMethod, type CalorieEstimationExerciseInput } from "@/lib/calorie-estimation";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
@@ -385,6 +386,7 @@ export function SetLoggerCard({
   onSetCountChange,
   prefill,
   setFlowQuickLogTargets,
+  fallbackQuickLogTarget,
   defaultDistanceUnit,
   isCardio,
   targetHint,
@@ -424,6 +426,8 @@ export function SetLoggerCard({
   draftFormState,
   disableDraftPersistence = false,
   initialEffortRating = null,
+  exerciseTimerVisible = false,
+  onExerciseTimerVisibilityChange,
 }: {
   userId: string;
   sessionId: string;
@@ -443,6 +447,7 @@ export function SetLoggerCard({
     weightUnit?: "lbs" | "kg";
   };
   setFlowQuickLogTargets?: SessionQuickLogTarget[];
+  fallbackQuickLogTarget?: SessionQuickLogTarget | null;
   defaultDistanceUnit: FitnessDistanceUnit | null;
   isCardio: boolean;
   targetHint: SessionTargetHint;
@@ -494,6 +499,8 @@ export function SetLoggerCard({
   draftFormState?: SessionLoggerDraftFormState | null;
   disableDraftPersistence?: boolean;
   initialEffortRating?: number | null;
+  exerciseTimerVisible?: boolean;
+  onExerciseTimerVisibilityChange?: (nextVisible: boolean) => Promise<boolean>;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -517,6 +524,7 @@ export function SetLoggerCard({
     : null;
   const [rpe, setRpe] = useState(seededInitialEffortRating === null ? "" : String(seededInitialEffortRating));
   const [isWarmup, setIsWarmup] = useState(false);
+  const [isTimerVisibilityPending, setIsTimerVisibilityPending] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
   const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
   const resolvedIsWarmup = isWarmup;
@@ -565,8 +573,8 @@ export function SetLoggerCard({
     setRpe(normalizedEffort === null ? "" : String(normalizedEffort));
   }, [copilotFeedbackNote, copilotFeedbackSignal, initialEffortRating]);
   const currentLiveQuickLogTarget = useMemo(
-    () => setFlowQuickLogTargets?.[sets.length] ?? toQuickLogTargetFromSuggestedValues(targetHint.suggestedValues),
-    [setFlowQuickLogTargets, sets.length, targetHint.suggestedValues],
+    () => resolveSetFlowQuickLogTarget(setFlowQuickLogTargets, sets.length, fallbackQuickLogTarget) ?? toQuickLogTargetFromSuggestedValues(targetHint.suggestedValues),
+    [fallbackQuickLogTarget, setFlowQuickLogTargets, sets.length, targetHint.suggestedValues],
   );
   const canonicalFormState = useMemo<SessionLoggerFormState>(() => {
     const nextWeight = currentLiveQuickLogTarget?.weightMax ?? currentLiveQuickLogTarget?.weightMin;
@@ -1094,7 +1102,6 @@ export function SetLoggerCard({
 
   const resolvedIsFailure = showFailureToggle && !resolvedIsWarmup && isFailure;
   const isSaveDisabled = isSubmitting || isLogRequestPending;
-
   const applyQuickLogTargetToInputs = useCallback((target: SessionQuickLogTarget | null | undefined) => {
     if (!target) {
       return false;
@@ -1123,8 +1130,8 @@ export function SetLoggerCard({
   }, [defaultDistanceUnit, unitLabel]);
 
   const applyNextSetFlowTarget = useCallback((setIndex: number) => {
-    return applyQuickLogTargetToInputs(setFlowQuickLogTargets?.[setIndex] ?? null);
-  }, [applyQuickLogTargetToInputs, setFlowQuickLogTargets]);
+    return applyQuickLogTargetToInputs(resolveSetFlowQuickLogTarget(setFlowQuickLogTargets, setIndex, fallbackQuickLogTarget));
+  }, [applyQuickLogTargetToInputs, fallbackQuickLogTarget, setFlowQuickLogTargets]);
   const advanceLoggerAfterOptimisticLog = useCallback((args: {
     nextSetIndex: number;
     presentMetrics: ReturnType<typeof deriveMeasurementPresenceFromValues>;
@@ -1165,7 +1172,7 @@ export function SetLoggerCard({
       distance,
       calories,
     });
-    const sanitizedValues = sanitizeEnabledMeasurementValues(presentMetrics, {
+    const sanitizedValues = sanitizeLoggedMeasurementValues({
       weight,
       reps,
       duration: durationInput,
@@ -1216,7 +1223,7 @@ export function SetLoggerCard({
 
     const clientLogId = createStableSetId();
     const failureNote = resolvedIsFailure ? FAILURE_NOTE_SENTINEL : null;
-    const nextSetIndex = sets.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
+    const nextSetIndex = latestSetsRef.current.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
     const optimisticSet: DisplaySet = {
       id: clientLogId,
       client_log_id: clientLogId,
@@ -1443,7 +1450,6 @@ export function SetLoggerCard({
     sessionExerciseId,
     sessionId,
     setSets,
-    sets,
     toast,
     unitLabel,
     userId,
@@ -1496,7 +1502,7 @@ export function SetLoggerCard({
       distance,
       calories,
     });
-    const sanitizedValues = sanitizeEnabledMeasurementValues(presentMetrics, {
+    const sanitizedValues = sanitizeLoggedMeasurementValues({
       weight,
       reps,
       duration: durationInput,
@@ -1676,40 +1682,64 @@ export function SetLoggerCard({
     }
   }, [applyHintValues, applyLastRow, didApplyLastTarget, isEditedFromCurrentTarget, resetLoggerMeasurementInputs]);
   const remainingTargetSetCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - sets.length);
+  const showLastTargetAction = !isLastTargetButtonDisabled;
+  const showLogAllAction = remainingTargetSetCount > 0;
+  const loggerActionCount = Number(showLastTargetAction) + Number(showLogAllAction) + 1;
+  const loggerActionGridClassName = loggerActionCount === 1
+    ? "grid-cols-1"
+    : loggerActionCount === 2
+      ? (showLastTargetAction ? "grid-cols-[74px_minmax(0,1fr)]" : "grid-cols-[80px_minmax(0,1fr)]")
+      : "grid-cols-[74px_80px_minmax(0,1fr)]";
   const handleLogAll = useCallback(async () => {
-    if (logRequestInFlightRef.current || remainingTargetSetCount === 0) {
+    const remainingCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - latestSetsRef.current.length);
+    if (logRequestInFlightRef.current || remainingCount === 0) {
       return;
     }
 
-    for (let index = 0; index < remainingTargetSetCount; index += 1) {
+    for (let index = 0; index < remainingCount; index += 1) {
+      const countBeforeLog = latestSetsRef.current.length;
       await handleLogSet();
+      if (latestSetsRef.current.length <= countBeforeLog) {
+        break;
+      }
     }
-  }, [handleLogSet, remainingTargetSetCount]);
+  }, [handleLogSet, targetSetsMax, targetSetsMin]);
   const attachedLoggerActionStrip = useMemo(
     () => (
       <AttachedCardActionStripFrame
         className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.3)] bg-[rgb(var(--surface-1-rgb)/0.18)]"
-        gridClassName="grid-cols-[minmax(88px,0.72fr)_minmax(0,1fr)_minmax(0,1fr)]"
+        gridClassName={loggerActionGridClassName}
       >
-        <button
-          type="button"
-          onClick={handleToggleLastTarget}
-          disabled={isLastTargetButtonDisabled}
-          data-bottom-action-intent="info"
-          className={cn(
-            getAttachedCardActionButtonClassName({
+        {showLastTargetAction ? (
+          <button
+            type="button"
+            onClick={handleToggleLastTarget}
+            data-bottom-action-intent="info"
+            className={getAttachedCardActionButtonClassName({
               intent: "info",
               className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
-            }),
-            isLastTargetButtonDisabled
-              ? "border-r-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
-              : undefined,
-          )}
-        >
-          <span className="bottom-action__label">
-            {lastTargetButtonLabel}
-          </span>
-        </button>
+            })}
+          >
+            <span className="bottom-action__label">{lastTargetButtonLabel}</span>
+          </button>
+        ) : null}
+        {showLogAllAction ? (
+          <button
+            type="button"
+            onClick={() => { void handleLogAll(); }}
+            disabled={isSaveDisabled}
+            data-bottom-action-intent="positive"
+            className={cn(
+              getAttachedCardActionButtonClassName({
+                intent: "positive",
+                className: "!h-12 !border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+              }),
+              isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
+            )}
+          >
+            <span className="bottom-action__label text-[11px]">Log all</span>
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={handleLogSet}
@@ -1718,38 +1748,45 @@ export function SetLoggerCard({
           className={cn(
             getAttachedCardActionButtonClassName({
               intent: "positive",
-              className: "!h-12 !border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+              className: cn(
+                "!h-12 rounded-br-[var(--card-radius)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+                showLastTargetAction ? "" : "rounded-bl-[var(--card-radius)]",
+              ),
             }),
-            isSaveDisabled
-              ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
-              : undefined,
+            isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
           )}
         >
-          <span className="bottom-action__label">
-            {liveLogButtonLabel}
+          <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-1.5 text-[10px] leading-tight">
+            <span>{liveLogButtonPrefix}</span>
+            {liveSummaryItems.length > 0 ? (
+              <>
+                <SignatureMiniPipe className="h-[0.82em] w-[0.35rem]" barClassName="w-[2px]" />
+                <SignatureInlineList
+                  items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
+                  separator="pipe"
+                  className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
+                  itemClassName="whitespace-nowrap"
+                />
+              </>
+            ) : null}
           </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { void handleLogAll(); }}
-          disabled={isSaveDisabled || remainingTargetSetCount === 0}
-          data-bottom-action-intent="positive"
-          className={cn(
-            getAttachedCardActionButtonClassName({
-              intent: "positive",
-              className: "!h-12 rounded-br-[var(--card-radius)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
-            }),
-            isSaveDisabled || remainingTargetSetCount === 0
-              ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
-              : undefined,
-          )}
-        >
-          <span className="bottom-action__label">Log all</span>
         </button>
       </AttachedCardActionStripFrame>
     ),
-    [handleLogAll, handleLogSet, handleToggleLastTarget, isLastTargetButtonDisabled, isSaveDisabled, lastTargetButtonLabel, liveLogButtonLabel, remainingTargetSetCount],
+    [handleLogAll, handleLogSet, handleToggleLastTarget, isSaveDisabled, lastTargetButtonLabel, liveLogButtonPrefix, liveSummaryItems, showLastTargetAction, showLogAllAction, loggerActionGridClassName],
   );
+  const handleExerciseTimerVisibilityToggle = useCallback(async () => {
+    if (!onExerciseTimerVisibilityChange || isTimerVisibilityPending) {
+      return;
+    }
+
+    setIsTimerVisibilityPending(true);
+    try {
+      await onExerciseTimerVisibilityChange(!exerciseTimerVisible);
+    } finally {
+      setIsTimerVisibilityPending(false);
+    }
+  }, [exerciseTimerVisible, isTimerVisibilityPending, onExerciseTimerVisibilityChange]);
   const measurementAuxiliaryFields = useMemo<MeasurementPanelAuxiliaryField[]>(() => {
     const warmupField: MeasurementPanelAuxiliaryField = {
       title: "Warm-Up",
@@ -1816,8 +1853,33 @@ export function SetLoggerCard({
       });
     }
 
+    if (onExerciseTimerVisibilityChange) {
+      fields.push({
+        title: "Timer",
+        input: null,
+        inlineLabel: "TIMER",
+        useInlineFieldShell: false,
+        showEmptyValue: false,
+        hasValue: true,
+        renderInput: () => (
+          <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
+            <GlowSwitch
+              checked={exerciseTimerVisible}
+              ariaLabel={exerciseTimerVisible ? "Exercise timer enabled" : "Exercise timer disabled"}
+              onLabel="Timer"
+              offLabel="Timer"
+              onClick={() => { void handleExerciseTimerVisibilityToggle(); }}
+              disabled={isTimerVisibilityPending}
+              className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+              stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+            />
+          </div>
+        ),
+      });
+    }
+
     return fields;
-  }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
+  }, [exerciseTimerVisible, handleExerciseTimerVisibilityToggle, isTimerVisibilityPending, onExerciseTimerVisibilityChange, resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
   const persistCopilotFeedback = useCallback(async (
     nextSignal: SessionCopilotFeedbackSignal | null,
     nextNote: string,
