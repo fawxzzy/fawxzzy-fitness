@@ -2736,6 +2736,9 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             sessions={[...mockHistorySessions]}
             currentRoutineSessions={[...mockHistorySessions]}
             currentCycleSessions={[...mockHistorySessions]}
+            plannedSkippedDayKeys={["2026-04-08"]}
+            currentRoutinePlannedSkippedDayKeys={["2026-04-08"]}
+            currentCyclePlannedSkippedDayKeys={["2026-04-08"]}
             activeRoutineTitle={mockHistoryWeeklyProgress.primaryRoutineTitle}
             scopeSummary={mockHistoryScopeSummary}
             currentRoutineScopeSummary={{
@@ -3392,15 +3395,17 @@ function renderScenario(scenario: MobileFixtureScenario) {
 }
 
 export default function DevMobileRegressionPage({
+  allowProductionPreview = false,
   searchParams,
 }: {
+  allowProductionPreview?: boolean;
   searchParams?: {
     scenario?: string;
     screen?: string;
     fixture?: string;
   };
 }) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && !allowProductionPreview) {
     notFound();
   }
 

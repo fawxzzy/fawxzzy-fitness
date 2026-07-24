@@ -165,6 +165,9 @@ export default async function HistoryPage({
           filterOptions={state.data.filterOptions}
           currentRoutineSessions={state.data.currentRoutineSessionItems}
           currentCycleSessions={state.data.currentCycleSessionItems}
+          plannedSkippedDayKeys={state.data.plannedSkippedDayKeys}
+          currentRoutinePlannedSkippedDayKeys={state.data.currentRoutinePlannedSkippedDayKeys}
+          currentCyclePlannedSkippedDayKeys={state.data.currentCyclePlannedSkippedDayKeys}
           activeRoutineTitle={state.data.activeRoutineTitle}
           scopeSummary={state.data.scopeSummary}
           currentRoutineScopeSummary={state.data.currentRoutineScopeSummary}

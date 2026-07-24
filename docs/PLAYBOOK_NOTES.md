@@ -572,6 +572,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/components/ui/DetailSectionList.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/ExerciseInfoSheet.tsx`
 - Status: Proposed
 
+## 2026-07-14 - History calendars distinguish completed and skipped planned workout days
+- Type: Pattern
+- WHAT changed: The history calendar now derives past planned workout dates from routine cycle truth, keeps completed session days green, marks genuinely missed workout days red, and allows vertical page movement to begin over the horizontally swipeable month rail. Deterministic mobile fixtures remain blocked in production but can be opened on protected Vercel preview deployments for operator review.
+- WHY it changed: The calendar previously showed only completed-session density and its horizontal-only touch contract blocked normal mobile page scrolling when a gesture started inside the calendar.
+- Rule: Calendar status must come from routine scheduling plus completed-session truth, and horizontally scrollable history surfaces must preserve vertical page gestures.
+- Evidence: `src/lib/history-planned-days.ts`, `src/lib/history-calendar.ts`, `src/components/history/HistoryCalendarSurface.tsx`
+
 ## 2026-07-17 - Migration source recovery must preserve immutable provenance and parity uncertainty
 - Type: Guardrail
 - WHAT changed: Three missing Fitness migration sources were restored as exact Git blobs from an immutable historical commit and locked by raw SHA-256 plus a complete source-tree manifest; provider-returned canonical statements remain a separate evidence class.

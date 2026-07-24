@@ -77,7 +77,7 @@ test("history sessions loader returns session content on the happy path", async 
         performed_at: "2026-04-20T12:00:00.000Z",
         notes: "Strong day",
         routine_id: "routine-1",
-        routine_day_index: 0,
+        routine_day_index: 1,
         name: "Lower Rotation",
         routine_day_name: null,
         day_name_override: null,
@@ -85,8 +85,9 @@ test("history sessions loader returns session content on the happy path", async 
         status: "completed",
       }],
     }),
-    routines: async () => ({ data: [{ id: "routine-1", name: "Lower Rotation" }] }),
-    routine_days: async () => ({ data: [{ routine_id: "routine-1", day_index: 0, name: "Primer" }] }),
+    profiles: async () => ({ data: [{ timezone: "America/New_York", active_routine_id: "routine-1" }] }),
+    routines: async () => ({ data: [{ id: "routine-1", name: "Lower Rotation", start_date: "2026-04-20", cycle_length_days: 1, timezone: "America/New_York" }] }),
+    routine_days: async () => ({ data: [{ routine_id: "routine-1", day_index: 1, name: "Primer", is_rest: false }] }),
     session_exercises: async () => ({
       data: [{
         id: "session-exercise-1",
@@ -181,7 +182,7 @@ test("history sessions loader returns session content on the happy path", async 
   const result = await loadHistorySessionsPageData({
     supabase,
     userId: "user-1",
-    now: "2026-04-20T16:00:00.000Z",
+    now: "2026-04-22T16:00:00.000Z",
     searchParams: { selected: "session-1" },
     logger: { warn() {} },
   });
@@ -202,6 +203,7 @@ test("history sessions loader returns session content on the happy path", async 
   assert.equal(result.sessionItems[0]?.recapSignals?.[0]?.meta, "Effort 8/10");
   assert.equal(result.weeklyProgress.completedWorkoutCount, 1);
   assert.equal(result.weeklyProgressByWeek.length, 1);
+  assert.deepEqual(result.plannedSkippedDayKeys, ["2026-04-21"]);
 });
 
 test("history sessions loader renders empty history without crashing", async () => {

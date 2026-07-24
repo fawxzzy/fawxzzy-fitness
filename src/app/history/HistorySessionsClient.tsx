@@ -77,6 +77,7 @@ const FILTER_SECTION_RAIL_CLASS_NAME = "hide-scrollbar -mx-1.5 max-w-none overfl
 
 type HistorySessionsScopePayload = {
   sessionItems: SessionSummary[];
+  plannedSkippedDayKeys: string[];
   scopeSummary: HistoryScopeSummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
@@ -384,6 +385,9 @@ export function HistorySessionsClient({
   filterOptions = { routines: [] },
   currentRoutineSessions = [],
   currentCycleSessions = [],
+  plannedSkippedDayKeys = [],
+  currentRoutinePlannedSkippedDayKeys = [],
+  currentCyclePlannedSkippedDayKeys = [],
   activeRoutineTitle = null,
   scopeSummary,
   currentRoutineScopeSummary,
@@ -408,6 +412,9 @@ export function HistorySessionsClient({
   filterOptions?: ExerciseInfoFilterOptions;
   currentRoutineSessions?: SessionSummary[];
   currentCycleSessions?: SessionSummary[];
+  plannedSkippedDayKeys?: string[];
+  currentRoutinePlannedSkippedDayKeys?: string[];
+  currentCyclePlannedSkippedDayKeys?: string[];
   activeRoutineTitle?: string | null;
   scopeSummary: HistoryScopeSummary;
   currentRoutineScopeSummary: HistoryScopeSummary;
@@ -437,6 +444,7 @@ export function HistorySessionsClient({
     const initialPayloads: Record<string, HistorySessionsScopePayload> = {
       [buildFilterStateKey(createDefaultExerciseInfoFilterState())]: {
         sessionItems: sessions,
+        plannedSkippedDayKeys,
         scopeSummary,
         weeklyProgress,
         weeklyProgressByWeek,
@@ -451,6 +459,7 @@ export function HistorySessionsClient({
         cycleStartDate: null,
       })] = {
         sessionItems: currentRoutineSessions,
+        plannedSkippedDayKeys: currentRoutinePlannedSkippedDayKeys,
         scopeSummary: currentRoutineScopeSummary,
         weeklyProgress: currentRoutineWeeklyProgress,
         weeklyProgressByWeek: currentRoutineWeeklyProgressByWeek,
@@ -466,6 +475,7 @@ export function HistorySessionsClient({
           cycleStartDate: activeCycleStartDate,
         })] = {
           sessionItems: currentCycleSessions,
+          plannedSkippedDayKeys: currentCyclePlannedSkippedDayKeys,
           scopeSummary: currentCycleScopeSummary,
           weeklyProgress: currentCycleWeeklyProgress,
           weeklyProgressByWeek: currentCycleWeeklyProgressByWeek,
@@ -478,6 +488,7 @@ export function HistorySessionsClient({
   });
   const [lastVisiblePayload, setLastVisiblePayload] = useState<HistorySessionsScopePayload>({
     sessionItems: sessions,
+    plannedSkippedDayKeys,
     scopeSummary,
     weeklyProgress,
     weeklyProgressByWeek,
@@ -494,6 +505,7 @@ export function HistorySessionsClient({
       : (payloadsByFilterKey[filterKey] ?? lastVisiblePayload)
   ), [filterKey, lastVisiblePayload, normalizedFilterState.analyticsScope, payloadsByFilterKey]);
   const scopedSessions = scopedPayload?.sessionItems ?? EMPTY_SESSION_ITEMS;
+  const scopedPlannedSkippedDayKeys = scopedPayload?.plannedSkippedDayKeys;
   const scopedScopeSummary = scopedPayload?.scopeSummary ?? scopeSummary;
   const scopedWeeklyProgress = scopedPayload?.weeklyProgress ?? weeklyProgress;
   const scopedWeeklyProgressByWeek = scopedPayload?.weeklyProgressByWeek ?? weeklyProgressByWeek ?? EMPTY_WEEKLY_PROGRESS_BY_WEEK;
@@ -700,7 +712,8 @@ export function HistorySessionsClient({
     sessions: queryFilteredSessions,
     timezone: scopedWeeklyProgress.timezone,
     selectedDayKey: effectiveSelectedDayKey,
-  }), [effectiveSelectedDayKey, queryFilteredSessions, scopedWeeklyProgress.timezone]);
+    skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
+  }), [effectiveSelectedDayKey, queryFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone]);
 
   const monthlyProgress = useMemo(() => buildHistoryMonthlyProgress({
     sessions: queryFilteredSessions,
