@@ -68,11 +68,11 @@ test("curatedOnboardingReducer marks intake completion separately from generatio
 
   assert.equal(completedState.draft.stepId, "generation-handoff");
   assert.equal(completedState.lifecycle.intakeStatus, "completed");
-  assert.equal(completedState.lifecycle.generationStatus, "not-implemented");
+  assert.equal(completedState.lifecycle.generationStatus, "queued");
   assert.equal(completedState.lifecycle.completedAt, "2026-01-04T00:00:00.000Z");
 });
 
-test("curatedOnboardingReducer resolves placeholder generation without implying a plan exists", () => {
+test("curatedOnboardingReducer resolves deterministic generation with a plan id", () => {
   const initialState = createCuratedOnboardingState({
     lifecycle: {
       intakeStatus: "completed",
@@ -84,12 +84,12 @@ test("curatedOnboardingReducer resolves placeholder generation without implying 
 
   const resolvedState = curatedOnboardingReducer(initialState, {
     type: "generation-resolved",
-    status: "not-implemented",
-    message: "Generation is not implemented yet.",
+    status: "ready",
+    planId: "curated-12345678",
   });
 
   assert.equal(resolvedState.lifecycle.intakeStatus, "completed");
-  assert.equal(resolvedState.lifecycle.generationStatus, "not-implemented");
-  assert.equal(resolvedState.lifecycle.planId, null);
-  assert.equal(resolvedState.message, "Generation is not implemented yet.");
+  assert.equal(resolvedState.lifecycle.generationStatus, "ready");
+  assert.equal(resolvedState.lifecycle.planId, "curated-12345678");
+  assert.equal(resolvedState.message, null);
 });

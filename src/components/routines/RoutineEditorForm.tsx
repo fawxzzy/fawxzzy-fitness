@@ -19,6 +19,7 @@ import { cn } from "@/lib/cn";
 import type { RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
 import { getRoutineStartWeekdayFromDate, ROUTINE_START_WEEKDAYS } from "@/lib/routines";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
+import { getRoutineTimezoneLabel, normalizeRoutineTimezone, ROUTINE_TIMEZONE_OPTIONS } from "@/lib/timezones";
 
 const weekdayOptions = ROUTINE_START_WEEKDAYS.map((weekday) => ({
   value: weekday,
@@ -34,6 +35,11 @@ const distanceUnitOptions = [
   { value: "mi", label: "mi" },
   { value: "km", label: "km" },
 ] as const;
+
+const timezoneOptions = ROUTINE_TIMEZONE_OPTIONS.map((value) => ({
+  value,
+  label: getRoutineTimezoneLabel(value),
+}));
 
 const scheduleModeOptions = [
   { value: "weekday_anchored", label: "Week-based" },
@@ -900,6 +906,7 @@ export function RoutineEditorFormFields({
   const showCycleLength = visibleFields.has("cycleLengthDays");
   const showScheduleMode = visibleFields.has("scheduleMode");
   const showStartWeekday = visibleFields.has("startWeekday") || visibleFields.has("startDate");
+  const showTimezone = visibleFields.has("timezone");
   const showWeightUnit = visibleFields.has("weightUnit");
   const showDistanceUnit = visibleFields.has("distanceUnit");
   const resolvedCycleLength = values?.cycleLengthDays ?? cycleLengthDefaultValue;
@@ -951,6 +958,33 @@ export function RoutineEditorFormFields({
               {cycleLengthField}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {showTimezone ? (
+        <div className="pt-1">
+          <RoutineEditorCollapsibleSection
+            title="Time Zone"
+            defaultExpanded={sectionsDefaultExpanded}
+            info={{
+              title: "Time Zone",
+              summary: "Keeps routine days, scheduled sessions, and daily rollovers aligned to your local time.",
+              sectionKey: "routine_setup",
+            }}
+          >
+            <RoutineEditorSegmentedField
+              label="Time Zone"
+              ariaLabel="Routine time zone"
+              value={normalizeRoutineTimezone(values?.timezone ?? timezoneDefaultValue)}
+              onChange={(nextValue) => onFieldChange?.("timezone", nextValue)}
+              options={timezoneOptions}
+              display="expanding"
+              fullWidthWhenExpanded
+              showLabel={false}
+              showDivider={false}
+              expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
+            />
+          </RoutineEditorCollapsibleSection>
         </div>
       ) : null}
 

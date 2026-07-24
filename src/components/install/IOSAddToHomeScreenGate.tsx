@@ -4,8 +4,7 @@ type IOSAddToHomeScreenGateProps = {
   copyState: InstallCopyState;
   installUrl: string;
   onCopy: () => void;
-  primaryHref?: string;
-  primaryLabel?: string;
+  primaryHref: string;
 };
 
 export function IOSAddToHomeScreenGate({
@@ -13,7 +12,6 @@ export function IOSAddToHomeScreenGate({
   installUrl,
   onCopy,
   primaryHref,
-  primaryLabel,
 }: IOSAddToHomeScreenGateProps) {
   return (
     <InstallGateChrome
@@ -22,13 +20,13 @@ export function IOSAddToHomeScreenGate({
       installUrl={installUrl}
       onCopy={onCopy}
       primaryHref={primaryHref}
-      primaryLabel={primaryLabel}
+      primaryLabel="Continue"
       title="Add Fitness to your Home Screen"
     >
-      <ol className="space-y-2 rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
-        <li>1. Tap Share.</li>
-        <li>2. Tap Add to Home Screen.</li>
-        <li>3. Open Fitness from your Home Screen.</li>
+      <ol className="space-y-2 rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
+        <li>1. Tap the browser Share button.</li>
+        <li>2. Choose Add to Home Screen.</li>
+        <li>3. Open Fitness from the new Home Screen icon.</li>
       </ol>
     </InstallGateChrome>
   );

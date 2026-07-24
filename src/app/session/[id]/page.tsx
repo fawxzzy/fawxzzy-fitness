@@ -40,6 +40,7 @@ import {
   toggleSkipAction,
   updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
+  updateSessionExerciseTimerAction,
 } from "./actions";
 import { getSessionPageDataForUser } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
@@ -562,6 +563,15 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       targetSetsMax: displayTarget?.setsMax ?? null,
       initialSets: setsByExercise.get(exercise.id) ?? [],
       loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
+      exerciseTimer: {
+        enabled: exercise.exercise_timer_enabled === true,
+        mode: exercise.exercise_timer_mode ?? null,
+        targetSeconds: exercise.exercise_timer_target_seconds ?? null,
+        elapsedSeconds: exercise.exercise_timer_elapsed_seconds ?? 0,
+        status: exercise.exercise_timer_status ?? "idle",
+        startedAt: exercise.exercise_timer_started_at ?? null,
+        completedAt: exercise.exercise_timer_completed_at ?? null,
+      },
     };
   });
   const sessionHeaderInfoItems = buildCurrentSessionHeaderInfoRailItems({
@@ -659,6 +669,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           deleteSetAction={deleteSetAction}
           updateSessionExerciseCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
           updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
+          updateSessionExerciseTimerAction={updateSessionExerciseTimerAction}
         />
         <SessionOfflineBridge snapshot={sessionSnapshot} />
     </AppShell>

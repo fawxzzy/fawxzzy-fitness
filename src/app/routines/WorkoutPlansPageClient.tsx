@@ -3,30 +3,21 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { DayList } from "@/components/day-list/DayList";
 import { RoutineOverviewDayCard } from "@/components/day-list/RoutineDayCardPresentation";
 import { RoutinesPageScaffold, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
+import {
+  ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME,
+  ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
+} from "@/components/routines/routineCardChrome";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
-import { cn } from "@/lib/cn";
 import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
-
-const WORKOUT_PLAN_LIBRARY_DELETE_PILL_CLASS_NAME = cn(
-  getBottomActionButtonClassName({
-    intent: "danger",
-    fullWidth: false,
-    className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-  }),
-  "!rounded-tl-[0.5rem] !rounded-tr-none !rounded-bl-none !rounded-br-none",
-  "!border-[rgb(var(--danger-rgb)/0.98)] !bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(132_31_31/0.98))] !text-[rgb(255_245_245)] shadow-[0_2px_10px_rgb(var(--danger-rgb)/0.16)]",
-);
-const WORKOUT_PLAN_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
 
 type WorkoutPlanLibraryCardItem = WorkoutPlanSourceListItem & {
   href?: string | null;
@@ -127,10 +118,11 @@ export function WorkoutPlansPageClient({
                     isInSession: false,
                   }}
                   allowWeekdayFallback={false}
+                  headerLayout="cornered"
                   onPress={planHref ? () => router.push(planHref) : undefined}
                   wrapper={(card) => (
                     <div className="relative min-w-0">
-                      <div className={WORKOUT_PLAN_DELETE_PILL_ANCHOR_CLASS_NAME}>
+                      <div className={ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME}>
                         <button
                           type="button"
                           onClick={(event) => {
@@ -140,12 +132,7 @@ export function WorkoutPlansPageClient({
                           }}
                           disabled={isPending}
                           aria-label={`Delete ${planTitle}`}
-                          data-bottom-action-intent="danger"
-                          className={cn(
-                            WORKOUT_PLAN_LIBRARY_DELETE_PILL_CLASS_NAME,
-                            "pointer-events-auto",
-                            isPending ? "opacity-75" : undefined,
-                          )}
+                          className={`${ROUTINE_CARD_DELETE_TEXT_CLASS_NAME} pointer-events-auto${isPending ? " opacity-75" : ""}`}
                         >
                           <span className="bottom-action__label">Delete</span>
                         </button>

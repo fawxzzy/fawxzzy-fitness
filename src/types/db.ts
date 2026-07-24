@@ -45,6 +45,13 @@ export type SessionExerciseRow = {
   copilot_feedback_note?: string | null;
   copilot_feedback_effort?: number | null;
   copilot_feedback_updated_at?: string | null;
+  exercise_timer_enabled?: boolean;
+  exercise_timer_mode?: "count_up" | "countdown" | null;
+  exercise_timer_target_seconds?: number | null;
+  exercise_timer_elapsed_seconds?: number;
+  exercise_timer_status?: "idle" | "running" | "paused" | "completed";
+  exercise_timer_started_at?: string | null;
+  exercise_timer_completed_at?: string | null;
 };
 
 export type SetRow = {
@@ -63,6 +70,7 @@ export type SetRow = {
   calories: number | null;
   rpe: number | null;
   weight_unit: "lbs" | "kg" | null;
+  logged_at?: string | null;
 };
 
 export type ProfileRow = {

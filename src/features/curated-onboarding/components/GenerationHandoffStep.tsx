@@ -1,28 +1,30 @@
 import { appTokens } from "@/components/ui/app/tokens";
 import type { CuratedGenerationStatus, CuratedOnboardingData } from "../types.ts";
+import { formatCuratedExerciseTarget, type CuratedWorkoutPlan } from "../engine.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
+import { PrimaryButton } from "@/components/ui/AppButton";
 
 function getStatusCopy(status: CuratedGenerationStatus) {
   if (status === "queued") {
     return {
-      title: "Saving the handoff",
-      body: "The intake is locked and the placeholder engine request is being exercised now.",
+      title: "Building your plan",
+      body: "Your completed intake is being converted into an editable routine now.",
       tone: "warning" as const,
     };
   }
 
   if (status === "ready") {
     return {
-      title: "Plan placeholder ready",
-      body: "The contract returned a ready placeholder, but real plan preview work is still out of scope.",
+      title: "Your plan is ready to review",
+      body: "Every day uses catalog exercises and double progression. Open it as a draft to edit exercises, days, and targets before publishing.",
       tone: "accent" as const,
     };
   }
 
   if (status === "failed") {
     return {
-      title: "The placeholder handoff failed",
-      body: "Your intake is still saved. Real generation is not implemented yet, so this does not block you from coming back later.",
+      title: "Plan generation failed",
+      body: "Your intake is still saved. Adjust the intake or retry generation without losing the draft.",
       tone: "danger" as const,
     };
   }
@@ -37,7 +39,7 @@ function getStatusCopy(status: CuratedGenerationStatus) {
 
   return {
     title: "Intake saved locally",
-    body: "The intake is complete. This placeholder is holding the spot where real generation will take over later.",
+    body: "The intake is complete. Plan generation will begin when this handoff step is ready.",
     tone: "default" as const,
   };
 }
@@ -65,9 +67,17 @@ function formatGenerationStatus(status: CuratedGenerationStatus) {
 export function GenerationHandoffStep({
   data,
   generationStatus,
+  plan,
+  isCreatingDraft,
+  error,
+  onCreateDraft,
 }: {
   data: CuratedOnboardingData;
   generationStatus: CuratedGenerationStatus;
+  plan: CuratedWorkoutPlan | null;
+  isCreatingDraft: boolean;
+  error: string | null;
+  onCreateDraft: () => void;
 }) {
   const copy = getStatusCopy(generationStatus);
 
@@ -88,6 +98,28 @@ export function GenerationHandoffStep({
           <p className={appTokens.curatedCardBodyStrong}>{formatGenerationStatus(generationStatus)}</p>
         </CuratedInfoCard>
       </div>
+
+      {plan ? (
+        <div className={appTokens.curatedOuterStack}>
+          {plan.rationale.map((item) => (
+            <CuratedInfoCard key={item} compact>
+              <p className={appTokens.curatedCardBodyStrong}>{item}</p>
+            </CuratedInfoCard>
+          ))}
+          {plan.days.map((day) => (
+            <CuratedInfoCard key={day.name}>
+              <p className={appTokens.curatedCardTitle}>{day.name}</p>
+              <p className={appTokens.curatedCardBodyStrong}>
+                {day.exercises.map((exercise) => `${exercise.name} ${formatCuratedExerciseTarget(exercise)}`).join(" | ")}
+              </p>
+            </CuratedInfoCard>
+          ))}
+          {error ? <p className="text-sm text-[rgb(var(--danger-rgb))]">{error}</p> : null}
+          <PrimaryButton type="button" disabled={isCreatingDraft} onClick={onCreateDraft}>
+            {isCreatingDraft ? "Creating editable draft..." : "Create editable draft"}
+          </PrimaryButton>
+        </div>
+      ) : null}
 
       <CuratedInfoCard>
         <p className={appTokens.curatedSectionLabel}>Saved intake snapshot</p>

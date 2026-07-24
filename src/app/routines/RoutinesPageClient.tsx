@@ -3,10 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
+import {
+  ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME,
+  ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
+} from "@/components/routines/routineCardChrome";
 import { CreateRoutineClient } from "@/app/routines/CreateRoutineClient";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { ChevronDownIcon } from "@/components/ui/Chevrons";
@@ -33,16 +36,6 @@ const INACTIVE_ROUTINE_EDIT_BUTTON_CLASS_NAME = getAttachedCardActionButtonClass
   intent: "positive",
   className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
 });
-const ROUTINE_BROWSE_DELETE_PILL_CLASS_NAME = cn(
-  getBottomActionButtonClassName({
-    intent: "danger",
-    fullWidth: false,
-    className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-  }),
-  "!rounded-tl-[0.5rem] !rounded-tr-none !rounded-bl-none !rounded-br-none",
-  "!border-[rgb(var(--danger-rgb)/0.98)] !bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(132_31_31/0.98))] !text-[rgb(255_245_245)] shadow-[0_2px_10px_rgb(var(--danger-rgb)/0.16)]",
-);
-const ROUTINE_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
 
 export function RoutinesPageClient({
   routines,
@@ -171,7 +164,7 @@ export function RoutinesPageClient({
                   return (
                     <div className="min-w-0">
                       <div className="relative min-w-0">
-                        <div className={ROUTINE_DELETE_PILL_ANCHOR_CLASS_NAME}>
+                        <div className={ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME}>
                           <button
                             type="button"
                             onClick={(event) => {
@@ -181,9 +174,8 @@ export function RoutinesPageClient({
                             }}
                             disabled={isPending || !deleteRoutineAction}
                             aria-label={`Delete ${routine.name}`}
-                            data-bottom-action-intent="danger"
                             className={cn(
-                              ROUTINE_BROWSE_DELETE_PILL_CLASS_NAME,
+                              ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
                               "pointer-events-auto",
                               (isPending || !deleteRoutineAction) ? "opacity-75" : undefined,
                             )}

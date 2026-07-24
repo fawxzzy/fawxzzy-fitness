@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { appTokens } from "@/components/ui/app/tokens";
 import { CURATED_INTRO_CARDS } from "../constants.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
@@ -6,9 +7,9 @@ export function CuratedIntroStep() {
   return (
     <div className={appTokens.curatedOuterStack}>
       <CuratedInfoCard tone="accent">
-        <p className={appTokens.curatedCardTitle}>A quick setup before the app starts programming around you.</p>
+        <p className={appTokens.curatedCardTitle}>A quick setup before the app builds your starting routine.</p>
         <p className={appTokens.curatedCardBodyStrong}>
-          You tell us your setup, we shape the future plan around it, and you still stay in control once generation exists.
+          You tell us your setup, we build a bounded plan around it, and you stay in control through the normal routine editor.
         </p>
       </CuratedInfoCard>
 
@@ -18,6 +19,10 @@ export function CuratedIntroStep() {
           <p className={appTokens.curatedCardBody}>{card.body}</p>
         </CuratedInfoCard>
       ))}
+
+      <Link href="/routines/new" className={appTokens.curatedInlineLink}>
+        Build a routine manually instead
+      </Link>
     </div>
   );
 }

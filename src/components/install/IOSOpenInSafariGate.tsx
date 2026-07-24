@@ -25,12 +25,12 @@ export function IOSOpenInSafariGate({
       primaryLabel={primaryLabel}
       showCopyButton
       showInstallUrlCard
-      title="Open Fitness in Safari"
+      title="Open Fitness in your browser"
     >
-      <ol className="space-y-2 rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
+      <ol className="space-y-2 rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
         <li>1. Copy this link.</li>
-        <li>2. Open Safari.</li>
-        <li>3. Paste the link and keep going there.</li>
+        <li>2. Open Safari or your default browser.</li>
+        <li>3. Paste the link, then add Fitness to your Home Screen.</li>
       </ol>
     </InstallGateChrome>
   );

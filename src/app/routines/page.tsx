@@ -387,15 +387,17 @@ export default async function RoutinesPage() {
     timeoutMs: 5000,
     collector: diagnostics,
   });
-  const profile = await diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
-    blockingReason: "Waiting for routines profile bootstrap.",
-    metadata: {
-      userId: user.id,
-    },
-    timeoutMs: 5000,
-  });
   const supabase = supabaseServer();
-  const proAccess = await loadProAccessSnapshot(user.id);
+  const [profile, proAccess] = await Promise.all([
+    diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
+      blockingReason: "Waiting for routines profile bootstrap.",
+      metadata: {
+        userId: user.id,
+      },
+      timeoutMs: 5000,
+    }),
+    loadProAccessSnapshot(user.id),
+  ]);
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
     profile,
     resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),

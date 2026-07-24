@@ -49,6 +49,7 @@ export type HistorySearchParams = {
   tab?: string | string[] | null;
   view?: string | string[] | null;
   q?: string | string[] | null;
+  day?: string | string[] | null;
   tags?: string | string[] | null;
   filters?: string | string[] | null;
   offlineSnapshot?: string | string[] | null;

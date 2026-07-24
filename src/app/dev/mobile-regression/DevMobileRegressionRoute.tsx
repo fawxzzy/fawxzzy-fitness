@@ -60,6 +60,8 @@ import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-disp
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
+import type { ExerciseTimerStatus } from "@/lib/exercise-timer";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -165,6 +167,39 @@ async function noopActionResult(_: unknown) {
   return { ok: true as const };
 }
 
+async function noopCopilotFeedbackAction(payload: {
+  signal: SessionCopilotFeedbackSignal | null;
+  note: string | null;
+  effort: number | null;
+}) {
+  "use server";
+  return {
+    ok: true as const,
+    data: {
+      signal: payload.signal,
+      note: payload.note,
+      effort: payload.effort,
+      updatedAt: "2026-07-17T04:00:00.000Z",
+    },
+  };
+}
+
+async function noopSessionSaveWithPromotion(_: unknown) {
+  "use server";
+  return {
+    ok: true as const,
+    data: {
+      sessionId: "dev-session-auto-progression-confirmation-v1",
+      progressionUpdates: [{
+        exerciseName: "Back Squat",
+        previousTarget: "4 sets x 5 reps x 225 lbs",
+        appliedTarget: "4 sets x 6 reps x 225 lbs",
+        linkedTargetCount: 2,
+      }],
+    },
+  };
+}
+
 async function noopAppendDayAction(_: unknown) {
   "use server";
   return { ok: true as const, routineDayId: "regression-day" };
@@ -200,6 +235,31 @@ async function noopSetAction(_: unknown) {
         calories: null,
         rpe: 8,
         weight_unit: "lbs" as const,
+      },
+    },
+  };
+}
+
+async function noopExerciseTimerAction(payload: { command: "start" | "pause" | "reset" | "complete" }) {
+  "use server";
+  const status: ExerciseTimerStatus = payload.command === "start"
+    ? "running"
+    : payload.command === "pause"
+      ? "paused"
+      : payload.command === "complete"
+        ? "completed"
+        : "idle";
+  return {
+    ok: true as const,
+    data: {
+      timer: {
+        enabled: true,
+        mode: "countdown" as const,
+        targetSeconds: 90,
+        elapsedSeconds: payload.command === "reset" ? 0 : 24,
+        status,
+        startedAt: status === "running" ? new Date().toISOString() : null,
+        completedAt: status === "completed" ? new Date().toISOString() : null,
       },
     },
   };
@@ -716,6 +776,15 @@ const mockSessionExercises = [
     image_icon_path: "/missing/icon-walk.png",
     image_howto_path: null,
     slug: "incline-walk",
+    exerciseTimer: {
+      enabled: true,
+      mode: "countdown" as const,
+      targetSeconds: 90,
+      elapsedSeconds: 24,
+      status: "paused" as const,
+      startedAt: null,
+      completedAt: null,
+    },
   },
   {
     id: "session-ex-4",
@@ -751,6 +820,7 @@ const mockSessionExercises = [
         calories: null,
         rpe: 8,
         weight_unit: "lbs" as const,
+        logged_at: "2026-07-12T14:00:00.000Z",
       },
       {
         id: "set-4b",
@@ -767,6 +837,7 @@ const mockSessionExercises = [
         calories: null,
         rpe: 8,
         weight_unit: "lbs" as const,
+        logged_at: "2026-07-12T14:01:30.000Z",
       },
       {
         id: "set-4c",
@@ -783,6 +854,7 @@ const mockSessionExercises = [
         calories: null,
         rpe: 8,
         weight_unit: "lbs" as const,
+        logged_at: "2026-07-12T14:03:10.000Z",
       },
       {
         id: "set-4d",
@@ -799,6 +871,7 @@ const mockSessionExercises = [
         calories: null,
         rpe: 8,
         weight_unit: "lbs" as const,
+        logged_at: "2026-07-12T14:04:50.000Z",
       },
     ],
     loggedSetCount: 4,
@@ -2247,7 +2320,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           unitLabel="lbs"
           exercises={sessionScenarioExercises}
         initialSelectedExerciseId={mobileRegressionSelectedSessionExerciseByScenarioId[scenario.id] ?? null}
-          saveSessionAction={noopActionResult}
+          saveSessionAction={scenario.id === "session-auto-progression-confirmation" ? noopSessionSaveWithPromotion : noopActionResult}
           requestedReturnTo="/today"
               quickAddAction={<BottomDockButton type="button" intent="positive">Add</BottomDockButton>}
         addSetAction={noopSetAction}
@@ -2256,6 +2329,8 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         removeExerciseAction={noopActionResult}
         deleteSetAction={noopActionResult}
         updateSessionExerciseProgressionAction={noopActionResult}
+        updateSessionExerciseCopilotFeedbackAction={noopCopilotFeedbackAction}
+        updateSessionExerciseTimerAction={noopExerciseTimerAction}
         disableDraftPersistence
       />
     </AppShell>
@@ -2677,6 +2752,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             currentRoutineWeeklyProgress={mockHistoryWeeklyProgress}
             currentCycleWeeklyProgress={mockHistoryWeeklyProgress}
             weeklyProgressByWeek={[mockHistoryWeeklyProgress]}
+            premiumCycleAnalyticsPreviewEnabled
             currentRoutineWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             currentCycleWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             selectedSessionId="history-session-2"
@@ -2767,6 +2843,20 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
               unitLabel="lbs"
               exerciseNameMap={exerciseNameMap}
               sessionSummary={mockHistorySessions[1]}
+              recapArtifact={{
+                id: "recap:history-session-2",
+                sessionId: "history-session-2",
+                title: "Atlas Routine | Lower A recap",
+                completedAt: "2026-04-08T17:00:00.000Z",
+                metrics: [
+                  { label: "Exercises", value: "2" },
+                  { label: "Sets", value: "5" },
+                  { label: "Duration", value: "42:10" },
+                ],
+                topEfforts: [{ exerciseName: "Back Squat", value: "225 lbs x 5" }],
+                prMoments: ["Back Squat"],
+                shareText: "Atlas Routine | Lower A recap\nExercises: 2 | Sets: 5 | Duration: 42:10\nPRs: Back Squat\nTop efforts:\n- Back Squat: 225 lbs x 5",
+              }}
               backHref="/history?tab=sessions"
               exercises={[...exercises]}
               initialExpandedExerciseId={initialExpandedExerciseId}

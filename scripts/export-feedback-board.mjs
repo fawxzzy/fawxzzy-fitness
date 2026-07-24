@@ -5,7 +5,12 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  assertExpectedFitnessSupabaseHost,
+  mergeEnvFileWithShell,
+  parseDotenvFile,
+  resolveEnvFilePath,
+} from "./env-file.mjs";
 import {
   applyResolvedFeedbackCardDependencies,
   normalizeFeedbackCardId,
@@ -18,8 +23,8 @@ import {
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
 const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
-const DEFAULT_STATUS_FILTER = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed", "duplicate"];
-const STATUS_ORDER = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed", "duplicate"];
+const DEFAULT_STATUS_FILTER = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed", "duplicate"];
+const STATUS_ORDER = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed", "duplicate"];
 const VALID_STATUSES = new Set([...STATUS_ORDER, "withdrawn", "spam"]);
 const VALID_TYPES = new Set(["bug", "feature"]);
 const TYPE_ORDER = ["bug", "feature"];
@@ -36,16 +41,12 @@ register("./test-alias-loader.mjs", pathToFileURL(`${scriptDir}${path.sep}`));
 const feedbackHelpers = await import(pathToFileURL(path.join(repoRoot, "src", "lib", "discord", "bug-reports.ts")).href);
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
-const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
+const resolvedEnv = mergeEnvFileWithShell({ fileEnv, shellEnv: process.env });
 
-for (const [key, value] of Object.entries(fileEnv)) {
-  if (explicitEnvFileOverride || !process.env[key]) {
-    process.env[key] = value;
-  }
-}
+Object.assign(process.env, resolvedEnv);
 
 function getRequiredEnv(name) {
-  const value = process.env[name]?.trim();
+  const value = resolvedEnv[name]?.trim();
   if (!value) {
     throw new Error(`Missing required env: ${name}. Set it in ${envPath} or the current shell.`);
   }
@@ -54,7 +55,7 @@ function getRequiredEnv(name) {
 }
 
 function getOptionalEnv(name) {
-  const value = process.env[name]?.trim();
+  const value = resolvedEnv[name]?.trim();
   return value && value.length > 0 ? value : null;
 }
 
@@ -73,6 +74,11 @@ function getOptionalGuildId() {
 }
 
 function createServiceClient() {
+  assertExpectedFitnessSupabaseHost({
+    env: resolvedEnv,
+    commandName: "feedback board export",
+  });
+
   return createClient(getSupabaseUrl(), getRequiredEnv(SUPABASE_SERVICE_ROLE_KEY_ENV), {
     auth: {
       autoRefreshToken: false,
@@ -289,6 +295,8 @@ function formatStatusLabel(status) {
       return "Needs Info";
     case "confirmed":
       return "Confirmed";
+    case "fawxzzy_review":
+      return "Review";
     case "in_progress":
       return "In Progress";
     case "fixed":

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { deriveCompletedVisibilityOverride } from "./session-completed-visibility.ts";
 
-test("hides the row on the first transition into completed", () => {
+test("retains a completed row when it needs post-close feedback", () => {
   const result = deriveCompletedVisibilityOverride({
     previousLoggedSetCount: 2,
     nextLoggedSetCount: 3,
@@ -11,9 +11,10 @@ test("hides the row on the first transition into completed", () => {
     targetSetsMin: 3,
     targetSetsMax: 3,
     previousShowWhenCompleted: true,
+    retainWhenFirstCompleted: true,
   });
 
-  assert.equal(result, false);
+  assert.equal(result, true);
 });
 
 test("preserves manual unhide visibility while the row stays completed", () => {
@@ -42,7 +43,7 @@ test("preserves hidden state while the row stays completed", () => {
   assert.equal(result, false);
 });
 
-test("allows a fresh auto-hide after the row drops below target and completes again", () => {
+test("allows a fresh retained close after the row drops below target and completes again", () => {
   const result = deriveCompletedVisibilityOverride({
     previousLoggedSetCount: 2,
     nextLoggedSetCount: 3,
@@ -50,7 +51,8 @@ test("allows a fresh auto-hide after the row drops below target and completes ag
     targetSetsMin: 3,
     targetSetsMax: 3,
     previousShowWhenCompleted: true,
+    retainWhenFirstCompleted: true,
   });
 
-  assert.equal(result, false);
+  assert.equal(result, true);
 });

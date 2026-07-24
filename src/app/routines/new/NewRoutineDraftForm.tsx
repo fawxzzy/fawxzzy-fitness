@@ -1,31 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
-import { DayList } from "@/components/day-list/DayList";
-import {
-  ROUTINE_CONTENT_GAP_CLASS_NAME,
-  RoutineOverviewDayCard,
-  type RoutineOverviewDayCardItem,
-} from "@/components/day-list/RoutineDayCardPresentation";
 import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
-import { RoutinesPageScaffold, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import {
   RoutineDetailsDiscardConfirmationDock,
   useOptionalRoutineDetailsExitGuard,
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { appTokens } from "@/components/ui/app/tokens";
-import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import {
   buildRoutineDetailsSnapshot,
   commitRoutineCycleLengthInput,
@@ -41,13 +30,10 @@ import {
 import { hasRoutineNameConflict } from "@/lib/routine-name-conflicts";
 import {
   ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY,
-  writePendingWorkoutPlanChooserDayIndex,
   clearRoutineDraftSession,
-  writeRoutineDraftSession,
 } from "@/lib/routine-draft-session";
-import { getRoutineHomeHref } from "@/lib/routine-day-navigation";
-import { getRoutineDayResolvedWeekdayLabel, getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
-import { cn } from "@/lib/cn";
+import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
+import { normalizeRoutineTimezone } from "@/lib/timezones";
 
 function createNewRoutineProgressionDraft() {
   return createProgressionPlaybookFormState({
@@ -58,49 +44,6 @@ function createNewRoutineProgressionDraft() {
 type NewRoutineDraftDefaults = Omit<RoutineDetailsDraft, "distanceUnit"> & {
   distanceUnit?: string;
 };
-
-type NewRoutinePreviewDay = RoutineOverviewDayCardItem & {
-  id: string;
-};
-
-type NewRoutinePreviewDaySeed = {
-  id: string;
-  isRest: boolean;
-};
-
-type DragState = {
-  id: string;
-  pointerId: number;
-};
-
-const NEW_ROUTINE_PREVIEW_TOGGLE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleInactive",
-  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
-});
-const NEW_ROUTINE_PREVIEW_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "positive",
-  className: "translate-x-px !border-l-0 focus-visible:ring-[rgb(var(--accent)/0.24)]",
-});
-const NEW_ROUTINE_PREVIEW_DELETE_PILL_CLASS_NAME = cn(
-  getBottomActionButtonClassName({
-    intent: "danger",
-    fullWidth: false,
-    className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-  }),
-  "shrink-0 self-center",
-);
-const NEW_ROUTINE_PREVIEW_CORNER_DELETE_PILL_CLASS_NAME = cn(
-  NEW_ROUTINE_PREVIEW_DELETE_PILL_CLASS_NAME,
-  "!rounded-tl-[0.5rem] !rounded-tr-none !rounded-bl-none !rounded-br-none",
-  "!border-[rgb(var(--danger-rgb)/0.98)] !bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(132_31_31/0.98))] !text-[rgb(255_245_245)] shadow-[0_2px_10px_rgb(var(--danger-rgb)/0.16)]",
-);
-const NEW_ROUTINE_PREVIEW_REORDER_HANDLE_CLASS_NAME = cn(
-  appTokens.routineEditorReorderHandle,
-  "relative z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
-);
-const NEW_ROUTINE_PREVIEW_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
-const NEW_ROUTINE_PREVIEW_CHEVRON_RAIL_CLASS_NAME = "!right-[0.38rem] !top-auto !bottom-[0.58rem] !translate-y-0 !min-w-0";
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {
   if (field === "name") {
@@ -121,54 +64,11 @@ function resolveSteppedCycleLength(nextValue: string, fallback: number) {
 
 function getDeviceTimezone(fallback: string) {
   if (typeof window === "undefined") {
-    return fallback;
+    return normalizeRoutineTimezone(fallback);
   }
 
   const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone?.trim();
-  return resolved || fallback;
-}
-
-function buildEmptyRoutinePreviewDays(args: {
-  seeds: NewRoutinePreviewDaySeed[];
-  scheduleMode: RoutineDetailsDraft["scheduleMode"];
-  startDate: string;
-  timezone: string;
-}): NewRoutinePreviewDay[] {
-  const safeCycleLength = Math.max(1, Math.min(31, args.seeds.length));
-
-  return args.seeds.map((seed, index) => {
-    const dayIndex = index + 1;
-
-    return {
-      id: seed.id,
-      dayIndex,
-      title: seed.isRest ? "Rest Day" : `Day ${dayIndex}`,
-      occurrenceWeekday: getRoutineDayResolvedWeekdayLabel({
-        dayIndex,
-        startDate: args.startDate,
-        cycleLengthDays: safeCycleLength,
-        scheduleMode: args.scheduleMode,
-        profileTimeZone: args.timezone,
-        referenceDate: args.startDate,
-        weekday: "short",
-      }),
-      isRest: seed.isRest,
-      splitSummary: {
-        total: 0,
-        strength: 0,
-        cardio: 0,
-        bodyweight: 0,
-        unknown: 0,
-      },
-      exerciseSummary: seed.isRest ? "No exercises" : "No exercises yet",
-      isToday: false,
-      isCompleted: false,
-      isSkipped: false,
-      isInSession: false,
-      recapExercises: [],
-      remainingExerciseCount: 0,
-    };
-  });
+  return normalizeRoutineTimezone(resolved || fallback);
 }
 
 function getCreateRoutineButtonLabel(args: {
@@ -212,17 +112,10 @@ function getCreateRoutineButtonLabel(args: {
   }
 }
 
-function createPreviewDaySeeds(count: number, nextIdRef: { current: number }) {
-  return Array.from({ length: count }, () => ({
-    id: `draft-day-${nextIdRef.current++}`,
-    isRest: false,
-  })) satisfies NewRoutinePreviewDaySeed[];
-}
-
 function buildCreateRoutineFormData(args: {
   draft: RoutineDetailsDraft;
   trimmedRoutineName: string;
-  previewDaySeeds: NewRoutinePreviewDaySeed[];
+  previewDayCount: number;
 }) {
   const formData = new FormData();
   formData.set("name", args.trimmedRoutineName);
@@ -233,9 +126,7 @@ function buildCreateRoutineFormData(args: {
   formData.set("timezone", getDeviceTimezone(args.draft.timezone));
   formData.set("weightUnit", args.draft.weightUnit);
   formData.set("distanceUnit", args.draft.distanceUnit);
-  formData.set("previewDays", JSON.stringify(args.previewDaySeeds.map((seed) => ({
-    isRest: seed.isRest,
-  }))));
+  formData.set("previewDays", JSON.stringify(Array.from({ length: args.previewDayCount }, () => ({ isRest: false }))));
   appendProgressionPlaybookFormData(formData, createNewRoutineProgressionDraft());
   return formData;
 }
@@ -277,22 +168,9 @@ export function NewRoutineDraftForm({
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEmbeddedConfirmingDiscard, setIsEmbeddedConfirmingDiscard] = useState(false);
-  const [expandedPreviewDayId, setExpandedPreviewDayId] = useState<string | null>(null);
-  const nextPreviewDayIdRef = useRef(1);
-  const [previewDaySeeds, setPreviewDaySeeds] = useState<NewRoutinePreviewDaySeed[]>(
-    () => createPreviewDaySeeds(normalizedDefaults.cycleLengthDays, nextPreviewDayIdRef),
-  );
-  const [previewDayPendingDelete, setPreviewDayPendingDelete] = useState<NewRoutinePreviewDaySeed | null>(null);
-  const dragStateRef = useRef<DragState | null>(null);
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const previewDaySeedsRef = useRef(previewDaySeeds);
   const loadedDraftFromStorageRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSaving, startTransition] = useTransition();
-
-  useEffect(() => {
-    previewDaySeedsRef.current = previewDaySeeds;
-  }, [previewDaySeeds]);
 
   useEffect(() => {
     try {
@@ -365,21 +243,6 @@ export function NewRoutineDraftForm({
     setCycleLengthInput(String(draft.cycleLengthDays));
   }, [draft.cycleLengthDays]);
 
-  useEffect(() => {
-    setPreviewDaySeeds((current) => {
-      const targetLength = Math.max(1, Math.min(31, draft.cycleLengthDays));
-      if (current.length === targetLength) {
-        return current;
-      }
-
-      if (current.length < targetLength) {
-        return [...current, ...createPreviewDaySeeds(targetLength - current.length, nextPreviewDayIdRef)];
-      }
-
-      return current.slice(0, targetLength);
-    });
-  }, [draft.cycleLengthDays]);
-
   const validation = validateRoutineDetailsDraft(draft);
   const initialSnapshot = buildRoutineDetailsSnapshot(normalizedDefaults);
   const currentSnapshot = buildRoutineDetailsSnapshot(draft);
@@ -402,12 +265,6 @@ export function NewRoutineDraftForm({
     validationError: validation.error,
     canCreate,
   });
-  const previewDays = useMemo(() => buildEmptyRoutinePreviewDays({
-    seeds: previewDaySeeds,
-    scheduleMode: draft.scheduleMode,
-    startDate: draft.startDate,
-    timezone: getDeviceTimezone(draft.timezone),
-  }), [draft.scheduleMode, draft.startDate, draft.timezone, previewDaySeeds]);
   const routineHeaderTitle = useMemo(() => (
     <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
       <RoutineEditorTitleInput
@@ -475,97 +332,6 @@ export function NewRoutineDraftForm({
     return nextDraft;
   }, [cycleLengthInput, draft]);
 
-  const movePreviewDayWithinList = useCallback((currentDays: NewRoutinePreviewDaySeed[], fromIndex: number, toIndex: number) => {
-    if (
-      fromIndex < 0
-      || fromIndex >= currentDays.length
-      || toIndex < 0
-      || toIndex >= currentDays.length
-      || fromIndex === toIndex
-    ) {
-      return currentDays;
-    }
-
-    const next = [...currentDays];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    return next;
-  }, []);
-
-  const movePreviewDay = useCallback((draggedId: string, targetId: string) => {
-    if (draggedId === targetId) {
-      return;
-    }
-
-    setPreviewDaySeeds((current) => {
-      const fromIndex = current.findIndex((day) => day.id === draggedId);
-      const toIndex = current.findIndex((day) => day.id === targetId);
-      return movePreviewDayWithinList(current, fromIndex, toIndex);
-    });
-  }, [movePreviewDayWithinList]);
-
-  const finishPreviewReorder = useCallback(() => {
-    setActiveDragId(null);
-    dragStateRef.current = null;
-  }, []);
-
-  const handlePreviewReorderHandlePointerDown = useCallback((dayId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
-    setExpandedPreviewDayId(null);
-    dragStateRef.current = { id: dayId, pointerId: event.pointerId };
-    setActiveDragId(dayId);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.stopPropagation();
-    event.preventDefault();
-  }, []);
-
-  const handlePreviewReorderHandlePointerMove = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const elementBelow = document.elementFromPoint(event.clientX, event.clientY);
-    const row = elementBelow?.closest("[data-new-routine-preview-day-id]") as HTMLElement | null;
-    const targetId = row?.dataset.newRoutinePreviewDayId;
-    if (targetId) {
-      movePreviewDay(dragState.id, targetId);
-    }
-
-    event.stopPropagation();
-    event.preventDefault();
-  }, [movePreviewDay]);
-
-  const handlePreviewReorderHandlePointerUp = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return;
-    }
-
-    event.currentTarget.releasePointerCapture(event.pointerId);
-    event.stopPropagation();
-    finishPreviewReorder();
-  }, [finishPreviewReorder]);
-
-  const handleConfirmDeletePreviewDay = useCallback(() => {
-    const day = previewDayPendingDelete;
-    if (!day) {
-      return;
-    }
-
-    setPreviewDaySeeds((current) => current.filter((currentDay) => currentDay.id !== day.id));
-    setPreviewDayPendingDelete(null);
-    setExpandedPreviewDayId((current) => (current === day.id ? null : current));
-    setDraft((current) => ({
-      ...current,
-      cycleLengthDays: Math.max(1, current.cycleLengthDays - 1),
-    }));
-    setCycleLengthInput((current) => {
-      const parsed = Number.parseInt(current, 10);
-      const nextValue = Number.isFinite(parsed) ? Math.max(1, parsed - 1) : Math.max(1, draft.cycleLengthDays - 1);
-      return String(nextValue);
-    });
-  }, [draft.cycleLengthDays, previewDayPendingDelete]);
-
   const handleRequestCancel = () => {
     if (!hasDirtyChanges) {
       if (isUsingExitGuard) {
@@ -593,7 +359,7 @@ export function NewRoutineDraftForm({
     setIsEmbeddedConfirmingDiscard(false);
   };
 
-  const submitRoutineDraft = useCallback(async (targetPreviewDayId?: string | null) => {
+  const submitRoutineDraft = useCallback(async () => {
     setError(null);
     const nextDraft = commitCycleLengthInput();
     const nextValidation = validateRoutineDetailsDraft(nextDraft);
@@ -614,11 +380,10 @@ export function NewRoutineDraftForm({
       return;
     }
 
-    const orderedPreviewSeeds = previewDaySeedsRef.current.slice(0, nextDraft.cycleLengthDays);
     const formData = buildCreateRoutineFormData({
       draft: nextDraft,
       trimmedRoutineName: nextDraft.name.trim().slice(0, 15),
-      previewDaySeeds: orderedPreviewSeeds,
+      previewDayCount: Math.max(1, Math.min(31, nextDraft.cycleLengthDays)),
     });
     const result = await createRoutineAction(formData);
     if (!result.ok) {
@@ -631,16 +396,6 @@ export function NewRoutineDraftForm({
       const nextError = "Could not create routine.";
       setError(nextError);
       toast.error(nextError);
-      return;
-    }
-
-    if (targetPreviewDayId) {
-      writeRoutineDraftSession(result.routineId, nextDraft.name.trim().slice(0, 15));
-      window.localStorage.removeItem(ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY);
-      const targetDayIndex = orderedPreviewSeeds.findIndex((seed) => seed.id === targetPreviewDayId) + 1;
-      toast.success("Routine draft created");
-      writePendingWorkoutPlanChooserDayIndex(targetDayIndex);
-      router.refresh();
       return;
     }
 
@@ -661,12 +416,6 @@ export function NewRoutineDraftForm({
       await submitRoutineDraft();
     });
   };
-
-  const handleOpenPreviewWorkoutPlan = useCallback((targetPreviewDayId: string) => {
-    startTransition(async () => {
-      await submitRoutineDraft(targetPreviewDayId);
-    });
-  }, [submitRoutineDraft]);
 
   const localEmbeddedFooter = (
     <div className="border-t border-[rgb(var(--border-strong)/0.14)] px-4 pb-4 pt-3">
@@ -693,7 +442,7 @@ export function NewRoutineDraftForm({
             </div>
           ) : null}
           <RoutineEditorFormFields
-            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
+            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
             showCycleSection
             sectionsDefaultExpanded
             cycleLengthInputValue={cycleLengthInput}
@@ -729,116 +478,6 @@ export function NewRoutineDraftForm({
           <RoutineDetailsSaveState error={error} />
         </div>
 
-        <RoutinesPageScaffold>
-          <SharedDayListSection>
-            <div className={ROUTINE_CONTENT_GAP_CLASS_NAME}>
-              <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
-                {previewDays.map((day) => (
-                  <RoutineOverviewDayCard
-                    key={day.id}
-                    day={day}
-                    startDate={draft.startDate}
-                    isExpanded={expandedPreviewDayId === day.id}
-                    rightRailClassName={NEW_ROUTINE_PREVIEW_CHEVRON_RAIL_CLASS_NAME}
-                    onPress={() => {
-                      setExpandedPreviewDayId((current) => (current === day.id ? null : day.id));
-                    }}
-                    wrapper={(card) => {
-                      const displayIsRest = day.isRest;
-
-                      return (
-                        <div className="relative min-w-0" data-new-routine-preview-day-id={day.id}>
-                          {previewDays.length > 1 ? (
-                            <div className="pointer-events-none absolute right-[0.22rem] top-[0.1rem] z-[7]">
-                              <div className="pointer-events-auto">
-                                <button
-                                  type="button"
-                                  aria-label={`Reorder ${day.title ?? `Workout plan ${day.dayIndex}`}`}
-                                  title="Drag to reorder"
-                                  className={cn(
-                                    NEW_ROUTINE_PREVIEW_REORDER_HANDLE_CLASS_NAME,
-                                    "touch-none",
-                                    activeDragId === day.id ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined,
-                                  )}
-                                  onPointerDown={(event) => handlePreviewReorderHandlePointerDown(day.id, event)}
-                                  onPointerMove={handlePreviewReorderHandlePointerMove}
-                                  onPointerUp={handlePreviewReorderHandlePointerUp}
-                                  onPointerCancel={finishPreviewReorder}
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                  }}
-                                >
-                                  <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
-                                </button>
-                              </div>
-                            </div>
-                          ) : null}
-                          <div className={NEW_ROUTINE_PREVIEW_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME}>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                setPreviewDayPendingDelete(previewDaySeedsRef.current.find((seed) => seed.id === day.id) ?? null);
-                              }}
-                              disabled={previewDays.length <= 1}
-                              aria-label={`Delete ${day.title ?? `workout plan ${day.dayIndex}`}`}
-                              data-bottom-action-intent="danger"
-                              className={cn(
-                                NEW_ROUTINE_PREVIEW_CORNER_DELETE_PILL_CLASS_NAME,
-                                "pointer-events-auto",
-                                previewDays.length <= 1 ? "opacity-45" : undefined,
-                              )}
-                            >
-                              <span className="bottom-action__label">Delete</span>
-                            </button>
-                          </div>
-                          {card}
-                          {expandedPreviewDayId === day.id ? (
-                            <AttachedCardActionStripFrame gridClassName={displayIsRest ? "grid-cols-1" : "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]"}>
-                              <button
-                                type="button"
-                                data-bottom-action-intent={displayIsRest ? "toggleActive" : "toggleInactive"}
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  setPreviewDaySeeds((current) => current.map((seed) => seed.id === day.id
-                                    ? { ...seed, isRest: !displayIsRest }
-                                    : seed));
-                                }}
-                                aria-pressed={displayIsRest}
-                                className={displayIsRest
-                                  ? getAttachedCardActionButtonClassName({ intent: "toggleActive" })
-                                  : NEW_ROUTINE_PREVIEW_TOGGLE_ACTION_BUTTON_CLASS_NAME}
-                              >
-                                <span className="bottom-action__label">{displayIsRest ? "Set Training" : "Set Rest"}</span>
-                              </button>
-                              {!displayIsRest ? (
-                                <button
-                                  type="button"
-                                  data-bottom-action-intent="positive"
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    handleOpenPreviewWorkoutPlan(day.id);
-                                  }}
-                                  className={NEW_ROUTINE_PREVIEW_EDIT_ACTION_BUTTON_CLASS_NAME}
-                                >
-                                  <span className="bottom-action__label">Create</span>
-                                </button>
-                              ) : null}
-                            </AttachedCardActionStripFrame>
-                          ) : null}
-                        </div>
-                      );
-                    }}
-                  />
-                ))}
-              </DayList>
-            </div>
-          </SharedDayListSection>
-        </RoutinesPageScaffold>
       </ContentRail>
 
       {isConfirmingDiscard ? (
@@ -853,14 +492,6 @@ export function NewRoutineDraftForm({
             onConfirm={handleDiscardEmbeddedDraft}
           />
         )
-      ) : previewDayPendingDelete ? (
-        <ConfirmDestructiveModal
-          open
-          title="Confirm delete"
-          confirmLabel="Delete"
-          onCancel={() => setPreviewDayPendingDelete(null)}
-          onConfirm={handleConfirmDeletePreviewDay}
-        />
       ) : embedded ? (
         localEmbeddedFooter
       ) : (

@@ -1,4 +1,5 @@
 import type { CuratedOnboardingDraft } from "./types.ts";
+import { generateCuratedWorkoutPlan, type CuratedWorkoutPlan } from "./engine.ts";
 
 export interface CuratedWorkoutGenerationRequest {
   userId: string;
@@ -6,8 +7,9 @@ export interface CuratedWorkoutGenerationRequest {
 }
 
 export interface CuratedWorkoutGenerationResponse {
-  status: "not-implemented" | "queued" | "ready" | "failed";
+  status: "ready" | "failed";
   planId?: string;
+  plan?: CuratedWorkoutPlan;
 }
 
 export interface CuratedWorkoutEngineClient {
@@ -15,7 +17,8 @@ export interface CuratedWorkoutEngineClient {
 }
 
 export const curatedWorkoutEngineClient: CuratedWorkoutEngineClient = {
-  async generate(_request) {
-    return { status: "not-implemented" };
+  async generate(request) {
+    const plan = generateCuratedWorkoutPlan(request.onboarding);
+    return { status: "ready", planId: plan.planId, plan };
   },
 };

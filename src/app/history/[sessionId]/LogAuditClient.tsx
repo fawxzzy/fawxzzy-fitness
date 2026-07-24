@@ -57,6 +57,8 @@ import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-d
 import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import { formatExerciseTimerClock } from "@/lib/exercise-timer";
+import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -69,6 +71,7 @@ type AuditSet = {
   distance_unit: FitnessDistanceUnit | null;
   calories: number | null;
   weight_unit: "lbs" | "kg" | null;
+  logged_at?: string | null;
 };
 
 type EditableSet = {
@@ -91,6 +94,12 @@ type AuditExercise = {
   copilot_feedback_signal?: SessionCopilotFeedbackSignal | null;
   copilot_feedback_note?: string | null;
   copilot_feedback_effort?: number | null;
+  exercise_timer_enabled?: boolean;
+  exercise_timer_mode?: "count_up" | "countdown" | null;
+  exercise_timer_target_seconds?: number | null;
+  exercise_timer_elapsed_seconds?: number;
+  exercise_timer_status?: "idle" | "running" | "paused" | "completed";
+  exercise_timer_completed_at?: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   target_sets_min?: number | null;
@@ -809,7 +818,32 @@ function buildCollapsedExerciseCardBadgeItems(args: {
 }
 
 function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
+  const toast = useToast();
   const prExerciseNames = new Set(recap.prMoments.map((name) => name.trim()).filter(Boolean));
+
+  async function copyRecap() {
+    try {
+      await navigator.clipboard.writeText(recap.shareText);
+      toast.success("Recap copied.");
+    } catch {
+      toast.error("Could not copy recap.");
+    }
+  }
+
+  async function shareRecap() {
+    if (typeof navigator.share !== "function") {
+      await copyRecap();
+      return;
+    }
+    try {
+      await navigator.share({ title: recap.title, text: recap.shareText });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      toast.error("Could not share recap.");
+    }
+  }
 
   return (
     <HistorySection title="Recap">
@@ -866,6 +900,10 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
         ) : null}
 
         <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
+        <div className="flex flex-wrap justify-end gap-2">
+          <PillButton type="button" onClick={copyRecap}>Copy recap</PillButton>
+          <PillButton type="button" active onClick={shareRecap}>Share recap</PillButton>
+        </div>
       </div>
     </HistorySection>
   );
@@ -1392,17 +1430,19 @@ export function LogAuditClient({
   const sessionHeaderWeekday = formatWeekdayShort(sessionSummary.startedAt);
   const sessionHeaderDayLabel = [sessionSummary.dayTitle?.trim() || null, sessionHeaderWeekday].filter(Boolean).join(" \u00B7 ");
   const sessionHeaderTitle = (
-    <RoutineDayHeaderTitle
-      leadingItems={[sessionSummary.routineTitle]}
-      dayLabel={sessionHeaderDayLabel || undefined}
-      dayLabelOrder="day-first"
-    />
-  );
-  const sessionHeaderAction = (
-    <div className="flex items-center gap-2">
+    <span className="inline-flex min-w-0 flex-col items-start gap-1">
       <SignatureMetaTag className="text-[10px] tracking-[0.08em]">
         {formatDateShort(sessionSummary.startedAt).toUpperCase()}
       </SignatureMetaTag>
+      <RoutineDayHeaderTitle
+        leadingItems={[sessionSummary.routineTitle]}
+        dayLabel={sessionHeaderDayLabel || undefined}
+        dayLabelOrder="day-first"
+      />
+    </span>
+  );
+  const sessionHeaderAction = (
+    <div className="flex items-center gap-2">
       {!expandedExercise ? <TopRightBackButton href={backHref} ariaLabel="Back to sessions" /> : null}
     </div>
   );
@@ -1417,7 +1457,7 @@ export function LogAuditClient({
               title={sessionHeaderTitle}
               titleClassName={SESSION_HEADER_TITLE_CLASS_NAME}
               action={sessionHeaderAction}
-              align="center"
+              align="left"
               className={isEditing ? appTokens.historyEditorHeaderActive : undefined}
               actionClassName="-ml-1 -mr-1 gap-0"
             />
@@ -1571,6 +1611,10 @@ export function LogAuditClient({
             isBest: isSessionBestExercise,
             progressionSummary: exercise.progressionSummary ?? null,
           });
+          const timerSignalItem = exercise.exercise_timer_enabled
+            ? `Timer ${formatExerciseTimerClock(exercise.exercise_timer_elapsed_seconds ?? 0)}${exercise.exercise_timer_status === "completed" ? " complete" : ""}`
+            : null;
+          const recoveryInsight = buildRecoveryTimingInsight(setsForExercise.map((set) => set.source));
           return (
             <article
               key={exercise.id}
@@ -1589,7 +1633,11 @@ export function LogAuditClient({
                   }}
                   summary={bestSummary}
                   summaryLabel={bestSet ? "Top Set" : "Session"}
-                  metadata={renderMetaTags(collapsedCardBadgeItems.signalItems)}
+                  metadata={renderMetaTags([
+                    ...collapsedCardBadgeItems.signalItems,
+                    ...(timerSignalItem ? [timerSignalItem] : []),
+                    ...(recoveryInsight ? [recoveryInsight.label] : []),
+                  ])}
                   badgeText={collapsedCardBadgeItems.countLabel}
                   badgeItems={[collapsedCardBadgeItems.countLabel]}
                   onPress={canExpandExercise ? () => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id)) : undefined}
