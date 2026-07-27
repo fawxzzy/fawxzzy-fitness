@@ -5,7 +5,7 @@ import { buildHistoryAchievements } from "./history-achievements.ts";
 test("history achievements unlock only from deterministic completed training truth", () => {
   const achievements = buildHistoryAchievements({
     completedWorkoutCount: 12,
-    bestWeekCount: 2,
+    bestSessionStreakCount: 2,
     prMomentCount: 1,
   });
   assert.deepEqual(
@@ -16,5 +16,5 @@ test("history achievements unlock only from deterministic completed training tru
 });
 
 test("history achievements stay locked for empty history", () => {
-  assert.equal(buildHistoryAchievements({ completedWorkoutCount: 0, bestWeekCount: 0, prMomentCount: 0 }).some((achievement) => achievement.unlocked), false);
+  assert.equal(buildHistoryAchievements({ completedWorkoutCount: 0, bestSessionStreakCount: 0, prMomentCount: 0 }).some((achievement) => achievement.unlocked), false);
 });

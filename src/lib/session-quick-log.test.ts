@@ -5,9 +5,20 @@ import {
   formatQuickLogPreviewLabel,
   formatQuickLogPreviewLabelForResolvedTarget,
   resolveEffectiveQuickLogTarget,
+  resolveSetFlowQuickLogTarget,
   resolveQuickLogFromResolvedTarget,
   resolveQuickLogFromTarget,
 } from "./session-quick-log.ts";
+
+test("set-flow logging keeps the routine target after explicit entries end", () => {
+  const plankTarget = { measurementType: "time" as const, durationSeconds: 45 };
+
+  assert.deepEqual(
+    resolveSetFlowQuickLogTarget([plankTarget], 3, plankTarget),
+    plankTarget,
+  );
+  assert.equal(resolveSetFlowQuickLogTarget([plankTarget], 3, null), null);
+});
 
 test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => {
   const label = formatQuickLogPreviewLabel({

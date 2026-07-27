@@ -11,7 +11,7 @@ test("routine browse card shows a two-column workout-plan preview without plus-m
   assert.match(source, /showEdgeFades=\{false\}/);
   assert.match(source, /ROUTINES_BROWSE_CARD_CHEVRON_OVERLAY_CLASS_NAME/);
   assert.match(source, /rightIconMode="overlay"/);
-  assert.match(source, /flex-wrap items-start gap-x-2 gap-y-1/);
+  assert.match(source, /flex-wrap items-baseline gap-x-2 gap-y-1/);
   assert.match(source, /ROUTINES_BROWSE_CARD_REST_PREVIEW_TILE_CLASS_NAME/);
   assert.doesNotMatch(source, /remainingPreviewDayCount/);
   assert.doesNotMatch(source, /\+\\?\{?routine\.remainingPreviewDayCount/);
@@ -20,6 +20,7 @@ test("routine browse card shows a two-column workout-plan preview without plus-m
   assert.doesNotMatch(source, /tone="warning" className=\{ROUTINES_BROWSE_CARD_TAG_SPACING_CLASS_NAME\}>Rest/);
   assert.match(source, /<SignatureMiniPipe className="h-\[0\.88em\] w-\[0\.38rem\]" barClassName="w-\[2px\]" \/>/);
   assert.match(source, /<MetricAccentBar variant="thin" className="w-full opacity-90" \/>/);
+  assert.match(source, /flex-col items-start gap-\[0\.2rem\] text-left/);
   assert.match(source, /<MetricAccentBar variant="thin" className="mt-1 w-16 opacity-85" \/>/);
   assert.match(source, /<AppBadge key=\{part\} tone="default"/);
   assert.match(source, /ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME/);
@@ -27,4 +28,7 @@ test("routine browse card shows a two-column workout-plan preview without plus-m
   assert.match(source, /titleClassName=\{titleClassName\}/);
   assert.match(source, /buildRoutineSplitParts\(day\.splitSummary\)/);
   assert.match(source, /Created \$\{formatDateShort\(normalizedValue\)\}/);
+  assert.match(source, /ROUTINES_BROWSE_CARD_BODY_CLASS_NAME = "min-h-\[7\.2rem\] pb-\[0\.72rem\] pt-\[0\.42rem\]"/);
+  assert.match(source, /ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1\.5 !pt-0 pb-0"/);
+  assert.doesNotMatch(source, /pt-\[0\.08rem\]/);
 });

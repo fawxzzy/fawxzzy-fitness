@@ -18,9 +18,9 @@ import {
 } from "@/lib/routine-day-card-summary";
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[3.6rem] !pt-[0.2rem] !pb-[0.45rem]";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !pt-[0.6rem] !pb-0";
-export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
+export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 !space-y-0 !pt-[0.32rem] !pb-[1rem]";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
 export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
@@ -28,7 +28,7 @@ export const ROUTINE_TRAINING_DAY_CARD_CLASS_NAME = "[&_[data-exercise-card-acce
 export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
 export const ROUTINE_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
 export const ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[-0.22rem] !top-1/2 !bottom-auto !min-w-0 !-translate-y-1/2";
-export const ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[-0.22rem] !bottom-0 !top-auto !min-w-0 !translate-y-0";
+export const ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[0.28rem] !bottom-[0.28rem] !top-auto !min-w-0 !translate-y-0";
 export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-auto w-auto items-center justify-center bg-transparent shadow-none backdrop-blur-0";
 export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
 export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
@@ -37,7 +37,7 @@ export const ROUTINE_DAY_RECAP_SCROLL_CLASS_NAME = "pl-0.5 pr-[1.95rem] pb-0.5 s
 export const ROUTINE_DAY_RECAP_CONTENT_CLASS_NAME = "flex w-max min-w-full items-stretch gap-2 pr-[1.8rem] sm:gap-2.5 sm:pr-0";
 export const ROUTINE_DAY_RECAP_ITEM_CLASS_NAME = "flex min-h-[4.9rem] w-[calc(100vw-5.7rem)] min-w-[calc(100vw-5.7rem)] max-w-[calc(100vw-5.7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5";
 const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.02rem] z-[7] flex items-center justify-center";
-const ROUTINE_DAY_CARD_REORDER_TOP_CENTER_SLOT_CLASS_NAME = "pointer-events-none absolute left-1/2 top-[0.12rem] z-[7] flex -translate-x-1/2 items-center justify-center";
+const ROUTINE_DAY_CARD_REORDER_TOP_CENTER_SLOT_CLASS_NAME = "pointer-events-none absolute left-1/2 top-[0.22rem] z-[7] flex -translate-x-1/2 items-center justify-center";
 
 export type RoutineDayCardSummary = {
   total?: number;
@@ -49,6 +49,7 @@ export type RoutineDayCardSummary = {
 
 export type RoutineDayCardPresentationItem = {
   isRest: boolean;
+  isOptional?: boolean;
   splitSummary?: RoutineDayCardSummary;
   exerciseSummary?: string;
 };
@@ -122,12 +123,16 @@ function resolveRoutineDaySubtitleTagParts(day: RoutineDayCardPresentationItem) 
     return [day.exerciseSummary?.trim() || "No exercises"];
   }
 
+  const statusPart = day.isOptional ? ["Optional"] : [];
+
   if (day.splitSummary) {
     const parts = buildRoutineSplitParts(day.splitSummary);
-    return parts.length > 0 ? parts : [formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
+    return parts.length > 0
+      ? [...statusPart, ...parts]
+      : [...statusPart, formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
   }
 
-  return [];
+  return statusPart;
 }
 
 function renderRoutineDaySubtitleTagRail(
@@ -531,7 +536,7 @@ export function RoutineOverviewDayCard({
           day.isRest ? "leading-none" : undefined,
         )}
         subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
-        contentVerticalAlign={day.isRest ? "auto" : undefined}
+        contentVerticalAlign={day.isRest ? "top" : undefined}
         rightIconMode="overlay"
         rightRailClassName={rightRailClassName ?? (day.isRest ? ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME : ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME)}
         trailingStackClassName={ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME}

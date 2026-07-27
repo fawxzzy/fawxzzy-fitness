@@ -166,8 +166,8 @@ export function buildSessionCopilotRecapTagLabel(signal: SessionCopilotFeedbackS
 }
 
 export function buildSessionCopilotReceiptLabel(args: {
-  signal: SessionCopilotFeedbackSignal | null;
-  effortValue: number | null;
+  signal?: SessionCopilotFeedbackSignal | null;
+  effortValue?: number | null;
 }) {
   const parts: string[] = [];
 
@@ -180,6 +180,15 @@ export function buildSessionCopilotReceiptLabel(args: {
   }
 
   return parts.length > 0 ? parts.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR) : null;
+}
+
+export function buildSessionSavedFeedbackLabel(args: {
+  signal?: SessionCopilotFeedbackSignal | null;
+  note?: string | null;
+  effortValue?: number | null;
+}) {
+  return buildSessionCopilotReceiptLabel(args)
+    ?? (args.note?.trim() ? "Note saved" : null);
 }
 
 export function buildSessionEffortContextLabel(args: {

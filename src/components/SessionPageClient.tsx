@@ -66,7 +66,7 @@ type SessionAutoPromotionUpdate = {
   exerciseName: string;
   previousTarget: string | null;
   appliedTarget: string | null;
-  linkedTargetCount: number;
+  linkedDayNames: string[];
 };
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{
@@ -381,12 +381,9 @@ export function SessionPageClient({
       {completedSessionUpdates ? (
         <ConfirmDestructiveModal
           open
-          title="Workout saved"
+          title="Progression Promotions"
           titleVariant="raw"
-          description={completedSessionUpdates.length > 0
-            ? "Your routine has been updated for the next session."
-            : "Your current routine targets stay the same."
-          }
+          description={completedSessionUpdates.length > 0 ? undefined : "No promotions this session."}
           confirmLabel="Continue"
           confirmActionLabel="Continue"
           confirmVariant="primary"
@@ -405,8 +402,12 @@ export function SessionPageClient({
                   <p className="text-[0.78rem] font-semibold text-[rgb(var(--text-primary)/0.96)]">{update.exerciseName}</p>
                   <p className="mt-0.5 text-[0.72rem] font-medium text-[rgb(var(--text-muted)/0.9)]">
                     {update.previousTarget ?? "Current target"} {"\u2192"} {update.appliedTarget ?? "Updated target"}
-                    {update.linkedTargetCount > 1 ? ` across ${update.linkedTargetCount} routine days` : ""}
                   </p>
+                  {update.linkedDayNames.length > 1 ? (
+                    <p className="mt-1 text-[0.68rem] font-semibold text-[rgb(var(--accent)/0.92)]">
+                      Plans: {update.linkedDayNames.join(", ")}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>

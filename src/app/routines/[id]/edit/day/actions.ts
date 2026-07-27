@@ -285,6 +285,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const isRest = formData.get("isRest") === "on";
+  const isOptional = !isRest && formData.get("isOptional") === "on";
   const dayAdjustmentRaw = String(formData.get("dayAdjustmentDirection") ?? "").trim();
   const dayAdjustmentDirection = isSetFlowDirection(dayAdjustmentRaw) ? dayAdjustmentRaw : null;
   if (!routineId || !routineDayId) {
@@ -317,12 +318,12 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
   const dayUpdateQuery = shouldSyncTemplate && existingDay.workout_plan_template_id
     ? supabase
         .from("routine_days")
-        .update({ name: safeName, is_rest: isRest })
+        .update({ name: safeName, is_rest: isRest, is_optional: isOptional })
         .eq("workout_plan_template_id", existingDay.workout_plan_template_id)
         .eq("user_id", user.id)
     : supabase
         .from("routine_days")
-        .update({ name: safeName, is_rest: isRest })
+        .update({ name: safeName, is_rest: isRest, is_optional: isOptional })
         .eq("id", routineDayId)
         .eq("user_id", user.id)
         .eq("routine_id", routineId);

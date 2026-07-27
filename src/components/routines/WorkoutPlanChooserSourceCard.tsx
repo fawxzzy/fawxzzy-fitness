@@ -27,7 +27,7 @@ const WORKOUT_PLAN_CHOOSER_RIGHT_RAIL_CLASS_NAME = "!right-[0.42rem] !top-[0.48r
 const WORKOUT_PLAN_CHOOSER_CONTENT_CLASS_NAME = "!space-y-0 !py-0";
 const WORKOUT_PLAN_CHOOSER_RECAP_SCROLL_CLASS_NAME = "pl-0.5 pr-[1.15rem] pb-0.5";
 const WORKOUT_PLAN_CHOOSER_RECAP_CONTENT_CLASS_NAME = "flex w-max min-w-full items-stretch gap-2 pr-[1rem]";
-const WORKOUT_PLAN_CHOOSER_RECAP_ITEM_CLASS_NAME = "!w-[calc(100vw-8.9rem)] !min-w-[calc(100vw-8.9rem)] !max-w-[calc(100vw-8.9rem)] sm:!w-[13.7rem] sm:!min-w-[13.7rem] sm:!max-w-[13.7rem]";
+const WORKOUT_PLAN_CHOOSER_RECAP_ITEM_CLASS_NAME = "!w-max !min-w-[9.75rem] !max-w-[13.7rem]";
 const WORKOUT_PLAN_CHOOSER_TAG_SCROLL_CLASS_NAME = "px-0.5 pb-0.5";
 const WORKOUT_PLAN_CHOOSER_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1";
 const WORKOUT_PLAN_CHOOSER_TAG_CLASS_NAME = `${ROUTINE_SURFACE_TAG_CLASS_NAME} px-[0.46rem] py-[0.2rem] text-[9px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`;
@@ -71,17 +71,17 @@ export function WorkoutPlanChooserSourceCard({
   const resolvedTitle = (source.title ?? source.name ?? "").trim() || "Workout Plan";
   const titleToneClassName = resolvedTitle.toLowerCase() === "rest"
     ? "text-[rgb(var(--accent-yellow-on))]"
-    : undefined;
+    : "text-[rgb(var(--accent-strong)/0.98)]";
 
   return (
     <RoutinesListItemCard
       title={(
-        <span className="flex w-full justify-center text-center">
-          <span className="inline-flex min-w-0 max-w-full flex-col items-center gap-1 text-center">
-            <span className={cn("min-w-0 max-w-full whitespace-normal break-words text-center leading-[1.1] [text-wrap:balance]", titleToneClassName)}>
+        <span className="flex w-full justify-start text-left">
+          <span className="inline-flex min-w-0 max-w-full flex-col items-start gap-1 text-left">
+            <span className={cn("min-w-0 max-w-full whitespace-normal break-words text-left leading-[1.1] [text-wrap:balance]", titleToneClassName)}>
               {resolvedTitle}
             </span>
-            <MetricAccentBar variant="thin" className="w-full max-w-full self-stretch" />
+            <MetricAccentBar variant="thin" className="w-full max-w-full" />
           </span>
         </span>
       )}

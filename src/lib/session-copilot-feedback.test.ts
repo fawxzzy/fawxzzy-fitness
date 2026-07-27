@@ -3,10 +3,18 @@ import test from "node:test";
 
 import {
   buildSessionCopilotFeedbackUpdate,
+  isSessionCopilotFeedbackComplete,
   SESSION_COPILOT_FEEDBACK_EFFORT_MAX,
   SESSION_COPILOT_FEEDBACK_EFFORT_MIN,
   SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH,
 } from "./session-copilot-feedback.ts";
+
+test("completed-card feedback only qualifies after both its signal and effort are selected", () => {
+  assert.equal(isSessionCopilotFeedbackComplete({ signal: null, effort: null }), false);
+  assert.equal(isSessionCopilotFeedbackComplete({ signal: "too_hard", effort: null }), false);
+  assert.equal(isSessionCopilotFeedbackComplete({ signal: null, effort: 8 }), false);
+  assert.equal(isSessionCopilotFeedbackComplete({ signal: "too_hard", effort: 8 }), true);
+});
 
 test("buildSessionCopilotFeedbackUpdate normalizes signal and note and stamps updates", () => {
   const result = buildSessionCopilotFeedbackUpdate(

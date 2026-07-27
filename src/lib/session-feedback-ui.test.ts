@@ -11,6 +11,7 @@ import {
   buildSessionEffortNotePlaceholder,
   buildSessionProgressionFeedbackSummaryLabel,
   buildSessionProgressionStateLabel,
+  buildSessionSavedFeedbackLabel,
   hasSavedSessionExerciseFeedback,
   isSessionExerciseFeedbackComplete,
   resolveSessionExerciseFeedbackSaveOutcome,
@@ -155,6 +156,15 @@ test("buildSessionCopilotReceiptLabel keeps the recap receipt wording stable", (
       effortValue: 6,
     }),
     "Effort 6/10",
+  );
+});
+
+test("buildSessionSavedFeedbackLabel rejects omitted effort instead of rendering undefined", () => {
+  assert.equal(buildSessionSavedFeedbackLabel({}), null);
+  assert.equal(buildSessionSavedFeedbackLabel({ note: "Stored context" }), "Note saved");
+  assert.equal(
+    buildSessionSavedFeedbackLabel({ signal: "too_easy", effortValue: 4 }),
+    "Too Easy | Effort 4/10",
   );
 });
 

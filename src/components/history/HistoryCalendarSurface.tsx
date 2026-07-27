@@ -1,6 +1,7 @@
 "use client";
 
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { HistoryCompactDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import { cn } from "@/lib/cn";
 import type { HistoryCalendarView } from "@/lib/history-calendar";
 import { HistorySection } from "./HistoryShared";
@@ -13,6 +14,7 @@ function getDayButtonClassName(args: {
   inMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
+  isSkipped: boolean;
   activityTone: "none" | "low" | "medium" | "high";
 }) {
   if (!args.inMonth) {
@@ -25,6 +27,10 @@ function getDayButtonClassName(args: {
 
   if (args.isToday) {
     return "border-[rgb(var(--accent-yellow-on)/0.9)] bg-[rgb(93_74_21)] text-[rgb(255_250_231)] shadow-[0_0_0_1px_rgb(var(--accent-yellow-on)/0.12)]";
+  }
+
+  if (args.isSkipped) {
+    return "border-[rgb(var(--danger-rgb)/0.82)] bg-[rgb(92_26_31)] text-[rgb(255_244_244)] shadow-[0_0_0_1px_rgb(var(--danger-rgb)/0.12)]";
   }
 
   switch (args.activityTone) {
@@ -43,11 +49,13 @@ function getDayBackgroundColor(args: {
   inMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
+  isSkipped: boolean;
   activityTone: "none" | "low" | "medium" | "high";
 }) {
   if (!args.inMonth) return undefined;
   if (args.isSelected) return "rgb(25 102 53)";
   if (args.isToday) return "rgb(93 74 21)";
+  if (args.isSkipped) return "rgb(92 26 31)";
 
   switch (args.activityTone) {
     case "high":
@@ -61,7 +69,7 @@ function getDayBackgroundColor(args: {
   }
 }
 
-export function HistoryCalendarSurface({
+function CalendarContent({
   calendarView,
   onSelectDayKey,
 }: {
@@ -69,14 +77,9 @@ export function HistoryCalendarSurface({
   onSelectDayKey: (dayKey: string | null) => void;
 }) {
   return (
-    <HistorySection
-      title={<span className="block w-full text-center">Calendar</span>}
-      description="Tap a day to filter the session list"
-      className="!border-0 !bg-transparent !p-0"
-      headerAlign="center"
-    >
+    <>
       <HorizontalScrollHint
-        scrollClassName="-mx-1.5 px-1.5"
+        scrollClassName="-mx-1.5 px-1.5 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
         contentClassName="flex min-w-max gap-2 pb-1"
       >
         {calendarView.months.map((month) => (
@@ -102,27 +105,42 @@ export function HistoryCalendarSurface({
             <div className="space-y-1">
               {month.weeks.map((week, weekIndex) => (
                 <div key={`${month.monthKey}-week-${weekIndex}`} className="grid grid-cols-7 gap-1">
-                  {week.map((day) => (
-                    <button
-                      key={day.dayKey}
-                      type="button"
-                      aria-pressed={day.isSelected}
-                      disabled={!day.inMonth || day.sessionCount === 0}
-                      onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
-                      style={{ backgroundColor: getDayBackgroundColor(day) }}
-                      className={cn(
-                        "flex aspect-square min-h-[2.2rem] flex-col items-center justify-center rounded-[0.55rem] border px-1 py-1 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-default disabled:opacity-100",
-                        getDayButtonClassName(day),
-                      )}
-                    >
-                      <span className="text-[0.78rem] font-semibold leading-none">
-                        {day.dayNumber}
-                      </span>
-                      <span className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.1em]">
-                        {day.sessionCount > 0 ? day.sessionCount : ""}
-                      </span>
-                    </button>
-                  ))}
+                  {week.map((day) => {
+                    if (!day.inMonth) {
+                      return (
+                        <span
+                          key={day.dayKey}
+                          aria-hidden="true"
+                          data-calendar-day-filler="true"
+                          className="block aspect-square min-h-[2.2rem]"
+                        />
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={day.dayKey}
+                        type="button"
+                        aria-pressed={day.isSelected}
+                        aria-label={day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined}
+                        data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
+                        disabled={day.sessionCount === 0}
+                        onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
+                        style={{ backgroundColor: getDayBackgroundColor(day) }}
+                        className={cn(
+                          "flex aspect-square min-h-[2.2rem] flex-col items-center justify-center rounded-[0.55rem] border px-1 py-1 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-default disabled:opacity-100",
+                          getDayButtonClassName(day),
+                        )}
+                      >
+                        <span className="text-[0.78rem] font-semibold leading-none">
+                          {day.dayNumber}
+                        </span>
+                        <span className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.1em]">
+                          {day.sessionCount > 0 ? day.sessionCount : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -134,7 +152,39 @@ export function HistoryCalendarSurface({
         <span>Today</span>
         <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)] bg-[rgb(17_91_49)]" />
         <span>Training</span>
+        <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--danger-rgb)/0.62)] bg-[rgb(92_26_31)]" />
+        <span>Skipped</span>
       </div>
+    </>
+  );
+}
+
+export function HistoryCalendarSurface({
+  calendarView,
+  onSelectDayKey,
+  viewMode,
+}: {
+  calendarView: HistoryCalendarView;
+  onSelectDayKey: (dayKey: string | null) => void;
+  viewMode: "compact" | "detailed";
+}) {
+  const content = <CalendarContent calendarView={calendarView} onSelectDayKey={onSelectDayKey} />;
+
+  if (viewMode === "compact") {
+    return (
+      <HistoryCompactDisclosure title="Calendar" titleAlign="center" accentTone="green">
+        <div className="px-3 pb-4 pt-4">{content}</div>
+      </HistoryCompactDisclosure>
+    );
+  }
+
+  return (
+    <HistorySection
+      title={<span className="block w-full text-center">Calendar</span>}
+      className="!border-0 !bg-transparent !p-0"
+      headerAlign="center"
+    >
+      {content}
     </HistorySection>
   );
 }

@@ -13,6 +13,7 @@ const PUBLIC_AUTHLESS_PATH_PREFIXES = [
   "/install",
   "/login",
   "/privacy",
+  "/review",
   "/reset-password",
   "/signup",
   "/terms",

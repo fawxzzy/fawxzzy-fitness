@@ -50,7 +50,7 @@ type SessionAutoPromotionUpdate = {
   exerciseName: string;
   previousTarget: string | null;
   appliedTarget: string | null;
-  linkedTargetCount: number;
+  linkedDayNames: string[];
 };
 
 function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
@@ -240,7 +240,7 @@ async function applyEligibleAutomaticProgressionUpdates(args: {
       exerciseName: item.exerciseName,
       previousTarget: formatProgressionReviewTargetLabel(result.data.previousTarget as ProgressionTargetPlan),
       appliedTarget: formatProgressionReviewTargetLabel(result.data.appliedTarget as ProgressionTargetPlan),
-      linkedTargetCount: result.data.linkedTargets?.length ?? 1,
+      linkedDayNames: item.linkedUpdate?.dayNames ?? (item.dayName ? [item.dayName] : []),
     });
   }
 
@@ -1075,26 +1075,29 @@ export async function updateSessionExerciseTimerAction(payload: {
     return { ok: false, error: isMissingExerciseTimerColumnError(error) ? "Exercise timer schema is pending migration review." : (error?.message ?? "Exercise timer not found.") };
   }
 
+  const shouldEnableTimer = payload.command === "enable";
+  const shouldDisableTimer = payload.command === "disable";
   const timer = applyExerciseTimerCommand({
-    enabled: data.exercise_timer_enabled === true,
-    mode: data.exercise_timer_mode as ExerciseTimerMode | null,
+    enabled: shouldEnableTimer || shouldDisableTimer || data.exercise_timer_enabled === true,
+    mode: (data.exercise_timer_mode as ExerciseTimerMode | null) ?? "count_up",
     targetSeconds: data.exercise_timer_target_seconds ?? null,
     elapsedSeconds: data.exercise_timer_elapsed_seconds ?? 0,
     status: data.exercise_timer_status as ExerciseTimerStatus,
     startedAt: data.exercise_timer_started_at ?? null,
     completedAt: data.exercise_timer_completed_at ?? null,
-  }, payload.command, new Date().toISOString());
-  if (!timer.enabled || !timer.mode) {
-    return { ok: false, error: "Exercise timer is not enabled for this exercise." };
-  }
+  }, shouldEnableTimer ? "start" : (shouldDisableTimer ? "pause" : payload.command), new Date().toISOString());
+  const persistedTimer = shouldDisableTimer ? { ...timer, enabled: false } : timer;
 
   const { error: updateError } = await supabase
     .from("session_exercises")
     .update({
-      exercise_timer_elapsed_seconds: timer.elapsedSeconds,
-      exercise_timer_status: timer.status,
-      exercise_timer_started_at: timer.startedAt,
-      exercise_timer_completed_at: timer.completedAt,
+      exercise_timer_enabled: persistedTimer.enabled,
+      exercise_timer_mode: persistedTimer.mode,
+      exercise_timer_target_seconds: persistedTimer.targetSeconds,
+      exercise_timer_elapsed_seconds: persistedTimer.elapsedSeconds,
+      exercise_timer_status: persistedTimer.status,
+      exercise_timer_started_at: persistedTimer.startedAt,
+      exercise_timer_completed_at: persistedTimer.completedAt,
     })
     .eq("id", payload.sessionExerciseId)
     .eq("session_id", payload.sessionId)
@@ -1104,7 +1107,7 @@ export async function updateSessionExerciseTimerAction(payload: {
   }
 
   revalidatePath(`/session/${payload.sessionId}`);
-  return { ok: true, data: { timer } };
+  return { ok: true, data: { timer: persistedTimer } };
 }
 
 export async function removeExerciseAction(formData: FormData): Promise<ActionResult> {

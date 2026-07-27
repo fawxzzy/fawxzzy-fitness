@@ -63,10 +63,10 @@ type LoadWorkoutPlanSourcesResult = ActionResult & { sources?: WorkoutPlanSource
 
 const ROUTINE_COPY_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, weight_unit";
 const ROUTINE_COPY_SELECT_WITH_DEFAULT_PROGRESSION = `${ROUTINE_COPY_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
-const ROUTINE_DAY_COPY_SELECT = "id, day_index, name, is_rest, notes, duplicate_source_routine_day_id, workout_plan_template_id, workout_plan_template_edit_choice_required";
-const ROUTINE_DAY_COPY_SELECT_LEGACY = "id, day_index, name, is_rest, notes";
+const ROUTINE_DAY_COPY_SELECT = "id, day_index, name, is_rest, is_optional, notes, duplicate_source_routine_day_id, workout_plan_template_id, workout_plan_template_edit_choice_required";
+const ROUTINE_DAY_COPY_SELECT_LEGACY = "id, day_index, name, is_rest, is_optional, notes";
 const ROUTINE_DAY_DETAIL_SELECT = ROUTINE_DAY_TEMPLATE_SELECT;
-const ROUTINE_DAY_DETAIL_SELECT_LEGACY = "id, user_id, routine_id, day_index, name, is_rest, notes";
+const ROUTINE_DAY_DETAIL_SELECT_LEGACY = "id, user_id, routine_id, day_index, name, is_rest, is_optional, notes";
 const ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY = "exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes";
 const ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION = `${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}, progression_playbook_id, progression_playbook_config, workout_plan_template_exercise_id`;
 const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_LEGACY = `routine_day_id, ${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}`;
@@ -712,6 +712,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
       .update({
         name: duplicatedName,
         is_rest: Boolean(sourceDay?.is_rest),
+        is_optional: Boolean(sourceDay?.is_optional) && !Boolean(sourceDay?.is_rest),
         notes: sourceDay?.notes ?? null,
         duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
       })
@@ -725,6 +726,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
         .update(omitRoutineDayDuplicateSourceColumn({
           name: duplicatedName,
           is_rest: Boolean(sourceDay?.is_rest),
+          is_optional: Boolean(sourceDay?.is_optional) && !Boolean(sourceDay?.is_rest),
           notes: sourceDay?.notes ?? null,
           duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
         }))
@@ -774,6 +776,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
     .update({
       name: duplicatedName,
       is_rest: sourceContext.template.is_rest,
+      is_optional: Boolean(sourceDay?.is_optional) && !sourceContext.template.is_rest,
       notes: sourceDay?.notes ?? null,
       duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
       workout_plan_template_id: sourceContext.template.id,
@@ -795,6 +798,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
         .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
           name: duplicatedName,
           is_rest: sourceContext.template.is_rest,
+          is_optional: Boolean(sourceDay?.is_optional) && !sourceContext.template.is_rest,
           notes: sourceDay?.notes ?? null,
           duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
           workout_plan_template_id: sourceContext.template.id,
@@ -930,6 +934,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
       .update({
         name: duplicatedName,
         is_rest: Boolean(sourceDay?.is_rest),
+        is_optional: Boolean(sourceDay?.is_optional) && !Boolean(sourceDay?.is_rest),
         notes: sourceDay?.notes ?? null,
         duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
       })
@@ -943,6 +948,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
         .update(omitRoutineDayDuplicateSourceColumn({
           name: duplicatedName,
           is_rest: Boolean(sourceDay?.is_rest),
+          is_optional: Boolean(sourceDay?.is_optional) && !Boolean(sourceDay?.is_rest),
           notes: sourceDay?.notes ?? null,
           duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
         }))
@@ -983,6 +989,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
     .update({
       name: duplicatedName,
       is_rest: sourceContext.template.is_rest,
+      is_optional: Boolean(sourceDay?.is_optional) && !sourceContext.template.is_rest,
       notes: sourceDay?.notes ?? null,
       duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
       workout_plan_template_id: sourceContext.template.id,
@@ -1004,6 +1011,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
         .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
           name: duplicatedName,
           is_rest: sourceContext.template.is_rest,
+          is_optional: Boolean(sourceDay?.is_optional) && !sourceContext.template.is_rest,
           notes: sourceDay?.notes ?? null,
           duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
           workout_plan_template_id: sourceContext.template.id,
@@ -1033,6 +1041,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
       .update({
         name: targetDay.name,
         is_rest: targetDay.is_rest,
+        is_optional: Boolean(targetDay.is_optional),
         notes: targetDay.notes,
         duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
         workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
@@ -1047,6 +1056,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
         .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
           name: targetDay.name,
           is_rest: targetDay.is_rest,
+          is_optional: Boolean(targetDay.is_optional),
           notes: targetDay.notes,
           duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
           workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
@@ -1077,6 +1087,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
       .update({
         name: targetDay.name,
         is_rest: targetDay.is_rest,
+        is_optional: Boolean(targetDay.is_optional),
         notes: targetDay.notes,
         duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
         workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
@@ -1091,6 +1102,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
         .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
           name: targetDay.name,
           is_rest: targetDay.is_rest,
+          is_optional: Boolean(targetDay.is_optional),
           notes: targetDay.notes,
           duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
           workout_plan_template_id: targetDay.workout_plan_template_id ?? null,

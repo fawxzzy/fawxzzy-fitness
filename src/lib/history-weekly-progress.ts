@@ -621,25 +621,25 @@ export function buildWeeklyProgressSummary({
 
   let consistencyDirection: WeeklyProgressTrendDirection = "none";
   let consistencyLabel = "No sessions yet";
-  let consistencyDetail = "Log a completed session to start the weekly trend.";
+  let consistencyDetail = "Log a completed session to start the cycle trend.";
   const consistencyDelta = completedWorkoutCount - previousWeekWorkoutCount;
 
   if (completedWorkoutCount > 0 && previousWeekWorkoutCount === 0) {
     consistencyDirection = "new";
-    consistencyLabel = "Opened the week";
+    consistencyLabel = "Opened the cycle";
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} across ${toPluralLabel(activeDayCount, "day")}.`;
   } else if (consistencyDelta > 0) {
     consistencyDirection = "up";
-    consistencyLabel = `+${consistencyDelta} vs last week`;
-    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this week, ${toPluralLabel(previousWeekWorkoutCount, "workout")} last week.`;
+    consistencyLabel = `+${consistencyDelta} vs last cycle`;
+    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this cycle, ${toPluralLabel(previousWeekWorkoutCount, "workout")} last cycle.`;
   } else if (consistencyDelta === 0 && completedWorkoutCount > 0) {
     consistencyDirection = "flat";
-    consistencyLabel = "Matched last week";
+    consistencyLabel = "Matched last cycle";
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} across ${toPluralLabel(activeDayCount, "active day", "active days")}.`;
   } else if (consistencyDelta < 0) {
     consistencyDirection = "down";
-    consistencyLabel = `${consistencyDelta} vs last week`;
-    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this week after ${toPluralLabel(previousWeekWorkoutCount, "workout")} last week.`;
+    consistencyLabel = `${consistencyDelta} vs last cycle`;
+    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this cycle after ${toPluralLabel(previousWeekWorkoutCount, "workout")} last cycle.`;
   }
 
   const topExercise = resolveTopExerciseByCount(exerciseCounts, exerciseMetaById);
@@ -713,13 +713,13 @@ export function buildWeeklyProgressSummary({
         : null,
     ].filter((value): value is string => Boolean(value)),
     attentionItems: [
-      progressionAnalytics.totalEvents === 0 ? "No progression events were recorded this week." : null,
-      progressionAnalytics.totalEvents > 0 && progressionAnalytics.promotionsAppliedCount === 0 ? "Progression changes landed without a promotion this week." : null,
+      progressionAnalytics.totalEvents === 0 ? "No progression events were recorded this cycle." : null,
+      progressionAnalytics.totalEvents > 0 && progressionAnalytics.promotionsAppliedCount === 0 ? "Progression changes landed without a promotion this cycle." : null,
       progressionAnalytics.deloadsAppliedCount + progressionAnalytics.revertsCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
-        ? "Regressions outpaced promotions this week."
+        ? "Regressions outpaced promotions this cycle."
         : null,
       progressionAnalytics.manualTargetChangesCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
-        ? "Manual target changes outpaced promotions this week."
+        ? "Manual target changes outpaced promotions this cycle."
         : null,
     ].filter((value): value is string => Boolean(value)),
   };

@@ -92,7 +92,7 @@ test("weekly progress treats one workout in an otherwise empty comparison week a
   assert.equal(summary.primaryRoutineTitle, "Routine");
   assert.equal(summary.primaryRoutineTargetCount, 3);
   assert.equal(summary.consistencyTrend.direction, "new");
-  assert.equal(summary.consistencyTrend.label, "Opened the week");
+  assert.equal(summary.consistencyTrend.label, "Opened the cycle");
   assert.equal(summary.prMomentCount, 1);
   assert.deepEqual(summary.prExerciseNames, ["Back Squat"]);
   assert.equal(summary.progressScore.value, 3);
@@ -167,7 +167,7 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
   assert.equal(summary.activeDayCount, 2);
   assert.equal(summary.prMomentCount, 2);
   assert.deepEqual(summary.prExerciseNames, ["Back Squat", "Weighted Pull-Up"]);
-  assert.equal(summary.consistencyTrend.label, "+1 vs last week");
+  assert.equal(summary.consistencyTrend.label, "+1 vs last cycle");
   assert.deepEqual(
     summary.volumeCategories.map((entry) => ({ key: entry.key, setCount: entry.setCount, exerciseCount: entry.exerciseCount })),
     [

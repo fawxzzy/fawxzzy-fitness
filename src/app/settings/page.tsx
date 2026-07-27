@@ -14,6 +14,9 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { getAccountWorkoutExportSuggestedDateRange } from "@/lib/account-workout-export";
 import { requireUser } from "@/lib/auth";
+import { buildHistoryAchievements } from "@/lib/history-achievements";
+import { loadHistorySessionsScopePayloadForUser } from "@/lib/history-sessions-page-loader";
+import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
 import { optionalEnv } from "@/lib/env";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
@@ -31,6 +34,7 @@ export const dynamic = "force-dynamic";
 function resolveSettingsSection(value: string | string[] | undefined) {
   const section = Array.isArray(value) ? value[0] : value;
   return section === "account"
+    || section === "achievements"
     || section === "pro"
     || section === "data"
     || (SETTINGS_LEGACY_MIGRATION_ENABLED && section === "legacy")
@@ -86,16 +90,41 @@ export default async function SettingsPage({
     cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
   );
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(profile, qaVisibilityOverride);
-  const exportDateRange = await diagnostics.measure("settings.export.date-range", () => getAccountWorkoutExportSuggestedDateRange({
-    supabase: supabaseServer(),
-    userId: user.id,
-  }), {
-    blockingReason: "Loading default export date range.",
-    metadata: {
+  const [exportDateRange, achievements] = await Promise.all([
+    diagnostics.measure("settings.export.date-range", () => getAccountWorkoutExportSuggestedDateRange({
+      supabase: supabaseServer(),
       userId: user.id,
-    },
-    timeoutMs: 5000,
-  });
+    }), {
+      blockingReason: "Loading default export date range.",
+      metadata: {
+        userId: user.id,
+      },
+      timeoutMs: 5000,
+    }),
+    diagnostics.measure("settings.achievements.summary", async () => {
+      const history = await loadHistorySessionsScopePayloadForUser({
+        supabase: supabaseServer(),
+        userId: user.id,
+        showQaLlelDataOverride: qaVisibilityOverride,
+      });
+      const streak = buildHistoryWorkoutStreak({
+        sessions: history.sessionItems,
+        timezone: history.weeklyProgress.timezone,
+        skippedDayKeys: history.plannedSkippedDayKeys,
+      });
+      return buildHistoryAchievements({
+        completedWorkoutCount: history.scopeSummary.completedWorkoutCount,
+        bestSessionStreakCount: streak.bestSessionCount,
+        prMomentCount: history.scopeSummary.prMomentCount,
+      });
+    }, {
+      blockingReason: "Loading earned training milestones.",
+      metadata: {
+        userId: user.id,
+      },
+      timeoutMs: 10000,
+    }),
+  ]);
   const initialExpandedSection = resolveSettingsSection(searchParams?.section);
   const billingNotice = resolveBillingNotice(searchParams?.billing);
   if (billingNotice === "cancel") {
@@ -148,6 +177,7 @@ export default async function SettingsPage({
                 initialExportDateTo={exportDateRange.dateTo}
                 proAccess={proAccess}
                 billingNotice={billingNotice}
+                achievements={achievements}
               />
             </SurfaceCard>
           </ContentRail>

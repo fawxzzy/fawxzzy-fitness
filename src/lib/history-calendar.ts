@@ -9,6 +9,7 @@ export type HistoryCalendarDay = {
   inMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
+  isSkipped: boolean;
   sessionCount: number;
   activityTone: HistoryCalendarActivityTone;
 };
@@ -36,6 +37,8 @@ type BuildHistoryCalendarViewOptions = {
   sessions: SessionSummary[];
   timezone: string;
   selectedDayKey?: string | null;
+  selectedMonthKey?: string | null;
+  skippedDayKeys?: string[];
   now?: string;
   maxMonths?: number;
 };
@@ -128,11 +131,18 @@ function resolveDayCounts(sessions: SessionSummary[], timezone: string) {
 
 function resolveMonthKeys(args: {
   dayCounts: Map<string, number>;
+  skippedDayKeys: Set<string>;
   selectedDayKey: string | null;
   todayKey: string;
   maxMonths: number;
+  selectedMonthKey: string | null;
 }) {
-  const recordedDayKeys = [...args.dayCounts.keys()].sort((left, right) => left.localeCompare(right));
+  if (args.selectedMonthKey && /^\d{4}-\d{2}$/.test(args.selectedMonthKey)) {
+    return [`${args.selectedMonthKey}-01`];
+  }
+
+  const recordedDayKeys = [...new Set([...args.dayCounts.keys(), ...args.skippedDayKeys])]
+    .sort((left, right) => left.localeCompare(right));
   const latestRelevantDay = [args.todayKey, recordedDayKeys.at(-1) ?? null, args.selectedDayKey]
     .filter((value): value is string => Boolean(value))
     .sort((left, right) => left.localeCompare(right))
@@ -162,6 +172,7 @@ function resolveMonthKeys(args: {
 function buildMonth(args: {
   monthKey: string;
   dayCounts: Map<string, number>;
+  skippedDayKeys: Set<string>;
   selectedDayKey: string | null;
   todayKey: string;
 }) {
@@ -183,6 +194,7 @@ function buildMonth(args: {
       inMonth,
       isToday: cursor === args.todayKey,
       isSelected: cursor === args.selectedDayKey,
+      isSkipped: sessionCount === 0 && args.skippedDayKeys.has(cursor),
       sessionCount,
       activityTone: getActivityTone(sessionCount),
     });
@@ -210,6 +222,8 @@ export function buildHistoryCalendarView({
   sessions,
   timezone,
   selectedDayKey = null,
+  selectedMonthKey = null,
+  skippedDayKeys = [],
   now = new Date().toISOString(),
   maxMonths = DEFAULT_MAX_MONTHS,
 }: BuildHistoryCalendarViewOptions): HistoryCalendarView {
@@ -217,15 +231,19 @@ export function buildHistoryCalendarView({
     ?? getWeeklyProgressDayKey(new Date().toISOString(), timezone)
     ?? "1970-01-01";
   const dayCounts = resolveDayCounts(sessions, timezone);
+  const skippedDays = new Set(skippedDayKeys);
   const monthKeys = resolveMonthKeys({
     dayCounts,
+    skippedDayKeys: skippedDays,
     selectedDayKey,
     todayKey,
     maxMonths: Math.max(1, maxMonths),
+    selectedMonthKey,
   });
   const months = monthKeys.map((monthKey) => buildMonth({
     monthKey,
     dayCounts,
+    skippedDayKeys: skippedDays,
     selectedDayKey,
     todayKey,
   }));

@@ -24,13 +24,15 @@ export function ChipButton({
   children,
   className,
   tone = "default",
+  active,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
   tone?: Exclude<ChipTone, "today">;
+  active?: boolean;
 }) {
   return (
-    <PillButton tone={tone} className={className} {...props}>
+    <PillButton active={active} tone={tone} className={className} {...props}>
       {children}
     </PillButton>
   );

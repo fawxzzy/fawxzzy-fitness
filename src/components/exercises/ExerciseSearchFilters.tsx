@@ -46,6 +46,7 @@ type ExerciseSearchFiltersProps = {
   filterCompactDensity?: "default" | "tight";
   trailingControls?: ReactNode;
   filterExtraContent?: ReactNode;
+  additionalFilterCount?: number;
 };
 
 export function ExerciseSearchFilters({
@@ -76,6 +77,7 @@ export function ExerciseSearchFilters({
   filterCompactDensity = "default",
   trailingControls,
   filterExtraContent,
+  additionalFilterCount = 0,
 }: ExerciseSearchFiltersProps) {
   void searchFirst;
   const [isFilterOpen, setIsFilterOpen] = useState(defaultFilterOpen);
@@ -104,7 +106,7 @@ export function ExerciseSearchFilters({
     });
   };
 
-  const selectedFilterCount = selectedTags.length;
+  const selectedFilterCount = selectedTags.length + Math.max(0, Math.floor(additionalFilterCount));
   const selectedTagEntries = useMemo(() => {
     const labelByValue = new Map(groups.flatMap((group) => group.tags.map((tag) => [tag.value, tag.label] as const)));
     return selectedTags.map((tag) => ({

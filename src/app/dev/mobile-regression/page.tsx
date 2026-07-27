@@ -22,10 +22,11 @@ export default async function DevMobileRegressionPage({
     fixture?: string;
   };
 }) {
-  if (process.env.NODE_ENV === "production") {
+  const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";
+  if (process.env.NODE_ENV === "production" && !isReviewPreviewEnabled) {
     notFound();
   }
 
   const { default: DevMobileRegressionRoute } = await import("@/app/dev/mobile-regression/DevMobileRegressionRoute");
-  return <DevMobileRegressionRoute searchParams={searchParams} />;
+  return <DevMobileRegressionRoute allowProductionPreview={isReviewPreviewEnabled} searchParams={searchParams} />;
 }

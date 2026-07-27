@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
+import { RoutineDayKindReviewPanel } from "@/components/routines/RoutineDayKindReviewPanel";
 import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -242,6 +243,7 @@ export function EditDayRegressionSurface({
 
   return (
     <div className="space-y-3">
+      {fixture === "default" ? <RoutineDayKindReviewPanel /> : null}
       <DayDetailExerciseList
         mode="editable"
         items={items}
