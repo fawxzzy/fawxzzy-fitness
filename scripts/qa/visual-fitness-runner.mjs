@@ -269,8 +269,24 @@ function buildTimestampStamp(date = new Date()) {
     .replace("Z", "");
 }
 
-function resolveViewport(rawValue, fallback = DEFAULT_VISUAL_VIEWPORT) {
-  const raw = typeof rawValue === "string" && rawValue.trim().length > 0 ? rawValue.trim() : fallback.label;
+export function resolveViewport(rawValue, fallback = DEFAULT_VISUAL_VIEWPORT) {
+  const raw = typeof rawValue === "string" ? rawValue.trim() : "";
+  if (!raw) {
+    const width = Number(fallback?.width);
+    const height = Number(fallback?.height);
+    if (!Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) {
+      throw new Error("Invalid fallback viewport. Expected positive integer width and height.");
+    }
+
+    return {
+      label: typeof fallback?.label === "string" && fallback.label.trim()
+        ? fallback.label.trim()
+        : `${width}x${height}`,
+      width,
+      height,
+    };
+  }
+
   const match = raw.match(/^(\d+)x(\d+)$/i);
   if (!match) {
     throw new Error(`Invalid --viewport "${raw}". Expected <width>x<height>, for example 430x932.`);

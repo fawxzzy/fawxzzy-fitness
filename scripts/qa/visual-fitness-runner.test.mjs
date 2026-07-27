@@ -6,6 +6,7 @@ import {
   buildQaBrowserStorageStateFromSessionCookies,
   hasUsableQaStorageState,
   resolveQaBrowserStorageState,
+  resolveViewport,
   sanitizeVisualDiagnosticText,
   validateResolvedRoute,
 } from "./visual-fitness-runner.mjs";
@@ -111,6 +112,27 @@ test("resolveQaBrowserStorageState prefers fresh session cookies over stored aut
   assert.equal(storedStateLoadCount, 0);
   assert.ok(storageState);
   assert.equal(hasUsableQaStorageState(storageState), true);
+});
+
+test("resolveViewport accepts a named registry fallback with numeric dimensions", () => {
+  assert.deepEqual(
+    resolveViewport(undefined, { label: "mobile-375", width: 375, height: 932 }),
+    { label: "mobile-375", width: 375, height: 932 },
+  );
+});
+
+test("resolveViewport gives an explicit numeric override precedence over the fallback", () => {
+  assert.deepEqual(
+    resolveViewport("430x932", { label: "mobile-375", width: 375, height: 932 }),
+    { label: "430x932", width: 430, height: 932 },
+  );
+});
+
+test("resolveViewport rejects a malformed explicit override", () => {
+  assert.throws(
+    () => resolveViewport("mobile-430", { label: "mobile-375", width: 375, height: 932 }),
+    /Invalid --viewport "mobile-430"/,
+  );
 });
 
 test("resolved-route contract distinguishes requested and final routes", () => {
