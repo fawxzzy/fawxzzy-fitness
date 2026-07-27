@@ -861,9 +861,41 @@ export function deriveCuratedEngineData(
     ? parseBoundedIntegerResponse(responses, "workoutLength", 10, 180)
     : sessionLengthByAnswer[workoutLength] ?? null;
   const exerciseLikes = splitTextList(getStringResponse(responses, "exerciseEnjoy"));
-  const exerciseDislikes = splitTextList(
-    getStringResponse(responses, "exerciseHate") || getStringResponse(responses, "exercisesCannotDo"),
+  const exerciseDislikes = [];
+  {
+    const seenDislikes = new Set<string>();
+    const candidateDislikes = [
+      ...splitTextList(getStringResponse(responses, "exerciseHate")),
+      ...splitTextList(getStringResponse(responses, "exercisesCannotDo")),
+    ];
+    for (const item of candidateDislikes) {
+      const normalized = item.toLowerCase();
+      if (seenDislikes.has(normalized)) continue;
+      seenDislikes.add(normalized);
+      exerciseDislikes.push(item);
+    }
+  }
+  const hasPainOrLimitationsResponse = Object.prototype.hasOwnProperty.call(
+    responses,
+    "hasPainOrLimitations",
   );
+  const hasPainOrLimitations = getStringResponse(responses, "hasPainOrLimitations");
+  const medicationsResponse = Object.prototype.hasOwnProperty.call(responses, "medications");
+  const medications = getStringResponse(responses, "medications");
+  const professionalRestrictionsResponse = Object.prototype.hasOwnProperty.call(responses, "professionalRestrictions");
+  const professionalRestrictions = getStringResponse(responses, "professionalRestrictions");
+
+  const limitations = [
+    hasPainOrLimitations === "yes" ? getStringResponse(responses, "painDetails") : "",
+    getStringResponse(responses, "medicalConditions"),
+    medications === "yes" ? getStringResponse(responses, "medicationConsiderations") : "",
+    professionalRestrictions === "yes" ? getStringResponse(responses, "restrictedMovements") : "",
+  ].filter(Boolean).join("\n")
+    || (
+      hasPainOrLimitationsResponse || medicationsResponse || professionalRestrictionsResponse
+        ? ""
+        : fallback?.limitations ?? ""
+    );
   const hasGoalResponse = getStringResponse(responses, "primaryGoal").length > 0
     || getArrayResponse(responses, "mainGoals").length > 0;
 
@@ -879,11 +911,7 @@ export function deriveCuratedEngineData(
       : [...(fallback?.equipment ?? [])],
     preferredStyle: getStringResponse(responses, "planStyle") ? derivePreferredStyle(responses) : fallback?.preferredStyle ?? null,
     cardioPreference: getStringResponse(responses, "planStyle") ? deriveCardioPreference(responses) : fallback?.cardioPreference ?? null,
-    limitations: [
-      getStringResponse(responses, "painDetails"),
-      getStringResponse(responses, "medicalConditions"),
-      getStringResponse(responses, "medicationConsiderations"),
-    ].filter(Boolean).join("\n") || fallback?.limitations || "",
+    limitations,
     exerciseLikes: exerciseLikes.length > 0
       ? exerciseLikes
       : [...(fallback?.exerciseLikes ?? [])],

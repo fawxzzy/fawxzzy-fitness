@@ -226,6 +226,30 @@ test("Other schedule responses fail closed without retaining prior derived value
   assert.equal(canAdvanceCuratedStep("review", data), false);
 });
 
+test("deriveCuratedEngineData unions multiple cannot-do inputs and restriction streams", () => {
+  const responses = createCuratedParityFixture("standard");
+  responses.exerciseHate = "Burpee, Barbell Press";
+  responses.exercisesCannotDo = "Overhead Press, burpee";
+  responses.professionalRestrictions = "yes";
+  responses.restrictedMovements = "Avoid overhead movements";
+
+  const derived = deriveCuratedEngineData(responses);
+  assert.deepEqual(derived.exerciseDislikes, ["Burpee", "Barbell Press", "Overhead Press"]);
+  assert.equal(derived.limitations, "Avoid overhead movements");
+});
+
+test("deriveCuratedEngineData does not retain stale limitations after explicit no responses", () => {
+  const responses = removeHiddenCuratedResponses({
+    hasPainOrLimitations: "no",
+    painDetails: "Avoid painful overhead range",
+  });
+
+  const derived = deriveCuratedEngineData(responses, {
+    limitations: "Avoid painful overhead range",
+  });
+  assert.equal(derived.limitations, "");
+});
+
 test("both simulated intake paths advance page by page and omit irrelevant review answers", () => {
   for (const variant of ["standard", "limitations"] as const) {
     const fixture = createCuratedParityFixture(variant);
