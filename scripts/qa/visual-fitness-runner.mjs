@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
+import crypto from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { createRequire } from "node:module";
+import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { ensureRepoDependencies } from "../ensure-repo-deps.mjs";
 import {
@@ -21,8 +24,19 @@ import { inspectQaSession } from "./fitness-qa-user.mjs";
 import {
   DEFAULT_VISUAL_VIEWPORT,
   getVisualFitnessSuite,
+  listRegistryVisualFitnessSuites,
   listVisualFitnessSuites,
 } from "./visual-fitness-suites.mjs";
+import {
+  ACCEPTED_VISUAL_CATALOG_COUNTS,
+  VISUAL_CAPTURE_ENVIRONMENT,
+  VISUAL_FITNESS_STATE_REGISTRY,
+  VISUAL_STATE_REGISTRY_VERSION,
+  buildVisualCatalogCountDelta,
+  buildVisualCatalogCoverage,
+  computeVisualStateRegistryDigest,
+  validateVisualStateRegistry,
+} from "./visual-fitness-state-registry.mjs";
 
 const DEV_RECEIPT_PATH = path.join(atlasRoot, "runtime", "receipts", "dev", "dev-server.latest.json");
 const LOADING_RECEIPT_DIR = path.join(atlasRoot, "runtime", "receipts", "loading");
@@ -93,6 +107,154 @@ function toIso(value) {
 
 function normalizeBaseUrl(rawValue) {
   return String(rawValue).replace(/\/+$/, "");
+}
+
+function normalizeRouteValue(rawValue, baseUrl = "http://127.0.0.1") {
+  const parsed = new URL(rawValue, `${normalizeBaseUrl(baseUrl)}/`);
+  return `${parsed.pathname}${parsed.search}`;
+}
+
+export function validateResolvedRoute({
+  requestedRoute,
+  resolvedUrl,
+  expectedResolvedRoute,
+  baseUrl = "http://127.0.0.1",
+}) {
+  const requested = normalizeRouteValue(requestedRoute, baseUrl);
+  const resolved = normalizeRouteValue(resolvedUrl, baseUrl);
+  if (!expectedResolvedRoute || typeof expectedResolvedRoute !== "object") {
+    return {
+      valid: false,
+      requested,
+      resolved,
+      reason: "Expected resolved-route contract is missing.",
+    };
+  }
+
+  let valid = false;
+  if (expectedResolvedRoute.kind === "exact") {
+    valid = resolved === normalizeRouteValue(expectedResolvedRoute.value, baseUrl);
+  } else if (expectedResolvedRoute.kind === "one-of") {
+    valid = Array.isArray(expectedResolvedRoute.values)
+      && expectedResolvedRoute.values.some((value) => resolved === normalizeRouteValue(value, baseUrl));
+  } else if (expectedResolvedRoute.kind === "pattern") {
+    try {
+      valid = new RegExp(expectedResolvedRoute.value).test(resolved);
+    } catch {
+      valid = false;
+    }
+  }
+
+  return {
+    valid,
+    requested,
+    resolved,
+    reason: valid
+      ? null
+      : `Resolved route ${resolved} violates the ${expectedResolvedRoute.kind ?? "unknown"} contract for ${requested}.`,
+  };
+}
+
+export function sanitizeVisualDiagnosticText(rawValue) {
+  const value = String(rawValue ?? "");
+  return value
+    .replace(/([?&](?:token|code|key|secret|email|access_token|refresh_token)=)[^&#\s]+/gi, "$1[redacted]")
+    .replace(/\b(?:eyJ[a-zA-Z0-9_-]{12,}\.[a-zA-Z0-9_-]{12,}\.[a-zA-Z0-9_-]{8,})\b/g, "[redacted-jwt]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[redacted-email]")
+    .slice(0, 1200);
+}
+
+function sanitizeUrl(rawValue) {
+  try {
+    const parsed = new URL(rawValue);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return sanitizeVisualDiagnosticText(rawValue);
+  }
+}
+
+function readGitValue(args) {
+  return execFileSync("git", args, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    windowsHide: true,
+  }).trim();
+}
+
+export function readVisualSourceIdentity() {
+  return {
+    commit: readGitValue(["rev-parse", "HEAD"]),
+    tree: readGitValue(["rev-parse", "HEAD^{tree}"]),
+  };
+}
+
+async function sha256File(filePath) {
+  const bytes = await fs.readFile(filePath);
+  return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
+export function buildVisualCatalogManifest({
+  tier,
+  results,
+  sourceIdentity,
+  browserVersion,
+  generatedAt,
+  outputRoot,
+}) {
+  const coverage = buildVisualCatalogCoverage();
+  const countDelta = buildVisualCatalogCountDelta(coverage);
+  const planned = results.length;
+  const captured = results.filter((result) => result.status === "captured").length;
+  const blocked = results.filter((result) => result.status === "blocked");
+  return {
+    schemaVersion: "fitness-visual-catalog-manifest.v1",
+    generatedAt,
+    tier,
+    source: sourceIdentity,
+    registry: {
+      version: VISUAL_STATE_REGISTRY_VERSION,
+      digest: computeVisualStateRegistryDigest(),
+      semanticStates: coverage.semanticStates,
+      rawCaptures: coverage.rawCaptures,
+      accepted: ACCEPTED_VISUAL_CATALOG_COUNTS,
+      countDelta,
+    },
+    environment: {
+      ...VISUAL_CAPTURE_ENVIRONMENT,
+      nodeVersion: process.version,
+      browserVersion,
+      platform: `${process.platform}-${process.arch}`,
+      osRelease: os.release(),
+    },
+    outputRoot,
+    plannedCaptureCount: planned,
+    capturedCount: captured,
+    blockedCount: blocked.length,
+    failures: blocked.map((result) => ({
+      captureId: result.registryCaptureId,
+      reason: sanitizeVisualDiagnosticText(result.blockedReason),
+      tracePath: result.tracePath ?? null,
+    })),
+    captures: results.map((result) => ({
+      captureId: result.registryCaptureId,
+      stateId: result.suiteState,
+      family: result.registryFamily,
+      registryIndex: result.registryIndex,
+      variantIndex: result.registryVariantIndex,
+      viewport: result.viewport,
+      captureMode: result.captureMode,
+      requestedRoute: result.requestedRoute,
+      resolvedRoute: result.resolvedRoute,
+      fixtureOwner: result.fixtureOwner,
+      authState: result.registryAuthState,
+      status: result.status,
+      blockedReason: result.blockedReason ? sanitizeVisualDiagnosticText(result.blockedReason) : null,
+      screenshotPath: result.screenshotPath,
+      screenshotSha256: result.screenshotSha256,
+      receiptPath: result.manifestPath,
+      tracePath: result.tracePath ?? null,
+    })),
+  };
 }
 
 function isLoopbackBaseUrl(baseUrl) {
@@ -280,12 +442,16 @@ export function hasUsableQaStorageState(storageState) {
     && hasFreshCookie(getAuthCookie(storageState, "sb-refresh-token"));
 }
 
-export function buildQaBrowserStorageStateFromSessionCookies(sessionCookies, baseUrl) {
+export function buildQaBrowserStorageStateFromSessionCookies(
+  sessionCookies,
+  baseUrl,
+  { ensureStorageState = ensureBrowserSupabaseStorageState } = {},
+) {
   if (!Array.isArray(sessionCookies) || sessionCookies.length === 0) {
     return null;
   }
 
-  const storageState = ensureBrowserSupabaseStorageState({
+  const storageState = ensureStorageState({
     cookies: sessionCookies
       .map((cookie) => normalizeStorageCookie(cookie, baseUrl))
       .filter(Boolean),
@@ -300,12 +466,17 @@ export async function resolveQaBrowserStorageState({
   qaSession,
   baseUrl,
   loadStoredState = loadQaStorageState,
+  ensureStorageState = ensureBrowserSupabaseStorageState,
 }) {
   if (!authRequired || !qaSession?.available) {
     return null;
   }
 
-  const qaStorageStateFromSession = buildQaBrowserStorageStateFromSessionCookies(qaSession.cookies, baseUrl);
+  const qaStorageStateFromSession = buildQaBrowserStorageStateFromSessionCookies(
+    qaSession.cookies,
+    baseUrl,
+    { ensureStorageState },
+  );
   if (qaStorageStateFromSession) {
     return qaStorageStateFromSession;
   }
@@ -1018,6 +1189,55 @@ async function applyThemePreset(context, themePreset) {
   });
 }
 
+async function applyRegistrySetup(context, registry) {
+  if (!registry?.setup) {
+    return;
+  }
+  if (registry.setup.kind !== "local-storage") {
+    throw new Error(`Unsupported registry setup kind "${registry.setup.kind}".`);
+  }
+  await context.addInitScript(({ key, value }) => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, {
+    key: registry.setup.key,
+    value: registry.setup.value,
+  });
+}
+
+async function applyDeterministicCaptureStyle(page) {
+  await page.addStyleTag({
+    content: [
+      "*, *::before, *::after {",
+      "  animation-delay: 0s !important;",
+      "  animation-duration: 0s !important;",
+      "  caret-color: transparent !important;",
+      "  transition-delay: 0s !important;",
+      "  transition-duration: 0s !important;",
+      "}",
+    ].join("\n"),
+  });
+}
+
+async function runRegistryAssertions(page, assertions = []) {
+  const failures = [];
+  for (const assertion of assertions) {
+    if (assertion.kind === "text") {
+      const bodyText = (await page.textContent("body")) ?? "";
+      if (!bodyText.toLowerCase().includes(String(assertion.value).toLowerCase())) {
+        failures.push(`Missing expected text: ${assertion.value}`);
+      }
+    } else if (assertion.kind === "selector") {
+      const count = await page.locator(assertion.value).count();
+      if (count < 1) {
+        failures.push(`Missing expected selector: ${assertion.value}`);
+      }
+    } else {
+      failures.push(`Unsupported semantic assertion kind: ${assertion.kind}`);
+    }
+  }
+  return failures;
+}
+
 function isAuthRedirect(finalUrl, baseUrl) {
   return typeof finalUrl === "string" && finalUrl.startsWith(`${baseUrl}/login`);
 }
@@ -1052,12 +1272,18 @@ function resolveUnexpectedFinalPathReason({ finalUrl, suite, baseUrl }) {
 async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
   const baseUrl = normalizeBaseUrl(flags.__resolvedBaseUrl ?? receipt?.value?.baseUrl ?? resolveBaseUrl());
   const viewport = resolveViewport(flags.viewport, suite.viewport);
-  const outputDir = buildOutputDir({
-    suiteName: suite.name,
-    explicitOutputDir: typeof flags["output-dir"] === "string" ? flags["output-dir"] : null,
-  });
+  const catalogOutputRoot = typeof flags.__catalogOutputRoot === "string"
+    ? flags.__catalogOutputRoot
+    : null;
+  const outputDir = catalogOutputRoot && suite.registry
+    ? path.join(catalogOutputRoot, "captures", suite.registry.captureId.replace(/[^a-z0-9-]+/gi, "-"))
+    : buildOutputDir({
+        suiteName: suite.name,
+        explicitOutputDir: typeof flags["output-dir"] === "string" ? flags["output-dir"] : null,
+      });
   const screenshotPath = path.join(outputDir, suite.expectedOutputFilename);
   const manifestPath = path.join(outputDir, "capture-manifest.json");
+  const tracePath = path.join(outputDir, "failure-trace.zip");
   const startedAt = Date.now();
   const qaSession = suite.authRequired
     ? await resolveQaSession(baseUrl)
@@ -1088,6 +1314,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       "--no-default-browser-check",
     ],
   });
+  const browserVersion = browser.version();
 
   const context = await browser.newContext({
     viewport: {
@@ -1096,11 +1323,22 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     },
     isMobile: viewport.width <= 430,
     hasTouch: viewport.width <= 430,
+    colorScheme: VISUAL_CAPTURE_ENVIRONMENT.colorScheme,
+    deviceScaleFactor: VISUAL_CAPTURE_ENVIRONMENT.deviceScaleFactor,
+    locale: VISUAL_CAPTURE_ENVIRONMENT.locale,
+    reducedMotion: VISUAL_CAPTURE_ENVIRONMENT.reducedMotion,
+    timezoneId: VISUAL_CAPTURE_ENVIRONMENT.timezoneId,
     ...(qaStorageState ? { storageState: qaStorageState } : {}),
   });
   await applyThemePreset(context, suite.themePreset);
+  await applyRegistrySetup(context, suite.registry);
+  if (suite.registry) {
+    await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+  }
   const page = await context.newPage();
   const consoleMessages = [];
+  const pageErrors = [];
+  const failedRequests = [];
   page.on("console", (message) => {
     const text = message.text();
     if (
@@ -1110,12 +1348,23 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     ) {
       consoleMessages.push({
         type: message.type(),
-        text,
+        text: sanitizeVisualDiagnosticText(text),
       });
     }
   });
+  page.on("pageerror", (error) => {
+    pageErrors.push(sanitizeVisualDiagnosticText(error.message));
+  });
+  page.on("requestfailed", (request) => {
+    failedRequests.push({
+      method: request.method(),
+      url: sanitizeUrl(request.url()),
+      failure: sanitizeVisualDiagnosticText(request.failure()?.errorText ?? "request failed"),
+    });
+  });
 
   let manifest = null;
+  let retainTrace = false;
 
   try {
     if (suite.authRequired && qaSession.available && !qaStorageState) {
@@ -1128,7 +1377,17 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     });
     await page.waitForTimeout(suite.waitMs ?? 1600);
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    if (suite.registry) {
+      await applyDeterministicCaptureStyle(page);
+    }
     const interactionResult = await runSuiteInteraction(page, suite, { baseUrl });
+    if (suite.registry?.captureMode === "mobile-bottom") {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(100);
+    }
+    const registryAssertionFailures = suite.registry
+      ? await runRegistryAssertions(page, suite.registry.assertions)
+      : [];
     await page.screenshot({
       path: screenshotPath,
       fullPage: suite.fullPage ?? false,
@@ -1151,12 +1410,27 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       suite,
       baseUrl,
     });
+    const registryRouteResult = suite.registry
+      ? validateResolvedRoute({
+          requestedRoute: suite.route,
+          resolvedUrl: finalUrl,
+          expectedResolvedRoute: suite.registry.expectedResolvedRoute,
+          baseUrl,
+        })
+      : null;
+    const registryFailureReason = registryRouteResult && !registryRouteResult.valid
+      ? registryRouteResult.reason
+      : registryAssertionFailures.length > 0
+        ? registryAssertionFailures.join("; ")
+        : null;
     const blockedReason = sessionMissingForProtectedRoute
       ? (qaSession.reason ?? qaSession.summary)
       : authBlockedReason === "blocked: auth redirect"
         ? "Protected route redirected to /login despite a valid QA session."
         : interactionResult.blockedReason
           ? interactionResult.blockedReason
+          : registryFailureReason
+            ? registryFailureReason
           : unexpectedFinalPathReason
             ? unexpectedFinalPathReason
             : (responseStatus !== null && responseStatus >= 400
@@ -1177,14 +1451,35 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       .trim()
       .slice(0, 320);
     const endedAt = Date.now();
+    retainTrace = Boolean(blockedReason);
+    const screenshotSha256 = await sha256File(screenshotPath);
 
     manifest = {
+      schemaVersion: suite.registry ? "fitness-visual-state-receipt.v1" : "fitness-visual-suite-receipt.v1",
       generatedAt: toIso(endedAt),
       startedAt: toIso(startedAt),
       endedAt: toIso(endedAt),
       durationMs: endedAt - startedAt,
       suite: suite.name,
       suiteState: suite.stateLabel,
+      registryCaptureId: suite.registry?.captureId ?? null,
+      registryFamily: suite.registry?.family ?? null,
+      registryIndex: suite.registry?.registryIndex ?? null,
+      registryVariantIndex: suite.registry?.variantIndex ?? null,
+      registryVersion: suite.registry ? VISUAL_STATE_REGISTRY_VERSION : null,
+      registryDigest: suite.registry ? computeVisualStateRegistryDigest() : null,
+      registryAuthState: suite.registry?.authState ?? null,
+      fixtureOwner: suite.registry?.fixtureOwner ?? null,
+      source: flags.__sourceIdentity ?? null,
+      environment: suite.registry
+        ? {
+            ...VISUAL_CAPTURE_ENVIRONMENT,
+            nodeVersion: process.version,
+            browserVersion,
+            platform: `${process.platform}-${process.arch}`,
+          }
+        : null,
+      captureMode: suite.registry?.captureMode ?? "viewport",
       proofLane: suite.proofLane ?? null,
       seamKind: suite.seamKind ?? null,
       coversProtectedRoutes: suite.coversProtectedRoutes ?? [],
@@ -1192,8 +1487,11 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       devReceiptPath: receipt?.path ?? null,
       browserProfileMode: "codex-isolated-ephemeral",
       route: suite.route,
+      requestedRoute: registryRouteResult?.requested ?? suite.route,
+      resolvedRoute: registryRouteResult?.resolved ?? normalizeRouteValue(finalUrl, baseUrl),
       viewport: viewport.label,
       screenshotPath,
+      screenshotSha256,
       outputDir,
       status: blockedReason ? "blocked" : "captured",
       blockedReason,
@@ -1206,7 +1504,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       httpStatus: responseStatus,
       finalUrl,
       expectedPathname: resolveExpectedPathname(suite.route, baseUrl),
-      bodyPreview: bodyText,
+      bodyPreview: suite.registry ? null : sanitizeVisualDiagnosticText(bodyText),
       interaction: {
         performed: interactionResult.performed,
         missingExpectedText: interactionResult.missingExpectedText,
@@ -1214,12 +1512,14 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       },
       loadingDiagnostics,
       consoleMessages,
+      pageErrors,
+      failedRequests,
+      tracePath: retainTrace ? tracePath : null,
       qaSession: {
         available: qaSession.available,
         status: qaSession.status,
         summary: qaSession.summary,
         path: qaSession.path ?? sessionArtifactPath,
-        email: qaSession.email ?? null,
         createdAt: qaSession.createdAt ?? qaSession.generatedAt ?? null,
         expiresAt: qaSession.expiresAt ?? null,
         expiresAtEpochSeconds: qaSession.expiresAtEpochSeconds ?? null,
@@ -1248,14 +1548,43 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       path: screenshotPath,
       fullPage: suite.fullPage ?? false,
     }).catch(() => {});
+    retainTrace = Boolean(suite.registry);
+    const screenshotSha256 = await sha256File(screenshotPath).catch(() => null);
+    const registryRouteResult = suite.registry
+      ? validateResolvedRoute({
+          requestedRoute: suite.route,
+          resolvedUrl: finalUrl || `${baseUrl}${suite.route}`,
+          expectedResolvedRoute: suite.registry.expectedResolvedRoute,
+          baseUrl,
+        })
+      : null;
 
     manifest = {
+      schemaVersion: suite.registry ? "fitness-visual-state-receipt.v1" : "fitness-visual-suite-receipt.v1",
       generatedAt: toIso(endedAt),
       startedAt: toIso(startedAt),
       endedAt: toIso(endedAt),
       durationMs: endedAt - startedAt,
       suite: suite.name,
       suiteState: suite.stateLabel,
+      registryCaptureId: suite.registry?.captureId ?? null,
+      registryFamily: suite.registry?.family ?? null,
+      registryIndex: suite.registry?.registryIndex ?? null,
+      registryVariantIndex: suite.registry?.variantIndex ?? null,
+      registryVersion: suite.registry ? VISUAL_STATE_REGISTRY_VERSION : null,
+      registryDigest: suite.registry ? computeVisualStateRegistryDigest() : null,
+      registryAuthState: suite.registry?.authState ?? null,
+      fixtureOwner: suite.registry?.fixtureOwner ?? null,
+      source: flags.__sourceIdentity ?? null,
+      environment: suite.registry
+        ? {
+            ...VISUAL_CAPTURE_ENVIRONMENT,
+            nodeVersion: process.version,
+            browserVersion,
+            platform: `${process.platform}-${process.arch}`,
+          }
+        : null,
+      captureMode: suite.registry?.captureMode ?? "viewport",
       proofLane: suite.proofLane ?? null,
       seamKind: suite.seamKind ?? null,
       coversProtectedRoutes: suite.coversProtectedRoutes ?? [],
@@ -1263,8 +1592,11 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       devReceiptPath: receipt?.path ?? null,
       browserProfileMode: "codex-isolated-ephemeral",
       route: suite.route,
+      requestedRoute: registryRouteResult?.requested ?? suite.route,
+      resolvedRoute: registryRouteResult?.resolved ?? normalizeRouteValue(finalUrl || suite.route, baseUrl),
       viewport: viewport.label,
       screenshotPath,
+      screenshotSha256,
       outputDir,
       status: "blocked",
       blockedReason,
@@ -1285,12 +1617,14 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       },
       loadingDiagnostics: [],
       consoleMessages,
+      pageErrors,
+      failedRequests,
+      tracePath: retainTrace ? tracePath : null,
       qaSession: {
         available: qaSession.available,
         status: qaSession.status,
         summary: qaSession.summary,
         path: qaSession.path ?? sessionArtifactPath,
-        email: qaSession.email ?? null,
         createdAt: qaSession.createdAt ?? qaSession.generatedAt ?? null,
         expiresAt: qaSession.expiresAt ?? null,
         expiresAtEpochSeconds: qaSession.expiresAtEpochSeconds ?? null,
@@ -1300,6 +1634,13 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       },
     };
   } finally {
+    if (suite.registry) {
+      if (retainTrace) {
+        await context.tracing.stop({ path: tracePath }).catch(() => {});
+      } else {
+        await context.tracing.stop().catch(() => {});
+      }
+    }
     await browser.close();
   }
 
@@ -1343,6 +1684,27 @@ async function writeLoadingDiagnosticsReceipt({ receiptPath, results }) {
 }
 
 function resolveSuites(flags) {
+  const registryState = typeof flags["registry-state"] === "string"
+    ? flags["registry-state"].trim()
+    : null;
+  const registryTier = typeof flags["registry-tier"] === "string"
+    ? flags["registry-tier"].trim().toLowerCase()
+    : null;
+  if (registryState || registryTier) {
+    const tier = registryTier ?? "full";
+    if (tier !== "full" && tier !== "smoke") {
+      throw new Error(`Unsupported --registry-tier "${tier}". Expected smoke or full.`);
+    }
+    const suites = listRegistryVisualFitnessSuites({
+      tier,
+      stateId: registryState,
+    });
+    if (registryState && suites.length === 0) {
+      throw new Error(`Unknown visual registry state "${registryState}".`);
+    }
+    return suites;
+  }
+
   if (flags.all === true) {
     return listVisualFitnessSuites();
   }
@@ -1362,9 +1724,89 @@ function resolveSuites(flags) {
   return [suite];
 }
 
+async function writeVisualCatalogArtifacts({
+  tier,
+  results,
+  outputRoot,
+  sourceIdentity,
+  runBoards,
+}) {
+  const generatedAt = toIso(Date.now());
+  const browserVersion = results.find((result) => result.environment?.browserVersion)?.environment?.browserVersion ?? null;
+  const manifest = buildVisualCatalogManifest({
+    tier,
+    results,
+    sourceIdentity,
+    browserVersion,
+    generatedAt,
+    outputRoot,
+  });
+  const manifestPath = path.join(outputRoot, "visual-catalog-manifest.json");
+  const coveragePath = path.join(outputRoot, "coverage-report.json");
+  const deltaPath = path.join(outputRoot, "count-delta-ledger.json");
+  const environmentPath = path.join(outputRoot, "environment-receipt.json");
+  const failurePath = path.join(outputRoot, "failure-report.json");
+  await fs.mkdir(outputRoot, { recursive: true });
+  await Promise.all([
+    fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8"),
+    fs.writeFile(coveragePath, `${JSON.stringify(buildVisualCatalogCoverage(), null, 2)}\n`, "utf8"),
+    fs.writeFile(deltaPath, `${JSON.stringify(manifest.registry.countDelta, null, 2)}\n`, "utf8"),
+    fs.writeFile(environmentPath, `${JSON.stringify(manifest.environment, null, 2)}\n`, "utf8"),
+    fs.writeFile(failurePath, `${JSON.stringify({
+      schemaVersion: "fitness-visual-failure-report.v1",
+      generatedAt,
+      failures: manifest.failures,
+    }, null, 2)}\n`, "utf8"),
+  ]);
+
+  let boardReceiptPath = null;
+  if (runBoards && manifest.blockedCount === 0) {
+    const command = process.env.PYTHON ?? "python";
+    const result = spawnSync(command, [
+      path.join(repoRoot, "scripts", "build-mobile-regression-boards.py"),
+      "--visual-catalog",
+      manifestPath,
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      windowsHide: true,
+    });
+    if (result.status !== 0) {
+      throw new Error(`Visual catalog board generation failed: ${sanitizeVisualDiagnosticText(result.stderr || result.stdout)}`);
+    }
+    boardReceiptPath = path.join(outputRoot, "boards", "board-receipt.json");
+  }
+
+  return {
+    manifest,
+    manifestPath,
+    coveragePath,
+    deltaPath,
+    environmentPath,
+    failurePath,
+    boardReceiptPath,
+  };
+}
+
 export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
   const { flags } = parseArgs(argv);
+  const registryValidation = validateVisualStateRegistry();
+  if (!registryValidation.valid) {
+    throw new Error(`Visual state registry is invalid: ${registryValidation.errors.join(" ")}`);
+  }
   const suites = resolveSuites(flags);
+  const isRegistryRun = suites.length > 0 && suites.every((suite) => Boolean(suite.registry));
+  const registryTier = typeof flags["registry-tier"] === "string"
+    ? flags["registry-tier"].trim().toLowerCase()
+    : "state";
+  const catalogOutputRoot = isRegistryRun
+    ? (
+        typeof flags["output-dir"] === "string" && flags["output-dir"].trim().length > 0
+          ? path.resolve(flags["output-dir"])
+          : path.join(atlasRoot, "tmp", "captures", "fitness", "visual-catalog", buildTimestampStamp())
+      )
+    : null;
+  const sourceIdentity = isRegistryRun ? readVisualSourceIdentity() : null;
   const target = await resolveBaseUrlAndReceipt(flags);
   const receipt = target.receipt;
   const browserExecutablePath = await resolveBrowserExecutablePath();
@@ -1372,6 +1814,8 @@ export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
   const suiteFlags = {
     ...flags,
     __resolvedBaseUrl: target.baseUrl,
+    __catalogOutputRoot: catalogOutputRoot,
+    __sourceIdentity: sourceIdentity,
   };
 
   for (const suite of suites) {
@@ -1388,10 +1832,23 @@ export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
     results,
   });
 
+  let catalogArtifacts = null;
+  if (isRegistryRun) {
+    catalogArtifacts = await writeVisualCatalogArtifacts({
+      tier: registryTier,
+      results,
+      outputRoot: catalogOutputRoot,
+      sourceIdentity,
+      runBoards: flags.boards !== "false" && flags["skip-boards"] !== true,
+    });
+  }
+
   if (results.length === 1) {
     process.stdout.write(`${JSON.stringify({
       ...results[0],
       loadingDiagnosticsReceiptPath: loadingReceipt.latestPath,
+      catalogManifestPath: catalogArtifacts?.manifestPath ?? null,
+      boardReceiptPath: catalogArtifacts?.boardReceiptPath ?? null,
     }, null, 2)}\n`);
     if (results[0].status === "blocked") {
       process.exitCode = 1;
@@ -1403,6 +1860,9 @@ export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
     generatedAt: toIso(Date.now()),
     devReceiptPath: receipt?.path ?? null,
     loadingDiagnosticsReceiptPath: loadingReceipt.latestPath,
+    catalogManifestPath: catalogArtifacts?.manifestPath ?? null,
+    boardReceiptPath: catalogArtifacts?.boardReceiptPath ?? null,
+    catalogCoverage: catalogArtifacts?.manifest?.registry ?? null,
     suites: results.map((result) => ({
       suite: result.suite,
       route: result.route,

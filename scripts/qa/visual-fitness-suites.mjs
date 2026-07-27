@@ -1,4 +1,9 @@
 import { QA_BASELINE } from "./fitness-qa-config.mjs";
+import {
+  VISUAL_FITNESS_STATE_REGISTRY,
+  expandVisualCapturePlans,
+  getVisualFitnessState,
+} from "./visual-fitness-state-registry.mjs";
 
 export const DEFAULT_VISUAL_VIEWPORT = {
   label: "430x932",
@@ -695,4 +700,52 @@ export function listVisualFitnessSuites({ proofLane = null } = {}) {
 
 export function getVisualFitnessSuite(name) {
   return VISUAL_FITNESS_SUITES[name] ?? null;
+}
+
+export function buildRegistryVisualFitnessSuite(plan) {
+  if (!plan?.state || !plan?.viewport || !plan?.captureId) {
+    throw new Error("Registry capture plan is incomplete.");
+  }
+
+  const { state, viewport, captureMode } = plan;
+  return {
+    name: `registry-${plan.captureId.replace(/[^a-z0-9-]+/gi, "-")}`,
+    proofLane: "registry",
+    route: state.requestedRoute,
+    viewport: {
+      label: viewport.id,
+      width: viewport.width,
+      height: viewport.height,
+    },
+    authRequired: false,
+    setupRequirements: state.setupRequirements,
+    expectedOutputFilename: plan.outputFilename,
+    allowAuthGatedFallback: false,
+    themePreset: "default",
+    waitMs: 600,
+    fullPage: false,
+    stateLabel: state.id,
+    registry: {
+      captureId: plan.captureId,
+      registryIndex: plan.registryIndex,
+      variantIndex: plan.variantIndex,
+      family: state.family,
+      expectedResolvedRoute: state.expectedResolvedRoute,
+      authState: state.authState,
+      fixtureOwner: state.fixtureOwner,
+      setup: state.setup ?? null,
+      assertions: state.assertions,
+      captureMode,
+      baselineEligible: state.baselineEligible,
+      sensitiveOutputPolicy: state.sensitiveOutputPolicy,
+      notes: state.notes ?? null,
+    },
+  };
+}
+
+export function listRegistryVisualFitnessSuites({ tier = "full", stateId = null } = {}) {
+  const registry = stateId
+    ? [getVisualFitnessState(stateId)].filter(Boolean)
+    : VISUAL_FITNESS_STATE_REGISTRY;
+  return expandVisualCapturePlans(registry, { tier }).map(buildRegistryVisualFitnessSuite);
 }
