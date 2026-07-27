@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-07-27 - Installation is an earned or explicit action, never an app-entry gate
+- Type: Guardrail
+- WHAT changed: Normal root, login, signup, password recovery, and reset entry no longer redirect through the install guide; the complete install presentation remains available at `/install`, and earned prompts remain on post-value app surfaces.
+- WHY it changed: An aggregate review checkpoint reintroduced install-first routing after the earned-install contract had already removed it, causing visible install-screen flicker, slower app entry, and browser users being blocked behind a presentation they did not request.
+- Rule: App and authentication entry must render or hand off directly without visiting `/install`; install UI may appear only from an explicit install route or a capability-aware earned prompt.
+- Pattern: root -> authenticated entry resolver -> app or login, with explicit `/install` and earned promotion remaining independent.
+- Failure Mode: Reusing the install guide as a routing gate makes a valid presentation behave like a startup regression and obscures the actual app while hydration redirects settle.
+- Evidence: `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/components/install/ProtectedAppInstallGate.tsx`, `src/lib/install/config.test.ts`
+- Status: Proposed
+
 ## 2026-07-24 - Curated onboarding screens should keep shared, reviewable progress contracts while allowing safe in-progress navigation
 - Type: Pattern
 - WHAT changed: Curated onboarding now treats selected sections and required controls as completion status indicators, allows page navigation with explicit incomplete-state highlighting, and updates review/dropdown visibility and button/label UX while preserving the stricter "complete" contract when review-ready handoff is attempted.

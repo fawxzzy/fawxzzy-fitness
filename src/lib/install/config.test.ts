@@ -130,3 +130,20 @@ test("browser fallback preserves the full install presentation alongside explici
   assert.match(installSource, /primaryLabel=\{installPrompt\.canPromptInstall \? undefined : "Open Fitness"\}/);
   assert.doesNotMatch(installSource, /Manual Open/);
 });
+
+test("normal app and auth entry never route through the install surface", () => {
+  const homeSource = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
+  const loginSource = readFileSync(new URL("../../app/login/page.tsx", import.meta.url), "utf8");
+  const signupSource = readFileSync(new URL("../../app/signup/page.tsx", import.meta.url), "utf8");
+  const gateSource = readFileSync(new URL("../../components/install/ProtectedAppInstallGate.tsx", import.meta.url), "utf8");
+
+  assert.match(homeSource, /redirect\("\/entry"\)/);
+  assert.doesNotMatch(homeSource, /getInstallRouteHrefForReturnTo/);
+  assert.doesNotMatch(loginSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
+  assert.doesNotMatch(signupSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
+  assert.match(gateSource, /"\/login"/);
+  assert.match(gateSource, /"\/signup"/);
+  assert.match(gateSource, /"\/forgot-password"/);
+  assert.match(gateSource, /"\/reset-password"/);
+  assert.doesNotMatch(gateSource, /AUTH_INSTALL_ENTRY_PATHS|Opening install guide|router\.replace/);
+});
