@@ -141,9 +141,9 @@ test("normal app and auth entry never route through the install surface", () => 
   assert.doesNotMatch(homeSource, /getInstallRouteHrefForReturnTo/);
   assert.doesNotMatch(loginSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
   assert.doesNotMatch(signupSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
-  assert.match(gateSource, /"\/login"/);
-  assert.match(gateSource, /"\/signup"/);
-  assert.match(gateSource, /"\/forgot-password"/);
-  assert.match(gateSource, /"\/reset-password"/);
-  assert.doesNotMatch(gateSource, /AUTH_INSTALL_ENTRY_PATHS|Opening install guide|router\.replace/);
+  assert.match(gateSource, /return children;/);
+  assert.doesNotMatch(
+    gateSource,
+    /AUTH_INSTALL_ENTRY_PATHS|Opening install guide|router\.replace|shouldBlockAppAccess|IOSOpenInSafariGate|getInstallContext/,
+  );
 });
