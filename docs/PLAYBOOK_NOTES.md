@@ -1,4 +1,4 @@
-﻿This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
+This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
 
@@ -623,5 +623,3 @@
 - Decision: Never recreate compaction as rollback and never hard-code a target sequence floor; calculate the floor from freeze-time source and target high-water evidence.
 - Evidence: `supabase/migrations/20260718015422_retire_human_member_number_compaction.sql`, `scripts/member-number-safety-core.mjs`, `scripts/migration/fp-fit-user-number-safety-verify.mjs`, `docs/ops/FP-FIT-USER-NUMBER-SAFETY-001.md`
 - Status: Proposed
-
-

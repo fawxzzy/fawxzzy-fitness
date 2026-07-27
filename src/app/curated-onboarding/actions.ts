@@ -19,6 +19,7 @@ import {
 import { getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
+import { activateProfileRoutineId } from "@/app/curated-onboarding/activate-profile-routine";
 
 export type CreateCuratedRoutineDraftResult =
   | { ok: true; routineId: string; routineName: string }
@@ -218,13 +219,20 @@ export async function createCuratedRoutineDraftAction(
     }
   }
 
-  const { error: activeRoutineError } = await supabase
-    .from("profiles")
-    .update({ active_routine_id: routineId })
-    .eq("id", user.id);
-  if (activeRoutineError) {
+  const activeRoutineResult = await activateProfileRoutineId({
+    executeProfileActivation: async ({ userId, routineId }) =>
+      await supabase
+        .from("profiles")
+        .update({ active_routine_id: routineId })
+        .eq("id", userId)
+        .select("id")
+        .single(),
+    userId: user.id,
+    routineId,
+  });
+  if (!activeRoutineResult.ok) {
     await rollbackCreatedRoutine();
-    return { ok: false, error: activeRoutineError.message };
+    return { ok: false, error: activeRoutineResult.error };
   }
 
   return { ok: true, routineId, routineName: plan.name.slice(0, 15) };
