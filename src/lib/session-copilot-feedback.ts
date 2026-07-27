@@ -59,6 +59,14 @@ export function normalizeSessionCopilotFeedbackEffort(value: unknown): number | 
   return normalized;
 }
 
+export function isSessionCopilotFeedbackComplete(payload: {
+  signal: unknown;
+  effort: unknown;
+}) {
+  return normalizeSessionCopilotFeedbackSignal(payload.signal) !== null
+    && normalizeSessionCopilotFeedbackEffort(payload.effort) !== null;
+}
+
 export function buildSessionCopilotFeedbackUpdate(
   payload: {
     signal: unknown;

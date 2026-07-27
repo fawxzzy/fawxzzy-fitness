@@ -1,14 +1,14 @@
 import type { SessionSummary } from "@/app/history/session-summary";
-import {
-  getWeeklyProgressDayKey,
-  shiftWeeklyProgressDay,
-  startOfWeeklyProgressIsoWeek,
-} from "@/lib/history-weekly-progress";
+import { getWeeklyProgressDayKey } from "@/lib/history-weekly-progress";
 
 export type HistoryWorkoutStreakSummary = {
-  currentWeekCount: number;
-  bestWeekCount: number;
-  activeWeekCount: number;
+  currentSessionCount: number;
+  bestSessionCount: number;
+  trackedPlannedSessionCount: number;
+  completedPlannedSessionCount: number;
+  missedPlannedSessionCount: number;
+  currentStartDayKey: string | null;
+  currentEndDayKey: string | null;
   lastCompletedDayKey: string | null;
   statusLabel: string;
   ruleDescription: string;
@@ -16,15 +16,41 @@ export type HistoryWorkoutStreakSummary = {
 
 const DEFAULT_TIMEZONE = "America/New_York";
 
-function countConsecutiveWeeks(weekStarts: string[]) {
+export function filterHistorySkippedDayKeysForTimeline({
+  skippedDayKeys,
+  selectedDayKey,
+  selectedMonthKey,
+}: {
+  skippedDayKeys: string[];
+  selectedDayKey?: string | null;
+  selectedMonthKey?: string | null;
+}) {
+  if (selectedDayKey) {
+    return skippedDayKeys.filter((dayKey) => dayKey === selectedDayKey);
+  }
+  if (selectedMonthKey) {
+    return skippedDayKeys.filter((dayKey) => dayKey.startsWith(selectedMonthKey));
+  }
+  return skippedDayKeys;
+}
+
+export function shouldShowHistoryWorkoutStreak({
+  hasSpecificTimelineFilter,
+  visibleSessionCount,
+}: {
+  hasSpecificTimelineFilter: boolean;
+  visibleSessionCount: number;
+}) {
+  return !hasSpecificTimelineFilter || visibleSessionCount > 1;
+}
+
+function countBestCompletedRun(trackedDayKeys: string[], completedDayKeys: Set<string>) {
   let best = 0;
   let current = 0;
-  let previous: string | null = null;
 
-  for (const weekStart of weekStarts) {
-    current = previous && shiftWeeklyProgressDay(previous, 7) === weekStart ? current + 1 : 1;
+  for (const dayKey of trackedDayKeys) {
+    current = completedDayKeys.has(dayKey) ? current + 1 : 0;
     best = Math.max(best, current);
-    previous = weekStart;
   }
 
   return best;
@@ -33,52 +59,53 @@ function countConsecutiveWeeks(weekStarts: string[]) {
 export function buildHistoryWorkoutStreak({
   sessions,
   timezone = DEFAULT_TIMEZONE,
-  now = new Date().toISOString(),
+  skippedDayKeys = [],
 }: {
   sessions: SessionSummary[];
   timezone?: string | null;
-  now?: string;
+  skippedDayKeys?: string[];
 }): HistoryWorkoutStreakSummary {
   const safeTimezone = typeof timezone === "string" && timezone.trim() ? timezone : DEFAULT_TIMEZONE;
-  const currentDayKey = getWeeklyProgressDayKey(now, safeTimezone)
-    ?? getWeeklyProgressDayKey(new Date().toISOString(), safeTimezone)
-    ?? "1970-01-05";
-  const currentWeekStart = startOfWeeklyProgressIsoWeek(currentDayKey);
-  const previousWeekStart = shiftWeeklyProgressDay(currentWeekStart, -7);
-  const dayKeys = sessions
-    .map((session) => getWeeklyProgressDayKey(session.startedAt, safeTimezone))
-    .filter((dayKey): dayKey is string => Boolean(dayKey))
+  const completedDayKeys = new Set(
+    sessions
+      .map((session) => getWeeklyProgressDayKey(session.startedAt, safeTimezone))
+      .filter((dayKey): dayKey is string => Boolean(dayKey)),
+  );
+  const trackedDayKeys = [...new Set([...completedDayKeys, ...skippedDayKeys])]
     .sort((left, right) => left.localeCompare(right));
-  const weekStarts = [...new Set(dayKeys.map(startOfWeeklyProgressIsoWeek))].sort((left, right) => left.localeCompare(right));
-  const latestWeekStart = weekStarts[weekStarts.length - 1] ?? null;
-  let currentWeekCount = 0;
+  let currentSessionCount = 0;
 
-  if (latestWeekStart === currentWeekStart || latestWeekStart === previousWeekStart) {
-    currentWeekCount = 1;
-    for (let index = weekStarts.length - 2; index >= 0; index -= 1) {
-      const expectedWeekStart = shiftWeeklyProgressDay(weekStarts[index + 1], -7);
-      if (weekStarts[index] !== expectedWeekStart) {
-        break;
-      }
-      currentWeekCount += 1;
+  for (let index = trackedDayKeys.length - 1; index >= 0; index -= 1) {
+    const dayKey = trackedDayKeys[index];
+    if (!completedDayKeys.has(dayKey)) {
+      break;
     }
+    currentSessionCount += 1;
   }
 
-  let statusLabel = "No active streak yet";
-  if (currentWeekCount === 1) {
-    statusLabel = "1 active training week";
-  } else if (currentWeekCount > 1) {
-    statusLabel = `${currentWeekCount} active training weeks`;
-  } else if (weekStarts.length > 0) {
-    statusLabel = "Ready to restart this week";
+  const currentEndIndex = trackedDayKeys.length - 1;
+  const currentStartIndex = currentSessionCount > 0 ? trackedDayKeys.length - currentSessionCount : -1;
+  const completedPlannedSessionCount = trackedDayKeys.filter((dayKey) => completedDayKeys.has(dayKey)).length;
+  const missedPlannedSessionCount = trackedDayKeys.length - completedPlannedSessionCount;
+  let statusLabel = "No active session streak";
+  if (currentSessionCount === 1) {
+    statusLabel = "1 planned session logged";
+  } else if (currentSessionCount > 1) {
+    statusLabel = `${currentSessionCount} planned sessions logged`;
+  } else if (trackedDayKeys.length > 0) {
+    statusLabel = "Ready for the next planned session";
   }
 
   return {
-    currentWeekCount,
-    bestWeekCount: countConsecutiveWeeks(weekStarts),
-    activeWeekCount: weekStarts.length,
-    lastCompletedDayKey: dayKeys[dayKeys.length - 1] ?? null,
+    currentSessionCount,
+    bestSessionCount: countBestCompletedRun(trackedDayKeys, completedDayKeys),
+    trackedPlannedSessionCount: trackedDayKeys.length,
+    completedPlannedSessionCount,
+    missedPlannedSessionCount,
+    currentStartDayKey: currentStartIndex >= 0 ? (trackedDayKeys[currentStartIndex] ?? null) : null,
+    currentEndDayKey: currentSessionCount > 0 ? (trackedDayKeys[currentEndIndex] ?? null) : null,
+    lastCompletedDayKey: [...completedDayKeys].sort((left, right) => left.localeCompare(right)).at(-1) ?? null,
     statusLabel,
-    ruleDescription: "A streak is consecutive training weeks with at least one completed workout. Rest days do not break it, and the current partial week keeps last week's streak open.",
+    ruleDescription: "A session streak counts consecutive required planned workout days that were logged. Rest days are ignored and a skipped required workout resets the streak.",
   };
 }

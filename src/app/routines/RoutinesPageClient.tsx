@@ -42,6 +42,8 @@ export function RoutinesPageClient({
   newRoutineHref,
   workoutPlansHref = "/routines/workout-plans",
   draftRoutineName,
+  curatedOnboardingEnabled = false,
+  curatedOnboardingUserId = null,
   duplicateRoutineAction,
   setActiveRoutineAction,
   deleteRoutineAction,
@@ -52,6 +54,8 @@ export function RoutinesPageClient({
   newRoutineHref?: string;
   workoutPlansHref?: string;
   draftRoutineName?: string | null;
+  curatedOnboardingEnabled?: boolean;
+  curatedOnboardingUserId?: string | null;
   duplicateRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["duplicateRoutineAction"];
   setActiveRoutineAction?: (formData: FormData) => Promise<ActionResult>;
   deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
@@ -292,6 +296,8 @@ export function RoutinesPageClient({
           backHref="/routines"
           routines={routines}
           draftRoutineName={draftRoutineName}
+          curatedOnboardingEnabled={curatedOnboardingEnabled}
+          curatedOnboardingUserId={curatedOnboardingUserId}
           duplicateRoutineAction={duplicateRoutineAction}
           onRequestClose={() => setIsCreateRoutineOpen(false)}
           initialDuplicateExpanded={initialCreateRoutineDuplicateExpanded}

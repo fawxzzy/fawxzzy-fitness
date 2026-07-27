@@ -8,6 +8,7 @@ import type { CuratedOnboardingData, CuratedOnboardingDraft, CuratedOnboardingSt
 export function createEmptyCuratedOnboardingData(): CuratedOnboardingData {
   return {
     ...EMPTY_CURATED_ONBOARDING_DATA,
+    intakeResponses: { ...EMPTY_CURATED_ONBOARDING_DATA.intakeResponses },
     equipment: [...EMPTY_CURATED_ONBOARDING_DATA.equipment],
     exerciseLikes: [...EMPTY_CURATED_ONBOARDING_DATA.exerciseLikes],
     exerciseDislikes: [...EMPTY_CURATED_ONBOARDING_DATA.exerciseDislikes],
@@ -27,6 +28,7 @@ export function createCuratedOnboardingDraft(overrides: Partial<CuratedOnboardin
     data: {
       ...baseData,
       ...(overrideData ?? {}),
+      intakeResponses: { ...baseData.intakeResponses, ...(overrideData?.intakeResponses ?? {}) },
       equipment: [...(overrideData?.equipment ?? baseData.equipment)],
       exerciseLikes: [...(overrideData?.exerciseLikes ?? baseData.exerciseLikes)],
       exerciseDislikes: [...(overrideData?.exerciseDislikes ?? baseData.exerciseDislikes)],

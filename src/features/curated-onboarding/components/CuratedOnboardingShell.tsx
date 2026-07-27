@@ -1,27 +1,43 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useReducer, useRef, useState, useTransition } from "react";
 import { createCuratedRoutineDraftAction, generateCuratedWorkoutPlanAction } from "@/app/curated-onboarding/actions";
-import { AuthCard, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import {
+  BOTTOM_ACTION_SHELL_CLASSNAME,
+  BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME,
+  BottomActionSingle,
+  BottomActionSplit,
+} from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { ContentRail } from "@/components/layout/ContentRail";
+import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
+import { ROUTINE_CARD_DELETE_TEXT_CLASS_NAME } from "@/components/routines/routineCardChrome";
 import { RouteLoading } from "@/components/RouteLoading";
-import { appTokens } from "@/components/ui/app/tokens";
-import { GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import {
   trackCuratedAbandoned,
   trackCuratedCompleted,
   trackCuratedResumed,
   trackCuratedStarted,
 } from "../analytics.ts";
-import { CURATED_STEP_ORDER } from "../constants.ts";
+import { CURATED_FORM_STEP_ORDER } from "../constants.ts";
 import { createCuratedOnboardingState } from "../fixtures.ts";
+import {
+  deriveCuratedEngineData,
+  getCuratedIntakeSection,
+  getMissingRequiredQuestionIds,
+  removeHiddenCuratedResponses,
+} from "../questionnaire.ts";
 import { curatedOnboardingReducer } from "../reducer.ts";
 import {
   canAdvanceCuratedStep,
+  canAccessCuratedStep,
   canGoBackCuratedStep,
   getCuratedProgressValue,
-  getCuratedStepBlockingMessage,
   getCuratedStepIndex,
   hasCuratedOnboardingProgress,
 } from "../selectors.ts";
@@ -34,28 +50,25 @@ import {
 import { getCuratedStepDefinition } from "../step-registry.ts";
 import type { CuratedWorkoutPlan } from "../engine.ts";
 import type {
-  CardioPreference,
+  CuratedIntakeResponse,
+  CuratedIntakeResponses,
   CuratedOnboardingData,
-  ExperienceLevel,
-  EquipmentAccess,
-  PreferredStyle,
-  TrainingGoal,
+  CuratedOnboardingState,
+  CuratedStepId,
 } from "../types.ts";
-import { ConstraintsStep } from "./ConstraintsStep";
-import { CuratedIntroStep } from "./CuratedIntroStep";
+import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
 import { CuratedOnboardingProgress } from "./CuratedOnboardingProgress";
-import { EquipmentStep } from "./EquipmentStep";
-import { ExperienceStep } from "./ExperienceStep";
-import { GoalsStep } from "./GoalsStep";
-import { PreferencesStep } from "./PreferencesStep";
+import { QuestionnaireStep } from "./QuestionnaireStep";
 import { ReviewStep } from "./ReviewStep";
-import { ScheduleStep } from "./ScheduleStep";
 import { GenerationHandoffStep } from "./GenerationHandoffStep";
 import { writeRoutineDraftSession } from "@/lib/routine-draft-session";
 
 type CuratedOnboardingShellProps = {
   userId: string;
+  userEmail: string;
+  userName: string;
   requestedDraftId?: string | null;
+  previewOnly?: boolean;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -65,7 +78,34 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnboardingShellProps) {
+function withCuratedIdentity(state: CuratedOnboardingState, userEmail: string, userName: string) {
+  const intakeResponses: CuratedIntakeResponses = removeHiddenCuratedResponses({
+    ...state.draft.data.intakeResponses,
+    ...(userEmail.trim() ? { email: userEmail.trim() } : {}),
+    ...(!state.draft.data.intakeResponses.name && userName.trim() ? { name: userName.trim() } : {}),
+  });
+  const derived = deriveCuratedEngineData(intakeResponses, state.draft.data);
+
+  return {
+    ...state,
+    draft: {
+      ...state.draft,
+      data: {
+        ...state.draft.data,
+        ...derived,
+        intakeResponses,
+      },
+    },
+  };
+}
+
+export function CuratedOnboardingShell({
+  userId,
+  userEmail,
+  userName,
+  requestedDraftId,
+  previewOnly = false,
+}: CuratedOnboardingShellProps) {
   const router = useRouter();
   const [state, dispatch] = useReducer(curatedOnboardingReducer, undefined, () => createCuratedOnboardingState());
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -95,18 +135,22 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     const savedState = loadCuratedOnboardingState(userId);
 
     if (savedState) {
-      dispatch({ type: "hydrate", state: savedState });
+      dispatch({ type: "hydrate", state: withCuratedIdentity(savedState, userEmail, userName) });
       const shouldResume = savedState.lifecycle.intakeStatus === "draft";
 
       setDidResumeDraft(shouldResume);
       setCompletionSource(shouldResume ? "resumed" : "fresh");
     } else {
+      dispatch({
+        type: "hydrate",
+        state: withCuratedIdentity(createCuratedOnboardingState(), userEmail, userName),
+      });
       setDidResumeDraft(false);
       setCompletionSource("fresh");
     }
 
     setHasHydrated(true);
-  }, [userId]);
+  }, [userEmail, userId, userName]);
 
   useEffect(() => {
     if (!hasHydrated || journeyTrackedRef.current || state.lifecycle.intakeStatus !== "draft") {
@@ -175,7 +219,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   }, [completionSource, hasHydrated, state.draft.draftId, state.lifecycle.completedAt, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
-    if (!hasHydrated || state.draft.stepId !== "generation-handoff" || state.lifecycle.intakeStatus !== "completed" || generationRequestedRef.current) {
+    if (previewOnly || !hasHydrated || state.draft.stepId !== "generation-handoff" || state.lifecycle.intakeStatus !== "completed" || generationRequestedRef.current) {
       return;
     }
 
@@ -194,7 +238,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
         setGenerationError(message);
         dispatch({ type: "generation-resolved", status: "failed", message });
       });
-  }, [hasHydrated, state.draft.data, state.draft.stepId, state.lifecycle.intakeStatus, userId]);
+  }, [hasHydrated, previewOnly, state.draft.data, state.draft.stepId, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
     if (!hasHydrated || typeof window === "undefined") {
@@ -236,29 +280,34 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
 
   const stepDefinition = getCuratedStepDefinition(state.draft.stepId);
   const progressValue = getCuratedProgressValue(state.draft.stepId);
-  const currentStep = getCuratedStepIndex(state.draft.stepId) + 1;
+  const currentStep = state.draft.stepId === "generation-handoff"
+    ? CURATED_FORM_STEP_ORDER.length
+    : getCuratedStepIndex(state.draft.stepId) + 1;
   const canAdvance = canAdvanceCuratedStep(state.draft.stepId, state.draft.data);
-  const blockingMessage = getCuratedStepBlockingMessage(state.draft.stepId);
   const showBack = canGoBackCuratedStep(state.draft.stepId);
+  const activeSection = getCuratedIntakeSection(state.draft.stepId);
+  const incompleteQuestionIds = activeSection
+    ? getMissingRequiredQuestionIds(state.draft.stepId, state.draft.data.intakeResponses)
+    : [];
   const missingRequestedDraft = Boolean(requestedDraftId && hasHydrated && !didResumeDraft);
-  const saveLabel =
-    saveState === "error"
-      ? "We could not save this intake locally."
-      : saveState === "saving"
-        ? "Saving this intake on this device..."
-        : saveState === "saved" && state.lifecycle.intakeStatus === "completed"
-          ? "Intake saved on this device."
-          : saveState === "saved"
-            ? "Draft saved on this device."
-            : didResumeDraft
-              ? "Draft resumed on this device."
-              : "Your setup auto-saves on this device.";
-
   function patchData(patch: Partial<CuratedOnboardingData>) {
     dispatch({
       type: "patch-data",
       patch,
       at: nowIso(),
+    });
+  }
+
+  function patchResponse(questionId: string, value: CuratedIntakeResponse) {
+    const intakeResponses = removeHiddenCuratedResponses({
+      ...state.draft.data.intakeResponses,
+      [questionId]: value,
+    });
+    const derived = deriveCuratedEngineData(intakeResponses, state.draft.data);
+
+    patchData({
+      ...derived,
+      intakeResponses,
     });
   }
 
@@ -275,7 +324,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     setSaveState("idle");
     dispatch({
       type: "reset",
-      nextState: createCuratedOnboardingState(),
+      nextState: withCuratedIdentity(createCuratedOnboardingState(), userEmail, userName),
     });
   }
 
@@ -283,6 +332,9 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     const at = nowIso();
 
     if (state.draft.stepId === "review") {
+      if (previewOnly || !canAdvance) {
+        return;
+      }
       dispatch({ type: "complete-intake", at });
       return;
     }
@@ -291,6 +343,10 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   }
 
   function handleCreateDraft() {
+    if (previewOnly) {
+      return;
+    }
+
     startCreatingDraft(async () => {
       setGenerationError(null);
       try {
@@ -310,88 +366,34 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
   }
 
   function renderStepBody() {
-    if (state.draft.stepId === "intro") {
-      return <CuratedIntroStep />;
-    }
-
-    if (state.draft.stepId === "goals") {
+    if (activeSection) {
       return (
-        <GoalsStep
-          data={state.draft.data}
-          onChange={(value: TrainingGoal) => patchData({ trainingGoal: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "experience") {
-      return (
-        <ExperienceStep
-          data={state.draft.data}
-          onChange={(value: ExperienceLevel) => patchData({ experience: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "equipment") {
-      return (
-        <EquipmentStep
-          data={state.draft.data}
-          onToggle={(value: EquipmentAccess) => {
-            const equipment = state.draft.data.equipment.includes(value)
-              ? state.draft.data.equipment.filter((entry) => entry !== value)
-              : [...state.draft.data.equipment, value];
-
-            patchData({ equipment });
-          }}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "schedule") {
-      return (
-        <ScheduleStep
-          data={state.draft.data}
-          onDaysChange={(value) => patchData({ daysPerWeek: value })}
-          onSessionLengthChange={(value) => patchData({ sessionLengthMinutes: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "preferences") {
-      return (
-        <PreferencesStep
-          data={state.draft.data}
-          onStyleChange={(value: PreferredStyle) => patchData({ preferredStyle: value })}
-          onCardioChange={(value: CardioPreference) => patchData({ cardioPreference: value })}
-          onLikesChange={(value) => patchData({ exerciseLikes: value })}
-        />
-      );
-    }
-
-    if (state.draft.stepId === "constraints") {
-      return (
-        <ConstraintsStep
-          data={state.draft.data}
-          onLimitationsChange={(value) => patchData({ limitations: value })}
-          onDislikesChange={(value) => patchData({ exerciseDislikes: value })}
-          onTargetAreasChange={(value) => patchData({ targetAreas: value })}
+        <QuestionnaireStep
+          section={activeSection}
+          responses={state.draft.data.intakeResponses}
+          incompleteQuestionIds={incompleteQuestionIds}
+          onResponseChange={patchResponse}
         />
       );
     }
 
     if (state.draft.stepId === "review") {
-      return <ReviewStep data={state.draft.data} />;
+      return (
+        <ReviewStep
+          data={state.draft.data}
+          onEdit={(stepId) => {
+            dispatch({ type: "go-to-step", stepId, at: nowIso() });
+          }}
+        />
+      );
     }
 
     if (state.draft.stepId === "generation-handoff") {
       return (
         <GenerationHandoffStep
-          data={state.draft.data}
           generationStatus={state.lifecycle.generationStatus}
           plan={generatedPlan}
-          isCreatingDraft={isCreatingDraft}
           error={generationError}
-          onCreateDraft={handleCreateDraft}
         />
       );
     }
@@ -403,77 +405,141 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
     return <RouteLoading label="Restoring your training setup" variant="route" />;
   }
 
+  const isGenerationStep = state.draft.stepId === "generation-handoff";
+  const generationIsLoading = isGenerationStep
+    && !previewOnly
+    && !generationError
+    && (!generatedPlan || isCreatingDraft);
+  const bottomActions = isGenerationStep ? (
+    <BottomActionSingle>
+      <BottomDockButton
+        type="button"
+        intent="positive"
+        disabled={previewOnly || !generatedPlan || state.lifecycle.generationStatus !== "ready"}
+        loading={generationIsLoading}
+        loadingLabel={isCreatingDraft ? "Creating editable draft" : "Building routine"}
+        onClick={handleCreateDraft}
+      >
+        {generationError ? "Plan unavailable" : "Create editable draft"}
+      </BottomDockButton>
+    </BottomActionSingle>
+  ) : showBack ? (
+    <BottomActionSplit
+      secondary={(
+        <BottomDockButton
+          type="button"
+          intent="toggleInactive"
+          onClick={() => dispatch({ type: "go-back", at: nowIso() })}
+        >
+          Back
+        </BottomDockButton>
+      )}
+      primary={(
+        <BottomDockButton
+          type="button"
+          intent="positive"
+          disabled={state.draft.stepId === "review" && (previewOnly || !canAdvance)}
+          onClick={handlePrimaryAction}
+        >
+          {stepDefinition.nextLabel}
+        </BottomDockButton>
+      )}
+    />
+  ) : (
+    <BottomActionSingle>
+      <BottomDockButton
+        type="button"
+        intent="positive"
+        onClick={handlePrimaryAction}
+      >
+        {stepDefinition.nextLabel}
+      </BottomDockButton>
+    </BottomActionSingle>
+  );
+
   return (
-    <AuthShell>
-      <AuthCard className={appTokens.curatedCard}>
-        <div className={appTokens.curatedHeaderStack}>
-          <CuratedOnboardingProgress
-            currentStep={currentStep}
-            totalSteps={CURATED_STEP_ORDER.length}
-            progress={progressValue}
-          />
-
-          <div className={appTokens.curatedHeaderTitleStack}>
-            <p className={appTokens.curatedHeaderEyebrow}>{stepDefinition.eyebrow}</p>
-            <h1 className={appTokens.curatedHeaderTitle}>{stepDefinition.title}</h1>
-            <p className={appTokens.curatedHeaderBody}>{stepDefinition.body}</p>
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
+      <MobileScreenScaffold
+        floatingHeader={(
+          <ContentRail className="py-1 pt-3">
+            <ScreenScaffold recipe="editDay" className="w-full">
+              <SharedScreenHeader
+                recipe="editDay"
+                title="Curated Routine"
+                align="center"
+                withPanel={false}
+                action={(
+                  <div className="flex w-full items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className={ROUTINE_CARD_DELETE_TEXT_CLASS_NAME}
+                    >
+                      Start over
+                    </button>
+                    <TopRightBackButton href="/today" historyBehavior="fallback-only" ariaLabel="Resume setup later" />
+                  </div>
+                )}
+                actionClassName="!left-0 !right-0 [&>div]:w-full"
+              />
+            </ScreenScaffold>
+          </ContentRail>
+        )}
+        bottomDock={(
+          <div className={`${BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME} pointer-events-auto`}>
+            <div className={BOTTOM_ACTION_SHELL_CLASSNAME}>{bottomActions}</div>
           </div>
+        )}
+      >
+        <ContentRail className="pb-6 pt-2">
+          <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-[720px] space-y-3">
+            {!isGenerationStep ? (
+              <CuratedOnboardingProgress
+                currentStep={currentStep}
+                totalSteps={CURATED_FORM_STEP_ORDER.length}
+                progress={progressValue}
+                title={stepDefinition.title}
+                steps={CURATED_FORM_STEP_ORDER.map((stepId) => ({
+                  id: stepId,
+                  label: getCuratedStepDefinition(stepId).eyebrow,
+                  available: canAccessCuratedStep(stepId, state.draft.data),
+                }))}
+                onStepSelect={(stepId: CuratedStepId) => {
+                  dispatch({ type: "go-to-step", stepId, at: nowIso() });
+                }}
+              />
+            ) : null}
 
-          <div className={appTokens.curatedAutosavePanel}>
-            <div className={appTokens.curatedInlineStack}>
-              <p className={appTokens.curatedStatusText}>{saveLabel}</p>
-              <p className={appTokens.curatedMetaText}>Leave anytime. Resume later will pick up on this device if the intake is still in draft.</p>
-            </div>
-            <div className={appTokens.curatedUtilityRow}>
-              <Link href="/today" className={appTokens.curatedInlineLink}>
-                Resume later
-              </Link>
-              <GhostButton type="button" size="sm" onClick={handleReset} className={appTokens.curatedUtilityButton}>
-                Start over
-              </GhostButton>
-            </div>
-          </div>
-        </div>
+            {isGenerationStep ? (
+              <h1 className="px-1 text-center text-[1.32rem] font-semibold leading-tight tracking-[-0.025em] text-[rgb(var(--text-primary))] sm:text-[1.5rem]">
+                {stepDefinition.title}
+              </h1>
+            ) : null}
 
-        {missingRequestedDraft ? (
-          <AuthMessage>
-            That saved draft was not found on this device, so this setup is starting fresh instead of resuming.
-          </AuthMessage>
-        ) : null}
+            {saveState === "error" ? (
+              <p role="alert" className="px-2 text-center text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
+                Changes could not be saved. Try again before leaving this page.
+              </p>
+            ) : null}
 
-        <section className={appTokens.curatedStepPanel}>
-          {renderStepBody()}
-        </section>
+            {missingRequestedDraft ? (
+              <CuratedInfoCard compact tone="warning">
+                <p className="text-xs text-[rgb(var(--text-secondary)/0.94)]">Saved draft not found. A new setup was opened.</p>
+              </CuratedInfoCard>
+            ) : null}
 
-        {blockingMessage && !canAdvance ? (
-          <AuthMessage>{blockingMessage}</AuthMessage>
-        ) : null}
+            <section className="space-y-3" aria-label={stepDefinition.title}>
+              {renderStepBody()}
+            </section>
 
-        {state.message ? <AuthMessage tone={state.lifecycle.generationStatus === "failed" ? "error" : "default"}>{state.message}</AuthMessage> : null}
-
-        {state.draft.stepId !== "generation-handoff" ? (
-        <div className={showBack ? appTokens.curatedActionRow : appTokens.curatedActionRowSolo}>
-          {showBack ? (
-            <SecondaryButton
-              type="button"
-              onClick={() => dispatch({ type: "go-back", at: nowIso() })}
-              className={appTokens.curatedActionButton}
-            >
-              Back
-            </SecondaryButton>
-          ) : null}
-
-          <PrimaryButton
-            type="button"
-            disabled={!canAdvance}
-            onClick={handlePrimaryAction}
-            className={appTokens.curatedActionButton}
-          >
-            {stepDefinition.nextLabel}
-          </PrimaryButton>
-        </div>
-        ) : null}
-      </AuthCard>
-    </AuthShell>
+            {state.message ? (
+              <CuratedInfoCard compact tone={state.lifecycle.generationStatus === "failed" ? "danger" : "default"}>
+                <p className="text-xs text-[rgb(var(--text-secondary)/0.94)]">{state.message}</p>
+              </CuratedInfoCard>
+            ) : null}
+          </ScreenScaffold>
+        </ContentRail>
+      </MobileScreenScaffold>
+    </AppShell>
   );
 }

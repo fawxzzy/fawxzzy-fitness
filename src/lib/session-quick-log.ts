@@ -100,6 +100,16 @@ export function toQuickLogTargetFromSuggestedValues(
   };
 }
 
+// A routine target remains authoritative after an explicit set-flow entry is exhausted.
+// History suggestions are a separate fallback and must not change the exercise's plan.
+export function resolveSetFlowQuickLogTarget(
+  setFlowTargets: SessionQuickLogTarget[] | undefined,
+  setIndex: number,
+  fallbackTarget: SessionQuickLogTarget | null | undefined,
+): SessionQuickLogTarget | null {
+  return setFlowTargets?.[setIndex] ?? fallbackTarget ?? null;
+}
+
 export function resolveEffectiveQuickLogTarget(args: {
   quickLogTarget?: SessionQuickLogTarget;
   nextTarget?: SessionQuickLogTarget;

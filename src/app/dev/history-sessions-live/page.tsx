@@ -91,6 +91,9 @@ export default async function DevHistorySessionsLivePage({
             filterOptions={data.filterOptions}
             currentRoutineSessions={data.currentRoutineSessionItems}
             currentCycleSessions={data.currentCycleSessionItems}
+            plannedSkippedDayKeys={data.plannedSkippedDayKeys}
+            currentRoutinePlannedSkippedDayKeys={data.currentRoutinePlannedSkippedDayKeys}
+            currentCyclePlannedSkippedDayKeys={data.currentCyclePlannedSkippedDayKeys}
             activeRoutineTitle={data.activeRoutineTitle}
             scopeSummary={data.scopeSummary}
             currentRoutineScopeSummary={data.currentRoutineScopeSummary}
@@ -124,6 +127,9 @@ export default async function DevHistorySessionsLivePage({
         filterOptions={data.filterOptions}
         currentRoutineSessions={data.currentRoutineSessionItems}
         currentCycleSessions={data.currentCycleSessionItems}
+        plannedSkippedDayKeys={data.plannedSkippedDayKeys}
+        currentRoutinePlannedSkippedDayKeys={data.currentRoutinePlannedSkippedDayKeys}
+        currentCyclePlannedSkippedDayKeys={data.currentCyclePlannedSkippedDayKeys}
         activeRoutineTitle={data.activeRoutineTitle}
         scopeSummary={data.scopeSummary}
         currentRoutineScopeSummary={data.currentRoutineScopeSummary}

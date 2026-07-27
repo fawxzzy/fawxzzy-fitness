@@ -22,6 +22,7 @@ import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { buildRoutinePlanRecapExercises } from "@/lib/routine-plan-preview";
+import { loadRoutineDaysWithWorkoutPlanCompat } from "@/lib/workout-plan-templates";
 import { getRoutineDayEditHref, getRoutineEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import {
@@ -97,11 +98,11 @@ export default async function RoutineHomePage({ params }: PageProps) {
     .limit(1)
     .maybeSingle();
 
-  const { data: routineDaysData } = await diagnostics.measure("routine-home.days.fetch", async () => await supabase
-    .from("routine_days")
-    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-    .eq("routine_id", routine.id)
-    .eq("user_id", user.id), {
+  const { data: routineDaysData } = await diagnostics.measure("routine-home.days.fetch", async () => await loadRoutineDaysWithWorkoutPlanCompat({
+    supabase,
+    userId: user.id,
+    routineId: routine.id,
+  }), {
     blockingReason: "Waiting for routine day list.",
     metadata: {
       userId: user.id,
@@ -292,6 +293,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
             occurrenceDate
             && occurrenceDate < completedSessionsResult.todayDate
             && !day.is_rest
+            && !day.is_optional
             && !completedDayIndexSet.has(dayNumber),
           );
         })
@@ -317,6 +319,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
         id: day.id,
         dayIndex: dayNumber,
         isRest: Boolean(day.is_rest),
+        isOptional: Boolean(day.is_optional),
         isToday: index === todayRowIndex,
         isCompleted: completedDayIndexSet.has(dayNumber),
         isSkipped: skippedDayIndexSet.has(dayNumber),
@@ -382,6 +385,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
                   weekday: "short",
                 }),
                 isRest: Boolean(day.is_rest),
+                isOptional: Boolean(day.is_optional),
                 splitSummary: exerciseSummaryByDayId.get(day.id),
                 href: getRoutineDayEditHref(routine.id, day.id, getRoutineHomeHref(routine.id)),
                 isToday: index === todayRowIndex,

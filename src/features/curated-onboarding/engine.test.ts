@@ -5,6 +5,7 @@ import type { CuratedOnboardingData } from "./types.ts";
 
 function intake(overrides: Partial<CuratedOnboardingData> = {}): CuratedOnboardingData {
   return {
+    intakeResponses: {},
     trainingGoal: "get-stronger",
     experience: "intermediate",
     daysPerWeek: 4,
@@ -58,6 +59,16 @@ test("curated engine changes targets by goal and experience", () => {
   assert.equal(strength.days[0].exercises[0].targetRepsMax, 6);
   assert.equal(beginnerMuscle.days[0].exercises[0].targetSets, 3);
   assert.equal(beginnerMuscle.days[0].exercises[0].targetRepsMin, 8);
+});
+
+test("curated engine supports the full one-to-seven day intake range", () => {
+  const oneDay = generateCuratedWorkoutPlan(intake({ daysPerWeek: 1 }));
+  const sevenDay = generateCuratedWorkoutPlan(intake({ daysPerWeek: 7 }));
+
+  assert.equal(oneDay.days.length, 1);
+  assert.equal(oneDay.days[0].name, "Full Body");
+  assert.equal(sevenDay.days.length, 7);
+  assert.equal(sevenDay.days[6].name, "Conditioning + Core");
 });
 
 test("curated engine rejects incomplete intake", () => {

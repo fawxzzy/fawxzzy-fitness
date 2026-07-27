@@ -22,7 +22,6 @@ import { HISTORY_CACHE_SCHEMA_VERSION, type HistoryCacheSnapshot } from "@/lib/o
 import { QA_LLEL_VISIBILITY_COOKIE, resolveQaLlelVisibilityOverride } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { HistorySessionsClient } from "./HistorySessionsClient";
-import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +164,9 @@ export default async function HistoryPage({
           filterOptions={state.data.filterOptions}
           currentRoutineSessions={state.data.currentRoutineSessionItems}
           currentCycleSessions={state.data.currentCycleSessionItems}
+          plannedSkippedDayKeys={state.data.plannedSkippedDayKeys}
+          currentRoutinePlannedSkippedDayKeys={state.data.currentRoutinePlannedSkippedDayKeys}
+          currentCyclePlannedSkippedDayKeys={state.data.currentCyclePlannedSkippedDayKeys}
           activeRoutineTitle={state.data.activeRoutineTitle}
           scopeSummary={state.data.scopeSummary}
           currentRoutineScopeSummary={state.data.currentRoutineScopeSummary}
@@ -181,7 +183,6 @@ export default async function HistoryPage({
           initialSelectedDayKey={initialSelectedDayKey}
           initialQuery={initialQuery}
           initialSelectedTags={initialSelectedTags}
-          premiumCycleAnalyticsPreviewEnabled={isFeatureEnabled("premiumCycleAnalyticsPreview")}
         />
         <HistoryOfflineBridge snapshot={historySnapshot} />
       </HistoryRouteScaffold>

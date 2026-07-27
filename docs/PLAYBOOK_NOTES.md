@@ -1,6 +1,25 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+
+## 2026-07-27 - Installation is an earned or explicit action, never an app-entry gate
+- Type: Guardrail
+- WHAT changed: Normal root, login, signup, password recovery, and reset entry no longer redirect through the install guide; the complete install presentation remains available at `/install`, and earned prompts remain on post-value app surfaces.
+- WHY it changed: An aggregate review checkpoint reintroduced install-first routing after the earned-install contract had already removed it, causing visible install-screen flicker, slower app entry, and browser users being blocked behind a presentation they did not request.
+- Rule: App and authentication entry must render or hand off directly without visiting `/install`; install UI may appear only from an explicit install route or a capability-aware earned prompt.
+- Pattern: root -> authenticated entry resolver -> app or login, with explicit `/install` and earned promotion remaining independent.
+- Failure Mode: Reusing the install guide as a routing gate makes a valid presentation behave like a startup regression and obscures the actual app while hydration redirects settle.
+- Evidence: `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/components/install/ProtectedAppInstallGate.tsx`, `src/lib/install/config.test.ts`
+- Status: Proposed
+
+## 2026-07-24 - Curated onboarding screens should keep shared, reviewable progress contracts while allowing safe in-progress navigation
+- Type: Pattern
+- WHAT changed: Curated onboarding now treats selected sections and required controls as completion status indicators, allows page navigation with explicit incomplete-state highlighting, and updates review/dropdown visibility and button/label UX while preserving the stricter "complete" contract when review-ready handoff is attempted.
+- WHY it changed: The onboarding flow needed clearer user feedback and less rigid gating for exploratory edits, plus consistent completed/incomplete state surfacing across section summaries and in-page controls.
+- Rule: Required onboarding responses should still be enforced before Review advancement, but the screen should explicitly mark incomplete inputs and pages instead of blocking all forward navigation.
+- Pattern: shared selector-derived progression state + section completion indicators + deterministic malformed-response filtering + explicit review-safe advancement checks.
+- Evidence: `src/app/curated-onboarding/page.tsx`, `src/app/dev/curated-onboarding/page.tsx`, `src/app/routines/CreateRoutineClient.tsx`, `src/app/routines/CreateRoutineRouteHeader.contract.test.ts`, `src/app/routines/RoutinesPageClient.contract.test.ts`, `src/app/routines/RoutinesPageClient.tsx`, `src/app/routines/page.tsx`, `src/features/curated-onboarding/components/ConstraintsStep.tsx`, `src/features/curated-onboarding/components/CuratedIntroStep.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingPrimitives.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingProgress.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingShell.tsx`, `src/features/curated-onboarding/components/EquipmentStep.tsx`, `src/features/curated-onboarding/components/ExperienceStep.tsx`, `src/features/curated-onboarding/components/GenerationHandoffStep.tsx`, `src/features/curated-onboarding/components/GoalsStep.tsx`, `src/features/curated-onboarding/components/PreferencesStep.tsx`, `src/features/curated-onboarding/components/QuestionnaireStep.tsx`, `src/features/curated-onboarding/components/ReviewStep.tsx`, `src/features/curated-onboarding/components/ScheduleStep.tsx`, `src/features/curated-onboarding/constants.ts`, `src/features/curated-onboarding/engine.test.ts`, `src/features/curated-onboarding/engine.ts`, `src/features/curated-onboarding/fixtures.ts`, `src/features/curated-onboarding/questionnaire.test.ts`, `src/features/curated-onboarding/questionnaire.ts`, `src/features/curated-onboarding/schema.ts`, `src/features/curated-onboarding/selectors.test.ts`, `src/features/curated-onboarding/selectors.ts`, `src/features/curated-onboarding/step-registry.ts`, `src/features/curated-onboarding/storage.test.ts`, `src/features/curated-onboarding/storage.ts`, `src/features/curated-onboarding/types.ts`, `tailwind.config.ts`, `tests/curated-onboarding-ui-contract.test.mjs`, `docs/CHANGELOG.md`
+- Status: Proposed
 ## 2026-07-14 - Explicit deployment classification must outrank the CI execution context
 - Type: Guardrail
 - WHAT changed: Atlas health contracts now classify explicit Vercel production and preview values before the inherited CI execution signal.
@@ -501,7 +520,6 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Letting users create messages or threads in `#verify` turns access setup into clutter and makes the server feel unpolished.
 - Status: Proposed
 
-<<<<<<< HEAD
 ## 2026-06-05 - Logged session exercise lanes should reuse the progression scroll-box shell
 - Type: Pattern
 - WHAT changed: The history/logged-session detail route now wraps the lower exercise-card lane in the same bounded glass scroll-box treatment used by progression measurement panels, sizes that viewport from a stable wrapper in normal page flow, keeps the sticky shell pinned above the bottom action dock, swaps the expanded state to a focused exercise overview card that reuses the exercise-info metric grid styling for session-specific stats, and folds exercise notes into that same overview card instead of a separate footer lane.
@@ -525,7 +543,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 ## 2026-06-05 - Progression analytics should be summarized once and reused across history-family surfaces
 - Type: Pattern
 - WHAT changed: Session history cards, exercise history cards, the exercise info sheet, logged-session exercise focus, and the account storage snapshot now all consume one shared progression lifeline summary built from `progression_events`, exposing promotion counts, target lifelines, latest target changes, and progressed-exercise rollups without each route inventing its own wording or counting rules.
-- WHY it changed: The app already stored progression events, but most history-family surfaces only showed performance metrics or readiness state, which made promotion history feel invisible and forced users to mentally reconstruct target changes from raw workouts instead of seeing a clean “started here -> moved here -> latest change” story.
+- WHY it changed: The app already stored progression events, but most history-family surfaces only showed performance metrics or readiness state, which made promotion history feel invisible and forced users to mentally reconstruct target changes from raw workouts instead of seeing a clean "started here -> moved here -> latest change" story.
 - Rule: When a surface needs promotion or target-evolution analytics, derive them from a shared progression-event summary layer before adding route-local counters or copy.
 - Pattern: load scoped progression events -> build shared session or exercise lifeline summary -> feed cards, detail panels, and account storage metrics from that same summary.
 - Failure Mode: Recomputing promotion analytics separately on each screen creates drift in counts, wording, and target labels, and makes account/export summaries disagree with history or exercise detail surfaces.
@@ -571,6 +589,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Rebuilding recap bullets per screen reintroduces text-touching-dot bugs, spacing drift, and inconsistent progress/progression panels across exercise info, history, and logged-session detail.
 - Evidence: `src/components/ui/DetailSectionList.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/ExerciseInfoSheet.tsx`
 - Status: Proposed
+
+## 2026-07-14 - History calendars distinguish completed and skipped planned workout days
+- Type: Pattern
+- WHAT changed: The history calendar now derives past planned workout dates from routine cycle truth, keeps completed session days green, marks genuinely missed workout days red, and allows vertical page movement to begin over the horizontally swipeable month rail. Deterministic mobile fixtures remain blocked in production but can be opened on protected Vercel preview deployments for operator review.
+- WHY it changed: The calendar previously showed only completed-session density and its horizontal-only touch contract blocked normal mobile page scrolling when a gesture started inside the calendar.
+- Rule: Calendar status must come from routine scheduling plus completed-session truth, and horizontally scrollable history surfaces must preserve vertical page gestures.
+- Evidence: `src/lib/history-planned-days.ts`, `src/lib/history-calendar.ts`, `src/components/history/HistoryCalendarSurface.tsx`
 
 ## 2026-07-17 - Migration source recovery must preserve immutable provenance and parity uncertainty
 - Type: Guardrail

@@ -19,6 +19,7 @@ import {
 import { getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
+import { activateProfileRoutineId } from "@/app/curated-onboarding/activate-profile-routine";
 
 export type CreateCuratedRoutineDraftResult =
   | { ok: true; routineId: string; routineName: string }
@@ -114,6 +115,12 @@ export async function createCuratedRoutineDraftAction(
   const progressionConfig = buildProgressionPlaybookConfigFromFormState(progressionState);
   const schedule = buildCuratedRoutineSchedule(plan);
   const formData = new FormData();
+  let routineId: string | null = null;
+
+  async function rollbackCreatedRoutine() {
+    if (!routineId) return;
+    await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+  }
 
   formData.set("name", plan.name.slice(0, 15));
   formData.set("cycleLengthDays", String(schedule.length));
@@ -134,7 +141,7 @@ export async function createCuratedRoutineDraftAction(
     return { ok: false, error: "Could not create the curated routine draft." };
   }
 
-  const routineId = createResult.routineId;
+  routineId = createResult.routineId;
   const exerciseNames = [...new Set(plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.name)))];
   const { data: exerciseRows, error: exerciseError } = await supabase
     .from("exercises")
@@ -143,14 +150,14 @@ export async function createCuratedRoutineDraftAction(
     .in("name", exerciseNames);
 
   if (exerciseError) {
-    await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+    await rollbackCreatedRoutine();
     return { ok: false, error: exerciseError.message };
   }
 
   const exerciseByName = new Map((exerciseRows ?? []).map((exercise) => [exercise.name, exercise]));
   const missingExerciseNames = exerciseNames.filter((name) => !exerciseByName.has(name));
   if (missingExerciseNames.length > 0) {
-    await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+    await rollbackCreatedRoutine();
     return { ok: false, error: `Curated exercise catalog is missing: ${missingExerciseNames.join(", ")}.` };
   }
 
@@ -163,7 +170,7 @@ export async function createCuratedRoutineDraftAction(
 
     const createdDay = createdDayByIndex.get(scheduleDay.dayIndex);
     if (!createdDay) {
-      await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+      await rollbackCreatedRoutine();
       return { ok: false, error: "Curated routine day creation was incomplete." };
     }
 
@@ -174,7 +181,7 @@ export async function createCuratedRoutineDraftAction(
       .eq("routine_id", routineId)
       .eq("user_id", user.id);
     if (dayUpdateError) {
-      await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+      await rollbackCreatedRoutine();
       return { ok: false, error: dayUpdateError.message };
     }
 
@@ -207,9 +214,25 @@ export async function createCuratedRoutineDraftAction(
       insertError = fallback.error;
     }
     if (insertError) {
-      await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+      await rollbackCreatedRoutine();
       return { ok: false, error: insertError.message };
     }
+  }
+
+  const activeRoutineResult = await activateProfileRoutineId({
+    executeProfileActivation: async ({ userId, routineId }) =>
+      await supabase
+        .from("profiles")
+        .update({ active_routine_id: routineId })
+        .eq("id", userId)
+        .select("id")
+        .single(),
+    userId: user.id,
+    routineId,
+  });
+  if (!activeRoutineResult.ok) {
+    await rollbackCreatedRoutine();
+    return { ok: false, error: activeRoutineResult.error };
   }
 
   return { ok: true, routineId, routineName: plan.name.slice(0, 15) };

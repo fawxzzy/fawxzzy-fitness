@@ -232,6 +232,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           name={(day as RoutineDayRow).name}
           startDate={(routine as RoutineRow).start_date}
           isRest={(day as RoutineDayRow).is_rest}
+          isOptional={Boolean((day as RoutineDayRow).is_optional)}
           showDayAdjustmentControl={showDayAdjustmentControl}
           initialDayAdjustmentDirection={initialDayAdjustmentDirection}
           floatingHeaderSlotId="edit-day-floating-header-slot"

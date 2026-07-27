@@ -115,7 +115,7 @@ function buildWeekComparisonMetric(summary: WeeklyProgressSummary): MetricDatum 
 
   if (delta > 0) {
     return {
-      label: "Vs Last Week",
+      label: "Vs Last Cycle",
       value: `+${absDelta} ${unit}`,
       valueTone: "success",
     };
@@ -123,14 +123,14 @@ function buildWeekComparisonMetric(summary: WeeklyProgressSummary): MetricDatum 
 
   if (delta < 0) {
     return {
-      label: "Vs Last Week",
+      label: "Vs Last Cycle",
       value: `-${absDelta} ${unit}`,
       valueTone: "danger",
     };
   }
 
   return {
-    label: "Vs Last Week",
+    label: "Vs Last Cycle",
     value: "Even",
     valueTone: summary.completedWorkoutCount > 0 ? "default" : "muted",
   };

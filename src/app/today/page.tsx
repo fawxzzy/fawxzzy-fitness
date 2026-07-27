@@ -869,7 +869,7 @@ export default async function TodayPage({
       routineDays = await diagnostics.measure("today.routine-days.fetch", async () => {
         const { data: routineDayRows, error: routineDaysError } = await supabase
           .from("routine_days")
-          .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+          .select("id, user_id, routine_id, day_index, name, is_rest, is_optional, notes")
           .eq("routine_id", activeRoutine.id)
           .eq("user_id", user.id)
           .order("day_index", { ascending: true });
@@ -1194,6 +1194,7 @@ export default async function TodayPage({
     routineDayName,
     routineDayWeekday,
     isRest: effectiveRoutineDay?.is_rest ?? false,
+    isOptional: Boolean(effectiveRoutineDay?.is_optional),
     state: effectiveDaySummary?.state ?? getRunnableDayState({
       isRest: effectiveRoutineDay?.is_rest ?? false,
       runnableExerciseCount: 0,
@@ -1400,6 +1401,7 @@ export default async function TodayPage({
                     })
                   : null,
                 isRest: day.is_rest,
+                isOptional: Boolean(day.is_optional),
                 state,
                 invalidExerciseCount: invalidExercises.length,
                 exercises: runnableExercises.map((exercise) => ({

@@ -117,6 +117,9 @@ const CANDIDATES: Record<MovementRole, ExerciseCandidate[]> = {
 };
 
 const SPLITS: Record<number, Array<{ name: string; roles: MovementRole[] }>> = {
+  1: [
+    { name: "Full Body", roles: ["squat", "horizontal-push", "vertical-pull", "hinge", "core", "cardio"] },
+  ],
   2: [
     { name: "Full Body A", roles: ["squat", "horizontal-push", "vertical-pull", "hinge", "core"] },
     { name: "Full Body B", roles: ["lunge", "vertical-push", "horizontal-pull", "hinge", "cardio"] },
@@ -146,6 +149,15 @@ const SPLITS: Record<number, Array<{ name: string; roles: MovementRole[] }>> = {
     { name: "Push B", roles: ["vertical-push", "horizontal-push", "lunge", "core", "cardio"] },
     { name: "Pull B", roles: ["horizontal-pull", "vertical-pull", "hinge", "core", "cardio"] },
     { name: "Legs B", roles: ["lunge", "squat", "hinge", "core", "cardio"] },
+  ],
+  7: [
+    { name: "Push A", roles: ["horizontal-push", "vertical-push", "lunge", "core", "cardio"] },
+    { name: "Pull A", roles: ["hinge", "vertical-pull", "horizontal-pull", "core", "cardio"] },
+    { name: "Legs A", roles: ["squat", "hinge", "lunge", "core", "cardio"] },
+    { name: "Push B", roles: ["vertical-push", "horizontal-push", "lunge", "core", "cardio"] },
+    { name: "Pull B", roles: ["horizontal-pull", "vertical-pull", "hinge", "core", "cardio"] },
+    { name: "Legs B", roles: ["lunge", "squat", "hinge", "core", "cardio"] },
+    { name: "Conditioning + Core", roles: ["cardio", "core", "lunge", "horizontal-pull"] },
   ],
 };
 

@@ -1,7 +1,7 @@
-import { appTokens } from "@/components/ui/app/tokens";
 import { PillButton } from "@/components/ui/Pill";
 import { EQUIPMENT_ACCESS_OPTIONS } from "../constants.ts";
 import type { CuratedOnboardingData, EquipmentAccess } from "../types.ts";
+import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
 
 export function EquipmentStep({
   data,
@@ -11,9 +11,8 @@ export function EquipmentStep({
   onToggle: (value: EquipmentAccess) => void;
 }) {
   return (
-    <div className={appTokens.curatedCompactStack}>
-      <p className={appTokens.curatedBodyText}>Choose every setup the routine should safely rely on.</p>
-      <div className={appTokens.curatedPillRow}>
+    <CuratedInfoCard>
+      <div className="flex flex-wrap justify-center gap-2">
         {EQUIPMENT_ACCESS_OPTIONS.map((option) => (
           <PillButton
             key={option.value}
@@ -24,6 +23,6 @@ export function EquipmentStep({
           </PillButton>
         ))}
       </div>
-    </div>
+    </CuratedInfoCard>
   );
 }

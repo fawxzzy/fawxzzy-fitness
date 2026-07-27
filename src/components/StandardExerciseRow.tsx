@@ -59,6 +59,7 @@ type StandardExerciseRowProps = {
   density?: "compact" | "detailed";
   semanticTone?: CardSemanticTone;
   children?: ReactNode;
+  footer?: ReactNode;
   leadingVisual?: ReactNode;
   showLeadingVisual?: boolean;
   imageSizes?: string;
@@ -110,6 +111,7 @@ export function StandardExerciseRow({
   density,
   semanticTone,
   children,
+  footer,
   leadingVisual,
   showLeadingVisual = true,
   imageSizes,
@@ -194,6 +196,7 @@ export function StandardExerciseRow({
       buttonProps={buttonProps}
       contentVerticalAlign={contentVerticalAlign}
       progressFill={progressFill}
+      footer={footer}
     >
       {children}
     </ExerciseCard>

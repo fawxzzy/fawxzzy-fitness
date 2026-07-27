@@ -7,7 +7,7 @@ export type HistoryAchievement = {
 
 export function buildHistoryAchievements(input: {
   completedWorkoutCount: number;
-  bestWeekCount: number;
+  bestSessionStreakCount: number;
   prMomentCount: number;
 }): HistoryAchievement[] {
   return [
@@ -25,9 +25,9 @@ export function buildHistoryAchievements(input: {
     },
     {
       id: "three-week-streak",
-      title: "Three Active Weeks",
-      description: "Train in three consecutive weeks. Rest days stay protected.",
-      unlocked: input.bestWeekCount >= 3,
+      title: "Three Session Streak",
+      description: "Log three consecutive planned workout days.",
+      unlocked: input.bestSessionStreakCount >= 3,
     },
     {
       id: "first-pr",

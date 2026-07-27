@@ -13,7 +13,8 @@ import {
   validateMigrationSource,
 } from "./fp-fit-user-number-safety-verify.mjs";
 
-const migrationSource = readFileSync(new URL(`../../${MIGRATION_PATH}`, import.meta.url), "utf8");
+const migrationSource = readFileSync(new URL(`../../${MIGRATION_PATH}`, import.meta.url), "utf8")
+  .replace(/\r\n?/gu, "\n");
 const historicalClassifierSource = readFileSync(
   new URL("../../supabase/migrations/044_real_user_numbers.sql", import.meta.url),
   "utf8",

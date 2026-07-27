@@ -89,7 +89,7 @@ Recommended order:
 16. `FF-ENGINE-001` Build Curated Workout Engine V1
 17. `FF-ONBOARD-001` Ship Curated Onboarding Intake And Generator Handoff
 18. `FF-RECAP-001` Ship Shareable Workout Recap Artifacts
-19. `FF-ANALYTICS-002` Add Premium Cycle Analytics Preview Placement
+19. `FF-ANALYTICS-002` Plan Premium Cycle Analytics Experience
 20. `FF-MKT-001` Founding User Launch Plan
 21. `FF-ANALYTICS-001` Add Active User and Product Usage Statistics
 22. `FF-ENGINE-002` Expand Curated Workout Engine Beyond V1

@@ -2,7 +2,7 @@ export const EXERCISE_TIMER_MAX_SECONDS = 24 * 60 * 60;
 
 export type ExerciseTimerMode = "count_up" | "countdown";
 export type ExerciseTimerStatus = "idle" | "running" | "paused" | "completed";
-export type ExerciseTimerCommand = "start" | "pause" | "reset" | "complete";
+export type ExerciseTimerCommand = "enable" | "disable" | "start" | "pause" | "reset" | "complete";
 
 export type ExerciseTimerSnapshot = {
   enabled: boolean;

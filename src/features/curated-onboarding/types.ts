@@ -6,6 +6,8 @@ export type CuratedStepId =
   | "schedule"
   | "preferences"
   | "constraints"
+  | "nutrition"
+  | "delivery"
   | "review"
   | "generation-handoff";
 
@@ -16,8 +18,48 @@ export type PreferredStyle = "full-body" | "upper-lower" | "push-pull-legs" | "h
 export type CardioPreference = "minimal" | "balanced" | "focus";
 export type CuratedIntakeStatus = "draft" | "completed";
 export type CuratedGenerationStatus = "idle" | "not-implemented" | "queued" | "ready" | "failed";
+export type CuratedIntakeResponse = string | string[] | boolean;
+export type CuratedIntakeResponses = Record<string, CuratedIntakeResponse>;
+
+export type CuratedQuestionType = "short-text" | "long-text" | "single" | "multi" | "acknowledgment";
+
+export interface CuratedQuestionOption {
+  value: string;
+  label: string;
+}
+
+export interface CuratedQuestionDefinition {
+  id: string;
+  label: string;
+  type: CuratedQuestionType;
+  required?: boolean;
+  options?: readonly CuratedQuestionOption[];
+  allowOther?: boolean;
+  placeholder?: string;
+  readOnly?: boolean;
+  visibleWhen?: {
+    questionId: string;
+    values: readonly string[];
+  };
+}
+
+export interface CuratedSectionNotice {
+  afterQuestionId: string;
+  title: string;
+  body: string;
+  tone: "warning" | "danger";
+}
+
+export interface CuratedIntakeSection {
+  stepId: Exclude<CuratedStepId, "review" | "generation-handoff">;
+  title: string;
+  description?: string;
+  questions: readonly CuratedQuestionDefinition[];
+  notices?: readonly CuratedSectionNotice[];
+}
 
 export interface CuratedOnboardingData {
+  intakeResponses: CuratedIntakeResponses;
   trainingGoal?: TrainingGoal | null;
   experience?: ExperienceLevel | null;
   daysPerWeek?: number | null;
@@ -32,7 +74,7 @@ export interface CuratedOnboardingData {
 }
 
 export interface CuratedOnboardingDraft {
-  version: 2;
+  version: 3;
   draftId: string;
   stepId: CuratedStepId;
   updatedAt: string;

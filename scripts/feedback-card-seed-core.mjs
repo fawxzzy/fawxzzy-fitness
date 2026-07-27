@@ -343,7 +343,6 @@ const REVIEW_READY_CONTEXT_BY_CARD_ID = {
   "FF-RET-003": { route: "/dev/mobile-regression?scenario=history-sessions-compact", evidence: "History regression verification, typecheck, and repository verification passed." },
   "FF-RET-004": { route: "/dev/mobile-regression?scenario=history-sessions-compact", evidence: "History regression verification, typecheck, and repository verification passed." },
   "FF-GAM-001": { route: "/dev/mobile-regression?scenario=history-sessions-compact", evidence: "History regression verification, typecheck, and repository verification passed." },
-  "FF-ANALYTICS-002": { route: "/dev/mobile-regression?scenario=history-sessions-compact", evidence: "History regression verification, typecheck, and repository verification passed." },
   "FF-ENGINE-001": { route: "/curated-onboarding", evidence: "Deterministic engine tests, QA draft handoff, typecheck, and repository verification passed." },
   "FF-ENGINE-002": { route: "/curated-onboarding", evidence: "Deterministic engine tests, QA draft handoff, typecheck, and repository verification passed." },
   "FF-ONBOARD-001": { route: "/curated-onboarding", evidence: "Deterministic engine tests, QA draft handoff, typecheck, and repository verification passed." },
