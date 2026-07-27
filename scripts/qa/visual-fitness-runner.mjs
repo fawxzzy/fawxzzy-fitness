@@ -1220,8 +1220,25 @@ async function applyRegistrySetup(context, registry) {
   });
 }
 
-async function applyDeterministicCaptureStyle(page) {
-  await page.addStyleTag({
+export async function applyDeterministicCaptureStyle(context) {
+  await context.addInitScript(({ content, markerId }) => {
+    const installStyle = () => {
+      if (document.getElementById(markerId)) {
+        return;
+      }
+      const style = document.createElement("style");
+      style.id = markerId;
+      style.textContent = content;
+      (document.head ?? document.documentElement).appendChild(style);
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", installStyle, { once: true });
+      return;
+    }
+    installStyle();
+  }, {
+    markerId: "fitness-visual-qa-deterministic-style",
     content: [
       "*, *::before, *::after {",
       "  animation-delay: 0s !important;",
@@ -1349,6 +1366,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
   await applyThemePreset(context, suite.themePreset);
   await applyRegistrySetup(context, suite.registry);
   if (suite.registry) {
+    await applyDeterministicCaptureStyle(context);
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   }
   const page = await context.newPage();
@@ -1393,9 +1411,6 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     });
     await page.waitForTimeout(suite.waitMs ?? 1600);
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
-    if (suite.registry) {
-      await applyDeterministicCaptureStyle(page);
-    }
     const interactionResult = await runSuiteInteraction(page, suite, { baseUrl });
     if (suite.registry?.captureMode === "mobile-bottom") {
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));

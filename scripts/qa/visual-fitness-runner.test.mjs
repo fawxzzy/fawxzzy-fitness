@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyDeterministicCaptureStyle,
   buildVisualCatalogManifest,
   buildQaBrowserStorageStateFromSessionCookies,
   hasUsableQaStorageState,
@@ -133,6 +134,19 @@ test("resolveViewport rejects a malformed explicit override", () => {
     () => resolveViewport("mobile-430", { label: "mobile-375", width: 375, height: 932 }),
     /Invalid --viewport "mobile-430"/,
   );
+});
+
+test("deterministic capture style is registered as a navigation init script", async () => {
+  const calls = [];
+  await applyDeterministicCaptureStyle({
+    addInitScript: async (callback, payload) => calls.push({ callback, payload }),
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(typeof calls[0].callback, "function");
+  assert.equal(calls[0].payload.markerId, "fitness-visual-qa-deterministic-style");
+  assert.match(calls[0].payload.content, /animation-duration: 0s/);
+  assert.match(calls[0].payload.content, /transition-duration: 0s/);
 });
 
 test("resolved-route contract distinguishes requested and final routes", () => {
