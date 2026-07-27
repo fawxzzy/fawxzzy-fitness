@@ -1819,11 +1819,36 @@ async function writeVisualCatalogArtifacts({
   };
 }
 
-export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
+export function assertVisualCatalogCountLedger({
+  buildCatalogCoverage = buildVisualCatalogCoverage,
+  buildCatalogCountDelta = buildVisualCatalogCountDelta,
+} = {}) {
+  const coverage = buildCatalogCoverage();
+  const countDelta = buildCatalogCountDelta(coverage);
+  if (!countDelta.reconciled) {
+    throw new Error(
+      "Visual catalog count ledger drifted: "
+      + `accepted ${countDelta.accepted.semanticStates} states/${countDelta.accepted.rawCaptures} captures; `
+      + `current ${countDelta.current.semanticStates} states/${countDelta.current.rawCaptures} captures. `
+      + "Catalog capture aborted before browser launch.",
+    );
+  }
+  return { coverage, countDelta };
+}
+
+export async function runVisualFitnessSuites(
+  argv = process.argv.slice(2),
+  countLedgerOptions = {},
+) {
   const { flags } = parseArgs(argv);
   const registryValidation = validateVisualStateRegistry();
   if (!registryValidation.valid) {
     throw new Error(`Visual state registry is invalid: ${registryValidation.errors.join(" ")}`);
+  }
+  const isRegistryRequested = typeof flags["registry-state"] === "string"
+    || typeof flags["registry-tier"] === "string";
+  if (isRegistryRequested) {
+    assertVisualCatalogCountLedger(countLedgerOptions);
   }
   const suites = resolveSuites(flags);
   const isRegistryRun = suites.length > 0 && suites.every((suite) => Boolean(suite.registry));

@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   applyDeterministicCaptureStyle,
+  assertVisualCatalogCountLedger,
   buildVisualCatalogManifest,
   buildQaBrowserStorageStateFromSessionCookies,
   hasUsableQaStorageState,
   resolveQaBrowserStorageState,
   resolveViewport,
+  runVisualFitnessSuites,
   sanitizeVisualDiagnosticText,
   validateResolvedRoute,
 } from "./visual-fitness-runner.mjs";
@@ -147,6 +149,37 @@ test("deterministic capture style is registered as a navigation init script", as
   assert.equal(calls[0].payload.markerId, "fitness-visual-qa-deterministic-style");
   assert.match(calls[0].payload.content, /animation-duration: 0s/);
   assert.match(calls[0].payload.content, /transition-duration: 0s/);
+});
+
+test("catalog count ledger returns reconciled coverage", () => {
+  const result = assertVisualCatalogCountLedger();
+
+  assert.equal(result.coverage.semanticStates, 111);
+  assert.equal(result.coverage.rawCaptures, 313);
+  assert.equal(result.countDelta.reconciled, true);
+});
+
+test("smoke and full catalog runs reject accepted count drift before browser launch", async () => {
+  const countLedgerOptions = {
+    buildCatalogCoverage: () => ({
+      semanticStates: 110,
+      rawCaptures: 312,
+    }),
+    buildCatalogCountDelta: (coverage) => ({
+      accepted: { semanticStates: 111, rawCaptures: 313 },
+      current: coverage,
+      delta: { semanticStates: -1, rawCaptures: -1 },
+      reconciled: false,
+      explanations: [],
+    }),
+  };
+
+  for (const tier of ["smoke", "full"]) {
+    await assert.rejects(
+      runVisualFitnessSuites(["--registry-tier", tier], countLedgerOptions),
+      /Visual catalog count ledger drifted: accepted 111 states\/313 captures; current 110 states\/312 captures\. Catalog capture aborted before browser launch\./,
+    );
+  }
 });
 
 test("resolved-route contract distinguishes requested and final routes", () => {
