@@ -313,6 +313,13 @@ const MOBILE_REGRESSION_SELECTED_EXERCISES = Object.freeze({
 function buildMobileRegressionExpectedRoute(id) {
   const route = `/dev/mobile-regression?scenario=${encodeURIComponent(id)}`;
   const exerciseId = MOBILE_REGRESSION_SELECTED_EXERCISES[id];
+  if (id === "history-sessions-detailed") {
+    return {
+      // The local boot primer may append only its build freshness marker.
+      kind: "pattern",
+      value: "^/dev/mobile-regression\\?scenario=history-sessions-detailed(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
+    };
+  }
   return {
     kind: "exact",
     value: exerciseId ? `${route}&exerciseId=${encodeURIComponent(exerciseId)}` : route,

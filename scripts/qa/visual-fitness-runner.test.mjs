@@ -210,6 +210,25 @@ test("resolved-route contract fails closed on unexpected redirect", () => {
   assert.match(result.reason ?? "", /violates the exact contract/);
 });
 
+test("resolved-route pattern permits only the local boot freshness marker", () => {
+  const expectedResolvedRoute = {
+    kind: "pattern",
+    value: "^/dev/mobile-regression\\?scenario=history-sessions-detailed(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
+  };
+  assert.equal(validateResolvedRoute({
+    requestedRoute: "/dev/mobile-regression?scenario=history-sessions-detailed",
+    resolvedUrl: "http://127.0.0.1:3002/dev/mobile-regression?scenario=history-sessions-detailed&__fresh=1.0.1-local",
+    expectedResolvedRoute,
+    baseUrl: "http://127.0.0.1:3002",
+  }).valid, true);
+  assert.equal(validateResolvedRoute({
+    requestedRoute: "/dev/mobile-regression?scenario=history-sessions-detailed",
+    resolvedUrl: "http://127.0.0.1:3002/dev/mobile-regression?scenario=history-sessions-detailed&unexpected=1",
+    expectedResolvedRoute,
+    baseUrl: "http://127.0.0.1:3002",
+  }).valid, false);
+});
+
 test("anonymous registry guard converts only local auto-login requests into manual login", async () => {
   assert.equal(
     buildAnonymousLocalDevAutoLoginBypassUrl({
@@ -217,6 +236,20 @@ test("anonymous registry guard converts only local auto-login requests into manu
       baseUrl: "http://127.0.0.1:3002",
     }),
     "http://127.0.0.1:3002/login?manual=1&returnTo=%2Ftoday",
+  );
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "http://localhost:3002/auth/local-dev-auto-login?returnTo=%2Ftoday",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    "http://localhost:3002/login?manual=1&returnTo=%2Ftoday",
+  );
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "http://localhost:3003/auth/local-dev-auto-login",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    null,
   );
   assert.equal(
     buildAnonymousLocalDevAutoLoginBypassUrl({

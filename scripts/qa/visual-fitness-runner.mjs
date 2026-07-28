@@ -159,11 +159,20 @@ function isSafeLocalReturnPath(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 }
 
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
 export function buildAnonymousLocalDevAutoLoginBypassUrl({ requestUrl, baseUrl }) {
   try {
     const request = new URL(requestUrl);
     const base = new URL(baseUrl);
-    if (request.origin !== base.origin || request.pathname !== "/auth/local-dev-auto-login") {
+    if (
+      request.pathname !== "/auth/local-dev-auto-login"
+      || !isLoopbackHost(request.hostname)
+      || !isLoopbackHost(base.hostname)
+      || request.port !== base.port
+    ) {
       return null;
     }
 
@@ -172,7 +181,9 @@ export function buildAnonymousLocalDevAutoLoginBypassUrl({ requestUrl, baseUrl }
     if (isSafeLocalReturnPath(returnTo)) {
       params.set("returnTo", returnTo);
     }
-    return new URL(`/login?${params.toString()}`, base).toString();
+    // Keep the redirect on the request origin: Next dev may legitimately switch
+    // between localhost and 127.0.0.1 while preserving the same loopback port.
+    return new URL(`/login?${params.toString()}`, request.origin).toString();
   } catch {
     return null;
   }

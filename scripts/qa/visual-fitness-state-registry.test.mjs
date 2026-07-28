@@ -100,6 +100,10 @@ test("registry models intentional fixture selection and manual public auth route
     kind: "exact",
     value: "/dev/mobile-regression?scenario=today-default",
   });
+  assert.deepEqual(getVisualFitnessState("signed-in:history-sessions-detailed")?.expectedResolvedRoute, {
+    kind: "pattern",
+    value: "^/dev/mobile-regression\\?scenario=history-sessions-detailed(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
+  });
   assert.deepEqual(getVisualFitnessState("public:root")?.expectedResolvedRoute, {
     kind: "one-of",
     values: ["/", "/entry", "/login?manual=1"],
