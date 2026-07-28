@@ -672,3 +672,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Keep the first packet source-only and prove `beginner-planet-fitness-4day-muscle-gain` without claiming the later catalog, coverage-ledger, substitution, or persistence expansions.
 - Evidence: `src/features/curated-onboarding/planning-contract.ts`, `src/features/curated-onboarding/planning-fixtures.ts`, `src/features/curated-onboarding/engine.ts`, `docs/curated-routine-generation-contract.md`
 - Status: Proposed
+
+## 2026-07-28 - Planning truth must remain precise at the server boundary
+- Type: Guardrail
+- WHAT changed: The planning normalizer now validates visible questionnaire answers at the authenticated server boundary, derives planning inputs only from validated questionnaire truth, and carries granular equipment plus explicit avoidance into candidate selection.
+- WHY it changed: Key-presence checks allowed malformed or free-text safety answers to appear safe, while narrow equipment such as a treadmill was widened into unrestricted machine access and recorded avoidances were ignored.
+- Rule: Questionnaire-backed generation must validate response type, allowed option and `Other` semantics, required and conditional completeness, and acknowledgments before selection; any ambiguous safety answer blocks.
+- Rule: Equipment capabilities may be narrowed but never widened. Candidate requirements and explicit avoidances must be satisfied before an exercise can enter a plan.
+- Failure Mode: Trusting caller-derived fields or coarse equipment families can activate a routine whose safety or executable-equipment assumptions were never declared by the user.
+- Evidence: `src/features/curated-onboarding/planning-contract.ts`, `src/features/curated-onboarding/engine.ts`, `src/features/curated-onboarding/planning-contract.test.ts`, `src/features/curated-onboarding/engine.test.ts`
+- Status: Proposed

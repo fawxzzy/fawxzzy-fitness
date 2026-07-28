@@ -17,9 +17,19 @@ does not change database, provider, authentication, or production state.
   training frequency.
 - `Flexible` and exact weekday selections cannot be combined silently.
 - A weekday-count mismatch blocks generation instead of discarding a choice.
-- Explicit available-equipment answers outrank broad location-derived access.
-  For example, Planet Fitness plus machines and dumbbells does not imply free
-  barbell access.
+- When questionnaire answers exist, the server-normalized questionnaire is the
+  sole planning source; caller-supplied derived fields cannot override it.
+- Visible required answers are validated for type, allowed option, non-empty
+  multi-select, `Other` companion value, and conditional completeness.
+- Free-text `Other` answers to safety questions remain ambiguous and block
+  generation even when the UI supplied a companion value.
+- Explicit available-equipment answers are preserved as granular capabilities
+  through exercise selection. A treadmill, cable station, or Smith machine is
+  not widened to unrestricted machine access, and Planet Fitness does not imply
+  free-barbell access.
+- Explicit equipment avoidance is applied to candidate requirements before
+  selection. Broad machine avoidance covers selectorized machines, cables,
+  Smith machines, treadmills, and bikes.
 - Warning symptoms, incomplete safety answers, missing guardian authority,
   unresolved medical or medication context, missing restriction detail, and
   missing safety acknowledgments fail closed before exercise selection.
@@ -38,8 +48,10 @@ This packet proves:
 - Monday, Wednesday, and Friday rest placement;
 - beginner double-progression targets with no invented starting loads;
 - machine, dumbbell, and bodyweight access without inferred free-barbell access;
+- no machine-family exercise when machines are explicitly avoided;
 - stable planning and plan identity;
-- fail-closed behavior before selection when explicit safety blockers exist.
+- fail-closed behavior before selection when safety truth is malformed,
+  incomplete, or ambiguous, and when narrow equipment cannot form a routine.
 
 The fixture does not yet claim the final approximately 24-exercise acceptance
 target. That requires the next catalog and coverage-ledger packet.

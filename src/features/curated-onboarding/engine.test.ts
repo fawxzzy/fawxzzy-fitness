@@ -270,6 +270,40 @@ test("golden Planet Fitness fixture honors exact weekdays and precise equipment 
   assert.match(first.rationale.join(" "), /exact selected weekdays/i);
 });
 
+test("curated engine fails closed instead of widening treadmill-only access", () => {
+  assert.throws(
+    () => generateCuratedWorkoutPlan(
+      createBeginnerPlanetFitness4DayMuscleGainFixture({
+        availableEquipment: ["treadmill"],
+      }),
+    ),
+    /No safe exercises remain for Upper A/i,
+  );
+});
+
+test("curated engine enforces explicit machine avoidance before selection", () => {
+  const plan = generateCuratedWorkoutPlan(
+    createBeginnerPlanetFitness4DayMuscleGainFixture({
+      equipmentAvoid: "machines",
+    }),
+  );
+  const slugs = plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+  const machineSlugs = new Set([
+    "leg-press",
+    "smith-machine-romanian-deadlift",
+    "smith-machine-bench-press",
+    "machine-shoulder-press",
+    "seated-cable-row",
+    "lat-pulldown",
+    "single-leg-press",
+    "incline-walk",
+  ]);
+
+  assert.equal(slugs.some((slug) => machineSlugs.has(slug)), false);
+  assert.ok(slugs.includes("goblet-squat"));
+  assert.ok(slugs.includes("dumbbell-bench-press"));
+});
+
 test("curated engine fails closed before selection when planning safety is blocked", () => {
   assert.throws(
     () => generateCuratedWorkoutPlan(createBeginnerPlanetFitness4DayMuscleGainFixture({

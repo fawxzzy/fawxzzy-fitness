@@ -1,9 +1,18 @@
 import { CURATED_ONBOARDING_DRAFT_VERSION } from "./constants.ts";
-import { getArrayResponse, getStringResponse } from "./questionnaire.ts";
+import {
+  CURATED_QUESTIONS,
+  deriveCuratedEngineData,
+  getArrayResponse,
+  getStringResponse,
+  hasCuratedQuestionResponse,
+  isCuratedQuestionVisible,
+  removeHiddenCuratedResponses,
+} from "./questionnaire.ts";
 import type {
   CardioPreference,
   CuratedIntakeResponses,
   CuratedOnboardingData,
+  CuratedQuestionDefinition,
   EquipmentAccess,
   ExperienceLevel,
   PreferredStyle,
@@ -21,10 +30,13 @@ export type CuratedPlanningBlockerCode =
   | "medical-context-requires-review"
   | "medication-context-requires-review"
   | "pain-details-required"
+  | "intake-answers-ambiguous"
+  | "intake-answers-incomplete"
   | "preferred-weekday-count-mismatch"
   | "preferred-weekday-selection-ambiguous"
   | "professional-restrictions-required"
   | "safety-acknowledgment-required"
+  | "safety-answers-ambiguous"
   | "safety-answers-incomplete"
   | "unsupported-preferred-weekday"
   | "warning-symptoms-contradictory"
@@ -141,6 +153,21 @@ const ABSENCE_VALUES = new Set([
   "not available",
 ]);
 
+const SAFETY_QUESTION_IDS = new Set([
+  "under18",
+  "guardianPermission",
+  "hasPainOrLimitations",
+  "painDetails",
+  "professionalRestrictions",
+  "restrictedMovements",
+  "warningSymptoms",
+  "medicalConditions",
+  "medications",
+  "medicationConsiderations",
+  "safetyAcknowledgment",
+  "fitnessGuidanceAcknowledgment",
+]);
+
 const SHA256_CONSTANTS = [
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
   0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -216,6 +243,55 @@ function isPresent(responses: CuratedIntakeResponses, questionId: string) {
   return Object.prototype.hasOwnProperty.call(responses, questionId);
 }
 
+function hasValidQuestionResponseShape(
+  question: CuratedQuestionDefinition,
+  responses: CuratedIntakeResponses,
+) {
+  if (!isPresent(responses, question.id)) return true;
+  const response = responses[question.id];
+
+  if (question.type === "acknowledgment") {
+    return typeof response === "boolean";
+  }
+
+  if (question.type === "multi") {
+    if (!Array.isArray(response) || response.some((value) => typeof value !== "string")) {
+      return false;
+    }
+    const allowedValues = new Set(question.options?.map((option) => option.value) ?? []);
+    return response.every((value) => {
+      if (value === "other") {
+        return Boolean(question.allowOther && getStringResponse(responses, `${question.id}Other`).trim());
+      }
+      return allowedValues.size === 0 || allowedValues.has(value);
+    });
+  }
+
+  if (typeof response !== "string") return false;
+  if (!question.options) return true;
+  if (response === "other") {
+    return Boolean(question.allowOther && getStringResponse(responses, `${question.id}Other`).trim());
+  }
+  return question.options.some((option) => option.value === response);
+}
+
+function validateQuestionnaireResponses(responses: CuratedIntakeResponses) {
+  const incompleteQuestionIds: string[] = [];
+  const ambiguousQuestionIds: string[] = [];
+
+  for (const question of CURATED_QUESTIONS) {
+    if (!isCuratedQuestionVisible(question, responses)) continue;
+    if (question.required && !hasCuratedQuestionResponse(question, responses)) {
+      incompleteQuestionIds.push(question.id);
+    }
+    if (!hasValidQuestionResponseShape(question, responses)) {
+      ambiguousQuestionIds.push(question.id);
+    }
+  }
+
+  return { incompleteQuestionIds, ambiguousQuestionIds };
+}
+
 function derivePreciseEquipmentAccess(
   data: CuratedOnboardingData,
   available: string[],
@@ -228,16 +304,16 @@ function derivePreciseEquipmentAccess(
   if (available.includes("barbells")) {
     selected.add("barbell");
   }
-  if (available.some((value) => ["dumbbells", "kettlebells"].includes(value))) {
+  if (available.includes("dumbbells")) {
     selected.add("dumbbells");
   }
-  if (available.some((value) => ["smith-machine", "cables", "machines", "treadmill", "bike"].includes(value))) {
+  if (available.includes("machines")) {
     selected.add("machines");
   }
   if (available.includes("resistance-bands")) {
     selected.add("bands");
   }
-  if (available.some((value) => ["bodyweight", "pull-up-bar"].includes(value))) {
+  if (available.includes("bodyweight")) {
     selected.add("bodyweight");
   }
 
@@ -334,9 +410,32 @@ export function sha256Hex(value: string) {
 export function normalizeCuratedPlanningContract(
   data: CuratedOnboardingData,
 ): CuratedPlanningContract {
-  const responses = data.intakeResponses;
+  const hasQuestionnaireIntake = Object.keys(data.intakeResponses).length > 0;
+  const responses = removeHiddenCuratedResponses(data.intakeResponses);
+  const normalizedData: CuratedOnboardingData = hasQuestionnaireIntake
+    ? {
+        intakeResponses: responses,
+        ...deriveCuratedEngineData(responses),
+      }
+    : data;
   const planningBlockers = new Set<CuratedPlanningBlockerCode>();
   const safetyBlockers = new Set<CuratedPlanningBlockerCode>();
+
+  if (hasQuestionnaireIntake) {
+    const validation = validateQuestionnaireResponses(responses);
+    if (validation.incompleteQuestionIds.length > 0) {
+      planningBlockers.add("intake-answers-incomplete");
+    }
+    if (validation.ambiguousQuestionIds.length > 0) {
+      planningBlockers.add("intake-answers-ambiguous");
+    }
+    if (validation.incompleteQuestionIds.some((questionId) => SAFETY_QUESTION_IDS.has(questionId))) {
+      safetyBlockers.add("safety-answers-incomplete");
+    }
+    if (validation.ambiguousQuestionIds.some((questionId) => SAFETY_QUESTION_IDS.has(questionId))) {
+      safetyBlockers.add("safety-answers-ambiguous");
+    }
+  }
 
   const preferredDays = readMultiResponse(responses, "preferredTrainingDays");
   const flexibleSelected = preferredDays.includes("flexible");
@@ -356,25 +455,24 @@ export function normalizeCuratedPlanningContract(
   if (
     !flexibleSelected
     && preferredWeekdayIndexes.length > 0
-    && data.daysPerWeek
-    && preferredWeekdayIndexes.length !== data.daysPerWeek
+    && normalizedData.daysPerWeek
+    && preferredWeekdayIndexes.length !== normalizedData.daysPerWeek
   ) {
     planningBlockers.add("preferred-weekday-count-mismatch");
   }
 
   const under18 = readSingleResponse(responses, "under18");
-  const hasQuestionnaireIntake = Object.keys(responses).length > 0;
-  if (
-    hasQuestionnaireIntake
-    && [
-      "under18",
-      "hasPainOrLimitations",
-      "professionalRestrictions",
-      "warningSymptoms",
-      "medications",
-    ].some((questionId) => !isPresent(responses, questionId))
-  ) {
-    safetyBlockers.add("safety-answers-incomplete");
+  const ambiguousSafetyAnswer = [
+    "hasPainOrLimitations",
+    "professionalRestrictions",
+    "warningSymptoms",
+    "medications",
+  ].some((questionId) => (
+    getStringResponse(responses, questionId) === "other"
+    || getArrayResponse(responses, questionId).includes("other")
+  ));
+  if (ambiguousSafetyAnswer) {
+    safetyBlockers.add("safety-answers-ambiguous");
   }
   if (under18 === "yes" && readSingleResponse(responses, "guardianPermission") !== "yes") {
     safetyBlockers.add("guardian-authorization-required");
@@ -428,48 +526,48 @@ export function normalizeCuratedPlanningContract(
 
   const locations = readMultiResponse(responses, "trainingLocations");
   const availableEquipment = readMultiResponse(responses, "availableEquipment");
-  const equipmentAccess = derivePreciseEquipmentAccess(data, availableEquipment);
+  const equipmentAccess = derivePreciseEquipmentAccess(normalizedData, availableEquipment);
   const exerciseCannotDo = splitTextList(getStringResponse(responses, "exercisesCannotDo"));
   const uncomfortableMovements = splitTextList(getStringResponse(responses, "uncomfortableExercises"));
   const exerciseLikes = unique([
-    ...data.exerciseLikes,
+    ...normalizedData.exerciseLikes,
     ...splitTextList(getStringResponse(responses, "exerciseEnjoy")),
   ], { sort: true });
   const exerciseDislikes = unique([
-    ...data.exerciseDislikes,
+    ...normalizedData.exerciseDislikes,
     ...splitTextList(getStringResponse(responses, "exerciseHate")),
     ...exerciseCannotDo,
     ...uncomfortableMovements,
   ], { sort: true });
   const limitations = unique([
-    ...splitTextList(data.limitations ?? ""),
+    ...splitTextList(normalizedData.limitations ?? ""),
     ...painDetails,
     ...restrictedMovements,
     ...exerciseCannotDo,
     ...uncomfortableMovements,
   ], { sort: true });
 
-  const primaryGoal = data.trainingGoal ?? null;
+  const primaryGoal = normalizedData.trainingGoal ?? null;
   const orderedGoals = unique([
     ...(primaryGoal ? [primaryGoal] : []),
     ...readMultiResponse(responses, "mainGoals"),
     ...splitTextList(getStringResponse(responses, "topThreeGoals")),
   ]);
   const targetAreas = unique([
-    ...data.targetAreas,
+    ...normalizedData.targetAreas,
     ...readMultiResponse(responses, "areasToImprove"),
   ], { sort: true });
   const movementsToImprove = readMultiResponse(responses, "movementsToImprove");
-  const daysPerWeek = data.daysPerWeek ?? null;
-  const sessionLengthMinutes = data.sessionLengthMinutes ?? null;
+  const daysPerWeek = normalizedData.daysPerWeek ?? null;
+  const sessionLengthMinutes = normalizedData.sessionLengthMinutes ?? null;
   const scheduleMode: CuratedPlanningContract["schedule"]["mode"] = (
     !flexibleSelected
     && preferredWeekdayIndexes.length > 0
     && preferredWeekdayIndexes.length === daysPerWeek
   ) ? "exact-weekdays" : "flexible";
-  const cardioSessionsPerWeek = data.cardioPreference === "focus"
+  const cardioSessionsPerWeek = normalizedData.cardioPreference === "focus"
     ? Math.min(daysPerWeek ?? 1, 3)
-    : data.cardioPreference === "balanced"
+    : normalizedData.cardioPreference === "balanced"
       ? 1
       : 0;
 
@@ -487,7 +585,7 @@ export function normalizeCuratedPlanningContract(
       struggles: readMultiResponse(responses, "biggestStruggles"),
     },
     experience: {
-      level: data.experience ?? null,
+      level: normalizedData.experience ?? null,
       currentRoutine: normalizeOptionalText(getStringResponse(responses, "currentRoutine")),
       currentSplit: normalizeOptionalText(getStringResponse(responses, "currentSplit")),
       trackingStatus: readSingleResponse(responses, "tracksWorkouts"),
@@ -521,8 +619,8 @@ export function normalizeCuratedPlanningContract(
       warningSymptoms: activeWarningSymptoms,
     },
     preferences: {
-      style: data.preferredStyle ?? null,
-      cardio: data.cardioPreference ?? null,
+      style: normalizedData.preferredStyle ?? null,
+      cardio: normalizedData.cardioPreference ?? null,
       cardioSessionsPerWeek,
       exerciseLikes,
       exerciseDislikes,
