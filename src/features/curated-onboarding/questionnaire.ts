@@ -759,12 +759,9 @@ function splitTextList(value: string) {
 function deriveTrainingGoal(responses: CuratedIntakeResponses): TrainingGoal {
   const goals = getArrayResponse(responses, "mainGoals");
   const primary = getStringResponse(responses, "primaryGoal").toLowerCase();
-  if (primary.includes("strong")) return "get-stronger";
-  if (primary.includes("muscle") || primary.includes("mass")) return "build-muscle";
-  if (primary.includes("lean") || primary.includes("fat")) return "get-leaner";
-  if (goals.includes("get-stronger")) return "get-stronger";
-  if (goals.includes("build-muscle") || goals.includes("gain-weight")) return "build-muscle";
-  if (goals.includes("lose-fat") || goals.includes("get-leaner")) return "get-leaner";
+  if (goals.includes("get-stronger") || primary.includes("strong")) return "get-stronger";
+  if (goals.includes("build-muscle") || goals.includes("gain-weight") || primary.includes("muscle") || primary.includes("mass")) return "build-muscle";
+  if (goals.includes("lose-fat") || goals.includes("get-leaner") || primary.includes("lean") || primary.includes("fat")) return "get-leaner";
   return "general-fitness";
 }
 

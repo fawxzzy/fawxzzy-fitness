@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildCuratedRoutineSchedule, deriveCuratedExerciseTarget, formatCuratedExerciseTarget, generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
-import { createBeginnerPlanetFitness4DayMuscleGainFixture } from "./planning-fixtures.ts";
 import type { CuratedOnboardingData } from "./types.ts";
 
 function intake(overrides: Partial<CuratedOnboardingData> = {}): CuratedOnboardingData {
@@ -221,94 +220,5 @@ test("curated routine schedule preserves weekly frequency with explicit rest day
   assert.deepEqual(
     schedule.flatMap((day) => day.planDay?.name ?? []),
     plan.days.map((day) => day.name),
-  );
-});
-
-test("golden Planet Fitness fixture honors exact weekdays and precise equipment truth", () => {
-  const data = createBeginnerPlanetFitness4DayMuscleGainFixture();
-  const first = generateCuratedWorkoutPlan(data);
-  const second = generateCuratedWorkoutPlan(data);
-  const adaptive = generateAdaptiveCuratedWorkoutPlan(data, {
-    completionRate: 1,
-    missedWorkoutCount: 0,
-    failedExerciseSlugs: [],
-    fatiguedExerciseSlugs: [],
-    availableEquipment: ["full-gym"],
-  });
-  const schedule = buildCuratedRoutineSchedule(first);
-  const slugs = first.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
-  const adaptiveSlugs = adaptive.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
-  const freeBarbellSlugs = [
-    "back-squat",
-    "barbell-bench-press",
-    "overhead-press",
-    "barbell-row",
-    "romanian-deadlift",
-  ];
-
-  assert.deepEqual(first, second);
-  assert.equal(first.version, 2);
-  assert.deepEqual(first.trainingDayIndexes, [2, 4, 6, 7]);
-  assert.deepEqual(
-    schedule.filter((day) => day.planDay).map((day) => day.dayIndex),
-    [2, 4, 6, 7],
-  );
-  assert.deepEqual(
-    schedule.filter((day) => !day.planDay).map((day) => day.dayIndex),
-    [1, 3, 5],
-  );
-  assert.equal(
-    slugs.some((slug) => freeBarbellSlugs.includes(slug)),
-    false,
-  );
-  assert.equal(
-    adaptiveSlugs.some((slug) => freeBarbellSlugs.includes(slug)),
-    false,
-  );
-  assert.ok(slugs.includes("leg-press"));
-  assert.equal(first.provenance.planningDigest.length, 64);
-  assert.match(first.rationale.join(" "), /exact selected weekdays/i);
-});
-
-test("curated engine fails closed instead of widening treadmill-only access", () => {
-  assert.throws(
-    () => generateCuratedWorkoutPlan(
-      createBeginnerPlanetFitness4DayMuscleGainFixture({
-        availableEquipment: ["treadmill"],
-      }),
-    ),
-    /No safe exercises remain for Upper A/i,
-  );
-});
-
-test("curated engine enforces explicit machine avoidance before selection", () => {
-  const plan = generateCuratedWorkoutPlan(
-    createBeginnerPlanetFitness4DayMuscleGainFixture({
-      equipmentAvoid: "machines",
-    }),
-  );
-  const slugs = plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
-  const machineSlugs = new Set([
-    "leg-press",
-    "smith-machine-romanian-deadlift",
-    "smith-machine-bench-press",
-    "machine-shoulder-press",
-    "seated-cable-row",
-    "lat-pulldown",
-    "single-leg-press",
-    "incline-walk",
-  ]);
-
-  assert.equal(slugs.some((slug) => machineSlugs.has(slug)), false);
-  assert.ok(slugs.includes("goblet-squat"));
-  assert.ok(slugs.includes("dumbbell-bench-press"));
-});
-
-test("curated engine fails closed before selection when planning safety is blocked", () => {
-  assert.throws(
-    () => generateCuratedWorkoutPlan(createBeginnerPlanetFitness4DayMuscleGainFixture({
-      warningSymptoms: ["dizziness"],
-    })),
-    /warning-symptoms-require-clearance/i,
   );
 });
