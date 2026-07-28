@@ -155,6 +155,106 @@ export function validateResolvedRoute({
   };
 }
 
+export async function waitForExpectedResolvedRoute(page, {
+  requestedRoute,
+  expectedResolvedRoute,
+  baseUrl = "http://127.0.0.1",
+  timeoutMs = 8000,
+  pollMs = 100,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let result = validateResolvedRoute({
+    requestedRoute,
+    resolvedUrl: page.url(),
+    expectedResolvedRoute,
+    baseUrl,
+  });
+
+  while (!result.valid && Date.now() < deadline) {
+    await page.waitForTimeout(pollMs);
+    result = validateResolvedRoute({
+      requestedRoute,
+      resolvedUrl: page.url(),
+      expectedResolvedRoute,
+      baseUrl,
+    });
+  }
+
+  return result;
+}
+
+export async function waitForRegistryAssertions(page, assertions = [], {
+  timeoutMs = 8000,
+  pollMs = 100,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let failures = await runRegistryAssertions(page, assertions);
+
+  while (failures.length > 0 && Date.now() < deadline) {
+    await page.waitForTimeout(pollMs).catch(() => {});
+    failures = await runRegistryAssertions(page, assertions);
+  }
+
+  return failures;
+}
+
+function isSafeLocalReturnPath(value) {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+export function buildAnonymousLocalDevAutoLoginBypassUrl({ requestUrl, baseUrl }) {
+  try {
+    const request = new URL(requestUrl);
+    const base = new URL(baseUrl);
+    if (
+      request.pathname !== "/auth/local-dev-auto-login"
+      || !isLoopbackHost(request.hostname)
+      || !isLoopbackHost(base.hostname)
+      || request.port !== base.port
+    ) {
+      return null;
+    }
+
+    const params = new URLSearchParams({ manual: "1" });
+    const returnTo = request.searchParams.get("returnTo");
+    if (isSafeLocalReturnPath(returnTo)) {
+      params.set("returnTo", returnTo);
+    }
+    // Keep the redirect on the request origin: Next dev may legitimately switch
+    // between localhost and 127.0.0.1 while preserving the same loopback port.
+    return new URL(`/login?${params.toString()}`, request.origin).toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function applyAnonymousRegistryGuards(context, registry, baseUrl) {
+  if (registry?.authState !== "anonymous") {
+    return;
+  }
+
+  await context.route("**/auth/local-dev-auto-login**", async (route) => {
+    const location = buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: route.request().url(),
+      baseUrl,
+    });
+    if (!location) {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      status: 302,
+      headers: { location },
+      body: "",
+    });
+  });
+}
+
 export function sanitizeVisualDiagnosticText(rawValue) {
   const value = String(rawValue ?? "");
   return value
@@ -1220,6 +1320,43 @@ async function applyRegistrySetup(context, registry) {
   });
 }
 
+export async function scrollRegistryCaptureToBottom(page, {
+  timeoutMs = 8000,
+  pollMs = 100,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      await page.evaluate(() => {
+        const scrollable = Array.from(document.querySelectorAll("*")).filter((element) => {
+          const overflowY = window.getComputedStyle(element).overflowY;
+          return (overflowY === "auto" || overflowY === "scroll")
+            && element.scrollHeight > element.clientHeight + 1;
+        }).sort((left, right) => {
+          return (right.scrollHeight - right.clientHeight)
+            - (left.scrollHeight - left.clientHeight);
+        })[0];
+
+        const target = scrollable ?? document.scrollingElement;
+        if (target) {
+          target.scrollTop = target.scrollHeight;
+        }
+      });
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/execution context was destroyed|cannot find context with specified id|frame was detached/i.test(message)) {
+        throw error;
+      }
+      lastError = error;
+      await page.waitForLoadState("domcontentloaded", { timeout: pollMs }).catch(() => {});
+      await page.waitForTimeout(pollMs).catch(() => {});
+    }
+  }
+  throw lastError ?? new Error("Timed out waiting to scroll the registry capture.");
+}
+
 export async function applyDeterministicCaptureStyle(context) {
   await context.addInitScript(({ content, markerId }) => {
     const installStyle = () => {
@@ -1255,12 +1392,12 @@ async function runRegistryAssertions(page, assertions = []) {
   const failures = [];
   for (const assertion of assertions) {
     if (assertion.kind === "text") {
-      const bodyText = (await page.textContent("body")) ?? "";
-      if (!bodyText.toLowerCase().includes(String(assertion.value).toLowerCase())) {
+      const bodyText = await page.textContent("body").catch(() => null);
+      if (typeof bodyText !== "string" || !bodyText.toLowerCase().includes(String(assertion.value).toLowerCase())) {
         failures.push(`Missing expected text: ${assertion.value}`);
       }
     } else if (assertion.kind === "selector") {
-      const count = await page.locator(assertion.value).count();
+      const count = await page.locator(assertion.value).count().catch(() => 0);
       if (count < 1) {
         failures.push(`Missing expected selector: ${assertion.value}`);
       }
@@ -1363,6 +1500,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     timezoneId: VISUAL_CAPTURE_ENVIRONMENT.timezoneId,
     ...(qaStorageState ? { storageState: qaStorageState } : {}),
   });
+  await applyAnonymousRegistryGuards(context, suite.registry, baseUrl);
   await applyThemePreset(context, suite.themePreset);
   await applyRegistrySetup(context, suite.registry);
   if (suite.registry) {
@@ -1411,13 +1549,20 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     });
     await page.waitForTimeout(suite.waitMs ?? 1600);
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    if (suite.registry?.expectedResolvedRoute) {
+      await waitForExpectedResolvedRoute(page, {
+        requestedRoute: suite.route,
+        expectedResolvedRoute: suite.registry.expectedResolvedRoute,
+        baseUrl,
+      });
+    }
     const interactionResult = await runSuiteInteraction(page, suite, { baseUrl });
     if (suite.registry?.captureMode === "mobile-bottom") {
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await scrollRegistryCaptureToBottom(page);
       await page.waitForTimeout(100);
     }
     const registryAssertionFailures = suite.registry
-      ? await runRegistryAssertions(page, suite.registry.assertions)
+      ? await waitForRegistryAssertions(page, suite.registry.assertions)
       : [];
     await page.screenshot({
       path: screenshotPath,
@@ -1436,11 +1581,6 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
             : null)
       )
       : null;
-    const unexpectedFinalPathReason = resolveUnexpectedFinalPathReason({
-      finalUrl,
-      suite,
-      baseUrl,
-    });
     const registryRouteResult = suite.registry
       ? validateResolvedRoute({
           requestedRoute: suite.route,
@@ -1449,6 +1589,13 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
           baseUrl,
         })
       : null;
+    const unexpectedFinalPathReason = suite.registry
+      ? null
+      : resolveUnexpectedFinalPathReason({
+          finalUrl,
+          suite,
+          baseUrl,
+        });
     const registryFailureReason = registryRouteResult && !registryRouteResult.valid
       ? registryRouteResult.reason
       : registryAssertionFailures.length > 0

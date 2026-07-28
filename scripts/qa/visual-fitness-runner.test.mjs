@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyAnonymousRegistryGuards,
   applyDeterministicCaptureStyle,
   assertVisualCatalogCountLedger,
+  buildAnonymousLocalDevAutoLoginBypassUrl,
   buildVisualCatalogManifest,
   buildQaBrowserStorageStateFromSessionCookies,
   hasUsableQaStorageState,
@@ -11,7 +13,10 @@ import {
   resolveViewport,
   runVisualFitnessSuites,
   sanitizeVisualDiagnosticText,
+  scrollRegistryCaptureToBottom,
   validateResolvedRoute,
+  waitForRegistryAssertions,
+  waitForExpectedResolvedRoute,
 } from "./visual-fitness-runner.mjs";
 
 test("hasUsableQaStorageState rejects expired auth cookies", () => {
@@ -206,6 +211,153 @@ test("resolved-route contract fails closed on unexpected redirect", () => {
   });
   assert.equal(result.valid, false);
   assert.match(result.reason ?? "", /violates the exact contract/);
+});
+
+test("resolved-route pattern permits only the local boot freshness marker", () => {
+  const expectedResolvedRoute = {
+    kind: "pattern",
+    value: "^/dev/mobile-regression\\?scenario=history-sessions-detailed(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
+  };
+  assert.equal(validateResolvedRoute({
+    requestedRoute: "/dev/mobile-regression?scenario=history-sessions-detailed",
+    resolvedUrl: "http://127.0.0.1:3002/dev/mobile-regression?scenario=history-sessions-detailed&__fresh=1.0.1-local",
+    expectedResolvedRoute,
+    baseUrl: "http://127.0.0.1:3002",
+  }).valid, true);
+  assert.equal(validateResolvedRoute({
+    requestedRoute: "/dev/mobile-regression?scenario=history-sessions-detailed",
+    resolvedUrl: "http://127.0.0.1:3002/dev/mobile-regression?scenario=history-sessions-detailed&unexpected=1",
+    expectedResolvedRoute,
+    baseUrl: "http://127.0.0.1:3002",
+  }).valid, false);
+});
+
+test("resolved-route wait does not capture a transient root before its redirect", async () => {
+  const urls = [
+    "http://127.0.0.1:3002/",
+    "http://127.0.0.1:3002/login?manual=1",
+  ];
+  let index = 0;
+  const result = await waitForExpectedResolvedRoute({
+    url: () => urls[index],
+    waitForTimeout: async () => {
+      index += 1;
+    },
+  }, {
+    requestedRoute: "/",
+    expectedResolvedRoute: {
+      kind: "one-of",
+      values: ["/entry", "/login?manual=1"],
+    },
+    baseUrl: "http://127.0.0.1:3002",
+    timeoutMs: 1000,
+    pollMs: 1,
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.resolved, "/login?manual=1");
+});
+
+test("registry assertion wait retries through a transient local remount", async () => {
+  let reads = 0;
+  const result = await waitForRegistryAssertions({
+    textContent: async () => {
+      reads += 1;
+      return reads === 1 ? "Loading" : "Main Goal";
+    },
+    locator: () => ({ count: async () => 1 }),
+    waitForTimeout: async () => {},
+  }, [{ kind: "text", value: "Main Goal" }], { timeoutMs: 1000, pollMs: 1 });
+
+  assert.deepEqual(result, []);
+  assert.equal(reads, 2);
+});
+
+test("mobile-bottom capture retries after a transient navigation", async () => {
+  let evaluations = 0;
+  let waits = 0;
+  await scrollRegistryCaptureToBottom({
+    evaluate: async () => {
+      evaluations += 1;
+      if (evaluations === 1) {
+        throw new Error("Execution context was destroyed");
+      }
+    },
+    waitForLoadState: async () => {},
+    waitForTimeout: async () => {
+      waits += 1;
+    },
+  }, { timeoutMs: 1000, pollMs: 1 });
+
+  assert.equal(evaluations, 2);
+  assert.equal(waits, 1);
+});
+
+test("mobile-bottom capture does not retry unrelated page errors", async () => {
+  await assert.rejects(
+    scrollRegistryCaptureToBottom({
+      evaluate: async () => {
+        throw new Error("Unexpected page failure");
+      },
+      waitForLoadState: async () => {
+        throw new Error("Should not wait");
+      },
+      waitForTimeout: async () => {
+        throw new Error("Should not wait");
+      },
+    }),
+    /Unexpected page failure/,
+  );
+});
+
+test("anonymous registry guard converts only local auto-login requests into manual login", async () => {
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "http://127.0.0.1:3002/auth/local-dev-auto-login?returnTo=%2Ftoday",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    "http://127.0.0.1:3002/login?manual=1&returnTo=%2Ftoday",
+  );
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "http://localhost:3002/auth/local-dev-auto-login?returnTo=%2Ftoday",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    "http://localhost:3002/login?manual=1&returnTo=%2Ftoday",
+  );
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "http://localhost:3003/auth/local-dev-auto-login",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    null,
+  );
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "https://example.test/auth/local-dev-auto-login",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    null,
+  );
+
+  const registrations = [];
+  await applyAnonymousRegistryGuards({
+    route: async (pattern, handler) => registrations.push({ pattern, handler }),
+  }, { authState: "anonymous" }, "http://127.0.0.1:3002");
+  assert.equal(registrations.length, 1);
+  assert.equal(registrations[0].pattern, "**/auth/local-dev-auto-login**");
+
+  const fulfillCalls = [];
+  await registrations[0].handler({
+    request: () => ({ url: () => "http://127.0.0.1:3002/auth/local-dev-auto-login" }),
+    fulfill: async (options) => fulfillCalls.push(options),
+    continue: async () => assert.fail("same-origin local auto-login should be bypassed"),
+  });
+  assert.deepEqual(fulfillCalls, [{
+    status: 302,
+    headers: { location: "http://127.0.0.1:3002/login?manual=1" },
+    body: "",
+  }]);
 });
 
 test("diagnostic sanitizer removes credentials and user identifiers", () => {
