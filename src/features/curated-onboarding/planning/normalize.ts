@@ -380,6 +380,21 @@ function deriveEquipmentAvoided(responses: CuratedIntakeResponses) {
   return uniqueSortedIdentifiers(splitText(getStringResponse(responses, "equipmentAvoid")));
 }
 
+function describesAggregateLoad(value: string, start: number, end: number) {
+  const before = value.slice(0, start);
+  const after = value.slice(end);
+  const aggregateLabel = String.raw`(?:the\s+)?(?:total|combined)(?:\s+(?:weight|load|capacity))?`;
+  const aggregateBeforeAmount = new RegExp(
+    String.raw`\b${aggregateLabel}(?:\s*(?::|=|-)|\s+(?:is|was|of|equals?|at))?(?:\s+(?:about|approximately|around|roughly|exactly))?\s*$`,
+    "i",
+  );
+  const aggregateAfterAmount = new RegExp(
+    String.raw`^\s*(?:[\[(]\s*)?(?:(?:in|of)\s+)?${aggregateLabel}(?=\s*(?:[)\].,;]|$))`,
+    "i",
+  );
+  return aggregateBeforeAmount.test(before) || aggregateAfterAmount.test(after);
+}
+
 function parseDumbbellLoadKg(value: string) {
   const normalized = normalizeOptionalText(value);
   if (!normalized) return null;
@@ -390,13 +405,7 @@ function parseDumbbellLoadKg(value: string) {
       if (!Number.isFinite(amount) || amount <= 0) return null;
       const start = match.index ?? 0;
       const end = start + match[0].length;
-      const before = normalized.slice(Math.max(0, start - 32), start);
-      const after = normalized.slice(end, end + 24);
-      const describesTotal = (
-        /\b(?:total|combined)(?:\s+(?:weight|load|capacity))?\s*$/i.test(before)
-        || /^\s*(?:in\s+)?(?:total|combined)\b/i.test(after)
-      );
-      if (describesTotal) return null;
+      if (describesAggregateLoad(normalized, start, end)) return null;
       return /^(?:lb|lbs|pound|pounds)$/.test(match[2])
         ? amount * 0.45359237
         : amount;
@@ -499,7 +508,7 @@ function buildProvenance(responses: CuratedIntakeResponses) {
   add("/environment/equipmentLimits", ["heaviestDumbbells"], "environment.dumbbell-limit.v1");
   add("/recovery/outsideActivityLoad", ["outsideActivity"], "recovery.activity.v1");
   add("/recovery/sleepBand", ["sleepHours"], "recovery.sleep.v1");
-  add("/safety/movementRestrictions", ["professionalRestrictions", "restrictedMovements", "painDetails"], "safety.restrictions.v1");
+  add("/safety/movementRestrictions", ["professionalRestrictions", "restrictedMovements"], "safety.restrictions.v1");
   add("/safety/excludedExerciseNames", ["exercisesCannotDo"], "safety.cannot-do.v1");
   add("/safety/uncomfortableExerciseNames", ["uncomfortableExercises"], "safety.uncomfortable.v1");
   add("/safety/warningFlags", ["warningSymptoms"], "safety.warning-flags.v1");

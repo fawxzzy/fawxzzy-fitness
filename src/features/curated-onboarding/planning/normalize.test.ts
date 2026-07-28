@@ -593,6 +593,12 @@ test("free-form pain reports remain blocked until restriction scope is explicit"
     ),
   );
   assert.deepEqual(normalized.safety.movementRestrictions, []);
+  assert.deepEqual(
+    normalized.provenance["/safety/movementRestrictions"].map(
+      (entry) => entry.questionId,
+    ),
+    ["professionalRestrictions", "restrictedMovements"],
+  );
   assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
 });
 
@@ -719,6 +725,46 @@ test("dumbbell totals are excluded and unitless limits remain unresolved", () =>
   assert.deepEqual(validateNormalizedPlanningIntakeV1(pairWithTotal), []);
   assert.deepEqual(validateNormalizedPlanningIntakeV1(wordsWithTotal), []);
   assert.deepEqual(validateNormalizedPlanningIntakeV1(unitless), []);
+});
+
+test("dumbbell total labels are excluded across clause and word-order forms", () => {
+  const cases = [
+    {
+      source: "total load is 100 lbs, with 50 lb dumbbells",
+      expectedKg: 22.68,
+    },
+    {
+      source: "combined weight is 100 lbs; each dumbbell is 50 lbs",
+      expectedKg: 22.68,
+    },
+    {
+      source: "50 lb dumbbells (total load: 100 lbs)",
+      expectedKg: 22.68,
+    },
+    {
+      source: "50 lb dumbbells — 100 lbs combined",
+      expectedKg: 22.68,
+    },
+    {
+      source: "combined weight: 100 lbs",
+      expectedKg: null,
+    },
+  ] as const;
+
+  for (const { source, expectedKg } of cases) {
+    const input = createNormalizedPlanningFixtureInput(
+      "beginner-home-3day-general-strength",
+    );
+    input.intakeResponses.heaviestDumbbells = source;
+    const normalized = normalizeCuratedPlanningIntake(input);
+
+    assert.equal(
+      normalized.environment.equipmentLimits.maximumDumbbellLoadKg,
+      expectedKg,
+      source,
+    );
+    assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), [], source);
+  }
 });
 
 test("ambiguous safety information blocks while explicit restrictions remain scoped", () => {

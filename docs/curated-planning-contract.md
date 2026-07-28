@@ -207,8 +207,8 @@ item shape, validates issue/ranked-value/provenance semantics, and enforces:
   future structured scope answer can establish restriction semantics; keyword
   matches never manufacture a movement restriction from that text;
 - dumbbell limits require explicit load units, ignore explicitly labeled
-  total/combined loads, and remain null when the source cannot establish a
-  per-dumbbell maximum;
+  total/combined loads across clause and word-order forms, and remain null when
+  the source cannot establish a per-dumbbell maximum;
 - warning flags always carry the canonical blocking clearance issue;
 - `not_cleared` or unresolved professional direction is plan-blocking, while
   professional restriction codes must exist in movement restrictions;

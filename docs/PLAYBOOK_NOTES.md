@@ -675,7 +675,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## 2026-07-28 - Planning normalization must fail closed without throwing
 - Type: Guardrail
-- WHAT changed: The planning normalizer now sanitizes malformed multi-select members, deduplicates every emitted identifier after canonicalization, treats free-form pain text as unresolved scope, and parses unit-bearing per-dumbbell loads without mistaking pair counts or explicitly labeled totals for weight.
+- WHAT changed: The planning normalizer now sanitizes malformed multi-select members, deduplicates every emitted identifier after canonicalization, treats free-form pain text as unresolved scope, keeps movement-restriction provenance limited to structured restriction answers, and parses unit-bearing per-dumbbell loads without mistaking pair counts or clause-labeled aggregate totals for weight.
 - WHY it changed: A blocked intake is still an executable boundary result; malformed or ambiguous source data must not crash normalization or silently create the wrong hard constraint.
 - Rule: Record invalid source shape, discard unsafe members, and return a schema-valid blocked contract. Never infer movement restrictions from free-form pain wording alone.
 - Pattern: validate raw shape -> sanitize runtime values -> normalize semantic identity -> validate the emitted contract.
