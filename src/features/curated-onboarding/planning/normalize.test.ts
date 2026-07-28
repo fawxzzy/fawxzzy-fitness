@@ -21,6 +21,10 @@ import {
   canonicalizeNormalizedPlanningIntake,
   normalizeCuratedPlanningIntake,
 } from "./normalize.ts";
+import {
+  buildPlanningGenerationProjection,
+  digestPlanningGenerationProjection,
+} from "./projection.ts";
 
 const GOLDEN_GENERATION_PROJECTION_DIGESTS = {
   "beginner-home-3day-general-strength": "5c273b75bf22f032fb2fbb33e73b0b46985bc944ff31acedff894b000017317e",
@@ -31,7 +35,7 @@ const GOLDEN_GENERATION_PROJECTION_DIGESTS = {
   "cardio-priority-4day-hybrid": "cf32cb5bd424794d6cd68d3c3b7f57245d6a479107d4d9efcb60eebfe1f0e762",
   "lower-emphasis-4day-secondary-upper": "f8fa06308fd79087e3acdeb0397efe8d9563898614b83ab482325388f5cf2206",
   "no-overhead-3day-substitution": "feccf394effd207a834f6e96824c2222651dbfffb9d50a9c8fc9ecbad68c7e7f",
-  "ambiguous-warning-blocked": "b8069d18a7351e1374c9c7ad49640e3b04a44844d2df5da9f715c91bab5fd2c8",
+  "ambiguous-warning-blocked": "0819b94425136c8f2261874610714e391110494a58367bb21445ef16edd451a6",
   "pullup-priority-no-pull-equipment": "67a31ebb78ccdff59afee3759682758c8d8dbbd56b9bf6c3d7131e2dc47bd453",
 } as const;
 
@@ -93,6 +97,102 @@ test("contract schema rejects unknown root state and unsupported versions", () =
     /\$\.schedule contains unknown property unexpected/,
   );
   assert.match(validateNormalizedPlanningIntakeV1(unsupportedVersion).join(" "), /unsupported/);
+});
+
+test("runtime validation rejects forged and internally contradictory contracts", () => {
+  const baseline = NORMALIZED_PLANNING_FIXTURES["beginner-home-3day-general-strength"];
+  const blocked = NORMALIZED_PLANNING_FIXTURES["ambiguous-warning-blocked"];
+  const cases: Array<{ expected: RegExp; value: unknown }> = [
+    {
+      expected: /does not match the semantic projection/,
+      value: { ...baseline, generationProjectionDigest: "0".repeat(64) },
+    },
+    {
+      expected: /secondary\[0\]\.value must be a non-empty string/,
+      value: {
+        ...baseline,
+        goals: {
+          ...baseline.goals,
+          secondary: [{ value: 123, rank: 0, ranking: "bogus" }],
+        },
+      },
+    },
+    {
+      expected: /status must be blocked/,
+      value: { ...blocked, safety: { ...blocked.safety, status: "clear" } },
+    },
+    {
+      expected: /fixed weekday count must equal requestedDaysPerWeek/,
+      value: {
+        ...baseline,
+        schedule: {
+          ...baseline.schedule,
+          weekdays: baseline.schedule.weekdays.slice(0, 2),
+        },
+      },
+    },
+    {
+      expected: /target must not exceed hardMaximum/,
+      value: {
+        ...baseline,
+        schedule: {
+          ...baseline.schedule,
+          sessionMinutes: { target: 60, hardMaximum: 30 },
+        },
+      },
+    },
+    {
+      expected: /normalizationIssues\[0\] is missing required property severity/,
+      value: {
+        ...baseline,
+        normalizationIssues: [{ code: "RECENT_CONTINUITY_UNKNOWN" }],
+      },
+    },
+    {
+      expected: /provenance.*responseDigest must be a SHA-256 hex digest/,
+      value: {
+        ...baseline,
+        provenance: {
+          ...baseline.provenance,
+          "/schedule/requestedDaysPerWeek": [{
+            questionId: "trainingDaysPerWeek",
+            responseDigest: "forged",
+            normalizationRule: "schedule.days.v1",
+          }],
+        },
+      },
+    },
+  ];
+
+  for (const entry of cases) {
+    assert.match(validateNormalizedPlanningIntakeV1(entry.value).join(" "), entry.expected);
+  }
+});
+
+test("semantic issue projection excludes questionnaire provenance identifiers", () => {
+  const blocked = NORMALIZED_PLANNING_FIXTURES["ambiguous-warning-blocked"];
+  const altered = structuredClone(blocked);
+  for (const issue of altered.normalizationIssues) {
+    issue.sourceQuestionIds = ["renamed-source-question"];
+  }
+  for (const issue of altered.safety.unresolvedItems) {
+    issue.sourceQuestionIds = ["renamed-source-question"];
+  }
+  const {
+    generationProjectionDigest: _blockedDigest,
+    ...blockedWithoutDigest
+  } = blocked;
+  const {
+    generationProjectionDigest: _alteredDigest,
+    ...alteredWithoutDigest
+  } = altered;
+  const projection = buildPlanningGenerationProjection(blockedWithoutDigest);
+
+  assert.equal(canonicalizeJson(projection).includes("sourceQuestionIds"), false);
+  assert.equal(
+    digestPlanningGenerationProjection(alteredWithoutDigest),
+    digestPlanningGenerationProjection(blockedWithoutDigest),
+  );
 });
 
 test("unordered equipment and exclusion permutations preserve canonical output and projection digest", () => {

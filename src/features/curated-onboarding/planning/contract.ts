@@ -1,35 +1,50 @@
+import { digestPlanningGenerationProjection } from "./projection.ts";
+
 export const NORMALIZED_PLANNING_INTAKE_VERSION = "fitness.planning-intake.v1" as const;
 export const CURATED_INTAKE_CONTRACT_VERSION = "fawxzzy-fitness.curated-onboarding.v3" as const;
 export const CURATED_NORMALIZER_VERSION = "curated-planning-normalizer.v1" as const;
 
-export type Weekday = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+export const WEEKDAY_VALUES = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+export type Weekday = typeof WEEKDAY_VALUES[number];
 export type JsonPointer = `/${string}`;
 export type GoalCode = "build_muscle" | "get_leaner" | "get_stronger" | "general_fitness" | "athleticism" | string;
 export type EquipmentId = string;
-export type RestrictionCode =
-  | "NO_OVERHEAD_LOADING"
-  | "NO_HIGH_IMPACT"
-  | "NO_DEEP_KNEE_FLEXION"
-  | "NO_LOADED_SPINAL_FLEXION"
-  | "NO_UNSUPPORTED_HINGE"
-  | "NO_SINGLE_LEG_BALANCE"
-  | "NO_PRONE_POSITION"
-  | "NO_WEIGHT_BEARING_WRIST_EXTENSION"
-  | "NO_AXIAL_LOADING";
+export const RESTRICTION_CODES = [
+  "NO_OVERHEAD_LOADING",
+  "NO_HIGH_IMPACT",
+  "NO_DEEP_KNEE_FLEXION",
+  "NO_LOADED_SPINAL_FLEXION",
+  "NO_UNSUPPORTED_HINGE",
+  "NO_SINGLE_LEG_BALANCE",
+  "NO_PRONE_POSITION",
+  "NO_WEIGHT_BEARING_WRIST_EXTENSION",
+  "NO_AXIAL_LOADING",
+] as const;
+export type RestrictionCode = typeof RESTRICTION_CODES[number];
 
-export type NormalizationIssueCode =
-  | "MISSING_REQUIRED_VALUE"
-  | "INVALID_RESPONSE_TYPE"
-  | "INVALID_OPTION"
-  | "UNRESOLVED_OTHER_VALUE"
-  | "AMBIGUOUS_SAFETY_RESPONSE"
-  | "CONTRADICTORY_SAFETY_RESPONSE"
-  | "SAFETY_CLEARANCE_REQUIRED"
-  | "MISSING_CONDITIONAL_DETAIL"
-  | "DAY_COUNT_MISMATCH"
-  | "UNSUPPORTED_DAY_SELECTION"
-  | "INVALID_SESSION_DURATION"
-  | "RECENT_CONTINUITY_UNKNOWN";
+export const NORMALIZATION_ISSUE_CODES = [
+  "MISSING_REQUIRED_VALUE",
+  "INVALID_RESPONSE_TYPE",
+  "INVALID_OPTION",
+  "UNRESOLVED_OTHER_VALUE",
+  "AMBIGUOUS_SAFETY_RESPONSE",
+  "CONTRADICTORY_SAFETY_RESPONSE",
+  "SAFETY_CLEARANCE_REQUIRED",
+  "MISSING_CONDITIONAL_DETAIL",
+  "DAY_COUNT_MISMATCH",
+  "UNSUPPORTED_DAY_SELECTION",
+  "INVALID_SESSION_DURATION",
+  "RECENT_CONTINUITY_UNKNOWN",
+] as const;
+export type NormalizationIssueCode = typeof NORMALIZATION_ISSUE_CODES[number];
 
 export type NormalizationIssue = {
   code: NormalizationIssueCode;
@@ -38,6 +53,8 @@ export type NormalizationIssue = {
   sourceQuestionIds: string[];
   messageArguments: Record<string, string | number>;
 };
+
+export type PlanningSemanticIssue = Omit<NormalizationIssue, "sourceQuestionIds">;
 
 export type ProvenanceEntry = {
   questionId: string;
@@ -169,7 +186,7 @@ export type NormalizedPlanningIntakeV1 = {
 export type PlanningGenerationProjectionV1 = {
   contractVersion: typeof NORMALIZED_PLANNING_INTAKE_VERSION;
   normalizerVersion: typeof CURATED_NORMALIZER_VERSION;
-  blockingIssues: NormalizationIssue[];
+  blockingIssues: PlanningSemanticIssue[];
   schedule: Omit<NormalizedPlanningIntakeV1["schedule"], "preferredTrainingTime">;
   goals: NormalizedPlanningIntakeV1["goals"];
   trainingBackground: Omit<
@@ -178,7 +195,12 @@ export type PlanningGenerationProjectionV1 = {
   >;
   environment: NormalizedPlanningIntakeV1["environment"];
   recovery: NormalizedPlanningIntakeV1["recovery"];
-  safety: Omit<NormalizedPlanningIntakeV1["safety"], "acknowledgments">;
+  safety: Omit<
+    NormalizedPlanningIntakeV1["safety"],
+    "acknowledgments" | "unresolvedItems"
+  > & {
+    unresolvedItems: PlanningSemanticIssue[];
+  };
   preferences: NormalizedPlanningIntakeV1["preferences"];
 };
 
@@ -275,6 +297,161 @@ function closedObjectSchema<const T extends readonly string[]>(
   } as const;
 }
 
+const RANKED_VALUE_SCHEMA = closedObjectSchema(
+  ["value", "rank", "ranking"] as const,
+  {
+    value: { type: "string", minLength: 1 },
+    rank: { type: "integer", minimum: 1 },
+    ranking: { enum: ["explicit", "canonical_unranked"] },
+  },
+);
+const NORMALIZATION_ISSUE_SCHEMA = closedObjectSchema(
+  [
+    "code",
+    "severity",
+    "fieldPath",
+    "sourceQuestionIds",
+    "messageArguments",
+  ] as const,
+  {
+    code: { enum: NORMALIZATION_ISSUE_CODES },
+    severity: { enum: ["informational", "warning", "blocking"] },
+    fieldPath: { type: "string", pattern: "^/" },
+    sourceQuestionIds: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      minItems: 1,
+      uniqueItems: true,
+    },
+    messageArguments: {
+      type: "object",
+      additionalProperties: { type: ["string", "number"] },
+    },
+  },
+);
+const PROVENANCE_ENTRY_SCHEMA = closedObjectSchema(
+  ["questionId", "responseDigest", "normalizationRule"] as const,
+  {
+    questionId: { type: "string", minLength: 1 },
+    responseDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
+    normalizationRule: { type: "string", minLength: 1 },
+  },
+);
+const SESSION_MINUTES_SCHEMA = closedObjectSchema(
+  ["target", "hardMaximum"] as const,
+  {
+    target: { type: ["number", "null"], minimum: 10 },
+    hardMaximum: { type: ["number", "null"], minimum: 10 },
+  },
+);
+const CURRENT_PROGRAM_SCHEMA = closedObjectSchema(
+  ["summary", "splitSummary"] as const,
+  {
+    summary: { type: ["string", "null"] },
+    splitSummary: { type: ["string", "null"] },
+  },
+);
+const EQUIPMENT_LIMITS_SCHEMA = closedObjectSchema(
+  ["maximumDumbbellLoadKg", "sourceText"] as const,
+  {
+    maximumDumbbellLoadKg: { type: ["number", "null"], exclusiveMinimum: 0 },
+    sourceText: { type: ["string", "null"] },
+  },
+);
+const MOVEMENT_RESTRICTION_SCHEMA = closedObjectSchema(
+  ["code", "sourceText"] as const,
+  {
+    code: { enum: RESTRICTION_CODES },
+    sourceText: { type: "string", minLength: 1 },
+  },
+);
+const PROFESSIONAL_DIRECTION_SCHEMA = closedObjectSchema(
+  ["present", "restrictionCodes", "userReportedClearanceStatus"] as const,
+  {
+    present: { type: "boolean" },
+    restrictionCodes: {
+      type: "array",
+      items: { enum: RESTRICTION_CODES },
+      uniqueItems: true,
+    },
+    userReportedClearanceStatus: {
+      enum: ["cleared_with_restrictions", "not_cleared", "unknown"],
+    },
+  },
+);
+const ACKNOWLEDGMENTS_SCHEMA = closedObjectSchema(
+  ["generalGuidance", "fitnessGuidance"] as const,
+  {
+    generalGuidance: { type: "boolean" },
+    fitnessGuidance: { type: "boolean" },
+  },
+);
+const CARDIO_SCHEMA = closedObjectSchema(
+  [
+    "priority",
+    "preferredModalities",
+    "avoidedModalities",
+    "requestedSessionsPerWeek",
+  ] as const,
+  {
+    priority: { enum: ["none", "supporting", "primary"] },
+    preferredModalities: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true,
+    },
+    avoidedModalities: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true,
+    },
+    requestedSessionsPerWeek: {
+      type: ["integer", "null"],
+      minimum: 0,
+      maximum: 7,
+    },
+  },
+);
+const NUTRITION_CONTEXT_SCHEMA = closedObjectSchema(
+  [
+    "trackingStyle",
+    "proteinTrackingStyle",
+    "eatingPattern",
+    "direction",
+    "foodRestrictions",
+    "requestedSupport",
+  ] as const,
+  {
+    trackingStyle: { type: ["string", "null"] },
+    proteinTrackingStyle: { type: ["string", "null"] },
+    eatingPattern: { type: ["string", "null"] },
+    direction: { type: ["string", "null"] },
+    foodRestrictions: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true,
+    },
+    requestedSupport: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true,
+    },
+  },
+);
+const DELIVERY_CONTEXT_SCHEMA = closedObjectSchema(
+  ["detailLevel", "requestedContents", "method", "followUpStyle"] as const,
+  {
+    detailLevel: { enum: ["concise", "standard", "detailed", null] },
+    requestedContents: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true,
+    },
+    method: { type: ["string", "null"] },
+    followUpStyle: { type: ["string", "null"] },
+  },
+);
+
 export const NORMALIZED_PLANNING_INTAKE_V1_SCHEMA = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://fawxzzy.fitness/schemas/planning-intake-v1.json",
@@ -291,25 +468,29 @@ export const NORMALIZED_PLANNING_INTAKE_V1_SCHEMA = {
     }),
     schedule: closedObjectSchema(SCHEDULE_KEYS, {
       requestedDaysPerWeek: { type: ["integer", "null"], minimum: 1, maximum: 7 },
-      weekdays: { type: "array", uniqueItems: true },
+      weekdays: {
+        type: "array",
+        items: { enum: WEEKDAY_VALUES },
+        uniqueItems: true,
+      },
       dayConstraint: { enum: ["fixed", "count_only", "unknown"] },
       flexibility: { enum: ["none", "any_available_day", "unknown"] },
-      sessionMinutes: { type: "object" },
+      sessionMinutes: SESSION_MINUTES_SCHEMA,
       preferredTrainingTime: {
         enum: ["morning", "afternoon", "evening", "night", "variable", null],
       },
     }),
     goals: closedObjectSchema(GOAL_KEYS, {
       primary: { type: ["string", "null"] },
-      secondary: { type: "array" },
-      targetAreas: { type: "array" },
-      movementSkills: { type: "array" },
+      secondary: { type: "array", items: RANKED_VALUE_SCHEMA },
+      targetAreas: { type: "array", items: RANKED_VALUE_SCHEMA },
+      movementSkills: { type: "array", items: RANKED_VALUE_SCHEMA },
       bodyCompositionDirection: { enum: ["gain", "lose", "maintain", "unspecified"] },
     }),
     trainingBackground: closedObjectSchema(BACKGROUND_KEYS, {
       experience: { enum: ["beginner", "intermediate", "advanced", null] },
       recentContinuity: { enum: ["consistent", "returning", "detrained", "unknown"] },
-      currentProgram: { type: "object" },
+      currentProgram: CURRENT_PROGRAM_SCHEMA,
       trackingExperience: { enum: ["none", "informal", "structured", "unknown"] },
       progressionReadiness: {
         enum: [
@@ -321,66 +502,141 @@ export const NORMALIZED_PLANNING_INTAKE_V1_SCHEMA = {
       knownPerformanceContext: { type: ["string", "null"] },
     }),
     environment: closedObjectSchema(ENVIRONMENT_KEYS, {
-      locations: { type: "array", uniqueItems: true },
-      equipmentAvailable: { type: "array", uniqueItems: true },
-      equipmentAvoided: { type: "array", uniqueItems: true },
-      equipmentLimits: { type: "object" },
+      locations: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      equipmentAvailable: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      equipmentAvoided: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      equipmentLimits: EQUIPMENT_LIMITS_SCHEMA,
     }),
     recovery: closedObjectSchema(RECOVERY_KEYS, {
       outsideActivityLoad: { enum: ["none", "low", "moderate", "high", "unknown"] },
       outsideActivityMinutesPerWeek: { type: ["number", "null"] },
       sleepBand: { enum: ["under_6", "6_to_7", "7_to_9", "over_9", "unknown"] },
       planningModifier: { enum: ["conservative", "standard"] },
-      modifierReasons: { type: "array", uniqueItems: true },
+      modifierReasons: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
     }),
     safety: closedObjectSchema(SAFETY_KEYS, {
       status: { enum: ["clear", "restricted", "ambiguous", "blocked"] },
-      movementRestrictions: { type: "array" },
-      excludedExerciseNames: { type: "array", uniqueItems: true },
-      uncomfortableExerciseNames: { type: "array", uniqueItems: true },
-      warningFlags: { type: "array", uniqueItems: true },
-      unresolvedItems: { type: "array" },
-      professionalDirection: { type: "object" },
-      acknowledgments: { type: "object" },
+      movementRestrictions: {
+        type: "array",
+        items: MOVEMENT_RESTRICTION_SCHEMA,
+        uniqueItems: true,
+      },
+      excludedExerciseNames: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      uncomfortableExerciseNames: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      warningFlags: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      unresolvedItems: { type: "array", items: NORMALIZATION_ISSUE_SCHEMA },
+      professionalDirection: PROFESSIONAL_DIRECTION_SCHEMA,
+      acknowledgments: ACKNOWLEDGMENTS_SCHEMA,
     }),
     preferences: closedObjectSchema(PREFERENCE_KEYS, {
-      requiredExerciseNames: { type: "array", uniqueItems: true },
-      preferredExerciseNames: { type: "array", uniqueItems: true },
-      improvementMovementIds: { type: "array", uniqueItems: true },
-      dislikedExerciseNames: { type: "array", uniqueItems: true },
+      requiredExerciseNames: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      preferredExerciseNames: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      improvementMovementIds: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      dislikedExerciseNames: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
       planStyle: {
         enum: ["straight_sets", "supersets", "circuits", "mixed", "no_preference"],
       },
       equipmentPreference: { type: ["string", "null"] },
-      cardio: { type: "object" },
+      cardio: CARDIO_SCHEMA,
     }),
     planContext: closedObjectSchema(CONTEXT_KEYS, {
-      biggestTrainingStruggles: { type: "array", uniqueItems: true },
-      nutrition: { type: "object" },
-      delivery: { type: "object" },
+      biggestTrainingStruggles: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      nutrition: NUTRITION_CONTEXT_SCHEMA,
+      delivery: DELIVERY_CONTEXT_SCHEMA,
     }),
     constraintClasses: closedObjectSchema(CONSTRAINT_KEYS, {
-      blockingIssueCodes: { type: "array", uniqueItems: true },
-      hardConstraintPaths: { type: "array", uniqueItems: true },
-      requiredCoveragePaths: { type: "array", uniqueItems: true },
-      optimizationPaths: { type: "array", uniqueItems: true },
-      contextOnlyPaths: { type: "array", uniqueItems: true },
+      blockingIssueCodes: {
+        type: "array",
+        items: { enum: NORMALIZATION_ISSUE_CODES },
+        uniqueItems: true,
+      },
+      hardConstraintPaths: {
+        type: "array",
+        items: { type: "string", pattern: "^/" },
+        uniqueItems: true,
+      },
+      requiredCoveragePaths: {
+        type: "array",
+        items: { type: "string", pattern: "^/" },
+        uniqueItems: true,
+      },
+      optimizationPaths: {
+        type: "array",
+        items: { type: "string", pattern: "^/" },
+        uniqueItems: true,
+      },
+      contextOnlyPaths: {
+        type: "array",
+        items: { type: "string", pattern: "^/" },
+        uniqueItems: true,
+      },
     }),
-    provenance: { type: "object", propertyNames: { pattern: "^/" } },
-    normalizationIssues: { type: "array" },
+    provenance: {
+      type: "object",
+      propertyNames: { pattern: "^/" },
+      additionalProperties: {
+        type: "array",
+        items: PROVENANCE_ENTRY_SCHEMA,
+        minItems: 1,
+      },
+    },
+    normalizationIssues: {
+      type: "array",
+      items: NORMALIZATION_ISSUE_SCHEMA,
+    },
     generationProjectionDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
   },
 } as const;
 
-const WEEKDAYS = new Set<Weekday>([
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-]);
+const WEEKDAYS = new Set<Weekday>(WEEKDAY_VALUES);
 
 function asRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -411,25 +667,169 @@ function readClosedObject(
   return record;
 }
 
-function isStringArray(value: unknown) {
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value)
+    && value.every((entry) => typeof entry === "string" && entry.length > 0);
 }
 
 function validateStringArray(
   value: unknown,
   path: string,
   errors: string[],
-  options: { unique?: boolean; jsonPointers?: boolean } = {},
+  options: {
+    allowed?: ReadonlySet<string>;
+    jsonPointers?: boolean;
+    nonEmpty?: boolean;
+    sorted?: boolean;
+    unique?: boolean;
+  } = {},
 ) {
   if (!isStringArray(value)) {
-    errors.push(`${path} must be a string array.`);
+    errors.push(`${path} must be a non-empty-string array.`);
     return;
   }
   if (options.unique && new Set(value).size !== value.length) {
     errors.push(`${path} must contain unique values.`);
   }
+  if (options.nonEmpty && value.length === 0) {
+    errors.push(`${path} must contain at least one value.`);
+  }
+  if (options.sorted && value.some((entry, index) => index > 0 && value[index - 1].localeCompare(entry) > 0)) {
+    errors.push(`${path} must use canonical lexical ordering.`);
+  }
   if (options.jsonPointers && value.some((entry) => !entry.startsWith("/"))) {
     errors.push(`${path} must contain JSON pointer paths.`);
+  }
+  if (options.allowed && value.some((entry) => !options.allowed?.has(entry))) {
+    errors.push(`${path} contains an unsupported value.`);
+  }
+}
+
+function validateNullableString(value: unknown, path: string, errors: string[]) {
+  if (value !== null && typeof value !== "string") {
+    errors.push(`${path} must be null or a string.`);
+  }
+}
+
+function validateRankedValues(value: unknown, path: string, errors: string[]) {
+  if (!Array.isArray(value)) {
+    errors.push(`${path} must be an array.`);
+    return;
+  }
+  const seenValues = new Set<string>();
+  value.forEach((entry, index) => {
+    const ranked = readClosedObject(entry, `${path}[${index}]`, ["value", "rank", "ranking"], errors);
+    if (!ranked) return;
+    if (typeof ranked.value !== "string" || !ranked.value) {
+      errors.push(`${path}[${index}].value must be a non-empty string.`);
+    } else if (seenValues.has(ranked.value)) {
+      errors.push(`${path} must not repeat ranked values.`);
+    } else {
+      seenValues.add(ranked.value);
+    }
+    if (ranked.rank !== index + 1) {
+      errors.push(`${path}[${index}].rank must equal ${index + 1}.`);
+    }
+    if (!["explicit", "canonical_unranked"].includes(String(ranked.ranking))) {
+      errors.push(`${path}[${index}].ranking is invalid.`);
+    }
+  });
+}
+
+function validateIssue(value: unknown, path: string, errors: string[]) {
+  const issue = readClosedObject(
+    value,
+    path,
+    ["code", "severity", "fieldPath", "sourceQuestionIds", "messageArguments"],
+    errors,
+  );
+  if (!issue) return null;
+  if (!NORMALIZATION_ISSUE_CODES.includes(issue.code as NormalizationIssueCode)) {
+    errors.push(`${path}.code is unsupported.`);
+  }
+  if (!["informational", "warning", "blocking"].includes(String(issue.severity))) {
+    errors.push(`${path}.severity is invalid.`);
+  }
+  if (typeof issue.fieldPath !== "string" || !issue.fieldPath.startsWith("/")) {
+    errors.push(`${path}.fieldPath must be a JSON pointer.`);
+  }
+  validateStringArray(issue.sourceQuestionIds, `${path}.sourceQuestionIds`, errors, {
+    nonEmpty: true,
+    sorted: true,
+    unique: true,
+  });
+  const messageArguments = asRecord(issue.messageArguments);
+  if (!messageArguments) {
+    errors.push(`${path}.messageArguments must be an object.`);
+  } else if (Object.values(messageArguments).some(
+    (argument) => !(
+      typeof argument === "string"
+      || (typeof argument === "number" && Number.isFinite(argument))
+    ),
+  )) {
+    errors.push(`${path}.messageArguments values must be finite numbers or strings.`);
+  }
+  return issue;
+}
+
+function validateIssueArray(value: unknown, path: string, errors: string[]) {
+  if (!Array.isArray(value)) {
+    errors.push(`${path} must be an array.`);
+    return [];
+  }
+  return value.map((issue, index) => validateIssue(issue, `${path}[${index}]`, errors));
+}
+
+function semanticIssueKey(issue: Record<string, unknown>) {
+  const messageArguments = asRecord(issue.messageArguments) ?? {};
+  return JSON.stringify([
+    issue.code,
+    issue.severity,
+    issue.fieldPath,
+    issue.sourceQuestionIds,
+    Object.entries(messageArguments).sort(([left], [right]) => left.localeCompare(right)),
+  ]);
+}
+
+function validateProvenance(value: unknown, path: string, errors: string[]) {
+  const provenance = asRecord(value);
+  if (!provenance) {
+    errors.push(`${path} must be an object.`);
+    return;
+  }
+  for (const [fieldPath, entries] of Object.entries(provenance)) {
+    if (!fieldPath.startsWith("/")) {
+      errors.push(`${path} key ${fieldPath} must be a JSON pointer.`);
+    }
+    if (!Array.isArray(entries) || entries.length === 0) {
+      errors.push(`${path}.${fieldPath} must be a non-empty array.`);
+      continue;
+    }
+    entries.forEach((entry, index) => {
+      const entryPath = `${path}[${JSON.stringify(fieldPath)}][${index}]`;
+      const provenanceEntry = readClosedObject(
+        entry,
+        entryPath,
+        ["questionId", "responseDigest", "normalizationRule"],
+        errors,
+      );
+      if (!provenanceEntry) return;
+      if (typeof provenanceEntry.questionId !== "string" || !provenanceEntry.questionId) {
+        errors.push(`${entryPath}.questionId must be a non-empty string.`);
+      }
+      if (
+        typeof provenanceEntry.responseDigest !== "string"
+        || !/^[a-f0-9]{64}$/.test(provenanceEntry.responseDigest)
+      ) {
+        errors.push(`${entryPath}.responseDigest must be a SHA-256 hex digest.`);
+      }
+      if (
+        typeof provenanceEntry.normalizationRule !== "string"
+        || !provenanceEntry.normalizationRule
+      ) {
+        errors.push(`${entryPath}.normalizationRule must be a non-empty string.`);
+      }
+    });
   }
 }
 
@@ -461,18 +861,43 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
   ) {
     errors.push("$.schedule.requestedDaysPerWeek must be null or an integer from 1 to 7.");
   }
+  const weekdays = schedule?.weekdays;
   if (
-    !Array.isArray(schedule?.weekdays)
-    || schedule.weekdays.some((weekday) => typeof weekday !== "string" || !WEEKDAYS.has(weekday as Weekday))
-    || new Set(schedule.weekdays).size !== schedule.weekdays.length
+    !Array.isArray(weekdays)
+    || weekdays.some((weekday) => typeof weekday !== "string" || !WEEKDAYS.has(weekday as Weekday))
+    || new Set(weekdays).size !== weekdays.length
   ) {
     errors.push("$.schedule.weekdays must contain unique canonical weekdays.");
+  } else {
+    const weekdayOrder = [...WEEKDAYS];
+    if (weekdays.some((weekday, index) => index > 0
+      && weekdayOrder.indexOf(weekdays[index - 1] as Weekday) >= weekdayOrder.indexOf(weekday as Weekday))) {
+      errors.push("$.schedule.weekdays must use Monday-to-Sunday ordering.");
+    }
   }
   if (!["fixed", "count_only", "unknown"].includes(String(schedule?.dayConstraint))) {
     errors.push("$.schedule.dayConstraint is invalid.");
   }
   if (!["none", "any_available_day", "unknown"].includes(String(schedule?.flexibility))) {
     errors.push("$.schedule.flexibility is invalid.");
+  }
+  if (
+    schedule?.preferredTrainingTime !== null
+    && !["morning", "afternoon", "evening", "night", "variable"].includes(
+      String(schedule?.preferredTrainingTime),
+    )
+  ) {
+    errors.push("$.schedule.preferredTrainingTime is invalid.");
+  }
+  if (
+    schedule?.dayConstraint === "fixed"
+    && (
+      typeof requestedDays !== "number"
+      || !Array.isArray(weekdays)
+      || weekdays.length !== requestedDays
+    )
+  ) {
+    errors.push("$.schedule fixed weekday count must equal requestedDaysPerWeek.");
   }
   const sessionMinutes = readClosedObject(
     schedule?.sessionMinutes,
@@ -486,10 +911,23 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
       errors.push(`$.schedule.sessionMinutes.${key} must be null or at least 10 minutes.`);
     }
   }
+  if (
+    typeof sessionMinutes?.target === "number"
+    && typeof sessionMinutes.hardMaximum === "number"
+    && sessionMinutes.target > sessionMinutes.hardMaximum
+  ) {
+    errors.push("$.schedule.sessionMinutes.target must not exceed hardMaximum.");
+  }
 
   const goals = readClosedObject(root.goals, "$.goals", GOAL_KEYS, errors);
+  if (goals?.primary !== null && (typeof goals?.primary !== "string" || !goals.primary)) {
+    errors.push("$.goals.primary must be null or a non-empty string.");
+  }
   for (const key of ["secondary", "targetAreas", "movementSkills"]) {
-    if (!Array.isArray(goals?.[key])) errors.push(`$.goals.${key} must be an array.`);
+    validateRankedValues(goals?.[key], `$.goals.${key}`, errors);
+  }
+  if (!["gain", "lose", "maintain", "unspecified"].includes(String(goals?.bodyCompositionDirection))) {
+    errors.push("$.goals.bodyCompositionDirection is invalid.");
   }
 
   const background = readClosedObject(
@@ -498,10 +936,36 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     BACKGROUND_KEYS,
     errors,
   );
-  readClosedObject(
+  if (
+    background?.experience !== null
+    && !["beginner", "intermediate", "advanced"].includes(String(background?.experience))
+  ) {
+    errors.push("$.trainingBackground.experience is invalid.");
+  }
+  if (!["consistent", "returning", "detrained", "unknown"].includes(String(background?.recentContinuity))) {
+    errors.push("$.trainingBackground.recentContinuity is invalid.");
+  }
+  const currentProgram = readClosedObject(
     background?.currentProgram,
     "$.trainingBackground.currentProgram",
     ["summary", "splitSummary"],
+    errors,
+  );
+  validateNullableString(currentProgram?.summary, "$.trainingBackground.currentProgram.summary", errors);
+  validateNullableString(currentProgram?.splitSummary, "$.trainingBackground.currentProgram.splitSummary", errors);
+  if (!["none", "informal", "structured", "unknown"].includes(String(background?.trackingExperience))) {
+    errors.push("$.trainingBackground.trackingExperience is invalid.");
+  }
+  if (![
+    "uncalibrated",
+    "session_history_available",
+    "returning_requires_recalibration",
+  ].includes(String(background?.progressionReadiness))) {
+    errors.push("$.trainingBackground.progressionReadiness is invalid.");
+  }
+  validateNullableString(
+    background?.knownPerformanceContext,
+    "$.trainingBackground.knownPerformanceContext",
     errors,
   );
 
@@ -512,43 +976,204 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     errors,
   );
   for (const key of ["locations", "equipmentAvailable", "equipmentAvoided"]) {
-    validateStringArray(environment?.[key], `$.environment.${key}`, errors, { unique: true });
+    validateStringArray(environment?.[key], `$.environment.${key}`, errors, {
+      sorted: true,
+      unique: true,
+    });
   }
-  readClosedObject(
+  const equipmentLimits = readClosedObject(
     environment?.equipmentLimits,
     "$.environment.equipmentLimits",
     ["maximumDumbbellLoadKg", "sourceText"],
     errors,
   );
+  if (
+    equipmentLimits?.maximumDumbbellLoadKg !== null
+    && !(
+      typeof equipmentLimits?.maximumDumbbellLoadKg === "number"
+      && Number.isFinite(equipmentLimits.maximumDumbbellLoadKg)
+      && equipmentLimits.maximumDumbbellLoadKg > 0
+    )
+  ) {
+    errors.push("$.environment.equipmentLimits.maximumDumbbellLoadKg must be null or positive.");
+  }
+  validateNullableString(
+    equipmentLimits?.sourceText,
+    "$.environment.equipmentLimits.sourceText",
+    errors,
+  );
 
   const recovery = readClosedObject(root.recovery, "$.recovery", RECOVERY_KEYS, errors);
-  validateStringArray(recovery?.modifierReasons, "$.recovery.modifierReasons", errors, { unique: true });
+  if (!["none", "low", "moderate", "high", "unknown"].includes(String(recovery?.outsideActivityLoad))) {
+    errors.push("$.recovery.outsideActivityLoad is invalid.");
+  }
+  if (
+    recovery?.outsideActivityMinutesPerWeek !== null
+    && !(
+      typeof recovery?.outsideActivityMinutesPerWeek === "number"
+      && Number.isFinite(recovery.outsideActivityMinutesPerWeek)
+      && recovery.outsideActivityMinutesPerWeek >= 0
+    )
+  ) {
+    errors.push("$.recovery.outsideActivityMinutesPerWeek must be null or non-negative.");
+  }
+  if (!["under_6", "6_to_7", "7_to_9", "over_9", "unknown"].includes(String(recovery?.sleepBand))) {
+    errors.push("$.recovery.sleepBand is invalid.");
+  }
+  if (!["conservative", "standard"].includes(String(recovery?.planningModifier))) {
+    errors.push("$.recovery.planningModifier is invalid.");
+  }
+  validateStringArray(recovery?.modifierReasons, "$.recovery.modifierReasons", errors, {
+    sorted: true,
+    unique: true,
+  });
+
+  const normalizationIssues = validateIssueArray(
+    root.normalizationIssues,
+    "$.normalizationIssues",
+    errors,
+  ).filter((issue): issue is Record<string, unknown> => Boolean(issue));
 
   const safety = readClosedObject(root.safety, "$.safety", SAFETY_KEYS, errors);
   if (!["clear", "restricted", "ambiguous", "blocked"].includes(String(safety?.status))) {
     errors.push("$.safety.status is invalid.");
   }
+  const movementRestrictions = safety?.movementRestrictions;
+  if (!Array.isArray(movementRestrictions)) {
+    errors.push("$.safety.movementRestrictions must be an array.");
+  } else {
+    const seenRestrictionCodes = new Set<string>();
+    let previousRestrictionCode = "";
+    movementRestrictions.forEach((entry, index) => {
+      const restriction = readClosedObject(
+        entry,
+        `$.safety.movementRestrictions[${index}]`,
+        ["code", "sourceText"],
+        errors,
+      );
+      if (!restriction) return;
+      if (!RESTRICTION_CODES.includes(restriction.code as RestrictionCode)) {
+        errors.push(`$.safety.movementRestrictions[${index}].code is unsupported.`);
+      } else if (seenRestrictionCodes.has(restriction.code as string)) {
+        errors.push("$.safety.movementRestrictions must use unique restriction codes.");
+      } else {
+        if (previousRestrictionCode && previousRestrictionCode.localeCompare(restriction.code as string) > 0) {
+          errors.push("$.safety.movementRestrictions must use canonical code ordering.");
+        }
+        previousRestrictionCode = restriction.code as string;
+        seenRestrictionCodes.add(restriction.code as string);
+      }
+      if (typeof restriction.sourceText !== "string" || !restriction.sourceText) {
+        errors.push(`$.safety.movementRestrictions[${index}].sourceText must be non-empty.`);
+      }
+    });
+  }
   for (const key of [
-    "movementRestrictions",
     "excludedExerciseNames",
     "uncomfortableExerciseNames",
     "warningFlags",
-    "unresolvedItems",
   ]) {
-    if (!Array.isArray(safety?.[key])) errors.push(`$.safety.${key} must be an array.`);
+    validateStringArray(safety?.[key], `$.safety.${key}`, errors, {
+      sorted: true,
+      unique: true,
+    });
   }
-  readClosedObject(
+  const unresolvedItems = validateIssueArray(
+    safety?.unresolvedItems,
+    "$.safety.unresolvedItems",
+    errors,
+  ).filter((issue): issue is Record<string, unknown> => Boolean(issue));
+  if (unresolvedItems.some(
+    (issue) => issue.severity !== "blocking"
+      || typeof issue.fieldPath !== "string"
+      || !issue.fieldPath.startsWith("/safety/"),
+  )) {
+    errors.push("$.safety.unresolvedItems must contain only blocking safety issues.");
+  }
+  const normalizedIssueKeys = new Set(normalizationIssues.map(semanticIssueKey));
+  if (unresolvedItems.some((issue) => !normalizedIssueKeys.has(semanticIssueKey(issue)))) {
+    errors.push("$.safety.unresolvedItems must be present in normalizationIssues.");
+  }
+  const expectedSafetyIssueKeys = normalizationIssues
+    .filter((issue) => (
+      issue.severity === "blocking"
+      && typeof issue.fieldPath === "string"
+      && issue.fieldPath.startsWith("/safety/")
+    ))
+    .map(semanticIssueKey)
+    .sort();
+  const actualSafetyIssueKeys = unresolvedItems.map(semanticIssueKey).sort();
+  if (JSON.stringify(actualSafetyIssueKeys) !== JSON.stringify(expectedSafetyIssueKeys)) {
+    errors.push("$.safety.unresolvedItems must exactly match blocking safety normalizationIssues.");
+  }
+  const professionalDirection = readClosedObject(
     safety?.professionalDirection,
     "$.safety.professionalDirection",
     ["present", "restrictionCodes", "userReportedClearanceStatus"],
     errors,
   );
-  readClosedObject(
+  if (typeof professionalDirection?.present !== "boolean") {
+    errors.push("$.safety.professionalDirection.present must be boolean.");
+  }
+  validateStringArray(
+    professionalDirection?.restrictionCodes,
+    "$.safety.professionalDirection.restrictionCodes",
+    errors,
+    { allowed: new Set(RESTRICTION_CODES), sorted: true, unique: true },
+  );
+  if (!["cleared_with_restrictions", "not_cleared", "unknown"].includes(
+    String(professionalDirection?.userReportedClearanceStatus),
+  )) {
+    errors.push("$.safety.professionalDirection.userReportedClearanceStatus is invalid.");
+  }
+  if (
+    professionalDirection?.present === false
+    && Array.isArray(professionalDirection.restrictionCodes)
+    && professionalDirection.restrictionCodes.length > 0
+  ) {
+    errors.push("$.safety.professionalDirection cannot carry restrictions when absent.");
+  }
+  const acknowledgments = readClosedObject(
     safety?.acknowledgments,
     "$.safety.acknowledgments",
     ["generalGuidance", "fitnessGuidance"],
     errors,
   );
+  for (const key of ["generalGuidance", "fitnessGuidance"]) {
+    if (typeof acknowledgments?.[key] !== "boolean") {
+      errors.push(`$.safety.acknowledgments.${key} must be boolean.`);
+    }
+  }
+  const hasRestriction = (
+    (Array.isArray(movementRestrictions) && movementRestrictions.length > 0)
+    || (Array.isArray(safety?.excludedExerciseNames) && safety.excludedExerciseNames.length > 0)
+    || (Array.isArray(safety?.uncomfortableExerciseNames) && safety.uncomfortableExerciseNames.length > 0)
+  );
+  if (
+    unresolvedItems.length > 0
+    && !["blocked", "ambiguous"].includes(String(safety?.status))
+  ) {
+    errors.push("$.safety.status must be blocked or ambiguous when unresolved safety issues exist.");
+  }
+  if (
+    unresolvedItems.length === 0
+    && ["blocked", "ambiguous"].includes(String(safety?.status))
+  ) {
+    errors.push("$.safety.status blocked or ambiguous requires unresolved safety issues.");
+  }
+  if (
+    safety?.status === "clear"
+    && (
+      hasRestriction
+      || unresolvedItems.length > 0
+      || (Array.isArray(safety?.warningFlags) && safety.warningFlags.length > 0)
+    )
+  ) {
+    errors.push("$.safety.status clear contradicts restrictions, warnings, or unresolved issues.");
+  }
+  if (safety?.status === "restricted" && !hasRestriction) {
+    errors.push("$.safety.status restricted requires a scoped restriction.");
+  }
 
   const preferences = readClosedObject(
     root.preferences,
@@ -562,23 +1187,52 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     "improvementMovementIds",
     "dislikedExerciseNames",
   ]) {
-    validateStringArray(preferences?.[key], `$.preferences.${key}`, errors, { unique: true });
+    validateStringArray(preferences?.[key], `$.preferences.${key}`, errors, {
+      sorted: true,
+      unique: true,
+    });
   }
-  readClosedObject(
+  if (!["straight_sets", "supersets", "circuits", "mixed", "no_preference"].includes(
+    String(preferences?.planStyle),
+  )) {
+    errors.push("$.preferences.planStyle is invalid.");
+  }
+  validateNullableString(preferences?.equipmentPreference, "$.preferences.equipmentPreference", errors);
+  const cardio = readClosedObject(
     preferences?.cardio,
     "$.preferences.cardio",
     ["priority", "preferredModalities", "avoidedModalities", "requestedSessionsPerWeek"],
     errors,
   );
+  if (!["none", "supporting", "primary"].includes(String(cardio?.priority))) {
+    errors.push("$.preferences.cardio.priority is invalid.");
+  }
+  for (const key of ["preferredModalities", "avoidedModalities"]) {
+    validateStringArray(cardio?.[key], `$.preferences.cardio.${key}`, errors, {
+      sorted: true,
+      unique: true,
+    });
+  }
+  if (
+    cardio?.requestedSessionsPerWeek !== null
+    && !(
+      typeof cardio?.requestedSessionsPerWeek === "number"
+      && Number.isInteger(cardio.requestedSessionsPerWeek)
+      && cardio.requestedSessionsPerWeek >= 0
+      && cardio.requestedSessionsPerWeek <= 7
+    )
+  ) {
+    errors.push("$.preferences.cardio.requestedSessionsPerWeek must be null or 0 through 7.");
+  }
 
   const planContext = readClosedObject(root.planContext, "$.planContext", CONTEXT_KEYS, errors);
   validateStringArray(
     planContext?.biggestTrainingStruggles,
     "$.planContext.biggestTrainingStruggles",
     errors,
-    { unique: true },
+    { sorted: true, unique: true },
   );
-  readClosedObject(
+  const nutrition = readClosedObject(
     planContext?.nutrition,
     "$.planContext.nutrition",
     [
@@ -591,12 +1245,35 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     ],
     errors,
   );
-  readClosedObject(
+  for (const key of ["trackingStyle", "proteinTrackingStyle", "eatingPattern", "direction"]) {
+    validateNullableString(nutrition?.[key], `$.planContext.nutrition.${key}`, errors);
+  }
+  for (const key of ["foodRestrictions", "requestedSupport"]) {
+    validateStringArray(nutrition?.[key], `$.planContext.nutrition.${key}`, errors, {
+      sorted: true,
+      unique: true,
+    });
+  }
+  const delivery = readClosedObject(
     planContext?.delivery,
     "$.planContext.delivery",
     ["detailLevel", "requestedContents", "method", "followUpStyle"],
     errors,
   );
+  if (
+    delivery?.detailLevel !== null
+    && !["concise", "standard", "detailed"].includes(String(delivery?.detailLevel))
+  ) {
+    errors.push("$.planContext.delivery.detailLevel is invalid.");
+  }
+  validateStringArray(
+    delivery?.requestedContents,
+    "$.planContext.delivery.requestedContents",
+    errors,
+    { sorted: true, unique: true },
+  );
+  validateNullableString(delivery?.method, "$.planContext.delivery.method", errors);
+  validateNullableString(delivery?.followUpStyle, "$.planContext.delivery.followUpStyle", errors);
 
   const constraintClasses = readClosedObject(
     root.constraintClasses,
@@ -608,7 +1285,11 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     constraintClasses?.blockingIssueCodes,
     "$.constraintClasses.blockingIssueCodes",
     errors,
-    { unique: true },
+    {
+      allowed: new Set(NORMALIZATION_ISSUE_CODES),
+      sorted: true,
+      unique: true,
+    },
   );
   for (const key of [
     "hardConstraintPaths",
@@ -623,6 +1304,19 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
       { unique: true, jsonPointers: true },
     );
   }
+  const expectedBlockingCodes = [...new Set(
+    normalizationIssues
+      .filter((issue) => issue.severity === "blocking")
+      .map((issue) => issue.code as string),
+  )].sort();
+  if (
+    Array.isArray(constraintClasses?.blockingIssueCodes)
+    && JSON.stringify(constraintClasses.blockingIssueCodes) !== JSON.stringify(expectedBlockingCodes)
+  ) {
+    errors.push("$.constraintClasses.blockingIssueCodes must match normalizationIssues.");
+  }
+
+  validateProvenance(root.provenance, "$.provenance", errors);
 
   if (
     typeof root.generationProjectionDigest !== "string"
@@ -630,14 +1324,17 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
   ) {
     errors.push("$.generationProjectionDigest must be a SHA-256 hex digest.");
   }
-  if (!Array.isArray(root.normalizationIssues)) {
-    errors.push("$.normalizationIssues must be an array.");
-  }
-  const provenance = asRecord(root.provenance);
-  if (!provenance) {
-    errors.push("$.provenance must be an object.");
-  } else if (Object.keys(provenance).some((key) => !key.startsWith("/"))) {
-    errors.push("$.provenance keys must be JSON pointer paths.");
+
+  if (errors.length === 0) {
+    const contract = root as unknown as NormalizedPlanningIntakeV1;
+    const {
+      generationProjectionDigest,
+      ...contractWithoutDigest
+    } = contract;
+    const expectedDigest = digestPlanningGenerationProjection(contractWithoutDigest);
+    if (generationProjectionDigest !== expectedDigest) {
+      errors.push("$.generationProjectionDigest does not match the semantic projection.");
+    }
   }
 
   return errors;

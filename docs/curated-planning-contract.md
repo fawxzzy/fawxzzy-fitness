@@ -145,7 +145,7 @@ It excludes:
 
 - raw-response and database identifiers;
 - timestamps and localized labels;
-- provenance and source-response digests;
+- provenance, source-response digests, and issue source-question IDs;
 - `planContext` nutrition/delivery fields;
 - safety acknowledgments;
 - known historical lift values;
@@ -178,6 +178,26 @@ normalization inputs:
 The fixture module exports normalized outputs, and tests pin the reviewed
 generation projection digest for each. The ambiguous-warning fixture is the
 only intentionally blocked normalization.
+
+The required pull-request CI workflow runs the focused planning-contract test
+file directly in addition to the legacy curated engine and roadmap suites.
+
+## Runtime authenticity and invariants
+
+`validateNormalizedPlanningIntakeV1` closes every normalized record and array
+item shape, validates issue/ranked-value/provenance semantics, and enforces:
+
+- fixed weekday count equals the requested weekly count;
+- session target never exceeds the hard maximum;
+- safety cannot be `clear` while restrictions, warnings, or unresolved
+  blocking safety issues remain;
+- scoped `restricted` state has at least one explicit restriction;
+- safety unresolved issues are blocking safety entries also present in the
+  canonical normalization issue list;
+- `constraintClasses.blockingIssueCodes` exactly matches the blocking issue
+  set;
+- `generationProjectionDigest` recomputes from and authenticates the semantic
+  projection.
 
 ## Missing questionnaire decisions
 

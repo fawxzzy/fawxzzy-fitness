@@ -146,11 +146,12 @@ test("premium cycle analytics returns to planning without placeholder UI claims"
   assert.ok(card.acceptanceCriteria.some((criterion) => /No premium analytics UI renders/i.test(criterion)));
 });
 
-test("hosted CI runs the curated engine and roadmap contract suites", () => {
+test("hosted CI runs the curated engine, planning intake, and roadmap contract suites", () => {
   const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
   const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
 
   assert.match(workflow, /--test src\/features\/curated-onboarding\/engine\.test\.ts/);
+  assert.match(workflow, /--test src\/features\/curated-onboarding\/planning\/normalize\.test\.ts/);
   assert.match(workflow, /--test scripts\/seed-feedback-monetization-roadmap\.test\.mjs/);
 });
 

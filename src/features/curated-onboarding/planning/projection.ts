@@ -9,6 +9,13 @@ type PlanningIntakeWithoutDigest = Omit<
   "generationProjectionDigest"
 >;
 
+function toSemanticIssue({
+  sourceQuestionIds: _sourceQuestionIds,
+  ...issue
+}: PlanningIntakeWithoutDigest["normalizationIssues"][number]) {
+  return issue;
+}
+
 export function buildPlanningGenerationProjection(
   input: PlanningIntakeWithoutDigest,
 ): PlanningGenerationProjectionV1 {
@@ -21,8 +28,9 @@ export function buildPlanningGenerationProjection(
     ...trainingBackground
   } = input.trainingBackground;
   const {
+    unresolvedItems,
     acknowledgments: _acknowledgments,
-    ...safety
+    ...safetyWithoutIssues
   } = input.safety;
 
   return {
@@ -30,13 +38,16 @@ export function buildPlanningGenerationProjection(
     normalizerVersion: input.source.normalizerVersion,
     blockingIssues: input.normalizationIssues.filter(
       (issue) => issue.severity === "blocking",
-    ),
+    ).map(toSemanticIssue),
     schedule,
     goals: input.goals,
     trainingBackground,
     environment: input.environment,
     recovery: input.recovery,
-    safety,
+    safety: {
+      ...safetyWithoutIssues,
+      unresolvedItems: unresolvedItems.map(toSemanticIssue),
+    },
     preferences: input.preferences,
   };
 }

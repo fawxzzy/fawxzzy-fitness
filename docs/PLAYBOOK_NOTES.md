@@ -664,7 +664,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## 2026-07-28 - Raw onboarding answers compile into a semantic planning contract
 - Type: Decision
-- WHAT changed: Curated onboarding now has a source-only, versioned normalization boundary with deterministic issues, parallel provenance, a semantic generation projection, portable canonical hashing, and ten golden normalized fixtures. Production generation and persistence remain unchanged.
+- WHAT changed: Curated onboarding now has a source-only, versioned normalization boundary with deterministic issues, parallel provenance, a semantic generation projection, portable canonical hashing, ten golden normalized fixtures, closed runtime validation with digest recomputation, and required exact-head CI coverage. Production generation and persistence remain unchanged.
 - WHY it changed: Directly reading raw question IDs in a generator couples planning to UI shape, makes hidden or malformed answers unsafe, and lets unordered or presentation-only data destabilize deterministic identity.
 - Rule: Hard constraints never participate in weighted scoring, and unknown safety state is not equivalent to unrestricted.
 - Pattern: Compile raw intake into a versioned planning contract, then hash the semantic generation projection rather than raw responses.
