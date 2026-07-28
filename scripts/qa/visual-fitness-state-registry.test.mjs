@@ -93,12 +93,12 @@ test("curated fixtures are deterministic and scoped to the synthetic user", () =
 
 test("registry models intentional fixture selection and manual public auth routes", () => {
   assert.deepEqual(getVisualFitnessState("signed-in:session-logger-cardio-time")?.expectedResolvedRoute, {
-    kind: "exact",
-    value: "/dev/mobile-regression?scenario=session-logger-cardio-time&exerciseId=session-ex-5",
+    kind: "pattern",
+    value: "^/dev/mobile-regression\\?scenario=session-logger-cardio-time&exerciseId=session-ex-5(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
   });
   assert.deepEqual(getVisualFitnessState("signed-in:today-default")?.expectedResolvedRoute, {
-    kind: "exact",
-    value: "/dev/mobile-regression?scenario=today-default",
+    kind: "pattern",
+    value: "^/dev/mobile-regression\\?scenario=today-default(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
   });
   assert.deepEqual(getVisualFitnessState("signed-in:history-sessions-detailed")?.expectedResolvedRoute, {
     kind: "pattern",

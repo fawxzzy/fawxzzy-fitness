@@ -183,6 +183,21 @@ export async function waitForExpectedResolvedRoute(page, {
   return result;
 }
 
+export async function waitForRegistryAssertions(page, assertions = [], {
+  timeoutMs = 8000,
+  pollMs = 100,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let failures = await runRegistryAssertions(page, assertions);
+
+  while (failures.length > 0 && Date.now() < deadline) {
+    await page.waitForTimeout(pollMs).catch(() => {});
+    failures = await runRegistryAssertions(page, assertions);
+  }
+
+  return failures;
+}
+
 function isSafeLocalReturnPath(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 }
@@ -1358,12 +1373,12 @@ async function runRegistryAssertions(page, assertions = []) {
   const failures = [];
   for (const assertion of assertions) {
     if (assertion.kind === "text") {
-      const bodyText = (await page.textContent("body")) ?? "";
-      if (!bodyText.toLowerCase().includes(String(assertion.value).toLowerCase())) {
+      const bodyText = await page.textContent("body").catch(() => null);
+      if (typeof bodyText !== "string" || !bodyText.toLowerCase().includes(String(assertion.value).toLowerCase())) {
         failures.push(`Missing expected text: ${assertion.value}`);
       }
     } else if (assertion.kind === "selector") {
-      const count = await page.locator(assertion.value).count();
+      const count = await page.locator(assertion.value).count().catch(() => 0);
       if (count < 1) {
         failures.push(`Missing expected selector: ${assertion.value}`);
       }
@@ -1528,7 +1543,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       await page.waitForTimeout(100);
     }
     const registryAssertionFailures = suite.registry
-      ? await runRegistryAssertions(page, suite.registry.assertions)
+      ? await waitForRegistryAssertions(page, suite.registry.assertions)
       : [];
     await page.screenshot({
       path: screenshotPath,

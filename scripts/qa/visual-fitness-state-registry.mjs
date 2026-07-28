@@ -310,19 +310,18 @@ const MOBILE_REGRESSION_SELECTED_EXERCISES = Object.freeze({
   "add-exercise-default": "11111111-1111-4111-8111-111111111111",
 });
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function buildMobileRegressionExpectedRoute(id) {
   const route = `/dev/mobile-regression?scenario=${encodeURIComponent(id)}`;
   const exerciseId = MOBILE_REGRESSION_SELECTED_EXERCISES[id];
-  if (id === "history-sessions-detailed") {
-    return {
-      // The local boot primer may append only its build freshness marker.
-      kind: "pattern",
-      value: "^/dev/mobile-regression\\?scenario=history-sessions-detailed(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$",
-    };
-  }
+  const expectedRoute = exerciseId ? `${route}&exerciseId=${encodeURIComponent(exerciseId)}` : route;
   return {
-    kind: "exact",
-    value: exerciseId ? `${route}&exerciseId=${encodeURIComponent(exerciseId)}` : route,
+    // Local boot may append only its bounded build freshness marker.
+    kind: "pattern",
+    value: `^${escapeRegex(expectedRoute)}(?:&__fresh=[a-z0-9][a-z0-9._-]{0,63})?$`,
   };
 }
 

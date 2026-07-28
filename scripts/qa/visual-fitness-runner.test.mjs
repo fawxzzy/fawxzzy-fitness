@@ -14,6 +14,7 @@ import {
   runVisualFitnessSuites,
   sanitizeVisualDiagnosticText,
   validateResolvedRoute,
+  waitForRegistryAssertions,
   waitForExpectedResolvedRoute,
 } from "./visual-fitness-runner.mjs";
 
@@ -254,6 +255,21 @@ test("resolved-route wait does not capture a transient root before its redirect"
 
   assert.equal(result.valid, true);
   assert.equal(result.resolved, "/login?manual=1");
+});
+
+test("registry assertion wait retries through a transient local remount", async () => {
+  let reads = 0;
+  const result = await waitForRegistryAssertions({
+    textContent: async () => {
+      reads += 1;
+      return reads === 1 ? "Loading" : "Main Goal";
+    },
+    locator: () => ({ count: async () => 1 }),
+    waitForTimeout: async () => {},
+  }, [{ kind: "text", value: "Main Goal" }], { timeoutMs: 1000, pollMs: 1 });
+
+  assert.deepEqual(result, []);
+  assert.equal(reads, 2);
 });
 
 test("anonymous registry guard converts only local auto-login requests into manual login", async () => {
