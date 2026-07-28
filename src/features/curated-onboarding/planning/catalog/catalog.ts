@@ -42,7 +42,7 @@ function deepFreeze<T>(value: T): T {
 }
 
 const EQUIPMENT_ALIASES: Record<EquipmentId, string[]> = {
-  barbell: ["barbells"],
+  barbells: ["barbell"],
   bench: ["flat bench"],
   bike: ["air bike", "stationary bike"],
   bodyweight: ["body weight", "none"],

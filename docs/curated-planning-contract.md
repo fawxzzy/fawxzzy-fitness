@@ -182,6 +182,8 @@ index remain read-only.
 
 Equipment is executable capability, not a broad location label. For example,
 `treadmill`, `bike`, `cables`, `machines`, and `smith-machine` remain distinct.
+The canonical free-weight capability is `barbells`, matching the normalized
+questionnaire contract; singular `barbell` is a lookup alias only.
 Required and avoided equipment are hard filters. Removing a capability cannot
 introduce a compatible exercise, and an avoided capability cannot be selected.
 
@@ -211,12 +213,14 @@ deterministic compatible IDs, structured candidate rejection reasons, or
 `unavailable`, `invalid_catalog`, or `invalid_request`. It does not rank
 exercises, build sessions, prescribe volume, or generate a routine.
 
-Fixtures 1, 2, 4, 5, 8, and 10 provide bounded catalog evidence. Supported
+Fixtures 1, 2, 3, 4, 5, 8, and 10 provide bounded catalog evidence. Supported
 movement patterns return exact candidates; deliberately unsupported coverage
 such as travel vertical pulling or pull-up priority without pull equipment
 returns structured infeasibility. The no-overhead fixture proves that a
 restriction removes vertical-push candidates without substitutions bypassing
-the same filter.
+the same filter. Fixture 6 separately pins fail-closed `invalid_request` for
+its free-text `rower` capability, which catalog v1 does not silently widen or
+ignore.
 
 ## Golden fixtures
 

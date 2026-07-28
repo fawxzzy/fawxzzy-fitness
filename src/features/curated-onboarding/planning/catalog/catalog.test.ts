@@ -20,7 +20,7 @@ import {
   validateExerciseCatalogBundleV1,
 } from "./validate.ts";
 
-const PINNED_CATALOG_DIGEST = "5969eed17e934b96b1c38b40f4a3e7cde670565d562b4f3cb2adce6681bef940";
+const PINNED_CATALOG_DIGEST = "cfaefa57f006bc60e84eaeca52bca9a5582b97a3c4fc791771acc1d9794a3f84";
 
 function cloneCatalog() {
   return structuredClone(PLANNER_EXERCISE_CATALOG_V1);
@@ -404,6 +404,15 @@ test("selected normalization fixtures have explicit catalog support or infeasibi
       "vertical_pull",
       "walking",
     ],
+    "intermediate-freeweights-5day-strength": [
+      "hinge",
+      "horizontal_pull",
+      "horizontal_push",
+      "squat",
+      "trunk_bracing",
+      "vertical_pull",
+      "vertical_push",
+    ],
     "time-limited-3day-30min": [
       "hinge",
       "horizontal_pull",
@@ -501,6 +510,40 @@ test("selected normalization fixtures have explicit catalog support or infeasibi
   assert.equal(noOverheadResult.status, "unavailable");
   if (noOverheadResult.status === "unavailable") {
     assert.ok(noOverheadResult.reasonCodes.includes("RESTRICTION_CONFLICT"));
+  }
+});
+
+test("normalized questionnaire equipment IDs cross the catalog boundary explicitly", () => {
+  const freeWeights =
+    NORMALIZED_PLANNING_FIXTURES["intermediate-freeweights-5day-strength"];
+  const freeWeightsResult = resolveCatalogCandidates(
+    PLANNER_EXERCISE_CATALOG_V1,
+    {
+      movementPatterns: ["squat"],
+      availableEquipment: freeWeights.environment.equipmentAvailable as EquipmentId[],
+      avoidedEquipment: freeWeights.environment.equipmentAvoided as EquipmentId[],
+      restrictionCodes: [],
+      experience: freeWeights.trainingBackground.experience as ExperienceLevel,
+    },
+  );
+  assert.equal(freeWeightsResult.status, "available");
+
+  const hybrid = NORMALIZED_PLANNING_FIXTURES["cardio-priority-4day-hybrid"];
+  const hybridResult = resolveCatalogCandidates(
+    PLANNER_EXERCISE_CATALOG_V1,
+    {
+      movementPatterns: ["locomotion"],
+      availableEquipment: hybrid.environment.equipmentAvailable as EquipmentId[],
+      avoidedEquipment: hybrid.environment.equipmentAvoided as EquipmentId[],
+      restrictionCodes: [],
+      experience: hybrid.trainingBackground.experience as ExperienceLevel,
+    },
+  );
+  assert.equal(hybridResult.status, "invalid_request");
+  if (hybridResult.status === "invalid_request") {
+    assert.deepEqual(hybridResult.validationErrors, [
+      "$query.availableEquipment[3] is unsupported.",
+    ]);
   }
 });
 

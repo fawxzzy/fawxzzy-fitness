@@ -12,7 +12,7 @@ export const EQUIPMENT_KINDS = [
   "support",
 ] as const;
 export const EQUIPMENT_IDS = [
-  "barbell",
+  "barbells",
   "bench",
   "bike",
   "bodyweight",
@@ -164,7 +164,7 @@ export type PrescriptionClassDefinitionV1 = {
 };
 
 export const CANONICAL_EQUIPMENT_KIND_POLICY: Record<EquipmentId, EquipmentKind> = {
-  barbell: "free_weight",
+  barbells: "free_weight",
   bench: "support",
   bike: "cardio",
   bodyweight: "bodyweight",
