@@ -661,3 +661,24 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A visually plausible catalog can certify the wrong source state if merge reconciliation is inferred from metadata rather than Git objects.
 - Evidence: `docs/mobile-regression-fixtures.md`, `scripts/qa/visual-fitness-runner.mjs`
 - Status: Proposed
+
+## 2026-07-28 - Raw onboarding answers compile into a semantic planning contract
+- Type: Decision
+- WHAT changed: Curated onboarding now has a source-only, versioned normalization boundary with deterministic issues, parallel provenance, a semantic generation projection, portable canonical hashing, ten golden normalized fixtures, closed runtime validation with digest recomputation, and required exact-head CI coverage. Production generation and persistence remain unchanged.
+- WHY it changed: Directly reading raw question IDs in a generator couples planning to UI shape, makes hidden or malformed answers unsafe, and lets unordered or presentation-only data destabilize deterministic identity.
+- Rule: Hard constraints never participate in weighted scoring or caller-controlled reclassification, unknown safety state is not equivalent to unrestricted, unknown schedule mode cannot retain a known day count, and callers cannot downgrade issue severity, forge response paths, or conceal warning/professional-direction blockers behind a recomputed digest.
+- Pattern: Compile raw intake into a versioned planning contract, then hash the semantic generation projection rather than raw responses.
+- Failure Mode: Volatile fields, raw answer ordering, hidden state, or provenance in a generation digest can produce different identities for the same planning meaning.
+- Decision: Keep nutrition, delivery preferences, acknowledgments, and historical lift context outside exercise selection; preserve them as context or provenance.
+- Evidence: `src/features/curated-onboarding/planning/contract.ts`, `src/features/curated-onboarding/planning/normalize.ts`, `src/features/curated-onboarding/planning/normalize.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
+
+## 2026-07-28 - Planning normalization must fail closed without throwing
+- Type: Guardrail
+- WHAT changed: The planning normalizer now sanitizes malformed multi-select members, deduplicates every emitted identifier after canonicalization, treats free-form pain text as unresolved scope, keeps movement-restriction provenance limited to structured restriction answers, and parses unit-bearing per-dumbbell loads without mistaking pair counts or clause-labeled aggregate totals for weight.
+- WHY it changed: A blocked intake is still an executable boundary result; malformed or ambiguous source data must not crash normalization or silently create the wrong hard constraint.
+- Rule: Record invalid source shape, discard unsafe members, and return a schema-valid blocked contract. Never infer movement restrictions from free-form pain wording alone.
+- Pattern: validate raw shape -> sanitize runtime values -> normalize semantic identity -> validate the emitted contract.
+- Failure Mode: Keyword inference, pre-canonical deduplication, unitless load assumptions, and largest-number parsing can turn ambiguous safety or equipment text into authoritative planner constraints.
+- Evidence: `src/features/curated-onboarding/planning/normalize.ts`, `src/features/curated-onboarding/planning/normalize.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
