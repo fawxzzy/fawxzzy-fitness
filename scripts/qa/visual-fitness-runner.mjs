@@ -1320,22 +1320,41 @@ async function applyRegistrySetup(context, registry) {
   });
 }
 
-export async function scrollRegistryCaptureToBottom(page) {
-  await page.evaluate(() => {
-    const scrollable = Array.from(document.querySelectorAll("*")).filter((element) => {
-      const overflowY = window.getComputedStyle(element).overflowY;
-      return (overflowY === "auto" || overflowY === "scroll")
-        && element.scrollHeight > element.clientHeight + 1;
-    }).sort((left, right) => {
-      return (right.scrollHeight - right.clientHeight)
-        - (left.scrollHeight - left.clientHeight);
-    })[0];
+export async function scrollRegistryCaptureToBottom(page, {
+  timeoutMs = 8000,
+  pollMs = 100,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      await page.evaluate(() => {
+        const scrollable = Array.from(document.querySelectorAll("*")).filter((element) => {
+          const overflowY = window.getComputedStyle(element).overflowY;
+          return (overflowY === "auto" || overflowY === "scroll")
+            && element.scrollHeight > element.clientHeight + 1;
+        }).sort((left, right) => {
+          return (right.scrollHeight - right.clientHeight)
+            - (left.scrollHeight - left.clientHeight);
+        })[0];
 
-    const target = scrollable ?? document.scrollingElement;
-    if (target) {
-      target.scrollTop = target.scrollHeight;
+        const target = scrollable ?? document.scrollingElement;
+        if (target) {
+          target.scrollTop = target.scrollHeight;
+        }
+      });
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/execution context was destroyed|cannot find context with specified id|frame was detached/i.test(message)) {
+        throw error;
+      }
+      lastError = error;
+      await page.waitForLoadState("domcontentloaded", { timeout: pollMs }).catch(() => {});
+      await page.waitForTimeout(pollMs).catch(() => {});
     }
-  });
+  }
+  throw lastError ?? new Error("Timed out waiting to scroll the registry capture.");
 }
 
 export async function applyDeterministicCaptureStyle(context) {

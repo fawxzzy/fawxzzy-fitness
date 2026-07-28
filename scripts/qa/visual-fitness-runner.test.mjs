@@ -13,6 +13,7 @@ import {
   resolveViewport,
   runVisualFitnessSuites,
   sanitizeVisualDiagnosticText,
+  scrollRegistryCaptureToBottom,
   validateResolvedRoute,
   waitForRegistryAssertions,
   waitForExpectedResolvedRoute,
@@ -270,6 +271,43 @@ test("registry assertion wait retries through a transient local remount", async 
 
   assert.deepEqual(result, []);
   assert.equal(reads, 2);
+});
+
+test("mobile-bottom capture retries after a transient navigation", async () => {
+  let evaluations = 0;
+  let waits = 0;
+  await scrollRegistryCaptureToBottom({
+    evaluate: async () => {
+      evaluations += 1;
+      if (evaluations === 1) {
+        throw new Error("Execution context was destroyed");
+      }
+    },
+    waitForLoadState: async () => {},
+    waitForTimeout: async () => {
+      waits += 1;
+    },
+  }, { timeoutMs: 1000, pollMs: 1 });
+
+  assert.equal(evaluations, 2);
+  assert.equal(waits, 1);
+});
+
+test("mobile-bottom capture does not retry unrelated page errors", async () => {
+  await assert.rejects(
+    scrollRegistryCaptureToBottom({
+      evaluate: async () => {
+        throw new Error("Unexpected page failure");
+      },
+      waitForLoadState: async () => {
+        throw new Error("Should not wait");
+      },
+      waitForTimeout: async () => {
+        throw new Error("Should not wait");
+      },
+    }),
+    /Unexpected page failure/,
+  );
 });
 
 test("anonymous registry guard converts only local auto-login requests into manual login", async () => {
