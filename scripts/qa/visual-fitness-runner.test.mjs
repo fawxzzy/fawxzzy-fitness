@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyAnonymousRegistryGuards,
   applyDeterministicCaptureStyle,
   assertVisualCatalogCountLedger,
+  buildAnonymousLocalDevAutoLoginBypassUrl,
   buildVisualCatalogManifest,
   buildQaBrowserStorageStateFromSessionCookies,
   hasUsableQaStorageState,
@@ -206,6 +208,42 @@ test("resolved-route contract fails closed on unexpected redirect", () => {
   });
   assert.equal(result.valid, false);
   assert.match(result.reason ?? "", /violates the exact contract/);
+});
+
+test("anonymous registry guard converts only local auto-login requests into manual login", async () => {
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "http://127.0.0.1:3002/auth/local-dev-auto-login?returnTo=%2Ftoday",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    "http://127.0.0.1:3002/login?manual=1&returnTo=%2Ftoday",
+  );
+  assert.equal(
+    buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: "https://example.test/auth/local-dev-auto-login",
+      baseUrl: "http://127.0.0.1:3002",
+    }),
+    null,
+  );
+
+  const registrations = [];
+  await applyAnonymousRegistryGuards({
+    route: async (pattern, handler) => registrations.push({ pattern, handler }),
+  }, { authState: "anonymous" }, "http://127.0.0.1:3002");
+  assert.equal(registrations.length, 1);
+  assert.equal(registrations[0].pattern, "**/auth/local-dev-auto-login**");
+
+  const fulfillCalls = [];
+  await registrations[0].handler({
+    request: () => ({ url: () => "http://127.0.0.1:3002/auth/local-dev-auto-login" }),
+    fulfill: async (options) => fulfillCalls.push(options),
+    continue: async () => assert.fail("same-origin local auto-login should be bypassed"),
+  });
+  assert.deepEqual(fulfillCalls, [{
+    status: 302,
+    headers: { location: "http://127.0.0.1:3002/login?manual=1" },
+    body: "",
+  }]);
 });
 
 test("diagnostic sanitizer removes credentials and user identifiers", () => {

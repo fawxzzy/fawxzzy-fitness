@@ -155,6 +155,52 @@ export function validateResolvedRoute({
   };
 }
 
+function isSafeLocalReturnPath(value) {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+}
+
+export function buildAnonymousLocalDevAutoLoginBypassUrl({ requestUrl, baseUrl }) {
+  try {
+    const request = new URL(requestUrl);
+    const base = new URL(baseUrl);
+    if (request.origin !== base.origin || request.pathname !== "/auth/local-dev-auto-login") {
+      return null;
+    }
+
+    const params = new URLSearchParams({ manual: "1" });
+    const returnTo = request.searchParams.get("returnTo");
+    if (isSafeLocalReturnPath(returnTo)) {
+      params.set("returnTo", returnTo);
+    }
+    return new URL(`/login?${params.toString()}`, base).toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function applyAnonymousRegistryGuards(context, registry, baseUrl) {
+  if (registry?.authState !== "anonymous") {
+    return;
+  }
+
+  await context.route("**/auth/local-dev-auto-login**", async (route) => {
+    const location = buildAnonymousLocalDevAutoLoginBypassUrl({
+      requestUrl: route.request().url(),
+      baseUrl,
+    });
+    if (!location) {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      status: 302,
+      headers: { location },
+      body: "",
+    });
+  });
+}
+
 export function sanitizeVisualDiagnosticText(rawValue) {
   const value = String(rawValue ?? "");
   return value
@@ -1220,6 +1266,24 @@ async function applyRegistrySetup(context, registry) {
   });
 }
 
+export async function scrollRegistryCaptureToBottom(page) {
+  await page.evaluate(() => {
+    const scrollable = Array.from(document.querySelectorAll("*")).filter((element) => {
+      const overflowY = window.getComputedStyle(element).overflowY;
+      return (overflowY === "auto" || overflowY === "scroll")
+        && element.scrollHeight > element.clientHeight + 1;
+    }).sort((left, right) => {
+      return (right.scrollHeight - right.clientHeight)
+        - (left.scrollHeight - left.clientHeight);
+    })[0];
+
+    const target = scrollable ?? document.scrollingElement;
+    if (target) {
+      target.scrollTop = target.scrollHeight;
+    }
+  });
+}
+
 export async function applyDeterministicCaptureStyle(context) {
   await context.addInitScript(({ content, markerId }) => {
     const installStyle = () => {
@@ -1363,6 +1427,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     timezoneId: VISUAL_CAPTURE_ENVIRONMENT.timezoneId,
     ...(qaStorageState ? { storageState: qaStorageState } : {}),
   });
+  await applyAnonymousRegistryGuards(context, suite.registry, baseUrl);
   await applyThemePreset(context, suite.themePreset);
   await applyRegistrySetup(context, suite.registry);
   if (suite.registry) {
@@ -1413,7 +1478,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
     const interactionResult = await runSuiteInteraction(page, suite, { baseUrl });
     if (suite.registry?.captureMode === "mobile-bottom") {
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await scrollRegistryCaptureToBottom(page);
       await page.waitForTimeout(100);
     }
     const registryAssertionFailures = suite.registry
@@ -1436,11 +1501,6 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
             : null)
       )
       : null;
-    const unexpectedFinalPathReason = resolveUnexpectedFinalPathReason({
-      finalUrl,
-      suite,
-      baseUrl,
-    });
     const registryRouteResult = suite.registry
       ? validateResolvedRoute({
           requestedRoute: suite.route,
@@ -1449,6 +1509,13 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
           baseUrl,
         })
       : null;
+    const unexpectedFinalPathReason = suite.registry
+      ? null
+      : resolveUnexpectedFinalPathReason({
+          finalUrl,
+          suite,
+          baseUrl,
+        });
     const registryFailureReason = registryRouteResult && !registryRouteResult.valid
       ? registryRouteResult.reason
       : registryAssertionFailures.length > 0

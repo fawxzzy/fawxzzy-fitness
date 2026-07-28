@@ -91,6 +91,24 @@ test("curated fixtures are deterministic and scoped to the synthetic user", () =
   assert.equal(handoff?.setup?.value?.lifecycle?.generationStatus, "queued");
 });
 
+test("registry models intentional fixture selection and manual public auth routes", () => {
+  assert.deepEqual(getVisualFitnessState("signed-in:session-logger-cardio-time")?.expectedResolvedRoute, {
+    kind: "exact",
+    value: "/dev/mobile-regression?scenario=session-logger-cardio-time&exerciseId=session-ex-5",
+  });
+  assert.deepEqual(getVisualFitnessState("signed-in:today-default")?.expectedResolvedRoute, {
+    kind: "exact",
+    value: "/dev/mobile-regression?scenario=today-default",
+  });
+  assert.deepEqual(getVisualFitnessState("public:root")?.expectedResolvedRoute, {
+    kind: "one-of",
+    values: ["/", "/entry", "/login?manual=1"],
+  });
+  assert.equal(getVisualFitnessState("public:login")?.requestedRoute, "/login?manual=1");
+  assert.equal(getVisualFitnessState("onboarding:conditional-tracking-tool")?.assertions[0]?.value, "What do you use to track?");
+  assert.equal(getVisualFitnessState("onboarding:conditional-full-safety")?.assertions[0]?.value, "What were you told to avoid?");
+});
+
 test("registry digest is stable and changes with semantic content", () => {
   const digest = computeVisualStateRegistryDigest();
   assert.match(digest, /^[a-f0-9]{64}$/);

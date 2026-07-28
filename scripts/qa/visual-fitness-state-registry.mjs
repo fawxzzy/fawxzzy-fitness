@@ -93,11 +93,11 @@ const mobileRegressionInventory = [
 ];
 
 const publicRouteInventory = [
-  ["root", "/", { kind: "one-of", values: ["/entry", "/login"] }, "Fawxzzy"],
-  ["entry", "/entry", { kind: "one-of", values: ["/entry", "/login"] }, "Fawxzzy"],
-  ["login", "/login", { kind: "exact", value: "/login" }, "Sign in"],
+  ["root", "/", { kind: "one-of", values: ["/", "/entry", "/login?manual=1"] }, "Fawxzzy"],
+  ["entry", "/entry", { kind: "one-of", values: ["/entry", "/login?manual=1"] }, "Fawxzzy"],
+  ["login", "/login?manual=1", { kind: "exact", value: "/login?manual=1" }, "Welcome"],
   ["signup", "/signup", { kind: "exact", value: "/signup" }, "Create"],
-  ["forgot-password", "/forgot-password", { kind: "exact", value: "/forgot-password" }, "password"],
+  ["forgot-password", "/forgot-password", { kind: "exact", value: "/login?manual=1" }, "password"],
   ["reset-password", "/reset-password", { kind: "exact", value: "/reset-password" }, "password"],
   ["install", "/install", { kind: "exact", value: "/install" }, "Install"],
   ["privacy", "/privacy", { kind: "exact", value: "/privacy" }, "Privacy"],
@@ -105,8 +105,8 @@ const publicRouteInventory = [
 ];
 
 const authLabInventory = [
-  ["login", "Sign in"],
-  ["login-remembered", "Welcome back"],
+  ["login", "Welcome"],
+  ["login-remembered", "Welcome"],
   ["login-remembered-password", "Password"],
   ["login-remembered-reauth", "Password"],
   ["signup", "Create"],
@@ -140,9 +140,9 @@ const onboardingInventory = [
   ["complete-delivery", "delivery", "Accountability + Delivery", "complete"],
   ["complete-review", "review", "Review", "complete"],
   ["conditional-under18", "intro", "parent/guardian permission", "conditional-under18"],
-  ["conditional-tracking-tool", "experience", "tracking", "conditional-tracking-tool"],
+  ["conditional-tracking-tool", "experience", "What do you use to track?", "conditional-tracking-tool"],
   ["conditional-dumbbell-weight", "equipment", "dumbbells", "conditional-dumbbell-weight"],
-  ["conditional-full-safety", "constraints", "restricted", "conditional-full-safety"],
+  ["conditional-full-safety", "constraints", "What were you told to avoid?", "conditional-full-safety"],
   ["other-main-goal", "goals", "Other", "other-main-goal"],
   ["other-schedule", "schedule", "Other", "other-schedule"],
   ["other-equipment", "equipment", "Other", "other-equipment"],
@@ -298,15 +298,33 @@ function makeState(overrides) {
   });
 }
 
+const MOBILE_REGRESSION_SELECTED_EXERCISES = Object.freeze({
+  "active-workout-session-expanded": "session-ex-2",
+  "session-logger-strength-weight": "session-ex-1",
+  "session-logger-bodyweight-reps": "session-ex-4",
+  "session-post-close-feedback": "session-ex-4",
+  "session-logger-cardio-time": "session-ex-5",
+  "session-logger-cardio-time-distance": "session-ex-3",
+  "session-logger-cardio-distance": "session-ex-6",
+  "session-logger-calories": "session-ex-7",
+  "add-exercise-default": "11111111-1111-4111-8111-111111111111",
+});
+
+function buildMobileRegressionExpectedRoute(id) {
+  const route = `/dev/mobile-regression?scenario=${encodeURIComponent(id)}`;
+  const exerciseId = MOBILE_REGRESSION_SELECTED_EXERCISES[id];
+  return {
+    kind: "exact",
+    value: exerciseId ? `${route}&exerciseId=${encodeURIComponent(exerciseId)}` : route,
+  };
+}
+
 const signedInStates = mobileRegressionInventory.map(([id, family, screen, fixture], index) =>
   makeState({
     id: `signed-in:${id}`,
     family,
     requestedRoute: `/dev/mobile-regression?scenario=${encodeURIComponent(id)}`,
-    expectedResolvedRoute: {
-      kind: "exact",
-      value: `/dev/mobile-regression?scenario=${encodeURIComponent(id)}`,
-    },
+    expectedResolvedRoute: buildMobileRegressionExpectedRoute(id),
     authState: "synthetic-signed-in-fixture",
     fixtureOwner: `mobile-regression:${id}`,
     setupRequirements: ["deterministic-dev-mobile-regression-fixture"],
