@@ -106,7 +106,7 @@ test("registry models intentional fixture selection and manual public auth route
   });
   assert.deepEqual(getVisualFitnessState("public:root")?.expectedResolvedRoute, {
     kind: "one-of",
-    values: ["/", "/entry", "/login?manual=1"],
+    values: ["/entry", "/login?manual=1"],
   });
   assert.equal(getVisualFitnessState("public:login")?.requestedRoute, "/login?manual=1");
   assert.equal(getVisualFitnessState("onboarding:conditional-tracking-tool")?.assertions[0]?.value, "What do you use to track?");

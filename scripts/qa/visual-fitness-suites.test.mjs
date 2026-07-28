@@ -174,7 +174,7 @@ test("registry suite adapter preserves requested and expected resolved routes se
   assert.equal(root[0]?.route, "/");
   assert.deepEqual(root[0]?.registry?.expectedResolvedRoute, {
     kind: "one-of",
-    values: ["/", "/entry", "/login?manual=1"],
+    values: ["/entry", "/login?manual=1"],
   });
   assert.equal(root[0]?.registry?.authState, "anonymous");
 });

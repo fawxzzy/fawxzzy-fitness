@@ -14,6 +14,7 @@ import {
   runVisualFitnessSuites,
   sanitizeVisualDiagnosticText,
   validateResolvedRoute,
+  waitForExpectedResolvedRoute,
 } from "./visual-fitness-runner.mjs";
 
 test("hasUsableQaStorageState rejects expired auth cookies", () => {
@@ -227,6 +228,32 @@ test("resolved-route pattern permits only the local boot freshness marker", () =
     expectedResolvedRoute,
     baseUrl: "http://127.0.0.1:3002",
   }).valid, false);
+});
+
+test("resolved-route wait does not capture a transient root before its redirect", async () => {
+  const urls = [
+    "http://127.0.0.1:3002/",
+    "http://127.0.0.1:3002/login?manual=1",
+  ];
+  let index = 0;
+  const result = await waitForExpectedResolvedRoute({
+    url: () => urls[index],
+    waitForTimeout: async () => {
+      index += 1;
+    },
+  }, {
+    requestedRoute: "/",
+    expectedResolvedRoute: {
+      kind: "one-of",
+      values: ["/entry", "/login?manual=1"],
+    },
+    baseUrl: "http://127.0.0.1:3002",
+    timeoutMs: 1000,
+    pollMs: 1,
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.resolved, "/login?manual=1");
 });
 
 test("anonymous registry guard converts only local auto-login requests into manual login", async () => {

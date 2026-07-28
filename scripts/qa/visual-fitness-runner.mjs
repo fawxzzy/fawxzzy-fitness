@@ -155,6 +155,34 @@ export function validateResolvedRoute({
   };
 }
 
+export async function waitForExpectedResolvedRoute(page, {
+  requestedRoute,
+  expectedResolvedRoute,
+  baseUrl = "http://127.0.0.1",
+  timeoutMs = 8000,
+  pollMs = 100,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let result = validateResolvedRoute({
+    requestedRoute,
+    resolvedUrl: page.url(),
+    expectedResolvedRoute,
+    baseUrl,
+  });
+
+  while (!result.valid && Date.now() < deadline) {
+    await page.waitForTimeout(pollMs);
+    result = validateResolvedRoute({
+      requestedRoute,
+      resolvedUrl: page.url(),
+      expectedResolvedRoute,
+      baseUrl,
+    });
+  }
+
+  return result;
+}
+
 function isSafeLocalReturnPath(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 }
@@ -1487,6 +1515,13 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     });
     await page.waitForTimeout(suite.waitMs ?? 1600);
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    if (suite.registry?.expectedResolvedRoute) {
+      await waitForExpectedResolvedRoute(page, {
+        requestedRoute: suite.route,
+        expectedResolvedRoute: suite.registry.expectedResolvedRoute,
+        baseUrl,
+      });
+    }
     const interactionResult = await runSuiteInteraction(page, suite, { baseUrl });
     if (suite.registry?.captureMode === "mobile-bottom") {
       await scrollRegistryCaptureToBottom(page);

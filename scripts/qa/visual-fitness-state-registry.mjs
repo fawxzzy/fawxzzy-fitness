@@ -93,7 +93,7 @@ const mobileRegressionInventory = [
 ];
 
 const publicRouteInventory = [
-  ["root", "/", { kind: "one-of", values: ["/", "/entry", "/login?manual=1"] }, "Fawxzzy"],
+  ["root", "/", { kind: "one-of", values: ["/entry", "/login?manual=1"] }, "Fawxzzy"],
   ["entry", "/entry", { kind: "one-of", values: ["/entry", "/login?manual=1"] }, "Fawxzzy"],
   ["login", "/login?manual=1", { kind: "exact", value: "/login?manual=1" }, "Welcome"],
   ["signup", "/signup", { kind: "exact", value: "/signup" }, "Create"],
