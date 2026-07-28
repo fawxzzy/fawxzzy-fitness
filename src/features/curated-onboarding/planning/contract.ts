@@ -17,6 +17,42 @@ export type Weekday = typeof WEEKDAY_VALUES[number];
 export type JsonPointer = `/${string}`;
 export type GoalCode = "build_muscle" | "get_leaner" | "get_stronger" | "general_fitness" | "athleticism" | string;
 export type EquipmentId = string;
+
+export const CANONICAL_CONSTRAINT_CLASS_PATHS = Object.freeze({
+  hardConstraintPaths: Object.freeze([
+    "/schedule/dayConstraint",
+    "/schedule/weekdays",
+    "/schedule/sessionMinutes/hardMaximum",
+    "/environment/equipmentAvailable",
+    "/environment/equipmentAvoided",
+    "/safety/movementRestrictions",
+    "/safety/excludedExerciseNames",
+    "/safety/uncomfortableExerciseNames",
+  ] as const),
+  requiredCoveragePaths: Object.freeze([
+    "/goals/primary",
+    "/goals/secondary",
+    "/goals/targetAreas",
+    "/goals/movementSkills",
+  ] as const),
+  optimizationPaths: Object.freeze([
+    "/trainingBackground",
+    "/recovery",
+    "/preferences",
+  ] as const),
+  contextOnlyPaths: Object.freeze([
+    "/planContext",
+    "/trainingBackground/knownPerformanceContext",
+    "/safety/acknowledgments",
+  ] as const),
+} as const satisfies Record<
+  | "hardConstraintPaths"
+  | "requiredCoveragePaths"
+  | "optimizationPaths"
+  | "contextOnlyPaths",
+  readonly JsonPointer[]
+>);
+
 export const RESTRICTION_CODES = [
   "NO_OVERHEAD_LOADING",
   "NO_HIGH_IMPACT",
@@ -788,24 +824,16 @@ export const NORMALIZED_PLANNING_INTAKE_V1_SCHEMA = {
         uniqueItems: true,
       },
       hardConstraintPaths: {
-        type: "array",
-        items: { type: "string", pattern: "^/" },
-        uniqueItems: true,
+        const: CANONICAL_CONSTRAINT_CLASS_PATHS.hardConstraintPaths,
       },
       requiredCoveragePaths: {
-        type: "array",
-        items: { type: "string", pattern: "^/" },
-        uniqueItems: true,
+        const: CANONICAL_CONSTRAINT_CLASS_PATHS.requiredCoveragePaths,
       },
       optimizationPaths: {
-        type: "array",
-        items: { type: "string", pattern: "^/" },
-        uniqueItems: true,
+        const: CANONICAL_CONSTRAINT_CLASS_PATHS.optimizationPaths,
       },
       contextOnlyPaths: {
-        type: "array",
-        items: { type: "string", pattern: "^/" },
-        uniqueItems: true,
+        const: CANONICAL_CONSTRAINT_CLASS_PATHS.contextOnlyPaths,
       },
     }),
     provenance: {
@@ -1618,18 +1646,43 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
       unique: true,
     },
   );
-  for (const key of [
+  const constraintPathKeys = [
     "hardConstraintPaths",
     "requiredCoveragePaths",
     "optimizationPaths",
     "contextOnlyPaths",
-  ]) {
+  ] as const;
+  for (const key of constraintPathKeys) {
     validateStringArray(
       constraintClasses?.[key],
       `$.constraintClasses.${key}`,
       errors,
       { unique: true, jsonPointers: true },
     );
+    if (
+      Array.isArray(constraintClasses?.[key])
+      && JSON.stringify(constraintClasses[key])
+        !== JSON.stringify(CANONICAL_CONSTRAINT_CLASS_PATHS[key])
+    ) {
+      errors.push(
+        `$.constraintClasses.${key} must equal the canonical ${key} set in exact order.`,
+      );
+    }
+  }
+  const pathOwners = new Map<string, string>();
+  for (const key of constraintPathKeys) {
+    if (!Array.isArray(constraintClasses?.[key])) continue;
+    for (const path of constraintClasses[key]) {
+      if (typeof path !== "string") continue;
+      const existingOwner = pathOwners.get(path);
+      if (existingOwner) {
+        errors.push(
+          `$.constraintClasses path ${path} must be disjoint; it appears in ${existingOwner} and ${key}.`,
+        );
+      } else {
+        pathOwners.set(path, key);
+      }
+    }
   }
   const expectedBlockingCodes = [...new Set(
     normalizationIssues

@@ -207,6 +207,9 @@ item shape, validates issue/ranked-value/provenance semantics, and enforces:
   canonical normalization issue list;
 - `constraintClasses.blockingIssueCodes` exactly matches the blocking issue
   set;
+- hard, required-coverage, optimization, and context-only path classes equal
+  their frozen versioned sets in exact order and are mutually disjoint, so a
+  caller cannot demote safety, schedule, duration, or equipment constraints;
 - `generationProjectionDigest` recomputes from and authenticates the semantic
   projection.
 

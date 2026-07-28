@@ -9,6 +9,7 @@ import {
   sha256Hex,
 } from "./canonical.ts";
 import {
+  CANONICAL_CONSTRAINT_CLASS_PATHS,
   CURATED_RESPONSE_PATH_BY_QUESTION_ID,
   NORMALIZED_PLANNING_INTAKE_V1_SCHEMA,
   type NormalizedPlanningIntakeV1,
@@ -313,6 +314,82 @@ test("every questionnaire question has one governed response issue path", () => 
   assert.equal(
     new Set(Object.values(CURATED_RESPONSE_PATH_BY_QUESTION_ID)).size,
     CURATED_QUESTION_IDS.length,
+  );
+});
+
+test("constraint classifications are canonical, disjoint, and caller-immutable", () => {
+  const baseline = NORMALIZED_PLANNING_FIXTURES["beginner-home-3day-general-strength"];
+  const restricted = NORMALIZED_PLANNING_FIXTURES["no-overhead-3day-substitution"];
+  const pathClassKeys = Object.keys(
+    CANONICAL_CONSTRAINT_CLASS_PATHS,
+  ) as Array<keyof typeof CANONICAL_CONSTRAINT_CLASS_PATHS>;
+  const schemaConstraintPathPolicies = NORMALIZED_PLANNING_INTAKE_V1_SCHEMA
+    .properties.constraintClasses.properties as unknown as Record<
+      keyof typeof CANONICAL_CONSTRAINT_CLASS_PATHS,
+      { const: readonly string[] }
+    >;
+
+  for (const fixture of Object.values(NORMALIZED_PLANNING_FIXTURES)) {
+    for (const key of pathClassKeys) {
+      assert.deepEqual(
+        fixture.constraintClasses[key],
+        CANONICAL_CONSTRAINT_CLASS_PATHS[key],
+      );
+      assert.deepEqual(
+        schemaConstraintPathPolicies[key].const,
+        CANONICAL_CONSTRAINT_CLASS_PATHS[key],
+      );
+    }
+  }
+
+  const allCanonicalPaths = pathClassKeys.flatMap(
+    (key) => [...CANONICAL_CONSTRAINT_CLASS_PATHS[key]],
+  );
+  assert.equal(new Set(allCanonicalPaths).size, allCanonicalPaths.length);
+
+  function moveHardConstraintToOptimization(
+    input: NormalizedPlanningIntakeV1,
+    path: NormalizedPlanningIntakeV1["constraintClasses"]["hardConstraintPaths"][number],
+  ) {
+    const clone = structuredClone(input);
+    clone.constraintClasses.hardConstraintPaths = (
+      clone.constraintClasses.hardConstraintPaths.filter((entry) => entry !== path)
+    );
+    clone.constraintClasses.optimizationPaths.push(path);
+    return clone;
+  }
+
+  const demotedSafety = moveHardConstraintToOptimization(
+    restricted,
+    "/safety/movementRestrictions",
+  );
+  const demotedSchedule = moveHardConstraintToOptimization(
+    baseline,
+    "/schedule/dayConstraint",
+  );
+  const demotedEquipment = moveHardConstraintToOptimization(
+    baseline,
+    "/environment/equipmentAvailable",
+  );
+  const duplicatedSafety = structuredClone(restricted);
+  duplicatedSafety.constraintClasses.optimizationPaths.push(
+    "/safety/movementRestrictions",
+  );
+
+  for (const [original, mutated] of [
+    [restricted, demotedSafety],
+    [baseline, demotedSchedule],
+    [baseline, demotedEquipment],
+  ] as const) {
+    assert.equal(mutated.generationProjectionDigest, original.generationProjectionDigest);
+    assert.match(
+      validateNormalizedPlanningIntakeV1(mutated).join(" "),
+      /must equal the canonical (hardConstraintPaths|optimizationPaths) set in exact order/,
+    );
+  }
+  assert.match(
+    validateNormalizedPlanningIntakeV1(duplicatedSafety).join(" "),
+    /must be disjoint/,
   );
 });
 

@@ -13,6 +13,7 @@ import type {
 } from "../types.ts";
 import { canonicalizeJson, digestCanonicalJson } from "./canonical.ts";
 import {
+  CANONICAL_CONSTRAINT_CLASS_PATHS,
   CURATED_INTAKE_CONTRACT_VERSION,
   CURATED_NORMALIZER_VERSION,
   CURATED_RESPONSE_PATH_BY_QUESTION_ID,
@@ -795,32 +796,12 @@ export function normalizeCuratedPlanningIntake(
       blockingIssueCodes: uniqueSortedExact(
         issues.filter((issue) => issue.severity === "blocking").map((issue) => issue.code),
       ),
-      hardConstraintPaths: [
-        "/schedule/dayConstraint",
-        "/schedule/weekdays",
-        "/schedule/sessionMinutes/hardMaximum",
-        "/environment/equipmentAvailable",
-        "/environment/equipmentAvoided",
-        "/safety/movementRestrictions",
-        "/safety/excludedExerciseNames",
-        "/safety/uncomfortableExerciseNames",
-      ],
+      hardConstraintPaths: [...CANONICAL_CONSTRAINT_CLASS_PATHS.hardConstraintPaths],
       requiredCoveragePaths: [
-        "/goals/primary",
-        "/goals/secondary",
-        "/goals/targetAreas",
-        "/goals/movementSkills",
+        ...CANONICAL_CONSTRAINT_CLASS_PATHS.requiredCoveragePaths,
       ],
-      optimizationPaths: [
-        "/trainingBackground",
-        "/recovery",
-        "/preferences",
-      ],
-      contextOnlyPaths: [
-        "/planContext",
-        "/trainingBackground/knownPerformanceContext",
-        "/safety/acknowledgments",
-      ],
+      optimizationPaths: [...CANONICAL_CONSTRAINT_CLASS_PATHS.optimizationPaths],
+      contextOnlyPaths: [...CANONICAL_CONSTRAINT_CLASS_PATHS.contextOnlyPaths],
     },
     provenance: buildProvenance(responses),
     normalizationIssues: issues.sort(issueSort),
