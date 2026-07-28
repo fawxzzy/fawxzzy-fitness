@@ -15,6 +15,7 @@ import { canonicalizeJson, digestCanonicalJson } from "./canonical.ts";
 import {
   CURATED_INTAKE_CONTRACT_VERSION,
   CURATED_NORMALIZER_VERSION,
+  CURATED_RESPONSE_PATH_BY_QUESTION_ID,
   NORMALIZED_PLANNING_INTAKE_VERSION,
   type GoalCode,
   type JsonPointer,
@@ -38,23 +39,6 @@ const ABSENCE_VALUES = new Set([
   "not applicable",
   "not available",
   "unknown",
-]);
-
-const SAFETY_QUESTION_IDS = new Set([
-  "under18",
-  "guardianPermission",
-  "hasPainOrLimitations",
-  "painDetails",
-  "exercisesCannotDo",
-  "uncomfortableExercises",
-  "professionalRestrictions",
-  "restrictedMovements",
-  "warningSymptoms",
-  "medicalConditions",
-  "medications",
-  "medicationConsiderations",
-  "safetyAcknowledgment",
-  "fitnessGuidanceAcknowledgment",
 ]);
 
 const UNORDERED_TEXT_QUESTION_IDS = new Set([
@@ -163,24 +147,13 @@ function readMulti(responses: CuratedIntakeResponses, questionId: string) {
 }
 
 function responsePath(questionId: string): JsonPointer {
-  if (SAFETY_QUESTION_IDS.has(questionId)) return `/safety/${questionId}`;
-  if (["trainingDaysPerWeek", "workoutLength", "preferredTrainingDays", "trainingTime"].includes(questionId)) {
-    return `/schedule/${questionId}`;
+  const path = CURATED_RESPONSE_PATH_BY_QUESTION_ID[
+    questionId as keyof typeof CURATED_RESPONSE_PATH_BY_QUESTION_ID
+  ];
+  if (!path) {
+    throw new Error(`Missing governed planning response path for ${questionId}.`);
   }
-  if (["trainingLocations", "availableEquipment", "heaviestDumbbells", "equipmentAvoid"].includes(questionId)) {
-    return `/environment/${questionId}`;
-  }
-  if (["mainGoals", "primaryGoal", "topThreeGoals", "areasToImprove", "movementsToImprove", "weightDirection"].includes(questionId)) {
-    return `/goals/${questionId}`;
-  }
-  if (["trainingExperience", "currentRoutine", "currentSplit", "tracksWorkouts", "mainLiftNumbers"].includes(questionId)) {
-    return `/trainingBackground/${questionId}`;
-  }
-  if (["outsideActivity", "sleepHours"].includes(questionId)) return `/recovery/${questionId}`;
-  if (["exerciseEnjoy", "exerciseHate", "planStyle", "equipmentPreference"].includes(questionId)) {
-    return `/preferences/${questionId}`;
-  }
-  return `/planContext/${questionId}`;
+  return path;
 }
 
 function makeIssue(
@@ -234,7 +207,7 @@ function validateResponses(responses: CuratedIntakeResponses) {
   for (const question of CURATED_QUESTIONS) {
     if (!isCuratedQuestionVisible(question, responses)) continue;
     const fieldPath = responsePath(question.id);
-    const safety = SAFETY_QUESTION_IDS.has(question.id);
+    const safety = fieldPath.startsWith("/safety/");
     if (question.required && !hasCuratedQuestionResponse(question, responses)) {
       issues.push(makeIssue(
         "MISSING_REQUIRED_VALUE",
@@ -516,14 +489,28 @@ export function normalizeCuratedPlanningIntake(
 ): NormalizedPlanningIntakeV1 {
   const responses = removeHiddenCuratedResponses(data.intakeResponses);
   const issues = validateResponses(responses);
-  const requestedDays = parseBoundedInteger(responses, "trainingDaysPerWeek", 1, 7) as NormalizedPlanningIntakeV1["schedule"]["requestedDaysPerWeek"];
+  const parsedRequestedDays = parseBoundedInteger(
+    responses,
+    "trainingDaysPerWeek",
+    1,
+    7,
+  ) as NormalizedPlanningIntakeV1["schedule"]["requestedDaysPerWeek"];
   const preferredDays = readMulti(responses, "preferredTrainingDays");
   const flexible = preferredDays.includes("flexible");
   const unsupportedDays = preferredDays.filter((value) => value !== "flexible" && !WEEKDAY_BY_ANSWER[value]);
   const selectedWeekdays = WEEKDAY_ORDER.filter((weekday) => (
     preferredDays.some((value) => WEEKDAY_BY_ANSWER[value] === weekday)
   ));
-  const weekdays = flexible ? [] : selectedWeekdays;
+  const fixedSchedule = (
+    !flexible
+    && parsedRequestedDays !== null
+    && selectedWeekdays.length === parsedRequestedDays
+  );
+  const countOnlySchedule = flexible && parsedRequestedDays !== null;
+  const requestedDays = fixedSchedule || countOnlySchedule
+    ? parsedRequestedDays
+    : null;
+  const weekdays = fixedSchedule ? selectedWeekdays : [];
   const sessionMinutes = deriveSessionMinutes(responses);
 
   if (unsupportedDays.length > 0) {
@@ -535,13 +522,20 @@ export function normalizeCuratedPlanningIntake(
       { values: unsupportedDays.join(",") },
     ));
   }
-  if (!flexible && requestedDays !== null && weekdays.length !== requestedDays) {
+  if (
+    !flexible
+    && parsedRequestedDays !== null
+    && selectedWeekdays.length !== parsedRequestedDays
+  ) {
     issues.push(makeIssue(
       "DAY_COUNT_MISMATCH",
       "blocking",
       "/schedule/weekdays",
       ["trainingDaysPerWeek", "preferredTrainingDays"],
-      { requestedDays, selectedDays: weekdays.length },
+      {
+        requestedDays: parsedRequestedDays,
+        selectedDays: selectedWeekdays.length,
+      },
     ));
   }
   if (sessionMinutes === null) {
@@ -685,8 +679,16 @@ export function normalizeCuratedPlanningIntake(
     schedule: {
       requestedDaysPerWeek: requestedDays,
       weekdays,
-      dayConstraint: flexible ? "count_only" : weekdays.length > 0 ? "fixed" : "unknown",
-      flexibility: flexible ? "any_available_day" : weekdays.length > 0 ? "none" : "unknown",
+      dayConstraint: fixedSchedule
+        ? "fixed"
+        : countOnlySchedule
+          ? "count_only"
+          : "unknown",
+      flexibility: fixedSchedule
+        ? "none"
+        : countOnlySchedule
+          ? "any_available_day"
+          : "unknown",
       sessionMinutes: {
         target: sessionMinutes,
         hardMaximum: sessionMinutes,

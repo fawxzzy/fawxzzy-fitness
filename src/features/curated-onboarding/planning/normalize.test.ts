@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import { createCuratedOnboardingDraft } from "../fixtures.ts";
+import { CURATED_QUESTION_IDS } from "../questionnaire.ts";
 import {
   canonicalizeJson,
   digestCanonicalJson,
   sha256Hex,
 } from "./canonical.ts";
 import {
+  CURATED_RESPONSE_PATH_BY_QUESTION_ID,
   NORMALIZED_PLANNING_INTAKE_V1_SCHEMA,
   type NormalizedPlanningIntakeV1,
   validateNormalizedPlanningIntakeV1,
@@ -184,7 +186,7 @@ test("runtime validation rejects forged and internally contradictory contracts",
   }
 });
 
-test("digest-consistent safety and schedule contradictions fail closed", () => {
+test("digest-consistent semantic contradictions fail closed", () => {
   const baseline = NORMALIZED_PLANNING_FIXTURES["beginner-home-3day-general-strength"];
 
   const downgradedSafetyIssue = structuredClone(baseline);
@@ -235,6 +237,30 @@ test("digest-consistent safety and schedule contradictions fail closed", () => {
     hardMaximum: null,
   };
 
+  const knownCountInUnknownSchedule = structuredClone(baseline);
+  knownCountInUnknownSchedule.schedule = {
+    ...knownCountInUnknownSchedule.schedule,
+    requestedDaysPerWeek: 3,
+    weekdays: [],
+    dayConstraint: "unknown",
+    flexibility: "unknown",
+  };
+
+  const forgedResponseIssuePath = structuredClone(baseline);
+  forgedResponseIssuePath.normalizationIssues = [
+    ...forgedResponseIssuePath.normalizationIssues,
+    {
+      code: "MISSING_REQUIRED_VALUE",
+      severity: "blocking",
+      fieldPath: "/totally/unknown",
+      sourceQuestionIds: ["forged"],
+      messageArguments: {},
+    },
+  ];
+  forgedResponseIssuePath.constraintClasses.blockingIssueCodes = [
+    "MISSING_REQUIRED_VALUE",
+  ];
+
   const cases: Array<{ expected: RegExp; value: NormalizedPlanningIntakeV1 }> = [
     {
       expected: /severity must be blocking for SAFETY_CLEARANCE_REQUIRED/,
@@ -264,11 +290,30 @@ test("digest-consistent safety and schedule contradictions fail closed", () => {
       expected: /target and hardMaximum must be present or absent together/,
       value: recomputePlanningDigest(missingHardMaximum),
     },
+    {
+      expected: /unknown dayConstraint requires a null day count/,
+      value: recomputePlanningDigest(knownCountInUnknownSchedule),
+    },
+    {
+      expected: /fieldPath must be one of the governed response paths/,
+      value: recomputePlanningDigest(forgedResponseIssuePath),
+    },
   ];
 
   for (const entry of cases) {
     assert.match(validateNormalizedPlanningIntakeV1(entry.value).join(" "), entry.expected);
   }
+});
+
+test("every questionnaire question has one governed response issue path", () => {
+  assert.deepEqual(
+    Object.keys(CURATED_RESPONSE_PATH_BY_QUESTION_ID).sort(),
+    [...CURATED_QUESTION_IDS].sort(),
+  );
+  assert.equal(
+    new Set(Object.values(CURATED_RESPONSE_PATH_BY_QUESTION_ID)).size,
+    CURATED_QUESTION_IDS.length,
+  );
 });
 
 test("semantic issue projection excludes questionnaire provenance identifiers", () => {
@@ -374,6 +419,24 @@ test("flexible schedule answers normalize to a closed count-only state", () => {
   assert.equal(normalized.schedule.dayConstraint, "count_only");
   assert.equal(normalized.schedule.flexibility, "any_available_day");
   assert.deepEqual(normalized.schedule.weekdays, []);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
+});
+
+test("contradictory fixed-day answers normalize to a blocked canonical unknown state", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  input.intakeResponses.trainingDaysPerWeek = "4";
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+
+  assert.equal(normalized.schedule.requestedDaysPerWeek, null);
+  assert.equal(normalized.schedule.dayConstraint, "unknown");
+  assert.equal(normalized.schedule.flexibility, "unknown");
+  assert.deepEqual(normalized.schedule.weekdays, []);
+  assert.ok(
+    normalized.constraintClasses.blockingIssueCodes.includes("DAY_COUNT_MISMATCH"),
+  );
   assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
 });
 

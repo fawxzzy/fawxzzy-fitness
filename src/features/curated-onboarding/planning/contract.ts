@@ -46,18 +46,98 @@ export const NORMALIZATION_ISSUE_CODES = [
 ] as const;
 export type NormalizationIssueCode = typeof NORMALIZATION_ISSUE_CODES[number];
 
+export const CURATED_RESPONSE_PATH_BY_QUESTION_ID = Object.freeze({
+  email: "/planContext/email",
+  name: "/planContext/name",
+  contactMethod: "/planContext/contactMethod",
+  socialUsername: "/planContext/socialUsername",
+  under18: "/safety/under18",
+  guardianPermission: "/safety/guardianPermission",
+  mainGoals: "/goals/mainGoals",
+  primaryGoal: "/goals/primaryGoal",
+  topThreeGoals: "/goals/topThreeGoals",
+  areasToImprove: "/goals/areasToImprove",
+  biggestStruggles: "/planContext/biggestStruggles",
+  height: "/planContext/height",
+  currentWeight: "/planContext/currentWeight",
+  weightDirection: "/goals/weightDirection",
+  trainingExperience: "/trainingBackground/trainingExperience",
+  currentRoutine: "/trainingBackground/currentRoutine",
+  currentSplit: "/trainingBackground/currentSplit",
+  tracksWorkouts: "/trainingBackground/tracksWorkouts",
+  trackingTool: "/planContext/trackingTool",
+  mainLiftNumbers: "/trainingBackground/mainLiftNumbers",
+  trainingDaysPerWeek: "/schedule/trainingDaysPerWeek",
+  workoutLength: "/schedule/workoutLength",
+  preferredTrainingDays: "/schedule/preferredTrainingDays",
+  trainingTime: "/schedule/trainingTime",
+  outsideActivity: "/recovery/outsideActivity",
+  sleepHours: "/recovery/sleepHours",
+  trainingLocations: "/environment/trainingLocations",
+  availableEquipment: "/environment/availableEquipment",
+  heaviestDumbbells: "/environment/heaviestDumbbells",
+  equipmentAvoid: "/environment/equipmentAvoid",
+  hasPainOrLimitations: "/safety/hasPainOrLimitations",
+  painDetails: "/safety/painDetails",
+  exercisesCannotDo: "/safety/exercisesCannotDo",
+  uncomfortableExercises: "/safety/uncomfortableExercises",
+  professionalRestrictions: "/safety/professionalRestrictions",
+  restrictedMovements: "/safety/restrictedMovements",
+  warningSymptoms: "/safety/warningSymptoms",
+  medicalConditions: "/safety/medicalConditions",
+  medications: "/safety/medications",
+  medicationConsiderations: "/safety/medicationConsiderations",
+  safetyAcknowledgment: "/safety/safetyAcknowledgment",
+  exerciseEnjoy: "/preferences/exerciseEnjoy",
+  exerciseHate: "/preferences/exerciseHate",
+  movementsToImprove: "/goals/movementsToImprove",
+  planStyle: "/preferences/planStyle",
+  equipmentPreference: "/preferences/equipmentPreference",
+  tracksFood: "/planContext/tracksFood",
+  tracksProtein: "/planContext/tracksProtein",
+  eatingPattern: "/planContext/eatingPattern",
+  foodRestrictions: "/planContext/foodRestrictions",
+  nutritionDirection: "/planContext/nutritionDirection",
+  nutritionHelp: "/planContext/nutritionHelp",
+  planContents: "/planContext/planContents",
+  planDetail: "/planContext/planDetail",
+  deliveryMethod: "/planContext/deliveryMethod",
+  followUpConsent: "/planContext/followUpConsent",
+  testimonialConsent: "/planContext/testimonialConsent",
+  anythingElse: "/planContext/anythingElse",
+  accuracyAcknowledgment: "/planContext/accuracyAcknowledgment",
+  fitnessGuidanceAcknowledgment: "/safety/fitnessGuidanceAcknowledgment",
+} as const satisfies Record<string, JsonPointer>);
+
+const CURATED_RESPONSE_PATHS = Object.freeze(
+  Object.values(CURATED_RESPONSE_PATH_BY_QUESTION_ID),
+) as readonly JsonPointer[];
+
 const NORMALIZATION_ISSUE_POLICY: Record<
   NormalizationIssueCode,
   {
     severity: NormalizationIssue["severity"];
+    allowedPaths?: readonly JsonPointer[];
     exactPath?: JsonPointer;
     pathPrefix?: JsonPointer;
   }
 > = {
-  MISSING_REQUIRED_VALUE: { severity: "blocking" },
-  INVALID_RESPONSE_TYPE: { severity: "blocking" },
-  INVALID_OPTION: { severity: "blocking" },
-  UNRESOLVED_OTHER_VALUE: { severity: "blocking" },
+  MISSING_REQUIRED_VALUE: {
+    severity: "blocking",
+    allowedPaths: CURATED_RESPONSE_PATHS,
+  },
+  INVALID_RESPONSE_TYPE: {
+    severity: "blocking",
+    allowedPaths: CURATED_RESPONSE_PATHS,
+  },
+  INVALID_OPTION: {
+    severity: "blocking",
+    allowedPaths: CURATED_RESPONSE_PATHS,
+  },
+  UNRESOLVED_OTHER_VALUE: {
+    severity: "blocking",
+    allowedPaths: CURATED_RESPONSE_PATHS,
+  },
   AMBIGUOUS_SAFETY_RESPONSE: { severity: "blocking", pathPrefix: "/safety/" },
   CONTRADICTORY_SAFETY_RESPONSE: { severity: "blocking", pathPrefix: "/safety/" },
   SAFETY_CLEARANCE_REQUIRED: { severity: "blocking", pathPrefix: "/safety/" },
@@ -369,11 +449,13 @@ const NORMALIZATION_ISSUE_SCHEMA = {
       then: {
         properties: {
           severity: { const: policy.severity },
-          ...(policy.exactPath
-            ? { fieldPath: { const: policy.exactPath } }
-            : policy.pathPrefix
-              ? { fieldPath: { pattern: `^${policy.pathPrefix}` } }
-              : {}),
+          ...(policy.allowedPaths
+            ? { fieldPath: { enum: policy.allowedPaths } }
+            : policy.exactPath
+              ? { fieldPath: { const: policy.exactPath } }
+              : policy.pathPrefix
+                ? { fieldPath: { pattern: `^${policy.pathPrefix}` } }
+                : {}),
         },
       },
     };
@@ -537,6 +619,7 @@ const SCHEDULE_SCHEMA = {
       },
       then: {
         properties: {
+          requestedDaysPerWeek: { type: "integer" },
           weekdays: { minItems: 1 },
           flexibility: { const: "none" },
         },
@@ -562,6 +645,7 @@ const SCHEDULE_SCHEMA = {
       },
       then: {
         properties: {
+          requestedDaysPerWeek: { type: "null" },
           weekdays: { maxItems: 0 },
           flexibility: { const: "unknown" },
         },
@@ -867,6 +951,17 @@ function validateIssue(value: unknown, path: string, errors: string[]) {
       errors.push(`${path}.fieldPath must be ${policy.exactPath} for ${issue.code}.`);
     }
     if (
+      policy.allowedPaths
+      && (
+        typeof issue.fieldPath !== "string"
+        || !policy.allowedPaths.includes(issue.fieldPath as JsonPointer)
+      )
+    ) {
+      errors.push(
+        `${path}.fieldPath must be one of the governed response paths for ${issue.code}.`,
+      );
+    }
+    if (
       policy.pathPrefix
       && (
         typeof issue.fieldPath !== "string"
@@ -1044,10 +1139,11 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     && (
       !Array.isArray(weekdays)
       || weekdays.length !== 0
+      || requestedDays !== null
       || schedule?.flexibility !== "unknown"
     )
   ) {
-    errors.push("$.schedule unknown dayConstraint requires no weekdays and unknown flexibility.");
+    errors.push("$.schedule unknown dayConstraint requires a null day count, no weekdays, and unknown flexibility.");
   }
   if (
     schedule?.flexibility === "none"

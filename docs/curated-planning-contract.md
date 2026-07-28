@@ -187,12 +187,14 @@ file directly in addition to the legacy curated engine and roadmap suites.
 `validateNormalizedPlanningIntakeV1` closes every normalized record and array
 item shape, validates issue/ranked-value/provenance semantics, and enforces:
 
-- each issue code has one immutable severity and, for schedule/safety policy
-  codes, one exact path or safety-path family;
+- each issue code has one immutable severity and a closed path policy; general
+  response issues use the exact questionnaire-to-contract response-path
+  allowlist, while derived schedule/safety policies use exact paths or a
+  safety-path family;
 - fixed weekday count equals the requested weekly count;
 - `fixed` means exact weekdays plus no flexibility, `count_only` means a
   non-null day count plus no weekdays and any-day flexibility, and `unknown`
-  means no weekdays plus unknown flexibility;
+  means a null day count, no weekdays, and unknown flexibility;
 - session target and hard maximum are present or absent together;
 - session target never exceeds the hard maximum;
 - safety cannot be `clear` while restrictions, warnings, or unresolved
