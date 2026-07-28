@@ -2,6 +2,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-07-28 - Planner catalogs must freeze executable semantics before routine generation
+- Type: Pattern
+- WHAT changed: The curated-planning foundation now includes a source-only, semantically digested exercise catalog with exact equipment capabilities, frozen restriction and prescription policies, reviewed same-movement substitutions, closed runtime validation, and structured compatibility results.
+- WHY it changed: Deterministic routine generation cannot safely rank or substitute exercises while equipment classes, safety exclusions, progression support, and substitution equivalence remain implicit or mutable.
+- Rule: A planner may consume only a catalog that passes closed validation and semantic-digest recomputation; active exercises require approved safety metadata, exact equipment requirements, derived restriction exclusions, and supported prescription modes.
+- Rule: Equipment and safety constraints remain hard filters before ranking. Substitution metadata must preserve movement semantics and must be re-filtered against the same equipment, experience, and restriction constraints.
+- Pattern: canonical exercise reference -> reviewed executable metadata -> frozen policy validation -> semantic digest -> structured compatibility or infeasibility -> later coverage compiler and planner.
+- Failure Mode: Coarse equipment widening, mutable safety classifications, fabricated starting loads, or unchecked substitutions can make a deterministic planner reproducibly unsafe.
+- Evidence: `src/features/curated-onboarding/planning/catalog/contract.ts`, `src/features/curated-onboarding/planning/catalog/catalog.ts`, `src/features/curated-onboarding/planning/catalog/validate.ts`, `src/features/curated-onboarding/planning/catalog/catalog.test.ts`, `.github/workflows/ci.yml`, `docs/curated-planning-contract.md`
+- Status: Proposed
+
 ## 2026-07-27 - Installation is an earned or explicit action, never an app-entry gate
 - Type: Guardrail
 - WHAT changed: Normal root, login, signup, password recovery, and reset entry no longer redirect through the install guide; the complete install presentation remains available at `/install`, and earned prompts remain on post-value app surfaces.
