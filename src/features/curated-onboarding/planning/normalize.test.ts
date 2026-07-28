@@ -746,6 +746,14 @@ test("dumbbell total labels are excluded across clause and word-order forms", ()
       expectedKg: 22.68,
     },
     {
+      source: "100 lbs is the total load; each dumbbell is 50 lbs",
+      expectedKg: 22.68,
+    },
+    {
+      source: "100 lbs represents the combined load, with 50 lb dumbbells",
+      expectedKg: 22.68,
+    },
+    {
       source: "combined weight: 100 lbs",
       expectedKg: null,
     },

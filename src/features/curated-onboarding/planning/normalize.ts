@@ -389,7 +389,7 @@ function describesAggregateLoad(value: string, start: number, end: number) {
     "i",
   );
   const aggregateAfterAmount = new RegExp(
-    String.raw`^\s*(?:[\[(]\s*)?(?:(?:in|of)\s+)?${aggregateLabel}(?=\s*(?:[)\].,;]|$))`,
+    String.raw`^\s*(?:[\[(]\s*)?(?:(?:in|of|is|was|equals?|represents?|means)\s+)?${aggregateLabel}(?=\s*(?:[)\].,;]|$))`,
     "i",
   );
   return aggregateBeforeAmount.test(before) || aggregateAfterAmount.test(after);
