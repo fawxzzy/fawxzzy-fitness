@@ -222,6 +222,82 @@ the same filter. Fixture 6 separately pins fail-closed `invalid_request` for
 its free-text `rower` capability, which catalog v1 does not silently widen or
 ignore.
 
+## Coverage compiler v1
+
+`src/features/curated-onboarding/planning/coverage/` defines the source-only
+`fitness.planning-coverage.v1` boundary. It is the first consumer of both
+merged contracts:
+
+- planning intake: `fitness.planning-intake.v1`;
+- exercise catalog: `fitness.exercise-catalog.v1`;
+- compiler: `fitness.planning-coverage-compiler.2026-07-28.v1`;
+- policy: `fitness.planning-coverage-policy.2026-07-28.v1`.
+
+The compiler validates both complete inputs before reading executable fields.
+It returns exactly one of:
+
+| Status | Meaning | Executable schedule/requirements |
+| --- | --- | --- |
+| `ready` | Every required coverage item has at least one compatible candidate | Present |
+| `infeasible` | Valid hard constraints leave required coverage or weekly frequency unsatisfied | Present with stable issues |
+| `needs_clarification` | Required planning truth is absent or cannot be mapped without guessing | Absent |
+| `blocked` | Planning or safety state is blocking/ambiguous | Absent |
+| `invalid_input` | An input contract, digest, version, or cross-contract equipment ID is invalid | Absent |
+
+Only `ready` and `infeasible` results expose compiled state. Their schedule
+retains exact fixed weekdays or count-only semantics and the target/hard
+session duration. Their hard-constraint record retains exact available and
+avoided equipment, maximum dumbbell load, movement restrictions, and resolved
+excluded/uncomfortable exercise IDs. Hard exercise names resolve only through
+catalog exercise IDs or executable aliases. Presentation-only canonical names
+and fuzzy free-text matching cannot create or remove a hard exclusion.
+
+Coverage policy is frozen and closed:
+
+- the four catalog goal codes compile into balanced movement-pattern
+  requirements;
+- recognized ranked secondary goals may add requirements or be explicitly
+  classified as adherence/context goals with no physical coverage;
+- target areas and the ten questionnaire movement-skill options use explicit
+  pattern mappings;
+- primary cardio requires two weekly occurrences and supporting cardio one;
+- multiple sources for the same selector are preserved on one deduplicated
+  requirement;
+- unknown primary/secondary goals, target areas, movement skills, required
+  exercise semantics, or hard exercise names return clarification.
+
+Candidate pools come only from `resolveCatalogCandidates`. The compiler unions
+the result for an explicit any-of movement selector, then removes resolved hard
+exercise exclusions. It never widens equipment, treats an avoided capability
+as available, bypasses restriction or clearance tags, or lets a narrower
+equipment set add a candidate. An empty required pool produces
+`REQUIRED_COVERAGE_UNAVAILABLE`; a minimum frequency above the known weekly
+day count produces `WEEKLY_FREQUENCY_UNAVAILABLE`.
+
+`coverageDigest` binds compiler/policy versions, both input semantic digests,
+schedule and hard constraints, source-ranked coverage requirements, candidate
+pools, issues, and terminal status. `validateCoverageCompilationV1` closes the
+runtime shape, freezes issue code/class/path meaning, enforces status
+invariants, and recomputes that digest. Because a self-digest is consistency,
+not authorization, consumers with the two inputs must additionally call
+`validateCoverageCompilationAgainstInputsV1`; it recompiles and rejects a
+re-signed forged candidate pool.
+
+The digest is not a routine, plan-creation idempotency key, persistence proof,
+or activation token. Coverage v1 does not rank candidates, assign them to
+sessions, prescribe sets/reps/load/progression, generate a routine, persist
+data, or change production onboarding behavior. Those remain separately
+versioned and governed packets.
+
+The ten normalized fixtures pin all terminal classes needed by this boundary:
+five compile ready, bodyweight travel and pull-up-without-pull-equipment return
+structured infeasibility, the unsupported `rower` fixture is invalid, the
+ambiguous warning fixture is blocked, and the free-text `overhead press`
+exclusion requests clarification because it is not an executable catalog
+alias. `.github/workflows/planning-coverage-contract.yml` executes the focused
+suite directly at each relevant exact head without modifying the open
+`.github/workflows/ci.yml` lane.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
@@ -299,12 +375,11 @@ general questionnaire.
 
 ## Future consumption and governed dependencies
 
-A future coverage compiler and planner may consume only the validated
-normalized contract and validated exercise catalog, not raw questionnaire IDs.
-It must validate contract and policy versions, reject blocking issues, compile
-hard constraints before scoring, preserve exact equipment capabilities, and
-produce a structured infeasibility result when required coverage cannot be
-satisfied.
+The coverage compiler consumes only the validated normalized contract and
+validated exercise catalog, not raw questionnaire IDs. A future planner must
+consume a validated, input-bound coverage result, revalidate all contract and
+policy versions, preserve hard constraints before scoring, and refuse
+`blocked`, `needs_clarification`, `invalid_input`, or `infeasible` results.
 
 Persistence integration is a later governed packet. Before it can claim
 lossless or idempotent creation, the repository needs evidence for:

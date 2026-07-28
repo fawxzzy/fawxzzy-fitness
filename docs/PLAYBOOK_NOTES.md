@@ -693,3 +693,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Keyword inference, pre-canonical deduplication, unitless load assumptions, and largest-number parsing can turn ambiguous safety or equipment text into authoritative planner constraints.
 - Evidence: `src/features/curated-onboarding/planning/normalize.ts`, `src/features/curated-onboarding/planning/normalize.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-28 - Coverage compiles before ranking or session construction
+- Type: Decision
+- WHAT changed: Fitness now has a source-only, input-bound coverage compiler that converts validated planning and catalog contracts into exact schedule/hard constraints, source-ranked movement requirements, compatible candidate pools, and structured blocked, clarification, invalid, or infeasible results.
+- WHY it changed: A deterministic planner cannot safely rank exercises while schedule truth, hard exclusions, cross-contract equipment IDs, or required coverage are still ambiguous. Candidate compatibility must be proven before scoring or session allocation.
+- Rule: Validate both inputs, compile hard constraints, resolve every required coverage item through the catalog, and stop on any blocked, invalid, clarification, or infeasible result before ranking.
+- Pattern: normalized planning digest + catalog digest -> frozen coverage policy -> exact hard constraints -> compatibility pools -> input-bound semantic digest -> later planner.
+- Failure Mode: Treating a self-digest as source authenticity, fuzzily matching presentation names, ignoring unsupported equipment, or scoring before feasibility can produce a deterministic but unsafe routine.
+- Decision: `validateCoverageCompilationV1` proves closed shape and internal consistency; consumers must use `validateCoverageCompilationAgainstInputsV1` to recompile and reject re-signed forged candidate pools.
+- Decision: Coverage v1 does not rank, schedule, prescribe, generate, persist, or activate routines. Those remain separate governed contracts.
+- Evidence: `src/features/curated-onboarding/planning/coverage/contract.ts`, `src/features/curated-onboarding/planning/coverage/compile.ts`, `src/features/curated-onboarding/planning/coverage/compile.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
