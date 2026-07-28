@@ -3,6 +3,13 @@ import type {
   EquipmentAccess,
   TrainingGoal,
 } from "./types.ts";
+import {
+  CURATED_PLANNING_ALGORITHM_VERSION,
+  CURATED_PLANNING_CONTRACT_VERSION,
+  normalizeCuratedPlanningContract,
+  sha256Hex,
+  type CuratedWeekdayIndex,
+} from "./planning-contract.ts";
 
 export type CuratedPlanExercise = {
   slug: string;
@@ -21,13 +28,21 @@ export type CuratedPlanDay = {
 };
 
 export type CuratedWorkoutPlan = {
-  version: 1;
+  version: 2;
   planId: string;
   name: string;
   rationale: string[];
   daysPerWeek: number;
   sessionLengthMinutes: number;
   progressionPlaybookId: "double_progression";
+  trainingDayIndexes: CuratedWeekdayIndex[] | null;
+  provenance: {
+    planningContractVersion: typeof CURATED_PLANNING_CONTRACT_VERSION;
+    planningAlgorithmVersion: typeof CURATED_PLANNING_ALGORITHM_VERSION;
+    planningDigestAlgorithm: "sha256";
+    planningDigest: string;
+    catalogVersion: "legacy-static-v1";
+  };
   days: CuratedPlanDay[];
 };
 
@@ -344,23 +359,14 @@ function getTargetRange(goal: TrainingGoal, role: MovementRole) {
   return { min: 6, max: 10 };
 }
 
-function hashPlan(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
-
-function validateIntake(data: CuratedOnboardingData) {
+function validateIntake(data: CuratedOnboardingData, equipment: EquipmentAccess[]) {
   return Boolean(
     data.trainingGoal
     && data.experience
     && data.daysPerWeek
     && SPLITS[data.daysPerWeek]
     && data.sessionLengthMinutes
-    && data.equipment.length > 0,
+    && equipment.length > 0,
   );
 }
 
@@ -368,27 +374,49 @@ function generateCuratedWorkoutPlanWithSignals(
   data: CuratedOnboardingData,
   signals: CuratedHistorySignals | null,
 ): CuratedWorkoutPlan {
-  if (!validateIntake(data)) {
+  const planning = normalizeCuratedPlanningContract(data);
+  if (planning.status === "blocked") {
+    throw new Error(`Curated plan generation is blocked: ${planning.blockerCodes.join(", ")}.`);
+  }
+  if (!validateIntake(data, planning.equipment.access)) {
     throw new Error("Complete goal, experience, equipment, schedule, and session length before generating a plan.");
   }
 
   const goal = data.trainingGoal as TrainingGoal;
-  const requestedDaysPerWeek = data.daysPerWeek as number;
+  const requestedDaysPerWeek = planning.schedule.daysPerWeek as number;
+  const hasExactWeekdaySchedule = planning.schedule.mode === "exact-weekdays";
   const shouldReduceSchedule = Boolean(
     signals
+    && !hasExactWeekdaySchedule
     && requestedDaysPerWeek > 2
     && (signals.missedWorkoutCount >= 2 || (signals.completionRate !== null && signals.completionRate < 0.6)),
   );
   const daysPerWeek = shouldReduceSchedule ? requestedDaysPerWeek - 1 : requestedDaysPerWeek;
-  const sessionLengthMinutes = data.sessionLengthMinutes as number;
-  const equipment = signals?.availableEquipment?.length ? signals.availableEquipment : data.equipment;
+  const sessionLengthMinutes = planning.schedule.sessionLengthMinutes as number;
+  const signalEquipment = signals?.availableEquipment ?? [];
+  const equipment = signalEquipment.length === 0 || signalEquipment.includes("full-gym")
+    ? planning.equipment.access
+    : planning.equipment.access.filter((value) => signalEquipment.includes(value));
+  if (equipment.length === 0) {
+    throw new Error("No declared equipment remains available for curated plan generation.");
+  }
+  const normalizedData: CuratedOnboardingData = {
+    ...data,
+    daysPerWeek,
+    sessionLengthMinutes,
+    equipment,
+    limitations: planning.safety.limitations.join("\n"),
+    exerciseLikes: planning.preferences.exerciseLikes,
+    exerciseDislikes: planning.preferences.exerciseDislikes,
+    targetAreas: planning.goals.targetAreas,
+  };
   const adaptiveExcludedSlugs = new Set([
     ...(signals?.failedExerciseSlugs ?? []),
     ...(signals?.fatiguedExerciseSlugs ?? []),
   ]);
-  const intakeConstraints = buildIntakeConstraintExclusions(data);
+  const intakeConstraints = buildIntakeConstraintExclusions(normalizedData);
   const excludedSlugs = new Set([...adaptiveExcludedSlugs, ...intakeConstraints.excluded]);
-  const preferences = buildPreferenceProfile(data);
+  const preferences = buildPreferenceProfile(normalizedData);
   const exerciseLimit = sessionLengthMinutes <= 30 ? 4 : sessionLengthMinutes <= 45 ? 5 : sessionLengthMinutes <= 60 ? 6 : 7;
   const baseSets = data.experience === "beginner" ? 3 : goal === "get-stronger" ? 4 : 3;
   const split = SPLITS[daysPerWeek];
@@ -432,17 +460,9 @@ function generateCuratedWorkoutPlanWithSignals(
     "general-fitness": "Atlas Fitness",
   };
   const stableInput = JSON.stringify({
-    goal,
-    experience: data.experience,
+    planningDigest: planning.provenance.digest,
     daysPerWeek,
-    sessionLengthMinutes,
     equipment: [...equipment].sort(),
-    preferredStyle: data.preferredStyle ?? null,
-    cardioPreference: data.cardioPreference ?? null,
-    limitations: normalizeConstraint(data.limitations ?? ""),
-    exerciseDislikes: data.exerciseDislikes.map(normalizeConstraint).filter(Boolean).sort(),
-    exerciseLikes: data.exerciseLikes.map(normalizeConstraint).filter(Boolean).sort(),
-    targetAreas: data.targetAreas.map(normalizeConstraint).filter(Boolean).sort(),
     adaptiveSignals: signals ? {
       completionRate: signals.completionRate,
       missedWorkoutCount: signals.missedWorkoutCount,
@@ -464,11 +484,14 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(preferences.exerciseLikes.length > 0 || preferences.targetTokens.size > 0
       ? ["Your preferred exercises and target areas shape the order of safe, equipment-compatible choices."]
       : []),
+    ...(hasExactWeekdaySchedule
+      ? ["Your exact selected weekdays are preserved in the routine schedule."]
+      : []),
   ];
 
   return {
-    version: 1,
-    planId: `curated-${hashPlan(stableInput)}`,
+    version: 2,
+    planId: `curated-${sha256Hex(stableInput).slice(0, 16)}`,
     name: nameByGoal[goal],
     rationale: [
       `${daysPerWeek} training days sized for ${sessionLengthMinutes}-minute sessions.`,
@@ -479,6 +502,16 @@ function generateCuratedWorkoutPlanWithSignals(
     daysPerWeek,
     sessionLengthMinutes,
     progressionPlaybookId: "double_progression",
+    trainingDayIndexes: hasExactWeekdaySchedule
+      ? planning.schedule.preferredWeekdayIndexes
+      : null,
+    provenance: {
+      planningContractVersion: CURATED_PLANNING_CONTRACT_VERSION,
+      planningAlgorithmVersion: CURATED_PLANNING_ALGORITHM_VERSION,
+      planningDigestAlgorithm: "sha256",
+      planningDigest: planning.provenance.digest,
+      catalogVersion: "legacy-static-v1",
+    },
     days,
   };
 }
@@ -502,8 +535,18 @@ export function buildCuratedRoutineSchedule(plan: CuratedWorkoutPlan): CuratedRo
     throw new Error("Curated routines require between one and seven training days.");
   }
 
+  const trainingDayIndexes = plan.trainingDayIndexes
+    ?? plan.days.map((_, index) => Math.floor((index * cycleLengthDays) / trainingDayCount) + 1);
+  if (
+    trainingDayIndexes.length !== trainingDayCount
+    || new Set(trainingDayIndexes).size !== trainingDayIndexes.length
+    || trainingDayIndexes.some((dayIndex) => dayIndex < 1 || dayIndex > cycleLengthDays)
+  ) {
+    throw new Error("Curated routine weekday scheduling does not match the generated training days.");
+  }
+
   const trainingDayByIndex = new Map(
-    plan.days.map((planDay, index) => [Math.floor((index * cycleLengthDays) / trainingDayCount) + 1, planDay]),
+    plan.days.map((planDay, index) => [trainingDayIndexes[index], planDay]),
   );
 
   return Array.from({ length: cycleLengthDays }, (_, index) => ({

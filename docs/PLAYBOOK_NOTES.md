@@ -661,3 +661,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A visually plausible catalog can certify the wrong source state if merge reconciliation is inferred from metadata rather than Git objects.
 - Evidence: `docs/mobile-regression-fixtures.md`, `scripts/qa/visual-fitness-runner.mjs`
 - Status: Proposed
+
+## 2026-07-28 - Routine generation starts from one versioned planning contract
+- Type: Decision
+- WHAT changed: Curated onboarding answers now normalize into one versioned, SHA-256-addressed planning contract before exercise selection; exact weekdays reach routine scheduling and explicit equipment answers outrank broad location inference.
+- WHY it changed: The previous engine retained raw intake but selected from a thin static model, silently redistributed preferred weekdays, and could interpret Planet Fitness as unrestricted full-gym equipment.
+- Rule: Generation must consume normalized planning truth; planning-relevant ambiguity and explicit safety blockers fail closed before exercise selection, while contact identity stays outside the digest.
+- Pattern: existing questionnaire -> normalized planning contract -> deterministic digest -> safety/schedule gate -> legacy selector -> exact weekday schedule. Later catalog and coverage work replaces only the selector side of this boundary.
+- Failure Mode: Reading raw questionnaire fields ad hoc lets scheduling, equipment, safety, and preference behavior drift and makes idempotent plan identity impossible to audit.
+- Decision: Keep the first packet source-only and prove `beginner-planet-fitness-4day-muscle-gain` without claiming the later catalog, coverage-ledger, substitution, or persistence expansions.
+- Evidence: `src/features/curated-onboarding/planning-contract.ts`, `src/features/curated-onboarding/planning-fixtures.ts`, `src/features/curated-onboarding/engine.ts`, `docs/curated-routine-generation-contract.md`
+- Status: Proposed
