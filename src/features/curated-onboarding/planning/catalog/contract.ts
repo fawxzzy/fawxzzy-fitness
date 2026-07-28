@@ -299,6 +299,7 @@ export type ExerciseCatalogBundleV1 = {
 };
 
 export type CatalogCandidateRejectionCode =
+  | "CLEARANCE_REQUIRED"
   | "EQUIPMENT_AVOIDED"
   | "EQUIPMENT_UNAVAILABLE"
   | "EXPERIENCE_UNSUPPORTED"

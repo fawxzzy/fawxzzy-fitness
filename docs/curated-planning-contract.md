@@ -187,21 +187,24 @@ introduce a compatible exercise, and an avoided capability cannot be selected.
 
 Restriction mappings are frozen code-to-demand exclusions. Active exercises
 must have approved safety metadata, and their exclusion list is derived from
-their demand tags. Substitutions may only reference active exercises in the
-same equivalence class and movement pattern. They are metadata for later
-re-filtering, never permission to bypass equipment, experience, or safety
-constraints.
+their demand tags. A matching `requiresClearanceTags` entry also fails closed
+with `CLEARANCE_REQUIRED`; catalog v1 has no positive-clearance input that
+could authorize the exercise. Substitutions may only reference active
+exercises in the same equivalence class and movement pattern. They are
+metadata for later re-filtering, never permission to bypass equipment,
+experience, or safety constraints.
 
 Prescription classes freeze supported measurement and progression modes.
 Starting resistance is explicitly unset; neither historical performance nor
 catalog metadata fabricates an initial load.
 
-The catalog semantic digest includes executable identities, aliases,
-equipment, restrictions, prescriptions, exercise metadata, and substitution
-rules. It excludes the digest field itself and presentation-only
-`canonicalName`. The validator closes every nested runtime shape, enforces
-canonical ordering and frozen policy sets, resolves all references, validates
-substitution compatibility, and recomputes the digest.
+The catalog semantic digest includes executable identities and aliases,
+equipment, restrictions, prescriptions, executable exercise metadata, and
+substitution rules. It excludes the digest field itself and presentation-only
+`canonicalName`; names are checked against the canonical reference fixture but
+are not executable lookup keys. The validator closes every nested runtime
+shape, enforces canonical ordering and frozen policy sets, resolves all
+references, validates substitution compatibility, and recomputes the digest.
 
 `resolveCatalogCandidates` is a bounded compatibility resolver. It returns
 deterministic compatible IDs, structured candidate rejection reasons, or

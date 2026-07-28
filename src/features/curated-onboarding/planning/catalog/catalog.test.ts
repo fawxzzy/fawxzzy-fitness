@@ -129,6 +129,15 @@ test("presentation-only canonical names do not alter semantic identity", () => {
   assert.equal(digestExerciseCatalog(renamed), PLANNER_EXERCISE_CATALOG_V1.catalogDigest);
   assert.deepEqual(validateExerciseCatalogBundleV1(renamed), []);
 
+  const presentationCollision = cloneCatalog();
+  presentationCollision.exercises[0].canonicalName =
+    presentationCollision.exercises[1].canonicalName;
+  assert.equal(
+    digestExerciseCatalog(presentationCollision),
+    PLANNER_EXERCISE_CATALOG_V1.catalogDigest,
+  );
+  assert.deepEqual(validateExerciseCatalogBundleV1(presentationCollision), []);
+
   const semanticAliasChange = cloneCatalog();
   semanticAliasChange.exercises[0].aliases.push("new matching alias");
   semanticAliasChange.exercises[0].aliases.sort();
@@ -334,6 +343,36 @@ test("restrictions are monotonic and substitutions cannot bypass the same filter
   assert.equal(restrictedResult.status, "unavailable");
   if (restrictedResult.status === "unavailable") {
     assert.deepEqual(restrictedResult.reasonCodes, ["RESTRICTION_CONFLICT"]);
+  }
+});
+
+test("clearance-tagged exercises fail closed without positive clearance evidence", () => {
+  const catalog = cloneCatalog();
+  const squat = catalog.exercises.find((exercise) => exercise.id === "bodyweight-squat");
+  assert.ok(squat);
+  squat.safety.requiresClearanceTags = ["NO_AXIAL_LOADING"];
+  resign(catalog);
+  assert.deepEqual(validateExerciseCatalogBundleV1(catalog), []);
+
+  const result = resolveCatalogCandidates(
+    catalog,
+    query("squat", ["bodyweight"], {
+      experience: "beginner",
+      restrictionCodes: ["NO_AXIAL_LOADING"],
+    }),
+  );
+  assert.equal(result.status, "unavailable");
+  if (result.status === "unavailable") {
+    assert.ok(result.reasonCodes.includes("CLEARANCE_REQUIRED"));
+    assert.deepEqual(
+      result.rejectedCandidates.find(
+        (candidate) => candidate.exerciseId === "bodyweight-squat",
+      ),
+      {
+        exerciseId: "bodyweight-squat",
+        reasonCodes: ["CLEARANCE_REQUIRED"],
+      },
+    );
   }
 });
 

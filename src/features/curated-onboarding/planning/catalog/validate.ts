@@ -717,7 +717,7 @@ function validateCrossReferences(catalog: ExerciseCatalogBundleV1, errors: strin
       errors.push(`Active exercise ${exercise.id} must have approved safety review.`);
     }
 
-    for (const lookup of [exercise.canonicalName, exercise.id, ...exercise.aliases]) {
+    for (const lookup of [exercise.id, ...exercise.aliases]) {
       const normalized = normalizedLookup(lookup);
       const owner = lookupOwners.get(normalized);
       if (owner && owner !== exercise.id) {
@@ -987,6 +987,9 @@ export function resolveCatalogCandidates(
     }
     if (exercise.safety.excludedByRestrictionTags.some((code) => restrictions.has(code))) {
       reasonCodes.add("RESTRICTION_CONFLICT");
+    }
+    if (exercise.safety.requiresClearanceTags.some((code) => restrictions.has(code))) {
+      reasonCodes.add("CLEARANCE_REQUIRED");
     }
 
     const orderedReasonCodes = [...reasonCodes].sort(canonicalCompare);
