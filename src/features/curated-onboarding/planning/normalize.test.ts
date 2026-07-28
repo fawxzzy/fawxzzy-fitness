@@ -1,0 +1,294 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import test from "node:test";
+import { createCuratedOnboardingDraft } from "../fixtures.ts";
+import {
+  canonicalizeJson,
+  digestCanonicalJson,
+  sha256Hex,
+} from "./canonical.ts";
+import {
+  NORMALIZED_PLANNING_INTAKE_V1_SCHEMA,
+  validateNormalizedPlanningIntakeV1,
+} from "./contract.ts";
+import {
+  NORMALIZED_PLANNING_FIXTURE_EXPECTATIONS,
+  NORMALIZED_PLANNING_FIXTURE_IDS,
+  NORMALIZED_PLANNING_FIXTURES,
+  createNormalizedPlanningFixtureInput,
+} from "./fixtures.ts";
+import {
+  canonicalizeNormalizedPlanningIntake,
+  normalizeCuratedPlanningIntake,
+} from "./normalize.ts";
+
+const GOLDEN_GENERATION_PROJECTION_DIGESTS = {
+  "beginner-home-3day-general-strength": "5c273b75bf22f032fb2fbb33e73b0b46985bc944ff31acedff894b000017317e",
+  "beginner-planet-fitness-4day-muscle-gain": "b45da9af4f5759d0f209f9fb0356c27de3674151ca3817328fcdd9d24ba875f7",
+  "intermediate-freeweights-5day-strength": "87e957fc25e9810c8c267fa653bbe23ad40a8880d02a012af72cd78c7cf14633",
+  "time-limited-3day-30min": "6eb5b56ae731a27346d94f8b46b64900576c2ecbcc2bd2576e1b472fafd435e1",
+  "bodyweight-travel-4day-general-fitness": "d6808626ee11f7a3c029a764546487626ce2f92f5a44f2dbfcb4df1fc5c107e7",
+  "cardio-priority-4day-hybrid": "cf32cb5bd424794d6cd68d3c3b7f57245d6a479107d4d9efcb60eebfe1f0e762",
+  "lower-emphasis-4day-secondary-upper": "f8fa06308fd79087e3acdeb0397efe8d9563898614b83ab482325388f5cf2206",
+  "no-overhead-3day-substitution": "feccf394effd207a834f6e96824c2222651dbfffb9d50a9c8fc9ecbad68c7e7f",
+  "ambiguous-warning-blocked": "b8069d18a7351e1374c9c7ad49640e3b04a44844d2df5da9f715c91bab5fd2c8",
+  "pullup-priority-no-pull-equipment": "67a31ebb78ccdff59afee3759682758c8d8dbbd56b9bf6c3d7131e2dc47bd453",
+} as const;
+
+test("canonical JSON and portable SHA-256 are deterministic across property order", () => {
+  const left = { z: 1, nested: { b: true, a: "value" }, list: [3, 2, 1] };
+  const right = { list: [3, 2, 1], nested: { a: "value", b: true }, z: 1 };
+  const unicode = "Fawxzzy Fitness deterministic planning";
+
+  assert.equal(canonicalizeJson(left), canonicalizeJson(right));
+  assert.equal(digestCanonicalJson(left), digestCanonicalJson(right));
+  assert.equal(
+    sha256Hex(unicode),
+    createHash("sha256").update(unicode, "utf8").digest("hex"),
+  );
+  assert.throws(() => canonicalizeJson({ invalid: undefined }), /Undefined is not canonical JSON/);
+});
+
+test("all ten golden normalized fixtures satisfy the contract and pinned projections", () => {
+  assert.equal(NORMALIZED_PLANNING_FIXTURE_IDS.length, 10);
+
+  for (const fixtureId of NORMALIZED_PLANNING_FIXTURE_IDS) {
+    const fixture = NORMALIZED_PLANNING_FIXTURES[fixtureId];
+    const expected = NORMALIZED_PLANNING_FIXTURE_EXPECTATIONS[fixtureId];
+    const repeated = normalizeCuratedPlanningIntake(
+      createNormalizedPlanningFixtureInput(fixtureId),
+    );
+
+    assert.deepEqual(validateNormalizedPlanningIntakeV1(fixture), [], fixtureId);
+    assert.equal(fixture.schedule.requestedDaysPerWeek, expected.daysPerWeek, fixtureId);
+    assert.deepEqual(fixture.schedule.weekdays, expected.weekdays, fixtureId);
+    assert.equal(fixture.goals.primary, expected.primaryGoal, fixtureId);
+    assert.equal(fixture.safety.status === "blocked", expected.blocked, fixtureId);
+    assert.equal(
+      fixture.generationProjectionDigest,
+      GOLDEN_GENERATION_PROJECTION_DIGESTS[fixtureId],
+      fixtureId,
+    );
+    assert.equal(
+      canonicalizeNormalizedPlanningIntake(fixture),
+      canonicalizeNormalizedPlanningIntake(repeated),
+      fixtureId,
+    );
+  }
+});
+
+test("contract schema rejects unknown root state and unsupported versions", () => {
+  const fixture = NORMALIZED_PLANNING_FIXTURES["beginner-home-3day-general-strength"];
+  const unknownRootState = { ...fixture, unexpected: true };
+  const unknownNestedState = {
+    ...fixture,
+    schedule: { ...fixture.schedule, unexpected: true },
+  };
+  const unsupportedVersion = { ...fixture, contractVersion: "fitness.planning-intake.v2" };
+
+  assert.equal(NORMALIZED_PLANNING_INTAKE_V1_SCHEMA.additionalProperties, false);
+  assert.match(validateNormalizedPlanningIntakeV1(unknownRootState).join(" "), /unknown property unexpected/);
+  assert.match(
+    validateNormalizedPlanningIntakeV1(unknownNestedState).join(" "),
+    /\$\.schedule contains unknown property unexpected/,
+  );
+  assert.match(validateNormalizedPlanningIntakeV1(unsupportedVersion).join(" "), /unsupported/);
+});
+
+test("unordered equipment and exclusion permutations preserve canonical output and projection digest", () => {
+  const leftInput = createNormalizedPlanningFixtureInput(
+    "beginner-planet-fitness-4day-muscle-gain",
+  );
+  const rightInput = createNormalizedPlanningFixtureInput(
+    "beginner-planet-fitness-4day-muscle-gain",
+  );
+  const equipment = rightInput.intakeResponses.availableEquipment;
+  assert.ok(Array.isArray(equipment));
+  rightInput.intakeResponses.availableEquipment = [...equipment].reverse();
+
+  const left = normalizeCuratedPlanningIntake(leftInput);
+  const right = normalizeCuratedPlanningIntake(rightInput);
+
+  assert.deepEqual(left.environment.equipmentAvailable, right.environment.equipmentAvailable);
+  assert.equal(left.source.rawResponseDigest, right.source.rawResponseDigest);
+  assert.equal(left.generationProjectionDigest, right.generationProjectionDigest);
+  assert.equal(
+    canonicalizeNormalizedPlanningIntake(left),
+    canonicalizeNormalizedPlanningIntake(right),
+  );
+
+  const leftExclusionInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const rightExclusionInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  leftExclusionInput.intakeResponses.exercisesCannotDo = "Burpee, sit-up";
+  rightExclusionInput.intakeResponses.exercisesCannotDo = "sit-up; BURPEE";
+
+  const leftExclusion = normalizeCuratedPlanningIntake(leftExclusionInput);
+  const rightExclusion = normalizeCuratedPlanningIntake(rightExclusionInput);
+
+  assert.deepEqual(
+    leftExclusion.safety.excludedExerciseNames,
+    ["burpee", "sit-up"],
+  );
+  assert.equal(
+    canonicalizeNormalizedPlanningIntake(leftExclusion),
+    canonicalizeNormalizedPlanningIntake(rightExclusion),
+  );
+});
+
+test("ranked-goal and exact-weekday changes alter the generation projection", () => {
+  const baselineInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const rankedGoalInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const weekdayInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  rankedGoalInput.intakeResponses.topThreeGoals = "Build consistency\nGet stronger\nGeneral fitness";
+  weekdayInput.intakeResponses.preferredTrainingDays = ["tue", "thu", "sat"];
+
+  const baseline = normalizeCuratedPlanningIntake(baselineInput);
+  const rankedGoal = normalizeCuratedPlanningIntake(rankedGoalInput);
+  const weekday = normalizeCuratedPlanningIntake(weekdayInput);
+
+  assert.notEqual(rankedGoal.generationProjectionDigest, baseline.generationProjectionDigest);
+  assert.notEqual(weekday.generationProjectionDigest, baseline.generationProjectionDigest);
+  assert.deepEqual(weekday.schedule.weekdays, ["tuesday", "thursday", "saturday"]);
+});
+
+test("hidden cleared answers do not survive normalization", () => {
+  const baselineInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const staleInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  staleInput.intakeResponses.guardianPermission = "no";
+  staleInput.intakeResponses.painDetails = "Old overhead limitation";
+  staleInput.intakeResponses.restrictedMovements = "Old axial loading restriction";
+
+  const baseline = normalizeCuratedPlanningIntake(baselineInput);
+  const stale = normalizeCuratedPlanningIntake(staleInput);
+
+  assert.deepEqual(stale.safety.movementRestrictions, []);
+  assert.equal(stale.source.rawResponseDigest, baseline.source.rawResponseDigest);
+  assert.equal(stale.generationProjectionDigest, baseline.generationProjectionDigest);
+});
+
+test("malformed Other values produce deterministic blocking issues", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  input.intakeResponses.mainGoals = ["other"];
+  delete input.intakeResponses.mainGoalsOther;
+
+  const first = normalizeCuratedPlanningIntake(input);
+  const second = normalizeCuratedPlanningIntake(input);
+  const codes = first.normalizationIssues.map((issue) => issue.code);
+
+  assert.ok(codes.includes("MISSING_REQUIRED_VALUE"));
+  assert.ok(codes.includes("UNRESOLVED_OTHER_VALUE"));
+  assert.equal(
+    canonicalizeNormalizedPlanningIntake(first),
+    canonicalizeNormalizedPlanningIntake(second),
+  );
+});
+
+test("unknown options and wrong-typed safety answers fail closed with stable codes", () => {
+  const invalidOptionInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const invalidSafetyTypeInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  invalidOptionInput.intakeResponses.planStyle = "surprise-me";
+  invalidSafetyTypeInput.intakeResponses.warningSymptoms = "none";
+
+  const invalidOption = normalizeCuratedPlanningIntake(invalidOptionInput);
+  const invalidSafetyType = normalizeCuratedPlanningIntake(invalidSafetyTypeInput);
+
+  assert.ok(invalidOption.constraintClasses.blockingIssueCodes.includes("INVALID_OPTION"));
+  assert.ok(
+    invalidSafetyType.constraintClasses.blockingIssueCodes.includes(
+      "AMBIGUOUS_SAFETY_RESPONSE",
+    ),
+  );
+  assert.equal(invalidSafetyType.safety.status, "blocked");
+});
+
+test("ambiguous safety information blocks while explicit restrictions remain scoped", () => {
+  const blocked = NORMALIZED_PLANNING_FIXTURES["ambiguous-warning-blocked"];
+  const restricted = NORMALIZED_PLANNING_FIXTURES["no-overhead-3day-substitution"];
+
+  assert.equal(blocked.safety.status, "blocked");
+  assert.ok(blocked.constraintClasses.blockingIssueCodes.includes("AMBIGUOUS_SAFETY_RESPONSE"));
+  assert.ok(blocked.constraintClasses.blockingIssueCodes.includes("SAFETY_CLEARANCE_REQUIRED"));
+  assert.equal(restricted.safety.status, "restricted");
+  assert.deepEqual(restricted.safety.professionalDirection.restrictionCodes, ["NO_OVERHEAD_LOADING"]);
+  assert.ok(restricted.safety.excludedExerciseNames.includes("overhead press"));
+});
+
+test("delivery and contact context do not alter exercise-selection projection", () => {
+  const baselineInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const contextInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  contextInput.intakeResponses.email = "another@example.com";
+  contextInput.intakeResponses.name = "Another Fixture";
+  contextInput.intakeResponses.planDetail = "detailed";
+  contextInput.intakeResponses.deliveryMethod = "email";
+  contextInput.intakeResponses.followUpConsent = "no";
+  contextInput.intakeResponses.trainingTime = "night";
+  contextInput.intakeResponses.mainLiftNumbers = "Bench 315 lb";
+
+  const baseline = normalizeCuratedPlanningIntake(baselineInput);
+  const context = normalizeCuratedPlanningIntake(contextInput);
+
+  assert.notEqual(context.source.rawResponseDigest, baseline.source.rawResponseDigest);
+  assert.notDeepEqual(context.planContext.delivery, baseline.planContext.delivery);
+  assert.notEqual(
+    context.trainingBackground.knownPerformanceContext,
+    baseline.trainingBackground.knownPerformanceContext,
+  );
+  assert.equal(context.generationProjectionDigest, baseline.generationProjectionDigest);
+});
+
+test("normalization does not trust legacy derived fields or introduce a starting load", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-planet-fitness-4day-muscle-gain",
+  );
+  Object.assign(input, {
+    trainingGoal: "get-stronger",
+    experience: "advanced",
+    daysPerWeek: 7,
+    sessionLengthMinutes: 90,
+    equipment: ["full-gym", "barbell"],
+  });
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+  const canonical = canonicalizeNormalizedPlanningIntake(normalized);
+
+  assert.equal(normalized.goals.primary, "build_muscle");
+  assert.equal(normalized.trainingBackground.experience, "beginner");
+  assert.equal(normalized.schedule.requestedDaysPerWeek, 4);
+  assert.equal(normalized.environment.equipmentAvailable.includes("barbells"), false);
+  assert.equal(canonical.includes("startingLoad"), false);
+});
+
+test("an empty legacy onboarding object fails closed deterministically", () => {
+  const empty = createCuratedOnboardingDraft().data;
+  const first = normalizeCuratedPlanningIntake(empty);
+  const second = normalizeCuratedPlanningIntake(empty);
+
+  assert.ok(first.constraintClasses.blockingIssueCodes.includes("MISSING_REQUIRED_VALUE"));
+  assert.equal(first.safety.status, "blocked");
+  assert.equal(first.generationProjectionDigest, second.generationProjectionDigest);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(first), []);
+});

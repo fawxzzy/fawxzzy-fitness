@@ -661,3 +661,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A visually plausible catalog can certify the wrong source state if merge reconciliation is inferred from metadata rather than Git objects.
 - Evidence: `docs/mobile-regression-fixtures.md`, `scripts/qa/visual-fitness-runner.mjs`
 - Status: Proposed
+
+## 2026-07-28 - Raw onboarding answers compile into a semantic planning contract
+- Type: Decision
+- WHAT changed: Curated onboarding now has a source-only, versioned normalization boundary with deterministic issues, parallel provenance, a semantic generation projection, portable canonical hashing, and ten golden normalized fixtures. Production generation and persistence remain unchanged.
+- WHY it changed: Directly reading raw question IDs in a generator couples planning to UI shape, makes hidden or malformed answers unsafe, and lets unordered or presentation-only data destabilize deterministic identity.
+- Rule: Hard constraints never participate in weighted scoring, and unknown safety state is not equivalent to unrestricted.
+- Pattern: Compile raw intake into a versioned planning contract, then hash the semantic generation projection rather than raw responses.
+- Failure Mode: Volatile fields, raw answer ordering, hidden state, or provenance in a generation digest can produce different identities for the same planning meaning.
+- Decision: Keep nutrition, delivery preferences, acknowledgments, and historical lift context outside exercise selection; preserve them as context or provenance.
+- Evidence: `src/features/curated-onboarding/planning/contract.ts`, `src/features/curated-onboarding/planning/normalize.ts`, `src/features/curated-onboarding/planning/normalize.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
