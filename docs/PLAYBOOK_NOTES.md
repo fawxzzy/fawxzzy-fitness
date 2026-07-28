@@ -640,3 +640,24 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Never recreate compaction as rollback and never hard-code a target sequence floor; calculate the floor from freeze-time source and target high-water evidence.
 - Evidence: `supabase/migrations/20260718015422_retire_human_member_number_compaction.sql`, `scripts/member-number-safety-core.mjs`, `scripts/migration/fp-fit-user-number-safety-verify.mjs`, `docs/ops/FP-FIT-USER-NUMBER-SAFETY-001.md`
 - Status: Proposed
+
+## 2026-07-27 - Visual QA needs one source-bound state registry
+- Type: Decision
+- WHAT changed: Fitness visual QA now derives signed-in fixture, public, auth/loading, and curated-onboarding captures from one permanent registry with an accepted 111-state and 313-capture denominator. The same registry feeds runner suites, source-bound manifests, deterministic family boards, a mega-board, and hashed receipts.
+- WHY it changed: The prior screenshot catalog proved useful coverage but its route lists and generated evidence were temporary. Rebuilding route inventories independently would let states disappear, redirects pass unnoticed, and review boards drift away from the source head that produced them.
+- Rule: A visual state is added or changed in the shared registry first; capture runners and board builders consume that contract rather than maintaining route lists of their own.
+- Pattern: immutable source commit/tree + registry digest + pinned browser environment -> deterministic capture plan -> requested/resolved route proof -> per-capture receipt -> family and mega boards -> hash receipt.
+- Failure Mode: Temporary catalogs become stale evidence, silent count reductions hide lost states, and board-only review cannot prove which source, fixture, route, or browser environment produced an image.
+- Decision: Keep screenshot baselines and large boards in governed runtime or CI artifact storage. Commit only a content-addressed baseline manifest when baseline comparison is separately admitted; never commit generated images as an automatic visual update.
+- Decision: Visual-QA foundation work inventories and proves product states but does not redesign product UI, alter fixture-driven production behavior, approve a baseline, or authorize deployment.
+- Evidence: `scripts/qa/visual-fitness-state-registry.mjs`, `scripts/qa/visual-fitness-runner.mjs`, `scripts/build-mobile-regression-boards.py`, `docs/mobile-regression-fixtures.md`
+- Status: Proposed
+
+## 2026-07-27 - Merge reconciliation is proven by reviewed-tree identity
+- Type: Guardrail
+- WHAT changed: The visual-QA wave starts only after the merged source commit is read back with the reviewed feature head as its second parent and a merge tree byte-identical to the reviewed tree.
+- WHY it changed: Starting follow-on QA from a branch label or PR state alone can capture a stale or conflict-resolved tree that differs from the reviewed source.
+- Rule: Before registering or capturing a post-merge visual denominator, prove the new main commit, ordered parentage, reviewed-head ancestry, and reviewed-tree identity.
+- Failure Mode: A visually plausible catalog can certify the wrong source state if merge reconciliation is inferred from metadata rather than Git objects.
+- Evidence: `docs/mobile-regression-fixtures.md`, `scripts/qa/visual-fitness-runner.mjs`
+- Status: Proposed

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test, { type TestContext } from "node:test";
@@ -262,6 +262,117 @@ async function runBoardBuilder(manifestPath: string) {
   });
 }
 
+type VisualCatalogCapture = {
+  captureId: string;
+  stateId: string;
+  family: string;
+  registryIndex: number;
+  variantIndex: number;
+  viewport: { label: string; width: number; height: number };
+  requestedRoute: string;
+  resolvedRoute: string;
+  screenshotPath: string;
+  status?: "captured" | "blocked";
+};
+
+const visualCatalogCaptures: VisualCatalogCapture[] = [
+  {
+    captureId: "public-privacy__1280x800",
+    stateId: "public:privacy",
+    family: "public",
+    registryIndex: 2,
+    variantIndex: 0,
+    viewport: { label: "1280x800", width: 1280, height: 800 },
+    requestedRoute: "/privacy",
+    resolvedRoute: "/privacy",
+    screenshotPath: "captures/public-privacy__1280x800/public-privacy.png",
+  },
+  {
+    captureId: "signed-in-today-default__430x932",
+    stateId: "signed-in:today-default",
+    family: "signed-in",
+    registryIndex: 0,
+    variantIndex: 1,
+    viewport: { label: "430x932", width: 430, height: 932 },
+    requestedRoute: "/dev/mobile-regression?scenario=today-default",
+    resolvedRoute: "/dev/mobile-regression?scenario=today-default",
+    screenshotPath: "captures/signed-in-today-default__430x932/today-default.png",
+  },
+  {
+    captureId: "signed-in-today-default__390x844",
+    stateId: "signed-in:today-default",
+    family: "signed-in",
+    registryIndex: 0,
+    variantIndex: 0,
+    viewport: { label: "390x844", width: 390, height: 844 },
+    requestedRoute: "/dev/mobile-regression?scenario=today-default",
+    resolvedRoute: "/dev/mobile-regression?scenario=today-default",
+    screenshotPath: "captures/signed-in-today-default__390x844/today-default.png",
+  },
+];
+
+async function writeVisualCatalogFixture(
+  root: string,
+  captures: ReadonlyArray<VisualCatalogCapture> = visualCatalogCaptures,
+) {
+  const generatorPayload = captures
+    .filter((capture, index) => captures.findIndex((candidate) => candidate.screenshotPath === capture.screenshotPath) === index)
+    .map((capture, index) => ({
+      file: capture.screenshotPath,
+      background: [20 + (index * 20), 80, 60],
+    }));
+  const generator = `
+import json
+import sys
+from pathlib import Path
+from PIL import Image, ImageDraw
+
+root = Path(sys.argv[1])
+for index, item in enumerate(json.loads(sys.argv[2])):
+    target = root / item["file"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    image = Image.new("RGB", (160 + (index * 10), 280), tuple(item["background"]))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((8, 8, image.width - 9, image.height - 9), outline=(180, 240, 210), width=4)
+    image.save(target)
+`;
+  const imageResult = await runPython(["-c", generator, root, JSON.stringify(generatorPayload)]);
+  assert.equal(imageResult.code, 0, imageResult.stderr);
+
+  const manifestCaptures = await Promise.all(captures.map(async (capture) => ({
+    ...capture,
+    status: capture.status ?? "captured",
+    screenshotPath: path.join(root, capture.screenshotPath),
+    screenshotSha256: await sha256ForFile(path.join(root, capture.screenshotPath)),
+    captureMode: "viewport",
+    fixtureOwner: "test",
+    authState: "fixture",
+    blockedReason: null,
+    receiptPath: null,
+    tracePath: null,
+  })));
+  const manifestPath = path.join(root, "visual-catalog-manifest.json");
+  await writeFile(manifestPath, `${JSON.stringify({
+    schemaVersion: "fitness-visual-catalog-manifest.v1",
+    generatedAt: "2026-07-27T00:00:00.000Z",
+    tier: "smoke",
+    source: { commit: "a".repeat(40), tree: "b".repeat(40) },
+    registry: { version: "fitness-visual-state-registry.v1", digest: "c".repeat(64) },
+    environment: { browser: "chromium-or-edge", theme: "dark" },
+    outputRoot: root,
+    plannedCaptureCount: manifestCaptures.length,
+    capturedCount: manifestCaptures.length,
+    blockedCount: 0,
+    failures: [],
+    captures: manifestCaptures,
+  }, null, 2)}\n`, "utf8");
+  return manifestPath;
+}
+
+async function runVisualCatalogBoardBuilder(manifestPath: string) {
+  return await runPython([boardBuilderScript, "--visual-catalog", manifestPath]);
+}
+
 async function sha256ForFile(filePath: string) {
   const file = await readFile(filePath);
   return createHash("sha256").update(file).digest("hex");
@@ -373,4 +484,114 @@ test("board builder fails fast for a missing manifest path", async () => {
 
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /Manifest not found:/);
+});
+
+test("visual catalog boards and receipt are deterministic and preserve route labels", async (t) => {
+  const fixtureRoot = await makeFixtureRoot(t);
+  const manifestPath = await writeVisualCatalogFixture(fixtureRoot);
+
+  const first = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.equal(first.code, 0, first.stderr);
+  const firstReceipt = JSON.parse(
+    await readFile(path.join(fixtureRoot, "boards", "board-receipt.json"), "utf8"),
+  );
+  const firstHashes = Object.fromEntries(
+    firstReceipt.boards.map((board: { family: string; sha256: string }) => [board.family, board.sha256]),
+  );
+
+  await rm(path.join(fixtureRoot, "boards"), { recursive: true, force: true });
+  const second = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.equal(second.code, 0, second.stderr);
+  const secondReceipt = JSON.parse(
+    await readFile(path.join(fixtureRoot, "boards", "board-receipt.json"), "utf8"),
+  );
+  const secondHashes = Object.fromEntries(
+    secondReceipt.boards.map((board: { family: string; sha256: string }) => [board.family, board.sha256]),
+  );
+
+  assert.deepEqual(secondHashes, firstHashes);
+  assert.deepEqual(secondReceipt.captureOrder, [
+    "signed-in-today-default__390x844",
+    "signed-in-today-default__430x932",
+    "public-privacy__1280x800",
+  ]);
+  assert.deepEqual(
+    secondReceipt.captures.map((capture: {
+      stateId: string;
+      viewport: string;
+      requestedRoute: string;
+      resolvedRoute: string;
+    }) => ({
+      stateId: capture.stateId,
+      viewport: capture.viewport,
+      requestedRoute: capture.requestedRoute,
+      resolvedRoute: capture.resolvedRoute,
+    })),
+    [
+      {
+        stateId: "signed-in:today-default",
+        viewport: "390x844",
+        requestedRoute: "/dev/mobile-regression?scenario=today-default",
+        resolvedRoute: "/dev/mobile-regression?scenario=today-default",
+      },
+      {
+        stateId: "signed-in:today-default",
+        viewport: "430x932",
+        requestedRoute: "/dev/mobile-regression?scenario=today-default",
+        resolvedRoute: "/dev/mobile-regression?scenario=today-default",
+      },
+      {
+        stateId: "public:privacy",
+        viewport: "1280x800",
+        requestedRoute: "/privacy",
+        resolvedRoute: "/privacy",
+      },
+    ],
+  );
+});
+
+test("visual catalog board builder rejects duplicate capture identities and paths", async (t) => {
+  const duplicateIdRoot = await makeFixtureRoot(t);
+  const duplicateId = [
+    visualCatalogCaptures[0],
+    {
+      ...visualCatalogCaptures[1],
+      captureId: visualCatalogCaptures[0].captureId,
+    },
+  ];
+  const duplicateIdManifest = await writeVisualCatalogFixture(duplicateIdRoot, duplicateId);
+  const duplicateIdResult = await runVisualCatalogBoardBuilder(duplicateIdManifest);
+  assert.notEqual(duplicateIdResult.code, 0);
+  assert.match(duplicateIdResult.stderr, /Duplicate visual catalog captureId/);
+
+  const duplicatePathRoot = await makeFixtureRoot(t);
+  const duplicatePath = [
+    visualCatalogCaptures[0],
+    {
+      ...visualCatalogCaptures[1],
+      screenshotPath: visualCatalogCaptures[0].screenshotPath,
+    },
+  ];
+  const duplicatePathManifest = await writeVisualCatalogFixture(duplicatePathRoot, duplicatePath);
+  const duplicatePathResult = await runVisualCatalogBoardBuilder(duplicatePathManifest);
+  assert.notEqual(duplicatePathResult.code, 0);
+  assert.match(duplicatePathResult.stderr, /Duplicate visual catalog screenshot path/);
+});
+
+test("visual catalog board builder rejects missing and orphan screenshots", async (t) => {
+  const missingRoot = await makeFixtureRoot(t);
+  const missingManifest = await writeVisualCatalogFixture(missingRoot);
+  await rm(path.join(missingRoot, visualCatalogCaptures[0].screenshotPath));
+  const missingResult = await runVisualCatalogBoardBuilder(missingManifest);
+  assert.notEqual(missingResult.code, 0);
+  assert.match(missingResult.stderr, /Missing visual catalog screenshot/);
+
+  const orphanRoot = await makeFixtureRoot(t);
+  const orphanManifest = await writeVisualCatalogFixture(orphanRoot);
+  const orphanPath = path.join(orphanRoot, "captures", "orphan", "orphan.png");
+  await mkdir(path.dirname(orphanPath), { recursive: true });
+  await writeFile(orphanPath, await readFile(path.join(orphanRoot, visualCatalogCaptures[0].screenshotPath)));
+  const orphanResult = await runVisualCatalogBoardBuilder(orphanManifest);
+  assert.notEqual(orphanResult.code, 0);
+  assert.match(orphanResult.stderr, /Orphan visual catalog screenshot/);
 });

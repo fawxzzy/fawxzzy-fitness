@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { seamSuites } from "./visual-fitness-readiness.mjs";
-import { getVisualFitnessSuite } from "./visual-fitness-suites.mjs";
+import {
+  getVisualFitnessSuite,
+  listRegistryVisualFitnessSuites,
+} from "./visual-fitness-suites.mjs";
 
 const expectedSessionLoggerSeamSuites = [
   "session-seam",
@@ -153,4 +156,36 @@ test("protected history detail asserts the QA copilot-note fallback", () => {
     (suite?.interaction?.expectedText ?? []).includes("Stride felt sloppy once the incline ramped up."),
     "Expected protected history detail to assert the QA fallback note text.",
   );
+});
+
+test("registry suite adapter expands the exact full and smoke denominators", () => {
+  const full = listRegistryVisualFitnessSuites();
+  const smoke = listRegistryVisualFitnessSuites({ tier: "smoke" });
+  assert.equal(full.length, 313);
+  assert.ok(smoke.length >= 4);
+  assert.ok(smoke.length < full.length);
+  assert.equal(new Set(full.map((suite) => suite.registry.captureId)).size, 313);
+  assert.equal(new Set(full.map((suite) => suite.expectedOutputFilename)).size, 313);
+});
+
+test("registry suite adapter preserves requested and expected resolved routes separately", () => {
+  const root = listRegistryVisualFitnessSuites({ stateId: "public:root" });
+  assert.equal(root.length, 2);
+  assert.equal(root[0]?.route, "/");
+  assert.deepEqual(root[0]?.registry?.expectedResolvedRoute, {
+    kind: "one-of",
+    values: ["/entry", "/login"],
+  });
+  assert.equal(root[0]?.registry?.authState, "anonymous");
+});
+
+test("onboarding registry suites keep deterministic local-storage setup and bottom capture", () => {
+  const suites = listRegistryVisualFitnessSuites({ stateId: "onboarding:empty-intro" });
+  assert.equal(suites.length, 3);
+  assert.deepEqual(
+    suites.map((suite) => suite.registry.captureMode),
+    ["viewport", "mobile-bottom", "viewport"],
+  );
+  assert.equal(suites[0]?.registry?.setup?.kind, "local-storage");
+  assert.equal(suites[0]?.authRequired, false);
 });
