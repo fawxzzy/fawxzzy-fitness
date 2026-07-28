@@ -666,7 +666,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Type: Decision
 - WHAT changed: Curated onboarding now has a source-only, versioned normalization boundary with deterministic issues, parallel provenance, a semantic generation projection, portable canonical hashing, ten golden normalized fixtures, closed runtime validation with digest recomputation, and required exact-head CI coverage. Production generation and persistence remain unchanged.
 - WHY it changed: Directly reading raw question IDs in a generator couples planning to UI shape, makes hidden or malformed answers unsafe, and lets unordered or presentation-only data destabilize deterministic identity.
-- Rule: Hard constraints never participate in weighted scoring, and unknown safety state is not equivalent to unrestricted.
+- Rule: Hard constraints never participate in weighted scoring, unknown safety state is not equivalent to unrestricted, and callers cannot downgrade safety issue severity or conceal warning/professional-direction blockers behind a recomputed digest.
 - Pattern: Compile raw intake into a versioned planning contract, then hash the semantic generation projection rather than raw responses.
 - Failure Mode: Volatile fields, raw answer ordering, hidden state, or provenance in a generation digest can produce different identities for the same planning meaning.
 - Decision: Keep nutrition, delivery preferences, acknowledgments, and historical lift context outside exercise selection; preserve them as context or provenance.

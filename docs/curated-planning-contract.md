@@ -187,10 +187,19 @@ file directly in addition to the legacy curated engine and roadmap suites.
 `validateNormalizedPlanningIntakeV1` closes every normalized record and array
 item shape, validates issue/ranked-value/provenance semantics, and enforces:
 
+- each issue code has one immutable severity and, for schedule/safety policy
+  codes, one exact path or safety-path family;
 - fixed weekday count equals the requested weekly count;
+- `fixed` means exact weekdays plus no flexibility, `count_only` means a
+  non-null day count plus no weekdays and any-day flexibility, and `unknown`
+  means no weekdays plus unknown flexibility;
+- session target and hard maximum are present or absent together;
 - session target never exceeds the hard maximum;
 - safety cannot be `clear` while restrictions, warnings, or unresolved
   blocking safety issues remain;
+- warning flags always carry the canonical blocking clearance issue;
+- `not_cleared` or unresolved professional direction is plan-blocking, while
+  professional restriction codes must exist in movement restrictions;
 - scoped `restricted` state has at least one explicit restriction;
 - safety unresolved issues are blocking safety entries also present in the
   canonical normalization issue list;

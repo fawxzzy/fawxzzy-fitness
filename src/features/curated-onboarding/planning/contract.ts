@@ -46,6 +46,34 @@ export const NORMALIZATION_ISSUE_CODES = [
 ] as const;
 export type NormalizationIssueCode = typeof NORMALIZATION_ISSUE_CODES[number];
 
+const NORMALIZATION_ISSUE_POLICY: Record<
+  NormalizationIssueCode,
+  {
+    severity: NormalizationIssue["severity"];
+    exactPath?: JsonPointer;
+    pathPrefix?: JsonPointer;
+  }
+> = {
+  MISSING_REQUIRED_VALUE: { severity: "blocking" },
+  INVALID_RESPONSE_TYPE: { severity: "blocking" },
+  INVALID_OPTION: { severity: "blocking" },
+  UNRESOLVED_OTHER_VALUE: { severity: "blocking" },
+  AMBIGUOUS_SAFETY_RESPONSE: { severity: "blocking", pathPrefix: "/safety/" },
+  CONTRADICTORY_SAFETY_RESPONSE: { severity: "blocking", pathPrefix: "/safety/" },
+  SAFETY_CLEARANCE_REQUIRED: { severity: "blocking", pathPrefix: "/safety/" },
+  MISSING_CONDITIONAL_DETAIL: { severity: "blocking", pathPrefix: "/safety/" },
+  DAY_COUNT_MISMATCH: { severity: "blocking", exactPath: "/schedule/weekdays" },
+  UNSUPPORTED_DAY_SELECTION: { severity: "blocking", exactPath: "/schedule/weekdays" },
+  INVALID_SESSION_DURATION: {
+    severity: "blocking",
+    exactPath: "/schedule/sessionMinutes",
+  },
+  RECENT_CONTINUITY_UNKNOWN: {
+    severity: "informational",
+    exactPath: "/trainingBackground/recentContinuity",
+  },
+};
+
 export type NormalizationIssue = {
   code: NormalizationIssueCode;
   severity: "informational" | "warning" | "blocking";
@@ -305,7 +333,7 @@ const RANKED_VALUE_SCHEMA = closedObjectSchema(
     ranking: { enum: ["explicit", "canonical_unranked"] },
   },
 );
-const NORMALIZATION_ISSUE_SCHEMA = closedObjectSchema(
+const NORMALIZATION_ISSUE_SHAPE_SCHEMA = closedObjectSchema(
   [
     "code",
     "severity",
@@ -329,6 +357,28 @@ const NORMALIZATION_ISSUE_SCHEMA = closedObjectSchema(
     },
   },
 );
+const NORMALIZATION_ISSUE_SCHEMA = {
+  ...NORMALIZATION_ISSUE_SHAPE_SCHEMA,
+  allOf: NORMALIZATION_ISSUE_CODES.map((code) => {
+    const policy = NORMALIZATION_ISSUE_POLICY[code];
+    return {
+      if: {
+        properties: { code: { const: code } },
+        required: ["code"],
+      },
+      then: {
+        properties: {
+          severity: { const: policy.severity },
+          ...(policy.exactPath
+            ? { fieldPath: { const: policy.exactPath } }
+            : policy.pathPrefix
+              ? { fieldPath: { pattern: `^${policy.pathPrefix}` } }
+              : {}),
+        },
+      },
+    };
+  }),
+} as const;
 const PROVENANCE_ENTRY_SCHEMA = closedObjectSchema(
   ["questionId", "responseDigest", "normalizationRule"] as const,
   {
@@ -337,13 +387,26 @@ const PROVENANCE_ENTRY_SCHEMA = closedObjectSchema(
     normalizationRule: { type: "string", minLength: 1 },
   },
 );
-const SESSION_MINUTES_SCHEMA = closedObjectSchema(
+const SESSION_MINUTES_SHAPE_SCHEMA = closedObjectSchema(
   ["target", "hardMaximum"] as const,
   {
     target: { type: ["number", "null"], minimum: 10 },
     hardMaximum: { type: ["number", "null"], minimum: 10 },
   },
 );
+const SESSION_MINUTES_SCHEMA = {
+  ...SESSION_MINUTES_SHAPE_SCHEMA,
+  allOf: [
+    {
+      if: { properties: { target: { type: "number" } }, required: ["target"] },
+      then: { properties: { hardMaximum: { type: "number" } } },
+    },
+    {
+      if: { properties: { target: { type: "null" } }, required: ["target"] },
+      then: { properties: { hardMaximum: { type: "null" } } },
+    },
+  ],
+} as const;
 const CURRENT_PROGRAM_SCHEMA = closedObjectSchema(
   ["summary", "splitSummary"] as const,
   {
@@ -451,6 +514,61 @@ const DELIVERY_CONTEXT_SCHEMA = closedObjectSchema(
     followUpStyle: { type: ["string", "null"] },
   },
 );
+const SCHEDULE_SCHEMA = {
+  ...closedObjectSchema(SCHEDULE_KEYS, {
+    requestedDaysPerWeek: { type: ["integer", "null"], minimum: 1, maximum: 7 },
+    weekdays: {
+      type: "array",
+      items: { enum: WEEKDAY_VALUES },
+      uniqueItems: true,
+    },
+    dayConstraint: { enum: ["fixed", "count_only", "unknown"] },
+    flexibility: { enum: ["none", "any_available_day", "unknown"] },
+    sessionMinutes: SESSION_MINUTES_SCHEMA,
+    preferredTrainingTime: {
+      enum: ["morning", "afternoon", "evening", "night", "variable", null],
+    },
+  }),
+  allOf: [
+    {
+      if: {
+        properties: { dayConstraint: { const: "fixed" } },
+        required: ["dayConstraint"],
+      },
+      then: {
+        properties: {
+          weekdays: { minItems: 1 },
+          flexibility: { const: "none" },
+        },
+      },
+    },
+    {
+      if: {
+        properties: { dayConstraint: { const: "count_only" } },
+        required: ["dayConstraint"],
+      },
+      then: {
+        properties: {
+          requestedDaysPerWeek: { type: "integer" },
+          weekdays: { maxItems: 0 },
+          flexibility: { const: "any_available_day" },
+        },
+      },
+    },
+    {
+      if: {
+        properties: { dayConstraint: { const: "unknown" } },
+        required: ["dayConstraint"],
+      },
+      then: {
+        properties: {
+          weekdays: { maxItems: 0 },
+          flexibility: { const: "unknown" },
+        },
+      },
+    },
+  ],
+} as const;
 
 export const NORMALIZED_PLANNING_INTAKE_V1_SCHEMA = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -466,20 +584,7 @@ export const NORMALIZED_PLANNING_INTAKE_V1_SCHEMA = {
       normalizerVersion: { const: CURATED_NORMALIZER_VERSION },
       rawResponseDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
     }),
-    schedule: closedObjectSchema(SCHEDULE_KEYS, {
-      requestedDaysPerWeek: { type: ["integer", "null"], minimum: 1, maximum: 7 },
-      weekdays: {
-        type: "array",
-        items: { enum: WEEKDAY_VALUES },
-        uniqueItems: true,
-      },
-      dayConstraint: { enum: ["fixed", "count_only", "unknown"] },
-      flexibility: { enum: ["none", "any_available_day", "unknown"] },
-      sessionMinutes: SESSION_MINUTES_SCHEMA,
-      preferredTrainingTime: {
-        enum: ["morning", "afternoon", "evening", "night", "variable", null],
-      },
-    }),
+    schedule: SCHEDULE_SCHEMA,
     goals: closedObjectSchema(GOAL_KEYS, {
       primary: { type: ["string", "null"] },
       secondary: { type: "array", items: RANKED_VALUE_SCHEMA },
@@ -753,6 +858,24 @@ function validateIssue(value: unknown, path: string, errors: string[]) {
   if (typeof issue.fieldPath !== "string" || !issue.fieldPath.startsWith("/")) {
     errors.push(`${path}.fieldPath must be a JSON pointer.`);
   }
+  if (NORMALIZATION_ISSUE_CODES.includes(issue.code as NormalizationIssueCode)) {
+    const policy = NORMALIZATION_ISSUE_POLICY[issue.code as NormalizationIssueCode];
+    if (issue.severity !== policy.severity) {
+      errors.push(`${path}.severity must be ${policy.severity} for ${issue.code}.`);
+    }
+    if (policy.exactPath && issue.fieldPath !== policy.exactPath) {
+      errors.push(`${path}.fieldPath must be ${policy.exactPath} for ${issue.code}.`);
+    }
+    if (
+      policy.pathPrefix
+      && (
+        typeof issue.fieldPath !== "string"
+        || !issue.fieldPath.startsWith(policy.pathPrefix)
+      )
+    ) {
+      errors.push(`${path}.fieldPath must start with ${policy.pathPrefix} for ${issue.code}.`);
+    }
+  }
   validateStringArray(issue.sourceQuestionIds, `${path}.sourceQuestionIds`, errors, {
     nonEmpty: true,
     sorted: true,
@@ -899,6 +1022,45 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
   ) {
     errors.push("$.schedule fixed weekday count must equal requestedDaysPerWeek.");
   }
+  if (
+    schedule?.dayConstraint === "fixed"
+    && schedule?.flexibility !== "none"
+  ) {
+    errors.push("$.schedule fixed dayConstraint requires flexibility none.");
+  }
+  if (
+    schedule?.dayConstraint === "count_only"
+    && (
+      !Array.isArray(weekdays)
+      || weekdays.length !== 0
+      || schedule?.flexibility !== "any_available_day"
+      || typeof requestedDays !== "number"
+    )
+  ) {
+    errors.push("$.schedule count_only requires a day count, no weekdays, and any-day flexibility.");
+  }
+  if (
+    schedule?.dayConstraint === "unknown"
+    && (
+      !Array.isArray(weekdays)
+      || weekdays.length !== 0
+      || schedule?.flexibility !== "unknown"
+    )
+  ) {
+    errors.push("$.schedule unknown dayConstraint requires no weekdays and unknown flexibility.");
+  }
+  if (
+    schedule?.flexibility === "none"
+    && schedule?.dayConstraint !== "fixed"
+  ) {
+    errors.push("$.schedule flexibility none is valid only for fixed weekdays.");
+  }
+  if (
+    schedule?.flexibility === "any_available_day"
+    && schedule?.dayConstraint !== "count_only"
+  ) {
+    errors.push("$.schedule any-day flexibility is valid only for count_only.");
+  }
   const sessionMinutes = readClosedObject(
     schedule?.sessionMinutes,
     "$.schedule.sessionMinutes",
@@ -917,6 +1079,9 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     && sessionMinutes.target > sessionMinutes.hardMaximum
   ) {
     errors.push("$.schedule.sessionMinutes.target must not exceed hardMaximum.");
+  }
+  if ((sessionMinutes?.target === null) !== (sessionMinutes?.hardMaximum === null)) {
+    errors.push("$.schedule.sessionMinutes target and hardMaximum must be present or absent together.");
   }
 
   const goals = readClosedObject(root.goals, "$.goals", GOAL_KEYS, errors);
@@ -1106,6 +1271,24 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
   if (JSON.stringify(actualSafetyIssueKeys) !== JSON.stringify(expectedSafetyIssueKeys)) {
     errors.push("$.safety.unresolvedItems must exactly match blocking safety normalizationIssues.");
   }
+  const hasSafetyIssue = (
+    code: NormalizationIssueCode,
+    fieldPath: JsonPointer,
+  ) => unresolvedItems.some((issue) => (
+    issue.code === code
+    && issue.severity === "blocking"
+    && issue.fieldPath === fieldPath
+  ));
+  const hasBlockingIssueAtPath = (fieldPath: JsonPointer) => unresolvedItems.some(
+    (issue) => issue.severity === "blocking" && issue.fieldPath === fieldPath,
+  );
+  if (
+    Array.isArray(safety?.warningFlags)
+    && safety.warningFlags.length > 0
+    && !hasSafetyIssue("SAFETY_CLEARANCE_REQUIRED", "/safety/warningFlags")
+  ) {
+    errors.push("$.safety.warningFlags require a canonical blocking clearance issue.");
+  }
   const professionalDirection = readClosedObject(
     safety?.professionalDirection,
     "$.safety.professionalDirection",
@@ -1132,6 +1315,54 @@ export function validateNormalizedPlanningIntakeV1(value: unknown) {
     && professionalDirection.restrictionCodes.length > 0
   ) {
     errors.push("$.safety.professionalDirection cannot carry restrictions when absent.");
+  }
+  if (
+    professionalDirection?.present === false
+    && professionalDirection?.userReportedClearanceStatus !== "unknown"
+  ) {
+    errors.push("$.safety.professionalDirection absent state requires unknown clearance.");
+  }
+  const movementRestrictionCodes = new Set(
+    Array.isArray(movementRestrictions)
+      ? movementRestrictions
+        .map((restriction) => asRecord(restriction)?.code)
+        .filter((code): code is string => typeof code === "string")
+      : [],
+  );
+  if (
+    Array.isArray(professionalDirection?.restrictionCodes)
+    && professionalDirection.restrictionCodes.some(
+      (code) => typeof code === "string" && !movementRestrictionCodes.has(code),
+    )
+  ) {
+    errors.push("$.safety.professionalDirection restrictionCodes must exist in movementRestrictions.");
+  }
+  if (
+    professionalDirection?.userReportedClearanceStatus === "cleared_with_restrictions"
+    && (
+      professionalDirection.present !== true
+      || !Array.isArray(professionalDirection.restrictionCodes)
+      || professionalDirection.restrictionCodes.length === 0
+    )
+  ) {
+    errors.push("$.safety.professionalDirection cleared state requires present aligned restrictions.");
+  }
+  if (
+    professionalDirection?.userReportedClearanceStatus === "not_cleared"
+    && !hasSafetyIssue("SAFETY_CLEARANCE_REQUIRED", "/safety/professionalDirection")
+  ) {
+    errors.push("$.safety.professionalDirection not_cleared requires a blocking clearance issue.");
+  }
+  if (
+    professionalDirection?.present === true
+    && professionalDirection?.userReportedClearanceStatus === "unknown"
+    && (
+      !Array.isArray(professionalDirection.restrictionCodes)
+      || professionalDirection.restrictionCodes.length === 0
+    )
+    && !hasBlockingIssueAtPath("/safety/professionalDirection")
+  ) {
+    errors.push("$.safety.professionalDirection unresolved direction requires a blocking safety issue.");
   }
   const acknowledgments = readClosedObject(
     safety?.acknowledgments,

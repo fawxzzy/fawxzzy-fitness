@@ -520,9 +520,10 @@ export function normalizeCuratedPlanningIntake(
   const preferredDays = readMulti(responses, "preferredTrainingDays");
   const flexible = preferredDays.includes("flexible");
   const unsupportedDays = preferredDays.filter((value) => value !== "flexible" && !WEEKDAY_BY_ANSWER[value]);
-  const weekdays = WEEKDAY_ORDER.filter((weekday) => (
+  const selectedWeekdays = WEEKDAY_ORDER.filter((weekday) => (
     preferredDays.some((value) => WEEKDAY_BY_ANSWER[value] === weekday)
   ));
+  const weekdays = flexible ? [] : selectedWeekdays;
   const sessionMinutes = deriveSessionMinutes(responses);
 
   if (unsupportedDays.length > 0) {

@@ -9,6 +9,7 @@ import {
 } from "./canonical.ts";
 import {
   NORMALIZED_PLANNING_INTAKE_V1_SCHEMA,
+  type NormalizedPlanningIntakeV1,
   validateNormalizedPlanningIntakeV1,
 } from "./contract.ts";
 import {
@@ -38,6 +39,20 @@ const GOLDEN_GENERATION_PROJECTION_DIGESTS = {
   "ambiguous-warning-blocked": "0819b94425136c8f2261874610714e391110494a58367bb21445ef16edd451a6",
   "pullup-priority-no-pull-equipment": "67a31ebb78ccdff59afee3759682758c8d8dbbd56b9bf6c3d7131e2dc47bd453",
 } as const;
+
+function recomputePlanningDigest(
+  input: NormalizedPlanningIntakeV1,
+): NormalizedPlanningIntakeV1 {
+  const clone = structuredClone(input);
+  const {
+    generationProjectionDigest: _generationProjectionDigest,
+    ...withoutDigest
+  } = clone;
+  return {
+    ...withoutDigest,
+    generationProjectionDigest: digestPlanningGenerationProjection(withoutDigest),
+  };
+}
 
 test("canonical JSON and portable SHA-256 are deterministic across property order", () => {
   const left = { z: 1, nested: { b: true, a: "value" }, list: [3, 2, 1] };
@@ -169,6 +184,93 @@ test("runtime validation rejects forged and internally contradictory contracts",
   }
 });
 
+test("digest-consistent safety and schedule contradictions fail closed", () => {
+  const baseline = NORMALIZED_PLANNING_FIXTURES["beginner-home-3day-general-strength"];
+
+  const downgradedSafetyIssue = structuredClone(baseline);
+  downgradedSafetyIssue.normalizationIssues = [{
+    code: "SAFETY_CLEARANCE_REQUIRED",
+    severity: "informational",
+    fieldPath: "/safety/warningFlags",
+    sourceQuestionIds: ["warningSymptoms"],
+    messageArguments: {},
+  }];
+  downgradedSafetyIssue.constraintClasses.blockingIssueCodes = [];
+
+  const concealedWarning = structuredClone(baseline);
+  concealedWarning.safety.status = "restricted";
+  concealedWarning.safety.warningFlags = ["chest-pain"];
+  concealedWarning.safety.movementRestrictions = [{
+    code: "NO_OVERHEAD_LOADING",
+    sourceText: "no overhead loading",
+  }];
+
+  const concealedProfessionalDirection = structuredClone(baseline);
+  concealedProfessionalDirection.safety.professionalDirection = {
+    present: true,
+    restrictionCodes: [],
+    userReportedClearanceStatus: "not_cleared",
+  };
+
+  const unresolvedProfessionalDirection = structuredClone(baseline);
+  unresolvedProfessionalDirection.safety.professionalDirection = {
+    present: true,
+    restrictionCodes: [],
+    userReportedClearanceStatus: "unknown",
+  };
+
+  const misalignedProfessionalRestrictions = structuredClone(
+    NORMALIZED_PLANNING_FIXTURES["no-overhead-3day-substitution"],
+  );
+  misalignedProfessionalRestrictions.safety.professionalDirection.restrictionCodes = [
+    "NO_HIGH_IMPACT",
+  ];
+
+  const contradictoryCountOnlySchedule = structuredClone(baseline);
+  contradictoryCountOnlySchedule.schedule.dayConstraint = "count_only";
+
+  const missingHardMaximum = structuredClone(baseline);
+  missingHardMaximum.schedule.sessionMinutes = {
+    target: 30,
+    hardMaximum: null,
+  };
+
+  const cases: Array<{ expected: RegExp; value: NormalizedPlanningIntakeV1 }> = [
+    {
+      expected: /severity must be blocking for SAFETY_CLEARANCE_REQUIRED/,
+      value: recomputePlanningDigest(downgradedSafetyIssue),
+    },
+    {
+      expected: /warningFlags require a canonical blocking clearance issue/,
+      value: recomputePlanningDigest(concealedWarning),
+    },
+    {
+      expected: /not_cleared requires a blocking clearance issue/,
+      value: recomputePlanningDigest(concealedProfessionalDirection),
+    },
+    {
+      expected: /unresolved direction requires a blocking safety issue/,
+      value: recomputePlanningDigest(unresolvedProfessionalDirection),
+    },
+    {
+      expected: /restrictionCodes must exist in movementRestrictions/,
+      value: recomputePlanningDigest(misalignedProfessionalRestrictions),
+    },
+    {
+      expected: /count_only requires a day count, no weekdays, and any-day flexibility/,
+      value: recomputePlanningDigest(contradictoryCountOnlySchedule),
+    },
+    {
+      expected: /target and hardMaximum must be present or absent together/,
+      value: recomputePlanningDigest(missingHardMaximum),
+    },
+  ];
+
+  for (const entry of cases) {
+    assert.match(validateNormalizedPlanningIntakeV1(entry.value).join(" "), entry.expected);
+  }
+});
+
 test("semantic issue projection excludes questionnaire provenance identifiers", () => {
   const blocked = NORMALIZED_PLANNING_FIXTURES["ambiguous-warning-blocked"];
   const altered = structuredClone(blocked);
@@ -259,6 +361,20 @@ test("ranked-goal and exact-weekday changes alter the generation projection", ()
   assert.notEqual(rankedGoal.generationProjectionDigest, baseline.generationProjectionDigest);
   assert.notEqual(weekday.generationProjectionDigest, baseline.generationProjectionDigest);
   assert.deepEqual(weekday.schedule.weekdays, ["tuesday", "thursday", "saturday"]);
+});
+
+test("flexible schedule answers normalize to a closed count-only state", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  input.intakeResponses.preferredTrainingDays = ["flexible"];
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+
+  assert.equal(normalized.schedule.dayConstraint, "count_only");
+  assert.equal(normalized.schedule.flexibility, "any_available_day");
+  assert.deepEqual(normalized.schedule.weekdays, []);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
 });
 
 test("hidden cleared answers do not survive normalization", () => {
