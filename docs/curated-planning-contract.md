@@ -83,7 +83,7 @@ them in weighted scoring where a higher preference score could override them.
 | `environment.equipmentLimits` | `heaviestDumbbells` | Bounded dumbbell capability plus source text |
 | `recovery.outsideActivityLoad` | `outsideActivity` | Conservative weekly-load context |
 | `recovery.sleepBand` | `sleepHours` | Conservative recovery modifier |
-| `safety.movementRestrictions` | `professionalRestrictions`, `restrictedMovements`, `painDetails` | Known demand restrictions, without diagnosis |
+| `safety.movementRestrictions` | `professionalRestrictions`, `restrictedMovements` | Known professionally reported demand restrictions, without diagnosis |
 | `safety.excludedExerciseNames` | `exercisesCannotDo` | Exact hard exercise exclusions |
 | `safety.uncomfortableExerciseNames` | `uncomfortableExercises` | Explicit discomfort context, separate from diagnosis |
 | `safety.warningFlags` | `warningSymptoms` | Stable plan-blocking flags |
@@ -206,6 +206,9 @@ item shape, validates issue/ranked-value/provenance semantics, and enforces:
 - free-form pain or limitation details remain ambiguous and blocking until a
   future structured scope answer can establish restriction semantics; keyword
   matches never manufacture a movement restriction from that text;
+- dumbbell limits require explicit load units, ignore explicitly labeled
+  total/combined loads, and remain null when the source cannot establish a
+  per-dumbbell maximum;
 - warning flags always carry the canonical blocking clearance issue;
 - `not_cleared` or unresolved professional direction is plan-blocking, while
   professional restriction codes must exist in movement restrictions;

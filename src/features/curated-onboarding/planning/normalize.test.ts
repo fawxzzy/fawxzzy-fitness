@@ -635,6 +635,39 @@ test("identifier normalization deduplicates option and custom movement aliases",
   assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
 });
 
+test("identifier normalization deduplicates every emitted option and custom alias", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  input.intakeResponses.trainingLocations = ["commercial-gym", "other"];
+  input.intakeResponses.trainingLocationsOther = "commercial gym";
+  input.intakeResponses.biggestStruggles = ["exercise-selection", "other"];
+  input.intakeResponses.biggestStrugglesOther = "exercise selection";
+  input.intakeResponses.nutritionHelp = ["lean-bulk", "other"];
+  input.intakeResponses.nutritionHelpOther = "lean bulk";
+  input.intakeResponses.planContents = ["weekly-split", "other"];
+  input.intakeResponses.planContentsOther = "weekly split";
+  input.intakeResponses.topThreeGoals = "Build muscle\nbuild-muscle\nMove well";
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+
+  assert.deepEqual(normalized.environment.locations, ["commercial-gym"]);
+  assert.deepEqual(normalized.planContext.biggestTrainingStruggles, [
+    "exercise-selection",
+  ]);
+  assert.deepEqual(normalized.planContext.nutrition.requestedSupport, [
+    "lean-bulk",
+  ]);
+  assert.deepEqual(normalized.planContext.delivery.requestedContents, [
+    "weekly-split",
+  ]);
+  assert.deepEqual(normalized.goals.secondary, [
+    { value: "build_muscle", rank: 1, ranking: "explicit" },
+    { value: "move_well", rank: 2, ranking: "explicit" },
+  ]);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
+});
+
 test("dumbbell pair and range notation uses the declared per-dumbbell maximum", () => {
   const pairInput = createNormalizedPlanningFixtureInput(
     "beginner-home-3day-general-strength",
@@ -652,6 +685,40 @@ test("dumbbell pair and range notation uses the declared per-dumbbell maximum", 
   assert.equal(range.environment.equipmentLimits.maximumDumbbellLoadKg, 22.68);
   assert.deepEqual(validateNormalizedPlanningIntakeV1(pair), []);
   assert.deepEqual(validateNormalizedPlanningIntakeV1(range), []);
+});
+
+test("dumbbell totals are excluded and unitless limits remain unresolved", () => {
+  const pairWithTotalInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const wordsWithTotalInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const unitlessInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  pairWithTotalInput.intakeResponses.heaviestDumbbells =
+    "2 x 50 lbs (100 lbs total)";
+  wordsWithTotalInput.intakeResponses.heaviestDumbbells =
+    "two 50 lb dumbbells, 100 lbs total";
+  unitlessInput.intakeResponses.heaviestDumbbells = "2 x 50";
+
+  const pairWithTotal = normalizeCuratedPlanningIntake(pairWithTotalInput);
+  const wordsWithTotal = normalizeCuratedPlanningIntake(wordsWithTotalInput);
+  const unitless = normalizeCuratedPlanningIntake(unitlessInput);
+
+  assert.equal(
+    pairWithTotal.environment.equipmentLimits.maximumDumbbellLoadKg,
+    22.68,
+  );
+  assert.equal(
+    wordsWithTotal.environment.equipmentLimits.maximumDumbbellLoadKg,
+    22.68,
+  );
+  assert.equal(unitless.environment.equipmentLimits.maximumDumbbellLoadKg, null);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(pairWithTotal), []);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(wordsWithTotal), []);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(unitless), []);
 });
 
 test("ambiguous safety information blocks while explicit restrictions remain scoped", () => {

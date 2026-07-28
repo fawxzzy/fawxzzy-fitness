@@ -333,9 +333,14 @@ function derivePrimaryGoal(responses: CuratedIntakeResponses): GoalCode | null {
 
 function deriveSecondaryGoals(responses: CuratedIntakeResponses, primary: GoalCode | null) {
   const lines = splitRankedText(getStringResponse(responses, "topThreeGoals"));
+  const seen = new Set<string>();
   return lines
     .map((value) => normalizeIdentifier(value).replace(/-/g, "_"))
-    .filter((value) => value && value !== primary)
+    .filter((value) => {
+      if (!value || value === primary || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    })
     .map((value, index) => ({
       value,
       rank: index + 1,
@@ -383,20 +388,22 @@ function parseDumbbellLoadKg(value: string) {
     .map((match) => {
       const amount = Number(match[1]);
       if (!Number.isFinite(amount) || amount <= 0) return null;
+      const start = match.index ?? 0;
+      const end = start + match[0].length;
+      const before = normalized.slice(Math.max(0, start - 32), start);
+      const after = normalized.slice(end, end + 24);
+      const describesTotal = (
+        /\b(?:total|combined)(?:\s+(?:weight|load|capacity))?\s*$/i.test(before)
+        || /^\s*(?:in\s+)?(?:total|combined)\b/i.test(after)
+      );
+      if (describesTotal) return null;
       return /^(?:lb|lbs|pound|pounds)$/.test(match[2])
         ? amount * 0.45359237
         : amount;
     })
     .filter((amount): amount is number => amount !== null);
-  const unitlessLoads = [...normalized.matchAll(/\d+(?:\.\d+)?/g)]
-    .map((match) => Number(match[0]))
-    .filter((amount) => Number.isFinite(amount) && amount > 0);
-  const kg = unitLoadsKg.length > 0
-    ? Math.max(...unitLoadsKg)
-    : unitlessLoads.length > 0
-      ? Math.max(...unitlessLoads)
-      : null;
-  if (kg === null) return null;
+  if (unitLoadsKg.length === 0) return null;
+  const kg = Math.max(...unitLoadsKg);
   return Math.round(kg * 1000) / 1000;
 }
 
@@ -745,7 +752,7 @@ export function normalizeCuratedPlanningIntake(
       knownPerformanceContext: normalizeOptionalText(getStringResponse(responses, "mainLiftNumbers")),
     },
     environment: {
-      locations: readMulti(responses, "trainingLocations").map(normalizeIdentifier).sort(),
+      locations: uniqueSortedIdentifiers(readMulti(responses, "trainingLocations")),
       equipmentAvailable,
       equipmentAvoided,
       equipmentLimits: {
@@ -794,14 +801,18 @@ export function normalizeCuratedPlanningIntake(
       },
     },
     planContext: {
-      biggestTrainingStruggles: readMulti(responses, "biggestStruggles").map(normalizeIdentifier),
+      biggestTrainingStruggles: uniqueSortedIdentifiers(
+        readMulti(responses, "biggestStruggles"),
+      ),
       nutrition: {
         trackingStyle: readSingle(responses, "tracksFood"),
         proteinTrackingStyle: readSingle(responses, "tracksProtein"),
         eatingPattern: readSingle(responses, "eatingPattern"),
         direction: readSingle(responses, "nutritionDirection"),
         foodRestrictions: splitText(getStringResponse(responses, "foodRestrictions")),
-        requestedSupport: readMulti(responses, "nutritionHelp").map(normalizeIdentifier),
+        requestedSupport: uniqueSortedIdentifiers(
+          readMulti(responses, "nutritionHelp"),
+        ),
       },
       delivery: {
         detailLevel: ({
@@ -809,7 +820,9 @@ export function normalizeCuratedPlanningIntake(
           medium: "standard",
           detailed: "detailed",
         } as const)[getStringResponse(responses, "planDetail")] ?? null,
-        requestedContents: readMulti(responses, "planContents").map(normalizeIdentifier),
+        requestedContents: uniqueSortedIdentifiers(
+          readMulti(responses, "planContents"),
+        ),
         method: readSingle(responses, "deliveryMethod"),
         followUpStyle: readSingle(responses, "followUpConsent"),
       },
