@@ -122,8 +122,26 @@ function splitText(value: string) {
   return uniqueSorted(splitRankedText(value));
 }
 
-function uniqueSorted(values: string[]) {
-  return [...new Set(values.map(normalizeText).filter(Boolean))].sort();
+function uniqueSorted(values: readonly unknown[]) {
+  return [
+    ...new Set(
+      values
+        .filter((value): value is string => typeof value === "string")
+        .map(normalizeText)
+        .filter(Boolean),
+    ),
+  ].sort();
+}
+
+function uniqueSortedIdentifiers(values: readonly unknown[]) {
+  return [
+    ...new Set(
+      values
+        .filter((value): value is string => typeof value === "string")
+        .map(normalizeIdentifier)
+        .filter(Boolean),
+    ),
+  ].sort();
 }
 
 function uniqueSortedExact<T extends string>(values: T[]) {
@@ -326,8 +344,8 @@ function deriveSecondaryGoals(responses: CuratedIntakeResponses, primary: GoalCo
 }
 
 function canonicalRankedValues(values: string[]): RankedValue[] {
-  return uniqueSorted(values).map((value, index) => ({
-    value: normalizeIdentifier(value),
+  return uniqueSortedIdentifiers(values).map((value, index) => ({
+    value,
     rank: index + 1,
     ranking: "canonical_unranked",
   }));
@@ -350,29 +368,35 @@ function deriveTrackingExperience(responses: CuratedIntakeResponses) {
 }
 
 function deriveEquipment(responses: CuratedIntakeResponses) {
-  return readMulti(responses, "availableEquipment")
-    .map(normalizeIdentifier)
-    .filter(Boolean)
-    .sort();
+  return uniqueSortedIdentifiers(readMulti(responses, "availableEquipment"));
 }
 
 function deriveEquipmentAvoided(responses: CuratedIntakeResponses) {
-  return splitText(getStringResponse(responses, "equipmentAvoid"))
-    .map(normalizeIdentifier)
-    .filter(Boolean)
-    .sort();
+  return uniqueSortedIdentifiers(splitText(getStringResponse(responses, "equipmentAvoid")));
 }
 
 function parseDumbbellLoadKg(value: string) {
   const normalized = normalizeOptionalText(value);
   if (!normalized) return null;
-  const match = normalized.match(/(\d+(?:\.\d+)?)/);
-  if (!match) return null;
-  const amount = Number(match[1]);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-  const kg = /\b(?:lb|lbs|pound|pounds)\b/.test(normalized)
-    ? amount * 0.45359237
-    : amount;
+  const unitPattern = /(\d+(?:\.\d+)?)\s*(kg|kgs|kilogram|kilograms|lb|lbs|pound|pounds)\b/g;
+  const unitLoadsKg = [...normalized.matchAll(unitPattern)]
+    .map((match) => {
+      const amount = Number(match[1]);
+      if (!Number.isFinite(amount) || amount <= 0) return null;
+      return /^(?:lb|lbs|pound|pounds)$/.test(match[2])
+        ? amount * 0.45359237
+        : amount;
+    })
+    .filter((amount): amount is number => amount !== null);
+  const unitlessLoads = [...normalized.matchAll(/\d+(?:\.\d+)?/g)]
+    .map((match) => Number(match[0]))
+    .filter((amount) => Number.isFinite(amount) && amount > 0);
+  const kg = unitLoadsKg.length > 0
+    ? Math.max(...unitLoadsKg)
+    : unitlessLoads.length > 0
+      ? Math.max(...unitlessLoads)
+      : null;
+  if (kg === null) return null;
   return Math.round(kg * 1000) / 1000;
 }
 
@@ -566,7 +590,6 @@ export function normalizeCuratedPlanningIntake(
 
   const painAnswer = getStringResponse(responses, "hasPainOrLimitations");
   const painDetails = getStringResponse(responses, "painDetails");
-  const painRestrictionCodes = deriveRestrictionCodes(painDetails);
   if (painAnswer === "yes" && !normalizeOptionalText(painDetails)) {
     issues.push(makeIssue(
       "MISSING_CONDITIONAL_DETAIL",
@@ -574,7 +597,7 @@ export function normalizeCuratedPlanningIntake(
       "/safety/movementRestrictions",
       ["hasPainOrLimitations", "painDetails"],
     ));
-  } else if (painAnswer === "yes" && painRestrictionCodes.length === 0) {
+  } else if (painAnswer === "yes") {
     issues.push(makeIssue(
       "AMBIGUOUS_SAFETY_RESPONSE",
       "blocking",
@@ -647,13 +670,10 @@ export function normalizeCuratedPlanningIntake(
     ...(sleepBand === "under_6" ? ["sleep_under_6"] : []),
     ...(outsideActivityLoad === "high" ? ["high_outside_activity"] : []),
   ];
-  const movementRestrictions = uniqueSortedExact([
-    ...painRestrictionCodes,
-    ...professionalRestrictionCodes,
-  ]).map((code) => ({
+  const movementRestrictions = uniqueSortedExact(professionalRestrictionCodes).map((code) => ({
     code: code as RestrictionCode,
     sourceText: normalizeOptionalText(
-      [painDetails, restrictedMovements].filter((value) => deriveRestrictionCodes(value).includes(code as RestrictionCode)).join("; "),
+      restrictedMovements,
     ) ?? code,
   }));
   const safetyIssues = issues
@@ -760,7 +780,9 @@ export function normalizeCuratedPlanningIntake(
     preferences: {
       requiredExerciseNames: [],
       preferredExerciseNames: splitText(getStringResponse(responses, "exerciseEnjoy")),
-      improvementMovementIds: readMulti(responses, "movementsToImprove").map(normalizeIdentifier),
+      improvementMovementIds: uniqueSortedIdentifiers(
+        readMulti(responses, "movementsToImprove"),
+      ),
       dislikedExerciseNames: splitText(getStringResponse(responses, "exerciseHate")),
       planStyle: derivePlanStyle(getStringResponse(responses, "planStyle")),
       equipmentPreference: readSingle(responses, "equipmentPreference"),

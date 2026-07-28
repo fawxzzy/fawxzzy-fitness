@@ -577,6 +577,83 @@ test("unknown options and wrong-typed safety answers fail closed with stable cod
   assert.equal(invalidSafetyType.safety.status, "blocked");
 });
 
+test("free-form pain reports remain blocked until restriction scope is explicit", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  input.intakeResponses.hasPainOrLimitations = "yes";
+  input.intakeResponses.painDetails = "Bench press hurts, but shoulder press is fine";
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+
+  assert.equal(normalized.safety.status, "blocked");
+  assert.ok(
+    normalized.constraintClasses.blockingIssueCodes.includes(
+      "AMBIGUOUS_SAFETY_RESPONSE",
+    ),
+  );
+  assert.deepEqual(normalized.safety.movementRestrictions, []);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
+});
+
+test("malformed multi-select entries block without crashing normalization", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  (input.intakeResponses as Record<string, unknown>).areasToImprove = ["core", 3];
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+
+  assert.ok(
+    normalized.constraintClasses.blockingIssueCodes.includes(
+      "INVALID_RESPONSE_TYPE",
+    ),
+  );
+  assert.deepEqual(normalized.goals.targetAreas, [{
+    value: "core",
+    rank: 1,
+    ranking: "canonical_unranked",
+  }]);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
+});
+
+test("identifier normalization deduplicates option and custom movement aliases", () => {
+  const input = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  input.intakeResponses.movementsToImprove = ["pull-ups", "other"];
+  input.intakeResponses.movementsToImproveOther = "pull ups";
+
+  const normalized = normalizeCuratedPlanningIntake(input);
+
+  assert.deepEqual(normalized.goals.movementSkills, [{
+    value: "pull-ups",
+    rank: 1,
+    ranking: "canonical_unranked",
+  }]);
+  assert.deepEqual(normalized.preferences.improvementMovementIds, ["pull-ups"]);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(normalized), []);
+});
+
+test("dumbbell pair and range notation uses the declared per-dumbbell maximum", () => {
+  const pairInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  const rangeInput = createNormalizedPlanningFixtureInput(
+    "beginner-home-3day-general-strength",
+  );
+  pairInput.intakeResponses.heaviestDumbbells = "2 x 50 lbs";
+  rangeInput.intakeResponses.heaviestDumbbells = "adjustable from 5-50 lbs";
+
+  const pair = normalizeCuratedPlanningIntake(pairInput);
+  const range = normalizeCuratedPlanningIntake(rangeInput);
+
+  assert.equal(pair.environment.equipmentLimits.maximumDumbbellLoadKg, 22.68);
+  assert.equal(range.environment.equipmentLimits.maximumDumbbellLoadKg, 22.68);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(pair), []);
+  assert.deepEqual(validateNormalizedPlanningIntakeV1(range), []);
+});
+
 test("ambiguous safety information blocks while explicit restrictions remain scoped", () => {
   const blocked = NORMALIZED_PLANNING_FIXTURES["ambiguous-warning-blocked"];
   const restricted = NORMALIZED_PLANNING_FIXTURES["no-overhead-3day-substitution"];

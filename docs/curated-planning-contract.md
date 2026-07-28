@@ -39,6 +39,10 @@ not trust the legacy top-level derived fields on `CuratedOnboardingData`.
 Hidden answers are removed with the same questionnaire visibility rules used
 by the form before validation and normalization.
 
+Malformed array members are recorded as blocking response-type issues and
+discarded before semantic normalization, so a forged persisted payload cannot
+turn a deterministic blocked result into a runtime exception.
+
 ## Constraint classes
 
 | Class | Meaning | Current contract representation |
@@ -199,6 +203,9 @@ item shape, validates issue/ranked-value/provenance semantics, and enforces:
 - session target never exceeds the hard maximum;
 - safety cannot be `clear` while restrictions, warnings, or unresolved
   blocking safety issues remain;
+- free-form pain or limitation details remain ambiguous and blocking until a
+  future structured scope answer can establish restriction semantics; keyword
+  matches never manufacture a movement restriction from that text;
 - warning flags always carry the canonical blocking clearance issue;
 - `not_cleared` or unresolved professional direction is plan-blocking, while
   professional restriction codes must exist in movement restrictions;
