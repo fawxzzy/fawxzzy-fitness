@@ -1,6 +1,6 @@
 # Curated planning intake contract
 
-Status: source-only planning foundation
+Status: source-only planning and exercise-catalog foundation
 
 Contract: `fitness.planning-intake.v1`
 
@@ -12,7 +12,8 @@ Normalizer: `curated-planning-normalizer.v1`
 The current production path passes `CuratedOnboardingData` from
 `src/app/curated-onboarding/actions.ts` directly to the generator in
 `src/features/curated-onboarding/engine.ts`. This package does not change that
-path. It adds a pure normalization boundary for a later catalog and planner.
+path. It adds a pure normalization boundary and a reviewed exercise-catalog
+boundary for a later coverage compiler and planner.
 
 This contract does not:
 
@@ -160,8 +161,59 @@ while changing a ranked goal, exact weekday, safety restriction, or
 generation-influencing version does.
 
 `generationProjectionDigest` is not a persisted-plan digest and is not proof
-of creation idempotency. Those require separately versioned catalog, planner,
-coverage, prescription, and persistence contracts.
+of creation idempotency. Those require separately versioned planner, coverage,
+prescription-output, and persistence contracts.
+
+## Exercise catalog v1
+
+`src/features/curated-onboarding/planning/catalog/` defines the source-only
+`fitness.exercise-catalog.v1` boundary. Its current frozen identities are:
+
+- catalog: `fitness.exercise-catalog.2026-07-28.v1`;
+- movement restrictions: `fitness.movement-restrictions.v1`;
+- prescription classes: `fitness.prescription-classes.v1`.
+
+The bundle contains 27 reviewed active exercises from the existing canonical
+global catalog, 14 exact equipment capabilities, nine restriction mappings,
+four prescription classes, and 17 equipment-alternative substitution rules.
+The focused test resolves every exercise ID and presentation name against
+`supabase/data/global_exercises_catalog_index.json`; the canonical source and
+index remain read-only.
+
+Equipment is executable capability, not a broad location label. For example,
+`treadmill`, `bike`, `cables`, `machines`, and `smith-machine` remain distinct.
+Required and avoided equipment are hard filters. Removing a capability cannot
+introduce a compatible exercise, and an avoided capability cannot be selected.
+
+Restriction mappings are frozen code-to-demand exclusions. Active exercises
+must have approved safety metadata, and their exclusion list is derived from
+their demand tags. Substitutions may only reference active exercises in the
+same equivalence class and movement pattern. They are metadata for later
+re-filtering, never permission to bypass equipment, experience, or safety
+constraints.
+
+Prescription classes freeze supported measurement and progression modes.
+Starting resistance is explicitly unset; neither historical performance nor
+catalog metadata fabricates an initial load.
+
+The catalog semantic digest includes executable identities, aliases,
+equipment, restrictions, prescriptions, exercise metadata, and substitution
+rules. It excludes the digest field itself and presentation-only
+`canonicalName`. The validator closes every nested runtime shape, enforces
+canonical ordering and frozen policy sets, resolves all references, validates
+substitution compatibility, and recomputes the digest.
+
+`resolveCatalogCandidates` is a bounded compatibility resolver. It returns
+deterministic compatible IDs, structured candidate rejection reasons, or
+`unavailable`, `invalid_catalog`, or `invalid_request`. It does not rank
+exercises, build sessions, prescribe volume, or generate a routine.
+
+Fixtures 1, 2, 4, 5, 8, and 10 provide bounded catalog evidence. Supported
+movement patterns return exact candidates; deliberately unsupported coverage
+such as travel vertical pulling or pull-up priority without pull equipment
+returns structured infeasibility. The no-overhead fixture proves that a
+restriction removes vertical-push candidates without substitutions bypassing
+the same filter.
 
 ## Golden fixtures
 
@@ -183,8 +235,9 @@ The fixture module exports normalized outputs, and tests pin the reviewed
 generation projection digest for each. The ambiguous-warning fixture is the
 only intentionally blocked normalization.
 
-The required pull-request CI workflow runs the focused planning-contract test
-file directly in addition to the legacy curated engine and roadmap suites.
+The required pull-request CI workflow runs the focused planning-contract and
+exercise-catalog test files directly in addition to the legacy curated engine
+and roadmap suites.
 
 ## Runtime authenticity and invariants
 
@@ -239,11 +292,12 @@ general questionnaire.
 
 ## Future consumption and governed dependencies
 
-A future catalog/constraint compiler may consume only the normalized contract,
-not raw questionnaire IDs. It must validate contract and policy versions,
-reject blocking issues, compile hard constraints before scoring, preserve
-exact equipment capabilities, and produce a structured infeasibility result
-when required coverage cannot be satisfied.
+A future coverage compiler and planner may consume only the validated
+normalized contract and validated exercise catalog, not raw questionnaire IDs.
+It must validate contract and policy versions, reject blocking issues, compile
+hard constraints before scoring, preserve exact equipment capabilities, and
+produce a structured infeasibility result when required coverage cannot be
+satisfied.
 
 Persistence integration is a later governed packet. Before it can claim
 lossless or idempotent creation, the repository needs evidence for:
