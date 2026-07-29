@@ -36,3 +36,6 @@ jobs:
 
       - name: Verify planning session allocation directly
         run: node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/allocation/allocate.test.ts
+
+      - name: Verify bounded hosted-check watcher receipts
+        run: node --test scripts/release/fitness-hosted-check-watcher.test.mjs

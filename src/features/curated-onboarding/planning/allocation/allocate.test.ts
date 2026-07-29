@@ -194,7 +194,7 @@ test("runtime validation rejects re-signed duplicate assignments and schedule dr
   );
 
   const scheduleDrift = structuredClone(source);
-  scheduleDrift.schedule!.weekdays = ["mon", "wed", "sun"];
+  scheduleDrift.schedule!.weekdays = ["monday", "wednesday", "sunday"];
   scheduleDrift.allocationDigest = digestSessionAllocation(scheduleDrift);
   const scheduleReceipt =
     validateSessionAllocationV1WithReceipt(scheduleDrift);
@@ -202,6 +202,31 @@ test("runtime validation rejects re-signed duplicate assignments and schedule dr
   assert.match(
     scheduleReceipt.errors.join("\n"),
     /weekday does not match the canonical schedule slot/,
+  );
+});
+
+test("runtime validation rejects re-signed cross-session placement", () => {
+  const forged = structuredClone(
+    SESSION_ALLOCATION_FIXTURES["beginner-home-3day-general-strength"],
+  );
+  assert.equal(forged.status, "allocated");
+  const firstAssignment = forged.sessions[0].exerciseAssignments[0];
+  const secondAssignment = forged.sessions[1].exerciseAssignments[0];
+  forged.sessions[0].exerciseAssignments[0] = secondAssignment;
+  forged.sessions[1].exerciseAssignments[0] = firstAssignment;
+  forged.sessions[0].exerciseAssignments.forEach((entry, index) => {
+    entry.sessionExercisePosition = index + 1;
+  });
+  forged.sessions[1].exerciseAssignments.forEach((entry, index) => {
+    entry.sessionExercisePosition = index + 1;
+  });
+  forged.allocationDigest = digestSessionAllocation(forged);
+
+  const receipt = validateSessionAllocationV1WithReceipt(forged);
+  assert.equal(receipt.valid, false);
+  assert.match(
+    receipt.errors.join("\n"),
+    /owned by another canonical round-robin session/,
   );
 });
 

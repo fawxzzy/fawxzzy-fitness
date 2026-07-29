@@ -742,11 +742,23 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Type: Decision
 - WHAT changed: Fitness now has a source-only Session Allocation v1 contract that revalidates the complete planning/catalog/coverage/ranking/selection chain, preserves every selected requirement/exercise pair exactly once, maps fixed or count-only schedules into canonical session slots, balances exercise counts deterministically, emits a semantic digest and non-throwing runtime receipt, recompiles from all five exact inputs, pins ten terminal fixtures, and runs in direct exact-head CI.
 - WHY it changed: A selected exercise set does not prove when each exercise occurs. Session placement must preserve schedule truth and exact upstream ownership before sets, reps, progression, persistence, or activation can be trusted.
-- Rule: Allocation may place only the exact input-bound selected set. It cannot add, omit, replace, duplicate, or rescore an exercise; fixed weekdays remain exact and count-only schedules never invent weekdays.
+- Rule: Allocation may place only the exact input-bound selected set. It cannot add, omit, replace, duplicate, rescore, or move an exercise outside its canonical round-robin session; zero-based session index must equal `(selectionPosition - 1) % sessionCount`. Fixed weekdays remain exact and count-only schedules never invent weekdays.
 - Rule: Every requested session must be non-empty and session exercise counts must differ by at most one. When the requested session count exceeds the selected count, fail closed without partial or empty workout days.
 - Pattern: exact five-input chain -> canonical schedule slots -> selection-order round-robin placement -> objective arithmetic -> runtime receipt -> exact-input recompilation -> later prescription.
 - Failure Mode: A self-signed allocation can substitute exercises or silently discard selected coverage, while an allocator that invents weekdays or emits empty days turns valid schedule intent into misleading routine truth.
 - Decision: No portable JSON Schema is exported as semantic authorization. Consumers require `validateSessionAllocationV1WithReceipt`, then `validateSessionAllocationAgainstInputsV1` when all five inputs are available.
 - Decision: Session Allocation v1 does not prescribe, generate persistence records, activate routines, or change production behavior.
 - Evidence: `src/features/curated-onboarding/planning/allocation/contract.ts`, `src/features/curated-onboarding/planning/allocation/allocate.ts`, `src/features/curated-onboarding/planning/allocation/allocate.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
+
+## 2026-07-29 - Hosted-check waiting is read-only evidence, not a rerun
+
+- Type: Pattern
+- WHAT changed: The Fitness release tooling now has a bounded, exact-identity hosted-check watcher that polls an existing PR check graph without rerun or dispatch and writes a content-addressed terminal receipt for `SUCCESS`, `FAILURE`, or `TIMEOUT`.
+- WHY it changed: A bounded wait expiring and the same unchanged check graph later succeeding are different facts. Collapsing them into one mutable latest result erases useful timing evidence; rerunning successful checks only to manufacture a receipt would mutate the evidence being measured.
+- Rule: Bind repository, PR, base, head, tree, the exact expected check names, timeout, poll interval, and the normalized check graph. Identity drift, duplicate/unexpected checks, malformed records, or terminal non-success fail closed.
+- Rule: Missing or pending expected checks remain pending only until the declared budget. At expiry, emit `TIMEOUT`; do not infer failure and do not rerun or dispatch checks.
+- Pattern: exact Git/PR identity + exact expected graph -> bounded read-only polling -> canonical graph digest -> immutable content-addressed terminal receipt.
+- Evidence: PR #118's observed bounded wait is pinned as reconstructed receipt `sha256:a43cf648c2a3c37fae89a652e36c60634e4f187fb921bf9c9fefe6219b395b6a`; the unchanged exact head's later seven-check success is separately pinned as `sha256:4dd52d9dbd10ffd75e39f4887ad2afddfa645a055de1110e7588744accd8ce27`. Both preserve unmeasured observation timestamps and counts. No observation metadata is inferred and no check was rerun or dispatched to manufacture either receipt.
+- Evidence: `scripts/release/fitness-hosted-check-watcher.mjs`, `scripts/release/fitness-hosted-check-watcher.test.mjs`, `.github/workflows/planning-session-allocation-contract.yml`
 - Status: Proposed

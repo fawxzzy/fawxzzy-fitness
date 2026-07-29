@@ -586,6 +586,22 @@ function validateSessions(
   if (positions.some((position, index) => position !== index + 1)) {
     errors.push("$.sessions must contain each canonical selection position once.");
   }
+  if (sessions.length > 0) {
+    sessions.forEach((session, sessionIndex) => {
+      if (
+        session.exerciseAssignments.some(
+          (assignment) => (
+            (assignment.selectionPosition - 1) % sessions.length
+            !== sessionIndex
+          ),
+        )
+      ) {
+        errors.push(
+          `$.sessions[${sessionIndex}].exerciseAssignments contains a selection position owned by another canonical round-robin session.`,
+        );
+      }
+    });
+  }
   return sessions;
 }
 

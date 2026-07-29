@@ -514,6 +514,10 @@ selection order and distributed round-robin, producing non-empty session
 counts whose maximum spread is one. If the requested session count exceeds
 the exact selected exercise count, allocation fails closed as `infeasible`
 with `SESSION_COUNT_EXCEEDS_SELECTIONS` instead of emitting empty workout days.
+The executable invariant is exact: zero-based session index must equal
+`(selectionPosition - 1) % sessionCount`; a digest-consistent cross-session
+swap is runtime-invalid even when global positions, uniqueness, and objective
+arithmetic still look coherent.
 
 Each assignment binds the coverage requirement ID, exercise ID, original
 selection position, and its position within the session. The objective binds
