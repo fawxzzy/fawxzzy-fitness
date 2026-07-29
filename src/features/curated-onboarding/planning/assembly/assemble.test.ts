@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { digestExerciseCatalog } from "../catalog/validate.ts";
+import { compilePlanningCoverageV1 } from "../coverage/compile.ts";
+import { compileCandidateRankingV1 } from "../ranking/rank.ts";
+import { compileGlobalSelectionV1 } from "../selection/select.ts";
+import { compileSessionAllocationV1 } from "../allocation/allocate.ts";
 import {
   digestSessionPrescription,
   validateSessionPrescriptionV1WithReceipt,
@@ -245,6 +250,91 @@ test("runtime receipt rejects duplicate issue codes", () => {
   const receipt = validateRoutineAssemblyV1WithReceipt(duplicated);
   assert.equal(receipt.valid, false);
   assert.match(receipt.errors.join("\n"), /duplicate codes/);
+});
+
+test("runtime receipt requires closed upstream issue evidence", () => {
+  const sourceInputs =
+    createRoutineAssemblyFixtureInputs(ASSEMBLED_FIXTURE_ID);
+  const catalog = structuredClone(sourceInputs.catalog);
+  for (const exercise of catalog.exercises) {
+    exercise.cost.estimatedActiveSecondsPerSet = 1_200;
+  }
+  catalog.catalogDigest = digestExerciseCatalog(catalog);
+  const coverage = compilePlanningCoverageV1(
+    sourceInputs.planning,
+    catalog,
+  );
+  const ranking = compileCandidateRankingV1(
+    sourceInputs.planning,
+    catalog,
+    coverage,
+  );
+  const selection = compileGlobalSelectionV1(
+    sourceInputs.planning,
+    catalog,
+    coverage,
+    ranking,
+  );
+  const allocation = compileSessionAllocationV1(
+    sourceInputs.planning,
+    catalog,
+    coverage,
+    ranking,
+    selection,
+  );
+  const prescription = compileSessionPrescriptionV1(
+    sourceInputs.planning,
+    catalog,
+    coverage,
+    ranking,
+    selection,
+    allocation,
+  );
+  const infeasible = compileRoutineAssemblyV1(
+    sourceInputs.planning,
+    catalog,
+    coverage,
+    ranking,
+    selection,
+    allocation,
+    prescription,
+  );
+  assert.equal(infeasible.status, "infeasible");
+  assert.deepEqual(infeasible.issues[0].values, [
+    "TIME_BUDGET_EXCEEDED",
+  ]);
+  assert.equal(validateRoutineAssemblyV1WithReceipt(infeasible).valid, true);
+
+  const notAssemblable = ROUTINE_ASSEMBLY_FIXTURES[
+    "bodyweight-travel-4day-general-fitness"
+  ];
+  assert.deepEqual(notAssemblable.issues[0].values, [
+    "ALLOCATION_NOT_READY",
+  ]);
+
+  for (const source of [notAssemblable, infeasible]) {
+    const empty = structuredClone(source);
+    empty.issues[0].values = [];
+    empty.assemblyDigest = digestRoutineAssembly(empty);
+    const emptyReceipt = validateRoutineAssemblyV1WithReceipt(empty);
+    assert.equal(emptyReceipt.valid, false);
+    assert.match(
+      emptyReceipt.errors.join("\n"),
+      /must contain upstream Session Prescription issue evidence/,
+    );
+
+    const forged = structuredClone(source);
+    forged.issues[0].values = [
+      "TOTALLY_FORGED_UPSTREAM_REASON",
+    ];
+    forged.assemblyDigest = digestRoutineAssembly(forged);
+    const forgedReceipt = validateRoutineAssemblyV1WithReceipt(forged);
+    assert.equal(forgedReceipt.valid, false);
+    assert.match(
+      forgedReceipt.errors.join("\n"),
+      /issue code not permitted/,
+    );
+  }
 });
 
 test("exact-input validation rejects a self-consistent prescription substitution", () => {

@@ -15,6 +15,7 @@ import {
 import {
   SESSION_PRESCRIPTION_BOUND_INPUT_VERSIONS,
   SESSION_PRESCRIPTION_COMPILER_VERSION,
+  SESSION_PRESCRIPTION_ISSUE_CODES,
   SESSION_PRESCRIPTION_POLICY_VERSION,
   SESSION_PRESCRIPTION_SCHEMA_VERSION,
   SESSION_PRESCRIPTION_STATUSES,
@@ -22,6 +23,7 @@ import {
   type ExercisePrescriptionV1,
   type PrescribedSessionV1,
   type SessionPrescriptionInputIdentityV1,
+  type SessionPrescriptionIssueCode,
   type SessionPrescriptionStatus,
   type SessionPrescriptionSummaryV1,
   type SessionPrescriptionTimeBudgetV1,
@@ -95,6 +97,17 @@ export const ROUTINE_ASSEMBLY_ISSUE_POLICY = deepFreeze({
     issueClass: RoutineAssemblyIssueClass;
     path: `/${string}`;
   }
+>);
+
+export const ROUTINE_ASSEMBLY_UPSTREAM_ISSUE_POLICY = deepFreeze({
+  PRESCRIPTION_INFEASIBLE: [
+    "TIME_BUDGET_EXCEEDED",
+  ],
+  PRESCRIPTION_NOT_READY: [
+    "ALLOCATION_NOT_READY",
+  ],
+} as const satisfies Partial<
+  Record<RoutineAssemblyIssueCode, readonly SessionPrescriptionIssueCode[]>
 >);
 
 export type RoutineAssemblyInputIdentityV1 =
@@ -389,10 +402,10 @@ function validateIssues(
     if (issue.path !== policy.path) {
       errors.push(`${path}.path must equal ${policy.path} for ${code}.`);
     }
+    const values = Array.isArray(issue.values) ? issue.values : [];
     if (!Array.isArray(issue.values)) {
       errors.push(`${path}.values must be an array.`);
     } else {
-      const values = issue.values;
       if (
         values.some((item) => typeof item !== "string" || item.length === 0)
       ) {
@@ -405,6 +418,32 @@ function validateIssues(
         )
       ) {
         errors.push(`${path}.values must contain unique canonical strings.`);
+      }
+    }
+    const allowedUpstreamCodes = (
+      ROUTINE_ASSEMBLY_UPSTREAM_ISSUE_POLICY[
+        code as keyof typeof ROUTINE_ASSEMBLY_UPSTREAM_ISSUE_POLICY
+      ] as readonly string[] | undefined
+    );
+    if (allowedUpstreamCodes) {
+      if (values.length === 0) {
+        errors.push(
+          `${path}.values must contain upstream Session Prescription issue evidence.`,
+        );
+      } else if (
+        values.some(
+          (item) => (
+            typeof item !== "string"
+            || !SESSION_PRESCRIPTION_ISSUE_CODES.includes(
+              item as SessionPrescriptionIssueCode,
+            )
+            || !allowedUpstreamCodes.includes(item)
+          ),
+        )
+      ) {
+        errors.push(
+          `${path}.values contains an issue code not permitted for ${code}.`,
+        );
       }
     }
     issues.push(entry as RoutineAssemblyIssueV1);
