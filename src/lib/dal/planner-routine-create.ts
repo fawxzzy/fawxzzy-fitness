@@ -156,34 +156,50 @@ function isValidTimezone(value: string) {
 }
 
 function validateProviderContext(
-  value: PlannerRoutineCreateProviderContextV1,
+  value: unknown,
 ) {
   const errors: string[] = [];
+  const root = asRecord(value);
+  if (!root) {
+    return {
+      context: null,
+      errors: ["$.providerContext must be a record."],
+    };
+  }
   if (
-    typeof value.name !== "string"
-    || value.name.length < 1
-    || value.name.length > 120
-    || value.name.trim() !== value.name
+    typeof root.name !== "string"
+    || root.name.length < 1
+    || root.name.length > 120
+    || root.name.trim() !== root.name
   ) {
     errors.push(
       "$.providerContext.name must be a trimmed string from 1 through 120 characters.",
     );
   }
-  if (typeof value.startDate !== "string" || !isValidDate(value.startDate)) {
+  if (typeof root.startDate !== "string" || !isValidDate(root.startDate)) {
     errors.push(
       "$.providerContext.startDate must be a real YYYY-MM-DD calendar date.",
     );
   }
   if (
-    typeof value.timezone !== "string"
-    || value.timezone.length > 100
-    || !isValidTimezone(value.timezone)
+    typeof root.timezone !== "string"
+    || root.timezone.length > 100
+    || !isValidTimezone(root.timezone)
   ) {
     errors.push(
       "$.providerContext.timezone must be a supported IANA time zone.",
     );
   }
-  return errors;
+  return {
+    context: errors.length === 0
+      ? {
+        name: root.name as string,
+        startDate: root.startDate as string,
+        timezone: root.timezone as string,
+      }
+      : null,
+    errors,
+  };
 }
 
 export function buildPlannerRoutineCreateProjectionV1(
@@ -342,7 +358,7 @@ export async function createPlannerRoutineFromIntentV1(args: {
   authenticatedUserId: string;
   intent: unknown;
   exactInputs: PlannerRoutineCreateExactInputsV1;
-  providerContext: PlannerRoutineCreateProviderContextV1;
+  providerContext: unknown;
   supabase: PlannerRoutineCreateRpcClient;
 }): Promise<PlannerRoutineCreateReceiptV1> {
   const runtimeReceipt =
@@ -378,16 +394,22 @@ export async function createPlannerRoutineFromIntentV1(args: {
       "$.authenticatedUserId must exactly match the validated intent userId.",
     );
   }
-  errors.push(...validateProviderContext(args.providerContext));
-  if (errors.length > 0) return { ...receipt, errors: [...new Set(errors)] };
+  const providerContextValidation = validateProviderContext(
+    args.providerContext,
+  );
+  errors.push(...providerContextValidation.errors);
+  const providerContext = providerContextValidation.context;
+  if (errors.length > 0 || !providerContext) {
+    return { ...receipt, errors: [...new Set(errors)] };
+  }
 
   let result: Awaited<ReturnType<PlannerRoutineCreateRpcClient["rpc"]>>;
   try {
     result = await args.supabase.rpc("create_planner_routine_v1", {
       p_intent: intent,
-      p_name: args.providerContext.name,
-      p_start_date: args.providerContext.startDate,
-      p_timezone: args.providerContext.timezone,
+      p_name: providerContext.name,
+      p_start_date: providerContext.startDate,
+      p_timezone: providerContext.timezone,
     });
   } catch (error) {
     return {
@@ -415,7 +437,7 @@ export async function createPlannerRoutineFromIntentV1(args: {
   const responseErrors = validateResponse(
     result.data,
     intent,
-    args.providerContext,
+    providerContext,
   );
   const response = asRecord(result.data);
   if (responseErrors.length > 0 || !response) {

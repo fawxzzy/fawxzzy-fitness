@@ -198,6 +198,38 @@ test("rejects invalid provider context before calling the provider", async () =>
   assert.equal(mock.calls.length, 0);
 });
 
+test("malformed provider context roots return receipts without provider calls", async () => {
+  const setup = readySetup();
+  const malformedRoots: unknown[] = [
+    null,
+    undefined,
+    [],
+    "not-a-record",
+    0,
+    true,
+    () => null,
+  ];
+
+  for (const malformedRoot of malformedRoots) {
+    const mock = clientWith(response());
+    const receipt = await createPlannerRoutineFromIntentV1({
+      authenticatedUserId: setup.intent.request.userId!,
+      intent: setup.intent,
+      exactInputs: setup.exactInputs,
+      providerContext: malformedRoot,
+      supabase: mock.client,
+    });
+    assert.equal(receipt.valid, false);
+    assert.equal(receipt.attempted, false);
+    assert.equal(receipt.outcome, "not_attempted");
+    assert.deepEqual(
+      receipt.errors,
+      ["$.providerContext must be a record."],
+    );
+    assert.equal(mock.calls.length, 0);
+  }
+});
+
 test("provider errors and thrown failures are non-throwing receipts", async () => {
   const setup = readySetup();
   const providerFailure = clientWith(null, "database unavailable");
