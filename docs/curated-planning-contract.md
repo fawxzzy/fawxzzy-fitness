@@ -799,8 +799,8 @@ start date, and IANA time zone. Invalid, non-creatable, input-mismatched, or
 owner-mismatched inputs do not call the provider.
 
 The Supabase migration source adds planner evidence columns to the existing
-RLS-protected routine graph and one authenticated, `security invoker`,
-create-only RPC. The RPC:
+RLS-protected routine graph and one inert, `security invoker`, create-only
+database primitive. The primitive:
 
 - stores normalized/request/plan/intent semantic digests and every bound policy
   version;
@@ -816,8 +816,15 @@ create-only RPC. The RPC:
 - keeps activation fixed at `not_requested` and never changes
   `profiles.active_routine_id`.
 
-Function execution is revoked from `PUBLIC` and `anon`, granted only to
-`authenticated`, and uses an empty `search_path`. Grants and RLS are treated as
-separate controls. This packet is source only: it does not apply the migration,
-call the live provider, integrate a server action, activate a routine, change
-UI behavior, deploy, or alter production.
+Function execution is revoked from `PUBLIC`, `anon`, and `authenticated`; this
+packet adds no client-callable or privileged replacement. A future
+server-authenticated, source-bound execution path must be reviewed and admitted
+separately before this primitive can be called. The function uses an empty
+`search_path`, and grants and RLS remain separate controls. Provider and thrown
+failures cross the DAL receipt boundary only as the closed
+`PERSISTENCE_PROVIDER_RETURNED_ERROR` or
+`PERSISTENCE_PROVIDER_THROWN_ERROR` category; raw provider, database,
+credential, URL, SQL, and attacker-controlled details are never copied into
+receipts. This packet is source only: it does not apply the migration, call the
+live provider, integrate a server action, activate a routine, change UI
+behavior, deploy, or alter production.

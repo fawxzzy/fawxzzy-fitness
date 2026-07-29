@@ -14,6 +14,10 @@ export const PLANNER_ROUTINE_CREATE_ADAPTER_VERSION =
   "fitness.planner-routine-create-adapter.2026-07-29.v1" as const;
 export const PLANNER_ROUTINE_CREATE_RESPONSE_VERSION =
   "fitness.planner-routine-create-response.v1" as const;
+export const PLANNER_ROUTINE_CREATE_PROVIDER_ERROR_CODES = {
+  returnedError: "PERSISTENCE_PROVIDER_RETURNED_ERROR",
+  thrownError: "PERSISTENCE_PROVIDER_THROWN_ERROR",
+} as const;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -411,16 +415,12 @@ export async function createPlannerRoutineFromIntentV1(args: {
       p_start_date: providerContext.startDate,
       p_timezone: providerContext.timezone,
     });
-  } catch (error) {
+  } catch {
     return {
       ...receipt,
       attempted: true,
       outcome: "provider_error",
-      errors: [
-        error instanceof Error
-          ? error.message
-          : "The persistence provider threw an unknown error.",
-      ],
+      errors: [PLANNER_ROUTINE_CREATE_PROVIDER_ERROR_CODES.thrownError],
     };
   }
   if (result.error) {
@@ -428,9 +428,7 @@ export async function createPlannerRoutineFromIntentV1(args: {
       ...receipt,
       attempted: true,
       outcome: "provider_error",
-      errors: [
-        result.error.message || "The persistence provider returned an error.",
-      ],
+      errors: [PLANNER_ROUTINE_CREATE_PROVIDER_ERROR_CODES.returnedError],
     };
   }
 

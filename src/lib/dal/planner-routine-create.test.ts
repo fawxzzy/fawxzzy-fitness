@@ -8,6 +8,7 @@ import {
 import {
   buildPlannerRoutineCreateProjectionV1,
   createPlannerRoutineFromIntentV1,
+  PLANNER_ROUTINE_CREATE_PROVIDER_ERROR_CODES,
   type PlannerRoutineCreateProviderContextV1,
   type PlannerRoutineCreateRpcClient,
 } from "./planner-routine-create";
@@ -230,32 +231,54 @@ test("malformed provider context roots return receipts without provider calls", 
   }
 });
 
-test("provider errors and thrown failures are non-throwing receipts", async () => {
+test("provider errors and thrown failures are closed non-echoing receipts", async () => {
   const setup = readySetup();
-  const providerFailure = clientWith(null, "database unavailable");
-  const failed = await createPlannerRoutineFromIntentV1({
-    authenticatedUserId: setup.intent.request.userId!,
-    intent: setup.intent,
-    exactInputs: setup.exactInputs,
-    providerContext,
-    supabase: providerFailure.client,
-  });
-  assert.equal(failed.outcome, "provider_error");
-  assert.deepEqual(failed.errors, ["database unavailable"]);
+  const sensitiveMessages = [
+    "SUPABASE_SERVICE_ROLE_KEY=sb_secret_123",
+    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.signature",
+    "postgresql://planner:password@db.example.com/postgres",
+    "select * from auth.users where email = 'private@example.com'",
+    "attacker-controlled:<script>alert('receipt')</script>",
+  ];
 
-  const thrown = await createPlannerRoutineFromIntentV1({
-    authenticatedUserId: setup.intent.request.userId!,
-    intent: setup.intent,
-    exactInputs: setup.exactInputs,
-    providerContext,
-    supabase: {
-      async rpc() {
-        throw new Error("network failed");
+  for (const sensitiveMessage of sensitiveMessages) {
+    const providerFailure = clientWith(null, sensitiveMessage);
+    const failed = await createPlannerRoutineFromIntentV1({
+      authenticatedUserId: setup.intent.request.userId!,
+      intent: setup.intent,
+      exactInputs: setup.exactInputs,
+      providerContext,
+      supabase: providerFailure.client,
+    });
+    assert.equal(failed.outcome, "provider_error");
+    assert.deepEqual(
+      failed.errors,
+      [PLANNER_ROUTINE_CREATE_PROVIDER_ERROR_CODES.returnedError],
+    );
+    assert.doesNotMatch(JSON.stringify(failed), new RegExp(
+      sensitiveMessage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    ));
+
+    const thrown = await createPlannerRoutineFromIntentV1({
+      authenticatedUserId: setup.intent.request.userId!,
+      intent: setup.intent,
+      exactInputs: setup.exactInputs,
+      providerContext,
+      supabase: {
+        async rpc() {
+          throw new Error(sensitiveMessage);
+        },
       },
-    },
-  });
-  assert.equal(thrown.outcome, "provider_error");
-  assert.deepEqual(thrown.errors, ["network failed"]);
+    });
+    assert.equal(thrown.outcome, "provider_error");
+    assert.deepEqual(
+      thrown.errors,
+      [PLANNER_ROUTINE_CREATE_PROVIDER_ERROR_CODES.thrownError],
+    );
+    assert.doesNotMatch(JSON.stringify(thrown), new RegExp(
+      sensitiveMessage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    ));
+  }
 });
 
 test("malformed and partial provider responses fail closed", async () => {
@@ -302,7 +325,7 @@ test("forged persisted intent, row projection, or activation mutation rejects", 
   }
 });
 
-test("migration source closes ownership, RLS, grants, and activation boundaries", () => {
+test("migration source closes ownership, RLS, client RPC, and activation boundaries", () => {
   const sql = readFileSync(
     new URL(
       "../../../supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql",
@@ -328,14 +351,53 @@ test("migration source closes ownership, RLS, grants, and activation boundaries"
   );
   assert.match(
     sql,
-    /revoke execute on function public\.create_planner_routine_v1/,
+    /revoke all on function public\.create_planner_routine_v1\([\s\S]*?\) from public/,
   );
   assert.match(
     sql,
-    /grant execute on function public\.create_planner_routine_v1/,
+    /revoke execute on function public\.create_planner_routine_v1\([\s\S]*?\) from anon/,
+  );
+  assert.match(
+    sql,
+    /revoke execute on function public\.create_planner_routine_v1\([\s\S]*?\) from authenticated/,
+  );
+  assert.doesNotMatch(
+    sql,
+    /grant execute on function public\.create_planner_routine_v1\([\s\S]*?\) to (?:public|anon|authenticated)/,
   );
   assert.doesNotMatch(sql, /update\s+public\.profiles/);
   assert.doesNotMatch(sql, /active_routine_id/);
+});
+
+test("fabricated intents cannot enter through a direct Data API RPC", () => {
+  const sql = readFileSync(
+    new URL(
+      "../../../supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ).toLowerCase();
+  const signature =
+    String.raw`public\.create_planner_routine_v1\([\s\S]*?\)`;
+
+  assert.match(
+    sql,
+    new RegExp(String.raw`revoke all on function ${signature} from public`),
+  );
+  for (const role of ["anon", "authenticated"]) {
+    assert.match(
+      sql,
+      new RegExp(
+        String.raw`revoke execute on function ${signature} from ${role}`,
+      ),
+    );
+  }
+  assert.doesNotMatch(
+    sql,
+    new RegExp(
+      String.raw`grant execute on function ${signature} to (?:public|anon|authenticated)`,
+    ),
+  );
 });
 
 test("dedicated workflow watches exact adapter dependencies and runs directly", () => {

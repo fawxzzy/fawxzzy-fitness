@@ -636,9 +636,9 @@ revoke execute on function public.create_planner_routine_v1(
   date,
   text
 ) from anon;
-grant execute on function public.create_planner_routine_v1(
+revoke execute on function public.create_planner_routine_v1(
   jsonb,
   text,
   date,
   text
-) to authenticated;
+) from authenticated;
