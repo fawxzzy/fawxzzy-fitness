@@ -722,3 +722,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Candidate Ranking v1 does not select the final exercise set, allocate sessions, prescribe, generate, persist, activate, or change production behavior.
 - Evidence: `src/features/curated-onboarding/planning/ranking/contract.ts`, `src/features/curated-onboarding/planning/ranking/rank.ts`, `src/features/curated-onboarding/planning/ranking/rank.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-28 - Select globally without widening eligibility
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Global Candidate Selection v1 contract that chooses one globally unique ranked candidate per coverage requirement, maximizes the total candidate score, resolves equal totals through canonical requirement and ranking order, emits a semantic digest and non-throwing runtime receipt, recompiles from all four exact inputs, pins ten terminal fixtures, and runs in direct exact-head CI.
+- WHY it changed: Per-requirement rankings can share candidates. Choosing each local first place independently can duplicate one exercise or consume a shared top candidate even when another complete assignment has a better total. A self-consistent selected set also cannot prove that every requirement and candidate came from the reviewed coverage and ranking inputs.
+- Rule: Coverage owns eligibility and ranking owns scores/order. Selection must choose exactly one ranked eligible exercise for every requirement, never reuse an exercise across requirements, and never inject, omit, widen, or rescore candidates.
+- Rule: Maximize total score first. For equal totals, use canonical requirement order and each requirement's existing ranking order. If no perfect unique assignment exists or the bounded search cannot finish, fail closed without a partial selection.
+- Pattern: planning digest + catalog digest + input-bound coverage digest + input-bound ranking digest -> deterministic unique assignment -> objective/tie-break proof -> runtime receipt -> exact-input recompilation -> later session allocation.
+- Failure Mode: Local greedy choice can produce duplicate or globally inferior exercise sets; a recomputed selection digest without exact-input recompilation can authenticate forged omission, injection, or input identity.
+- Decision: No portable JSON Schema is exported as semantic authorization. Consumers require `validateGlobalSelectionV1WithReceipt`, then `validateGlobalSelectionAgainstInputsV1` when all four inputs are available.
+- Decision: Global Selection v1 does not allocate sessions, prescribe, generate, persist, activate, or change production behavior.
+- Evidence: `src/features/curated-onboarding/planning/selection/contract.ts`, `src/features/curated-onboarding/planning/selection/select.ts`, `src/features/curated-onboarding/planning/selection/select.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
