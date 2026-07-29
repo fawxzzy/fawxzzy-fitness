@@ -23,6 +23,8 @@ export const COVERAGE_POLICY_VERSION =
   "fitness.planning-coverage-policy.2026-07-28.v1" as const;
 export const COVERAGE_RUNTIME_VALIDATOR_VERSION =
   "fitness.planning-coverage-validator.2026-07-28.v1" as const;
+export const COVERAGE_REQUIREMENT_ID_PATTERN_SOURCE =
+  "^coverage:[a-z_]+(?:\\+[a-z_]+)*$" as const;
 
 export const COVERAGE_STATUSES = [
   "ready",
@@ -451,7 +453,7 @@ const REQUIREMENT_SCHEMA = closedObjectSchema(
     "compatibleExerciseIds",
   ],
   {
-    id: { type: "string", pattern: "^coverage:[a-z_]+(?:\\+[a-z_]+)*$" },
+    id: { type: "string", pattern: COVERAGE_REQUIREMENT_ID_PATTERN_SOURCE },
     anyOfMovementPatterns: {
       type: "array",
       minItems: 1,

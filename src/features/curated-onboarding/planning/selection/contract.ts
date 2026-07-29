@@ -10,6 +10,7 @@ import {
 import {
   COVERAGE_COMPILER_VERSION,
   COVERAGE_POLICY_VERSION,
+  COVERAGE_REQUIREMENT_ID_PATTERN_SOURCE,
   COVERAGE_SCHEMA_VERSION,
   COVERAGE_STATUSES,
   type CoverageStatus,
@@ -173,7 +174,9 @@ export type GlobalSelectionRuntimeValidationReceiptV1 = {
 
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
 const IDENTIFIER_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const REQUIREMENT_ID_PATTERN = /^coverage:[a-z0-9_]+$/;
+const REQUIREMENT_ID_PATTERN = new RegExp(
+  COVERAGE_REQUIREMENT_ID_PATTERN_SOURCE,
+);
 const ROOT_KEYS = [
   "schemaVersion",
   "compilerVersion",

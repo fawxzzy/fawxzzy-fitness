@@ -164,6 +164,70 @@ test("all ten planning fixtures produce pinned runtime-valid selection terminals
   }
 });
 
+test("compound coverage requirements compile to runtime-valid exact-input selections", () => {
+  const planning = resignPlanning((value) => {
+    value.environment.equipmentAvailable = [
+      "bench",
+      "bike",
+      "bodyweight",
+      "dumbbells",
+    ];
+  }, "cardio-priority-4day-hybrid");
+  const catalog = structuredClone(PLANNER_EXERCISE_CATALOG_V1);
+  const { coverage, ranking, selection } = compile(planning, catalog);
+  const compoundRequirementId =
+    "coverage:cycling+locomotion+walking";
+
+  assert.equal(coverage.status, "ready");
+  assert.ok(
+    coverage.requirements.some(
+      (entry) => entry.id === compoundRequirementId,
+    ),
+  );
+  assert.equal(ranking.status, "ready");
+  assert.equal(selection.status, "selected");
+  assert.ok(
+    selection.selections.some(
+      (entry) => entry.requirementId === compoundRequirementId,
+    ),
+  );
+  assert.equal(validateGlobalSelectionV1WithReceipt(selection).valid, true);
+  assert.deepEqual(
+    validateGlobalSelectionAgainstInputsV1(
+      selection,
+      planning,
+      catalog,
+      coverage,
+      ranking,
+    ),
+    [],
+  );
+});
+
+test("coverage requirement IDs reject malformed compound boundaries", () => {
+  const baseline =
+    GLOBAL_SELECTION_FIXTURES["beginner-home-3day-general-strength"];
+  for (const requirementId of [
+    "coverage:+cycling",
+    "coverage:cycling+",
+    "coverage:cycling++walking",
+    "coverage:cycling+Walking",
+  ]) {
+    const malformed = resignSelection(baseline, (value) => {
+      value.selections[0].requirementId = requirementId;
+    });
+    const receipt = validateGlobalSelectionV1WithReceipt(malformed);
+
+    assert.equal(receipt.valid, false, requirementId);
+    assert.ok(
+      receipt.errors.includes(
+        "$.selections[0].requirementId must be a canonical coverage ID.",
+      ),
+      requirementId,
+    );
+  }
+});
+
 test("selected terminals cover every ranked requirement exactly once", () => {
   for (const fixtureId of GLOBAL_SELECTION_FIXTURE_IDS) {
     const { planning, catalog, coverage, ranking } =
