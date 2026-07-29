@@ -326,6 +326,95 @@ normalized intake, semantic projection, fixtures, catalog, or coverage cannot
 bypass this consumer contract. It does not modify the open
 `.github/workflows/ci.yml` lane.
 
+## Candidate ranking v1
+
+`src/features/curated-onboarding/planning/ranking/` defines the source-only
+`fitness.candidate-ranking.v1` boundary. It consumes three exact inputs:
+
+- a runtime-valid normalized planning intake;
+- a runtime-valid exercise catalog;
+- a runtime-valid, input-bound coverage compilation.
+
+The compiler refuses to score unless the coverage result is `ready`.
+`blocked`, `needs_clarification`, `infeasible`, and coverage-level
+`invalid_input` results become a digest-bound `not_rankable` terminal with no
+candidate output. Malformed or input-mismatched contracts become
+`invalid_input`. Ranking never treats a non-ready result as an empty or
+lower-confidence plan.
+
+Every compatible exercise ID from every coverage requirement appears exactly
+once in the ranking output. No candidate can be added, removed, or widened by
+the scorer. Eligibility remains owned by coverage and the catalog's equipment,
+experience, restriction, clearance, and explicit hard-exclusion filters.
+
+Ranking uses seven closed integer components:
+
+| Component | Source | Rule |
+| --- | --- | --- |
+| `goalFit` | Catalog goal tier for the primary goal | Lower reviewed tier scores higher |
+| `planStyleFit` | Normalized plan style and catalog style tags | Exact match, mismatch, or neutral no-preference |
+| `preference` | Exact executable ID/alias matches from preferred/disliked names | Preferred, disliked, conflict-neutral, or neutral |
+| `experienceSuitability` | Validated experience and catalog suitability | Beginner preference or exact/minimum experience relation |
+| `timeEfficiency` | Catalog time-efficiency tier | Lower reviewed tier scores higher |
+| `setupTransitionCost` | Catalog setup plus transition seconds | Closed low/moderate/high bands |
+| `recoveryCost` | Normalized recovery modifier and systemic-fatigue tier | Standard is neutral; conservative scoring rewards or penalizes the reviewed fatigue tier |
+
+Each component has exactly one immutable reason code in component order.
+`CANDIDATE_RANKING_REASON_POLICY` freezes every reason-to-component and
+reason-to-score mapping. Runtime validation rejects missing, duplicated,
+reordered, or mismatched reasons, non-integer components, incorrect totals,
+duplicate candidate IDs, and noncanonical ranking order.
+
+Preference lookup is executable and presentation-neutral: it uses exercise IDs
+and validated aliases after deterministic text normalization. It does not use
+`canonicalName`, fuzzy matching, raw questionnaire IDs, nutrition, delivery
+preferences, acknowledgments, or historical lift text. Unresolved optional
+preference names are neutral. If the same exact exercise is both preferred and
+disliked, that component is conflict-neutral rather than caller-order
+dependent.
+
+Ordering is frozen:
+
+1. total score descending;
+2. catalog `curatedRank` ascending;
+3. exercise ID lexical ascending.
+
+`rankingDigest` binds schema/compiler/policy versions, all three input semantic
+digests and coverage status, requirement IDs, candidate IDs, all score
+components, reason codes, totals, curated ranks, issues, status, and final
+order.
+
+There is deliberately no exported JSON Schema presented as semantic
+authorization. Consumers must require a successful receipt from
+`validateCandidateRankingV1WithReceipt`, pinned to
+`fitness.candidate-ranking-validator.2026-07-28.v1`. That runtime boundary
+closes record shapes, authenticates score/reason semantics, enforces status and
+ordering invariants, recomputes the digest, and returns errors instead of
+throwing on malformed transport members.
+
+A self-consistent digest still does not prove source authenticity. Consumers
+with the three inputs must additionally call
+`validateCandidateRankingAgainstInputsV1`; it first requires the versioned
+runtime receipt, then recompiles from the exact planning, catalog, and coverage
+inputs. Re-signed candidate omission, injection, score drift, or a forged
+coverage pool cannot cross that boundary.
+
+The ten normalized fixtures pin five `ready` ranking results and five
+`not_rankable` terminals. The focused suite additionally covers deterministic
+repeatability, both tie-breakers, preference monotonicity and conflicts,
+conservative recovery behavior, presentation-only catalog changes, score and
+reason tampering, digest/order tampering, malformed transports, and
+input-bound candidate omission/injection.
+`.github/workflows/planning-ranking-contract.yml` runs that suite directly and
+watches the complete `curated-onboarding/**` dependency tree plus both contract
+documents and its own workflow. It does not modify or depend on the open
+`.github/workflows/ci.yml` lane.
+
+Ranking v1 does not choose a global exercise set, allocate exercises to
+sessions, prescribe sets/reps/load/progression, generate a routine, persist
+data, activate anything, or change current onboarding or existing-routine
+behavior. Those remain later separately versioned and governed packets.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
