@@ -689,7 +689,7 @@ function validateSubstitutionRules(value: unknown, errors: string[]) {
   }
 }
 
-function normalizedLookup(value: string) {
+export function normalizeCatalogLookupValue(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
@@ -703,7 +703,7 @@ function validateCrossReferences(catalog: ExerciseCatalogBundleV1, errors: strin
 
   for (const equipment of catalog.equipment) {
     for (const alias of [equipment.id, ...equipment.aliases]) {
-      const normalized = normalizedLookup(alias);
+      const normalized = normalizeCatalogLookupValue(alias);
       const owner = equipmentAliasOwners.get(normalized);
       if (owner && owner !== equipment.id) {
         errors.push(`Equipment lookup value ${alias} is ambiguous between ${owner} and ${equipment.id}.`);
@@ -718,7 +718,7 @@ function validateCrossReferences(catalog: ExerciseCatalogBundleV1, errors: strin
     }
 
     for (const lookup of [exercise.id, ...exercise.aliases]) {
-      const normalized = normalizedLookup(lookup);
+      const normalized = normalizeCatalogLookupValue(lookup);
       const owner = lookupOwners.get(normalized);
       if (owner && owner !== exercise.id) {
         errors.push(`Exercise lookup value ${lookup} is ambiguous between ${owner} and ${exercise.id}.`);

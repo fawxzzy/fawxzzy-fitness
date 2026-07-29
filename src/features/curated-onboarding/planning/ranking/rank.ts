@@ -13,6 +13,7 @@ import {
   type PlanStyleCode,
 } from "../catalog/contract.ts";
 import {
+  normalizeCatalogLookupValue,
   validateExerciseCatalogBundleV1,
 } from "../catalog/validate.ts";
 import {
@@ -149,22 +150,12 @@ function finalize(
   };
 }
 
-function normalizeLookupValue(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[’']/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
 function buildExerciseLookup(catalog: ExerciseCatalogBundleV1) {
   const lookup = new Map<string, string>();
   for (const exercise of catalog.exercises) {
-    lookup.set(normalizeLookupValue(exercise.id), exercise.id);
+    lookup.set(normalizeCatalogLookupValue(exercise.id), exercise.id);
     for (const alias of exercise.aliases) {
-      lookup.set(normalizeLookupValue(alias), exercise.id);
+      lookup.set(normalizeCatalogLookupValue(alias), exercise.id);
     }
   }
   return lookup;
@@ -176,7 +167,7 @@ function resolveOptimizationNames(
 ) {
   const ids = new Set<string>();
   for (const name of names) {
-    const id = lookup.get(normalizeLookupValue(name));
+    const id = lookup.get(normalizeCatalogLookupValue(name));
     if (id) ids.add(id);
   }
   return ids;

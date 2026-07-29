@@ -270,6 +270,33 @@ test("exact preferred and disliked names move only the preference component", ()
   assert.equal(disliked.reasonCodes[2], "PREFERENCE_DISLIKED");
 });
 
+test("preference lookup preserves catalog punctuation ownership", () => {
+  const catalog = resignCatalog((value) => {
+    exercise(value, "bodyweight-squat").aliases = ["farmer's walk"];
+    exercise(value, "goblet-squat").aliases = ["farmers walk"];
+  });
+  const planning = resignPlanning((value) => {
+    value.preferences.preferredExerciseNames = ["farmer's walk"];
+    value.preferences.dislikedExerciseNames = [];
+  });
+  const ranking = compile(planning, catalog).ranking;
+  const bodyweight = findCandidate(
+    ranking,
+    "coverage:squat",
+    "bodyweight-squat",
+  );
+  const goblet = findCandidate(
+    ranking,
+    "coverage:squat",
+    "goblet-squat",
+  );
+
+  assert.equal(bodyweight.scoreComponents.preference, 16);
+  assert.equal(bodyweight.reasonCodes[2], "PREFERENCE_PREFERRED");
+  assert.equal(goblet.scoreComponents.preference, 0);
+  assert.equal(goblet.reasonCodes[2], "PREFERENCE_NEUTRAL");
+});
+
 test("contradictory preference names are neutral and deterministic", () => {
   const planning = resignPlanning((value) => {
     value.preferences.preferredExerciseNames = ["push up"];
