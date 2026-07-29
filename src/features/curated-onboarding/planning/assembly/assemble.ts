@@ -1,4 +1,20 @@
 import {
+  COVERAGE_STATUSES,
+  type CoverageStatus,
+} from "../coverage/contract.ts";
+import {
+  CANDIDATE_RANKING_STATUSES,
+  type CandidateRankingStatus,
+} from "../ranking/contract.ts";
+import {
+  GLOBAL_SELECTION_STATUSES,
+  type GlobalSelectionStatus,
+} from "../selection/contract.ts";
+import {
+  SESSION_ALLOCATION_STATUSES,
+  type SessionAllocationStatus,
+} from "../allocation/contract.ts";
+import {
   SESSION_PRESCRIPTION_STATUSES,
   validateSessionPrescriptionV1WithReceipt,
   type SessionPrescriptionV1,
@@ -46,12 +62,13 @@ function safeDigest(value: unknown) {
     : null;
 }
 
-function safePrescriptionStatus(value: unknown): SessionPrescriptionStatus | null {
+function safeStatus<Status extends string>(
+  value: unknown,
+  statuses: readonly Status[],
+): Status | null {
   return typeof value === "string"
-      && SESSION_PRESCRIPTION_STATUSES.includes(
-        value as SessionPrescriptionStatus,
-      )
-    ? value as SessionPrescriptionStatus
+      && statuses.includes(value as Status)
+    ? value as Status
     : null;
 }
 
@@ -73,39 +90,42 @@ function readInputIdentity(
     coverageCompilerVersion: safeString(input?.coverageCompilerVersion),
     coveragePolicyVersion: safeString(input?.coveragePolicyVersion),
     coverageDigest: safeDigest(input?.coverageDigest),
-    coverageStatus:
-      typeof input?.coverageStatus === "string"
-        ? input.coverageStatus as RoutineAssemblyInputIdentityV1["coverageStatus"]
-        : null,
+    coverageStatus: safeStatus<CoverageStatus>(
+      input?.coverageStatus,
+      COVERAGE_STATUSES,
+    ),
     rankingSchemaVersion: safeString(input?.rankingSchemaVersion),
     rankingCompilerVersion: safeString(input?.rankingCompilerVersion),
     rankingPolicyVersion: safeString(input?.rankingPolicyVersion),
     rankingDigest: safeDigest(input?.rankingDigest),
-    rankingStatus:
-      typeof input?.rankingStatus === "string"
-        ? input.rankingStatus as RoutineAssemblyInputIdentityV1["rankingStatus"]
-        : null,
+    rankingStatus: safeStatus<CandidateRankingStatus>(
+      input?.rankingStatus,
+      CANDIDATE_RANKING_STATUSES,
+    ),
     selectionSchemaVersion: safeString(input?.selectionSchemaVersion),
     selectionCompilerVersion: safeString(input?.selectionCompilerVersion),
     selectionPolicyVersion: safeString(input?.selectionPolicyVersion),
     selectionDigest: safeDigest(input?.selectionDigest),
-    selectionStatus:
-      typeof input?.selectionStatus === "string"
-        ? input.selectionStatus as RoutineAssemblyInputIdentityV1["selectionStatus"]
-        : null,
+    selectionStatus: safeStatus<GlobalSelectionStatus>(
+      input?.selectionStatus,
+      GLOBAL_SELECTION_STATUSES,
+    ),
     allocationSchemaVersion: safeString(input?.allocationSchemaVersion),
     allocationCompilerVersion: safeString(input?.allocationCompilerVersion),
     allocationPolicyVersion: safeString(input?.allocationPolicyVersion),
     allocationDigest: safeDigest(input?.allocationDigest),
-    allocationStatus:
-      typeof input?.allocationStatus === "string"
-        ? input.allocationStatus as RoutineAssemblyInputIdentityV1["allocationStatus"]
-        : null,
+    allocationStatus: safeStatus<SessionAllocationStatus>(
+      input?.allocationStatus,
+      SESSION_ALLOCATION_STATUSES,
+    ),
     prescriptionSchemaVersion: safeString(prescription?.schemaVersion),
     prescriptionCompilerVersion: safeString(prescription?.compilerVersion),
     prescriptionPolicyVersion: safeString(prescription?.policyVersion),
     prescriptionDigest: safeDigest(prescription?.prescriptionDigest),
-    prescriptionStatus: safePrescriptionStatus(prescription?.status),
+    prescriptionStatus: safeStatus<SessionPrescriptionStatus>(
+      prescription?.status,
+      SESSION_PRESCRIPTION_STATUSES,
+    ),
   };
 }
 

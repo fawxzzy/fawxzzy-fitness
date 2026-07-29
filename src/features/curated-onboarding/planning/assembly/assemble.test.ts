@@ -425,6 +425,53 @@ test("compiler returns a valid invalid-input terminal for malformed input", () =
   assert.equal(validateRoutineAssemblyV1WithReceipt(result).valid, true);
 });
 
+test("compiler closes copied upstream status values before finalizing", () => {
+  const inputs =
+    createRoutineAssemblyFixtureInputs(ASSEMBLED_FIXTURE_ID);
+  const valid = compileRoutineAssemblyV1(
+    inputs.planning,
+    inputs.catalog,
+    inputs.coverage,
+    inputs.ranking,
+    inputs.selection,
+    inputs.allocation,
+    inputs.prescription,
+  );
+  const statusFields = [
+    "coverageStatus",
+    "rankingStatus",
+    "selectionStatus",
+    "allocationStatus",
+  ] as const;
+  for (const field of statusFields) {
+    assert.equal(valid.input[field], inputs.prescription.input[field], field);
+
+    const malformed = structuredClone(inputs.prescription) as unknown as {
+      input: Record<(typeof statusFields)[number], unknown>;
+    };
+    malformed.input[field] = "unknown";
+    let result: RoutineAssemblyV1 | undefined;
+    assert.doesNotThrow(() => {
+      result = compileRoutineAssemblyV1(
+        inputs.planning,
+        inputs.catalog,
+        inputs.coverage,
+        inputs.ranking,
+        inputs.selection,
+        inputs.allocation,
+        malformed,
+      );
+    }, field);
+    assert.equal(result?.status, "invalid_input", field);
+    assert.equal(result?.input[field], null, field);
+    assert.equal(
+      validateRoutineAssemblyV1WithReceipt(result).valid,
+      true,
+      field,
+    );
+  }
+});
+
 test("presentation-only catalog names do not alter routine identity", () => {
   const inputs =
     createRoutineAssemblyFixtureInputs(ASSEMBLED_FIXTURE_ID);
