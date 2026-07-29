@@ -487,6 +487,67 @@ sets/reps/load/progression, generate a routine, persist data, activate
 anything, or change current onboarding or existing-routine behavior. Those
 remain later separately versioned and governed packets.
 
+## Session Allocation v1
+
+`src/features/curated-onboarding/planning/allocation/` defines the source-only
+`fitness.session-allocation.v1` boundary. It consumes the five exact inputs
+already established by the planning chain:
+
+- a runtime-valid normalized planning intake;
+- a runtime-valid exercise catalog;
+- a runtime-valid, input-bound coverage compilation;
+- a runtime-valid, input-bound candidate ranking;
+- a runtime-valid, input-bound global selection.
+
+Allocation revalidates every contract and recompiles Coverage, Ranking, and
+Selection from their exact upstream inputs before it may place an exercise.
+Malformed or input-mismatched state becomes `invalid_input`. Any selection
+terminal other than `selected` becomes `not_allocatable`; no partial sessions
+are emitted.
+
+For a selected input, Allocation v1 preserves the exact requirement/exercise
+set and assigns every selection exactly once across the requested session
+slots. Fixed schedules retain their exact canonical weekdays. Count-only
+schedules retain their requested session count and emit `null` weekday slots
+without inventing dates. Selected exercises are traversed in canonical
+selection order and distributed round-robin, producing non-empty session
+counts whose maximum spread is one. If the requested session count exceeds
+the exact selected exercise count, allocation fails closed as `infeasible`
+with `SESSION_COUNT_EXCEEDS_SELECTIONS` instead of emitting empty workout days.
+
+Each assignment binds the coverage requirement ID, exercise ID, original
+selection position, and its position within the session. The objective binds
+the session count, exercise count, per-session counts, minimum, maximum, and
+spread. `allocationDigest` authenticates all versions and upstream identities,
+the exact schedule, every assignment, the balancing objective, issues,
+terminal status, and canonical order.
+
+There is no portable JSON Schema presented as semantic authorization.
+Consumers must require
+`validateSessionAllocationV1WithReceipt`, pinned to
+`fitness.session-allocation-validator.2026-07-29.v1`. The runtime receipt
+closes record shapes, issue policy, schedule modes, assignment uniqueness,
+session/order arithmetic, objective arithmetic, status rules, and digest
+recomputation without throwing on malformed members. Consumers with all five
+inputs must additionally call `validateSessionAllocationAgainstInputsV1`;
+runtime-valid re-signed assignment substitution still fails exact-input
+recompilation.
+
+The ten inherited planning fixtures pin five `allocated` results and five
+`not_allocatable` terminals. The focused suite also proves fixed and
+count-only schedule behavior, deterministic balance, exact selected-set
+preservation, malformed non-throwing receipts, digest/order tampering,
+re-signed assignment rejection, forged-selection rejection, infeasible
+seven-day allocation, repeatability, and direct workflow coverage.
+`.github/workflows/planning-session-allocation-contract.yml` watches the
+complete `curated-onboarding/**` dependency tree and runs the focused suite
+directly.
+
+Session Allocation v1 does not prescribe sets, reps, load, rest, tempo, or
+progression; generate routine persistence records; activate a routine; or
+change current onboarding or existing-routine behavior. Those remain later
+separately versioned and governed packets.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
@@ -567,10 +628,10 @@ general questionnaire.
 The coverage compiler consumes only the validated normalized contract and
 validated exercise catalog, not raw questionnaire IDs. Ranking consumes only
 runtime-valid, input-bound coverage. Global selection consumes only the
-runtime-valid, input-bound ranking and its exact upstream inputs. A future
-session allocator must revalidate all contract and policy versions, preserve
-coverage eligibility and the exact selected set, and refuse `blocked`,
-`needs_clarification`, `not_rankable`, `not_selectable`, `invalid_input`, or
+runtime-valid, input-bound ranking and its exact upstream inputs. Session
+allocation revalidates all five inputs, preserves coverage eligibility and the
+exact selected set, and refuses `blocked`, `needs_clarification`,
+`not_rankable`, `not_selectable`, `not_allocatable`, `invalid_input`, or
 `infeasible` results.
 
 Persistence integration is a later governed packet. Before it can claim

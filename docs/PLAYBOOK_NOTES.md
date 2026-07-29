@@ -736,3 +736,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Global Selection v1 does not allocate sessions, prescribe, generate, persist, activate, or change production behavior.
 - Evidence: `src/features/curated-onboarding/planning/selection/contract.ts`, `src/features/curated-onboarding/planning/selection/select.ts`, `src/features/curated-onboarding/planning/selection/select.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-29 - Allocate the exact selected set before prescribing it
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Session Allocation v1 contract that revalidates the complete planning/catalog/coverage/ranking/selection chain, preserves every selected requirement/exercise pair exactly once, maps fixed or count-only schedules into canonical session slots, balances exercise counts deterministically, emits a semantic digest and non-throwing runtime receipt, recompiles from all five exact inputs, pins ten terminal fixtures, and runs in direct exact-head CI.
+- WHY it changed: A selected exercise set does not prove when each exercise occurs. Session placement must preserve schedule truth and exact upstream ownership before sets, reps, progression, persistence, or activation can be trusted.
+- Rule: Allocation may place only the exact input-bound selected set. It cannot add, omit, replace, duplicate, or rescore an exercise; fixed weekdays remain exact and count-only schedules never invent weekdays.
+- Rule: Every requested session must be non-empty and session exercise counts must differ by at most one. When the requested session count exceeds the selected count, fail closed without partial or empty workout days.
+- Pattern: exact five-input chain -> canonical schedule slots -> selection-order round-robin placement -> objective arithmetic -> runtime receipt -> exact-input recompilation -> later prescription.
+- Failure Mode: A self-signed allocation can substitute exercises or silently discard selected coverage, while an allocator that invents weekdays or emits empty days turns valid schedule intent into misleading routine truth.
+- Decision: No portable JSON Schema is exported as semantic authorization. Consumers require `validateSessionAllocationV1WithReceipt`, then `validateSessionAllocationAgainstInputsV1` when all five inputs are available.
+- Decision: Session Allocation v1 does not prescribe, generate persistence records, activate routines, or change production behavior.
+- Evidence: `src/features/curated-onboarding/planning/allocation/contract.ts`, `src/features/curated-onboarding/planning/allocation/allocate.ts`, `src/features/curated-onboarding/planning/allocation/allocate.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
