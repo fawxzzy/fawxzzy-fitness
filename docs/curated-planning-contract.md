@@ -415,6 +415,78 @@ sessions, prescribe sets/reps/load/progression, generate a routine, persist
 data, activate anything, or change current onboarding or existing-routine
 behavior. Those remain later separately versioned and governed packets.
 
+## Global Candidate Selection v1
+
+`src/features/curated-onboarding/planning/selection/` defines the source-only
+`fitness.global-selection.v1` boundary. It consumes four exact inputs:
+
+- a runtime-valid normalized planning intake;
+- a runtime-valid exercise catalog;
+- a runtime-valid, input-bound coverage compilation;
+- a runtime-valid, input-bound candidate ranking.
+
+Selection refuses to run unless all four inputs validate and both derived
+contracts recompile from their exact upstream inputs. A non-ready ranking
+becomes a digest-bound `not_selectable` terminal. Malformed, self-consistent
+but input-mismatched, or version-mismatched inputs become `invalid_input`.
+
+For a ready ranking, Global Selection v1 chooses exactly one candidate for
+every canonical coverage requirement and prohibits reusing an exercise across
+requirements. Coverage remains the sole eligibility authority, and ranking
+remains the sole candidate-order and score authority. Selection cannot inject,
+remove, rescore, or widen a candidate pool.
+
+The global objective is closed:
+
+1. maximize the sum of selected candidate scores;
+2. for equal totals, traverse requirements by canonical requirement ID and
+   prefer each requirement's existing ranking order;
+3. preserve the chosen ranking position, candidate score, and curated rank as
+   digest-bound evidence.
+
+This prevents a locally greedy first choice from consuming a shared exercise
+when a different assignment has the larger total score. If no perfect
+globally unique assignment exists, the compiler returns `infeasible` with
+`UNIQUE_ASSIGNMENT_UNAVAILABLE`. The memoized search is capped at 100,000
+states; reaching that bound fails closed with
+`SELECTION_SEARCH_LIMIT_EXCEEDED` instead of returning a partial assignment.
+
+`selectionDigest` binds all schema/compiler/policy versions, the planning,
+catalog, coverage, and ranking semantic identities and statuses, every selected
+requirement/exercise pair, ranking positions, candidate scores, curated ranks,
+the total objective, its tie-break vector, issues, status, and canonical order.
+
+There is deliberately no exported JSON Schema presented as semantic
+authorization. Consumers must require a successful receipt from
+`validateGlobalSelectionV1WithReceipt`, pinned to
+`fitness.global-selection-validator.2026-07-28.v1`. The runtime boundary closes
+all record shapes, issue code/class/path semantics, global exercise uniqueness,
+objective arithmetic, status rules, canonical order, and digest recomputation,
+and it returns errors instead of throwing on malformed members.
+
+A runtime-valid self-digest still cannot prove candidate ownership or complete
+requirement coverage. Consumers with the four inputs must additionally call
+`validateGlobalSelectionAgainstInputsV1`. It first requires the versioned
+runtime receipt, then recompiles from the exact planning, catalog, coverage,
+and ranking inputs. Re-signed selection omission, injection, input-identity
+forgery, or altered assignment cannot cross that boundary.
+
+The ten normalized fixtures pin five `selected` results and five
+`not_selectable` terminals. The focused suite also proves deterministic
+repeatability, global-score optimization, canonical equal-score resolution,
+unique-assignment infeasibility, coverage/ranking ownership, issue
+authenticity, digest/order/objective tampering, malformed non-throwing
+receipts, and input-bound omission/injection rejection.
+`.github/workflows/planning-selection-contract.yml` runs that suite directly
+and watches the complete `curated-onboarding/**` dependency tree plus both
+contract documents and its own workflow. It does not modify or depend on the
+open `.github/workflows/ci.yml` lane.
+
+Global Selection v1 does not allocate exercises to sessions, prescribe
+sets/reps/load/progression, generate a routine, persist data, activate
+anything, or change current onboarding or existing-routine behavior. Those
+remain later separately versioned and governed packets.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
@@ -493,10 +565,13 @@ general questionnaire.
 ## Future consumption and governed dependencies
 
 The coverage compiler consumes only the validated normalized contract and
-validated exercise catalog, not raw questionnaire IDs. A future planner must
-consume a validated, input-bound coverage result, revalidate all contract and
-policy versions, preserve hard constraints before scoring, and refuse
-`blocked`, `needs_clarification`, `invalid_input`, or `infeasible` results.
+validated exercise catalog, not raw questionnaire IDs. Ranking consumes only
+runtime-valid, input-bound coverage. Global selection consumes only the
+runtime-valid, input-bound ranking and its exact upstream inputs. A future
+session allocator must revalidate all contract and policy versions, preserve
+coverage eligibility and the exact selected set, and refuse `blocked`,
+`needs_clarification`, `not_rankable`, `not_selectable`, `invalid_input`, or
+`infeasible` results.
 
 Persistence integration is a later governed packet. Before it can claim
 lossless or idempotent creation, the repository needs evidence for:
