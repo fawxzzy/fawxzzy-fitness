@@ -604,9 +604,12 @@ function validateSchedule(
       if (
         typeof minutes[key] !== "number"
         || !Number.isFinite(minutes[key])
+        || !Number.isInteger(minutes[key])
         || Number(minutes[key]) < 10
       ) {
-        errors.push(`$.schedule.sessionMinutes.${key} must be at least 10.`);
+        errors.push(
+          `$.schedule.sessionMinutes.${key} must be an integer of at least 10.`,
+        );
       }
     }
     if (

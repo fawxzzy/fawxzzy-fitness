@@ -342,6 +342,44 @@ test("runtime validation rejects target and time arithmetic tampering", () => {
   );
 });
 
+test("runtime validation rejects re-signed fractional inherited session minutes", () => {
+  const source =
+    SESSION_PRESCRIPTION_FIXTURES[
+      "beginner-home-3day-general-strength"
+    ];
+  const fractionalTargetMinutes = structuredClone(source);
+  fractionalTargetMinutes.schedule!.sessionMinutes.target += 0.5;
+  for (const session of fractionalTargetMinutes.sessions) {
+    session.timeBudget.targetSeconds += 30;
+  }
+  fractionalTargetMinutes.prescriptionDigest =
+    digestSessionPrescription(fractionalTargetMinutes);
+  const targetMinutesReceipt =
+    validateSessionPrescriptionV1WithReceipt(fractionalTargetMinutes);
+  assert.equal(targetMinutesReceipt.valid, false);
+  assert.match(
+    targetMinutesReceipt.errors.join("\n"),
+    /sessionMinutes\.target must be an integer of at least 10/,
+  );
+
+  const fractionalHardMaximumMinutes = structuredClone(source);
+  fractionalHardMaximumMinutes.schedule!.sessionMinutes.hardMaximum += 0.5;
+  for (const session of fractionalHardMaximumMinutes.sessions) {
+    session.timeBudget.hardMaximumSeconds += 30;
+  }
+  fractionalHardMaximumMinutes.prescriptionDigest =
+    digestSessionPrescription(fractionalHardMaximumMinutes);
+  const hardMaximumMinutesReceipt =
+    validateSessionPrescriptionV1WithReceipt(
+      fractionalHardMaximumMinutes,
+    );
+  assert.equal(hardMaximumMinutesReceipt.valid, false);
+  assert.match(
+    hardMaximumMinutesReceipt.errors.join("\n"),
+    /sessionMinutes\.hardMaximum must be an integer of at least 10/,
+  );
+});
+
 test("runtime validation rejects re-signed duplication and cross-session placement", () => {
   const source =
     SESSION_PRESCRIPTION_FIXTURES[
