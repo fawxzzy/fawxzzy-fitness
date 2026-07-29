@@ -25,7 +25,7 @@ import {
   SECONDARY_GOAL_COVERAGE_POLICY,
   TARGET_AREA_COVERAGE_POLICY,
   digestCoverageCompilation,
-  validateCoverageCompilationV1,
+  validateCoverageCompilationV1WithReceipt,
   type CoverageCompilationV1,
   type CoverageHardConstraintsV1,
   type CoverageInputIdentityV1,
@@ -530,7 +530,8 @@ export function validateCoverageCompilationAgainstInputsV1(
   planningValue: unknown,
   catalogValue: unknown,
 ) {
-  const errors = validateCoverageCompilationV1(value);
+  const receipt = validateCoverageCompilationV1WithReceipt(value);
+  const errors = [...receipt.errors];
   if (errors.length > 0) return errors;
   const supplied = value as CoverageCompilationV1;
   const expected = compilePlanningCoverageV1(planningValue, catalogValue);

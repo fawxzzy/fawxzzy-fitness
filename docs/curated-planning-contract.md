@@ -276,12 +276,28 @@ day count produces `WEEKLY_FREQUENCY_UNAVAILABLE`.
 
 `coverageDigest` binds compiler/policy versions, both input semantic digests,
 schedule and hard constraints, source-ranked coverage requirements, candidate
-pools, issues, and terminal status. `validateCoverageCompilationV1` closes the
-runtime shape, freezes issue code/class/path meaning, enforces status
-invariants, and recomputes that digest. Because a self-digest is consistency,
-not authorization, consumers with the two inputs must additionally call
-`validateCoverageCompilationAgainstInputsV1`; it recompiles and rejects a
-re-signed forged candidate pool.
+pools, issues, and terminal status.
+
+`COVERAGE_COMPILATION_V1_STRUCTURAL_SCHEMA` is deliberately limited to
+closed transport shape and JSON-Schema-expressible invariants. It is not a
+semantic validity contract: portable JSON Schema cannot express every
+canonical ordering, cross-array relationship, numeric comparison, or digest
+recomputation required here. Schema-only acceptance must never authorize
+planning.
+
+Every consumer must obtain a successful receipt from
+`validateCoverageCompilationV1WithReceipt`, pinned to
+`fitness.planning-coverage-validator.2026-07-28.v1`. The runtime validator
+closes the shape, freezes issue code/class/path meaning, enforces canonical
+ordering plus schedule and status invariants, and recomputes the semantic
+digest. The structural schema mirrors schedule-mode and issue/status policy
+where JSON Schema can do so; the focused adversarial matrix executes both
+boundaries and proves that runtime-only semantic contradictions fail closed.
+Because a self-digest is consistency, not authorization, consumers with the
+two inputs must additionally call
+`validateCoverageCompilationAgainstInputsV1`; it first requires the versioned
+runtime receipt, then recompiles and rejects a re-signed forged candidate
+pool.
 
 The digest is not a routine, plan-creation idempotency key, persistence proof,
 or activation token. Coverage v1 does not rank candidates, assign them to

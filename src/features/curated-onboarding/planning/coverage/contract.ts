@@ -21,6 +21,8 @@ export const COVERAGE_COMPILER_VERSION =
   "fitness.planning-coverage-compiler.2026-07-28.v1" as const;
 export const COVERAGE_POLICY_VERSION =
   "fitness.planning-coverage-policy.2026-07-28.v1" as const;
+export const COVERAGE_RUNTIME_VALIDATOR_VERSION =
+  "fitness.planning-coverage-validator.2026-07-28.v1" as const;
 
 export const COVERAGE_STATUSES = [
   "ready",
@@ -291,6 +293,14 @@ export type CoverageCompilationV1 = {
   coverageDigest: string;
 };
 
+export type CoverageRuntimeValidationReceiptV1 = {
+  validatorVersion: typeof COVERAGE_RUNTIME_VALIDATOR_VERSION;
+  schemaVersion: typeof COVERAGE_SCHEMA_VERSION | null;
+  coverageDigest: string | null;
+  valid: boolean;
+  errors: string[];
+};
+
 const digestSchema = { type: ["string", "null"], pattern: "^[a-f0-9]{64}$" } as const;
 const nullableStringSchema = { type: ["string", "null"] } as const;
 const identifierSchema = { type: "string", pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" } as const;
@@ -351,6 +361,40 @@ const SCHEDULE_SCHEMA = closedObjectSchema(
     ),
   },
 );
+const SCHEDULE_MODE_SCHEMA = {
+  oneOf: [
+    {
+      properties: {
+        dayConstraint: { const: "fixed" },
+        flexibility: { const: "none" },
+        weekdays: { minItems: 1 },
+      },
+    },
+    {
+      properties: {
+        dayConstraint: { const: "count_only" },
+        flexibility: { const: "any_available_day" },
+        weekdays: { maxItems: 0 },
+      },
+    },
+  ],
+} as const;
+const SCHEDULE_COUNT_SCHEMA = {
+  allOf: ([1, 2, 3, 4, 5, 6, 7] as const).map((count) => ({
+    if: {
+      properties: {
+        dayConstraint: { const: "fixed" },
+        requestedDaysPerWeek: { const: count },
+      },
+      required: ["dayConstraint", "requestedDaysPerWeek"],
+    },
+    then: {
+      properties: {
+        weekdays: { minItems: count, maxItems: count },
+      },
+    },
+  })),
+} as const;
 const HARD_CONSTRAINTS_SCHEMA = closedObjectSchema(
   [
     "availableEquipment",
@@ -423,18 +467,34 @@ const REQUIREMENT_SCHEMA = closedObjectSchema(
     },
   },
 );
-const ISSUE_SCHEMA = closedObjectSchema(
-  ["code", "issueClass", "path", "values"],
-  {
-    code: { enum: COVERAGE_ISSUE_CODES },
-    issueClass: { enum: COVERAGE_ISSUE_CLASSES },
-    path: { type: "string", pattern: "^/" },
-    values: { type: "array", uniqueItems: true, items: { type: "string" } },
-  },
-);
+const ISSUE_SCHEMA = {
+  ...closedObjectSchema(
+    ["code", "issueClass", "path", "values"],
+    {
+      code: { enum: COVERAGE_ISSUE_CODES },
+      issueClass: { enum: COVERAGE_ISSUE_CLASSES },
+      path: { type: "string", pattern: "^/" },
+      values: { type: "array", uniqueItems: true, items: { type: "string" } },
+    },
+  ),
+  allOf: COVERAGE_ISSUE_CODES.map((code) => ({
+    if: {
+      properties: { code: { const: code } },
+      required: ["code"],
+    },
+    then: {
+      properties: {
+        issueClass: { const: COVERAGE_ISSUE_POLICY[code].issueClass },
+        path: { const: COVERAGE_ISSUE_POLICY[code].path },
+      },
+    },
+  })),
+} as const;
 
-export const COVERAGE_COMPILATION_V1_SCHEMA = {
-  $id: "https://fawxzzy.com/schemas/fitness/planning-coverage.v1.json",
+export const COVERAGE_COMPILATION_V1_STRUCTURAL_SCHEMA = {
+  $id: "https://fawxzzy.com/schemas/fitness/planning-coverage.v1.structural.json",
+  $comment:
+    "Structural transport schema only. Semantic validity requires a successful receipt from fitness.planning-coverage-validator.2026-07-28.v1.",
   ...closedObjectSchema(
     [
       "schemaVersion",
@@ -454,7 +514,15 @@ export const COVERAGE_COMPILATION_V1_SCHEMA = {
       policyVersion: { const: COVERAGE_POLICY_VERSION },
       input: INPUT_SCHEMA,
       status: { enum: COVERAGE_STATUSES },
-      schedule: { anyOf: [{ type: "null" }, SCHEDULE_SCHEMA] },
+      schedule: {
+        anyOf: [
+          { type: "null" },
+          {
+            ...SCHEDULE_SCHEMA,
+            allOf: [SCHEDULE_MODE_SCHEMA, ...SCHEDULE_COUNT_SCHEMA.allOf],
+          },
+        ],
+      },
       hardConstraints: { anyOf: [{ type: "null" }, HARD_CONSTRAINTS_SCHEMA] },
       requirements: { type: "array", items: REQUIREMENT_SCHEMA },
       issues: { type: "array", items: ISSUE_SCHEMA },
@@ -466,9 +534,19 @@ export const COVERAGE_COMPILATION_V1_SCHEMA = {
       if: { properties: { status: { const: "ready" } } },
       then: {
         properties: {
-          schedule: SCHEDULE_SCHEMA,
+          schedule: {
+            ...SCHEDULE_SCHEMA,
+            allOf: [SCHEDULE_MODE_SCHEMA, ...SCHEDULE_COUNT_SCHEMA.allOf],
+          },
           hardConstraints: HARD_CONSTRAINTS_SCHEMA,
-          requirements: { minItems: 1 },
+          requirements: {
+            minItems: 1,
+            items: {
+              properties: {
+                compatibleExerciseIds: { minItems: 1 },
+              },
+            },
+          },
           issues: { maxItems: 0 },
         },
       },
@@ -477,11 +555,43 @@ export const COVERAGE_COMPILATION_V1_SCHEMA = {
       if: { properties: { status: { const: "infeasible" } } },
       then: {
         properties: {
-          schedule: SCHEDULE_SCHEMA,
+          schedule: {
+            ...SCHEDULE_SCHEMA,
+            allOf: [SCHEDULE_MODE_SCHEMA, ...SCHEDULE_COUNT_SCHEMA.allOf],
+          },
           hardConstraints: HARD_CONSTRAINTS_SCHEMA,
           requirements: { minItems: 1 },
-          issues: { minItems: 1 },
+          issues: {
+            minItems: 1,
+            items: {
+              properties: { issueClass: { const: "infeasible" } },
+            },
+          },
         },
+        anyOf: [
+          {
+            properties: {
+              requirements: {
+                contains: {
+                  properties: {
+                    compatibleExerciseIds: { maxItems: 0 },
+                  },
+                },
+              },
+            },
+          },
+          {
+            properties: {
+              issues: {
+                contains: {
+                  properties: {
+                    code: { const: "WEEKLY_FREQUENCY_UNAVAILABLE" },
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
     },
     {
@@ -496,6 +606,42 @@ export const COVERAGE_COMPILATION_V1_SCHEMA = {
           hardConstraints: { type: "null" },
           requirements: { maxItems: 0 },
           issues: { minItems: 1 },
+        },
+      },
+    },
+    {
+      if: { properties: { status: { const: "blocked" } } },
+      then: {
+        properties: {
+          issues: {
+            items: {
+              properties: { issueClass: { const: "blocking" } },
+            },
+          },
+        },
+      },
+    },
+    {
+      if: { properties: { status: { const: "needs_clarification" } } },
+      then: {
+        properties: {
+          issues: {
+            items: {
+              properties: { issueClass: { const: "clarification" } },
+            },
+          },
+        },
+      },
+    },
+    {
+      if: { properties: { status: { const: "invalid_input" } } },
+      then: {
+        properties: {
+          issues: {
+            items: {
+              properties: { issueClass: { const: "invalid" } },
+            },
+          },
         },
       },
     },
@@ -1006,4 +1152,30 @@ export function validateCoverageCompilationV1(value: unknown) {
     }
   }
   return errors;
+}
+
+export function validateCoverageCompilationV1WithReceipt(
+  value: unknown,
+): CoverageRuntimeValidationReceiptV1 {
+  const record = (
+    value
+    && typeof value === "object"
+    && !Array.isArray(value)
+  )
+    ? value as Record<string, unknown>
+    : null;
+  const errors = validateCoverageCompilationV1(value);
+  return {
+    validatorVersion: COVERAGE_RUNTIME_VALIDATOR_VERSION,
+    schemaVersion: record?.schemaVersion === COVERAGE_SCHEMA_VERSION
+      ? COVERAGE_SCHEMA_VERSION
+      : null,
+    coverageDigest:
+      typeof record?.coverageDigest === "string"
+      && DIGEST_PATTERN.test(record.coverageDigest)
+        ? record.coverageDigest
+        : null,
+    valid: errors.length === 0,
+    errors,
+  };
 }

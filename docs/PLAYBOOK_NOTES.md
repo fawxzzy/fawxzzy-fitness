@@ -701,7 +701,8 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Validate both inputs, compile hard constraints, resolve every required coverage item through the catalog, and stop on any blocked, invalid, clarification, or infeasible result before ranking.
 - Pattern: normalized planning digest + catalog digest -> frozen coverage policy -> exact hard constraints -> compatibility pools -> input-bound semantic digest -> later planner.
 - Failure Mode: Treating a self-digest as source authenticity, fuzzily matching presentation names, ignoring unsupported equipment, or scoring before feasibility can produce a deterministic but unsafe routine.
-- Decision: `validateCoverageCompilationV1` proves closed shape and internal consistency; consumers must use `validateCoverageCompilationAgainstInputsV1` to recompile and reject re-signed forged candidate pools.
+- Decision: the exported JSON Schema is structural transport validation only because portable JSON Schema cannot prove every canonical order, cross-array invariant, numeric comparison, or semantic digest. Consumers must require a successful versioned `validateCoverageCompilationV1WithReceipt` result, then use `validateCoverageCompilationAgainstInputsV1` when the planning and catalog inputs are available to reject re-signed forged candidate pools.
+- Failure Mode: Treating a shape-valid JSON document as semantically validated lets schedule, issue-policy, canonical-ordering, or status contradictions cross the planner boundary.
 - Decision: Coverage v1 does not rank, schedule, prescribe, generate, persist, or activate routines. Those remain separate governed contracts.
 - Evidence: `src/features/curated-onboarding/planning/coverage/contract.ts`, `src/features/curated-onboarding/planning/coverage/compile.ts`, `src/features/curated-onboarding/planning/coverage/compile.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed

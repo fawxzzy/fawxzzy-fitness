@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import Ajv from "ajv";
 import {
   digestPlanningGenerationProjection,
 } from "../projection.ts";
@@ -29,17 +30,24 @@ import {
 } from "./compile.ts";
 import {
   CARDIO_COVERAGE_POLICY,
-  COVERAGE_COMPILATION_V1_SCHEMA,
+  COVERAGE_COMPILATION_V1_STRUCTURAL_SCHEMA,
   COVERAGE_ISSUE_CODES,
   COVERAGE_ISSUE_POLICY,
+  COVERAGE_RUNTIME_VALIDATOR_VERSION,
   MOVEMENT_SKILL_COVERAGE_POLICY,
   PRIMARY_GOAL_COVERAGE_POLICY,
   SECONDARY_GOAL_COVERAGE_POLICY,
   TARGET_AREA_COVERAGE_POLICY,
   digestCoverageCompilation,
   validateCoverageCompilationV1,
+  validateCoverageCompilationV1WithReceipt,
   type CoverageCompilationV1,
 } from "./contract.ts";
+
+const validateCoverageTransportShape = new Ajv({
+  allErrors: true,
+  jsonPointers: true,
+}).compile(COVERAGE_COMPILATION_V1_STRUCTURAL_SCHEMA);
 
 const EXPECTED_FIXTURE_RESULTS: Record<
   NormalizedPlanningFixtureId,
@@ -131,8 +139,15 @@ function recursivelyFrozen(value: unknown): boolean {
   return Object.isFrozen(value) && Object.values(value).every(recursivelyFrozen);
 }
 
-test("coverage schema and executable policy registries are closed and frozen", () => {
-  assert.equal(COVERAGE_COMPILATION_V1_SCHEMA.additionalProperties, false);
+test("coverage structural schema and executable policy registries are closed and frozen", () => {
+  assert.equal(
+    COVERAGE_COMPILATION_V1_STRUCTURAL_SCHEMA.additionalProperties,
+    false,
+  );
+  assert.match(
+    COVERAGE_COMPILATION_V1_STRUCTURAL_SCHEMA.$comment,
+    /Structural transport schema only/,
+  );
   assert.deepEqual(
     Object.keys(PRIMARY_GOAL_COVERAGE_POLICY).sort(),
     [...GOAL_CODES].sort(),
@@ -179,7 +194,19 @@ test("all ten normalized fixtures produce pinned, runtime-valid terminal contrac
     );
     assert.equal(result.status, expected.status, fixtureId);
     assert.equal(result.coverageDigest, expected.digest, fixtureId);
+    assert.equal(validateCoverageTransportShape(result), true, fixtureId);
     assert.deepEqual(validateCoverageCompilationV1(result), [], fixtureId);
+    assert.deepEqual(
+      validateCoverageCompilationV1WithReceipt(result),
+      {
+        validatorVersion: COVERAGE_RUNTIME_VALIDATOR_VERSION,
+        schemaVersion: result.schemaVersion,
+        coverageDigest: result.coverageDigest,
+        valid: true,
+        errors: [],
+      },
+      fixtureId,
+    );
     assert.deepEqual(
       validateCoverageCompilationAgainstInputsV1(
         result,
@@ -567,6 +594,68 @@ test("runtime validation rejects digest-consistent shape and policy contradictio
   const contradictionErrors = validateCoverageCompilationV1(contradictory);
   assert.ok(contradictionErrors.some((error) => error.includes("issueClass")));
   assert.ok(contradictionErrors.some((error) => error.includes("cannot include compiled")));
+});
+
+test("structural schema and versioned runtime receipt share an adversarial contradiction matrix", () => {
+  const ready = compilePlanningCoverageV1(
+    clonePlanning(),
+    PLANNER_EXERCISE_CATALOG_V1,
+  );
+  const infeasible = compilePlanningCoverageV1(
+    clonePlanning("bodyweight-travel-4day-general-fitness"),
+    PLANNER_EXERCISE_CATALOG_V1,
+  );
+  const matrix: Array<{
+    name: string;
+    value: CoverageCompilationV1;
+    structuralValid: boolean;
+    runtimeError: RegExp;
+  }> = [];
+
+  const contradictorySchedule = structuredClone(ready);
+  contradictorySchedule.schedule!.weekdays = [];
+  contradictorySchedule.coverageDigest =
+    digestCoverageCompilation(contradictorySchedule);
+  matrix.push({
+    name: "fixed schedule without exact weekdays",
+    value: contradictorySchedule,
+    structuralValid: false,
+    runtimeError: /fixed mode requires exact weekdays/,
+  });
+
+  const contradictoryIssue = structuredClone(infeasible);
+  contradictoryIssue.issues[0].issueClass = "blocking";
+  contradictoryIssue.issues[0].path = "/wrong";
+  contradictoryIssue.coverageDigest = digestCoverageCompilation(contradictoryIssue);
+  matrix.push({
+    name: "forged issue policy and infeasible status",
+    value: contradictoryIssue,
+    structuralValid: false,
+    runtimeError: /issueClass must equal infeasible/,
+  });
+
+  const nonCanonicalTransport = structuredClone(ready);
+  nonCanonicalTransport.hardConstraints!.availableEquipment.reverse();
+  nonCanonicalTransport.coverageDigest =
+    digestCoverageCompilation(nonCanonicalTransport);
+  matrix.push({
+    name: "non-canonical semantic array",
+    value: nonCanonicalTransport,
+    structuralValid: true,
+    runtimeError: /canonically ordered/,
+  });
+
+  for (const entry of matrix) {
+    assert.equal(
+      validateCoverageTransportShape(entry.value),
+      entry.structuralValid,
+      entry.name,
+    );
+    const receipt = validateCoverageCompilationV1WithReceipt(entry.value);
+    assert.equal(receipt.validatorVersion, COVERAGE_RUNTIME_VALIDATOR_VERSION);
+    assert.equal(receipt.valid, false, entry.name);
+    assert.ok(receipt.errors.some((error) => entry.runtimeError.test(error)), entry.name);
+  }
 });
 
 test("input-bound verification rejects a re-signed forged candidate pool", () => {
