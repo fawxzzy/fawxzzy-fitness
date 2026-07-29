@@ -733,6 +733,49 @@ test("runtime receipt returns errors instead of throwing for malformed issue val
   }
 });
 
+test("runtime receipt returns errors instead of throwing for malformed candidate lists", () => {
+  const baseline = compilePlanningCoverageV1(
+    clonePlanning(),
+    PLANNER_EXERCISE_CATALOG_V1,
+  );
+  const cases: Array<{
+    name: string;
+    mutate: (requirement: Record<string, unknown>) => void;
+  }> = [
+    {
+      name: "missing compatibleExerciseIds",
+      mutate: (requirement) => {
+        delete requirement.compatibleExerciseIds;
+      },
+    },
+    {
+      name: "null compatibleExerciseIds",
+      mutate: (requirement) => {
+        requirement.compatibleExerciseIds = null;
+      },
+    },
+  ];
+
+  for (const entry of cases) {
+    const malformed = structuredClone(baseline);
+    entry.mutate(
+      malformed.requirements[0] as unknown as Record<string, unknown>,
+    );
+    let receipt: ReturnType<typeof validateCoverageCompilationV1WithReceipt>
+      | undefined;
+    assert.doesNotThrow(() => {
+      receipt = validateCoverageCompilationV1WithReceipt(malformed);
+    }, entry.name);
+    assert.equal(receipt?.valid, false, entry.name);
+    assert.ok(
+      receipt?.errors.some(
+        (error) => error.includes("compatibleExerciseIds must be an array"),
+      ),
+      entry.name,
+    );
+  }
+});
+
 test("input-bound verification rejects a re-signed forged candidate pool", () => {
   const planning = clonePlanning();
   const result = compilePlanningCoverageV1(
@@ -761,13 +804,13 @@ test("dedicated exact-head workflow runs the focused suite without ci.yml overla
   );
   assert.equal(
     workflow.match(
-      /src\/features\/curated-onboarding\/planning\/\*\*/g,
+      /src\/features\/curated-onboarding\/\*\*/g,
     )?.length,
     2,
   );
   assert.doesNotMatch(
     workflow,
-    /src\/features\/curated-onboarding\/planning\/coverage\/\*\*/,
+    /src\/features\/curated-onboarding\/planning\/\*\*/,
   );
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
   assert.doesNotMatch(ci, /planning\/coverage\/compile\.test\.ts/);

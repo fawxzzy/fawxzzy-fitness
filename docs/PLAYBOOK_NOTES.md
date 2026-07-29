@@ -703,8 +703,8 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating a self-digest as source authenticity, fuzzily matching presentation names, ignoring unsupported equipment, or scoring before feasibility can produce a deterministic but unsafe routine.
 - Decision: the exported JSON Schema is structural transport validation only because portable JSON Schema cannot prove every canonical order, cross-array invariant, numeric comparison, or semantic digest. Consumers must require a successful versioned `validateCoverageCompilationV1WithReceipt` result, then use `validateCoverageCompilationAgainstInputsV1` when the planning and catalog inputs are available to reject re-signed forged candidate pools.
 - Failure Mode: Treating a shape-valid JSON document as semantically validated lets schedule, issue-policy, canonical-ordering, or status contradictions cross the planner boundary.
-- Rule: Runtime receipts must return errors rather than throw on malformed transport members, and derived infeasibility issue sets must exactly match the candidate and schedule facts they claim.
-- Rule: A focused consumer workflow must trigger for its complete imported dependency tree, not only its own source directory.
+- Rule: Runtime receipts must return errors rather than throw on malformed transport members, including issue values and requirement candidate arrays, and derived infeasibility issue sets must exactly match the candidate and schedule facts they claim.
+- Rule: A focused consumer workflow must trigger for its complete imported dependency tree, including curated-onboarding questionnaire and type sources outside `planning/**`, not only its own source directory.
 - Decision: Coverage v1 does not rank, schedule, prescribe, generate, persist, or activate routines. Those remain separate governed contracts.
 - Evidence: `src/features/curated-onboarding/planning/coverage/contract.ts`, `src/features/curated-onboarding/planning/coverage/compile.ts`, `src/features/curated-onboarding/planning/coverage/compile.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed

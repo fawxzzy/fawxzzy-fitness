@@ -973,13 +973,16 @@ function validateRequirements(value: unknown, errors: string[]) {
         errors.push(`${path}.sources must be unique and canonically ordered.`);
       }
     }
-    validateStringArray(
+    const compatibleExerciseIds = validateStringArray(
       requirement.compatibleExerciseIds,
       `${path}.compatibleExerciseIds`,
       errors,
       { identifier: true },
     );
-    requirements.push(entry as CoverageRequirementV1);
+    requirements.push({
+      ...(entry as CoverageRequirementV1),
+      compatibleExerciseIds,
+    });
   });
   if (!isCanonicalUnique(requirements.map((requirement) => requirement.id))) {
     errors.push("$.requirements must be unique and canonically ordered by id.");
