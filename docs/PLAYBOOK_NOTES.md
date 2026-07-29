@@ -762,3 +762,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: PR #118's original version-1 observed bounded wait remains pinned as reconstructed receipt `sha256:a43cf648c2a3c37fae89a652e36c60634e4f187fb921bf9c9fefe6219b395b6a`; the unchanged exact head's later version-1 seven-check success remains separately pinned as `sha256:4dd52d9dbd10ffd75e39f4887ad2afddfa645a055de1110e7588744accd8ce27`. Both preserve unmeasured observation timestamps and counts and are retained as historical evidence rather than reissued under the stronger version-2 provenance contract. No observation metadata is inferred and no check was rerun or dispatched to manufacture either receipt.
 - Evidence: `scripts/release/fitness-hosted-check-watcher.mjs`, `scripts/release/fitness-hosted-check-watcher.test.mjs`, `.github/workflows/planning-session-allocation-contract.yml`
 - Status: Proposed
+
+## 2026-07-29 - Prescribe only the exact input-bound allocation
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Session Prescription v1 contract that revalidates the complete planning/catalog/coverage/ranking/selection/allocation chain, preserves every allocated exercise and schedule slot, maps frozen catalog classes to deterministic sets/targets/rest/progression/time estimates, emits a semantic digest and non-throwing runtime receipt, recompiles from all six exact inputs, pins ten terminal fixtures, and runs in direct exact-head CI.
+- WHY it changed: Allocation establishes when an exercise occurs, but it does not establish an executable target or prove that sets, rest, progression, and session duration remain inside reviewed class and safety boundaries.
+- Rule: Prescription may enrich only the exact input-bound allocated set. It cannot add, omit, replace, move, duplicate, or rescore an exercise, invent a starting load, widen a class policy, or exceed a session hard maximum.
+- Rule: Goal, experience, and recovery context may choose only within frozen class policy. Targets are canonical integers, rest uses the closed interval set, all time arithmetic recomputes, and an over-budget minimum prescription fails closed without partial sessions.
+- Pattern: exact six-input chain -> frozen class policy -> deterministic targets and set counts -> session budget arithmetic -> runtime receipt -> exact-input recompilation -> later routine assembly.
+- Failure Mode: Treating equipment capacity as a starting load, accepting self-signed prescription substitutions, or trimming below a safe class minimum can produce an apparently deterministic routine that is unauthentic, unsafe, or impossible within the user's declared time.
+- Decision: No portable JSON Schema is exported as semantic authorization. Consumers require `validateSessionPrescriptionV1WithReceipt`, then `validateSessionPrescriptionAgainstInputsV1` when all six inputs are available.
+- Decision: Session Prescription v1 does not assemble, persist, activate, render, or change production behavior.
+- Evidence: `src/features/curated-onboarding/planning/prescription/contract.ts`, `src/features/curated-onboarding/planning/prescription/prescribe.ts`, `src/features/curated-onboarding/planning/prescription/prescribe.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
