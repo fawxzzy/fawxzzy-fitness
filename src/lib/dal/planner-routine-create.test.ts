@@ -73,6 +73,36 @@ function clientWith(value: unknown, providerError: string | null = null) {
   return { client, calls };
 }
 
+function plannerFieldsFromGuard(
+  sql: string,
+  table: "routines" | "routine_days" | "routine_day_exercises",
+) {
+  const match = sql.match(new RegExp(
+    String.raw`when '${table}' then\s+v_columns := array\[([\s\S]*?)\];`,
+  ));
+  assert.ok(match, `missing planner guard field map for ${table}`);
+  return [...match[1].matchAll(/'([a-z_]+)'/g)].map((entry) => entry[1]);
+}
+
+function clientPlannerEvidenceWriteAllowed(
+  role: "anon" | "authenticated" | "service_role",
+  operation: "INSERT" | "UPDATE",
+  plannerFields: readonly string[],
+  before: Record<string, unknown> | null,
+  after: Record<string, unknown>,
+) {
+  if (role !== "anon" && role !== "authenticated") {
+    return true;
+  }
+  if (operation === "INSERT") {
+    return plannerFields.every((field) => (after[field] ?? null) === null);
+  }
+  return plannerFields.every(
+    (field) => JSON.stringify(after[field] ?? null)
+      === JSON.stringify(before?.[field] ?? null),
+  );
+}
+
 test("creates only after runtime, exact-input, owner, and context validation", async () => {
   const setup = readySetup();
   const mock = clientWith(response());
@@ -398,6 +428,156 @@ test("fabricated intents cannot enter through a direct Data API RPC", () => {
       String.raw`grant execute on function ${signature} to (?:public|anon|authenticated)`,
     ),
   );
+});
+
+test("Data API writes cannot add, change, or clear planner evidence", () => {
+  const sql = readFileSync(
+    new URL(
+      "../../../supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ).toLowerCase();
+  const expectedFields = {
+    routines: [
+      "planner_record_id",
+      "planner_generation_request_id",
+      "planner_uniqueness_key",
+      "planner_intent_digest",
+      "planner_assembly_digest",
+      "planner_routine_digest",
+      "planner_activation_state",
+      "planner_intent",
+    ],
+    routine_days: [
+      "planner_record_id",
+      "planner_routine_record_id",
+      "planner_session_id",
+      "planner_weekday",
+      "planner_time_budget",
+      "planner_exercise_record_ids",
+    ],
+    routine_day_exercises: [
+      "planner_record_id",
+      "planner_routine_record_id",
+      "planner_session_record_id",
+      "planner_session_id",
+      "planner_exercise_slug",
+      "planner_measurement_type",
+      "planner_prescription",
+      "planner_ranking_explanation",
+      "planner_substitution_rules",
+      "planner_warmup",
+    ],
+  } as const;
+
+  assert.match(sql, /security invoker\s+set search_path = ''/);
+  assert.match(sql, /current_user not in \('anon', 'authenticated'\)/);
+  assert.match(sql, /errcode = '42501'/);
+  assert.match(
+    sql,
+    /message = 'planner_evidence_write_requires_trusted_executor'/,
+  );
+  assert.match(
+    sql,
+    /revoke all on function public\.guard_planner_evidence_client_write_v1\(\)\s+from public/,
+  );
+  for (const role of ["anon", "authenticated"]) {
+    assert.match(
+      sql,
+      new RegExp(
+        String.raw`revoke execute on function public\.guard_planner_evidence_client_write_v1\(\)\s+from ${role}`,
+      ),
+    );
+  }
+
+  for (const [table, expected] of Object.entries(expectedFields)) {
+    const fields = plannerFieldsFromGuard(
+      sql,
+      table as keyof typeof expectedFields,
+    );
+    assert.deepEqual(fields, expected);
+    assert.match(
+      sql,
+      new RegExp(
+        String.raw`create trigger ${table}_planner_evidence_client_write_guard\s+before insert or update on public\.${table}\s+for each row\s+execute function public\.guard_planner_evidence_client_write_v1\(\)`,
+      ),
+    );
+
+    const legacyInsert = Object.fromEntries(
+      fields.map((field) => [field, null]),
+    );
+    const persistedPlannerRow = Object.fromEntries(
+      fields.map((field, index) => [
+        field,
+        field.includes("intent") || field.includes("budget")
+          ? { field, index }
+          : `${field}-${index}`,
+      ]),
+    );
+    for (const role of ["anon", "authenticated"] as const) {
+      assert.equal(
+        clientPlannerEvidenceWriteAllowed(
+          role,
+          "INSERT",
+          fields,
+          null,
+          { ...legacyInsert, name: "ordinary routine data" },
+        ),
+        true,
+      );
+      assert.equal(
+        clientPlannerEvidenceWriteAllowed(
+          role,
+          "INSERT",
+          fields,
+          null,
+          { ...legacyInsert, [fields[0]]: "forged-planner-evidence" },
+        ),
+        false,
+      );
+      assert.equal(
+        clientPlannerEvidenceWriteAllowed(
+          role,
+          "UPDATE",
+          fields,
+          persistedPlannerRow,
+          { ...persistedPlannerRow, name: "editable display name" },
+        ),
+        true,
+      );
+      assert.equal(
+        clientPlannerEvidenceWriteAllowed(
+          role,
+          "UPDATE",
+          fields,
+          persistedPlannerRow,
+          { ...persistedPlannerRow, [fields[0]]: "forged-change" },
+        ),
+        false,
+      );
+      assert.equal(
+        clientPlannerEvidenceWriteAllowed(
+          role,
+          "UPDATE",
+          fields,
+          persistedPlannerRow,
+          { ...persistedPlannerRow, [fields[0]]: null },
+        ),
+        false,
+      );
+    }
+    assert.equal(
+      clientPlannerEvidenceWriteAllowed(
+        "service_role",
+        "UPDATE",
+        fields,
+        persistedPlannerRow,
+        { ...persistedPlannerRow, [fields[0]]: "trusted-write" },
+      ),
+      true,
+    );
+  }
 });
 
 test("dedicated workflow watches exact adapter dependencies and runs directly", () => {

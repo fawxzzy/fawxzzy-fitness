@@ -188,6 +188,111 @@ grant select, insert on table public.routine_days to authenticated;
 grant select, insert on table public.routine_day_exercises to authenticated;
 grant select on table public.exercises to authenticated;
 
+create or replace function public.guard_planner_evidence_client_write_v1()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_columns text[];
+  v_column text;
+  v_new jsonb := to_jsonb(new);
+  v_old jsonb := case
+    when tg_op = 'UPDATE' then to_jsonb(old)
+    else null
+  end;
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new;
+  end if;
+
+  case tg_table_name
+    when 'routines' then
+      v_columns := array[
+        'planner_record_id',
+        'planner_generation_request_id',
+        'planner_uniqueness_key',
+        'planner_intent_digest',
+        'planner_assembly_digest',
+        'planner_routine_digest',
+        'planner_activation_state',
+        'planner_intent'
+      ];
+    when 'routine_days' then
+      v_columns := array[
+        'planner_record_id',
+        'planner_routine_record_id',
+        'planner_session_id',
+        'planner_weekday',
+        'planner_time_budget',
+        'planner_exercise_record_ids'
+      ];
+    when 'routine_day_exercises' then
+      v_columns := array[
+        'planner_record_id',
+        'planner_routine_record_id',
+        'planner_session_record_id',
+        'planner_session_id',
+        'planner_exercise_slug',
+        'planner_measurement_type',
+        'planner_prescription',
+        'planner_ranking_explanation',
+        'planner_substitution_rules',
+        'planner_warmup'
+      ];
+    else
+      raise exception using
+        errcode = '42501',
+        message = 'PLANNER_EVIDENCE_WRITE_REQUIRES_TRUSTED_EXECUTOR';
+  end case;
+
+  foreach v_column in array v_columns loop
+    if (
+      tg_op = 'INSERT'
+      and (v_new -> v_column) is distinct from 'null'::jsonb
+    ) or (
+      tg_op = 'UPDATE'
+      and (v_new -> v_column) is distinct from (v_old -> v_column)
+    ) then
+      raise exception using
+        errcode = '42501',
+        message = 'PLANNER_EVIDENCE_WRITE_REQUIRES_TRUSTED_EXECUTOR';
+    end if;
+  end loop;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.guard_planner_evidence_client_write_v1()
+  from public;
+revoke execute on function public.guard_planner_evidence_client_write_v1()
+  from anon;
+revoke execute on function public.guard_planner_evidence_client_write_v1()
+  from authenticated;
+
+drop trigger if exists routines_planner_evidence_client_write_guard
+  on public.routines;
+create trigger routines_planner_evidence_client_write_guard
+  before insert or update on public.routines
+  for each row
+  execute function public.guard_planner_evidence_client_write_v1();
+
+drop trigger if exists routine_days_planner_evidence_client_write_guard
+  on public.routine_days;
+create trigger routine_days_planner_evidence_client_write_guard
+  before insert or update on public.routine_days
+  for each row
+  execute function public.guard_planner_evidence_client_write_v1();
+
+drop trigger if exists routine_day_exercises_planner_evidence_client_write_guard
+  on public.routine_day_exercises;
+create trigger routine_day_exercises_planner_evidence_client_write_guard
+  before insert or update on public.routine_day_exercises
+  for each row
+  execute function public.guard_planner_evidence_client_write_v1();
+
 create or replace function public.create_planner_routine_v1(
   p_intent jsonb,
   p_name text,

@@ -819,9 +819,14 @@ database primitive. The primitive:
 Function execution is revoked from `PUBLIC`, `anon`, and `authenticated`; this
 packet adds no client-callable or privileged replacement. A future
 server-authenticated, source-bound execution path must be reviewed and admitted
-separately before this primitive can be called. The function uses an empty
-`search_path`, and grants and RLS remain separate controls. Provider and thrown
-failures cross the DAL receipt boundary only as the closed
+separately before this primitive can be called. A `security invoker`,
+empty-`search_path` trigger guard also protects every planner-owned field on
+`routines`, `routine_days`, and `routine_day_exercises`. `anon` and
+`authenticated` may continue ordinary all-null planner inserts and non-planner
+updates, but cannot add, change, or clear planner evidence through direct Data
+API writes. The function uses an empty `search_path`, and grants, RLS, and the
+planner-field guard remain separate controls. Provider and thrown failures
+cross the DAL receipt boundary only as the closed
 `PERSISTENCE_PROVIDER_RETURNED_ERROR` or
 `PERSISTENCE_PROVIDER_THROWN_ERROR` category; raw provider, database,
 credential, URL, SQL, and attacker-controlled details are never copied into
