@@ -608,6 +608,41 @@ or activate a routine, change the questionnaire/server action/UI, or alter
 existing-routine behavior. Those remain separately versioned and governed
 packets.
 
+## Routine Assembly v1
+
+Routine Assembly v1 is the source-only plan-envelope boundary after
+Prescription v1. It consumes the exact planning, catalog, coverage, ranking,
+selection, allocation, and prescription chain. It never selects, schedules,
+or prescribes again. For a `prescribed` input, it copies the reviewed schedule,
+canonical sessions, exercise identifiers and positions, sets, targets, rest,
+progression, time estimates, time budgets, and summary into one closed
+`fitness.routine-assembly.v1` envelope. Presentation names are deliberately
+absent from executable identity.
+
+The compiler emits `assembled`, `not_assemblable`, `infeasible`, or
+`invalid_input`. Every non-assembled terminal contains a canonical issue and
+no partial routine. `assemblyDigest` authenticates the complete seven-input
+identity, terminal state, issues, and routine envelope. Consumers must require
+the non-throwing `validateRoutineAssemblyV1WithReceipt`; it reconstructs the
+embedded Prescription v1 record and reuses that versioned runtime boundary to
+close schedule, position, target, progression, time, budget, summary, and
+prescription-digest semantics. Consumers with the seven exact inputs must also
+call `validateRoutineAssemblyAgainstInputsV1`. A self-consistent re-signed
+routine or prescription substitution remains invalid when it does not equal
+exact-input recompilation.
+
+The ten inherited fixtures pin five `assembled` outputs and five
+`not_assemblable` terminals. The focused suite proves byte determinism, exact
+field preservation, non-partial terminals, malformed non-throwing validation,
+re-signed omission/injection/order/session/budget attacks, presentation-name
+neutrality, and seven-input authenticity.
+`.github/workflows/planning-routine-assembly-contract.yml` watches the complete
+`curated-onboarding/**` dependency tree and directly executes that suite.
+
+Routine Assembly v1 does not persist, create, activate, or render routines,
+change questionnaire/server-action/UI behavior, touch live data, or alter any
+existing routine. Those remain separately versioned and governed packets.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
@@ -696,7 +731,10 @@ exact selected set, and refuses `blocked`, `needs_clarification`,
 binds the complete six-input chain, preserves the allocated set and schedule,
 and adds only the closed class-policy targets, sets, rest, progression, and
 time budgets. It returns `not_prescribable`, `infeasible`, or `invalid_input`
-without partial executable sessions.
+without partial executable sessions. Routine assembly then binds that complete
+seven-input chain into a closed plan envelope without changing any executable
+prescription field. It returns `not_assemblable`, `infeasible`, or
+`invalid_input` without a partial routine.
 
 Persistence integration is a later governed packet. Before it can claim
 lossless or idempotent creation, the repository needs evidence for:
