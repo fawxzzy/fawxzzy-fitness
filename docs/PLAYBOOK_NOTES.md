@@ -790,3 +790,18 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Routine Assembly v1 does not persist, create, activate, render, deploy, or change production behavior.
 - Evidence: `src/features/curated-onboarding/planning/assembly/contract.ts`, `src/features/curated-onboarding/planning/assembly/assemble.ts`, `src/features/curated-onboarding/planning/assembly/assemble.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-29 - Project a persistence intent before choosing a provider
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Persistence Intent v1 contract that binds the complete exact planner chain, validated Routine Assembly envelope, Planning provenance, catalog/ranking evidence, and canonical user-plus-generation request into a deterministic provider-neutral record graph with a semantic digest and non-throwing runtime receipt.
+- WHY it changed: A valid routine plan is not yet proof of lossless, idempotent, concurrency-safe creation. Provider work needs one closed write-plan boundary before any schema, DAL, server-action, or live-data packet can be reviewed safely.
+- Rule: User plus generation request owns one semantic uniqueness key. Routine, session, and exercise record identifiers derive deterministically from that identity and exact assembled ownership.
+- Rule: The intent retains Planning provenance, all bound versions/digests, the complete assembled prescription, ranking explanations, substitution metadata, and the truthful absence of a v1 warm-up model.
+- Rule: Record reconstruction must equal the exact assembled routine. Creation remains `create_only`; activation remains `deferred` and `not_requested`.
+- Pattern: exact eight-input planner chain plus canonical request -> closed provider-neutral persistence intent -> runtime self-consistency receipt -> exact-input recompilation -> later provider adapter.
+- Failure Mode: Treating a re-signed record graph as source authenticity can accept forged provenance or substitution metadata even when internal identifiers and digests are self-consistent.
+- Decision: No portable JSON Schema authorizes persistence. Consumers require `validateRoutinePersistenceIntentV1WithReceipt`, then `validateRoutinePersistenceIntentAgainstInputsV1` when exact inputs are available.
+- Decision: Persistence Intent v1 performs no database write, provider call, Supabase change, DAL/server-action integration, activation, UI mutation, deployment, or production action.
+- Evidence: `src/features/curated-onboarding/planning/persistence/contract.ts`, `src/features/curated-onboarding/planning/persistence/compile.ts`, `src/features/curated-onboarding/planning/persistence/compile.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed

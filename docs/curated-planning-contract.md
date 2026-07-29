@@ -643,6 +643,58 @@ Routine Assembly v1 does not persist, create, activate, or render routines,
 change questionnaire/server-action/UI behavior, touch live data, or alter any
 existing routine. Those remain separately versioned and governed packets.
 
+## Persistence Intent v1
+
+Persistence Intent v1 is the provider-neutral source boundary between the
+reviewed Routine Assembly envelope and any later storage adapter. It consumes
+the exact planning, catalog, coverage, ranking, selection, allocation,
+prescription, and assembly chain plus a canonical request context containing
+`userId`, `generationRequestId`, `creationMode=create_only`, and
+`activationMode=deferred`. It performs no database or provider operation.
+
+For an `assembled` input, the compiler emits `ready_to_create` with:
+
+- a concurrency-safe semantic uniqueness key over user plus generation
+  request;
+- deterministic routine, session, and exercise record identifiers;
+- the complete validated Planning Intake v1 value, including provenance and
+  normalization issues;
+- the exact Routine Assembly v1 value and every upstream version/digest it
+  binds;
+- a lossless routine/session/exercise record graph preserving schedule,
+  positions, prescriptions, progression, time budgets, and summary;
+- the selected ranking explanation and catalog substitution metadata for each
+  exercise;
+- `warmup=null`, which truthfully records that the current upstream contract
+  supplied no warm-up model rather than inventing one; and
+- `activationState=not_requested` with no activation token or action.
+
+`intentDigest` authenticates the complete request, source evidence, terminal,
+issues, and record graph. Consumers must require the non-throwing
+`validateRoutinePersistenceIntentV1WithReceipt`. That runtime boundary
+revalidates embedded Planning Intake and Routine Assembly values, recomputes
+request and record identifiers, proves record ownership/order and routine
+round-trip equality, closes ranking/substitution shapes, and recomputes the
+semantic digest. Runtime validity proves internal consistency only. Consumers
+with the exact source chain must also call
+`validateRoutinePersistenceIntentAgainstInputsV1`; it recompiles the entire
+intent and rejects a self-consistent provenance, explanation, substitution,
+request, omission, injection, or upstream-identity forgery.
+
+Non-assembled inputs produce complete `not_creatable`, `infeasible`, or
+`invalid_input` terminals with no partial creation graph. The ten inherited
+fixtures pin deterministic intent identities and the focused suite proves
+idempotent same-request compilation, new-request identity separation,
+lossless round-trip reconstruction, malformed non-throwing handling, and
+adversarial source/record authenticity. The dedicated workflow watches the
+complete `curated-onboarding/**` dependency tree and executes the focused
+suite directly.
+
+Persistence Intent v1 is not persistence execution. It does not create rows,
+choose a provider schema, call Supabase, change DAL/server actions, activate a
+routine, render UI, mutate live data, or change existing-routine behavior.
+Those remain separately versioned and governed packets.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
@@ -734,17 +786,22 @@ time budgets. It returns `not_prescribable`, `infeasible`, or `invalid_input`
 without partial executable sessions. Routine assembly then binds that complete
 seven-input chain into a closed plan envelope without changing any executable
 prescription field. It returns `not_assemblable`, `infeasible`, or
-`invalid_input` without a partial routine.
+`invalid_input` without a partial routine. Persistence Intent v1 next binds the
+exact assembled envelope, Planning provenance, catalog/ranking evidence, and
+canonical user-plus-generation request into a deterministic provider-neutral
+record graph. It does not execute that graph.
 
-Persistence integration is a later governed packet. Before it can claim
-lossless or idempotent creation, the repository needs evidence for:
+Provider persistence integration remains a later governed packet. Before an
+adapter can claim lossless or idempotent creation, it must execute and prove
+the already-closed intent contract without weakening:
 
-- storage of the normalized/request/plan semantic digests and all policy
-  versions;
-- lossless retention of warm-ups, substitutions, progression metadata,
-  explanations, and provenance;
-- a concurrency-safe uniqueness contract for user plus generation request;
-- persisted round-trip semantic-digest validation;
-- creation and activation as separate operations.
+- storage of normalized/request/plan/intent semantic digests and every bound
+  policy version;
+- lossless retention of the intent evidence and record graph;
+- an atomic database uniqueness constraint equivalent to the semantic
+  user-plus-generation-request key;
+- post-write round-trip validation against the intent and routine digests; and
+- creation and activation as separate authorized operations.
 
-No such provider or schema change is part of this contract-only package.
+No provider, schema, database, DAL, server-action, activation, or UI change is
+part of this contract-only package.
