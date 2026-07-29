@@ -6,9 +6,9 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export const HOSTED_CHECK_WATCHER_VERSION =
-  "fitness.hosted-check-watcher.2026-07-29.v1";
+  "fitness.hosted-check-watcher.2026-07-29.v2";
 export const HOSTED_CHECK_RECEIPT_SCHEMA =
-  "fitness.hosted-check-watch-receipt.v1";
+  "fitness.hosted-check-watch-receipt.v2";
 export const HOSTED_CHECK_OUTCOMES = Object.freeze([
   "SUCCESS",
   "FAILURE",
@@ -73,6 +73,7 @@ function normalizeCheckRun(check) {
       kind: "check_run",
       name: normalizeString(check.name),
       workflowName: normalizeString(check.workflowName),
+      appSlug: normalizeString(check.appSlug ?? check.app?.slug),
       status: normalizeUpper(check.status),
       conclusion: normalizeUpper(check.conclusion),
       detailsUrl: normalizeString(check.detailsUrl),
@@ -84,6 +85,7 @@ function normalizeCheckRun(check) {
       kind: "status_context",
       name: normalizeString(check.context),
       workflowName: null,
+      appSlug: null,
       status: state === "PENDING" ? "IN_PROGRESS" : "COMPLETED",
       conclusion: state,
       detailsUrl: normalizeString(check.targetUrl),
@@ -93,6 +95,7 @@ function normalizeCheckRun(check) {
     kind: "unknown",
     name: normalizeString(check?.name ?? check?.context),
     workflowName: normalizeString(check?.workflowName),
+    appSlug: normalizeString(check?.appSlug ?? check?.app?.slug),
     status: normalizeUpper(check?.status ?? check?.state),
     conclusion: normalizeUpper(check?.conclusion ?? check?.state),
     detailsUrl: normalizeString(check?.detailsUrl ?? check?.targetUrl),
@@ -117,6 +120,75 @@ function uniqueCanonicalStrings(values) {
       .map(normalizeString)
       .filter((value) => value !== null),
   )].sort(canonicalCompare);
+}
+
+function normalizeExpectedChecks(values) {
+  return values
+    .map((value) => ({
+      name: normalizeString(value?.name),
+      workflowName: normalizeString(value?.workflowName),
+      appSlug: normalizeString(value?.appSlug),
+    }))
+    .sort((left, right) => canonicalCompare(
+      `${left.name ?? ""}\u0000${left.workflowName ?? ""}\u0000${left.appSlug ?? ""}`,
+      `${right.name ?? ""}\u0000${right.workflowName ?? ""}\u0000${right.appSlug ?? ""}`,
+    ));
+}
+
+function validateExpectedChecks(expectedChecks) {
+  const errors = [];
+  if (expectedChecks.length === 0) {
+    errors.push("At least one exact expected check policy is required.");
+    return errors;
+  }
+  if (
+    expectedChecks.some(
+      (check) => (
+        check.name === null
+        || check.workflowName === null
+        || check.appSlug === null
+      ),
+    )
+  ) {
+    errors.push(
+      "Every expected check policy requires a non-empty name, workflowName, and appSlug.",
+    );
+  }
+  const names = expectedChecks
+    .map((check) => check.name)
+    .filter((name) => name !== null);
+  const duplicateNames = names.filter(
+    (name, index) => names.indexOf(name) !== index,
+  );
+  if (duplicateNames.length > 0) {
+    errors.push(
+      `Expected duplicate check names: ${uniqueCanonicalStrings(duplicateNames).join(", ")}.`,
+    );
+  }
+  return errors;
+}
+
+function isBoundGitHubActionsJobUrl(detailsUrl, repository) {
+  try {
+    const url = new URL(detailsUrl);
+    const escapedRepository = repository
+      .split("/")
+      .map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("/");
+    return (
+      url.protocol === "https:"
+      && url.hostname === "github.com"
+      && url.username === ""
+      && url.password === ""
+      && url.search === ""
+      && url.hash === ""
+      && new RegExp(
+        `^/${escapedRepository}/actions/runs/[1-9][0-9]*/job/[1-9][0-9]*/?$`,
+      ).test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function validateBinding(binding) {
@@ -155,20 +227,21 @@ function identityErrors(binding, observedIdentity) {
 
 export function evaluateHostedCheckObservation({
   binding,
-  expectedCheckNames,
+  expectedChecks,
   observedIdentity,
   statusCheckRollup,
   timedOut = false,
 }) {
-  const expected = uniqueCanonicalStrings(expectedCheckNames ?? []);
+  const expected = normalizeExpectedChecks(expectedChecks ?? []);
+  const expectedNames = expected
+    .map((check) => check.name)
+    .filter((name) => name !== null);
   const graph = normalizeHostedCheckGraph(statusCheckRollup);
   const errors = [
     ...validateBinding(binding),
+    ...validateExpectedChecks(expected),
     ...identityErrors(binding, observedIdentity),
   ];
-  if (expected.length === 0) {
-    errors.push("At least one exact expected check name is required.");
-  }
 
   const actualNames = graph
     .map((check) => check.name)
@@ -186,17 +259,44 @@ export function evaluateHostedCheckObservation({
   }
 
   const unexpected = uniqueCanonicalStrings(
-    actualNames.filter((name) => !expected.includes(name)),
+    actualNames.filter((name) => !expectedNames.includes(name)),
   );
   if (unexpected.length > 0) {
     errors.push(`Observed unexpected checks: ${unexpected.join(", ")}.`);
   }
 
-  const missing = expected.filter((name) => !actualNames.includes(name));
-  const expectedChecks = graph.filter(
-    (check) => check.name !== null && expected.includes(check.name),
+  const missing = expectedNames.filter((name) => !actualNames.includes(name));
+  const observedExpectedChecks = graph.filter(
+    (check) => check.name !== null && expectedNames.includes(check.name),
   );
-  const failed = expectedChecks.filter(
+  for (const policyEntry of expected) {
+    if (policyEntry.name === null) continue;
+    const observed = observedExpectedChecks.find(
+      (check) => check.name === policyEntry.name,
+    );
+    if (!observed) continue;
+    if (observed.kind !== "check_run") {
+      errors.push(
+        `Observed ${policyEntry.name} must be a GitHub Actions CheckRun.`,
+      );
+    }
+    if (observed.workflowName !== policyEntry.workflowName) {
+      errors.push(
+        `Observed ${policyEntry.name} workflow ${String(observed.workflowName)} does not equal bound ${String(policyEntry.workflowName)}.`,
+      );
+    }
+    if (observed.appSlug !== policyEntry.appSlug) {
+      errors.push(
+        `Observed ${policyEntry.name} app ${String(observed.appSlug)} does not equal bound ${String(policyEntry.appSlug)}.`,
+      );
+    }
+    if (!isBoundGitHubActionsJobUrl(observed.detailsUrl, binding.repository)) {
+      errors.push(
+        `Observed ${policyEntry.name} detailsUrl is not a bound GitHub Actions run/job URL.`,
+      );
+    }
+  }
+  const failed = observedExpectedChecks.filter(
     (check) => (
       check.status === "COMPLETED"
       && !CHECK_SUCCESS_CONCLUSIONS.has(check.conclusion)
@@ -210,15 +310,15 @@ export function evaluateHostedCheckObservation({
     );
   }
 
-  const pending = expected.filter((name) => {
-    const check = expectedChecks.find((entry) => entry.name === name);
+  const pending = expectedNames.filter((name) => {
+    const check = observedExpectedChecks.find((entry) => entry.name === name);
     return !check || check.status !== "COMPLETED";
   });
   const allSuccessful = (
     errors.length === 0
     && missing.length === 0
-    && expectedChecks.length === expected.length
-    && expectedChecks.every(
+    && observedExpectedChecks.length === expectedNames.length
+    && observedExpectedChecks.every(
       (check) => (
         check.status === "COMPLETED"
         && CHECK_SUCCESS_CONCLUSIONS.has(check.conclusion)
@@ -238,7 +338,8 @@ export function evaluateHostedCheckObservation({
   return {
     outcome,
     errors,
-    expectedCheckNames: expected,
+    expectedChecks: expected,
+    expectedCheckNames: expectedNames,
     missingCheckNames: missing,
     pendingCheckNames: pending,
     checkGraph: graph,
@@ -259,7 +360,7 @@ export function createHostedCheckReceipt({
 }) {
   const evaluation = evaluateHostedCheckObservation({
     binding,
-    expectedCheckNames: policy.expectedCheckNames,
+    expectedChecks: policy.expectedChecks,
     observedIdentity,
     statusCheckRollup,
     timedOut,
@@ -280,7 +381,7 @@ export function createHostedCheckReceipt({
       tree: binding.tree,
     },
     policy: {
-      expectedCheckNames: evaluation.expectedCheckNames,
+      expectedChecks: evaluation.expectedChecks,
       timeoutMs: policy.timeoutMs,
       pollIntervalMs: policy.pollIntervalMs,
     },
@@ -318,7 +419,7 @@ function parsePositiveInteger(value, flag) {
 
 export function parseHostedCheckWatcherArgs(argv) {
   const options = {
-    expectedCheckNames: [],
+    expectedChecks: [],
     timeoutMs: 120_000,
     pollIntervalMs: 10_000,
     receiptRoot: DEFAULT_RECEIPT_ROOT,
@@ -331,7 +432,30 @@ export function parseHostedCheckWatcherArgs(argv) {
     else if (flag === "--base") options.base = value;
     else if (flag === "--head") options.head = value;
     else if (flag === "--tree") options.tree = value;
-    else if (flag === "--check") options.expectedCheckNames.push(value);
+    else if (flag === "--check") {
+      const separatorIndex = value?.indexOf("::") ?? -1;
+      const secondSeparatorIndex = value?.indexOf(
+        "::",
+        separatorIndex + 2,
+      ) ?? -1;
+      if (
+        separatorIndex < 1
+        || secondSeparatorIndex <= separatorIndex + 2
+        || secondSeparatorIndex === value.length - 2
+      ) {
+        throw new Error(
+          "--check must use the exact name::workflowName::appSlug form.",
+        );
+      }
+      options.expectedChecks.push({
+        name: value.slice(0, separatorIndex),
+        workflowName: value.slice(
+          separatorIndex + 2,
+          secondSeparatorIndex,
+        ),
+        appSlug: value.slice(secondSeparatorIndex + 2),
+      });
+    }
     else if (flag === "--timeout-ms") options.timeoutMs = parsePositiveInteger(value, flag);
     else if (flag === "--poll-ms") options.pollIntervalMs = parsePositiveInteger(value, flag);
     else if (flag === "--receipt-dir") options.receiptRoot = path.resolve(value);
@@ -347,13 +471,16 @@ export function parseHostedCheckWatcherArgs(argv) {
   };
   const errors = validateBinding(binding);
   if (errors.length > 0) throw new Error(errors.join("\n"));
-  if (options.expectedCheckNames.length === 0) {
+  if (options.expectedChecks.length === 0) {
     throw new Error("At least one --check is required.");
   }
+  const expectedChecks = normalizeExpectedChecks(options.expectedChecks);
+  const policyErrors = validateExpectedChecks(expectedChecks);
+  if (policyErrors.length > 0) throw new Error(policyErrors.join("\n"));
   return {
     binding,
     policy: {
-      expectedCheckNames: uniqueCanonicalStrings(options.expectedCheckNames),
+      expectedChecks,
       timeoutMs: options.timeoutMs,
       pollIntervalMs: options.pollIntervalMs,
     },
@@ -393,6 +520,36 @@ export function readHostedCheckObservation(binding) {
     "api",
     `repos/${binding.repository}/git/commits/${pr.headRefOid}`,
   ]);
+  const checkRunsResponse = runGh([
+    "api",
+    `repos/${binding.repository}/commits/${pr.headRefOid}/check-runs?per_page=100`,
+  ]);
+  const checkRuns = Array.isArray(checkRunsResponse?.check_runs)
+    ? checkRunsResponse.check_runs
+    : [];
+  if (checkRunsResponse?.total_count !== checkRuns.length) {
+    throw new Error(
+      "GitHub check-run provenance readback was not exhaustive.",
+    );
+  }
+  const checkRunsByIdentity = new Map();
+  for (const checkRun of checkRuns) {
+    const key = `${checkRun.name ?? ""}\u0000${checkRun.details_url ?? ""}`;
+    if (checkRunsByIdentity.has(key)) {
+      checkRunsByIdentity.set(key, null);
+    } else {
+      checkRunsByIdentity.set(key, checkRun);
+    }
+  }
+  const authenticatedRollup = pr.statusCheckRollup.map((check) => {
+    if (check.__typename !== "CheckRun") return check;
+    const key = `${check.name ?? ""}\u0000${check.detailsUrl ?? ""}`;
+    const matchingCheckRun = checkRunsByIdentity.get(key);
+    return {
+      ...check,
+      appSlug: matchingCheckRun?.app?.slug ?? null,
+    };
+  });
   return {
     observedIdentity: {
       pullRequest: pr.number,
@@ -405,7 +562,7 @@ export function readHostedCheckObservation(binding) {
       mergeStateStatus: pr.mergeStateStatus,
       url: pr.url,
     },
-    statusCheckRollup: pr.statusCheckRollup,
+    statusCheckRollup: authenticatedRollup,
   };
 }
 
@@ -431,7 +588,7 @@ export async function watchHostedChecks({
     const elapsedMs = current.getTime() - started.getTime();
     const evaluation = evaluateHostedCheckObservation({
       binding,
-      expectedCheckNames: policy.expectedCheckNames,
+      expectedChecks: policy.expectedChecks,
       ...latest,
       timedOut: elapsedMs >= policy.timeoutMs,
     });

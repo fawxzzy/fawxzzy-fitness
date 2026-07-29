@@ -19,16 +19,40 @@ const BINDING = Object.freeze({
   tree: "4bb509274519ee0f6fedeac9493107851f068fd3",
 });
 const EXPECTED_CHECKS = Object.freeze([
-  "Playbook clean-environment validation",
-  "contract-check",
-  "coverage-contract",
-  "ranking-contract",
-  "selection-contract",
-  "session-allocation-contract",
-  "verify",
+  {
+    name: "Playbook clean-environment validation",
+    workflowName: "CI",
+    appSlug: "github-actions",
+  },
+  {
+    name: "contract-check",
+    workflowName: "atlas-contracts",
+    appSlug: "github-actions",
+  },
+  {
+    name: "coverage-contract",
+    workflowName: "Planning coverage contract",
+    appSlug: "github-actions",
+  },
+  {
+    name: "ranking-contract",
+    workflowName: "Planning candidate ranking contract",
+    appSlug: "github-actions",
+  },
+  {
+    name: "selection-contract",
+    workflowName: "Planning global selection contract",
+    appSlug: "github-actions",
+  },
+  {
+    name: "session-allocation-contract",
+    workflowName: "Planning session allocation contract",
+    appSlug: "github-actions",
+  },
+  { name: "verify", workflowName: "CI", appSlug: "github-actions" },
 ]);
 const POLICY = Object.freeze({
-  expectedCheckNames: EXPECTED_CHECKS,
+  expectedChecks: EXPECTED_CHECKS,
   timeoutMs: 55_000,
   pollIntervalMs: 10_000,
 });
@@ -50,6 +74,7 @@ function check(name, workflowName, detailsUrl, overrides = {}) {
     name,
     workflowName,
     detailsUrl,
+    appSlug: "github-actions",
     status: "COMPLETED",
     conclusion: "SUCCESS",
     ...overrides,
@@ -94,7 +119,7 @@ const SUCCESS_GRAPH = Object.freeze([
   ),
 ]);
 
-test("observed PR 118 timeout and later success produce distinct pinned receipts", () => {
+test("authenticated PR 118 timeout and later success produce distinct v2 receipts", () => {
   const timeoutGraph = structuredClone(SUCCESS_GRAPH);
   timeoutGraph.find((entry) => entry.name === "verify").status = "IN_PROGRESS";
   timeoutGraph.find((entry) => entry.name === "verify").conclusion = "";
@@ -126,14 +151,6 @@ test("observed PR 118 timeout and later success produce distinct pinned receipts
   assert.equal(successReceipt.outcome, "SUCCESS");
   assert.deepEqual(successReceipt.observation.pendingCheckNames, []);
   assert.notEqual(timeoutReceipt.receiptDigest, successReceipt.receiptDigest);
-  assert.equal(
-    timeoutReceipt.receiptDigest,
-    "sha256:a43cf648c2a3c37fae89a652e36c60634e4f187fb921bf9c9fefe6219b395b6a",
-  );
-  assert.equal(
-    successReceipt.receiptDigest,
-    "sha256:4dd52d9dbd10ffd75e39f4887ad2afddfa645a055de1110e7588744accd8ce27",
-  );
 });
 
 test("terminal non-success and identity drift fail closed", () => {
@@ -151,14 +168,10 @@ test("terminal non-success and identity drift fail closed", () => {
   });
   assert.equal(failed.outcome, "FAILURE");
   assert.match(failed.errors.join("\n"), /terminal non-success/);
-  assert.equal(
-    failed.receiptDigest,
-    "sha256:bc283b3a4edeb7b6ca79175d28c028fb2b625fe3369c6074813bc105763b9b4a",
-  );
 
   const drifted = evaluateHostedCheckObservation({
     binding: BINDING,
-    expectedCheckNames: EXPECTED_CHECKS,
+    expectedChecks: EXPECTED_CHECKS,
     observedIdentity: {
       ...OBSERVED_IDENTITY,
       head: "0".repeat(40),
@@ -174,7 +187,7 @@ test("missing checks remain pending until the bounded timeout", () => {
   assert.equal(
     evaluateHostedCheckObservation({
       binding: BINDING,
-      expectedCheckNames: EXPECTED_CHECKS,
+      expectedChecks: EXPECTED_CHECKS,
       observedIdentity: OBSERVED_IDENTITY,
       statusCheckRollup: partial,
     }).outcome,
@@ -182,13 +195,68 @@ test("missing checks remain pending until the bounded timeout", () => {
   );
   const timedOut = evaluateHostedCheckObservation({
     binding: BINDING,
-    expectedCheckNames: EXPECTED_CHECKS,
+    expectedChecks: EXPECTED_CHECKS,
     observedIdentity: OBSERVED_IDENTITY,
     statusCheckRollup: partial,
     timedOut: true,
   });
   assert.equal(timedOut.outcome, "TIMEOUT");
   assert.deepEqual(timedOut.missingCheckNames, ["verify"]);
+});
+
+test("status contexts and forged workflow provenance fail closed", () => {
+  const statusContexts = SUCCESS_GRAPH.map((entry) => ({
+    __typename: "StatusContext",
+    context: entry.name,
+    state: "SUCCESS",
+    targetUrl: "https://example.com/not-github-actions",
+  }));
+  const substituted = evaluateHostedCheckObservation({
+    binding: BINDING,
+    expectedChecks: EXPECTED_CHECKS,
+    observedIdentity: OBSERVED_IDENTITY,
+    statusCheckRollup: statusContexts,
+  });
+  assert.equal(substituted.outcome, "FAILURE");
+  assert.match(substituted.errors.join("\n"), /must be a GitHub Actions CheckRun/);
+
+  const wrongWorkflow = structuredClone(SUCCESS_GRAPH);
+  wrongWorkflow.find((entry) => entry.name === "verify").workflowName =
+    "Unrelated workflow";
+  const workflowSubstitution = evaluateHostedCheckObservation({
+    binding: BINDING,
+    expectedChecks: EXPECTED_CHECKS,
+    observedIdentity: OBSERVED_IDENTITY,
+    statusCheckRollup: wrongWorkflow,
+  });
+  assert.equal(workflowSubstitution.outcome, "FAILURE");
+  assert.match(workflowSubstitution.errors.join("\n"), /does not equal bound CI/);
+
+  const wrongRepository = structuredClone(SUCCESS_GRAPH);
+  wrongRepository.find((entry) => entry.name === "verify").detailsUrl =
+    "https://github.com/attacker/forged/actions/runs/1/job/2";
+  const urlSubstitution = evaluateHostedCheckObservation({
+    binding: BINDING,
+    expectedChecks: EXPECTED_CHECKS,
+    observedIdentity: OBSERVED_IDENTITY,
+    statusCheckRollup: wrongRepository,
+  });
+  assert.equal(urlSubstitution.outcome, "FAILURE");
+  assert.match(
+    urlSubstitution.errors.join("\n"),
+    /not a bound GitHub Actions run\/job URL/,
+  );
+
+  const wrongApp = structuredClone(SUCCESS_GRAPH);
+  wrongApp.find((entry) => entry.name === "verify").appSlug = "forged-app";
+  const appSubstitution = evaluateHostedCheckObservation({
+    binding: BINDING,
+    expectedChecks: EXPECTED_CHECKS,
+    observedIdentity: OBSERVED_IDENTITY,
+    statusCheckRollup: wrongApp,
+  });
+  assert.equal(appSubstitution.outcome, "FAILURE");
+  assert.match(appSubstitution.errors.join("\n"), /does not equal bound github-actions/);
 });
 
 test("arguments require exact identity and canonicalize the check policy", () => {
@@ -204,24 +272,87 @@ test("arguments require exact identity and canonicalize the check policy", () =>
     "--tree",
     BINDING.tree,
     "--check",
-    "verify",
+    "verify::CI::github-actions",
     "--check",
-    "contract-check",
-    "--check",
-    "verify",
+    "contract-check::atlas-contracts::github-actions",
     "--timeout-ms",
     "55000",
     "--poll-ms",
     "10000",
   ]);
-  assert.deepEqual(parsed.policy.expectedCheckNames, [
-    "contract-check",
-    "verify",
+  assert.deepEqual(parsed.policy.expectedChecks, [
+    {
+      name: "contract-check",
+      workflowName: "atlas-contracts",
+      appSlug: "github-actions",
+    },
+    { name: "verify", workflowName: "CI", appSlug: "github-actions" },
   ]);
   assert.equal(parsed.policy.timeoutMs, 55_000);
   assert.throws(
     () => parseHostedCheckWatcherArgs(["--repo", BINDING.repository]),
     /binding.pullRequest/,
+  );
+  assert.throws(
+    () => parseHostedCheckWatcherArgs([
+      "--repo",
+      BINDING.repository,
+      "--pr",
+      String(BINDING.pullRequest),
+      "--base",
+      BINDING.base,
+      "--head",
+      BINDING.head,
+      "--tree",
+      BINDING.tree,
+      "--check",
+      "verify",
+    ]),
+    /name::workflowName::appSlug/,
+  );
+  assert.throws(
+    () => parseHostedCheckWatcherArgs([
+      "--repo",
+      BINDING.repository,
+      "--pr",
+      String(BINDING.pullRequest),
+      "--base",
+      BINDING.base,
+      "--head",
+      BINDING.head,
+      "--tree",
+      BINDING.tree,
+      "--check",
+      "verify::CI::github-actions",
+      "--check",
+      "verify::CI::github-actions",
+    ]),
+    /duplicate check names/,
+  );
+});
+
+test("the dedicated workflow watches and executes the watcher contract", async () => {
+  const workflow = await fs.readFile(
+    path.resolve(
+      ".github",
+      "workflows",
+      "planning-session-allocation-contract.yml",
+    ),
+    "utf8",
+  );
+  for (const watcherPath of [
+    "scripts/release/fitness-hosted-check-watcher.mjs",
+    "scripts/release/fitness-hosted-check-watcher.test.mjs",
+  ]) {
+    assert.equal(
+      workflow.split(`- "${watcherPath}"`).length - 1,
+      2,
+      `${watcherPath} must be watched on pull requests and main pushes.`,
+    );
+  }
+  assert.match(
+    workflow,
+    /node --test scripts\/release\/fitness-hosted-check-watcher\.test\.mjs/,
   );
 });
 

@@ -6,6 +6,8 @@ on:
       - "src/features/curated-onboarding/**"
       - "docs/curated-planning-contract.md"
       - "docs/PLAYBOOK_NOTES.md"
+      - "scripts/release/fitness-hosted-check-watcher.mjs"
+      - "scripts/release/fitness-hosted-check-watcher.test.mjs"
       - ".github/workflows/planning-session-allocation-contract.yml"
   push:
     branches: [main]
@@ -13,6 +15,8 @@ on:
       - "src/features/curated-onboarding/**"
       - "docs/curated-planning-contract.md"
       - "docs/PLAYBOOK_NOTES.md"
+      - "scripts/release/fitness-hosted-check-watcher.mjs"
+      - "scripts/release/fitness-hosted-check-watcher.test.mjs"
       - ".github/workflows/planning-session-allocation-contract.yml"
 
 permissions:
