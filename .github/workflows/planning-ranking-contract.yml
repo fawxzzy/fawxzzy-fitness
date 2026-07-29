@@ -1,0 +1,38 @@
+name: Planning candidate ranking contract
+
+on:
+  pull_request:
+    paths:
+      - "src/features/curated-onboarding/**"
+      - "docs/curated-planning-contract.md"
+      - "docs/PLAYBOOK_NOTES.md"
+      - ".github/workflows/planning-ranking-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/features/curated-onboarding/**"
+      - "docs/curated-planning-contract.md"
+      - "docs/PLAYBOOK_NOTES.md"
+      - ".github/workflows/planning-ranking-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ranking-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify planning candidate ranking directly
+        run: node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/ranking/rank.test.ts

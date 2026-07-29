@@ -708,3 +708,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Coverage v1 does not rank, schedule, prescribe, generate, persist, or activate routines. Those remain separate governed contracts.
 - Evidence: `src/features/curated-onboarding/planning/coverage/contract.ts`, `src/features/curated-onboarding/planning/coverage/compile.ts`, `src/features/curated-onboarding/planning/coverage/compile.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-28 - Rank only input-bound compatible candidates
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Candidate Ranking v1 contract that scores every coverage-compatible candidate exactly once with closed integer components, immutable reason-code semantics, deterministic tie-breakers, a semantic digest, a non-throwing runtime receipt, input-bound recompilation, ten pinned terminal fixtures, and direct exact-head CI coverage.
+- WHY it changed: Compatibility alone does not express goal fit, adherence, experience suitability, time cost, or recovery cost, but allowing a scorer to recreate eligibility or accept a self-signed candidate pool would let preferences override safety and equipment truth.
+- Rule: Coverage owns eligibility. Ranking may order only the exact compatible IDs supplied by a runtime-valid, input-bound `ready` coverage result; it cannot add, remove, widen, or score through a hard constraint.
+- Rule: Each score component has exactly one frozen reason code and score. Total score is the exact component sum, and order is total descending, curated rank ascending, then exercise ID lexical.
+- Pattern: planning digest + catalog digest + input-bound ready coverage digest -> closed score reasons/components -> canonical order -> runtime receipt -> exact-input recompilation -> later global selection.
+- Failure Mode: Treating a recomputed ranking digest as source authorization allows re-signed candidate omission/injection, while presentation-name matching or caller-controlled reasons can create deterministic but unauthentic rankings.
+- Decision: No portable JSON Schema is exported as semantic authorization. Consumers require `validateCandidateRankingV1WithReceipt`, then `validateCandidateRankingAgainstInputsV1` when the three inputs are available.
+- Decision: Candidate Ranking v1 does not select the final exercise set, allocate sessions, prescribe, generate, persist, activate, or change production behavior.
+- Evidence: `src/features/curated-onboarding/planning/ranking/contract.ts`, `src/features/curated-onboarding/planning/ranking/rank.ts`, `src/features/curated-onboarding/planning/ranking/rank.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
