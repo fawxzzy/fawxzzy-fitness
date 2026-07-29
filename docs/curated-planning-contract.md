@@ -552,6 +552,62 @@ progression; generate routine persistence records; activate a routine; or
 change current onboarding or existing-routine behavior. Those remain later
 separately versioned and governed packets.
 
+## Session Prescription v1
+
+`src/features/curated-onboarding/planning/prescription/` defines the source-only
+`fitness.session-prescription.v1` boundary. It consumes the exact normalized
+planning intake, exercise catalog, coverage compilation, candidate ranking,
+global selection, and session allocation. Before prescribing anything, the
+compiler validates every runtime contract and exact-input recompilation
+boundary in that six-stage chain. Malformed or input-mismatched state becomes
+`invalid_input`; an allocation terminal other than `allocated` becomes
+`not_prescribable`.
+
+For an allocated input, Prescription v1 preserves every requirement, exercise,
+selection position, session position, schedule slot, and weekday exactly. It
+maps the catalog's frozen prescription class to a closed measurement type,
+integer target range, execution mode, progression mode, canonical rest
+interval, and deterministic set count. Goal, experience, and recovery context
+may choose only within those versioned policy bounds. Starting load remains
+`null`: the compiler never invents a weight from equipment capacity, historical
+context, or exercise metadata.
+
+Each exercise carries exact setup, active, transition, and total seconds.
+Every session carries the planning target and hard maximum in seconds plus a
+recomputed budget status. The compiler first reduces set counts only as far as
+the class minimum; if the minimum safe prescription still exceeds the hard
+maximum, it returns a complete `infeasible` terminal with
+`TIME_BUDGET_EXCEEDED`, retaining the schedule but emitting no partial
+sessions. Prescribed sessions must all be non-empty, fit their hard ceilings,
+and exactly match the requested session count.
+
+`prescriptionDigest` authenticates all version identities, exact upstream
+digests and statuses, schedule, sessions, exercise prescriptions, time
+budgets, summary, issues, and terminal status. No portable JSON Schema is
+presented as semantic authorization. Consumers must require the versioned,
+non-throwing `validateSessionPrescriptionV1WithReceipt` result. That receipt
+closes record shapes, issue policy, class policy, canonical integer/rest
+boundaries, load absence, position ownership, time arithmetic, budget
+arithmetic, status rules, and digest recomputation. Consumers with all six
+inputs must additionally call `validateSessionPrescriptionAgainstInputsV1`;
+a runtime-valid, re-signed prescription substitution still fails exact-input
+recompilation.
+
+The ten inherited planning fixtures pin five `prescribed` outputs and five
+`not_prescribable` terminals. The focused suite also proves exact upstream
+ownership, closed goal/experience policies, hard-duration preservation,
+malformed non-throwing receipts, load/progression rejection, target/rest/time
+tampering, duplicate and cross-session rejection, re-signed substitution
+rejection, forged-allocation rejection, deterministic time infeasibility,
+byte repeatability, and direct workflow coverage.
+`.github/workflows/planning-prescription-contract.yml` watches the complete
+`curated-onboarding/**` dependency tree and runs the focused suite directly.
+
+Session Prescription v1 does not assemble the final routine document, persist
+or activate a routine, change the questionnaire/server action/UI, or alter
+existing-routine behavior. Those remain separately versioned and governed
+packets.
+
 ## Golden fixtures
 
 `src/features/curated-onboarding/planning/fixtures.ts` defines the ten frozen
@@ -636,7 +692,11 @@ runtime-valid, input-bound ranking and its exact upstream inputs. Session
 allocation revalidates all five inputs, preserves coverage eligibility and the
 exact selected set, and refuses `blocked`, `needs_clarification`,
 `not_rankable`, `not_selectable`, `not_allocatable`, `invalid_input`, or
-`infeasible` results.
+`infeasible` results. Session prescription then revalidates and exact-input
+binds the complete six-input chain, preserves the allocated set and schedule,
+and adds only the closed class-policy targets, sets, rest, progression, and
+time budgets. It returns `not_prescribable`, `infeasible`, or `invalid_input`
+without partial executable sessions.
 
 Persistence integration is a later governed packet. Before it can claim
 lossless or idempotent creation, the repository needs evidence for:
