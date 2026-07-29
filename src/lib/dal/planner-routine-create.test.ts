@@ -580,6 +580,50 @@ test("Data API writes cannot add, change, or clear planner evidence", () => {
   }
 });
 
+test("planner rep goals use the active session-start columns", () => {
+  const sql = readFileSync(
+    new URL(
+      "../../../supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ).toLowerCase();
+  const startSession = readFileSync(
+    new URL("../start-session.ts", import.meta.url),
+    "utf8",
+  ).toLowerCase();
+
+  assert.match(
+    sql,
+    /target_sets,\s+target_reps_min,\s+target_reps_max,\s+target_duration_seconds,/,
+  );
+  assert.match(
+    sql,
+    /'targetrepsmin', routine_exercise\.target_reps_min,\s+'targetrepsmax', routine_exercise\.target_reps_max,/,
+  );
+  assert.doesNotMatch(sql, /\brep_range_min\b|\brep_range_max\b/);
+  assert.match(
+    sql,
+    /when v_exercise #>> '\{prescription,measurementtype\}' = 'reps'\s+then \(v_exercise #>> '\{prescription,target,minimum\}'\)::integer/,
+  );
+  assert.match(
+    sql,
+    /when v_exercise #>> '\{prescription,measurementtype\}' = 'reps'\s+then \(v_exercise #>> '\{prescription,target,maximum\}'\)::integer/,
+  );
+  assert.match(
+    sql,
+    /when v_exercise #>> '\{prescription,measurementtype\}' = 'time'\s+then \(v_exercise #>> '\{prescription,target,maximum\}'\)::integer/,
+  );
+  assert.match(
+    startSession,
+    /\.select\("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max,/,
+  );
+  assert.match(
+    startSession,
+    /target_reps_min: exercise\.target_reps_min,\s+target_reps_max: exercise\.target_reps_max,/,
+  );
+});
+
 test("dedicated workflow watches exact adapter dependencies and runs directly", () => {
   const workflow = readFileSync(
     new URL(
