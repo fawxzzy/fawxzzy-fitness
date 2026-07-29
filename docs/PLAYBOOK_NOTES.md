@@ -776,3 +776,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Session Prescription v1 does not assemble, persist, activate, render, or change production behavior.
 - Evidence: `src/features/curated-onboarding/planning/prescription/contract.ts`, `src/features/curated-onboarding/planning/prescription/prescribe.ts`, `src/features/curated-onboarding/planning/prescription/prescribe.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-29 - Assemble the reviewed prescription without changing it
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Routine Assembly v1 contract that revalidates the complete planning/catalog/coverage/ranking/selection/allocation/prescription chain, copies every executable prescription field into one deterministic plan envelope, emits a semantic digest and non-throwing runtime receipt, recompiles from all seven exact inputs, pins ten terminal fixtures, and runs in direct exact-head CI.
+- WHY it changed: A prescribed session set is executable but is not yet a single versioned handoff document for later persistence. That bridge must preserve reviewed schedule and prescription truth rather than silently reselecting, rescheduling, or enriching exercises.
+- Rule: Assembly may copy only the exact input-bound prescription. It cannot add, omit, replace, reorder, move, rename, rescore, or alter schedule, sets, targets, rest, progression, time arithmetic, budgets, or summary values.
+- Rule: Presentation names remain outside executable identity. Non-prescribed upstream states produce complete `not_assemblable`, `infeasible`, or `invalid_input` terminals with no partial routine.
+- Pattern: exact seven-input chain -> closed routine plan envelope -> runtime receipt that reuses Prescription v1 semantics -> exact-input recompilation -> later persistence.
+- Failure Mode: Treating a re-signed plan envelope as source authenticity can accept forged exercise substitution or placement even when the embedded document is internally consistent.
+- Decision: No portable JSON Schema is exported as semantic authorization. Consumers require `validateRoutineAssemblyV1WithReceipt`, then `validateRoutineAssemblyAgainstInputsV1` when all seven inputs are available.
+- Decision: Routine Assembly v1 does not persist, create, activate, render, deploy, or change production behavior.
+- Evidence: `src/features/curated-onboarding/planning/assembly/contract.ts`, `src/features/curated-onboarding/planning/assembly/assemble.ts`, `src/features/curated-onboarding/planning/assembly/assemble.test.ts`, `docs/curated-planning-contract.md`
+- Status: Proposed
