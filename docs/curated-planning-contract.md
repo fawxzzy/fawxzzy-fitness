@@ -299,6 +299,14 @@ two inputs must additionally call
 runtime receipt, then recompiles and rejects a re-signed forged candidate
 pool.
 
+The runtime receipt also fails closed on malformed issue arrays without
+throwing. Infeasibility issues must correspond to executable facts:
+`REQUIRED_COVERAGE_UNAVAILABLE` entries exactly cover requirements with no
+compatible candidates, and `WEEKLY_FREQUENCY_UNAVAILABLE` entries exactly
+cover requirements whose minimum exceeds the available weekly day count. A
+caller cannot manufacture a valid stop-planning receipt by changing only the
+status and re-signing a false infeasibility issue.
+
 The digest is not a routine, plan-creation idempotency key, persistence proof,
 or activation token. Coverage v1 does not rank candidates, assign them to
 sessions, prescribe sets/reps/load/progression, generate a routine, persist
@@ -311,8 +319,11 @@ structured infeasibility, the unsupported `rower` fixture is invalid, the
 ambiguous warning fixture is blocked, and the free-text `overhead press`
 exclusion requests clarification because it is not an executable catalog
 alias. `.github/workflows/planning-coverage-contract.yml` executes the focused
-suite directly at each relevant exact head without modifying the open
-`.github/workflows/ci.yml` lane.
+suite directly at each relevant exact head. Its path filters cover the full
+`planning/**` dependency tree, so changes to the normalized intake, semantic
+projection, fixtures, catalog, or coverage package cannot bypass this
+consumer contract. It does not modify the open `.github/workflows/ci.yml`
+lane.
 
 ## Golden fixtures
 

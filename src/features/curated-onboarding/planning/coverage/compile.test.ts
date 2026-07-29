@@ -658,6 +658,81 @@ test("structural schema and versioned runtime receipt share an adversarial contr
   }
 });
 
+test("runtime receipt rejects fabricated weekly-frequency infeasibility", () => {
+  const ready = compilePlanningCoverageV1(
+    clonePlanning(),
+    PLANNER_EXERCISE_CATALOG_V1,
+  );
+  const fabricated = structuredClone(ready);
+  const requirement = fabricated.requirements[0];
+  fabricated.status = "infeasible";
+  fabricated.issues = [{
+    code: "WEEKLY_FREQUENCY_UNAVAILABLE",
+    issueClass: "infeasible",
+    path: "/schedule/requestedDaysPerWeek",
+    values: [
+      requirement.id,
+      `required:${requirement.minimumWeeklyOccurrences}`,
+      `available:${fabricated.schedule!.requestedDaysPerWeek}`,
+    ],
+  }];
+  fabricated.coverageDigest = digestCoverageCompilation(fabricated);
+
+  assert.equal(validateCoverageTransportShape(fabricated), true);
+  const receipt = validateCoverageCompilationV1WithReceipt(fabricated);
+  assert.equal(receipt.valid, false);
+  assert.ok(receipt.errors.some(
+    (error) => error.includes("frequency issues must exactly match schedule shortfalls"),
+  ));
+  assert.ok(receipt.errors.some(
+    (error) => error.includes("requires an unsatisfied requirement or frequency shortfall"),
+  ));
+});
+
+test("runtime receipt returns errors instead of throwing for malformed issue values", () => {
+  const baseline = compilePlanningCoverageV1(
+    clonePlanning("bodyweight-travel-4day-general-fitness"),
+    PLANNER_EXERCISE_CATALOG_V1,
+  );
+  const cases: Array<{
+    name: string;
+    mutate: (issue: Record<string, unknown>) => void;
+    expected: RegExp;
+  }> = [
+    {
+      name: "missing values",
+      mutate: (issue) => {
+        delete issue.values;
+      },
+      expected: /values is required/,
+    },
+    {
+      name: "non-array values",
+      mutate: (issue) => {
+        issue.values = "not-an-array";
+      },
+      expected: /values must be an array/,
+    },
+  ];
+
+  for (const entry of cases) {
+    const malformed = structuredClone(baseline);
+    entry.mutate(
+      malformed.issues[0] as unknown as Record<string, unknown>,
+    );
+    let receipt: ReturnType<typeof validateCoverageCompilationV1WithReceipt>
+      | undefined;
+    assert.doesNotThrow(() => {
+      receipt = validateCoverageCompilationV1WithReceipt(malformed);
+    }, entry.name);
+    assert.equal(receipt?.valid, false, entry.name);
+    assert.ok(
+      receipt?.errors.some((error) => entry.expected.test(error)),
+      entry.name,
+    );
+  }
+});
+
 test("input-bound verification rejects a re-signed forged candidate pool", () => {
   const planning = clonePlanning();
   const result = compilePlanningCoverageV1(
@@ -683,6 +758,16 @@ test("dedicated exact-head workflow runs the focused suite without ci.yml overla
   assert.match(
     workflow,
     /node --import \.\/scripts\/register-test-aliases\.mjs --test src\/features\/curated-onboarding\/planning\/coverage\/compile\.test\.ts/,
+  );
+  assert.equal(
+    workflow.match(
+      /src\/features\/curated-onboarding\/planning\/\*\*/g,
+    )?.length,
+    2,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /src\/features\/curated-onboarding\/planning\/coverage\/\*\*/,
   );
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
   assert.doesNotMatch(ci, /planning\/coverage\/compile\.test\.ts/);

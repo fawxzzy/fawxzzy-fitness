@@ -3,14 +3,14 @@ name: Planning coverage contract
 on:
   pull_request:
     paths:
-      - "src/features/curated-onboarding/planning/coverage/**"
+      - "src/features/curated-onboarding/planning/**"
       - "docs/curated-planning-contract.md"
       - "docs/PLAYBOOK_NOTES.md"
       - ".github/workflows/planning-coverage-contract.yml"
   push:
     branches: [main]
     paths:
-      - "src/features/curated-onboarding/planning/coverage/**"
+      - "src/features/curated-onboarding/planning/**"
       - "docs/curated-planning-contract.md"
       - "docs/PLAYBOOK_NOTES.md"
       - ".github/workflows/planning-coverage-contract.yml"

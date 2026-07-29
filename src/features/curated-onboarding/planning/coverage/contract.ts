@@ -1009,8 +1009,13 @@ function validateIssues(value: unknown, errors: string[]) {
     if (issue.path !== policy.path) {
       errors.push(`${path}.path must equal ${policy.path}.`);
     }
-    validateStringArray(issue.values, `${path}.values`, errors);
-    issues.push(entry as CoverageIssueV1);
+    const values = validateStringArray(issue.values, `${path}.values`, errors);
+    issues.push({
+      code: issue.code as CoverageIssueCode,
+      issueClass: issue.issueClass as CoverageIssueClass,
+      path: issue.path as `/${string}`,
+      values,
+    });
   });
   if (!isCanonicalUnique(issues.map(issueKey))) {
     errors.push("$.issues must be unique and canonically ordered.");
@@ -1128,14 +1133,92 @@ export function validateCoverageCompilationV1(value: unknown) {
     if (issues.length === 0 || issues.some((issue) => issue.issueClass !== "infeasible")) {
       errors.push("$.status infeasible requires only infeasibility issues.");
     }
-    const hasUnsatisfiedRequirement = requirements.some(
-      (requirement) => requirement.compatibleExerciseIds.length === 0,
+    const unsatisfiedRequirementIds = requirements
+      .filter((requirement) => requirement.compatibleExerciseIds.length === 0)
+      .map((requirement) => requirement.id);
+    const knownRequirementIds = new Set(
+      requirements.map((requirement) => requirement.id),
     );
-    const hasFrequencyIssue = issues.some(
-      (issue) => issue.code === "WEEKLY_FREQUENCY_UNAVAILABLE",
+    const coverageIssues = issues.filter(
+      (issue) => issue.code === "REQUIRED_COVERAGE_UNAVAILABLE",
     );
-    if (!hasUnsatisfiedRequirement && !hasFrequencyIssue) {
-      errors.push("$.status infeasible requires an unsatisfied requirement or frequency issue.");
+    const coverageIssueRequirementIds = coverageIssues
+      .flatMap((issue) => issue.values.filter(
+        (value) => knownRequirementIds.has(value),
+      ))
+      .sort(canonicalCompare);
+    if (
+      coverageIssues.some(
+        (issue) => issue.values.filter(
+          (value) => knownRequirementIds.has(value),
+        ).length !== 1,
+      )
+      || coverageIssueRequirementIds.length !== coverageIssues.length
+      || JSON.stringify(coverageIssueRequirementIds)
+      !== JSON.stringify(unsatisfiedRequirementIds)
+    ) {
+      errors.push(
+        "$.status infeasible coverage issues must exactly match unsatisfied requirements.",
+      );
+    }
+    const frequencyRequirements = schedule
+      ? requirements.filter(
+        (requirement) => requirement.minimumWeeklyOccurrences
+          > Number(schedule.requestedDaysPerWeek),
+      )
+      : [];
+    const expectedFrequencyIssueValues = frequencyRequirements.map(
+      (requirement) => [
+        requirement.id,
+        `required:${requirement.minimumWeeklyOccurrences}`,
+        `available:${schedule?.requestedDaysPerWeek}`,
+      ].sort(canonicalCompare),
+    );
+    const actualFrequencyIssueValues = issues
+      .filter((issue) => issue.code === "WEEKLY_FREQUENCY_UNAVAILABLE")
+      .map((issue) => issue.values);
+    if (
+      JSON.stringify(actualFrequencyIssueValues)
+      !== JSON.stringify(expectedFrequencyIssueValues)
+    ) {
+      errors.push(
+        "$.status infeasible frequency issues must exactly match schedule shortfalls.",
+      );
+    }
+    if (
+      unsatisfiedRequirementIds.length === 0
+      && frequencyRequirements.length === 0
+    ) {
+      errors.push(
+        "$.status infeasible requires an unsatisfied requirement or frequency shortfall.",
+      );
+    }
+    if (
+      unsatisfiedRequirementIds.length > 0
+      && coverageIssueRequirementIds.length === 0
+    ) {
+      errors.push(
+        "$.status infeasible requires REQUIRED_COVERAGE_UNAVAILABLE for every unsatisfied requirement.",
+      );
+    }
+    if (
+      frequencyRequirements.length > 0
+      && actualFrequencyIssueValues.length === 0
+    ) {
+      errors.push(
+        "$.status infeasible requires WEEKLY_FREQUENCY_UNAVAILABLE for every schedule shortfall.",
+      );
+    }
+    const unexpectedInfeasibilityCodes = issues.filter(
+      (issue) => ![
+        "REQUIRED_COVERAGE_UNAVAILABLE",
+        "WEEKLY_FREQUENCY_UNAVAILABLE",
+      ].includes(issue.code),
+    );
+    if (unexpectedInfeasibilityCodes.length > 0) {
+      errors.push(
+        "$.status infeasible contains an unsupported infeasibility issue code.",
+      );
     }
   }
 
