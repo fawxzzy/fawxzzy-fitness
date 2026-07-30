@@ -858,3 +858,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Malformed object, array, string, `undefined`, and `null` request roots collapse to one nullable identity. Exact-input validation still recompiles the whole pipeline from the caller's raw inputs, and cross-fixture persistence-intent substitution remains rejected.
 - Evidence: `src/features/curated-onboarding/planning/pipeline/compile.ts`, `src/features/curated-onboarding/planning/pipeline/compile.test.ts`
 - Status: Proposed
+
+## 2026-07-30 - Authenticate planner execution commands before the provider edge
+
+- Type: Pattern
+- WHAT changed: Fitness now has a source-only Planner Execution Command v1 boundary that recompiles the complete Planner Pipeline v1 chain and emits either one exact-input-authenticated command or one closed non-executable terminal with no partial command.
+- WHY it changed: A validated pipeline and a server-only executor were still separated by an unstated handoff. Without a closed command contract, a later caller could omit exact source binding, substitute provider context, or invoke persistence after a non-ready terminal.
+- Rule: An execution command may exist only when the embedded pipeline is `ready`, passes its runtime receipt, and passes exact recompilation from the caller's onboarding, catalog, and persistence request. The command must bind the pipeline digest, exact stage inputs, Persistence Intent v1, and canonical provider context.
+- Pattern: exact raw planner inputs + bounded provider context -> exact-valid Planner Pipeline v1 -> one runtime-valid semantic command -> later separately admitted server executor integration.
+- Failure Mode: Constructing a command from runtime-valid but source-unauthenticated evidence, allowing a command on a terminal pipeline, accepting caller-substituted provider context, or importing the server-only executor at this provider-neutral layer can cross the reviewed execution boundary.
+- Decision: Planner Execution Command v1 is provider-neutral and source-only. It does not import or invoke the executor or DAL, apply migrations, call Supabase, persist or activate routines, integrate server actions or UI, deploy, or alter production.
+- Evidence: `src/features/curated-onboarding/planning/execution/contract.ts`, `src/features/curated-onboarding/planning/execution/compile.ts`, `src/features/curated-onboarding/planning/execution/compile.test.ts`, `src/features/curated-onboarding/planning/execution/fixtures.ts`, `.github/workflows/planning-execution-command-contract.yml`, `docs/curated-planning-contract.md`
+- Status: Proposed
