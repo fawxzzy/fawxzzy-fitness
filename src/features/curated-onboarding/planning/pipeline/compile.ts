@@ -429,7 +429,7 @@ export function compilePlannerPipelineV1(
     allocation,
     prescription,
     assembly,
-    requestValue,
+    request,
   );
   if (
     !validateRoutinePersistenceIntentV1WithReceipt(
@@ -445,7 +445,7 @@ export function compilePlannerPipelineV1(
       allocation,
       prescription,
       assembly,
-      requestValue,
+      request,
     ).length > 0
   ) {
     return stageValidationFailed(

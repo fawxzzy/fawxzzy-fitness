@@ -847,3 +847,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Planner Pipeline v1 remains provider-neutral and source-only. It does not import the executor, apply migrations, call Supabase, persist or activate routines, integrate server actions or UI, deploy, or alter production.
 - Evidence: `src/features/curated-onboarding/planning/pipeline/contract.ts`, `src/features/curated-onboarding/planning/pipeline/compile.ts`, `src/features/curated-onboarding/planning/pipeline/compile.test.ts`, `src/features/curated-onboarding/planning/pipeline/fixtures.ts`, `.github/workflows/planning-pipeline-contract.yml`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-30 - Canonicalize malformed planner request identity once
+
+- Type: Rule
+- WHAT changed: Planner Pipeline v1 now compiles and exact-validates Persistence Intent v1 from the same normalized nullable request stored in the pipeline envelope.
+- WHY it changed: Retaining raw malformed request evidence only inside the persistence intent let compiler-produced envelopes diverge from runtime recompilation, which can access only the stored normalized request.
+- Rule: Normalize request identity once at the pipeline boundary. Persistence-intent compilation, exact validation, the stored envelope, and runtime recompilation must all consume that same canonical value.
+- Failure Mode: Compiling a nested intent from a raw malformed request while storing `null` outside it produces different issue evidence and digests, causing the compiler's own terminal envelope to fail its runtime receipt.
+- Decision: Malformed object, array, string, `undefined`, and `null` request roots collapse to one nullable identity. Exact-input validation still recompiles the whole pipeline from the caller's raw inputs, and cross-fixture persistence-intent substitution remains rejected.
+- Evidence: `src/features/curated-onboarding/planning/pipeline/compile.ts`, `src/features/curated-onboarding/planning/pipeline/compile.test.ts`
+- Status: Proposed

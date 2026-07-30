@@ -182,6 +182,43 @@ test("invalid catalog and request inputs fail at their exact boundaries", () => 
   );
 });
 
+test("malformed request roots share the stored nullable persistence identity", () => {
+  const inputs = createPlannerPipelineFixtureInputs(READY_FIXTURE_ID);
+  const pipelineDigests = new Set<string>();
+
+  for (const request of [{}, [], "invalid", undefined, null]) {
+    const pipeline = compilePlannerPipelineV1(
+      inputs.onboarding,
+      inputs.catalog,
+      request,
+    );
+    pipelineDigests.add(pipeline.pipelineDigest);
+
+    assert.equal(pipeline.status, "invalid_input");
+    assert.equal(pipeline.terminalStage, "persistence_intent");
+    assert.equal(pipeline.request, null);
+    assert.equal(
+      pipeline.stages.persistence_intent?.issues[0]?.code,
+      "REQUEST_CONTEXT_INVALID",
+    );
+    assert.deepEqual(
+      validatePlannerPipelineV1WithReceipt(pipeline).errors,
+      [],
+    );
+    assert.deepEqual(
+      validatePlannerPipelineAgainstInputsV1(
+        pipeline,
+        inputs.onboarding,
+        inputs.catalog,
+        request,
+      ),
+      [],
+    );
+  }
+
+  assert.equal(pipelineDigests.size, 1);
+});
+
 test("runtime validation rejects re-signed stage omission", () => {
   const forged = structuredClone(
     PLANNER_PIPELINE_FIXTURES[READY_FIXTURE_ID],
