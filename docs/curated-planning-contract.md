@@ -851,3 +851,50 @@ routine flow, apply the migration, call Supabase during verification, activate
 a routine, or expose a browser-importable API. Server-action integration,
 migration apply, live persistence proof, activation, UI cutover, deployment,
 and production remain separately reviewed packets.
+
+## Planner Pipeline v1
+
+`src/features/curated-onboarding/planning/pipeline/` is the source-only
+composition boundary for the reviewed deterministic planner stages. It accepts
+raw `CuratedOnboardingData`, the frozen Planner Exercise Catalog v1, and a
+canonical `create_only` / `deferred` persistence request. It then advances in
+one fixed order:
+
+1. normalization;
+2. catalog validation;
+3. coverage;
+4. candidate ranking;
+5. global selection;
+6. session allocation;
+7. session prescription;
+8. routine assembly; and
+9. persistence intent.
+
+Each compiled stage must pass its versioned runtime receipt and exact upstream
+input validation before the next stage may run. The pipeline returns `ready`
+only when Persistence Intent v1 is both runtime-valid and exact-input-valid.
+Any earlier `not_ready`, `infeasible`, or `invalid_input` boundary becomes the
+single terminal stage. All later stage fields remain `null`; a blocked or
+invalid stage cannot leak a partial downstream plan.
+
+The pipeline envelope contains the validated normalized planning intake,
+validated catalog, every stage result that precedes or is the terminal result,
+the canonical persistence request when valid, one closed terminal issue when
+not ready, and a semantic `pipelineDigest`. Its runtime validator revalidates
+the complete embedded stage chain and exact inter-stage bindings. Runtime
+self-consistency still cannot authenticate the original raw onboarding input,
+so consumers with those source inputs must also call
+`validatePlannerPipelineAgainstInputsV1`; that boundary recompiles from the
+exact raw onboarding, catalog, and request values.
+
+Ten frozen end-to-end fixtures pin status, terminal stage, and pipeline digest.
+Adversarial coverage rejects re-signed stage omission, cross-input
+substitution, stage reordering, false early terminals, catalog injection, raw
+input identity forgery, and persistence-request substitution. The dedicated
+workflow watches the complete curated-onboarding dependency tree and invokes
+the focused pipeline suite directly.
+
+Planner Pipeline v1 is provider-neutral and source-only. It does not import the
+server-only executor, apply a migration, call Supabase or another provider,
+persist or activate a routine, integrate a server action, change UI or
+existing-routine behavior, deploy, or alter production.
