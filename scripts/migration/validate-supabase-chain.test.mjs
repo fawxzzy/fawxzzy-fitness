@@ -249,6 +249,10 @@ test("db-push dry-run JSON rejects unsafe seed and role paths", () => {
     "safe/ghp_1234567890abcdefghijkl.sql",
     "safe/sk_live_1234567890.sql",
     "safe/xoxb-1234567890-abcdefghij.sql",
+    "safe/xapp-1-A1234567890-abcdefghijklmnopqrstuvwxyz.sql",
+    "safe/xwfp-1234567890-abcdefghijklmnopqrstuvwxyz.sql",
+    "safe/xoxe-1-1234567890-abcdefghijklmnopqrstuvwxyz.sql",
+    "safe/xoxe.xoxp-1-1234567890-abcdefghijklmnopqrstuvwxyz.sql",
     "safe/AIza1234567890abcdefghijklmnop.sql",
     "safe/eyJabcdefghijk.sql",
     "supabase/seed\n.sql",
@@ -283,6 +287,10 @@ test("db-push dry-run JSON preserves canonical credential near-miss paths", () =
     "safe/sb_secretary_notes.sql",
     "safe/akia_migration.sql",
     "safe/eyJ_short.sql",
+    "safe/xapplication_notes.sql",
+    "safe/xwfp_notes.sql",
+    "safe/xoxe_archive.sql",
+    "safe/xoxbridge_notes.sql",
   ];
 
   for (const field of ["seeds", "roles"]) {
@@ -446,6 +454,22 @@ test("validator fails closed without echoing malformed or failed command output"
     {
       field: "roles",
       value: "safe/xsb_secret_abcdefghijklmnopqrstuvwxyz.sql",
+    },
+    {
+      field: "seeds",
+      value: "safe/xapp-1-A1234567890-abcdefghijklmnopqrstuvwxyz.sql",
+    },
+    {
+      field: "roles",
+      value: "safe/xwfp-1234567890-abcdefghijklmnopqrstuvwxyz.sql",
+    },
+    {
+      field: "seeds",
+      value: "safe/xoxe-1-1234567890-abcdefghijklmnopqrstuvwxyz.sql",
+    },
+    {
+      field: "roles",
+      value: "safe/xoxe.xoxp-1-1234567890-abcdefghijklmnopqrstuvwxyz.sql",
     },
   ];
   for (const unsafePathCase of unsafePathCases) {

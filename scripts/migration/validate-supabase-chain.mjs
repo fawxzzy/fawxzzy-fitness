@@ -13,7 +13,7 @@ const CREDENTIAL_SIGNATURES = [
   /github_pat_[A-Za-z0-9_]{20,}/iu,
   /gh[pousr]_[A-Za-z0-9]{20,}/iu,
   /(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{8,}/iu,
-  /xox[baprs]-[A-Za-z0-9-]{10,}/iu,
+  /(?:xox[a-z]|xapp|xwfp|xoxe)[.-][A-Za-z0-9-]{10,}/iu,
   /AIza[0-9A-Za-z_-]{20,}/u,
   /eyJ[A-Za-z0-9_-]{8,}/u,
 ];
