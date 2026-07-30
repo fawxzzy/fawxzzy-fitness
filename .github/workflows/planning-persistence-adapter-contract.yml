@@ -6,6 +6,8 @@ on:
       - "src/features/curated-onboarding/**"
       - "src/lib/dal/planner-routine-create.ts"
       - "src/lib/dal/planner-routine-create.test.ts"
+      - "scripts/migration/validate-supabase-chain.mjs"
+      - "scripts/migration/validate-supabase-chain.test.mjs"
       - "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql"
       - "docs/curated-planning-contract.md"
       - "docs/PLAYBOOK_NOTES.md"
@@ -16,6 +18,8 @@ on:
       - "src/features/curated-onboarding/**"
       - "src/lib/dal/planner-routine-create.ts"
       - "src/lib/dal/planner-routine-create.test.ts"
+      - "scripts/migration/validate-supabase-chain.mjs"
+      - "scripts/migration/validate-supabase-chain.test.mjs"
       - "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql"
       - "docs/curated-planning-contract.md"
       - "docs/PLAYBOOK_NOTES.md"
@@ -39,6 +43,9 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Verify migration validator JSON contract
+        run: node --test scripts/migration/validate-supabase-chain.test.mjs
 
       - name: Verify planner persistence adapter directly
         run: node --import ./scripts/register-test-aliases.mjs --test src/lib/dal/planner-routine-create.test.ts
