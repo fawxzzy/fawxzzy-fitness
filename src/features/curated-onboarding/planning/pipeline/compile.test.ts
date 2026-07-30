@@ -5,6 +5,7 @@ import { PLANNER_EXERCISE_CATALOG_V1 } from "../catalog/catalog.ts";
 import {
   PERSISTENCE_INTENT_FIXTURES,
 } from "../persistence/fixtures.ts";
+import { compileCandidateRankingV1 } from "../ranking/rank.ts";
 import {
   createPlannerPipelineIssue,
   digestPlannerPipeline,
@@ -181,6 +182,43 @@ test("invalid catalog and request inputs fail at their exact boundaries", () => 
   );
 });
 
+test("malformed request roots share the stored nullable persistence identity", () => {
+  const inputs = createPlannerPipelineFixtureInputs(READY_FIXTURE_ID);
+  const pipelineDigests = new Set<string>();
+
+  for (const request of [{}, [], "invalid", undefined, null]) {
+    const pipeline = compilePlannerPipelineV1(
+      inputs.onboarding,
+      inputs.catalog,
+      request,
+    );
+    pipelineDigests.add(pipeline.pipelineDigest);
+
+    assert.equal(pipeline.status, "invalid_input");
+    assert.equal(pipeline.terminalStage, "persistence_intent");
+    assert.equal(pipeline.request, null);
+    assert.equal(
+      pipeline.stages.persistence_intent?.issues[0]?.code,
+      "REQUEST_CONTEXT_INVALID",
+    );
+    assert.deepEqual(
+      validatePlannerPipelineV1WithReceipt(pipeline).errors,
+      [],
+    );
+    assert.deepEqual(
+      validatePlannerPipelineAgainstInputsV1(
+        pipeline,
+        inputs.onboarding,
+        inputs.catalog,
+        request,
+      ),
+      [],
+    );
+  }
+
+  assert.equal(pipelineDigests.size, 1);
+});
+
 test("runtime validation rejects re-signed stage omission", () => {
   const forged = structuredClone(
     PLANNER_PIPELINE_FIXTURES[READY_FIXTURE_ID],
@@ -191,6 +229,42 @@ test("runtime validation rejects re-signed stage omission", () => {
   assert.equal(receipt.valid, false);
   assert.equal(
     receipt.errors.some((entry) => entry.includes("must precede")),
+    true,
+  );
+});
+
+test("runtime validation rejects a stage after the first non-ready result", () => {
+  const forged = structuredClone(
+    PLANNER_PIPELINE_FIXTURES["ambiguous-warning-blocked"],
+  ) as PlannerPipelineV1;
+  assert.ok(forged.stages.planning);
+  assert.ok(forged.stages.catalog);
+  assert.ok(forged.stages.coverage);
+  const ranking = compileCandidateRankingV1(
+    forged.stages.planning,
+    forged.stages.catalog,
+    forged.stages.coverage,
+  );
+  assert.equal(ranking.status, "not_rankable");
+  forged.stages.ranking = ranking;
+  forged.status = "not_ready";
+  forged.terminalStage = "ranking";
+  forged.issues = [
+    createPlannerPipelineIssue(
+      "ranking",
+      "not_ready",
+      ranking.issues.map((entry) => entry.code),
+    ),
+  ];
+  resign(forged);
+
+  const receipt = validatePlannerPipelineV1WithReceipt(forged);
+  assert.equal(receipt.valid, false);
+  assert.equal(
+    receipt.errors.some(
+      (entry) =>
+        entry.includes("$.stages.coverage must be ready before the terminal stage"),
+    ),
     true,
   );
 });
@@ -208,6 +282,46 @@ test("runtime validation rejects re-signed cross-input stage substitution", () =
   assert.equal(
     receipt.errors.some(
       (entry) => entry.includes("does not match recompilation"),
+    ),
+    true,
+  );
+});
+
+test("runtime validation binds invalid-request intents to the outer stages", () => {
+  const inputs = createPlannerPipelineFixtureInputs(READY_FIXTURE_ID);
+  const otherInputs = createPlannerPipelineFixtureInputs(OTHER_READY_FIXTURE_ID);
+  const forged = compilePlannerPipelineV1(
+    inputs.onboarding,
+    inputs.catalog,
+    null,
+  );
+  const other = compilePlannerPipelineV1(
+    otherInputs.onboarding,
+    otherInputs.catalog,
+    null,
+  );
+  assert.equal(forged.request, null);
+  assert.equal(forged.terminalStage, "persistence_intent");
+  assert.equal(
+    forged.stages.persistence_intent?.issues[0]?.code,
+    "REQUEST_CONTEXT_INVALID",
+  );
+  assert.equal(
+    other.stages.persistence_intent?.issues[0]?.code,
+    "REQUEST_CONTEXT_INVALID",
+  );
+  forged.stages.persistence_intent = structuredClone(
+    other.stages.persistence_intent,
+  );
+  resign(forged);
+
+  const receipt = validatePlannerPipelineV1WithReceipt(forged);
+  assert.equal(receipt.valid, false);
+  assert.equal(
+    receipt.errors.some(
+      (entry) =>
+        entry.includes("$.stages.persistence_intent")
+        && entry.includes("does not match recompilation"),
     ),
     true,
   );
