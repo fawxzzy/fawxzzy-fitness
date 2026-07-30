@@ -834,3 +834,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: This packet is source only. It does not apply the migration, invoke a live provider, integrate the onboarding server action, activate a routine, change UI or existing-routine behavior, deploy, or alter production.
 - Evidence: `src/lib/dal/planner-routine-executor.ts`, `src/lib/dal/planner-routine-executor.test.ts`, `src/lib/dal/planner-routine-create.ts`, `src/lib/dal/planner-routine-create.test.ts`, `supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql`, `.github/workflows/planning-persistence-adapter-contract.yml`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-30 - Compose reviewed planner stages behind one fail-closed boundary
+
+- Type: Pattern
+- WHAT changed: Fitness now has a source-only Planner Pipeline v1 that composes normalization, catalog validation, coverage, ranking, selection, allocation, prescription, assembly, and persistence intent in one canonical order.
+- WHY it changed: Individually valid stage contracts do not prove that an application caller advances them in order, stops at the first non-ready boundary, or preserves every exact upstream identity. That orchestration truth needs its own closed, testable contract before server-action integration.
+- Rule: A stage may run only after the prior stage passes both its versioned runtime receipt and exact upstream input validation. The first non-ready, infeasible, or invalid stage is terminal; every later stage field remains null.
+- Rule: `ready` requires a runtime-valid and exact-input-valid Persistence Intent v1. Runtime validation closes the embedded chain; callers with raw onboarding inputs must additionally use exact-input recompilation to authenticate the raw source.
+- Pattern: raw curated intake + frozen catalog + canonical create-only request -> validated stage prefix -> one terminal envelope -> semantic pipeline digest -> later separately admitted server boundary.
+- Failure Mode: Hand-composing the pipeline in a server action, advancing past a non-ready stage, accepting a re-signed stage substitution, or treating the runtime digest as raw-input authenticity can create a deterministic but unauthentic or partial routine.
+- Decision: Planner Pipeline v1 remains provider-neutral and source-only. It does not import the executor, apply migrations, call Supabase, persist or activate routines, integrate server actions or UI, deploy, or alter production.
+- Evidence: `src/features/curated-onboarding/planning/pipeline/contract.ts`, `src/features/curated-onboarding/planning/pipeline/compile.ts`, `src/features/curated-onboarding/planning/pipeline/compile.test.ts`, `src/features/curated-onboarding/planning/pipeline/fixtures.ts`, `.github/workflows/planning-pipeline-contract.yml`, `docs/curated-planning-contract.md`
+- Status: Proposed
