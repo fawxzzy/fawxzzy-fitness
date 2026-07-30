@@ -127,6 +127,11 @@ test("creates only after runtime, exact-input, owner, and context validation", a
   assert.match(receipt.responseDigest!, /^[a-f0-9]{64}$/);
   assert.equal(mock.calls.length, 1);
   assert.equal(mock.calls[0].name, "create_planner_routine_v1");
+  assert.equal(
+    (mock.calls[0].args as { p_authenticated_user_id: string })
+      .p_authenticated_user_id,
+    setup.intent.request.userId,
+  );
 });
 
 test("accepts an exact replay without widening activation authority", async () => {
@@ -363,7 +368,8 @@ test("migration source closes ownership, RLS, client RPC, and activation boundar
     ),
     "utf8",
   ).toLowerCase();
-  assert.match(sql, /auth\.uid\(\)/);
+  assert.match(sql, /auth\.role\(\) is distinct from 'service_role'/);
+  assert.match(sql, /v_auth_user_id uuid := p_authenticated_user_id/);
   assert.doesNotMatch(sql, /user_metadata/);
   assert.match(sql, /enable row level security/g);
   assert.match(sql, /security invoker/);
@@ -394,6 +400,10 @@ test("migration source closes ownership, RLS, client RPC, and activation boundar
   assert.doesNotMatch(
     sql,
     /grant execute on function public\.create_planner_routine_v1\([\s\S]*?\) to (?:public|anon|authenticated)/,
+  );
+  assert.match(
+    sql,
+    /grant execute on function public\.create_planner_routine_v1\([\s\S]*?\) to service_role/,
   );
   assert.doesNotMatch(sql, /update\s+public\.profiles/);
   assert.doesNotMatch(sql, /active_routine_id/);
@@ -639,6 +649,8 @@ test("dedicated workflow watches exact adapter dependencies and runs directly", 
   for (const [path, count] of [
     ["src/lib/dal/planner-routine-create.ts", 2],
     ["src/lib/dal/planner-routine-create.test.ts", 3],
+    ["src/lib/dal/planner-routine-executor.ts", 2],
+    ["src/lib/dal/planner-routine-executor.test.ts", 3],
     [
       "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql",
       2,

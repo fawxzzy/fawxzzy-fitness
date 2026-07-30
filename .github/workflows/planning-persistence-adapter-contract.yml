@@ -6,6 +6,8 @@ on:
       - "src/features/curated-onboarding/**"
       - "src/lib/dal/planner-routine-create.ts"
       - "src/lib/dal/planner-routine-create.test.ts"
+      - "src/lib/dal/planner-routine-executor.ts"
+      - "src/lib/dal/planner-routine-executor.test.ts"
       - "scripts/migration/validate-supabase-chain.mjs"
       - "scripts/migration/validate-supabase-chain.test.mjs"
       - "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql"
@@ -18,6 +20,8 @@ on:
       - "src/features/curated-onboarding/**"
       - "src/lib/dal/planner-routine-create.ts"
       - "src/lib/dal/planner-routine-create.test.ts"
+      - "src/lib/dal/planner-routine-executor.ts"
+      - "src/lib/dal/planner-routine-executor.test.ts"
       - "scripts/migration/validate-supabase-chain.mjs"
       - "scripts/migration/validate-supabase-chain.test.mjs"
       - "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql"
@@ -48,4 +52,4 @@ jobs:
         run: node --test scripts/migration/validate-supabase-chain.test.mjs
 
       - name: Verify planner persistence adapter directly
-        run: node --import ./scripts/register-test-aliases.mjs --test src/lib/dal/planner-routine-create.test.ts
+        run: node --import ./scripts/register-test-aliases.mjs --test src/lib/dal/planner-routine-create.test.ts src/lib/dal/planner-routine-executor.test.ts
