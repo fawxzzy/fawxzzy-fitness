@@ -6,6 +6,10 @@ import { parseDotenvFile } from "../env-file.mjs";
 
 const MIGRATION_VERSION = /^\d+$/u;
 const MIGRATION_FILENAME = /^\d+_[A-Za-z0-9][A-Za-z0-9._-]*\.sql$/u;
+const REPOSITORY_SQL_PATH = /^(?:[A-Za-z0-9][A-Za-z0-9._-]*\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.sql$/u;
+const CREDENTIAL_SHAPED_PATH = /(?:^|[/._-])(?:sb_secret_|sb_publishable_|eyJ[A-Za-z0-9_-]{8,})/iu;
+const WINDOWS_RESERVED_PATH_COMPONENT = /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/iu;
+const MAX_REPOSITORY_PATH_LENGTH = 512;
 const MIGRATION_LIST_KEYS = ["message", "migrations"];
 const MIGRATION_LIST_ROW_KEYS = ["local", "remote", "time"];
 const DRY_RUN_KEYS = ["dryRun", "message", "migrations", "roles", "seeds", "upToDate"];
@@ -106,6 +110,157 @@ function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function assertNoDuplicateJsonObjectKeys(output, label) {
+  let index = 0;
+
+  const fail = () => {
+    throw new Error(`${label} must be valid JSON.`);
+  };
+  const skipWhitespace = () => {
+    while (index < output.length && /\s/u.test(output[index])) {
+      index += 1;
+    }
+  };
+  const parseString = () => {
+    if (output[index] !== '"') {
+      fail();
+    }
+    const start = index;
+    index += 1;
+    while (index < output.length) {
+      const character = output[index];
+      if (character === '"') {
+        index += 1;
+        try {
+          return JSON.parse(output.slice(start, index));
+        } catch {
+          fail();
+        }
+      }
+      if (character.charCodeAt(0) < 0x20) {
+        fail();
+      }
+      if (character === "\\") {
+        index += 1;
+        if (index >= output.length) {
+          fail();
+        }
+        if (output[index] === "u") {
+          index += 4;
+          if (index >= output.length) {
+            fail();
+          }
+        }
+      }
+      index += 1;
+    }
+    fail();
+  };
+  const parseLiteral = (literal) => {
+    if (!output.startsWith(literal, index)) {
+      fail();
+    }
+    index += literal.length;
+  };
+  const parseNumber = () => {
+    const match = output.slice(index).match(
+      /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/u,
+    );
+    if (!match) {
+      fail();
+    }
+    index += match[0].length;
+  };
+  const expect = (character) => {
+    if (output[index] !== character) {
+      fail();
+    }
+    index += 1;
+  };
+
+  let parseValue;
+  const parseArray = () => {
+    expect("[");
+    skipWhitespace();
+    if (output[index] === "]") {
+      index += 1;
+      return;
+    }
+    while (index < output.length) {
+      parseValue();
+      skipWhitespace();
+      if (output[index] === "]") {
+        index += 1;
+        return;
+      }
+      expect(",");
+      skipWhitespace();
+    }
+    fail();
+  };
+  const parseObject = () => {
+    expect("{");
+    skipWhitespace();
+    if (output[index] === "}") {
+      index += 1;
+      return;
+    }
+
+    const keys = new Set();
+    while (index < output.length) {
+      const key = parseString();
+      if (keys.has(key)) {
+        throw new Error(`${label} must not contain duplicate object keys.`);
+      }
+      keys.add(key);
+      skipWhitespace();
+      expect(":");
+      skipWhitespace();
+      parseValue();
+      skipWhitespace();
+      if (output[index] === "}") {
+        index += 1;
+        return;
+      }
+      expect(",");
+      skipWhitespace();
+    }
+    fail();
+  };
+  parseValue = () => {
+    skipWhitespace();
+    switch (output[index]) {
+      case "{":
+        parseObject();
+        return;
+      case "[":
+        parseArray();
+        return;
+      case '"':
+        parseString();
+        return;
+      case "t":
+        parseLiteral("true");
+        return;
+      case "f":
+        parseLiteral("false");
+        return;
+      case "n":
+        parseLiteral("null");
+        return;
+      default:
+        parseNumber();
+    }
+  };
+
+  skipWhitespace();
+  parseValue();
+  skipWhitespace();
+  if (index !== output.length) {
+    fail();
+  }
+}
+
 function assertExactKeys(value, expectedKeys, label) {
   if (!isRecord(value)) {
     throw new Error(`${label} must be a JSON object.`);
@@ -125,6 +280,8 @@ function parseJsonObject(output, label) {
   if (typeof output !== "string" || output.trim().length === 0) {
     throw new Error(`${label} must be one non-empty JSON object.`);
   }
+
+  assertNoDuplicateJsonObjectKeys(output, label);
 
   let value;
   try {
@@ -186,6 +343,18 @@ function assertCanonicalStringArray(value, label, predicate = () => true) {
     seen.add(entry);
   }
   return [...value];
+}
+
+function isCanonicalRepositorySqlPath(value) {
+  return (
+    value.length <= MAX_REPOSITORY_PATH_LENGTH
+    && REPOSITORY_SQL_PATH.test(value)
+    && !CREDENTIAL_SHAPED_PATH.test(value)
+    && !path.posix.isAbsolute(value)
+    && !path.win32.isAbsolute(value)
+    && path.posix.normalize(value) === value
+    && value.split("/").every((component) => !WINDOWS_RESERVED_PATH_COMPONENT.test(component))
+  );
 }
 
 export function parseMigrationListJson(output) {
@@ -259,8 +428,16 @@ export function parseDryRunJson(output) {
     "db push dry-run JSON migrations",
     (entry) => MIGRATION_FILENAME.test(entry) && path.basename(entry) === entry,
   );
-  const seeds = assertCanonicalStringArray(value.seeds, "db push dry-run JSON seeds");
-  const roles = assertCanonicalStringArray(value.roles, "db push dry-run JSON roles");
+  const seeds = assertCanonicalStringArray(
+    value.seeds,
+    "db push dry-run JSON seeds",
+    isCanonicalRepositorySqlPath,
+  );
+  const roles = assertCanonicalStringArray(
+    value.roles,
+    "db push dry-run JSON roles",
+    isCanonicalRepositorySqlPath,
+  );
   const hasPendingWork = migrations.length > 0 || seeds.length > 0 || roles.length > 0;
 
   if (value.upToDate === hasPendingWork) {
@@ -398,11 +575,11 @@ export function validateSupabaseChain({
     for (const pendingMigration of parsedDryRun.migrations) {
       logger.error(`- ${pendingMigration}`);
     }
-    for (const pendingSeed of parsedDryRun.seeds) {
-      logger.error(`- seed ${pendingSeed}`);
+    if (parsedDryRun.seeds.length > 0) {
+      logger.error(`- pending seed files: ${parsedDryRun.seeds.length}`);
     }
-    for (const pendingRole of parsedDryRun.roles) {
-      logger.error(`- role ${pendingRole}`);
+    if (parsedDryRun.roles.length > 0) {
+      logger.error(`- pending role files: ${parsedDryRun.roles.length}`);
     }
     return 1;
   }
