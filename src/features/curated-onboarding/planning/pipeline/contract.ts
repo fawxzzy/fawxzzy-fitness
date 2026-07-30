@@ -544,7 +544,6 @@ function validateEmbeddedStages(
       && stages.allocation
       && stages.prescription
       && stages.assembly
-      && request
     ) {
       appendExactErrors(
         validateRoutinePersistenceIntentAgainstInputsV1(
@@ -699,8 +698,18 @@ export function validatePlannerPipelineV1(value: unknown) {
     const terminalIndex = PLANNER_PIPELINE_STAGES.indexOf(terminalStage);
     for (const [index, stage] of PLANNER_PIPELINE_STAGES.entries()) {
       const stageValue = stagesRecord[stage];
-      if (index < terminalIndex && stageValue == null) {
-        errors.push(`$.stages.${stage} must precede the terminal stage.`);
+      if (index < terminalIndex) {
+        if (stageValue == null) {
+          errors.push(`$.stages.${stage} must precede the terminal stage.`);
+        } else if (
+          stage !== "planning"
+          && stage !== "catalog"
+          && readPlannerPipelineStageStatus(stage, stageValue) !== "ready"
+        ) {
+          errors.push(
+            `$.stages.${stage} must be ready before the terminal stage.`,
+          );
+        }
       }
       if (index > terminalIndex && stageValue !== null) {
         errors.push(
