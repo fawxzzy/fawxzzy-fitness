@@ -7,7 +7,16 @@ import { parseDotenvFile } from "../env-file.mjs";
 const MIGRATION_VERSION = /^\d+$/u;
 const MIGRATION_FILENAME = /^\d+_[A-Za-z0-9][A-Za-z0-9._-]*\.sql$/u;
 const REPOSITORY_SQL_PATH = /^(?:[A-Za-z0-9][A-Za-z0-9._-]*\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.sql$/u;
-const CREDENTIAL_SHAPED_PATH = /(?:^|[/._-])(?:sb_secret_|sb_publishable_|eyJ[A-Za-z0-9_-]{8,})/iu;
+const CREDENTIAL_SIGNATURES = [
+  /sb_(?:secret|publishable)_[A-Za-z0-9_-]{8,}/iu,
+  /(?:AKIA|ASIA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA)[A-Z0-9]{16}/u,
+  /github_pat_[A-Za-z0-9_]{20,}/iu,
+  /gh[pousr]_[A-Za-z0-9]{20,}/iu,
+  /(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{8,}/iu,
+  /xox[baprs]-[A-Za-z0-9-]{10,}/iu,
+  /AIza[0-9A-Za-z_-]{20,}/u,
+  /eyJ[A-Za-z0-9_-]{8,}/u,
+];
 const WINDOWS_RESERVED_PATH_COMPONENT = /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/iu;
 const MAX_REPOSITORY_PATH_LENGTH = 512;
 const MIGRATION_LIST_KEYS = ["message", "migrations"];
@@ -346,14 +355,21 @@ function assertCanonicalStringArray(value, label, predicate = () => true) {
 }
 
 function isCanonicalRepositorySqlPath(value) {
+  const components = value.split("/");
   return (
     value.length <= MAX_REPOSITORY_PATH_LENGTH
     && REPOSITORY_SQL_PATH.test(value)
-    && !CREDENTIAL_SHAPED_PATH.test(value)
     && !path.posix.isAbsolute(value)
     && !path.win32.isAbsolute(value)
     && path.posix.normalize(value) === value
-    && value.split("/").every((component) => !WINDOWS_RESERVED_PATH_COMPONENT.test(component))
+    && components.every(
+      (component) => (
+        !component.endsWith(".")
+        && !component.endsWith(" ")
+        && !WINDOWS_RESERVED_PATH_COMPONENT.test(component)
+        && !CREDENTIAL_SIGNATURES.some((signature) => signature.test(component))
+      ),
+    )
   );
 }
 
