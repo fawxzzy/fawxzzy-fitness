@@ -10,7 +10,7 @@ import {
 export const PLANNER_ROUTINE_EXECUTOR_VERSION =
   "fitness.planner-routine-executor.2026-07-30.v1" as const;
 
-export type PlannerRoutineExecutorDependenciesV1 = {
+type PlannerRoutineExecutorDependenciesV1 = {
   requireAuthenticatedUser(): Promise<{ id: string }>;
   createServerProviderClient(): Promise<PlannerRoutineCreateRpcClient>;
 };
@@ -36,9 +36,9 @@ const DEFAULT_DEPENDENCIES: PlannerRoutineExecutorDependenciesV1 = {
   },
 };
 
-export async function executePlannerRoutinePersistenceV1(
+async function executePlannerRoutinePersistenceWithDependenciesV1(
   args: ExecutePlannerRoutinePersistenceArgsV1,
-  dependencies: PlannerRoutineExecutorDependenciesV1 = DEFAULT_DEPENDENCIES,
+  dependencies: PlannerRoutineExecutorDependenciesV1,
 ): Promise<PlannerRoutineCreateReceiptV1> {
   const user = await dependencies.requireAuthenticatedUser();
   const supabase: PlannerRoutineCreateRpcClient = {
@@ -55,4 +55,13 @@ export async function executePlannerRoutinePersistenceV1(
     providerContext: args.providerContext,
     supabase,
   });
+}
+
+export async function executePlannerRoutinePersistenceV1(
+  args: ExecutePlannerRoutinePersistenceArgsV1,
+): Promise<PlannerRoutineCreateReceiptV1> {
+  return await executePlannerRoutinePersistenceWithDependenciesV1(
+    args,
+    DEFAULT_DEPENDENCIES,
+  );
 }
