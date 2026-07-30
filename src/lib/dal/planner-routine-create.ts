@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   canonicalizeJson,
   digestCanonicalJson,
@@ -45,6 +47,7 @@ export type PlannerRoutineCreateRpcClient = {
   rpc(
     name: "create_planner_routine_v1",
     args: {
+      p_authenticated_user_id: string;
       p_intent: RoutinePersistenceIntentV1;
       p_name: string;
       p_start_date: string;
@@ -410,6 +413,7 @@ export async function createPlannerRoutineFromIntentV1(args: {
   let result: Awaited<ReturnType<PlannerRoutineCreateRpcClient["rpc"]>>;
   try {
     result = await args.supabase.rpc("create_planner_routine_v1", {
+      p_authenticated_user_id: args.authenticatedUserId,
       p_intent: intent,
       p_name: providerContext.name,
       p_start_date: providerContext.startDate,

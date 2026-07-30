@@ -294,6 +294,7 @@ create trigger routine_day_exercises_planner_evidence_client_write_guard
   execute function public.guard_planner_evidence_client_write_v1();
 
 create or replace function public.create_planner_routine_v1(
+  p_authenticated_user_id uuid,
   p_intent jsonb,
   p_name text,
   p_start_date date,
@@ -305,7 +306,7 @@ security invoker
 set search_path = ''
 as $function$
 declare
-  v_auth_user_id uuid := auth.uid();
+  v_auth_user_id uuid := p_authenticated_user_id;
   v_request jsonb := p_intent -> 'request';
   v_creation jsonb := p_intent -> 'creation';
   v_records jsonb := p_intent #> '{creation,records}';
@@ -334,8 +335,15 @@ declare
   v_owned_exercise_count integer;
   v_unique_owned_exercise_count integer;
 begin
+  if auth.role() is distinct from 'service_role' then
+    raise exception using
+      errcode = '42501',
+      message = 'PLANNER_PERSISTENCE_REQUIRES_SERVER_EXECUTOR';
+  end if;
   if v_auth_user_id is null then
-    raise exception 'planner adapter requires an authenticated user';
+    raise exception using
+      errcode = '22023',
+      message = 'PLANNER_PERSISTENCE_REQUIRES_AUTHENTICATED_USER';
   end if;
   if jsonb_typeof(p_intent) is distinct from 'object'
     or p_intent ->> 'schemaVersion'
@@ -730,20 +738,30 @@ end;
 $function$;
 
 revoke all on function public.create_planner_routine_v1(
+  uuid,
   jsonb,
   text,
   date,
   text
 ) from public;
 revoke execute on function public.create_planner_routine_v1(
+  uuid,
   jsonb,
   text,
   date,
   text
 ) from anon;
 revoke execute on function public.create_planner_routine_v1(
+  uuid,
   jsonb,
   text,
   date,
   text
 ) from authenticated;
+grant execute on function public.create_planner_routine_v1(
+  uuid,
+  jsonb,
+  text,
+  date,
+  text
+) to service_role;

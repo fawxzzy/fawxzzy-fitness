@@ -816,11 +816,12 @@ database primitive. The primitive:
 - keeps activation fixed at `not_requested` and never changes
   `profiles.active_routine_id`.
 
-Function execution is revoked from `PUBLIC`, `anon`, and `authenticated`; this
-packet adds no client-callable or privileged replacement. A future
-server-authenticated, source-bound execution path must be reviewed and admitted
-separately before this primitive can be called. A `security invoker`,
-empty-`search_path` trigger guard also protects every planner-owned field on
+Function execution is revoked from `PUBLIC`, `anon`, and `authenticated`.
+Execution is granted only to `service_role`, and the primitive additionally
+requires the `service_role` JWT claim plus an explicit authenticated user ID
+that must match the validated intent owner. No Data API role receives a
+client-callable replacement. A `security invoker`, empty-`search_path` trigger
+guard also protects every planner-owned field on
 `routines`, `routine_days`, and `routine_day_exercises`. `anon` and
 `authenticated` may continue ordinary all-null planner inserts and non-planner
 updates, but cannot add, change, or clear planner evidence through direct Data
@@ -833,3 +834,20 @@ credential, URL, SQL, and attacker-controlled details are never copied into
 receipts. This packet is source only: it does not apply the migration, call the
 live provider, integrate a server action, activate a routine, change UI
 behavior, deploy, or alter production.
+
+Planner Persistence Executor v1 is the separately reviewed source-bound server
+entry point. The module is marked `server-only`. It resolves the current user
+through `requireUser`, then delegates to the adapter that repeats runtime
+validation, exact nine-input recompilation, owner equality, and bounded
+provider-context validation. The privileged Supabase client is constructed
+lazily only when those gates reach the provider edge, before atomic execution
+and exact post-write readback. Authentication, owner, input, and context
+failures cannot construct the privileged client or call the database
+primitive.
+
+The executor source is intentionally not wired into the curated-onboarding
+server action. It does not execute during onboarding, replace the current
+routine flow, apply the migration, call Supabase during verification, activate
+a routine, or expose a browser-importable API. Server-action integration,
+migration apply, live persistence proof, activation, UI cutover, deployment,
+and production remain separately reviewed packets.
