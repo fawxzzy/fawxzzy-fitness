@@ -805,3 +805,19 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Persistence Intent v1 performs no database write, provider call, Supabase change, DAL/server-action integration, activation, UI mutation, deployment, or production action.
 - Evidence: `src/features/curated-onboarding/planning/persistence/contract.ts`, `src/features/curated-onboarding/planning/persistence/compile.ts`, `src/features/curated-onboarding/planning/persistence/compile.test.ts`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-07-29 - Execute a persistence intent without activating it
+
+- Type: Decision
+- WHAT changed: Fitness now has a source-only Supabase Persistence Adapter v1 contract. It adds an authenticated-owner DAL contract, an inert atomic create-or-replay database primitive, explicit planner evidence on the existing routine graph, exact post-write readback, adversarial tests, and direct hosted validation.
+- WHY it changed: A deterministic persistence intent is still only a write plan. The provider boundary must preserve its full evidence, enforce ownership and concurrency safety, and prove the exact stored projection without silently activating the created routine.
+- Rule: The DAL calls the provider only after the versioned runtime receipt, exact nine-input recompilation, authenticated-user match, ready-to-create status, and bounded provider context all pass.
+- Rule: The database requires `auth.uid()` ownership, RLS, an empty function `search_path`, atomic user-plus-generation idempotency, and exactly one global exercise slug for every planner exercise. Execution of the raw primitive is explicitly revoked from `PUBLIC`, `anon`, and `authenticated`; no client-callable or privileged replacement is introduced by this packet.
+- Rule: A `security invoker`, empty-`search_path` trigger guard denies `anon` and `authenticated` attempts to insert planner evidence or change any planner-owned field on the routine graph. Legacy all-null planner inserts and non-planner edits remain available.
+- Rule: Provider-returned and thrown failures are reduced to closed categorical receipt codes. Raw provider, database, credential, URL, SQL, and attacker-controlled messages never cross the durable receipt boundary.
+- Pattern: validated intent plus exact inputs plus authenticated provider context -> atomic create or immutable replay -> full persisted readback -> DAL comparison -> versioned adapter receipt.
+- Failure Mode: Trusting a self-consistent intent at a client-callable RPC, exposing the raw persistence primitive to a Data API role, copying provider errors into receipts, using user metadata for authorization, relying on RLS without grants, or returning success before readback can create cross-user, duplicate, partial, unauthentic, or secret-leaking results.
+- Decision: Creation remains separate from activation. The RPC never updates `profiles.active_routine_id`; the adapter response requires `activationMutation=false`.
+- Decision: This packet includes migration and DAL source only. A separately reviewed server-authenticated source-bound executor is required before persistence can run. This packet does not apply a live migration, call Supabase, integrate the onboarding server action, activate a routine, change UI behavior, deploy, or alter production.
+- Evidence: `supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql`, `src/lib/dal/planner-routine-create.ts`, `src/lib/dal/planner-routine-create.test.ts`, `.github/workflows/planning-persistence-adapter-contract.yml`, `docs/curated-planning-contract.md`
+- Status: Proposed

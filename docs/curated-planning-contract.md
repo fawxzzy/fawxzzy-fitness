@@ -791,17 +791,45 @@ exact assembled envelope, Planning provenance, catalog/ranking evidence, and
 canonical user-plus-generation request into a deterministic provider-neutral
 record graph. It does not execute that graph.
 
-Provider persistence integration remains a later governed packet. Before an
-adapter can claim lossless or idempotent creation, it must execute and prove
-the already-closed intent contract without weakening:
+Planner Persistence Adapter v1 is the first provider-specific source boundary.
+It consumes only a runtime-valid Persistence Intent v1 that also passes exact
+nine-input recompilation. The DAL then requires the authenticated user to equal
+the intent owner and accepts only a bounded provider context: routine name,
+start date, and IANA time zone. Invalid, non-creatable, input-mismatched, or
+owner-mismatched inputs do not call the provider.
 
-- storage of normalized/request/plan/intent semantic digests and every bound
-  policy version;
-- lossless retention of the intent evidence and record graph;
-- an atomic database uniqueness constraint equivalent to the semantic
-  user-plus-generation-request key;
-- post-write round-trip validation against the intent and routine digests; and
-- creation and activation as separate authorized operations.
+The Supabase migration source adds planner evidence columns to the existing
+RLS-protected routine graph and one inert, `security invoker`, create-only
+database primitive. The primitive:
 
-No provider, schema, database, DAL, server-action, activation, or UI change is
-part of this contract-only package.
+- stores normalized/request/plan/intent semantic digests and every bound policy
+  version;
+- retains the complete validated intent plus session/exercise evidence in
+  JSONB while also projecting the existing executable routine rows;
+- requires `auth.uid()` ownership and existing RLS policies;
+- uses an advisory transaction lock plus a unique user-and-generation-request
+  index for atomic idempotency;
+- returns `created` or `replayed` only after reading back the complete persisted
+  projection, which the DAL compares exactly with the expected intent graph;
+- resolves every planner exercise identifier to exactly one global canonical
+  exercise slug and fails closed on missing or ambiguous ownership; and
+- keeps activation fixed at `not_requested` and never changes
+  `profiles.active_routine_id`.
+
+Function execution is revoked from `PUBLIC`, `anon`, and `authenticated`; this
+packet adds no client-callable or privileged replacement. A future
+server-authenticated, source-bound execution path must be reviewed and admitted
+separately before this primitive can be called. A `security invoker`,
+empty-`search_path` trigger guard also protects every planner-owned field on
+`routines`, `routine_days`, and `routine_day_exercises`. `anon` and
+`authenticated` may continue ordinary all-null planner inserts and non-planner
+updates, but cannot add, change, or clear planner evidence through direct Data
+API writes. The function uses an empty `search_path`, and grants, RLS, and the
+planner-field guard remain separate controls. Provider and thrown failures
+cross the DAL receipt boundary only as the closed
+`PERSISTENCE_PROVIDER_RETURNED_ERROR` or
+`PERSISTENCE_PROVIDER_THROWN_ERROR` category; raw provider, database,
+credential, URL, SQL, and attacker-controlled details are never copied into
+receipts. This packet is source only: it does not apply the migration, call the
+live provider, integrate a server action, activate a routine, change UI
+behavior, deploy, or alter production.
