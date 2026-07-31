@@ -330,7 +330,7 @@ export function SessionPageClient({
         </div>
       </form>
     ),
-    [durationSeconds, navigateReturn, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
+    [durationSeconds, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
   );
 
   return (
