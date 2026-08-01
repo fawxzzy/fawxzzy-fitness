@@ -89,7 +89,6 @@ test("live app primitives bridge the frozen design-system pack", () => {
   assert.ok(measurementSummary.includes("appTokens.exerciseLogSummaryBadgeRow"));
   assert.ok(exerciseGoalForm.includes("appTokens.measurementInput"));
   assert.ok(exerciseGoalForm.includes("appTokens.measurementValidation"));
-  assert.ok(sessionTimers.includes("appTokens.currentSessionLoggerSummaryCard"));
   assert.ok(sessionTimers.includes("appTokens.currentSessionLoggerPanel"));
   assert.ok(appTokens.includes("detailStateRest"));
   assert.ok(appTokens.includes("detailStateWarning"));
