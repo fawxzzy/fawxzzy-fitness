@@ -20,6 +20,38 @@ test("set-flow logging keeps the routine target after explicit entries end", () 
   assert.equal(resolveSetFlowQuickLogTarget([plankTarget], 3, null), null);
 });
 
+test("resolveSetFlowQuickLogTarget derives the canonical/prescribed target purely from set index, independent of any other set's edited values", () => {
+  // SessionTimers.tsx's `currentLiveQuickLogTarget` recomputes this on every
+  // `sets.length` change to shift to the next set's prescription -- this is
+  // intentional (set 2 can have a different prescribed target than set 1).
+  // What must NOT happen is this recomputation reaching back and altering an
+  // earlier, already-logged/edited set's values. Since this function takes
+  // only (setFlowTargets, setIndex, fallbackTarget) and no notion of "what
+  // the user is currently typing", it is structurally incapable of clobbering
+  // live edited input -- confirmed here by asserting each index's resolved
+  // target depends only on that index, not on neighboring indices or on call
+  // order.
+  const setFlowTargets = [
+    { measurementType: "reps" as const, repsMin: 10, repsMax: 10 },
+    { measurementType: "reps" as const, repsMin: 8, repsMax: 8 },
+    { measurementType: "reps" as const, repsMin: 6, repsMax: 6 },
+  ];
+
+  assert.deepEqual(resolveSetFlowQuickLogTarget(setFlowTargets, 0, null), setFlowTargets[0]);
+  assert.deepEqual(resolveSetFlowQuickLogTarget(setFlowTargets, 1, null), setFlowTargets[1]);
+  assert.deepEqual(resolveSetFlowQuickLogTarget(setFlowTargets, 2, null), setFlowTargets[2]);
+
+  // Re-querying set index 0 after "having queried" index 2 (simulating the
+  // user progressing through sets) must still return the same set-0 target,
+  // unaffected by whatever happened for later sets.
+  assert.deepEqual(resolveSetFlowQuickLogTarget(setFlowTargets, 0, null), setFlowTargets[0]);
+
+  // An index past the end of the explicit set-flow list falls back to the
+  // routine's steady-state target, never to some prior set's target.
+  const fallback = { measurementType: "reps" as const, repsMin: 5, repsMax: 5 };
+  assert.deepEqual(resolveSetFlowQuickLogTarget(setFlowTargets, 5, fallback), fallback);
+});
+
 test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => {
   const label = formatQuickLogPreviewLabel({
     target: {

@@ -58,6 +58,32 @@ test("sanitizeLoggedMeasurementValues preserves a timed set duration without rel
   });
 });
 
+test("sanitizeLoggedMeasurementValues preserves a user-edited weight/reps pair that differs from the exercise's prescribed target (SessionTimers.handleLogSet path)", () => {
+  // This is the exact function handleLogSet calls immediately before building
+  // both the optimistic set and the addSetAction payload (see
+  // SessionTimers.tsx's handleLogSet: `sanitizeLoggedMeasurementValues({
+  // weight, reps, duration: durationInput, distance, calories })`). The
+  // prescribed/canonical target for this exercise might be, say, 10 reps at
+  // 135 lbs -- but the user typed 12 reps at 145 lbs before logging. The
+  // outgoing values must be exactly what the user typed, never silently
+  // replaced by the canonical prescription.
+  const prescribedTarget = { reps: "10", weight: "135" };
+  const userEditedValues = {
+    reps: "12",
+    weight: "145",
+    duration: "",
+    distance: "",
+    calories: "",
+  };
+
+  const sanitized = sanitizeLoggedMeasurementValues(userEditedValues);
+
+  assert.equal(sanitized.reps, "12");
+  assert.equal(sanitized.weight, "145");
+  assert.notEqual(sanitized.reps, prescribedTarget.reps);
+  assert.notEqual(sanitized.weight, prescribedTarget.weight);
+});
+
 test("formatGoalSummaryText excludes disabled measurements from summaries", async () => {
   const { formatGoalSummaryText } = await import("./measurement-display.ts");
   const summary = formatGoalSummaryText({
