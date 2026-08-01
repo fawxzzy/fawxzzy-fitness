@@ -859,6 +859,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/features/curated-onboarding/planning/pipeline/compile.ts`, `src/features/curated-onboarding/planning/pipeline/compile.test.ts`
 - Status: Proposed
 
+## 2026-07-31 - Preserve locally toggled skip state through unrelated session revalidation
+
+- Type: Bug fix
+- WHAT changed: `reconcileSessionRowClientState` now preserves a locally toggled `isSkipped` value while an `isSkipOverrideActive` flag is set and the server-provided row disagrees, clearing the override once the server value converges with the local one.
+- WHY it changed: `updateSessionExerciseTimerAction`'s `revalidatePath` call for any exercise's rest timer forced every session row to re-reconcile from server props on the next render. `reconcileSessionRowClientState` set `isSkipped: row.isSkipped` unconditionally, with no analog to the existing `shouldPreserveLocalCount` guard used for `loggedSetCount`, so a completed skip toggle could silently revert mid-session from an action unrelated to the skipped exercise.
+- Rule: Local optimistic skip state takes precedence over a disagreeing server row only while its override flag is active; once the server row matches the local value, the override clears and a subsequent genuinely newer independent server change is applied normally. This mirrors the existing `setCountOverrideActive` convention rather than introducing a second state store.
+- Failure Mode: Overwriting local UI state unconditionally from any revalidated server prop, without a local-precedence window, silently discards a user action whenever an unrelated part of the same page triggers revalidation.
+- Decision: This fix touches only `src/components/SessionExerciseFocus.tsx` and `src/components/session/sessionRowClientState.ts`, plus their tests. Target/reps persistence was independently traced and found not to exhibit the analogous bug (the input-reset effect keys on exercise identity, not on the revalidated `exercises` array), so no change was made there beyond regression-locking tests.
+- Evidence: `src/components/session/sessionRowClientState.ts`, `src/components/session/sessionRowClientState.test.ts`, `src/components/SessionExerciseFocus.tsx`, `src/lib/measurement-sanitization.test.ts`, `src/lib/session-quick-log.test.ts`
+- Status: Applied
+
 ## 2026-08-01 - Present rest days as deliberate cards on Today (scope narrowed to live paths)
 
 - Type: Bug fix
