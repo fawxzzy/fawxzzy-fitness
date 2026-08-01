@@ -48,6 +48,14 @@ import {
 import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
+import {
+  claimSkipToggleQueueItemForSync,
+  enqueueSkipToggle,
+  readPendingSkipToggles,
+  removeSkipToggleQueueItemIfCurrent,
+  scheduleSkipToggleRetryIfCurrent,
+} from "@/lib/offline/skip-toggle-queue";
+import { createSkipToggleSyncEngine } from "@/lib/offline/skip-toggle-sync-engine";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
 import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
@@ -448,6 +456,16 @@ export function SessionExerciseFocus({
   const toast = useToast();
   void removeExerciseAction;
 
+  // Snapshot of the latest `exercises` prop for use inside the skip-toggle
+  // sync engine's callbacks (registered in a mount-scoped effect below, see
+  // `skipToggleEngineEffectDeps`), so a terminal-replay-failure rollback can
+  // read the true last-known-server `isSkipped` value without re-running
+  // that effect on every `exercises` change.
+  const exercisesRef = useRef(exercises);
+  useEffect(() => {
+    exercisesRef.current = exercises;
+  }, [exercises]);
+
   useEffect(() => {
     sessionExerciseLocalStateCache.set(sessionId, {
       rowClientStateBySessionExerciseId,
@@ -530,6 +548,55 @@ export function SessionExerciseFocus({
       };
     });
   }, [exercises]);
+
+  // Skip-toggle offline replay worker: one engine instance per mounted
+  // session view (not per-exercise-card, unlike the existing set-log
+  // sync engine in SessionTimers.tsx -- a skip command can be queued for an
+  // exercise whose card isn't currently expanded/mounted, so the replay
+  // worker has to live at this level instead). See
+  // skip-toggle-sync-engine.ts for the replay/backoff/terminal-classification
+  // logic itself; this effect only wires it to this component's UI state.
+  useEffect(() => {
+    const engine = createSkipToggleSyncEngine({
+      userId,
+      toggleSkipAction,
+      readPendingSkipToggles,
+      claimSkipToggleQueueItemForSync,
+      removeSkipToggleQueueItemIfCurrent,
+      scheduleSkipToggleRetryIfCurrent,
+      onItemSynced: () => {
+        // No forced state change needed here: isSkipOverrideActive (owned by
+        // sessionRowClientState.ts, untouched by this feature) already
+        // self-clears once the next `exercises` prop refresh reflects the
+        // now-confirmed server value. Forcing it here would risk racing a
+        // newer optimistic patch already applied for a subsequent toggle.
+      },
+      onTerminalFailure: ({ item, error }) => {
+        // Roll back to the last-known-server value using the exact same
+        // patchRowState shape as the existing resolved-{ok:false} rollback
+        // in handleSkipToggle below -- one rollback shape, not two.
+        const serverExercise = exercisesRef.current.find((exercise) => exercise.id === item.sessionExerciseId);
+        if (serverExercise) {
+          patchRowState(item.sessionExerciseId, (current) => ({
+            ...current,
+            isSkipped: serverExercise.isSkipped,
+            isSkipOverrideActive: true,
+            isSkipPending: false,
+          }));
+        }
+        toast.error(`Could not save: ${error}`);
+      },
+      onUnexpectedError: () => {
+        // Deliberately observable (not a silently-swallowed catch) even
+        // though there is nothing actionable to do beyond letting the next
+        // tick retry: the item's persisted status is untouched by an
+        // unexpected failure, so it remains pending.
+      },
+    });
+
+    engine.start();
+    return () => engine.stop();
+  }, [patchRowState, toast, toggleSkipAction, userId]);
 
   useEffect(() => {
     setRowClientStateBySessionExerciseId((current) => {
@@ -728,6 +795,59 @@ export function SessionExerciseFocus({
       isSkipPending: true,
     }));
 
+    // Durability path: queue the ABSOLUTE desired state (`nextSkipped`) for
+    // offline replay. Used both when we know we're offline up front and when
+    // `toggleSkipAction` throws (genuine transport failure) below. Unlike a
+    // resolved `{ ok: false }` (an explicit server rejection -- reconciled
+    // immediately, never queued), this keeps the optimistic value on screen
+    // with a "queued for sync" toast instead of silently losing the
+    // mutation or rolling back a change the user actually made.
+    const enqueueForOfflineReplay = async (queuedToastMessage: string) => {
+      try {
+        const queued = await enqueueSkipToggle({
+          userId,
+          sessionId,
+          sessionExerciseId: exerciseId,
+          desiredSkipped: nextSkipped,
+        });
+        if (queued) {
+          toast.success(queuedToastMessage);
+        } else {
+          // enqueue itself failed (e.g. IndexedDB unavailable) -- there is
+          // nowhere durable to hold this intent, so roll back rather than
+          // leave a phantom local-only state that nothing will ever retry.
+          patchRowState(exerciseId, (current) => ({
+            ...current,
+            isSkipped: previousSkipped,
+            isSkipOverrideActive: true,
+            isSkipPending: false,
+          }));
+          toast.error("Could not queue change for sync.");
+        }
+      } catch {
+        patchRowState(exerciseId, (current) => ({
+          ...current,
+          isSkipped: previousSkipped,
+          isSkipOverrideActive: true,
+          isSkipPending: false,
+        }));
+        toast.error("Could not queue change for sync.");
+      }
+    };
+
+    const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+    if (isOffline) {
+      try {
+        await enqueueForOfflineReplay("Offline: change queued for sync.");
+      } finally {
+        patchRowState(exerciseId, (current) => ({
+          ...current,
+          isSkipPending: false,
+        }));
+      }
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.set("sessionId", sessionId);
@@ -746,6 +866,9 @@ export function SessionExerciseFocus({
           onSelectedExerciseIdChange(null);
         }
       } else {
+        // Explicit server rejection (validation/auth/completed-session/etc)
+        // is NOT a transport failure -- reconcile immediately, do not queue
+        // a mutation the server has already explicitly refused.
         patchRowState(exerciseId, (current) => ({
           ...current,
           isSkipped: previousSkipped,
@@ -753,13 +876,20 @@ export function SessionExerciseFocus({
           isSkipPending: false,
         }));
       }
+    } catch {
+      // Genuine thrown transport failure (dropped connection, aborted
+      // fetch, Next.js server-action RPC failure) -- this is the bug this
+      // feature fixes: previously there was no catch here at all, so the
+      // optimistic patch above silently stood as a phantom "success" that
+      // was never sent and never retried. Now it durably queues instead.
+      await enqueueForOfflineReplay("Could not reach server. Change queued for sync.");
     } finally {
       patchRowState(exerciseId, (current) => ({
         ...current,
         isSkipPending: false,
       }));
     }
-  }, [onSelectedExerciseIdChange, patchRowState, selectedExerciseId, sessionId, toast, toggleSkipAction]);
+  }, [onSelectedExerciseIdChange, patchRowState, selectedExerciseId, sessionId, toast, toggleSkipAction, userId]);
 
   return (
     <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>

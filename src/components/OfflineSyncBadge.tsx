@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { readPendingSetLogs } from "@/lib/offline/set-log-queue";
+import { readPendingSkipToggles } from "@/lib/offline/skip-toggle-queue";
 
 type BadgeState = "offline" | "saved-local" | "syncing" | "synced" | "hidden";
 
@@ -29,9 +30,17 @@ export function OfflineSyncBadge({
         const online = typeof navigator === "undefined" ? true : navigator.onLine;
         setIsOnline(online);
 
-        const pendingItems = await readPendingSetLogs(userId);
-        const hasPending = pendingItems.length > 0;
-        const hasSyncing = pendingItems.some((item) => item.status === "syncing");
+        // Combine both offline queues (set-logs + skip-toggles) into one
+        // "you have unsynced changes" signal, mirroring how this badge
+        // already aggregates across all pending set-log items rather than
+        // showing a separate indicator per source.
+        const [pendingItems, pendingSkipItems] = await Promise.all([
+          readPendingSetLogs(userId),
+          readPendingSkipToggles(userId),
+        ]);
+        const hasPending = pendingItems.length > 0 || pendingSkipItems.length > 0;
+        const hasSyncing = pendingItems.some((item) => item.status === "syncing")
+          || pendingSkipItems.some((item) => item.status === "syncing");
 
         if (!online) {
           setBadgeState("offline");
