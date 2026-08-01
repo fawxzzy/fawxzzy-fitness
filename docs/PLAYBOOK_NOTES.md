@@ -869,3 +869,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: This fix touches only `src/components/SessionExerciseFocus.tsx` and `src/components/session/sessionRowClientState.ts`, plus their tests. Target/reps persistence was independently traced and found not to exhibit the analogous bug (the input-reset effect keys on exercise identity, not on the revalidated `exercises` array), so no change was made there beyond regression-locking tests.
 - Evidence: `src/components/session/sessionRowClientState.ts`, `src/components/session/sessionRowClientState.test.ts`, `src/components/SessionExerciseFocus.tsx`, `src/lib/measurement-sanitization.test.ts`, `src/lib/session-quick-log.test.ts`
 - Status: Applied
+
+## 2026-08-01 - Present rest days as deliberate cards on Today (scope narrowed to live paths)
+
+- Type: Bug fix
+- WHAT changed: Added a shared, non-interactive `RestDayCard` primitive and wired it into the Today screen (in-progress-session exercise list, closed day-picker view) so a rest day renders a deliberate card instead of nothing or plain text. Extracted `REST_DAY_CARD_COPY` to a dependency-free module as single source of truth, with `DayList.tsx` re-exporting it for backward compatibility.
+- WHY it changed: The Today screen previously rendered no visible content at all for a rest day in the in-progress-session view and the closed day-picker (the tone/summary helper returned nothing for that state), which is indistinguishable from a broken or loading UI.
+- Rule: A rest day must render a visually deliberate, accessibly labeled card (real title/subtitle/badge text, not a color-only cue), must not expose exercise-editing controls, and must never create a workout as a side effect of rendering.
+- Pattern: Reuse `RoutineOverviewDayCard`'s existing yellow-accent/title-override rest-day treatment as the base, add the new `RestDayCard` primitive on top for surfaces that had no rest-day treatment at all.
+- Failure Mode: Silently suppressing the summary/content node for a domain state (rest) reads to a user as a bug rather than an intentional state.
+- Decision: This is presentation-only; `is_rest` remains the existing persisted column, no persistence, reorder, or Current Session logic was touched.
+- Correction: An initial version of this change also modified `EditRoutineDaysSection.tsx` and added a `editRoutineDayRowPresentation.ts` resolver for it. That component was proven unreachable from any current route (`/routines/[id]/edit` renders only `EditRoutineAutosaveForm`; the live, reorderable day list is `RoutineOverviewDayCard` via `/routines/[id]`, which already had the pre-existing rest-day accent). Those changes were reverted before landing since they shipped no user-facing effect; scope is now limited to the live Today-screen paths only. Whether `EditRoutineDaysSection.tsx` should eventually be wired into a route, or removed as dead code, is a separate decision not made here.
+- Evidence: `src/components/day-list/RoutineDayCardPresentation.tsx`, `src/features/day-state/restDayCardCopy.ts`, `src/components/day-list/DayList.tsx`, `src/app/today/TodayExerciseRows.tsx`, `src/app/today/TodayDayPicker.tsx`, `src/app/today/todayRestDayCard.ts`, `src/app/today/page.tsx`, `src/app/today/TodayClientShell.tsx`, `docs/today-state-matrix.md`
+- Status: Applied

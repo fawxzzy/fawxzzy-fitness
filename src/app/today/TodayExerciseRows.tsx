@@ -2,12 +2,14 @@
 
 import type { ReactNode } from "react";
 import { ExerciseInfoIconButton } from "@/components/ExerciseInfoIconButton";
+import { RestDayCard } from "@/components/day-list/RoutineDayCardPresentation";
 import {
   SHARED_PLANNED_CARD_CONTENT_CLASS_NAME,
   SHARED_PLANNED_CARD_INFO_BUTTON_CLASS_NAME,
   SHARED_PLANNED_CARD_INFO_OVERLAY_CLASS_NAME,
   SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME,
 } from "@/components/workout/ExerciseCardSurfaceChrome";
+import { shouldRenderTodayRestDayCard } from "@/app/today/todayRestDayCard";
 import { PlannedExerciseSummaryRow } from "@/components/workout/PlannedExerciseSummaryRow";
 import { deriveLoggedSetCountProgressFill } from "@/lib/exercise-card-progress-fill";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
@@ -74,6 +76,7 @@ export function TodayExerciseRows({
   rowClassName,
   rowContentClassName = SHARED_PLANNED_CARD_CONTENT_CLASS_NAME,
   rightIcon,
+  isRestDay = false,
 }: {
   exercises: TodayExerciseRow[];
   emptyMessage: string;
@@ -84,6 +87,13 @@ export function TodayExerciseRows({
   rowClassName?: string;
   rowContentClassName?: string;
   rightIcon?: ReactNode;
+  /**
+   * Whether the day this list is rendered for is a rest day. When true and
+   * there are no exercises to show, the empty row renders as a deliberate
+   * rest-day card (shared with the Routine Overview rest-day treatment)
+   * instead of a plain "no exercises" text row.
+   */
+  isRestDay?: boolean;
 }) {
   return (
     <>
@@ -171,7 +181,15 @@ export function TodayExerciseRows({
             </li>
           );
         })}
-        {exercises.length === 0 ? <li className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-3 text-center text-sm leading-normal text-[rgb(var(--text-muted)/0.96)]">{emptyMessage}</li> : null}
+        {exercises.length === 0 ? (
+          shouldRenderTodayRestDayCard({ exerciseCount: exercises.length, isRestDay }) ? (
+            <li>
+              <RestDayCard />
+            </li>
+          ) : (
+            <li className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-3 text-center text-sm leading-normal text-[rgb(var(--text-muted)/0.96)]">{emptyMessage}</li>
+          )
+        ) : null}
       </ul>
     </>
   );

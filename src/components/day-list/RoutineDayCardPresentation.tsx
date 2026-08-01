@@ -1,6 +1,8 @@
 import { Fragment, type ReactNode } from "react";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { DayCard, resolveDayCardState } from "@/components/day-list/DayList";
+import { REST_DAY_CARD_COPY } from "@/features/day-state/restDayCardCopy";
 import { SignatureDot, SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
@@ -46,6 +48,54 @@ export type RoutineDayCardSummary = {
   bodyweight: number;
   unknown: number;
 };
+
+/**
+ * Standalone (non-list) rest-day card. Reuses the same visual language as
+ * RoutineOverviewDayCard's rest-day treatment (yellow accent, "Rest" badge,
+ * REST_DAY_CARD_COPY body) but renders a bare ExerciseCard instead of a
+ * DayCard, so it can be dropped inside an existing <li>/<ul> (e.g. Today's
+ * exercise-row list) without producing invalid nested list markup.
+ *
+ * Purely presentational: no onPress, no exercise-editing affordances, and no
+ * server calls, so rendering it can never create or mutate a workout.
+ */
+export function RestDayCard({
+  title = "Rest",
+  subtitle = REST_DAY_CARD_COPY,
+  badgeText = "Rest",
+  className,
+  bodyClassName,
+  contentClassName,
+  titleClassName,
+  subtitleClassName,
+}: {
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  badgeText?: string;
+  className?: string;
+  bodyClassName?: string;
+  contentClassName?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
+}) {
+  return (
+    <ExerciseCard
+      title={title}
+      subtitle={subtitle}
+      subtitleTone="plain"
+      state="empty"
+      badgeText={badgeText}
+      rightIcon={null}
+      variant="list"
+      contentVerticalAlign="top"
+      className={cn(ROUTINE_REST_DAY_CARD_CLASS_NAME, className)}
+      bodyClassName={cn(ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME, bodyClassName)}
+      contentClassName={cn(ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME, contentClassName)}
+      titleClassName={cn(ROUTINE_DAY_CARD_TITLE_CLASS_NAME, "leading-none", titleClassName)}
+      subtitleClassName={cn(ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME, subtitleClassName)}
+    />
+  );
+}
 
 export type RoutineDayCardPresentationItem = {
   isRest: boolean;
