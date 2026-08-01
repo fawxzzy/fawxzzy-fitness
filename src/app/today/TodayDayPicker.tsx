@@ -580,7 +580,7 @@ export function TodayDayPicker({
   }, [mode.dayPickerOpen, selectedDay]);
   // Deliberate rest-day card for the closed-picker, selected-rest-day case.
   // Reuses the same shared rest-day treatment as the Routine Overview day
-  // card and Edit Routine day-list instead of leaving the body empty (the
+  // card (RoutineOverviewDayCard) instead of leaving the body empty (the
   // prior behavior, since getTodayDaySummaryTone returns no tone for rest
   // days and so never rendered the plain-text summary either).
   const selectedDayRestCard = useMemo(() => {
