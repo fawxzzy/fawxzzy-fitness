@@ -1,7 +1,7 @@
 /**
  * Shared rest-day card body copy. Single source of truth so every surface
- * that renders a deliberate rest-day card (Routine Overview, Edit Routine
- * day-list, Today) shows identical copy instead of drifting independently.
+ * that renders a deliberate rest-day card (Routine Overview, Today) shows
+ * identical copy instead of drifting independently.
  *
  * Kept in its own dependency-free module (no component/JSX imports) so it
  * can be imported from pure logic modules without pulling in React/Next.js
