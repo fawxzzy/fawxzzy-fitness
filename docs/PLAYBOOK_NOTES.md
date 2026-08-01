@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-01 - Remove orphaned routine editor design tokens
+- Type: Cleanup
+- WHAT changed: Removed three design-token constants from `src/components/ui/app/tokens.ts` -- `routineEditorLinkAction`, `routineEditorHelperText`, and `routineEditorDayList` -- along with their backing className definitions in `src/components/ui/app/designSystem.ts` (`routineEditorLinkActionClassName`, `routineEditorHelperTextClassName`, `routineEditorDayListClassName`).
+- WHY it changed: The 2026-08-01 "Remove unreachable EditRoutineDaysSection dead code" entry deleted `EditRoutineDaysSection.tsx`, which was the only consumer of these three tokens. Independently re-verified here via full-repo grep (not just `src/`) for each of the three token names and their backing className names: the only hits for each were its own definition line in `tokens.ts` and its own backing className line in `designSystem.ts` -- no static import, destructure, computed/string property access, dynamic token-enumeration helper, type-level `Pick<...>` reference, test, snapshot, or Storybook file (none exist in this repo) referenced any of the three. `appTokens` and `fitnessDesignPrimitiveClassNames` are both plain object literals with no exported type alias or `satisfies` contract, and no generic reflection (`Object.keys`/`Object.entries`/`for...in`) over either object exists anywhere in the repo, so there is no generic token-enumeration validator that would need updating.
+- Rule: A design-token constant with zero references anywhere in the repo outside its own definition and its own backing className is dead and safe to delete alongside its backing className in the same change; before deleting, grep the full repo (not just `src/`) for both the token name and its backing className name independently, and check for computed access, type-level key references, and any generic contract test that enumerates token/className keys reflectively.
+- Failure Mode: Deleting a design token without independently re-verifying reachability (rather than trusting an inherited "no consumer" claim) risks removing a token that is reached through a path a simple static grep can miss, such as computed property access, a generic enumeration-based contract test, or a type-level `Pick<>` reference.
+- Decision: This is deletion-only in `tokens.ts` and `designSystem.ts`; no other consumer, component, or test needed changes because none referenced these three tokens. No Edit Routine, Today, or Routine Overview behavior changed.
+- Evidence: `src/components/ui/app/tokens.ts`, `src/components/ui/app/designSystem.ts`
+- Status: Applied
+
 ## 2026-07-28 - Planner catalogs must freeze executable semantics before routine generation
 - Type: Pattern
 - WHAT changed: The curated-planning foundation now includes a source-only, semantically digested exercise catalog with exact equipment capabilities, frozen restriction and prescription policies, reviewed same-movement substitutions, closed runtime validation, and structured compatibility results.
