@@ -144,6 +144,7 @@ function areSessionRowClientStateMapsEqual(
       leftValue.loggedSetCount !== rightValue.loggedSetCount
       || leftValue.setCountOverrideActive !== rightValue.setCountOverrideActive
       || leftValue.isSkipped !== rightValue.isSkipped
+      || leftValue.isSkipOverrideActive !== rightValue.isSkipOverrideActive
       || leftValue.isQuickLogPending !== rightValue.isQuickLogPending
       || leftValue.isSkipPending !== rightValue.isSkipPending
       || leftValue.showWhenCompleted !== rightValue.showWhenCompleted
@@ -394,8 +395,10 @@ export function SessionExerciseFocus({
           loggedSetCount: exercise.loggedSetCount,
           setCountOverrideActive: false,
           isSkipped: exercise.isSkipped,
+          isSkipOverrideActive: false,
           isQuickLogPending: false,
           isSkipPending: false,
+          showWhenCompleted: false,
         };
         const resolvedLoggedSetCount = typeof snapshotLoggedSetCount === "number"
           ? snapshotLoggedSetCount
@@ -471,6 +474,7 @@ export function SessionExerciseFocus({
         loggedSetCount: exercise.loggedSetCount,
         setCountOverrideActive: false,
         isSkipped: exercise.isSkipped,
+        isSkipOverrideActive: false,
         isQuickLogPending: false,
         isSkipPending: false,
         showWhenCompleted: false,
@@ -551,6 +555,7 @@ export function SessionExerciseFocus({
             loggedSetCount: exercise.loggedSetCount,
             setCountOverrideActive: false,
             isSkipped: exercise.isSkipped,
+            isSkipOverrideActive: false,
             isQuickLogPending: false,
             isSkipPending: false,
             showWhenCompleted: false,
@@ -670,9 +675,15 @@ export function SessionExerciseFocus({
     }
 
     const nextSkipped = !previousSkipped;
+    // isSkipOverrideActive marks this row's isSkipped as a locally-known,
+    // authoritative value: reconcileSessionRowClientState will preserve it
+    // against a stale `exercises` prop (e.g. from an unrelated timer
+    // revalidate) until the server-provided row actually agrees, at which
+    // point the override clears itself. See sessionRowClientState.ts.
     patchRowState(exerciseId, (current) => ({
       ...current,
       isSkipped: nextSkipped,
+      isSkipOverrideActive: true,
       isSkipPending: true,
     }));
 
@@ -697,6 +708,7 @@ export function SessionExerciseFocus({
         patchRowState(exerciseId, (current) => ({
           ...current,
           isSkipped: previousSkipped,
+          isSkipOverrideActive: true,
           isSkipPending: false,
         }));
       }
