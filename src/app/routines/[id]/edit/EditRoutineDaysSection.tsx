@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { appTokens } from "@/components/ui/app/tokens";
 import { RoutineEditorDayRow, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { resolveEditRoutineDayRowPresentation } from "@/app/routines/[id]/edit/editRoutineDayRowPresentation";
 
 type EditRoutineDayItem = {
   id: string;
@@ -43,16 +44,14 @@ export function EditRoutineDaysSection({
       {days.length > 0 ? (
         <ul className={appTokens.routineEditorDayList}>
           {days.map((day) => {
-            const subtitle = day.needsSetup
-              ? "Not configured yet • Tap to set up this workout plan"
-              : [day.summary, day.notes?.trim() || null].filter(Boolean).join(" • ");
+            const presentation = resolveEditRoutineDayRowPresentation(day);
             return (
               <li key={day.id}>
                 <RoutineEditorDayRow
                   title={`Slot ${day.dayIndex} | ${day.title}`}
-                  subtitle={subtitle}
-                  badgeText={day.needsSetup ? "Needs Setup" : undefined}
-                  state={day.isRest || day.needsSetup ? "empty" : "default"}
+                  subtitle={presentation.subtitle}
+                  badgeText={presentation.badgeText}
+                  state={presentation.state}
                   href={day.href}
                   rightLabel={<AppBadge tone="default">Edit</AppBadge>}
                 />

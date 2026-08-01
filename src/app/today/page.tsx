@@ -1380,6 +1380,7 @@ export default async function TodayPage({
                 <TodayExerciseRows
                   exercises={todayPayload.exercises}
                   emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
+                  isRestDay={todayPayload.routine.state === "rest"}
                 />
               </div>
             </TodayOverviewScaffold>

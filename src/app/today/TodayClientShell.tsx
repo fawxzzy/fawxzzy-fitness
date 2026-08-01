@@ -7,7 +7,9 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SubtitleText } from "@/components/ui/text-roles";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 
@@ -119,11 +121,15 @@ export function TodayClientShell({
     return (
       <TodayOverviewContent>
         <TodayOverviewScaffold>
-          <div className="flex flex-col gap-[0.625rem]">
-            <Link href="/routines" className="block rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center text-sm text-[rgb(var(--text-primary))] transition-colors hover:bg-[rgb(var(--surface-3-rgb)/0.9)]">
-              Go to Routines
-            </Link>
-          </div>
+          <EmptyState
+            title="No routine selected"
+            body="Choose a routine to see today's plan."
+            action={(
+              <Link href="/routines" className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>
+                Go to Routines
+              </Link>
+            )}
+          />
         </TodayOverviewScaffold>
       </TodayOverviewContent>
     );
@@ -141,6 +147,7 @@ export function TodayClientShell({
               exerciseId: exercise.exerciseId ?? exercise.id,
             }))}
             emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}
+            isRestDay={display.routine.isRest}
           />
 
           {display.inProgressSessionId ? (

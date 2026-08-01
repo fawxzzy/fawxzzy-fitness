@@ -2,8 +2,9 @@ import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { REST_DAY_CARD_COPY } from "@/features/day-state/restDayCardCopy";
 
-export const REST_DAY_CARD_COPY = "Recover, move lightly, and come back ready for the next workout.";
+export { REST_DAY_CARD_COPY };
 
 export type DayListState = "default" | "selected" | "completed" | "inSession" | "rest";
 

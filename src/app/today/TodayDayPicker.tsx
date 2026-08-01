@@ -11,6 +11,7 @@ import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/S
 import { DayList } from "@/components/day-list/DayList";
 import {
   ROUTINE_CONTENT_GAP_CLASS_NAME,
+  RestDayCard,
   RoutineOverviewDayCard,
   RoutineDayCardTitle,
 } from "@/components/day-list/RoutineDayCardPresentation";
@@ -577,6 +578,18 @@ export function TodayDayPicker({
 
     return null;
   }, [mode.dayPickerOpen, selectedDay]);
+  // Deliberate rest-day card for the closed-picker, selected-rest-day case.
+  // Reuses the same shared rest-day treatment as the Routine Overview day
+  // card and Edit Routine day-list instead of leaving the body empty (the
+  // prior behavior, since getTodayDaySummaryTone returns no tone for rest
+  // days and so never rendered the plain-text summary either).
+  const selectedDayRestCard = useMemo(() => {
+    if (mode.dayPickerOpen || !mode.restDay || !selectedDay) {
+      return null;
+    }
+
+    return <RestDayCard />;
+  }, [mode.dayPickerOpen, mode.restDay, selectedDay]);
   const noScheduledDayNotice = useMemo(() => {
     if (mode.dayPickerOpen || !noScheduledDayMessage?.trim()) {
       return null;
@@ -763,7 +776,11 @@ export function TodayDayPicker({
                   </DayList>
                 ) : null}
 
-                {selectedDaySummaryNode ? (
+                {selectedDayRestCard ? (
+                  <div className={shouldCenterSelectedDayState ? appTokens.todaySummaryCenteredShell : undefined}>
+                    {selectedDayRestCard}
+                  </div>
+                ) : selectedDaySummaryNode ? (
                   <div className={shouldCenterSelectedDayState ? appTokens.todaySummaryCenteredShell : undefined}>
                     {selectedDaySummaryNode}
                   </div>
