@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FocusEvent as ReactFocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { SetRow } from "@/types/db";
 import { ChipButton } from "@/components/ui/Chip";
@@ -59,6 +59,7 @@ import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { type PromotionStepFieldId } from "@/lib/session-progression-display";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
+import { isTrackedMeasurementInputStillFocused } from "@/lib/session-measurement-input-focus";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
@@ -555,6 +556,11 @@ export function SetLoggerCard({
   );
   const committedCopilotNoteRef = useRef(normalizeSessionCopilotFeedbackNote(copilotFeedbackNote));
   const committedCopilotEffortRef = useRef<number | null>(normalizeSessionCopilotFeedbackEffort(initialEffortRating));
+  // Tracks whichever measurement input (target/weight, reps, duration, etc.)
+  // currently has focus, so it can be kept visible above the mobile
+  // on-screen keyboard without stealing focus or fighting the browser's own
+  // scrolling. See scrollFocusedMeasurementInputIntoView below.
+  const focusedMeasurementInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const prefillWeight = prefill?.weight;
   const prefillReps = prefill?.reps;
   const prefillDurationSeconds = prefill?.durationSeconds;
@@ -1775,6 +1781,68 @@ export function SetLoggerCard({
     ),
     [handleLogAll, handleLogSet, handleToggleLastTarget, isSaveDisabled, lastTargetButtonLabel, liveLogButtonPrefix, liveSummaryItems, showLastTargetAction, showLogAllAction, loggerActionGridClassName],
   );
+  // Keeps whichever measurement input (target/weight, reps, duration, etc.)
+  // the user is actively editing visible once the mobile on-screen keyboard
+  // opens and shrinks the usable viewport. Reuses the browser's own
+  // `visualViewport` resize signal (the keyboard-open/close event) rather
+  // than a guessed delay, and only ever acts on the input that is *still*
+  // focused (isTrackedMeasurementInputStillFocused), so it never steals
+  // focus, never scrolls after the user has already moved to a different
+  // field, and never fights the native scroll restoration that happens when
+  // the keyboard closes.
+  const scrollFocusedMeasurementInputIntoView = useCallback(() => {
+    const trackedInput = focusedMeasurementInputRef.current;
+    if (typeof document === "undefined" || !isTrackedMeasurementInputStillFocused(document.activeElement, trackedInput)) {
+      return;
+    }
+    trackedInput?.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+
+    let frame = 0;
+    const handleViewportChange = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(scrollFocusedMeasurementInputIntoView);
+    };
+
+    viewport.addEventListener("resize", handleViewportChange);
+    return () => {
+      viewport.removeEventListener("resize", handleViewportChange);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [scrollFocusedMeasurementInputIntoView]);
+
+  const handleMeasurementInputFocusCapture = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+
+    focusedMeasurementInputRef.current = target;
+
+    // Double rAF: wait for layout to settle (e.g. the panel's own
+    // expand/mount transition) before checking whether the input still
+    // needs to be scrolled into view.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (isTrackedMeasurementInputStillFocused(document.activeElement, target)) {
+          target.scrollIntoView({ block: "nearest" });
+        }
+      });
+    });
+  }, []);
+
+  const handleMeasurementInputBlurCapture = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
+    if (focusedMeasurementInputRef.current === event.target) {
+      focusedMeasurementInputRef.current = null;
+    }
+  }, []);
+
   const handleExerciseTimerVisibilityToggle = useCallback(async () => {
     if (!onExerciseTimerVisibilityChange || isTimerVisibilityPending) {
       return;
@@ -2082,6 +2150,8 @@ export function SetLoggerCard({
         "relative flex flex-col",
       )}
       data-testid="set-logger-card"
+      onFocusCapture={handleMeasurementInputFocusCapture}
+      onBlurCapture={handleMeasurementInputBlurCapture}
     >
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes

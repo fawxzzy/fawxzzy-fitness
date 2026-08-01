@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SetLoggerCard,
   type SessionLoggerDraftQuickLogPayload,
@@ -31,6 +31,8 @@ import {
   type SessionQuickLogTarget,
 } from "@/lib/session-quick-log";
 import { buildInitialSessionRowClientState, reconcileSessionRowClientState, type SessionRowClientState } from "@/components/session/sessionRowClientState";
+import { shouldAnchorExpandedSessionExercise } from "@/lib/session-expand-anchor";
+import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
@@ -459,6 +461,45 @@ export function SessionExerciseFocus({
       return;
     }
     setPersistedLoggerExerciseId(selectedExerciseId);
+  }, [selectedExerciseId]);
+
+  // Keep the newly-expanded exercise row anchored in the viewport. Mirrors
+  // the Edit Day expand-anchor effect in EditableRoutineDayExerciseList.tsx
+  // (double rAF + scrollDockAwareIntoView against the shared
+  // [data-app-scroll-container] nested scroll container). Gated by
+  // shouldAnchorExpandedSessionExercise so it only fires on a genuine
+  // expand/switch transition of `selectedExerciseId` itself -- never on an
+  // unrelated rerender (a sibling exercise's timer tick, A3's skip-reconcile
+  // effect, etc.), since those never change this prop.
+  const previousSelectedExerciseIdRef = useRef<string | null>(selectedExerciseId);
+  useEffect(() => {
+    const previousSelectedExerciseId = previousSelectedExerciseIdRef.current;
+    previousSelectedExerciseIdRef.current = selectedExerciseId;
+
+    if (!shouldAnchorExpandedSessionExercise(previousSelectedExerciseId, selectedExerciseId)) {
+      return;
+    }
+
+    let frameA = 0;
+    let frameB = 0;
+
+    frameA = window.requestAnimationFrame(() => {
+      frameB = window.requestAnimationFrame(() => {
+        const scrollContainer = document.querySelector("[data-app-scroll-container='true']");
+        const activeRow = document.querySelector(`[data-session-exercise-row-id="${selectedExerciseId}"]`);
+
+        if (!(scrollContainer instanceof HTMLElement) || !(activeRow instanceof HTMLElement)) {
+          return;
+        }
+
+        scrollDockAwareIntoView(scrollContainer, activeRow);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+    };
   }, [selectedExerciseId]);
 
   const patchRowState = useCallback((
@@ -1316,6 +1357,7 @@ export function SessionExerciseFocus({
           return (
             <li
               key={exercise.id}
+              data-session-exercise-row-id={exercise.id}
               className={[
                 "origin-top transition-all duration-75 ease-out motion-reduce:transition-none",
                 isRemoving
