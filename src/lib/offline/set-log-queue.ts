@@ -4,8 +4,16 @@ import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 export const SET_LOG_QUEUE_SCHEMA_VERSION = 4;
 
 const OFFLINE_DB_NAME = "fawxzzy-fitness-offline";
-const OFFLINE_DB_VERSION = 4;
+// Bumped 4 -> 5 to additively create the "skip-toggle-queue" store (see
+// src/lib/offline/skip-toggle-queue.ts) for the skip/unskip offline-durability
+// feature. This does not change the shape, indexes, or semantics of the
+// existing "today-cache" / "set-log-queue" stores -- onupgradeneeded below
+// only gains one more guarded `createObjectStore` call, following the same
+// "check objectStoreNames before creating" pattern already used for the two
+// existing stores.
+const OFFLINE_DB_VERSION = 5;
 const SET_LOG_QUEUE_STORE = "set-log-queue";
+export const SKIP_TOGGLE_QUEUE_STORE = "skip-toggle-queue";
 
 function isSupportedQueueSchemaVersion(schemaVersion: number) {
   return schemaVersion >= 3 && schemaVersion <= SET_LOG_QUEUE_SCHEMA_VERSION;
@@ -73,7 +81,7 @@ function canUseIndexedDb() {
   return typeof window !== "undefined" && typeof window.indexedDB !== "undefined";
 }
 
-function openOfflineDb(): Promise<IDBDatabase> {
+export function openOfflineDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
 
@@ -98,6 +106,18 @@ function openOfflineDb(): Promise<IDBDatabase> {
       }
       if (store && !store.indexNames.contains("byCreatedAt")) {
         store.createIndex("byCreatedAt", "createdAt", { unique: false });
+      }
+
+      // Skip-toggle offline queue (see skip-toggle-queue.ts): a distinct store
+      // because its dedupe/upsert semantics are the opposite of set-log-queue's
+      // (at most one row per exercise, upserted in place by `key`, vs. an
+      // append-many-per-exercise log deduped by a per-action clientLogId).
+      const skipToggleStore = db.objectStoreNames.contains(SKIP_TOGGLE_QUEUE_STORE)
+        ? request.transaction?.objectStore(SKIP_TOGGLE_QUEUE_STORE)
+        : db.createObjectStore(SKIP_TOGGLE_QUEUE_STORE, { keyPath: "key" });
+
+      if (skipToggleStore && !skipToggleStore.indexNames.contains("byUserId")) {
+        skipToggleStore.createIndex("byUserId", "userId", { unique: false });
       }
     };
 

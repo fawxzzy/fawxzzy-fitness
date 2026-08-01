@@ -30,8 +30,13 @@ type LiveSessionMutationSuccess = {
   sessionExercise: LiveSessionMutationExercise | null;
 };
 
-const LIVE_SESSION_MUTATION_ERROR = "Can only edit the current active session.";
-const LIVE_SESSION_EXERCISE_ERROR = "Exercise does not belong to the current active session.";
+// Exported (additive-only change) so client-side offline-replay callers (see
+// src/lib/offline/skip-toggle-reconciliation.ts) can classify a resolved
+// rejection from this exact guard as terminal (do not retry) by importing
+// these constants instead of duplicating the literal strings. The guard's
+// own behavior below is unchanged.
+export const LIVE_SESSION_MUTATION_ERROR = "Can only edit the current active session.";
+export const LIVE_SESSION_EXERCISE_ERROR = "Exercise does not belong to the current active session.";
 
 export async function guardLiveSessionMutation(
   repository: LiveSessionMutationRepository,
