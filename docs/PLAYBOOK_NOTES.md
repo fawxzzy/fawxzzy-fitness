@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-01 - Host the auth and design-system contracts in CI
+- Type: Guardrail
+- WHAT changed: Added `.github/workflows/auth-design-system-contracts.yml`, a dedicated workflow triggered on `pull_request` and `push` to `main` with precise path filters, that runs `npm ci` then `npm run test:auth-ui-contracts` and `npm run test:design-system-contract` directly. Added `tests/auth-design-system-contracts-workflow.test.mjs`, a source-text structural policy test (following the `rank.test.ts` / `planning-ranking-contract.yml` convention) proving the workflow exists, both triggers watch every required dependency path with no overly broad substitute, both contract commands are invoked, `npm ci` is used, and the workflow stays single-job, read-only, and free of `workflow_dispatch`/secrets/deploy steps.
+- WHY it changed: The 2026-08-01 auth-UI-contract repair and design-system-contract repair (see the two entries below) made `test:auth-ui-contracts` and `test:design-system-contract` truthful and green, but neither command was invoked by any GitHub Actions workflow. A locally-honest contract with no hosted enforcement can silently regress again with nothing catching it.
+- Rule: A contract command is not durably trustworthy until a hosted workflow runs it on every pull request and every push to `main`, and until a structural test proves that workflow cannot be silently narrowed (dropped command, dropped path filter) without failing its own policy test.
+- Failure Mode: Treating a green local script as sufficient proof, when no CI job actually invokes it, leaves the repository able to drift back to the exact silent-skip or orphaned-token failures these two contracts exist to catch.
+- Decision: New workflow file plus one new policy test only; no changes to `.github/workflows/ci.yml` (owned by open PR #98) or `package.json` (owned by open PR #101).
+- Evidence: `.github/workflows/auth-design-system-contracts.yml`, `tests/auth-design-system-contracts-workflow.test.mjs`
+- Status: Applied
+
 ## 2026-08-01 - Remove orphaned routine editor design tokens
 - Type: Cleanup
 - WHAT changed: Removed three design-token constants from `src/components/ui/app/tokens.ts` -- `routineEditorLinkAction`, `routineEditorHelperText`, and `routineEditorDayList` -- along with their backing className definitions in `src/components/ui/app/designSystem.ts` (`routineEditorLinkActionClassName`, `routineEditorHelperTextClassName`, `routineEditorDayListClassName`).
