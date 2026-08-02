@@ -1,0 +1,74 @@
+name: Auth and design-system contract proof
+
+on:
+  pull_request:
+    paths:
+      - "src/app/login/**"
+      - "src/app/forgot-password/**"
+      - "src/app/reset-password/**"
+      - "src/lib/local-dev-auto-entry.test.ts"
+      - "src/lib/local-dev-auto-login-credentials.ts"
+      - "src/lib/remembered-login.ts"
+      - "src/components/auth/authCopy.ts"
+      - "tests/design-system-contract.test.mjs"
+      - "tests/auth-design-system-contracts-workflow.test.mjs"
+      - "truth-pack/fitness/design-system/**"
+      - "truth-pack/fitness/README.md"
+      - "docs/design-system/FITNESS-DESIGN-SYSTEM.md"
+      - "src/components/ui/app/**"
+      - "src/components/ui/workout-entry/**"
+      - "src/components/ui/measurements/**"
+      - "src/components/SessionTimers.tsx"
+      - "src/components/routines/day-detail/DayDetailStateCard.tsx"
+      - "docs/PLAYBOOK_NOTES.md"
+      - ".github/workflows/auth-design-system-contracts.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/app/login/**"
+      - "src/app/forgot-password/**"
+      - "src/app/reset-password/**"
+      - "src/lib/local-dev-auto-entry.test.ts"
+      - "src/lib/local-dev-auto-login-credentials.ts"
+      - "src/lib/remembered-login.ts"
+      - "src/components/auth/authCopy.ts"
+      - "tests/design-system-contract.test.mjs"
+      - "tests/auth-design-system-contracts-workflow.test.mjs"
+      - "truth-pack/fitness/design-system/**"
+      - "truth-pack/fitness/README.md"
+      - "docs/design-system/FITNESS-DESIGN-SYSTEM.md"
+      - "src/components/ui/app/**"
+      - "src/components/ui/workout-entry/**"
+      - "src/components/ui/measurements/**"
+      - "src/components/SessionTimers.tsx"
+      - "src/components/routines/day-detail/DayDetailStateCard.tsx"
+      - "docs/PLAYBOOK_NOTES.md"
+      - ".github/workflows/auth-design-system-contracts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  auth-design-system-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify auth UI contracts
+        run: npm run test:auth-ui-contracts
+
+      - name: Verify design-system contract
+        run: npm run test:design-system-contract
+
+      - name: Verify this workflow's own policy
+        run: node --import ./scripts/register-test-aliases.mjs --test tests/auth-design-system-contracts-workflow.test.mjs
