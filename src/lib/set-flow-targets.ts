@@ -76,7 +76,7 @@ function resolveRepValue(args: {
   highReps: number | null;
   setIndex: number;
   setCount: number;
-  direction: "down" | "up";
+  direction: SetFlowDirection;
   step: number | null;
 }) {
   const { baseReps, highReps, setIndex, setCount, direction, step } = args;
@@ -87,7 +87,7 @@ function resolveRepValue(args: {
   const low = isPositiveInteger(baseReps) ? baseReps : highReps as number;
   const high = isPositiveInteger(highReps) ? highReps : low;
   const boundedLow = Math.min(low, high);
-  if (setCount <= 1 || boundedLow === high) {
+  if (direction === "straight" || setCount <= 1 || boundedLow === high) {
     return boundedLow;
   }
 
@@ -141,7 +141,7 @@ function interpolateReps(args: {
   setCount: number;
   minReps: number | null;
   maxReps: number | null;
-  direction: "down" | "up";
+  direction: SetFlowDirection;
 }) {
   const { setIndex, setCount, minReps, maxReps, direction } = args;
   if (!isPositiveInteger(minReps) && !isPositiveInteger(maxReps)) {
@@ -150,6 +150,10 @@ function interpolateReps(args: {
 
   const low = isPositiveInteger(minReps) ? minReps : maxReps as number;
   const high = isPositiveInteger(maxReps) ? maxReps : low;
+
+  if (direction === "straight") {
+    return { repsMin: low, repsMax: low };
+  }
 
   if (setCount <= 1 || low === high) {
     return { repsMin: low, repsMax: high };
@@ -282,7 +286,15 @@ export function generateSetFlowTargets(args: {
   const step = resolveLoadStep(args.progressionStepPolicy, args.setFlowSteps);
   const repStep = resolveRepStep(args.setFlowSteps);
 
-  if (directions.weight === "up" || directions.reps === "down") {
+  // Weight/load is the primary training-domain signal for role selection: an
+  // explicit weight direction always wins. Reps only decides the role when
+  // weight itself is "straight" (a reps-only progression), so a combination
+  // like weight="down"/reps="down" is correctly a backoff (load dropping),
+  // not a ramp -- matching what the load is actually doing, not just reps.
+  const isRampRole = directions.weight === "up" || (directions.weight === "straight" && directions.reps === "down");
+  const isBackoffRole = directions.weight === "down" || (directions.weight === "straight" && directions.reps === "up");
+
+  if (isRampRole) {
     return Array.from({ length: setCount }, (_, index) => {
       const setIndex = index + 1;
       const repsValue = resolveRepValue({
@@ -290,12 +302,12 @@ export function generateSetFlowTargets(args: {
         highReps,
         setIndex,
         setCount,
-        direction: directions.reps === "down" ? "down" : "up",
+        direction: directions.reps,
         step: repStep,
       });
       const reps = repsValue
         ? { repsMin: repsValue, repsMax: repsValue }
-        : interpolateReps({ setIndex, setCount, minReps, maxReps, direction: directions.reps === "down" ? "down" : "up" });
+        : interpolateReps({ setIndex, setCount, minReps, maxReps, direction: directions.reps });
       return buildTarget({
         setIndex,
         role: "ramp",
@@ -308,7 +320,7 @@ export function generateSetFlowTargets(args: {
     });
   }
 
-  if (directions.weight === "down" || directions.reps === "up") {
+  if (isBackoffRole) {
     return Array.from({ length: setCount }, (_, index) => {
       const setIndex = index + 1;
       const repsValue = resolveRepValue({
@@ -316,12 +328,12 @@ export function generateSetFlowTargets(args: {
         highReps,
         setIndex,
         setCount,
-        direction: directions.reps === "up" ? "up" : "down",
+        direction: directions.reps,
         step: repStep,
       });
       const reps = repsValue
         ? { repsMin: repsValue, repsMax: repsValue }
-        : interpolateReps({ setIndex, setCount, minReps, maxReps, direction: directions.reps === "up" ? "up" : "down" });
+        : interpolateReps({ setIndex, setCount, minReps, maxReps, direction: directions.reps });
       return buildTarget({
         setIndex,
         role: setIndex === 1 ? "top_set" : "backoff",
