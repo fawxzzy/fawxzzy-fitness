@@ -2,6 +2,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-03 - Add regression coverage for exercise legacy-alias resolution
+- Type: Coverage
+- WHAT changed: Added `src/lib/exercise-id-aliases.test.ts` (12 tests) covering `resolveCanonicalExerciseId` and `isKnownLegacyExerciseId`: known legacy alias resolution (both current alias entries), non-aliased and unknown ids passing through unchanged, whitespace trimming on both functions, and an explicit guard that an alias's canonical target is not itself misclassified as "known" merely because it's an alias value. Wired a new `test:exercise-id-aliases` npm script following the repo's existing narrow-named-script convention.
+- WHY it changed: `resolveCanonicalExerciseId`/`isKnownLegacyExerciseId` had zero test coverage despite being imported by 7 production files, including a public API route (`src/app/api/exercise-info/[exerciseId]/route.ts`), the legacy-data migration bridge (`src/lib/migration/fitness-legacy-bridge.ts`), and the runnable-day validity gate (`src/lib/runnable-day.ts`). A 2-entry hardcoded alias table with real behavioral consequences (a wrong resolution silently breaks a user-facing exercise lookup or blocks a valid session day) was going untested.
+- Rule: A small hardcoded identity-remapping table consumed by a public API route and a data-migration path should never ship with zero test coverage, regardless of how small the module is.
+- Failure Mode: An edit to the alias table (adding/removing/retargeting an entry) or a refactor of the trim/lookup logic could silently break exercise-info lookups or migration id resolution with nothing catching it before a user noticed.
+- Decision: Test-only addition; no production behavior changed. No changes to any other planner/monetization/auth surface.
+- Follow-up observation (not fixed here, flagged for separate review): the alias table currently maps `de1f9f53-120f-4f4e-88b4-bd30f6ce1240` (Pull-Up, a real live `EXERCISE_OPTIONS` entry) to `2466d550-004f-4b94-af04-26ae24f990b3`, a non-catalog id. The new tests lock in this actual current behavior rather than silently changing it, since remapping a live catalog id looks like it may be an unintended latent bug -- resolving that is a product/data decision, not a test-coverage change.
+- Evidence: `src/lib/exercise-id-aliases.test.ts`, `package.json` (`test:exercise-id-aliases`)
+- Status: Applied
+
 ## 2026-08-01 - Host the auth and design-system contracts in CI
 - Type: Guardrail
 - WHAT changed: Added `.github/workflows/auth-design-system-contracts.yml`, a dedicated workflow triggered on `pull_request` and `push` to `main` with precise path filters, that runs `npm ci` then `npm run test:auth-ui-contracts` and `npm run test:design-system-contract` directly. Added `tests/auth-design-system-contracts-workflow.test.mjs`, a source-text structural policy test (following the `rank.test.ts` / `planning-ranking-contract.yml` convention) proving the workflow exists, both triggers watch every required dependency path with no overly broad substitute, both contract commands are invoked, `npm ci` is used, and the workflow stays single-job, read-only, and free of `workflow_dispatch`/secrets/deploy steps.

@@ -176,7 +176,8 @@
     "test:session-set-count": "node --test src/components/session/setCountSync.test.ts",
     "test:rest-day-cards": "node --import ./scripts/register-test-aliases.mjs src/app/today/todayRestDayCard.test.ts && node --import ./scripts/register-test-aliases.mjs src/app/today/TodayRestDayWiring.contract.test.ts && node --import ./scripts/register-test-aliases.mjs src/components/day-list/RestDayCard.contract.test.ts",
     "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/history-preview.test.ts src/lib/history-sessions-page-loader.test.ts src/lib/session-copilot-feedback.test.ts src/lib/session-feedback-ui.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts src/lib/workout-plan-source-list.test.ts src/lib/workout-plan-template-name.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts",
-    "test:build-contracts": "node --test tests/build-contracts.test.mjs"
+    "test:build-contracts": "node --test tests/build-contracts.test.mjs",
+    "test:exercise-id-aliases": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-id-aliases.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
