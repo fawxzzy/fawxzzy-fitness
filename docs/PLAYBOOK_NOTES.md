@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-03 - Resolve alias-integrity follow-up: mapping is an intentional Supabase/catalog id bridge
+- Type: Investigation
+- WHAT changed: Added a WHY-only comment to `src/lib/exercise-id-aliases.ts` explaining the alias table's target id. No behavior change.
+- WHY it changed: The 2026-08-03 coverage entry below flagged that the alias table maps `de1f9f53-120f-4f4e-88b4-bd30f6ce1240` (the current `EXERCISE_OPTIONS` Pull-Up id) to `2466d550-004f-4b94-af04-26ae24f990b3`, which is absent from `EXERCISE_OPTIONS` and looked like a possible bug. Git archaeology resolves this: commit `923c01bc` renumbered Pull-Up's `EXERCISE_OPTIONS` id from `66666666-6666-6666-6666-666666666666` to `de1f9f53-...`; one day later commit `76c50ea8` ("Fix Exercise Info to use canonical exercise ids for stats lookups", see `docs/CHANGELOG.md`) added `de1f9f53-...` itself as a second alias source, both pointing at `2466d550-...`. That id has never appeared in `EXERCISE_OPTIONS`, any Supabase migration, or `seed.sql` in this repo's full history -- it is the Supabase `exercises.id` (a database identity that stats/routine rows reference) and is deliberately decoupled from the human-maintained `EXERCISE_OPTIONS` catalog id, which the developer has renumbered at least twice. Retargeting the alias to `de1f9f53-...` (its own key) would strand any routine-day/stats row still keyed on the DB's actual canonical id.
+- Rule: An `EXERCISE_OPTIONS` id and a Supabase `exercises.id` are different identity spaces that can diverge after a catalog renumbering; do not assume an alias target is wrong just because it is absent from `EXERCISE_OPTIONS`.
+- Failure Mode: "Fixing" this mapping to make both id spaces agree, without confirming the live Supabase row id, would silently break stats/history lookups for existing users -- a regression worse than the confusing-looking mapping it would "fix".
+- Decision: `MIGRATION_COMPATIBILITY_REQUIRED` -- no production mapping change. Source-only investigation cannot confirm the live Supabase id (out of scope per this task's authority); the comment and this note capture the reasoning for future readers instead.
+- Evidence: `src/lib/exercise-id-aliases.ts` (comment), commits `923c01bc`, `76c50ea8`, `docs/CHANGELOG.md` "Fix Exercise Info to use canonical exercise ids for stats lookups" entry.
+- Status: Applied
+
 ## 2026-08-03 - Add regression coverage for exercise legacy-alias resolution
 - Type: Coverage
 - WHAT changed: Added `src/lib/exercise-id-aliases.test.ts` (12 tests) covering `resolveCanonicalExerciseId` and `isKnownLegacyExerciseId`: known legacy alias resolution (both current alias entries), non-aliased and unknown ids passing through unchanged, whitespace trimming on both functions, and an explicit guard that an alias's canonical target is not itself misclassified as "known" merely because it's an alias value. Wired a new `test:exercise-id-aliases` npm script following the repo's existing narrow-named-script convention.
