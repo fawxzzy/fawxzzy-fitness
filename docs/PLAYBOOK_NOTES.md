@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-03 - Add regression coverage for ordered-position insert retry logic
+- Type: Coverage
+- WHAT changed: Added `src/lib/ordered-position-insert.test.ts` (10 tests, using a hand-rolled fake Supabase query builder following the existing `account-workout-export.test.ts` mocking convention -- no live database, no mocking framework) covering `insertRoutineDayExerciseAtEnd`/`insertSessionExerciseAtEnd` (thin wrappers around the shared `insertOrderedRowAtEnd`): position computed as 0 for an empty scope, position computed as one past the current max, the position read is correctly scoped to both the scope column and `user_id`, a unique-violation (`23505`) triggers a retry with a freshly re-read position (not a stale cached one), any other error code fails fast without retrying, the retry loop stops at exactly its documented 5-attempt ceiling, a position-read error short-circuits before any insert is attempted, the no-`select` fire-and-forget insert path works, and caller-supplied values are merged with the computed position rather than overwritten. Wired a new `test:ordered-position-insert` npm script following the repo's existing narrow-named-script convention.
+- WHY it changed: `ordered-position-insert.ts` had zero test coverage (direct or indirect) despite implementing a bounded-retry, race-condition-aware append operation used by three real server actions (`src/app/actions/history.ts`, `src/app/routines/[id]/edit/day/actions.ts`, `src/app/session/[id]/actions.ts`) that insert routine-day and session exercises. A silent regression here (wrong retry bound, retrying on the wrong error code, not re-reading position on retry, or clobbering caller values) would surface as duplicate/skipped exercise positions or dropped exercises in real user routines and sessions.
+- Rule: A retry-on-conflict loop with a hardcoded attempt ceiling and an error-code branch should never ship with zero test coverage, since its failure modes (wrong bound, wrong branch, stale re-read) are exactly the kind of thing that looks correct on the happy path and breaks silently under concurrent writes.
+- Failure Mode: A future edit to the unique-violation check, the retry ceiling, or the position-read query could silently start duplicating exercise positions or dropping exercises under concurrent edits, with nothing catching it before a user noticed corrupted routine/session ordering.
+- Decision: Test-only addition; no production behavior changed. No changes to any other planner/monetization/auth surface. Confirmed no path collision with open PR #126.
+- Evidence: `src/lib/ordered-position-insert.test.ts`, `package.json` (`test:ordered-position-insert`)
+- Status: Applied
+
 ## 2026-08-03 - Resolve alias-integrity follow-up: mapping is an intentional Supabase/catalog id bridge
 - Type: Investigation
 - WHAT changed: Added a WHY-only comment to `src/lib/exercise-id-aliases.ts` explaining the alias table's target id. No behavior change.
