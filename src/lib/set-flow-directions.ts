@@ -27,6 +27,11 @@ export function isSetFlowDirection(value: unknown): value is SetFlowDirection {
 export function getSetFlowDirectionConfigForLegacySetFlow(setFlow?: SetFlowId | string | null): SetFlowDirectionConfig {
   switch (setFlow) {
   case "ascending_ramp":
+    // reps intentionally moves opposite time/distance/weight: a ramp set adds
+    // load (or duration/distance) each set while shedding reps, matching the
+    // classic ascending-pyramid scheme. This is not a bug -- do not "fix" it
+    // to match the other three fields. See inferLegacySetFlowFromDirections
+    // for the exact inverse of this mapping.
     return {
       time: "up",
       distance: "up",
@@ -34,6 +39,8 @@ export function getSetFlowDirectionConfigForLegacySetFlow(setFlow?: SetFlowId | 
       weight: "up",
     };
   case "descending_backoff":
+    // Mirror image of ascending_ramp: load/duration/distance drop each set
+    // while reps climb, matching a descending-backoff scheme.
     return {
       time: "down",
       distance: "down",
