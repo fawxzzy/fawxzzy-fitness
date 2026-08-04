@@ -51,6 +51,46 @@ test("normalizePromotionDirectionMap returns undefined for non-object input", ()
   assert.equal(normalizePromotionDirectionMap(42), undefined);
 });
 
+test("normalizePromotionDirectionMap rejects array input instead of treating it as a record", () => {
+  // Arrays are typeof "object", so a naive `typeof input === "object"` guard
+  // would accept them. Harmless here in practice (arrays don't have
+  // time/distance/reps/weight/calories as own string-keyed properties), but
+  // the contract should reject arrays explicitly rather than rely on that
+  // incidental fact.
+  assert.equal(normalizePromotionDirectionMap(["up", "down", "straight"]), undefined);
+  assert.equal(normalizePromotionDirectionMap([]), undefined);
+  assert.equal(normalizePromotionDirectionMap([["up"], ["down"]]), undefined);
+});
+
+test("normalizePromotionGroupedDirectionMap rejects array input, which would otherwise produce numeric-keyed garbage", () => {
+  // This is the real, reachable defect: normalizePromotionGroupedDirectionMap
+  // iterates Object.entries(input), and Object.entries on an array yields
+  // numeric-string keys ("0", "1", ...) that pass the non-blank-key check --
+  // so an array of valid direction strings used to silently produce a
+  // {"0": "up", "1": "down", ...} grouped map instead of being rejected.
+  // This is reachable from real client-controlled input: progression-playbooks.ts's
+  // resolveConfiguredPromotionGroupedDirectionMap calls this function directly
+  // on JSON.parse(formData.get("progressionPromotionGroupedDirectionMapJson")),
+  // and a client can submit a JSON array through that field.
+  assert.equal(normalizePromotionGroupedDirectionMap(["up", "down", "straight"]), undefined);
+  assert.equal(normalizePromotionGroupedDirectionMap([]), undefined);
+  assert.equal(normalizePromotionGroupedDirectionMap([["up"], ["down"]]), undefined);
+});
+
+test("normalizePromotionDirectionMap and normalizePromotionGroupedDirectionMap reject non-plain-object inputs", () => {
+  for (const value of [new Date(), 42, "up", true, () => {}]) {
+    assert.equal(normalizePromotionDirectionMap(value), undefined, `normalizePromotionDirectionMap should reject ${String(value)}`);
+    assert.equal(normalizePromotionGroupedDirectionMap(value), undefined, `normalizePromotionGroupedDirectionMap should reject ${String(value)}`);
+  }
+});
+
+test("normalizePromotionGroupedDirectionMap still accepts a genuinely plain object, confirming the fix targets arrays specifically", () => {
+  // The fix rejects arrays via Array.isArray, not every non-array object --
+  // a genuinely plain record must still work exactly as before.
+  const plainRecord: Record<string, unknown> = { "weight+reps": "up", "time+distance": "down" };
+  assert.deepEqual(normalizePromotionGroupedDirectionMap(plainRecord), { "weight+reps": "up", "time+distance": "down" });
+});
+
 test("normalizePromotionDirectionMap returns undefined when no key has a valid value", () => {
   assert.equal(normalizePromotionDirectionMap({}), undefined);
   assert.equal(normalizePromotionDirectionMap({ time: "sideways", unknownKey: "up" }), undefined);
