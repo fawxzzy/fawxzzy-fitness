@@ -47,6 +47,23 @@ function normalizePositive(value: number | null | undefined): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+// A negative weight is never a legitimate logged value -- the live set-logging
+// action (src/app/session/[id]/actions.ts) explicitly rejects `weight < 0` at
+// the point of entry. The only way a negative value reaches here is corrupted
+// or malformed data from the legacy-import bridge
+// (src/lib/migration/fitness-legacy-bridge.ts), which has no sign validation.
+// Treating it the same as a genuine bodyweight set (weight null/0) would let
+// corrupted data manufacture a real, user-visible "Rep PR" badge from a set
+// that may actually have been a weighted set with a garbled weight field --
+// exclude it from PR evaluation entirely instead of silently recategorizing
+// it. Non-finite values (NaN/Infinity) are left bucketed with null/0/bodyweight,
+// since every current caller already normalizes non-finite input to null
+// before it reaches this module, and unlike a negative sign, a non-finite
+// value carries no signal that a real (if corrupted) weight was ever recorded.
+function isInvalidWeight(value: number | null | undefined): boolean {
+  return typeof value === "number" && Number.isFinite(value) && value < 0;
+}
+
 export function evaluatePrSummaries(sets: PrEvaluationSet[]): {
   sessionCountsById: Map<string, PrCountByCategory>;
   exerciseSummaryById: Map<string, ExercisePrSummary>;
@@ -60,6 +77,10 @@ export function evaluatePrSummaries(sets: PrEvaluationSet[]): {
   const orderedSets = [...sets].sort(compareChronological);
 
   for (const set of orderedSets) {
+    if (isInvalidWeight(set.weight)) {
+      continue;
+    }
+
     const weight = normalizePositive(set.weight);
     const reps = normalizePositive(set.reps);
 

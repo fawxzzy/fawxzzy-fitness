@@ -87,23 +87,80 @@ test("evaluatePrSummaries treats a weighted PR and a bodyweight-reps PR on the s
   assert.equal(summary?.bestBodyweightReps, 8);
 });
 
-test("evaluatePrSummaries treats null, undefined, non-finite, and non-positive weight/reps as zero rather than crashing or counting", () => {
+test("evaluatePrSummaries treats null, undefined, non-finite, and non-positive reps as zero rather than crashing or counting", () => {
   const sets = [
     set({ exerciseId: "ex4", sessionId: "s1", performedAt: "2026-01-01T10:00:00Z", setIndex: 0, weight: null, reps: null }),
     set({ exerciseId: "ex4", sessionId: "s1", performedAt: "2026-01-01T10:01:00Z", setIndex: 1, weight: undefined as unknown as null, reps: Number.NaN }),
-    set({ exerciseId: "ex4", sessionId: "s1", performedAt: "2026-01-01T10:02:00Z", setIndex: 2, weight: -10, reps: -5 }),
+    set({ exerciseId: "ex4", sessionId: "s1", performedAt: "2026-01-01T10:02:00Z", setIndex: 2, weight: 0, reps: -5 }),
     set({ exerciseId: "ex4", sessionId: "s1", performedAt: "2026-01-01T10:03:00Z", setIndex: 3, weight: null, reps: 5 }),
   ];
 
   const { exerciseSummaryById } = evaluatePrSummaries(sets);
   const summary = exerciseSummaryById.get("ex4");
 
-  // A negative or missing weight is normalized to 0, so these sets are all
-  // evaluated in the bodyweight-reps lane; only the last (reps: 5, first
-  // positive value seen) registers as a PR.
+  // Null/undefined/non-finite weight and negative reps are all genuinely
+  // no-weight/no-improvement signals, so these sets are all evaluated in the
+  // bodyweight-reps lane; only the last (reps: 5, first positive value seen)
+  // registers as a PR.
   assert.deepEqual(summary?.counts, { reps: 1, weight: 0, total: 1 });
   assert.equal(summary?.bestBodyweightReps, 5);
   assert.equal(summary?.bestWeight, 0);
+});
+
+test("evaluatePrSummaries excludes a negative-weight set from PR evaluation entirely, instead of crediting it as a bodyweight PR", () => {
+  // A negative weight is never a value the live set-logging action would
+  // accept (src/app/session/[id]/actions.ts explicitly rejects weight < 0);
+  // it can only reach here via corrupted/malformed legacy-import data
+  // (src/lib/migration/fitness-legacy-bridge.ts has no sign validation on
+  // import). Reproduced empirically against the pre-fix implementation: this
+  // exact input used to produce counts.reps === 1 and bestBodyweightReps ===
+  // 20 -- a real, user-visible "1 Rep PR" badge manufactured from a set that
+  // may actually have been a weighted set with a garbled weight field.
+  const sets = [
+    set({ exerciseId: "ex8", sessionId: "s1", performedAt: "2026-01-01T10:00:00Z", setIndex: 0, weight: -135, reps: 20 }),
+  ];
+
+  const { exerciseSummaryById, sessionCountsById, sessionPrExerciseIdsById } = evaluatePrSummaries(sets);
+
+  assert.equal(exerciseSummaryById.get("ex8"), undefined);
+  assert.equal(sessionCountsById.get("s1"), undefined);
+  assert.equal(sessionPrExerciseIdsById.get("s1"), undefined);
+});
+
+test("evaluatePrSummaries skips a negative-weight set without disturbing PR evaluation for surrounding valid sets", () => {
+  const sets = [
+    set({ exerciseId: "ex9", sessionId: "s1", performedAt: "2026-01-01T10:00:00Z", setIndex: 0, weight: 100, reps: 5 }),
+    set({ exerciseId: "ex9", sessionId: "s1", performedAt: "2026-01-01T10:01:00Z", setIndex: 1, weight: -50, reps: 30 }),
+    set({ exerciseId: "ex9", sessionId: "s1", performedAt: "2026-01-01T10:02:00Z", setIndex: 2, weight: 110, reps: 5 }),
+  ];
+
+  const { exerciseSummaryById, sessionCountsById } = evaluatePrSummaries(sets);
+  const summary = exerciseSummaryById.get("ex9");
+
+  // Only the two valid weighted sets count; the corrupted middle set
+  // contributes neither a weight PR nor a spurious bodyweight PR, and does
+  // not reset or otherwise affect the running best-weight comparison.
+  assert.deepEqual(summary?.counts, { reps: 0, weight: 2, total: 2 });
+  assert.equal(summary?.bestWeight, 110);
+  assert.equal(summary?.bestBodyweightReps, 0);
+  assert.deepEqual(sessionCountsById.get("s1"), { reps: 0, weight: 2, total: 2 });
+});
+
+test("evaluatePrSummaries still credits a weight PR when reps is corrupted (negative) but weight is valid", () => {
+  // Unlike weight, a corrupted reps value never independently produces a
+  // spurious badge: reps is not read at all in the weight-PR lane, and in
+  // the bodyweight lane a negative reps value normalizes to 0, which can
+  // never exceed a non-negative prior best. So only weight needs the
+  // exclude-entirely treatment; reps normalization is left unchanged.
+  const sets = [
+    set({ exerciseId: "ex10", sessionId: "s1", performedAt: "2026-01-01T10:00:00Z", setIndex: 0, weight: 135, reps: -8 }),
+  ];
+
+  const { exerciseSummaryById } = evaluatePrSummaries(sets);
+  const summary = exerciseSummaryById.get("ex10");
+
+  assert.deepEqual(summary?.counts, { reps: 0, weight: 1, total: 1 });
+  assert.equal(summary?.bestWeight, 135);
 });
 
 test("evaluatePrSummaries sorts out-of-order input chronologically by performedAt before evaluating PRs", () => {
