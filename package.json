@@ -180,7 +180,8 @@
     "test:exercise-id-aliases": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-id-aliases.test.ts",
     "test:ordered-position-insert": "node --import ./scripts/register-test-aliases.mjs --test src/lib/ordered-position-insert.test.ts",
     "test:set-flow-directions": "node --import ./scripts/register-test-aliases.mjs --test src/lib/set-flow-directions.test.ts",
-    "test:set-flow-targets": "node --import ./scripts/register-test-aliases.mjs --test src/lib/set-flow-targets.test.ts"
+    "test:set-flow-targets": "node --import ./scripts/register-test-aliases.mjs --test src/lib/set-flow-targets.test.ts",
+    "test:promotion-directions": "node --import ./scripts/register-test-aliases.mjs --test src/lib/promotion-directions.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
