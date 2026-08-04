@@ -20,6 +20,21 @@ function normalizeDirection(input: unknown): SetFlowDirection | null {
     : null;
 }
 
+// `typeof value === "object"` alone accepts arrays, and Object.entries(array)
+// yields numeric-string keys ("0", "1", ...) that pass a non-blank-key check
+// just like a real measurement-group id would -- so an array reaching
+// normalizePromotionGroupedDirectionMap (e.g. a client submitting a JSON
+// array instead of an object through the promotionGroupedDirectionMap form
+// field) would silently produce a numeric-keyed grouped-direction map
+// instead of being rejected. Both `unknown`-typed entry points below are
+// untrusted-input boundaries (see progression-playbooks.ts's
+// resolveConfiguredPromotionDirectionMap/resolveConfiguredPromotionGroupedDirectionMap,
+// which JSON.parse raw form-submitted text directly into these functions),
+// so both require a real plain-record check, not just typeof.
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export function buildDefaultPromotionDirectionFieldMap(): PromotionDirectionFieldMap {
   return {
     time: "up",
@@ -30,13 +45,13 @@ export function buildDefaultPromotionDirectionFieldMap(): PromotionDirectionFiel
 }
 
 export function normalizePromotionDirectionMap(input: unknown): PromotionDirectionMap | undefined {
-  if (!input || typeof input !== "object") {
+  if (!isPlainRecord(input)) {
     return undefined;
   }
 
   const nextMap: PromotionDirectionMap = {};
   for (const key of PROMOTION_DIRECTION_KEYS) {
-    const parsed = normalizeDirection((input as Record<string, unknown>)[key]);
+    const parsed = normalizeDirection(input[key]);
     if (parsed) {
       nextMap[key] = parsed;
     }
@@ -61,12 +76,12 @@ export function buildPromotionDirectionFieldMap(
 }
 
 export function normalizePromotionGroupedDirectionMap(input: unknown): PromotionGroupedDirectionMap | undefined {
-  if (!input || typeof input !== "object") {
+  if (!isPlainRecord(input)) {
     return undefined;
   }
 
   const nextMap: PromotionGroupedDirectionMap = {};
-  for (const [key, rawValue] of Object.entries(input as Record<string, unknown>)) {
+  for (const [key, rawValue] of Object.entries(input)) {
     const parsed = normalizeDirection(rawValue);
     if (parsed && key.trim().length > 0) {
       nextMap[key] = parsed;
