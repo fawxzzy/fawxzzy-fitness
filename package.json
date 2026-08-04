@@ -182,7 +182,8 @@
     "test:set-flow-directions": "node --import ./scripts/register-test-aliases.mjs --test src/lib/set-flow-directions.test.ts",
     "test:set-flow-targets": "node --import ./scripts/register-test-aliases.mjs --test src/lib/set-flow-targets.test.ts",
     "test:promotion-directions": "node --import ./scripts/register-test-aliases.mjs --test src/lib/promotion-directions.test.ts",
-    "test:session-start-integrity": "node --import ./scripts/register-test-aliases.mjs --test src/lib/session-start-integrity.test.ts"
+    "test:session-start-integrity": "node --import ./scripts/register-test-aliases.mjs --test src/lib/session-start-integrity.test.ts",
+    "test:session-start-atomicity": "node --import ./scripts/register-test-aliases.mjs --test src/lib/session-start-atomicity.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
