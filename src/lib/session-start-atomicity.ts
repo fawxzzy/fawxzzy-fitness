@@ -1,18 +1,15 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // Kept free of @/lib/auth (or other Next.js request-scoped) imports so this
-// adapter is directly unit-testable outside the Next.js runtime, matching
-// session-start-integrity.ts's constraint.
+// adapter is directly unit-testable outside the Next.js runtime.
 //
-// This module is source-implemented and locally tested, but is NOT yet called
-// from src/lib/start-session.ts. Wiring it in depends on
-// supabase/migrations/20260804000000_session_start_atomicity_v1.sql having
-// actually been applied to the live database first -- switching the call
-// site before that would break session creation for every user in
-// production. See docs/PLAYBOOK_NOTES.md (2026-08-04 entry) for the two-step
-// activation plan: (1) apply this migration to the live database (separate
-// provider authorization), (2) only then, in a separate PR, switch the call
-// site.
+// Called from src/lib/start-session.ts via src/lib/session-start-activation.ts.
+// This PR's own source is safe to merge at any time -- it does not depend on
+// the migration having been applied yet -- but the resulting *code path*
+// only works once supabase/migrations/20260804000000_session_start_atomicity_v1.sql
+// has actually been applied to the live database. See docs/PLAYBOOK_NOTES.md
+// (2026-08-04 entries) and this wave's provider packet for the exact
+// apply-then-merge sequencing this activation PR must be gated on.
 
 export type SessionStartExerciseIntentV1 = {
   exerciseId: string;

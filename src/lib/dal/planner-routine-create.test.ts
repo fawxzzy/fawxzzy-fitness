@@ -602,6 +602,14 @@ test("planner rep goals use the active session-start columns", () => {
     new URL("../start-session.ts", import.meta.url),
     "utf8",
   ).toLowerCase();
+  // The exercise-goal-column mapping this test watches was relocated out of
+  // start-session.ts into session-start-activation.ts (which is called from
+  // start-session.ts) so it can be unit-tested outside the Next.js runtime;
+  // this test now reads it from its actual current location.
+  const sessionStartActivation = readFileSync(
+    new URL("../session-start-activation.ts", import.meta.url),
+    "utf8",
+  ).toLowerCase();
 
   assert.match(
     sql,
@@ -629,7 +637,7 @@ test("planner rep goals use the active session-start columns", () => {
     /\.select\("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max,/,
   );
   assert.match(
-    startSession,
+    sessionStartActivation,
     /target_reps_min: exercise\.target_reps_min,\s+target_reps_max: exercise\.target_reps_max,/,
   );
 });
