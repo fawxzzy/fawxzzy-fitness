@@ -1,15 +1,9 @@
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
-import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getSessionStartErrorMessage } from "@/lib/runnable-day";
-import { findExistingInProgressSession, rollbackFailedSessionStart } from "@/lib/session-start-integrity";
-import {
-  defaultUnitForSessionExerciseMeasurementType,
-  resolveSessionExerciseMeasurementType,
-  warnOnSessionExerciseUnitMismatch,
-} from "@/lib/session-exercise-measurement";
+import { createSessionAtomicallyFromDay } from "@/lib/session-start-activation";
 import { formatRoutineDayDisplayName, getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
@@ -28,20 +22,6 @@ type SessionStartContext = {
 
 async function createSessionFromDay(context: SessionStartContext): Promise<ActionResult<{ sessionId: string }>> {
   const { supabase, userId, routineId, routineName, routineStartDate, day, context: logContext } = context;
-
-  const { session: existingSession, error: existingSessionError } = await findExistingInProgressSession({
-    supabase,
-    userId,
-    routineId,
-  });
-
-  if (existingSessionError) {
-    return { ok: false, error: "Could not verify your current session state. Please try again." };
-  }
-
-  if (existingSession?.id) {
-    return { ok: true, data: { sessionId: existingSession.id } };
-  }
 
   const { data: templateExercises, error: templateError } = await supabase
     .from("routine_day_exercises")
@@ -77,75 +57,21 @@ async function createSessionFromDay(context: SessionStartContext): Promise<Actio
     dayIndex: day.day_index,
     startDate: routineStartDate,
   });
-  const { data: session, error: sessionError } = await supabase
-    .from("sessions")
-    .insert({
-      user_id: userId,
-      routine_id: routineId,
-      routine_day_index: day.day_index,
-      name: routineName,
-      routine_day_name: routineDayName,
-      status: "in_progress",
-    })
-    .select("id")
-    .single();
 
-  if (sessionError || !session) {
-    return { ok: false, error: "Could not create workout session." };
-  }
-
-  if (runnableExercises.length > 0) {
-    const { error: exerciseError } = await supabase.from("session_exercises").insert(
-      runnableExercises.map((exercise) => {
-        const mappedGoalColumns = mapRoutineDayGoalToSessionColumns({
-          target_sets: exercise.target_sets,
-          target_reps: exercise.target_reps,
-          target_reps_min: exercise.target_reps_min,
-          target_reps_max: exercise.target_reps_max,
-          target_weight: exercise.target_weight,
-          target_weight_unit: exercise.target_weight_unit,
-          target_duration_seconds: exercise.target_duration_seconds,
-          target_distance: exercise.target_distance,
-          target_distance_unit: exercise.target_distance_unit,
-          target_calories: exercise.target_calories,
-          measurement_type: exercise.measurement_type ?? null,
-          default_unit: exercise.default_unit ?? null,
-        });
-
-        const measurementType = resolveSessionExerciseMeasurementType(
-          mappedGoalColumns.measurement_type ?? exercise.details?.measurement_type,
-        );
-        const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
-        warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: logContext });
-
-        return {
-          session_id: session.id,
-          user_id: userId,
-          exercise_id: exercise.exercise_id,
-          routine_day_exercise_id: exercise.id,
-          position: exercise.position,
-          // Routine-plan notes are setup cues, not logged-session notes.
-          notes: null,
-          is_skipped: false,
-          ...mappedGoalColumns,
-          measurement_type: measurementType,
-          default_unit: defaultUnit,
-        };
-      }),
-    );
-
-    if (exerciseError) {
-      const { rollbackSucceeded } = await rollbackFailedSessionStart({ supabase, sessionId: session.id, userId });
-      return {
-        ok: false,
-        error: rollbackSucceeded
-          ? "Could not start workout for this day."
-          : "Could not start workout for this day, and cleanup failed. Please contact support if this session appears stuck.",
-      };
-    }
-  }
-
-  return { ok: true, data: { sessionId: session.id } };
+  return createSessionAtomicallyFromDay({
+    // supabase-js's .rpc(...) returns a thenable PostgrestFilterBuilder, not
+    // a native Promise; wrapping in an async function (matching the
+    // convention already used in planner-routine-executor.ts for the
+    // sibling create_planner_routine_v1 RPC) normalizes it to a real Promise
+    // so it satisfies the adapter's client type.
+    supabase: { rpc: async (name, args) => await supabase.rpc(name, args) },
+    routineId,
+    dayId: day.id,
+    routineName,
+    routineDayName,
+    runnableExercises,
+    context: logContext,
+  });
 }
 
 export async function startSessionForActiveRoutineDay(payload?: { dayIndex?: number }): Promise<ActionResult<{ sessionId: string }>> {

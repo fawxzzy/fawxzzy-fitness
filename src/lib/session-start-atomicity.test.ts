@@ -250,11 +250,21 @@ test("migration re-validates routine and day ownership instead of trusting the c
   assert.match(sql, /where routine\.id = p_routine_id\s+and routine\.user_id = v_user_id/);
 });
 
-test("start-session.ts does not yet call the new RPC (activation is a separate follow-up gated on migration apply)", () => {
+test("the production session-start flow is wired to this RPC through session-start-activation.ts", () => {
+  // Activation happened in a later wave, after this migration was reviewed
+  // and merged. start-session.ts itself no longer references this module
+  // directly (the RPC-calling logic was extracted into
+  // session-start-activation.ts so it could be unit-tested outside the
+  // Next.js runtime -- see session-start-activation.test.ts) but the full
+  // chain must still reach start_session_from_day_v1.
   const startSession = readFileSync(
     new URL("./start-session.ts", import.meta.url),
     "utf8",
   );
-  assert.doesNotMatch(startSession, /start_session_from_day_v1/);
-  assert.doesNotMatch(startSession, /session-start-atomicity/);
+  const activation = readFileSync(
+    new URL("./session-start-activation.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(startSession, /createSessionAtomicallyFromDay/);
+  assert.match(activation, /startSessionFromDayAtomicV1/);
 });
