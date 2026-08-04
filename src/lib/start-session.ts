@@ -4,6 +4,7 @@ import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getSessionStartErrorMessage } from "@/lib/runnable-day";
+import { findExistingInProgressSession, rollbackFailedSessionStart } from "@/lib/session-start-integrity";
 import {
   defaultUnitForSessionExerciseMeasurementType,
   resolveSessionExerciseMeasurementType,
@@ -25,36 +26,18 @@ type SessionStartContext = {
   context: string;
 };
 
-async function findExistingInProgressSession(args: {
-  supabase: ServerSupabase;
-  userId: string;
-  routineId: string;
-}) {
-  const { data, error } = await args.supabase
-    .from("sessions")
-    .select("id")
-    .eq("user_id", args.userId)
-    .eq("routine_id", args.routineId)
-    .eq("status", "in_progress")
-    .order("performed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    return null;
-  }
-
-  return data ?? null;
-}
-
 async function createSessionFromDay(context: SessionStartContext): Promise<ActionResult<{ sessionId: string }>> {
   const { supabase, userId, routineId, routineName, routineStartDate, day, context: logContext } = context;
 
-  const existingSession = await findExistingInProgressSession({
+  const { session: existingSession, error: existingSessionError } = await findExistingInProgressSession({
     supabase,
     userId,
     routineId,
   });
+
+  if (existingSessionError) {
+    return { ok: false, error: "Could not verify your current session state. Please try again." };
+  }
 
   if (existingSession?.id) {
     return { ok: true, data: { sessionId: existingSession.id } };
@@ -152,8 +135,13 @@ async function createSessionFromDay(context: SessionStartContext): Promise<Actio
     );
 
     if (exerciseError) {
-      await supabase.from("sessions").delete().eq("id", session.id).eq("user_id", userId);
-      return { ok: false, error: "Could not start workout for this day." };
+      const { rollbackSucceeded } = await rollbackFailedSessionStart({ supabase, sessionId: session.id, userId });
+      return {
+        ok: false,
+        error: rollbackSucceeded
+          ? "Could not start workout for this day."
+          : "Could not start workout for this day, and cleanup failed. Please contact support if this session appears stuck.",
+      };
     }
   }
 
