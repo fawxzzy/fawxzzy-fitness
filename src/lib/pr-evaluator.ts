@@ -60,7 +60,7 @@ function normalizePositive(value: number | null | undefined): number {
 // since every current caller already normalizes non-finite input to null
 // before it reaches this module, and unlike a negative sign, a non-finite
 // value carries no signal that a real (if corrupted) weight was ever recorded.
-function isInvalidWeight(value: number | null | undefined): boolean {
+export function isInvalidWeight(value: number | null | undefined): boolean {
   return typeof value === "number" && Number.isFinite(value) && value < 0;
 }
 

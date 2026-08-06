@@ -23,6 +23,12 @@ import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/lib/exercise-stats";
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
+import {
+  buildStrengthPrReviewEvents,
+  classifyStrengthBestSets,
+  selectSessionBestRow,
+  selectStrengthPrRowIds,
+} from "@/lib/exercise-strength-pr-summaries";
 import { formatDateShort, formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import {
@@ -33,7 +39,7 @@ import {
 } from "@/lib/progression-playbooks";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
-import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
+import { evaluatePrSummaries, formatPrBreakdown, isInvalidWeight, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
   buildCardioPaceMetric,
@@ -1691,35 +1697,6 @@ function buildHistoryDayEventValueParts(events: ProgressionEventRow[]): Exercise
   return values;
 }
 
-function buildStrengthPrRowIds(rows: NormalizedSet[]) {
-  const ids = new Set<string>();
-  let bestWeight = 0;
-  let bestBodyweightReps = 0;
-
-  const ordered = [...rows].sort((left, right) => {
-    if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
-    if (left.sessionId !== right.sessionId) return left.sessionId.localeCompare(right.sessionId);
-    return left.setIndex - right.setIndex;
-  });
-
-  for (const row of ordered) {
-    const weight = positive(row.weight);
-    const reps = positive(row.reps);
-    const rowId = `${row.sessionId}-${row.setIndex}`;
-
-    if (weight > 0 && weight > bestWeight) {
-      bestWeight = weight;
-      ids.add(rowId);
-    }
-
-    if (weight === 0 && reps > bestBodyweightReps) {
-      bestBodyweightReps = reps;
-      ids.add(rowId);
-    }
-  }
-
-  return ids;
-}
 
 function buildPrDayLabels(items: string[]) {
   return new Set(
@@ -2039,33 +2016,11 @@ function buildExerciseHistoryModel(args: {
 }
 
 function buildStrengthPrReviewItems(rows: NormalizedSet[]) {
-  const orderedRows = [...rows].sort((a, b) => {
-    if (a.performedAt !== b.performedAt) return a.performedAt.localeCompare(b.performedAt);
-    if (a.sessionId !== b.sessionId) return a.sessionId.localeCompare(b.sessionId);
-    return a.setIndex - b.setIndex;
-  });
-  const items: string[] = [];
-  let bestWeight = 0;
-  let bestBodyweightReps = 0;
-
-  for (const row of orderedRows) {
-    const weight = positive(row.weight);
-    const reps = positive(row.reps);
-
-    if (weight > 0 && weight > bestWeight) {
-      bestWeight = weight;
-      items.push(
-        `Weight PR | ${formatWeightReps(row.weight, row.reps, row.weightUnit) ?? formatWeight(row.weight, row.weightUnit) ?? `${Math.round(weight)}`} | ${formatDateShort(row.performedAt)}`,
-      );
-    }
-
-    if (weight === 0 && reps > bestBodyweightReps) {
-      bestBodyweightReps = reps;
-      items.push(`Rep PR | ${reps} reps | ${formatDateShort(row.performedAt)}`);
-    }
-  }
-
-  return items.reverse();
+  return buildStrengthPrReviewEvents(rows).map((event) =>
+    event.kind === "weight"
+      ? `Weight PR | ${formatWeightReps(event.weight, event.reps, event.weightUnit) ?? formatWeight(event.weight, event.weightUnit) ?? `${Math.round(event.weight)}`} | ${formatDateShort(event.performedAt)}`
+      : `Rep PR | ${event.reps} reps | ${formatDateShort(event.performedAt)}`,
+  );
 }
 
 function buildStrengthSessionPerformances(rows: NormalizedSet[]): StrengthSessionPerformance[] {
@@ -2078,18 +2033,7 @@ function buildStrengthSessionPerformances(rows: NormalizedSet[]): StrengthSessio
 
   return [...rowsBySession.values()]
     .map((sessionRows) => {
-      const rankedRows = [...sessionRows].sort((a, b) => {
-        const aWeight = positive(a.weight);
-        const bWeight = positive(b.weight);
-        if (bWeight !== aWeight) return bWeight - aWeight;
-        const aReps = positive(a.reps);
-        const bReps = positive(b.reps);
-        if (bReps !== aReps) return bReps - aReps;
-        return b.setIndex - a.setIndex;
-      });
-
-      const bestRow = rankedRows.find((row) => positive(row.weight) > 0 || positive(row.reps) > 0) ?? null;
-      const bodyweightReps = rankedRows.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0);
+      const { bestRow, bodyweightReps } = selectSessionBestRow(sessionRows);
 
       return {
         sessionId: sessionRows[0]?.sessionId ?? "",
@@ -2570,7 +2514,11 @@ export async function getExerciseInfoStats(
       if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
       return b.setIndex - a.setIndex;
     });
-    const activeLastSet = activeSortedRows[0] ?? null;
+    // A row whose weight is a corrupted negative value is skipped when picking
+    // the "last" set, so it can't have formatWeightReps's own positive()
+    // silently render it as a bodyweight rep count -- the same exclusion rule
+    // applied to PR/best-set classification elsewhere in this function.
+    const activeLastSet = activeSortedRows.find((row) => !isInvalidWeight(row.weight)) ?? null;
 
     const activeTotals = {
       sessions: new Set(activeLoggedRows.map((row) => row.sessionId)).size,
@@ -2615,25 +2563,17 @@ export async function getExerciseInfoStats(
       const prLabel = formatPrBreakdown(prCounts);
       const prReviewItems = buildStrengthPrReviewItems(activeRows);
 
-      const totalReps = activeRows.reduce((sum, row) => sum + positive(row.reps), 0);
-      const weightedRows = activeRows.filter((row) => positive(row.weight) > 0);
-      const bodyweightRows = activeRows.filter((row) => positive(row.weight) === 0 && positive(row.reps) > 0);
-      const bestWeight = weightedRows.reduce((max, row) => Math.max(max, positive(row.weight)), 0);
-      const bestWeightedReps = weightedRows.reduce((max, row) => Math.max(max, positive(row.reps)), 0);
-      const bestRepsAtBestWeight = bestWeight > 0
-        ? weightedRows.filter((row) => positive(row.weight) === bestWeight).reduce((max, row) => Math.max(max, positive(row.reps)), 0)
-        : 0;
-      const bestWeightedSet = bestWeight > 0
-        ? weightedRows
-            .filter((row) => positive(row.weight) === bestWeight)
-            .sort((a, b) => positive(b.reps) - positive(a.reps))[0] ?? null
-        : null;
-      const bestBodyweightReps = bodyweightRows.reduce((max, row) => Math.max(max, positive(row.reps)), 0);
-      const bestBodyweightSet = bestBodyweightReps > 0
-        ? bodyweightRows
-            .filter((row) => positive(row.reps) === bestBodyweightReps)
-            .sort((a, b) => positive(b.reps) - positive(a.reps))[0] ?? null
-        : null;
+      const {
+        totalReps,
+        weightedRows,
+        bodyweightRows,
+        bestWeight,
+        bestWeightedReps,
+        bestRepsAtBestWeight,
+        bestWeightedSet,
+        bestBodyweightReps,
+        bestBodyweightSet,
+      } = classifyStrengthBestSets(activeRows);
       const bestSetSummary = bestWeight > 0
         ? formatWeightReps(bestWeightedSet?.weight ?? null, bestWeightedSet?.reps ?? null, bestWeightedSet?.weightUnit ?? null)
         : formatWeightReps(0, bestBodyweightSet?.reps ?? null, null);
@@ -2709,7 +2649,7 @@ export async function getExerciseInfoStats(
           latestWeight: activeLastSet?.weight ?? null,
         }),
         bestSummary: bestSetSummary,
-        prRowIds: buildStrengthPrRowIds(activeRows),
+        prRowIds: selectStrengthPrRowIds(activeRows),
         progressionEvents: activeProgressionEvents,
         plannedSkippedDays,
       });
