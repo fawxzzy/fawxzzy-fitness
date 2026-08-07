@@ -1,4 +1,22 @@
-name: Migration clean-database replay contract
+name: Migration replay contracts (PGlite fast-check + real-Postgres parity authority)
+
+# Two independent replay backends for supabase/migrations/*.sql, on purpose:
+#
+# - clean-replay-contract (PGlite / WASM Postgres): sub-second, zero-setup,
+#   fully offline. Fast supplementary signal for local iteration and PR
+#   feedback. NOT proof of hosted Supabase parity -- see
+#   scripts/migration/replay-clean-chain.mjs's module comment.
+# - real-postgres-replay-contract (a genuine `postgres:` service container
+#   this job spins up itself -- zero real Supabase project/credentials
+#   involved): this repo's migration-parity *authority*. Still not literally
+#   Supabase's hosted platform -- see
+#   scripts/migration/real-postgres-replay-chain.mjs's module comment for
+#   the remaining gap and the investigation into why a real hosted Supabase
+#   branch failed with `column "slug" does not exist` where neither lane
+#   reproduces it.
+# - compare-replay-backends: runs both again and asserts they agree on the
+#   first-failing file (or both cleanly reach the end), so a future
+#   divergence between the two is a visible CI failure, not silent.
 
 on:
   pull_request:
@@ -6,6 +24,9 @@ on:
       - "supabase/migrations/**"
       - "scripts/migration/replay-clean-chain.mjs"
       - "scripts/migration/replay-clean-chain.test.mjs"
+      - "scripts/migration/real-postgres-replay-chain.mjs"
+      - "scripts/migration/real-postgres-replay-chain.test.mjs"
+      - "scripts/migration/compare-replay-backends.mjs"
       - "scripts/migration/supabase-platform-preamble.mjs"
       - "package.json"
       - "package-lock.json"
@@ -16,6 +37,9 @@ on:
       - "supabase/migrations/**"
       - "scripts/migration/replay-clean-chain.mjs"
       - "scripts/migration/replay-clean-chain.test.mjs"
+      - "scripts/migration/real-postgres-replay-chain.mjs"
+      - "scripts/migration/real-postgres-replay-chain.test.mjs"
+      - "scripts/migration/compare-replay-backends.mjs"
       - "scripts/migration/supabase-platform-preamble.mjs"
       - "package.json"
       - "package-lock.json"
@@ -26,6 +50,7 @@ permissions:
 
 jobs:
   clean-replay-contract:
+    name: PGlite fast supplementary replay
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -40,5 +65,87 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Replay supabase/migrations/*.sql from an empty database (no real Supabase project involved)
+      - name: Replay supabase/migrations/*.sql from an empty PGlite database (no real Supabase project involved)
         run: npm run test:migration-replay-clean
+
+  real-postgres-replay-contract:
+    name: Real-Postgres migration-parity authority
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Loopback only -- this is the service container this job just started
+      # itself. Never a real or staging Supabase project; see
+      # getRealPostgresConnectionConfig()'s host allowlist in
+      # scripts/migration/real-postgres-replay-chain.mjs, which refuses to
+      # connect anywhere else even if these were misconfigured.
+      REAL_POSTGRES_HOST: localhost
+      REAL_POSTGRES_PORT: 5432
+      REAL_POSTGRES_USER: postgres
+      REAL_POSTGRES_PASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Replay supabase/migrations/*.sql against a real Postgres server, including the migration 042 -> snapshot -> 043 proof
+        run: npm run test:migration-replay-real-pg
+
+  compare-replay-backends:
+    name: Compare PGlite vs real-Postgres first failure
+    runs-on: ubuntu-latest
+    needs: [clean-replay-contract, real-postgres-replay-contract]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      REAL_POSTGRES_HOST: localhost
+      REAL_POSTGRES_PORT: 5432
+      REAL_POSTGRES_USER: postgres
+      REAL_POSTGRES_PASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Run both backends and fail on disagreement
+        run: npm run migration:compare-replay-backends

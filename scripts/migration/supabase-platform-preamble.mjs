@@ -38,12 +38,41 @@
 //
 // Nothing here is applied to, or ever should be applied to, a real Supabase
 // project -- it exists solely to stand in for platform scaffolding inside a
-// disposable, in-process PGlite database.
+// disposable, in-process PGlite database, or (see
+// real-postgres-replay-chain.mjs) a throwaway database on a real Postgres
+// server that only this CI job's own `postgres:` service container runs.
+//
+// Correction made when this module was reused for the real-Postgres replay
+// lane: the three `create role` statements below were originally
+// unconditional (`create role anon;`, etc.), which is safe for PGlite
+// because every PGlite instance is a brand-new WASM database with no prior
+// state. It is not safe to reuse unconditionally against a real Postgres
+// *server*, though: roles are cluster-global (not scoped to one database),
+// and the real-Postgres replay lane creates several disposable *databases*
+// against the same long-lived server process within one CI job (one per
+// test / one for the pre-042 snapshot / one for the 043-alone replay) --
+// so the second and later calls would fail with `role "anon" already
+// exists`. The three role statements are now wrapped in a guarded DO block
+// that only creates each role if it is not already present in
+// `pg_catalog.pg_roles`, which is idempotent on a reused real Postgres
+// server and a no-op behavioral change for PGlite (a fresh instance never
+// has these roles yet, so the guard is always true there too). Everything
+// else below is unchanged from the original PGlite-only version.
 
 export const SUPABASE_PLATFORM_PREAMBLE_SQL = `
-create role anon;
-create role authenticated;
-create role service_role;
+do $$
+begin
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'anon') then
+    create role anon;
+  end if;
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'authenticated') then
+    create role authenticated;
+  end if;
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'service_role') then
+    create role service_role;
+  end if;
+end
+$$;
 
 create schema if not exists auth;
 
