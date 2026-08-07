@@ -22,6 +22,8 @@
     "qa:boards": "python scripts/build-mobile-regression-boards.py",
     "migration:validate": "node scripts/migration/validate-supabase-chain.mjs",
     "migration:parity": "node scripts/migration/parity-report.mjs",
+    "migration:replay-clean": "node scripts/migration/replay-clean-chain.mjs",
+    "test:migration-replay-clean": "node --test scripts/migration/replay-clean-chain.test.mjs",
     "db:mirror:prod-to-local": "node scripts/sync-prod-to-local.mjs",
     "lint": "node scripts/next-cli.mjs lint",
     "lint:ci": "node scripts/next-cli.mjs lint --no-cache",
@@ -198,6 +200,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@types/node": "^22.13.10",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

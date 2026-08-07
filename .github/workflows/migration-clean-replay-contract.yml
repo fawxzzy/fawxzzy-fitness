@@ -1,0 +1,44 @@
+name: Migration clean-database replay contract
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/migration/replay-clean-chain.mjs"
+      - "scripts/migration/replay-clean-chain.test.mjs"
+      - "scripts/migration/supabase-platform-preamble.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/migration-clean-replay-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/migration/replay-clean-chain.mjs"
+      - "scripts/migration/replay-clean-chain.test.mjs"
+      - "scripts/migration/supabase-platform-preamble.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/migration-clean-replay-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  clean-replay-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Replay supabase/migrations/*.sql from an empty database (no real Supabase project involved)
+        run: npm run test:migration-replay-clean
