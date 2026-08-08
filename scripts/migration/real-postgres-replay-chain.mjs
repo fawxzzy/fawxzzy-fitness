@@ -214,7 +214,16 @@ export async function createCleanRealPostgresDatabase(databaseName) {
 
   const client = await connect(databaseName);
   const db = toExecAdapter(client);
-  await applySupabasePlatformPreamble(db);
+  try {
+    await applySupabasePlatformPreamble(db);
+  } catch (error) {
+    // Preamble application failed -- close the just-opened client before
+    // rethrowing so we never leak a live Postgres connection on this path.
+    // Without this, a preamble failure left `client` connected forever
+    // (nothing else in the call chain holds a reference to close it).
+    await client.end();
+    throw error;
+  }
   return db;
 }
 

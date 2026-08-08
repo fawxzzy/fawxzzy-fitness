@@ -27,6 +27,7 @@
     "migration:replay-real-pg": "node scripts/migration/real-postgres-replay-chain.mjs",
     "test:migration-replay-real-pg": "node --test scripts/migration/real-postgres-replay-chain.test.mjs",
     "migration:compare-replay-backends": "node scripts/migration/compare-replay-backends.mjs",
+    "test:migration-compare-replay-backends": "node --test scripts/migration/compare-replay-backends.test.mjs",
     "db:mirror:prod-to-local": "node scripts/sync-prod-to-local.mjs",
     "lint": "node scripts/next-cli.mjs lint",
     "lint:ci": "node scripts/next-cli.mjs lint --no-cache",

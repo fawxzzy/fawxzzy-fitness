@@ -27,6 +27,7 @@ on:
       - "scripts/migration/real-postgres-replay-chain.mjs"
       - "scripts/migration/real-postgres-replay-chain.test.mjs"
       - "scripts/migration/compare-replay-backends.mjs"
+      - "scripts/migration/compare-replay-backends.test.mjs"
       - "scripts/migration/supabase-platform-preamble.mjs"
       - "package.json"
       - "package-lock.json"
@@ -40,6 +41,7 @@ on:
       - "scripts/migration/real-postgres-replay-chain.mjs"
       - "scripts/migration/real-postgres-replay-chain.test.mjs"
       - "scripts/migration/compare-replay-backends.mjs"
+      - "scripts/migration/compare-replay-backends.test.mjs"
       - "scripts/migration/supabase-platform-preamble.mjs"
       - "package.json"
       - "package-lock.json"
@@ -110,6 +112,25 @@ jobs:
 
       - name: Replay supabase/migrations/*.sql against a real Postgres server, including the migration 042 -> snapshot -> 043 proof
         run: npm run test:migration-replay-real-pg
+
+  compare-replay-backends-unit:
+    name: Compare-backends disagreement-detection unit test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit-test compareReplayBackends' own agree/disagree logic (synthetic backends, no real Postgres or PGlite involved)
+        run: npm run test:migration-compare-replay-backends
 
   compare-replay-backends:
     name: Compare PGlite vs real-Postgres first failure
