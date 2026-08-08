@@ -48,20 +48,30 @@ async function runBackend(replayFn) {
 }
 
 /**
+ * @param {object} [options]
+ * @param {() => Promise<{ appliedMigrations: string[], totalMigrations: number }>} [options.runPglite]
+ *   Defaults to the real PGlite backend. Overridable so tests can force
+ *   specific synthetic outcomes (in particular a disagreement between the
+ *   two backends) without needing a real Postgres server or PGlite runtime.
+ * @param {() => Promise<{ appliedMigrations: string[], totalMigrations: number }>} [options.runRealPostgres]
+ *   Defaults to the real real-Postgres backend. Same overridability as
+ *   `runPglite`, for the same reason.
  * @returns {Promise<{
  *   pglite: Awaited<ReturnType<typeof runBackend>>,
  *   realPostgres: Awaited<ReturnType<typeof runBackend>>,
  *   agree: boolean,
  * }>}
  */
-export async function compareReplayBackends() {
+export async function compareReplayBackends({
+  runPglite = () => replayMigrationsFromClean(),
+  runRealPostgres = () =>
+    replayMigrationsFromCleanRealPostgres({
+      databaseName: "fitness_migration_replay_compare_full_chain",
+    }),
+} = {}) {
   const [pglite, realPostgres] = await Promise.all([
-    runBackend(() => replayMigrationsFromClean()),
-    runBackend(() =>
-      replayMigrationsFromCleanRealPostgres({
-        databaseName: "fitness_migration_replay_compare_full_chain",
-      }),
-    ),
+    runBackend(runPglite),
+    runBackend(runRealPostgres),
   ]);
 
   const agree =
