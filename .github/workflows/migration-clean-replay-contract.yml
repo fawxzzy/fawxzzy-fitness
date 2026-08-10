@@ -28,6 +28,8 @@ on:
       - "scripts/migration/real-postgres-replay-chain.test.mjs"
       - "scripts/migration/compare-replay-backends.mjs"
       - "scripts/migration/compare-replay-backends.test.mjs"
+      - "scripts/migration/data-api-grants-contract.mjs"
+      - "scripts/migration/data-api-grants-contract.test.mjs"
       - "scripts/migration/supabase-platform-preamble.mjs"
       - "package.json"
       - "package-lock.json"
@@ -42,6 +44,8 @@ on:
       - "scripts/migration/real-postgres-replay-chain.test.mjs"
       - "scripts/migration/compare-replay-backends.mjs"
       - "scripts/migration/compare-replay-backends.test.mjs"
+      - "scripts/migration/data-api-grants-contract.mjs"
+      - "scripts/migration/data-api-grants-contract.test.mjs"
       - "scripts/migration/supabase-platform-preamble.mjs"
       - "package.json"
       - "package-lock.json"
@@ -170,3 +174,41 @@ jobs:
 
       - name: Run both backends and fail on disagreement
         run: npm run migration:compare-replay-backends
+
+  data-api-grants-contract:
+    name: Explicit Data API grant contract (PGlite + real-Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      REAL_POSTGRES_HOST: localhost
+      REAL_POSTGRES_PORT: 5432
+      REAL_POSTGRES_USER: postgres
+      REAL_POSTGRES_PASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Assert the exact anon/authenticated/service_role grant matrix on both backends, RLS still enabled, and a negative-proof that the check actually catches a missing grant
+        run: npm run test:migration-data-api-grants-contract
