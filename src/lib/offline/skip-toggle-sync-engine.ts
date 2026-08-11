@@ -1,5 +1,9 @@
 import type { ActionResult } from "@/lib/action-result";
-import { isTerminalSkipToggleError } from "@/lib/offline/skip-toggle-reconciliation";
+import {
+  isTerminalSkipToggleError,
+  sanitizeSkipToggleError,
+  SKIP_TOGGLE_TRANSPORT_ERROR,
+} from "@/lib/offline/skip-toggle-reconciliation";
 import type { SkipToggleQueueItem } from "@/lib/offline/skip-toggle-queue";
 
 // Replay worker for the skip-toggle offline queue. Mirrors
@@ -97,7 +101,7 @@ export function createSkipToggleSyncEngine(deps: SkipToggleSyncEngineDeps) {
       // redirect throw, etc.) degrades to the same transient-retry handling
       // as a resolved `{ ok: false }` -- this is the explicit catch the
       // existing set-log engine lacks.
-      result = { ok: false, error: thrown instanceof Error ? thrown.message : "Network error." };
+      result = { ok: false, error: SKIP_TOGGLE_TRANSPORT_ERROR };
     }
 
     if (result.ok) {
@@ -114,13 +118,14 @@ export function createSkipToggleSyncEngine(deps: SkipToggleSyncEngineDeps) {
       return;
     }
 
+    const safeError = sanitizeSkipToggleError(result.error);
     const nextRetryCount = item.retryCount + 1;
-    const isTerminal = isTerminalSkipToggleError(result.error) || nextRetryCount >= SKIP_TOGGLE_MAX_RETRY_ATTEMPTS;
+    const isTerminal = isTerminalSkipToggleError(safeError) || nextRetryCount >= SKIP_TOGGLE_MAX_RETRY_ATTEMPTS;
 
     if (isTerminal) {
       const removed = await deps.removeSkipToggleQueueItemIfCurrent(item.key, item.sequence);
       if (removed) {
-        deps.onTerminalFailure?.({ item, error: result.error ?? "Sync failed." });
+        deps.onTerminalFailure?.({ item, error: safeError });
       }
       deps.onQueueUpdate?.();
       return;
@@ -130,7 +135,7 @@ export function createSkipToggleSyncEngine(deps: SkipToggleSyncEngineDeps) {
     await deps.scheduleSkipToggleRetryIfCurrent(item.key, item.sequence, {
       retryCount: nextRetryCount,
       nextRetryAt,
-      lastError: result.error ?? "Sync failed",
+      lastError: safeError,
       lastAttemptAt: nowIso,
     });
     deps.onQueueUpdate?.();

@@ -3,7 +3,6 @@
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SetLoggerCard,
-  type SessionLoggerDraftQuickLogPayload,
   type SessionLoggerDraftState,
   type SetLoggerSeedSet,
 } from "@/components/SessionTimers";
@@ -26,7 +25,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 import {
   resolveEffectiveQuickLogTarget,
-  resolveQuickLogFromResolvedTarget,
+  resolveSessionQuickLogAction,
   toQuickLogTargetFromSuggestedValues,
   type SessionQuickLogTarget,
 } from "@/lib/session-quick-log";
@@ -1021,6 +1020,11 @@ export function SessionExerciseFocus({
               } satisfies ProgressionProgressFill
             : null;
           const draftState = draftStateBySessionExerciseId[exercise.id] ?? null;
+          const quickLogAction = resolveSessionQuickLogAction({
+            draftPayload: draftState?.quickLogPayload ?? null,
+            resolvedTarget: resolvedQuickLogTarget,
+            fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
+          });
           const exerciseSummary = isStretchHub ? null : (draftState?.goalLabel ?? exercise.goalLabel);
           const semanticTone = resolveSessionExerciseTone({
             loggedSetCount: setCount,
@@ -1322,7 +1326,7 @@ export function SessionExerciseFocus({
                 : "grid-cols-[74px_minmax(0,1fr)]"}
               logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}
               rowContract={{
-                label: draftState?.quickLogLabel ?? rowState.quickLogLabel,
+                label: quickLogAction.ok ? quickLogAction.label : rowState.quickLogLabel,
                 skipLabel: rowState.skipActionLabel,
                 quickLogActionClassName: rowState.quickLogActionClassName,
                 skipActionClassName: rowState.skipActionClassName,
@@ -1349,37 +1353,18 @@ export function SessionExerciseFocus({
                 if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
                   return;
                 }
+                if (!quickLogAction.ok) {
+                  toast.error(quickLogAction.reason);
+                  toggleExercise(exercise.id);
+                  return;
+                }
                 patchRowState(exercise.id, (current) => ({
                   ...current,
                   isQuickLogPending: true,
                 }));
                 const clientLogId = createStableSetId();
                 try {
-                  const quickLogPayload = (() => {
-                    const draftQuickLogPayload = draftState?.quickLogPayload ?? null;
-                    if (draftQuickLogPayload) {
-                      return draftQuickLogPayload;
-                    }
-
-                    const quickLogResolution = resolveQuickLogFromResolvedTarget(
-                      resolvedQuickLogTarget,
-                      unitLabel === "lbs" ? "lbs" : "kg",
-                    );
-                    if (!quickLogResolution.ok) {
-                      toast.error(quickLogResolution.reason);
-                      toggleExercise(exercise.id);
-                      return null;
-                    }
-
-                    return {
-                      ...quickLogResolution.payload,
-                      isWarmup: false,
-                      notes: null,
-                    } satisfies SessionLoggerDraftQuickLogPayload;
-                  })();
-                  if (!quickLogPayload) {
-                    return;
-                  }
+                  const quickLogPayload = quickLogAction.payload;
 
                   setSetSnapshotsBySessionExerciseId((current) => {
                     const previous = current[exercise.id] ?? exercise.initialSets;

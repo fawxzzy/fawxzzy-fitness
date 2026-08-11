@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getNextPublishedSetCount, mergeLoggedSetCountState } from "./setCountSync.ts";
 
-test("mergeLoggedSetCountState preserves higher in-progress counts without re-encoding unchanged state", () => {
+test("mergeLoggedSetCountState accepts a legitimate server-side decrease", () => {
   const current = { a: 4, b: 1 };
   const exercises = [
     { id: "a", loggedSetCount: 2 },
@@ -11,7 +11,7 @@ test("mergeLoggedSetCountState preserves higher in-progress counts without re-en
 
   const merged = mergeLoggedSetCountState(current, exercises);
 
-  assert.deepEqual(merged, { a: 4, b: 1 });
+  assert.deepEqual(merged, { a: 2, b: 1 });
   assert.equal(merged.b, current.b);
 });
 
@@ -27,7 +27,7 @@ test("mergeLoggedSetCountState returns the same object when logical counts do no
   assert.equal(merged, current);
 });
 
-test("mergeLoggedSetCountState preserves a higher local count for one key while leaving an unchanged sibling key untouched", () => {
+test("mergeLoggedSetCountState projects each server count independently", () => {
   const current = { a: 4, b: 1 };
   const exercises = [
     { id: "a", loggedSetCount: 2 },
@@ -36,7 +36,7 @@ test("mergeLoggedSetCountState preserves a higher local count for one key while 
 
   const merged = mergeLoggedSetCountState(current, exercises);
 
-  assert.equal(merged.a, 4);
+  assert.equal(merged.a, 2);
   assert.equal(merged.b, current.b);
 });
 
@@ -49,7 +49,7 @@ test("mergeLoggedSetCountState accepts a higher server count for a key", () => {
   assert.deepEqual(merged, { a: 5 });
 });
 
-test("mergeLoggedSetCountState resolves a mixed map independently per key: local higher for A, server higher for B, equal for C", () => {
+test("mergeLoggedSetCountState resolves a mixed map to the exact server snapshot", () => {
   const current = { a: 5, b: 1, c: 3 };
   const exercises = [
     { id: "a", loggedSetCount: 2 },
@@ -59,7 +59,7 @@ test("mergeLoggedSetCountState resolves a mixed map independently per key: local
 
   const merged = mergeLoggedSetCountState(current, exercises);
 
-  assert.deepEqual(merged, { a: 5, b: 9, c: 3 });
+  assert.deepEqual(merged, { a: 2, b: 9, c: 3 });
 });
 
 test("mergeLoggedSetCountState adds a new exercise id that was not present in current", () => {

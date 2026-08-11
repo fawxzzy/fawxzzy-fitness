@@ -1,18 +1,6 @@
-import type { PostgrestError } from "@supabase/supabase-js";
+import "server-only";
 
-// Kept free of @/lib/auth (or other Next.js request-scoped) imports so this
-// adapter is directly unit-testable outside the Next.js runtime, matching
-// session-start-integrity.ts's constraint.
-//
-// This module is source-implemented and locally tested, but is NOT yet called
-// from src/lib/start-session.ts. Wiring it in depends on
-// supabase/migrations/20260804000000_session_start_atomicity_v1.sql having
-// actually been applied to the live database first -- switching the call
-// site before that would break session creation for every user in
-// production. See docs/PLAYBOOK_NOTES.md (2026-08-04 entry) for the two-step
-// activation plan: (1) apply this migration to the live database (separate
-// provider authorization), (2) only then, in a separate PR, switch the call
-// site.
+import type { PostgrestError } from "@supabase/supabase-js";
 
 export type SessionStartExerciseIntentV1 = {
   exerciseId: string;
@@ -36,10 +24,11 @@ export type SessionStartExerciseIntentV1 = {
   targetCaloriesMax: number | null;
 };
 
-export type SessionStartFromDayRpcClient = {
+type SessionStartFromDayRpcClient = {
   rpc(
     name: "start_session_from_day_v1",
     args: {
+      p_authenticated_user_id: string;
       p_routine_id: string;
       p_day_id: string;
       p_routine_name: string;
@@ -52,11 +41,40 @@ export type SessionStartFromDayRpcClient = {
   }>;
 };
 
+type SessionStartDependenciesV1 = {
+  requireAuthenticatedUser(): Promise<{ id: string }>;
+  createServerProviderClient(): Promise<SessionStartFromDayRpcClient>;
+};
+
+export type SessionStartFromDayArgsV1 = {
+  routineId: string;
+  dayId: string;
+  routineName: string;
+  routineDayName: string;
+  exercises: SessionStartExerciseIntentV1[];
+};
+
 export type SessionStartFromDayResultV1 =
   | { ok: true; outcome: "created" | "existing"; sessionId: string; exerciseCount: number | null }
   | { ok: false; error: string };
 
 const SESSION_START_RESPONSE_SCHEMA_VERSION = "fitness.session-start-response.v1" as const;
+const SESSION_START_ERROR = "Could not start workout for this day.";
+
+const DEFAULT_DEPENDENCIES: SessionStartDependenciesV1 = {
+  requireAuthenticatedUser: async () => {
+    const { requireUser } = await import("@/lib/auth");
+    return await requireUser({
+      gate: "session-start-atomicity.require-user",
+      route: "/today",
+      blockingReason: "Waiting for the authenticated workout owner.",
+    });
+  },
+  createServerProviderClient: async () => {
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
+    return supabaseAdmin() as unknown as SessionStartFromDayRpcClient;
+  },
+};
 
 function isValidSessionStartResponse(data: unknown): data is {
   schemaVersion: string;
@@ -64,39 +82,34 @@ function isValidSessionStartResponse(data: unknown): data is {
   sessionId: string;
   exerciseCount: number | null;
 } {
-  if (typeof data !== "object" || data === null) {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
     return false;
   }
 
   const candidate = data as Record<string, unknown>;
-
-  return (
-    candidate.schemaVersion === SESSION_START_RESPONSE_SCHEMA_VERSION &&
-    (candidate.outcome === "created" || candidate.outcome === "existing") &&
-    typeof candidate.sessionId === "string" &&
-    candidate.sessionId.length > 0 &&
-    (candidate.exerciseCount === null || typeof candidate.exerciseCount === "number")
-  );
+  return candidate.schemaVersion === SESSION_START_RESPONSE_SCHEMA_VERSION
+    && (candidate.outcome === "created" || candidate.outcome === "existing")
+    && typeof candidate.sessionId === "string"
+    && candidate.sessionId.length > 0
+    && (candidate.exerciseCount === null || typeof candidate.exerciseCount === "number");
 }
 
-// Every field the RPC needs to authoritatively create (or idempotently
-// return) a session is either derived server-side inside the function itself
-// (session id, user id via auth.uid()) or passed through unchanged from
-// values start-session.ts already computed today (routine/day display names,
-// the already-filtered runnable-exercise list) -- no exercise-selection or
-// goal-column business logic is duplicated in SQL.
-export async function startSessionFromDayAtomicV1(args: {
-  supabase: SessionStartFromDayRpcClient;
-  routineId: string;
-  dayId: string;
-  routineName: string;
-  routineDayName: string;
-  exercises: SessionStartExerciseIntentV1[];
-}): Promise<SessionStartFromDayResultV1> {
-  let result: Awaited<ReturnType<SessionStartFromDayRpcClient["rpc"]>>;
-
+async function startSessionFromDayAtomicWithDependenciesV1(
+  args: SessionStartFromDayArgsV1,
+  dependencies: SessionStartDependenciesV1,
+): Promise<SessionStartFromDayResultV1> {
+  let user: { id: string };
   try {
-    result = await args.supabase.rpc("start_session_from_day_v1", {
+    user = await dependencies.requireAuthenticatedUser();
+  } catch {
+    return { ok: false, error: SESSION_START_ERROR };
+  }
+
+  let result: Awaited<ReturnType<SessionStartFromDayRpcClient["rpc"]>>;
+  try {
+    const supabase = await dependencies.createServerProviderClient();
+    result = await supabase.rpc("start_session_from_day_v1", {
+      p_authenticated_user_id: user.id,
       p_routine_id: args.routineId,
       p_day_id: args.dayId,
       p_routine_name: args.routineName,
@@ -104,15 +117,11 @@ export async function startSessionFromDayAtomicV1(args: {
       p_exercises: args.exercises,
     });
   } catch {
-    return { ok: false, error: "Could not start workout for this day." };
+    return { ok: false, error: SESSION_START_ERROR };
   }
 
-  if (result.error) {
-    return { ok: false, error: "Could not start workout for this day." };
-  }
-
-  if (!isValidSessionStartResponse(result.data)) {
-    return { ok: false, error: "Could not start workout for this day." };
+  if (result.error || !isValidSessionStartResponse(result.data)) {
+    return { ok: false, error: SESSION_START_ERROR };
   }
 
   return {
@@ -121,4 +130,10 @@ export async function startSessionFromDayAtomicV1(args: {
     sessionId: result.data.sessionId,
     exerciseCount: result.data.exerciseCount,
   };
+}
+
+export async function startSessionFromDayAtomicV1(
+  args: SessionStartFromDayArgsV1,
+): Promise<SessionStartFromDayResultV1> {
+  return await startSessionFromDayAtomicWithDependenciesV1(args, DEFAULT_DEPENDENCIES);
 }

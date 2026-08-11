@@ -575,6 +575,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     };
   });
   const sessionHeaderInfoItems = buildCurrentSessionHeaderInfoRailItems({
+    isCompleted: sessionRow.status === "completed",
     sessionDayIndex: sessionRow.routine_day_index ?? null,
     cycleLengthDays: routineCycleLengthDays,
     isRestDay: sessionIsRestDay,
@@ -642,6 +643,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           userId={sessionRow.user_id}
           sessionId={params.id}
           initialDurationSeconds={sessionRow.duration_seconds}
+          initialIsSessionCompleted={sessionRow.status === "completed"}
           performedAt={sessionRow.performed_at}
           routineName={routineName}
           sessionDayName={sessionDayName}

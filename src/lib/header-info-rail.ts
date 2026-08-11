@@ -82,6 +82,7 @@ type CurrentTodayHeaderDay = {
 };
 
 type CurrentSessionHeaderContext = {
+  isCompleted?: boolean;
   sessionDayIndex?: number | null;
   cycleLengthDays?: number | null;
   isRestDay?: boolean;
@@ -508,9 +509,9 @@ function buildCurrentSessionHeaderSignalMap(args: CurrentSessionHeaderContext): 
   signalMap["live-session"] = {
     id: "live-session",
     label: "Session",
-    value: "In Progress",
-    tone: "accent",
-    title: "Current workout session is active",
+    value: args.isCompleted ? "Completed" : "In Progress",
+    tone: args.isCompleted ? "success" : "accent",
+    title: args.isCompleted ? "Workout session is complete" : "Current workout session is active",
     valuePosition: "after",
   };
 

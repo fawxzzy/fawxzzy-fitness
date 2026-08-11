@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   buildSkipToggleQueueKey,
+  isSkipToggleQueueItemClaimable,
   isSkipToggleQueueItemPendingSync,
   isTerminalSkipToggleError,
   planSkipToggleUpsert,
+  sanitizeSkipToggleError,
+  SKIP_TOGGLE_SYNC_ERROR,
+  SKIP_TOGGLE_SYNC_LEASE_MS,
 } from "./skip-toggle-reconciliation.ts";
 import type { SkipToggleQueueItem } from "./skip-toggle-queue.ts";
 
@@ -39,6 +43,18 @@ test("isSkipToggleQueueItemPendingSync treats queued/failed/syncing as pending",
   assert.equal(isSkipToggleQueueItemPendingSync({ status: "syncing" }), true);
 });
 
+test("isSkipToggleQueueItemClaimable reclaims only expired or malformed syncing leases", () => {
+  const attemptIso = "2026-08-01T10:01:00.000Z";
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "queued" }, attemptIso), true);
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "failed" }, attemptIso), true);
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "syncing" }, attemptIso), true);
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "syncing", lastAttemptAt: "not-an-iso-date" }, attemptIso), true);
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "syncing", lastAttemptAt: "2026-08-01T10:00:30.001Z" }, attemptIso), false);
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "syncing", lastAttemptAt: "2026-08-01T10:00:00.000Z" }, attemptIso), true);
+  assert.equal(isSkipToggleQueueItemClaimable({ status: "syncing" }, "not-an-iso-date"), false);
+  assert.equal(SKIP_TOGGLE_SYNC_LEASE_MS, 60_000);
+});
+
 test("isTerminalSkipToggleError matches only the existing guardLiveSessionMutation error strings", () => {
   assert.equal(isTerminalSkipToggleError("Can only edit the current active session."), true);
   assert.equal(isTerminalSkipToggleError("Exercise does not belong to the current active session."), true);
@@ -46,6 +62,13 @@ test("isTerminalSkipToggleError matches only the existing guardLiveSessionMutati
   assert.equal(isTerminalSkipToggleError(undefined), false);
   assert.equal(isTerminalSkipToggleError(null), false);
   assert.equal(isTerminalSkipToggleError(""), false);
+});
+
+test("sanitizeSkipToggleError preserves only the closed skip-sync vocabulary", () => {
+  assert.equal(sanitizeSkipToggleError("Can only edit the current active session."), "Can only edit the current active session.");
+  assert.equal(sanitizeSkipToggleError("SUPABASE_SERVICE_ROLE_KEY=sb_secret_123"), SKIP_TOGGLE_SYNC_ERROR);
+  assert.equal(sanitizeSkipToggleError("postgres://user:password@host/db"), SKIP_TOGGLE_SYNC_ERROR);
+  assert.equal(sanitizeSkipToggleError(undefined), SKIP_TOGGLE_SYNC_ERROR);
 });
 
 test("planSkipToggleUpsert starts a fresh command at sequence 1 when nothing is queued yet", () => {

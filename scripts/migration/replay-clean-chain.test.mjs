@@ -50,9 +50,8 @@ test("supabase/migrations/*.sql replays from an empty database to head with no e
 
   // Confirm the chain actually reaches and applies the atomicity migration
   // (20260804000000_session_start_atomicity_v1.sql) and the explicit Data
-  // API grants migration that follows it
-  // (20260806090000_explicit_fitness_data_api_grants.sql) rather than merely
-  // not erroring out somewhere upstream of either.
+  // API grants migration and integrity-completion migration that follow it,
+  // rather than merely not erroring out somewhere upstream of them.
   assert.ok(
     result.appliedMigrations.includes("20260804000000_session_start_atomicity_v1.sql"),
     "expected the session-start-atomicity migration to be part of the replayed chain",
@@ -61,7 +60,7 @@ test("supabase/migrations/*.sql replays from an empty database to head with no e
     result.appliedMigrations.includes("20260806090000_explicit_fitness_data_api_grants.sql"),
     "expected the explicit Data API grants migration to be part of the replayed chain",
   );
-  assert.equal(result.appliedMigrations.at(-1), "20260806090000_explicit_fitness_data_api_grants.sql");
+  assert.equal(result.appliedMigrations.at(-1), "20260811043408_fitness_integrity_completion_v1.sql");
 
   assert.ok(finalTableNames.includes("sessions"));
   assert.ok(finalTableNames.includes("routines"));

@@ -18,6 +18,33 @@ export function isSkipToggleQueueItemPendingSync(item: Pick<SkipToggleQueueItem,
   return item.status === "queued" || item.status === "failed" || item.status === "syncing";
 }
 
+export const SKIP_TOGGLE_SYNC_LEASE_MS = 60_000;
+export const SKIP_TOGGLE_PERSISTENCE_ERROR = "Could not update skip state.";
+export const SKIP_TOGGLE_TRANSPORT_ERROR = "Skip sync transport unavailable.";
+export const SKIP_TOGGLE_SYNC_ERROR = "Could not sync skip state.";
+
+export function isSkipToggleQueueItemClaimable(
+  item: Pick<SkipToggleQueueItem, "status" | "lastAttemptAt">,
+  attemptIso: string,
+  leaseMs = SKIP_TOGGLE_SYNC_LEASE_MS,
+): boolean {
+  if (item.status !== "syncing") {
+    return true;
+  }
+
+  const attemptAt = Date.parse(attemptIso);
+  if (!Number.isFinite(attemptAt)) {
+    return false;
+  }
+
+  const lastAttemptAt = item.lastAttemptAt ? Date.parse(item.lastAttemptAt) : Number.NaN;
+  if (!Number.isFinite(lastAttemptAt)) {
+    return true;
+  }
+
+  return attemptAt - lastAttemptAt >= leaseMs;
+}
+
 /**
  * A server-resolved `{ ok: false }` rejection is "terminal" (do not retry,
  * roll back, notify the user with a specific reason) when it comes from the
@@ -33,6 +60,22 @@ export function isTerminalSkipToggleError(error?: string | null): boolean {
     return false;
   }
   return error === LIVE_SESSION_MUTATION_ERROR || error === LIVE_SESSION_EXERCISE_ERROR;
+}
+
+export function sanitizeSkipToggleError(error?: string | null): string {
+  if (isTerminalSkipToggleError(error)) {
+    return error!;
+  }
+
+  if (
+    error === SKIP_TOGGLE_PERSISTENCE_ERROR
+    || error === SKIP_TOGGLE_TRANSPORT_ERROR
+    || error === SKIP_TOGGLE_SYNC_ERROR
+  ) {
+    return error;
+  }
+
+  return SKIP_TOGGLE_SYNC_ERROR;
 }
 
 export type PlannedSkipToggleUpsert = {

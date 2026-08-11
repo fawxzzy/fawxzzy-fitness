@@ -52,7 +52,12 @@ import {
 import { deriveSimpleSessionPrToast } from "@/lib/session-set-entry";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
-import { resolveSetFlowQuickLogTarget, toQuickLogTargetFromSuggestedValues, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import {
+  resolveSetFlowQuickLogTarget,
+  toQuickLogTargetFromSuggestedValues,
+  type SessionQuickLogActionPayload,
+  type SessionQuickLogTarget,
+} from "@/lib/session-quick-log";
 import { type ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { estimateCaloriesFromExerciseMetrics, resolveCaloriesEstimationMethod, type CalorieEstimationExerciseInput } from "@/lib/calorie-estimation";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
@@ -99,17 +104,7 @@ type AddSetActionResult = ActionResult<{ set: SetRow }>;
 export const FAILURE_NOTE_SENTINEL = "__session_failure__";
 const SESSION_EFFORT_SCALE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
-export type SessionLoggerDraftQuickLogPayload = {
-  weight: number;
-  reps: number;
-  durationSeconds: number | null;
-  distance: number | null;
-  distanceUnit: FitnessDistanceUnit | null;
-  calories: number | null;
-  isWarmup: boolean;
-  notes: string | null;
-  weightUnit: "lbs" | "kg";
-};
+export type SessionLoggerDraftQuickLogPayload = SessionQuickLogActionPayload;
 
 export type SessionLoggerDraftFormState = {
   weight: string;

@@ -302,6 +302,22 @@ export async function findUserByEmail(adminClient, email) {
   return users.find((user) => String(user.email ?? "").trim().toLowerCase() === normalizedEmail) ?? null;
 }
 
+export async function requireExistingQaUser(adminClient, email) {
+  const normalizedEmail = String(email ?? "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error(`${FITNESS_QA_EMAIL_ENV} is required to reset QA data.`);
+  }
+
+  const existingUser = await findUserByEmail(adminClient, normalizedEmail);
+  if (!existingUser) {
+    throw new Error(
+      `QA user ${normalizedEmail} does not exist. Run qa:user:ensure only in a separately authorized credential-management lane.`,
+    );
+  }
+
+  return existingUser;
+}
+
 export async function ensureQaUser() {
   const adminClient = createServiceRoleClient();
   const credentials = getQaCredentials();
@@ -779,8 +795,11 @@ function buildBaselineDataset(userId, exerciseCatalog) {
 }
 
 export async function resetQaUserData() {
-  const { user } = await ensureQaUser();
   const serviceRoleClient = createServiceRoleClient();
+  const user = await requireExistingQaUser(
+    serviceRoleClient,
+    getOptionalEnv(FITNESS_QA_EMAIL_ENV),
+  );
   const exerciseCatalog = await loadBaselineExerciseCatalog(serviceRoleClient);
 
   await deleteUserOwnedRows(serviceRoleClient, user.id);
@@ -830,22 +849,7 @@ export async function bootstrapQaSession() {
 
   const credentials = getQaCredentials();
   const anonClient = createAnonClient();
-  let data;
-
-  try {
-    data = await signInQaUser(anonClient, credentials);
-  } catch (signInError) {
-    if (!hasOptionalEnv(SUPABASE_SERVICE_ROLE_KEY_ENV)) {
-      throw new Error(
-        `Unable to bootstrap a QA session with ${FITNESS_QA_EMAIL_ENV}/${FITNESS_QA_PASSWORD_ENV} alone. `
-        + `Set ${SUPABASE_SERVICE_ROLE_KEY_ENV} as well if this lane needs Codex to create or resync the reusable QA user. `
-        + `Original sign-in failure: ${signInError instanceof Error ? signInError.message : String(signInError)}`,
-      );
-    }
-
-    await ensureQaUser();
-    data = await signInQaUser(anonClient, credentials);
-  }
+  const data = await signInQaUser(anonClient, credentials);
 
   const baseUrl = resolveBaseUrl();
   const payload = buildQaSessionArtifactPayload({
@@ -1024,7 +1028,9 @@ function usage() {
       "",
       `Preferred source for local env: ${envPath}.`,
       `qa:session / qa:session:refresh require ${FITNESS_QA_EMAIL_ENV}, ${FITNESS_QA_PASSWORD_ENV}, ${NEXT_PUBLIC_SUPABASE_URL_ENV}, and ${NEXT_PUBLIC_SUPABASE_ANON_KEY_ENV}.`,
-      `${SUPABASE_SERVICE_ROLE_KEY_ENV} is optional for qa:session and required for ensure/reset.`,
+      `${SUPABASE_SERVICE_ROLE_KEY_ENV} is required for ensure/reset and is never used by qa:session.`,
+      `reset also requires ${FITNESS_QA_EMAIL_ENV}, looks up that exact existing user, and never creates or updates Auth credentials or metadata.`,
+      `session signs in only; it fails closed and never creates or updates Auth credentials or metadata.`,
     ].join("\n"),
   );
 }

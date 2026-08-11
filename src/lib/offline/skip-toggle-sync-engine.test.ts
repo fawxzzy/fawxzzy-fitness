@@ -4,6 +4,11 @@ import assert from "node:assert/strict";
 import type { ActionResult } from "@/lib/action-result";
 import { createSkipToggleSyncEngine, SKIP_TOGGLE_MAX_RETRY_ATTEMPTS } from "./skip-toggle-sync-engine.ts";
 import type { SkipToggleQueueItem } from "./skip-toggle-queue.ts";
+import {
+  isSkipToggleQueueItemClaimable,
+  SKIP_TOGGLE_SYNC_ERROR,
+  SKIP_TOGGLE_TRANSPORT_ERROR,
+} from "./skip-toggle-reconciliation.ts";
 
 const LIVE_SESSION_MUTATION_ERROR = "Can only edit the current active session.";
 
@@ -53,7 +58,7 @@ function createFakeSkipToggleQueue(initialItems: SkipToggleQueueItem[] = []) {
     },
     claimSkipToggleQueueItemForSync: async (key: string, expectedSequence: number, attemptIso: string) => {
       const current = store.get(key);
-      if (!current || current.sequence !== expectedSequence || current.status === "syncing") {
+      if (!current || current.sequence !== expectedSequence || !isSkipToggleQueueItemClaimable(current, attemptIso)) {
         return null;
       }
       const claimed: SkipToggleQueueItem = { ...current, status: "syncing", lastAttemptAt: attemptIso };
@@ -218,7 +223,7 @@ test("an unknown, persistently-failing error is bounded (terminal fallback) inst
 
   await engine.tick();
 
-  assert.equal(terminalError, "Some unknown recurring error.");
+  assert.equal(terminalError, SKIP_TOGGLE_SYNC_ERROR);
   assert.equal(fake.store.has("session-skip:session-1:exercise-1"), false);
 });
 
@@ -361,7 +366,60 @@ test("a thrown network failure during replay degrades to the same transient-retr
   assert.ok(current);
   assert.equal(current?.status, "failed");
   assert.equal(current?.retryCount, 1);
-  assert.equal(current?.lastError, "Fetch failed.");
+  assert.equal(current?.lastError, SKIP_TOGGLE_TRANSPORT_ERROR);
+});
+
+test("an abandoned syncing claim is reclaimed after its lease expires", async () => {
+  const fake = createFakeSkipToggleQueue([
+    buildQueueItem({
+      status: "syncing",
+      lastAttemptAt: "2000-01-01T00:00:00.000Z",
+    }),
+  ]);
+  let toggleCalls = 0;
+
+  const engine = createSkipToggleSyncEngine({
+    userId: "user-1",
+    toggleSkipAction: async () => {
+      toggleCalls += 1;
+      return { ok: true };
+    },
+    ...fake,
+  });
+
+  await engine.tick();
+
+  assert.equal(toggleCalls, 1);
+  assert.equal(fake.store.size, 0);
+});
+
+test("returned and thrown credential-shaped failures are never stored or emitted", async () => {
+  for (const mode of ["returned", "thrown"] as const) {
+    const fake = createFakeSkipToggleQueue([buildQueueItem()]);
+    const terminalErrors: string[] = [];
+    const engine = createSkipToggleSyncEngine({
+      userId: "user-1",
+      toggleSkipAction: async () => {
+        if (mode === "thrown") {
+          throw new Error("SUPABASE_SERVICE_ROLE_KEY=sb_secret_123");
+        }
+        return { ok: false, error: "postgres://user:password@host/db" };
+      },
+      onTerminalFailure: ({ error }) => terminalErrors.push(error),
+      ...fake,
+    });
+
+    await engine.tick();
+
+    const current = fake.store.get("session-skip:session-1:exercise-1");
+    assert.ok(current);
+    assert.equal(
+      current.lastError,
+      mode === "thrown" ? SKIP_TOGGLE_TRANSPORT_ERROR : SKIP_TOGGLE_SYNC_ERROR,
+    );
+    assert.deepEqual(terminalErrors, []);
+    assert.doesNotMatch(JSON.stringify(current), /sb_secret|password@host/);
+  }
 });
 
 test("app-restart scenario: a freshly constructed engine instance picks up and replays a pre-existing persisted item", async () => {

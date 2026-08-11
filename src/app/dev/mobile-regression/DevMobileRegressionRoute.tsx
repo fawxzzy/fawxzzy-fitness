@@ -2348,7 +2348,8 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         <SessionPageClient
           userId="dev-user"
           sessionId={regressionSessionId}
-        initialDurationSeconds={0}
+          initialDurationSeconds={0}
+          initialIsSessionCompleted={false}
           performedAt={capturePerformedAt}
           routineName={PREVIEW_ROUTINE_NAME}
           sessionDayName={PREVIEW_DAY_LABEL}
