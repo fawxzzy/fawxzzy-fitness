@@ -1,19 +1,12 @@
--- Session Start Atomicity v1: source-only create boundary.
--- This migration is intentionally not an activation or provider-apply receipt.
--- See docs/PLAYBOOK_NOTES.md (2026-08-04 entry) for the source-authored vs.
--- provider-applied authority split this migration is scoped under, and for
--- why src/lib/start-session.ts does not yet call start_session_from_day_v1:
--- switching that call site is a deliberately separate follow-up, gated on
--- this migration having actually been applied to the live database first.
+-- Fitness integrity completion v1.
+-- Source-only migration. Provider application remains separately gated.
 
--- The only unconditional defense against two concurrent requests both
--- creating an in-progress session for the same user+routine. This constraint
--- is enforced for *every* write path -- this RPC, a direct table insert, or
--- any future code path -- not only for callers that remember to take the
--- advisory lock inside start_session_from_day_v1 below.
-create unique index if not exists sessions_user_routine_active_uq
-  on public.sessions (user_id, routine_id)
-  where status = 'in_progress' and routine_id is not null;
+-- Retire the previously client-callable overload if an environment already
+-- applied its earlier source form. Dropping the overload also retires all of
+-- its grants atomically.
+drop function if exists public.start_session_from_day_v1(
+  uuid, uuid, text, text, jsonb
+);
 
 create or replace function public.start_session_from_day_v1(
   p_authenticated_user_id uuid,
@@ -31,7 +24,6 @@ as $function$
 declare
   v_user_id uuid := p_authenticated_user_id;
   v_routine_day_index int;
-  v_is_rest boolean;
   v_existing_session_id uuid;
   v_session_id uuid;
   v_exercise jsonb;
@@ -61,11 +53,6 @@ begin
       message = 'SESSION_START_EXERCISES_MUST_BE_AN_ARRAY';
   end if;
 
-  -- Namespaced separately from create_planner_routine_v1's advisory-lock key
-  -- space (different domain prefix, different key inputs); this only
-  -- serializes concurrent calls to *this* function for the same user+routine.
-  -- The unique index above -- not this lock -- is what closes the race for
-  -- every other write path.
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(
       'session_start_v1:' || v_user_id::text || ':' || p_routine_id::text,
@@ -73,13 +60,13 @@ begin
     )
   );
 
-  select id
+  select session_row.id
   into v_existing_session_id
-  from public.sessions
-  where user_id = v_user_id
-    and routine_id = p_routine_id
-    and status = 'in_progress'
-  order by performed_at desc
+  from public.sessions as session_row
+  where session_row.user_id = v_user_id
+    and session_row.routine_id = p_routine_id
+    and session_row.status = 'in_progress'
+  order by session_row.performed_at desc
   limit 1;
 
   if v_existing_session_id is not null then
@@ -91,10 +78,8 @@ begin
     );
   end if;
 
-  -- The service-role-only caller supplies the repository-authenticated user
-  -- id explicitly; every routine/day lookup remains bound to that same id.
-  select routine_day.day_index, routine_day.is_rest
-  into v_routine_day_index, v_is_rest
+  select routine_day.day_index
+  into v_routine_day_index
   from public.routine_days as routine_day
   where routine_day.id = p_day_id
     and routine_day.routine_id = p_routine_id
@@ -139,6 +124,17 @@ begin
         or (v_exercise ->> 'position') is null
       then
         raise exception 'session start exercise record is invalid';
+      end if;
+
+      if not exists (
+        select 1
+        from public.routine_day_exercises as planned_exercise
+        where planned_exercise.id = (v_exercise ->> 'routineDayExerciseId')::uuid
+          and planned_exercise.routine_day_id = p_day_id
+          and planned_exercise.user_id = v_user_id
+          and planned_exercise.exercise_id = (v_exercise ->> 'exerciseId')::uuid
+      ) then
+        raise exception 'session start exercise was not found for this user and day';
       end if;
 
       insert into public.session_exercises (
@@ -196,21 +192,13 @@ begin
     end loop;
   exception
     when unique_violation then
-      -- A writer outside this RPC's advisory lock (a direct table insert, or
-      -- a future code path that doesn't take this lock) won the race. The
-      -- partial unique index guarantees at most one in-progress session
-      -- exists for this user+routine; return that winner instead of
-      -- surfacing a raw constraint-violation error to the caller. Everything
-      -- this block attempted, including the session insert above, has
-      -- already been rolled back to the implicit savepoint this exception
-      -- handler creates.
-      select id
+      select session_row.id
       into v_existing_session_id
-      from public.sessions
-      where user_id = v_user_id
-        and routine_id = p_routine_id
-        and status = 'in_progress'
-      order by performed_at desc
+      from public.sessions as session_row
+      where session_row.user_id = v_user_id
+        and session_row.routine_id = p_routine_id
+        and session_row.status = 'in_progress'
+      order by session_row.performed_at desc
       limit 1;
 
       if v_existing_session_id is null then
@@ -236,13 +224,47 @@ $function$;
 
 revoke all on function public.start_session_from_day_v1(
   uuid, uuid, uuid, text, text, jsonb
-) from public;
-revoke execute on function public.start_session_from_day_v1(
-  uuid, uuid, uuid, text, text, jsonb
-) from anon;
-revoke execute on function public.start_session_from_day_v1(
-  uuid, uuid, uuid, text, text, jsonb
-) from authenticated;
+) from public, anon, authenticated;
 grant execute on function public.start_session_from_day_v1(
   uuid, uuid, uuid, text, text, jsonb
 ) to service_role;
+
+-- The returned column name `status` is also a table column. Qualify every
+-- table reference so PL/pgSQL cannot bind the output variable instead.
+create or replace function public.claim_session_follow_up_jobs(
+  target_session_id uuid,
+  target_user_id uuid,
+  stale_before timestamptz,
+  claim_time timestamptz default now()
+)
+returns table (
+  id uuid,
+  job_kind text,
+  status text,
+  attempt_count int
+)
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+begin
+  return query
+  update public.session_follow_up_jobs as job
+  set status = 'processing',
+      attempt_count = job.attempt_count + 1,
+      last_error = null,
+      completed_at = null,
+      updated_at = claim_time
+  where job.session_id = target_session_id
+    and job.user_id = target_user_id
+    and (
+      job.status in ('pending', 'failed')
+      or (job.status = 'processing' and job.updated_at < stale_before)
+    )
+  returning
+    job.id,
+    job.job_kind,
+    job.status,
+    job.attempt_count;
+end;
+$function$;

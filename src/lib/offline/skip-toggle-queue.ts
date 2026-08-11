@@ -1,6 +1,7 @@
 import { openOfflineDb, SKIP_TOGGLE_QUEUE_STORE } from "@/lib/offline/set-log-queue";
 import {
   buildSkipToggleQueueKey,
+  isSkipToggleQueueItemClaimable,
   isSkipToggleQueueItemPendingSync,
   planSkipToggleUpsert,
 } from "@/lib/offline/skip-toggle-reconciliation";
@@ -187,9 +188,8 @@ export async function readPendingSkipToggles(userId?: string): Promise<SkipToggl
 
 /**
  * Compare-and-swap claim: marks the item "syncing" only if the store's
- * current row for this key still matches `expectedSequence` and isn't
- * already claimed ("syncing") by a concurrent replay attempt (e.g. another
- * tab's sync engine). Returns null if the claim could not be made -- the
+ * current row for this key still matches `expectedSequence` and any prior
+ * claim is either absent or older than the bounded claim lease. Returns null if the claim could not be made -- the
  * caller must treat that as "skip this attempt, the current queue state
  * will be picked up correctly on a later tick."
  */
@@ -212,7 +212,11 @@ export async function claimSkipToggleQueueItemForSync(
 
       request.onsuccess = () => {
         const current = request.result as SkipToggleQueueItem | undefined;
-        if (!current || current.sequence !== expectedSequence || current.status === "syncing") {
+        if (
+          !current
+          || current.sequence !== expectedSequence
+          || !isSkipToggleQueueItemClaimable(current, attemptIso)
+        ) {
           return;
         }
         claimed = { ...current, status: "syncing", lastAttemptAt: attemptIso };

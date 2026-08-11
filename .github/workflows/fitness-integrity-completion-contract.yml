@@ -1,0 +1,95 @@
+name: Fitness integrity completion contract
+
+on:
+  pull_request:
+    paths:
+      - "src/app/dev/mobile-regression/page.contract.test.ts"
+      - "src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx"
+      - "src/app/session/[id]/actions.ts"
+      - "src/app/session/[id]/page.tsx"
+      - "src/components/SessionExerciseFocus.tsx"
+      - "src/components/SessionPageClient.tsx"
+      - "src/components/SessionTimers.tsx"
+      - "src/components/session/setCountSync.test.ts"
+      - "src/components/session/setCountSync.ts"
+      - "src/lib/dev-supabase-target.test.ts"
+      - "src/lib/dev-supabase-target.ts"
+      - "src/lib/header-info-rail.test.ts"
+      - "src/lib/header-info-rail.ts"
+      - "src/lib/offline/skip-toggle-queue.test.ts"
+      - "src/lib/offline/skip-toggle-queue.ts"
+      - "src/lib/offline/skip-toggle-reconciliation.test.ts"
+      - "src/lib/offline/skip-toggle-reconciliation.ts"
+      - "src/lib/offline/skip-toggle-sync-engine.test.ts"
+      - "src/lib/offline/skip-toggle-sync-engine.ts"
+      - "src/lib/session-follow-up-jobs.test.ts"
+      - "src/lib/session-quick-log.test.ts"
+      - "src/lib/session-quick-log.ts"
+      - "src/lib/session-start-atomicity.test.ts"
+      - "src/lib/session-start-atomicity.ts"
+      - "scripts/qa/fitness-qa-user.mjs"
+      - "scripts/qa/fitness-qa-user.test.mjs"
+      - "supabase/migrations/20260804000000_session_start_atomicity_v1.sql"
+      - "supabase/migrations/20260811043408_fitness_integrity_completion_v1.sql"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fitness-integrity-completion-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/app/dev/mobile-regression/page.contract.test.ts"
+      - "src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx"
+      - "src/app/session/[id]/actions.ts"
+      - "src/app/session/[id]/page.tsx"
+      - "src/components/SessionExerciseFocus.tsx"
+      - "src/components/SessionPageClient.tsx"
+      - "src/components/SessionTimers.tsx"
+      - "src/components/session/setCountSync.test.ts"
+      - "src/components/session/setCountSync.ts"
+      - "src/lib/dev-supabase-target.test.ts"
+      - "src/lib/dev-supabase-target.ts"
+      - "src/lib/header-info-rail.test.ts"
+      - "src/lib/header-info-rail.ts"
+      - "src/lib/offline/skip-toggle-queue.test.ts"
+      - "src/lib/offline/skip-toggle-queue.ts"
+      - "src/lib/offline/skip-toggle-reconciliation.test.ts"
+      - "src/lib/offline/skip-toggle-reconciliation.ts"
+      - "src/lib/offline/skip-toggle-sync-engine.test.ts"
+      - "src/lib/offline/skip-toggle-sync-engine.ts"
+      - "src/lib/session-follow-up-jobs.test.ts"
+      - "src/lib/session-quick-log.test.ts"
+      - "src/lib/session-quick-log.ts"
+      - "src/lib/session-start-atomicity.test.ts"
+      - "src/lib/session-start-atomicity.ts"
+      - "scripts/qa/fitness-qa-user.mjs"
+      - "scripts/qa/fitness-qa-user.test.mjs"
+      - "supabase/migrations/20260804000000_session_start_atomicity_v1.sql"
+      - "supabase/migrations/20260811043408_fitness_integrity_completion_v1.sql"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fitness-integrity-completion-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  focused-integrity-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify the authenticated-qualification integrity boundaries
+        run: npm run test:fitness-integrity-completion
+
+      - name: Typecheck the exact source surface
+        run: npm run typecheck

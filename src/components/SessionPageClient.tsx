@@ -109,6 +109,7 @@ export function SessionPageClient({
   userId,
   sessionId,
   initialDurationSeconds,
+  initialIsSessionCompleted,
   performedAt,
   routineName,
   sessionDayName,
@@ -138,6 +139,7 @@ export function SessionPageClient({
   userId: string;
   sessionId: string;
   initialDurationSeconds: number | null;
+  initialIsSessionCompleted: boolean;
   performedAt: string;
   routineName: string;
   sessionDayName: string;
@@ -178,6 +180,7 @@ export function SessionPageClient({
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [hasMountedTimer, setHasMountedTimer] = useState(false);
+  const [isSessionCompleted, setIsSessionCompleted] = useState(initialIsSessionCompleted);
   const [completedSessionUpdates, setCompletedSessionUpdates] = useState<SessionAutoPromotionUpdate[] | null>(null);
   const toast = useToast();
   useToastMessageEffect("error", searchError, { id: "session-search-error" });
@@ -204,10 +207,19 @@ export function SessionPageClient({
   }, [selectedExerciseId]);
 
   useEffect(() => {
+    if (isSessionCompleted) {
+      clearActiveSessionHint(sessionId);
+      return;
+    }
+
     writeActiveSessionHint(sessionId);
-  }, [sessionId]);
+  }, [isSessionCompleted, sessionId]);
 
   useEffect(() => {
+    if (isSessionCompleted) {
+      return;
+    }
+
     setHasMountedTimer(true);
     setDurationSeconds(getElapsedDuration(baseDurationSeconds, performedAt));
     const timer = window.setInterval(() => {
@@ -215,7 +227,7 @@ export function SessionPageClient({
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [baseDurationSeconds, performedAt]);
+  }, [baseDurationSeconds, isSessionCompleted, performedAt]);
 
   const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
@@ -225,6 +237,7 @@ export function SessionPageClient({
     const skippedExerciseCount = exercises.filter((exercise) => exercise.isSkipped).length;
 
     return buildCurrentSessionHeaderInfoRailItems({
+      isCompleted: isSessionCompleted,
       sessionDayIndex,
       cycleLengthDays: routineCycleLengthDays,
       isRestDay: sessionIsRestDay,
@@ -243,6 +256,7 @@ export function SessionPageClient({
     });
   }, [
     exercises,
+    isSessionCompleted,
     routineCycleLengthDays,
     routineRestDays,
     routineTrainingDays,
@@ -288,7 +302,16 @@ export function SessionPageClient({
     [durationSeconds, hasMountedTimer],
   );
   const sessionActions = useMemo(
-    () => (
+    () => isSessionCompleted ? (
+      <BottomDockButton
+        type="button"
+        intent="positive"
+        className="!min-h-[44px]"
+        onClick={navigateReturn}
+      >
+        Continue
+      </BottomDockButton>
+    ) : (
       <form
         action={async (formData) => {
           const result = await saveSessionAction(formData);
@@ -300,6 +323,8 @@ export function SessionPageClient({
           if (result.ok) {
             clearActiveSessionHint(sessionId);
             writeInstallEarnedMoment("workout-completed");
+            setSelectedExerciseId(null);
+            setIsSessionCompleted(true);
             setCompletedSessionUpdates(result.data?.progressionUpdates ?? []);
           }
         }}
@@ -330,7 +355,7 @@ export function SessionPageClient({
         </div>
       </form>
     ),
-    [durationSeconds, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
+    [durationSeconds, isSessionCompleted, navigateReturn, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
   );
 
   return (
@@ -352,7 +377,17 @@ export function SessionPageClient({
           ) : null}
           <ActionFeedbackToasts />
 
-          {hasExercises ? (
+          {isSessionCompleted ? (
+            <div
+              role="status"
+              className="rounded-[var(--card-radius)] border border-[rgb(var(--success-rgb)/0.24)] bg-[rgb(var(--success-rgb)/0.08)] px-4 py-6 text-center"
+            >
+              <p className="text-base font-bold text-[rgb(var(--success-rgb)/0.98)]">Workout saved</p>
+              <p className="mt-1 text-sm font-medium text-[rgb(var(--text-muted)/0.92)]">
+                Continue to return to your workout overview.
+              </p>
+            </div>
+          ) : hasExercises ? (
             <SessionExerciseFocus
               userId={userId}
               sessionId={sessionId}
@@ -375,7 +410,7 @@ export function SessionPageClient({
             />
           ) : null}
 
-          {emptyState}
+          {isSessionCompleted ? null : emptyState}
         </section>
       </ContentRail>
       {completedSessionUpdates ? (

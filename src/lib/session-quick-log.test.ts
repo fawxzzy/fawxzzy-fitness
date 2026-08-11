@@ -8,6 +8,7 @@ import {
   resolveSetFlowQuickLogTarget,
   resolveQuickLogFromResolvedTarget,
   resolveQuickLogFromTarget,
+  resolveSessionQuickLogAction,
 } from "./session-quick-log.ts";
 
 test("set-flow logging keeps the routine target after explicit entries end", () => {
@@ -294,4 +295,49 @@ test("resolved quick log preview and payload use fallback target chain", () => {
     calories: null,
     weightUnit: "lbs",
   });
+});
+
+test("quick-log action derives its label from the exact payload it will persist", () => {
+  const action = resolveSessionQuickLogAction({
+    draftPayload: {
+      weight: 225,
+      reps: 5,
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+      isWarmup: false,
+      notes: null,
+      weightUnit: "lbs",
+    },
+    resolvedTarget: resolveEffectiveQuickLogTarget({
+      quickLogTarget: { measurementType: "reps", repsMin: 5, weightMin: 245, weightUnit: "lbs" },
+    }),
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(action.ok, true);
+  if (!action.ok) {
+    throw new Error("Expected an atomic quick-log action.");
+  }
+  assert.equal(action.label, "Log: 5 reps | 225 lbs");
+  assert.equal(action.payload.weight, 225);
+  assert.doesNotMatch(action.label, /245/);
+});
+
+test("quick-log action derives both fallback label and payload from one resolved target", () => {
+  const action = resolveSessionQuickLogAction({
+    draftPayload: null,
+    resolvedTarget: resolveEffectiveQuickLogTarget({
+      quickLogTarget: { measurementType: "reps", repsMin: 5, weightMin: 245, weightUnit: "lbs" },
+    }),
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(action.ok, true);
+  if (!action.ok) {
+    throw new Error("Expected an atomic quick-log action.");
+  }
+  assert.equal(action.label, "Log: 5 reps | 245 lbs");
+  assert.equal(action.payload.weight, 245);
 });

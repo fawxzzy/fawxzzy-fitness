@@ -28,6 +28,15 @@ type QuickLogPayload = {
   weightUnit: "lbs" | "kg";
 };
 
+export type SessionQuickLogActionPayload = QuickLogPayload & {
+  isWarmup: boolean;
+  notes: string | null;
+};
+
+export type SessionQuickLogAction =
+  | { ok: true; label: string; payload: SessionQuickLogActionPayload }
+  | { ok: false; reason: string };
+
 type QuickLogResolution =
   | { ok: true; payload: QuickLogPayload }
   | { ok: false; reason: string };
@@ -206,6 +215,46 @@ export function resolveQuickLogFromResolvedTarget(
   }
 
   return resolveQuickLogFromTarget(resolvedTarget.target, fallbackWeightUnit);
+}
+
+function formatQuickLogActionLabel(payload: SessionQuickLogActionPayload) {
+  const prefix = payload.isWarmup ? "Log Warm-Up" : (payload.notes ? "Log Failure" : "Log");
+  const summaries = [
+    hasValue(payload.reps) ? `${payload.reps} reps` : null,
+    hasValue(payload.weight) ? `${payload.weight} ${payload.weightUnit}` : null,
+    hasValue(payload.durationSeconds ?? undefined) ? formatDurationPreview(Number(payload.durationSeconds)) : null,
+    hasValue(payload.distance ?? undefined) ? `${payload.distance} ${payload.distanceUnit ?? "mi"}` : null,
+    hasValue(payload.calories ?? undefined) ? `${payload.calories} cal` : null,
+  ].filter((value): value is string => value !== null);
+
+  return summaries.length > 0
+    ? `${prefix}: ${summaries.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)}`
+    : prefix;
+}
+
+export function resolveSessionQuickLogAction(args: {
+  draftPayload: SessionQuickLogActionPayload | null | undefined;
+  resolvedTarget: EffectiveSessionQuickLogTarget | null;
+  fallbackWeightUnit: "lbs" | "kg";
+}): SessionQuickLogAction {
+  let payload = args.draftPayload ?? null;
+  if (!payload) {
+    const resolution = resolveQuickLogFromResolvedTarget(args.resolvedTarget, args.fallbackWeightUnit);
+    if (!resolution.ok) {
+      return resolution;
+    }
+    payload = {
+      ...resolution.payload,
+      isWarmup: false,
+      notes: null,
+    };
+  }
+
+  return {
+    ok: true,
+    label: formatQuickLogActionLabel(payload),
+    payload,
+  };
 }
 
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {

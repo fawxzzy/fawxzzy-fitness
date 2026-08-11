@@ -27,6 +27,7 @@ import type { SetRow } from "@/types/db";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
+import { SKIP_TOGGLE_PERSISTENCE_ERROR } from "@/lib/offline/skip-toggle-reconciliation";
 import { applyProgressionReviewCandidateAction } from "@/app/progression-review/actions";
 import { loadProgressionReviewItems } from "@/lib/progression-review-loader";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
@@ -646,7 +647,7 @@ export async function toggleSkipAction(formData: FormData): Promise<ActionResult
     .eq("session_id", sessionId);
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: SKIP_TOGGLE_PERSISTENCE_ERROR };
   }
 
   return { ok: true };
