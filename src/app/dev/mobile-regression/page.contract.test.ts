@@ -48,7 +48,10 @@ test("session completion immediately retires all live workout controls", async (
   assert.match(source, /useState\(initialIsSessionCompleted\)/);
   assert.match(source, /if \(isSessionCompleted\) \{\s*clearActiveSessionHint\(sessionId\)/);
   assert.match(source, /isSessionCompleted \? \(/);
-  assert.match(source, /Workout complete/);
+  assert.match(
+    source,
+    /isSessionCompleted \? \(\s*<BottomDockButton\s+type="button"\s+intent="positive"\s+className="!min-h-\[44px\]"\s+onClick=\{navigateReturn\}\s*>\s*Continue\s*<\/BottomDockButton>/,
+  );
   assert.match(source, /Workout saved/);
   assert.match(source, /isSessionCompleted \? null : emptyState/);
   assert.match(sessionPageSource, /initialIsSessionCompleted=\{sessionRow\.status === "completed"\}/);

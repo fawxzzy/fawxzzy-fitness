@@ -303,12 +303,14 @@ export function SessionPageClient({
   );
   const sessionActions = useMemo(
     () => isSessionCompleted ? (
-      <div
-        role="status"
-        className="flex min-h-[44px] w-full items-center justify-center rounded-[var(--control-radius)] border border-[rgb(var(--success-rgb)/0.28)] bg-[rgb(var(--success-rgb)/0.12)] px-4 text-sm font-semibold text-[rgb(var(--success-rgb)/0.98)]"
+      <BottomDockButton
+        type="button"
+        intent="positive"
+        className="!min-h-[44px]"
+        onClick={navigateReturn}
       >
-        Workout complete
-      </div>
+        Continue
+      </BottomDockButton>
     ) : (
       <form
         action={async (formData) => {
@@ -353,7 +355,7 @@ export function SessionPageClient({
         </div>
       </form>
     ),
-    [durationSeconds, isSessionCompleted, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
+    [durationSeconds, isSessionCompleted, navigateReturn, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
   );
 
   return (
