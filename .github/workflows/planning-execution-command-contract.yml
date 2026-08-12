@@ -1,0 +1,58 @@
+name: Planning execution command contract
+
+on:
+  pull_request:
+    paths:
+      - "src/features/curated-onboarding/**"
+      - "src/lib/dal/planner-routine-create.ts"
+      - "src/lib/dal/planner-routine-create.test.ts"
+      - "src/lib/dal/planner-routine-executor.ts"
+      - "src/lib/dal/planner-routine-executor.test.ts"
+      - "scripts/migration/validate-supabase-chain.mjs"
+      - "scripts/migration/validate-supabase-chain.test.mjs"
+      - "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql"
+      - "docs/curated-planning-contract.md"
+      - "docs/PLAYBOOK_NOTES.md"
+      - ".github/workflows/planning-execution-command-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/features/curated-onboarding/**"
+      - "src/lib/dal/planner-routine-create.ts"
+      - "src/lib/dal/planner-routine-create.test.ts"
+      - "src/lib/dal/planner-routine-executor.ts"
+      - "src/lib/dal/planner-routine-executor.test.ts"
+      - "scripts/migration/validate-supabase-chain.mjs"
+      - "scripts/migration/validate-supabase-chain.test.mjs"
+      - "supabase/migrations/20260729000000_planner_persistence_adapter_v1.sql"
+      - "docs/curated-planning-contract.md"
+      - "docs/PLAYBOOK_NOTES.md"
+      - ".github/workflows/planning-execution-command-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  planning-execution-command-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify migration validator without a provider
+        run: node --test scripts/migration/validate-supabase-chain.test.mjs
+
+      - name: Verify planner execution command directly
+        run: node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/execution/compile.test.ts
+
+      - name: Verify persistence adapter and executor directly
+        run: node --import ./scripts/register-test-aliases.mjs --test src/lib/dal/planner-routine-create.test.ts src/lib/dal/planner-routine-executor.test.ts
