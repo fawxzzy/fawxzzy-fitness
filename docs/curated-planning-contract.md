@@ -898,3 +898,41 @@ Planner Pipeline v1 is provider-neutral and source-only. It does not import the
 server-only executor, apply a migration, call Supabase or another provider,
 persist or activate a routine, integrate a server action, change UI or
 existing-routine behavior, deploy, or alter production.
+
+## Planner Execution Command v1
+
+`src/features/curated-onboarding/planning/execution/` is the source-only
+command boundary between Planner Pipeline v1 and a later separately admitted
+server-side executor integration. It accepts raw curated-onboarding input, the
+frozen catalog, the canonical persistence request, and a bounded provider
+context. It recompiles and exact-validates the complete pipeline before it can
+emit anything executable.
+
+The closed result statuses are `executable`, `not_executable`, and
+`invalid_input`. An `executable` result contains exactly one command bound to
+the embedded pipeline digest, its exact-input-valid Persistence Intent v1, the
+exact normalized stage inputs carried by the pipeline, and the canonical
+provider context. Every non-executable result contains no partial command and
+one closed issue attributed either to pipeline readiness, pipeline validity,
+or provider-context validity.
+
+The runtime validator closes the result shape, versions, status and issue
+invariants, the full embedded pipeline receipt, command-to-stage derivation,
+Persistence Intent v1 runtime and nine-input validation, provider-context
+policy, and the semantic command digest. Runtime self-consistency cannot prove
+the caller's original onboarding, catalog, request, or provider context, so
+`validatePlannerExecutionCommandAgainstInputsV1` recompiles from those exact
+inputs and requires the same command digest.
+
+Frozen end-to-end fixtures cover every Planner Pipeline v1 fixture. Adversarial
+coverage rejects re-signed command substitution, pipeline substitution,
+terminal command injection, issue forgery, exact-input substitution, provider
+context substitution, and malformed runtime roots without throwing. The
+dedicated workflow invokes the focused command suite, provider-free migration
+validator, and persistence adapter and executor source suites directly.
+
+Planner Execution Command v1 remains provider-neutral and source-only. It does
+not import or invoke the server-only executor or DAL, apply migrations, call a
+provider or database, persist or activate a routine, integrate the
+curated-onboarding action, change UI or existing-routine behavior, deploy, or
+alter production.
