@@ -17,6 +17,8 @@ THUMBNAIL_HEIGHT = 390
 LABEL_HEIGHT = 76
 CELL_PADDING = 14
 BOARD_COLUMNS = 5
+BASELINE_STATES = {"candidate", "accepted"}
+SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 
 
 def sha256_file(file_path):
@@ -38,6 +40,78 @@ def require_string(value, label):
     return value.strip()
 
 
+def require_sha256(value, label):
+    normalized = require_string(value, label)
+    if not SHA256_PATTERN.fullmatch(normalized):
+        raise ValueError(f"Visual baseline {label} must be a lowercase SHA-256 digest.")
+    return normalized
+
+
+def require_object(value, label):
+    if not isinstance(value, dict):
+        raise ValueError(f"Visual baseline {label} must be an object.")
+    return value
+
+
+def validate_visual_baseline(manifest):
+    baseline = manifest.get("visualBaseline")
+    if baseline is None:
+        return None
+
+    baseline = require_object(baseline, "visualBaseline")
+    state = baseline.get("state")
+    if state not in BASELINE_STATES:
+        raise ValueError("Visual baseline state must be candidate or accepted.")
+
+    normalized = {
+        "baselineId": require_string(baseline.get("baselineId"), "baselineId"),
+        "state": state,
+        "captureManifestSha256": require_sha256(
+            baseline.get("captureManifestSha256"),
+            "captureManifestSha256",
+        ),
+        "boardReceiptSha256": require_sha256(
+            baseline.get("boardReceiptSha256"),
+            "boardReceiptSha256",
+        ),
+    }
+
+    if state == "candidate":
+        if "acceptance" in baseline or "predecessor" in baseline:
+            raise ValueError("Candidate visual baselines cannot declare acceptance or a predecessor.")
+        return normalized
+
+    acceptance = require_object(baseline.get("acceptance"), "visualBaseline.acceptance")
+    normalized["acceptance"] = {
+        "decisionId": require_string(acceptance.get("decisionId"), "acceptance.decisionId"),
+        "reviewer": require_string(acceptance.get("reviewer"), "acceptance.reviewer"),
+        "thresholdId": require_string(acceptance.get("thresholdId"), "acceptance.thresholdId"),
+        "retentionPolicy": require_string(acceptance.get("retentionPolicy"), "acceptance.retentionPolicy"),
+    }
+    predecessor = baseline.get("predecessor")
+    if predecessor is None:
+        return normalized
+
+    predecessor = require_object(predecessor, "visualBaseline.predecessor")
+    normalized["predecessor"] = {
+        "baselineId": require_string(predecessor.get("baselineId"), "predecessor.baselineId"),
+        "captureManifestSha256": require_sha256(
+            predecessor.get("captureManifestSha256"),
+            "predecessor.captureManifestSha256",
+        ),
+        "boardReceiptSha256": require_sha256(
+            predecessor.get("boardReceiptSha256"),
+            "predecessor.boardReceiptSha256",
+        ),
+        "decisionId": require_string(predecessor.get("decisionId"), "predecessor.decisionId"),
+    }
+    if normalized["predecessor"]["baselineId"] == normalized["baselineId"]:
+        raise ValueError("Visual baseline replacement predecessor must not be the accepted baseline itself.")
+    if normalized["predecessor"]["decisionId"] == normalized["acceptance"]["decisionId"]:
+        raise ValueError("Visual baseline replacement predecessor must have a distinct decision identifier.")
+    return normalized
+
+
 def resolve_manifest_path(value, manifest_path):
     candidate = Path(require_string(value, "screenshotPath"))
     if not candidate.is_absolute():
@@ -54,6 +128,8 @@ def read_visual_catalog(manifest_path):
         raise ValueError(
             f"Expected visual catalog schema {CATALOG_SCHEMA}, received {manifest.get('schemaVersion')!r}."
         )
+
+    validate_visual_baseline(manifest)
 
     output_root = Path(require_string(manifest.get("outputRoot"), "outputRoot")).resolve()
     capture_root = output_root / "captures"

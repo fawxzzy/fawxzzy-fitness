@@ -92,6 +92,12 @@ them in weighted scoring where a higher preference score could override them.
 | `safety.professionalDirection` | `professionalRestrictions`, `restrictedMovements` | User-reported professional direction and clearance uncertainty |
 | `safety.acknowledgments` | `safetyAcknowledgment`, `fitnessGuidanceAcknowledgment` | Audit/context only |
 | `preferences.requiredExerciseNames` | Current answer set | Empty until required/preferred intent is captured explicitly |
+
+## Visual-baseline lifecycle
+
+Visual catalog manifests may include a `visualBaseline` object. Omission remains compatible with ordinary catalog generation. A baseline is either a `candidate` or an `accepted` immutable record and always binds both the capture-manifest and board-receipt SHA-256 digests.
+
+Accepted baselines additionally require decision, reviewer, threshold, and retention-policy identifiers. A replacement must carry a distinct immutable predecessor binding with its own decision identifier; a manifest cannot silently identify itself as its predecessor. This source contract validates lifecycle metadata only. It neither accepts nor replaces a baseline, recaptures screenshots, nor deletes retained artifacts.
 | `preferences.preferredExerciseNames` | `exerciseEnjoy` | Soft preference |
 | `preferences.improvementMovementIds` | `movementsToImprove` | Coverage preference |
 | `preferences.dislikedExerciseNames` | `exerciseHate` | Soft de-prioritization, not a medical restriction |
