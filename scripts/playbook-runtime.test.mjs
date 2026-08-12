@@ -88,6 +88,188 @@ test('normalizeFallbackInstallTarget downloads https fallback to temp tgz path a
   assert.match(messages.join('\n'), /Final resolved URL/);
 });
 
+function socketCloseError() {
+  const cause = new Error('other side closed');
+  cause.name = 'SocketError';
+  return new TypeError('fetch failed', { cause });
+}
+
+test('normalizeFallbackInstallTarget retries one transient socket-close failure and preserves artifact validation', async () => {
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+  const payload = Buffer.from('recovered tgz');
+  const messages = [];
+  let calls = 0;
+
+  const result = await normalizeFallbackInstallTarget({
+    rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+    runtimeRoot,
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls === 1) throw socketCloseError();
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        arrayBuffer: async () => payload,
+        url: 'https://example.com/releases/playbook-cli-0.1.8.tgz'
+      };
+    },
+    logger: { error: (message) => messages.push(message) }
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(result.fileSize, payload.length);
+  assert.deepEqual(readFileSync(result.installSpec), payload);
+  assert.match(messages.join('\n'), /Retrying official fallback download after transient transport failure/);
+});
+
+test('normalizeFallbackInstallTarget retries one transient socket-close during response body acquisition', async () => {
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+  const payload = Buffer.from('body-read recovery tgz');
+  let calls = 0;
+
+  const result = await normalizeFallbackInstallTarget({
+    rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+    runtimeRoot,
+    fetchImpl: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        arrayBuffer: async () => {
+          if (calls === 1) throw socketCloseError();
+          return payload;
+        },
+        url: 'https://example.com/releases/playbook-cli-0.1.8.tgz'
+      };
+    },
+    logger: { error() {} }
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(result.fileSize, payload.length);
+  assert.deepEqual(readFileSync(result.installSpec), payload);
+});
+
+test('normalizeFallbackInstallTarget exhausts the single transient retry without masking the failure', async () => {
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+  const messages = [];
+  let calls = 0;
+
+  await assert.rejects(
+    normalizeFallbackInstallTarget({
+      rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      runtimeRoot,
+      fetchImpl: async () => {
+        calls += 1;
+        throw socketCloseError();
+      },
+      logger: { error: (message) => messages.push(message) }
+    }),
+    /Failed to download fallback artifact from https:\/\/example\.com\/releases\/playbook-cli-0\.1\.8\.tgz/
+  );
+
+  assert.equal(calls, 2);
+  assert.match(messages.join('\n'), /SocketError: other side closed/);
+});
+
+test('normalizeFallbackInstallTarget exhausts the single retry when response body acquisition closes', async () => {
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+  let calls = 0;
+
+  await assert.rejects(
+    normalizeFallbackInstallTarget({
+      rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      runtimeRoot,
+      fetchImpl: async () => {
+        calls += 1;
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          arrayBuffer: async () => { throw socketCloseError(); },
+          url: 'https://example.com/releases/playbook-cli-0.1.8.tgz'
+        };
+      },
+      logger: { error() {} }
+    }),
+    /Failed to download fallback artifact from https:\/\/example\.com\/releases\/playbook-cli-0\.1\.8\.tgz/
+  );
+
+  assert.equal(calls, 2);
+});
+
+for (const [status, statusText] of [[502, 'Bad Gateway'], [503, 'Service Unavailable'], [504, 'Gateway Timeout']]) {
+  test(`normalizeFallbackInstallTarget retries one transient HTTP ${status} response`, async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+    const payload = Buffer.from(`recovered after ${status}`);
+    const messages = [];
+    let calls = 0;
+
+    const result = await normalizeFallbackInstallTarget({
+      rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      runtimeRoot,
+      fetchImpl: async () => {
+        calls += 1;
+        if (calls === 1) return { ok: false, status, statusText, url: '' };
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          arrayBuffer: async () => payload,
+          url: 'https://example.com/releases/playbook-cli-0.1.8.tgz'
+        };
+      },
+      logger: { error: (message) => messages.push(message) }
+    });
+
+    assert.equal(calls, 2);
+    assert.deepEqual(readFileSync(result.installSpec), payload);
+    assert.match(messages.join('\n'), /Retrying official fallback download after transient HTTP response/);
+  });
+
+  test(`normalizeFallbackInstallTarget exhausts the single transient HTTP ${status} retry`, async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+    let calls = 0;
+
+    await assert.rejects(
+      normalizeFallbackInstallTarget({
+        rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+        runtimeRoot,
+        fetchImpl: async () => {
+          calls += 1;
+          return { ok: false, status, statusText, url: '' };
+        },
+        logger: { error() {} }
+      }),
+      new RegExp(`HTTP ${status} ${statusText}`)
+    );
+
+    assert.equal(calls, 2);
+  });
+}
+
+test('normalizeFallbackInstallTarget does not retry a deterministic HTTP failure response', async () => {
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+  let calls = 0;
+
+  await assert.rejects(
+    normalizeFallbackInstallTarget({
+      rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      runtimeRoot,
+      fetchImpl: async () => {
+        calls += 1;
+        return { ok: false, status: 404, statusText: 'Not Found', url: '' };
+      },
+      logger: { error() {} }
+    }),
+    /HTTP 404 Not Found/
+  );
+
+  assert.equal(calls, 1);
+});
+
 test('install-package explains that package acquisition is disabled unless explicitly enabled', () => {
   const run = spawnSync('node', ['scripts/playbook-runtime.mjs', '--install-package'], {
     encoding: 'utf8',

@@ -16,6 +16,23 @@ type BottomSheetProps = {
   contentClassName?: string;
 };
 
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
+
+function getFocusableSheetElements(container: HTMLElement | null) {
+  if (!container) return [];
+
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => !element.hasAttribute("disabled") && element.tabIndex >= 0,
+  );
+}
+
 export function BottomSheet({ open, title, onClose, children, className, description, contentClassName }: BottomSheetProps) {
   const titleId = useId();
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -40,6 +57,31 @@ export function BottomSheet({ open, title, onClose, children, className, descrip
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = getFocusableSheetElements(sheetRef.current);
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        sheetRef.current?.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+      const activeElementIsInsideSheet = activeElement instanceof HTMLElement && sheetRef.current?.contains(activeElement);
+
+      if (event.shiftKey && (!activeElementIsInsideSheet || activeElement === firstElement)) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && (!activeElementIsInsideSheet || activeElement === lastElement)) {
+        event.preventDefault();
+        firstElement.focus();
       }
     };
 
@@ -62,9 +104,7 @@ export function BottomSheet({ open, title, onClose, children, className, descrip
       ? document.activeElement
       : null;
 
-    const focusTarget = sheetRef.current?.querySelector<HTMLElement>(
-      "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])",
-    );
+    const focusTarget = getFocusableSheetElements(sheetRef.current)[0];
     (focusTarget ?? sheetRef.current)?.focus();
   }, [open]);
 
