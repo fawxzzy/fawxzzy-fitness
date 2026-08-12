@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const VIEWPORT_CONTENT = "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover";
+const VIEWPORT_CONTENT = "width=device-width, initial-scale=1, viewport-fit=cover";
 
 export function MobileViewportGuard() {
   useEffect(() => {
