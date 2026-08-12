@@ -595,3 +595,73 @@ test("visual catalog board builder rejects missing and orphan screenshots", asyn
   assert.notEqual(orphanResult.code, 0);
   assert.match(orphanResult.stderr, /Orphan visual catalog screenshot/);
 });
+
+test("visual catalog baseline metadata distinguishes candidates from accepted and replacements", async (t) => {
+  const fixtureRoot = await makeFixtureRoot(t);
+  const manifestPath = await writeVisualCatalogFixture(fixtureRoot);
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const digest = "a".repeat(64);
+
+  manifest.visualBaseline = {
+    baselineId: "candidate-wave-a",
+    state: "candidate",
+    captureManifestSha256: digest,
+    boardReceiptSha256: "b".repeat(64),
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const candidateResult = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.equal(candidateResult.code, 0, candidateResult.stderr);
+
+  manifest.visualBaseline = {
+    ...manifest.visualBaseline,
+    state: "accepted",
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const missingAcceptance = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.notEqual(missingAcceptance.code, 0);
+  assert.match(missingAcceptance.stderr, /visualBaseline.acceptance must be an object/);
+
+  manifest.visualBaseline = {
+    ...manifest.visualBaseline,
+    acceptance: {
+      decisionId: "decision-initial",
+      reviewer: "visual-review",
+      thresholdId: "no-regressions-v1",
+      retentionPolicy: "retain-current-v1",
+    },
+    predecessor: {
+      baselineId: "candidate-wave-a",
+      captureManifestSha256: digest,
+      boardReceiptSha256: "b".repeat(64),
+      decisionId: "decision-initial",
+    },
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const selfReplacement = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.notEqual(selfReplacement.code, 0);
+  assert.match(selfReplacement.stderr, /predecessor must not be the accepted baseline itself/);
+
+  manifest.visualBaseline = {
+    ...manifest.visualBaseline,
+    baselineId: "accepted-wave-b",
+    predecessor: {
+      ...manifest.visualBaseline.predecessor,
+      baselineId: "accepted-wave-a",
+    },
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const reusedDecision = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.notEqual(reusedDecision.code, 0);
+  assert.match(reusedDecision.stderr, /predecessor must have a distinct decision identifier/);
+
+  manifest.visualBaseline = {
+    ...manifest.visualBaseline,
+    predecessor: {
+      ...manifest.visualBaseline.predecessor,
+      decisionId: "decision-accepted-wave-a",
+    },
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const replacementResult = await runVisualCatalogBoardBuilder(manifestPath);
+  assert.equal(replacementResult.code, 0, replacementResult.stderr);
+});
