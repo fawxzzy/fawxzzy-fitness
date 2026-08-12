@@ -265,6 +265,9 @@ function validatePlannerExecutionProviderContextUnsafe(
   }
   const root = value as Record<string, unknown>;
   const keys = Object.keys(root).sort(canonicalCompare);
+  const name = root.name;
+  const startDate = root.startDate;
+  const timezone = root.timezone;
   if (
     keys.length !== PROVIDER_CONTEXT_KEYS.length
     || [...PROVIDER_CONTEXT_KEYS].sort(canonicalCompare).some(
@@ -274,26 +277,26 @@ function validatePlannerExecutionProviderContextUnsafe(
     errorCodes.push("PROVIDER_CONTEXT_KEYS_INVALID");
   }
   if (
-    typeof root.name !== "string"
-    || root.name.length < 1
-    || root.name.length > 120
-    || root.name !== root.name.trim()
-    || CONTROL_CHARACTER_PATTERN.test(root.name)
+    typeof name !== "string"
+    || name.length < 1
+    || name.length > 120
+    || name !== name.trim()
+    || CONTROL_CHARACTER_PATTERN.test(name)
   ) {
     errorCodes.push("PROVIDER_NAME_INVALID");
   }
   if (
-    typeof root.startDate !== "string"
-    || !isRealDate(root.startDate)
+    typeof startDate !== "string"
+    || !isRealDate(startDate)
   ) {
     errorCodes.push("PROVIDER_START_DATE_INVALID");
   }
   if (
-    typeof root.timezone !== "string"
-    || root.timezone.length < 1
-    || root.timezone.length > 120
-    || root.timezone !== root.timezone.trim()
-    || !isSupportedTimezone(root.timezone)
+    typeof timezone !== "string"
+    || timezone.length < 1
+    || timezone.length > 120
+    || timezone !== timezone.trim()
+    || !isSupportedTimezone(timezone)
   ) {
     errorCodes.push("PROVIDER_TIMEZONE_INVALID");
   }
@@ -307,9 +310,9 @@ function validatePlannerExecutionProviderContextUnsafe(
   }
   return {
     context: {
-      name: root.name as string,
-      startDate: root.startDate as string,
-      timezone: root.timezone as string,
+      name: name as string,
+      startDate: startDate as string,
+      timezone: timezone as string,
     },
     errorCodes: [] as PlannerExecutionProviderContextErrorCode[],
   };

@@ -520,6 +520,166 @@ test("hostile provider and command accessors fail closed without throwing", () =
   }
 });
 
+test("provider fields are snapshotted once before validation and command construction", () => {
+  const inputs =
+    createPlannerExecutionCommandFixtureInputs(READY_ID);
+  const unsafeProviderContext = {
+    name: "unsafe\u0000name",
+    startDate: "2026-02-30",
+    timezone: "Mars/Olympus",
+  };
+
+  function createSafeThenUnsafeGetterProvider() {
+    const reads = { name: 0, startDate: 0, timezone: 0 };
+    const providerContext = Object.defineProperties({}, {
+      name: {
+        enumerable: true,
+        get() {
+          reads.name += 1;
+          return reads.name <= 6
+            ? inputs.providerContext.name
+            : unsafeProviderContext.name;
+        },
+      },
+      startDate: {
+        enumerable: true,
+        get() {
+          reads.startDate += 1;
+          return reads.startDate <= 6
+            ? inputs.providerContext.startDate
+            : unsafeProviderContext.startDate;
+        },
+      },
+      timezone: {
+        enumerable: true,
+        get() {
+          reads.timezone += 1;
+          return reads.timezone <= 6
+            ? inputs.providerContext.timezone
+            : unsafeProviderContext.timezone;
+        },
+      },
+    });
+    return { providerContext, reads };
+  }
+
+  function createSafeThenUnsafeProxyProvider() {
+    const reads = { name: 0, startDate: 0, timezone: 0 };
+    const providerContext = new Proxy(
+      { ...inputs.providerContext },
+      {
+        get(target, property, receiver) {
+          if (
+            property === "name"
+            || property === "startDate"
+            || property === "timezone"
+          ) {
+            reads[property] += 1;
+            return reads[property] <= 6
+              ? Reflect.get(target, property, receiver)
+              : unsafeProviderContext[property];
+          }
+          return Reflect.get(target, property, receiver);
+        },
+      },
+    );
+    return { providerContext, reads };
+  }
+
+  for (const createProviderContext of [
+    createSafeThenUnsafeGetterProvider,
+    createSafeThenUnsafeProxyProvider,
+  ]) {
+    const validationSource = createProviderContext();
+    assert.deepEqual(
+      validatePlannerExecutionProviderContextV1(
+        validationSource.providerContext,
+      ),
+      {
+        context: inputs.providerContext,
+        errorCodes: [],
+      },
+    );
+    assert.deepEqual(validationSource.reads, {
+      name: 1,
+      startDate: 1,
+      timezone: 1,
+    });
+
+    const compilationSource = createProviderContext();
+    const compiled = compilePlannerExecutionCommandV1(
+      inputs.onboarding,
+      inputs.catalog,
+      inputs.request,
+      compilationSource.providerContext,
+    );
+    assert.equal(compiled.status, "executable");
+    assert.ok(compiled.command);
+    assert.deepEqual(
+      compiled.command.providerContext,
+      inputs.providerContext,
+    );
+    assert.deepEqual(
+      validatePlannerExecutionCommandV1WithReceipt(compiled).errors,
+      [],
+    );
+    assert.deepEqual(compilationSource.reads, {
+      name: 1,
+      startDate: 1,
+      timezone: 1,
+    });
+  }
+
+  function createUnsafeThenSafeProvider() {
+    let nameReads = 0;
+    return Object.defineProperties({}, {
+      name: {
+        enumerable: true,
+        get() {
+          nameReads += 1;
+          return nameReads === 1
+            ? unsafeProviderContext.name
+            : inputs.providerContext.name;
+        },
+      },
+      startDate: {
+        enumerable: true,
+        value: inputs.providerContext.startDate,
+      },
+      timezone: {
+        enumerable: true,
+        value: inputs.providerContext.timezone,
+      },
+    });
+  }
+
+  assert.deepEqual(
+    validatePlannerExecutionProviderContextV1(
+      createUnsafeThenSafeProvider(),
+    ),
+    {
+      context: null,
+      errorCodes: ["PROVIDER_NAME_INVALID"],
+    },
+  );
+  const invalidCompiled = compilePlannerExecutionCommandV1(
+    inputs.onboarding,
+    inputs.catalog,
+    inputs.request,
+    createUnsafeThenSafeProvider(),
+  );
+  assert.equal(invalidCompiled.status, "invalid_input");
+  assert.equal(invalidCompiled.command, null);
+  assert.deepEqual(invalidCompiled.issues, [
+    {
+      code: "PROVIDER_CONTEXT_INVALID",
+      issueClass: "invalid",
+      path: "/providerContext",
+      values: ["PROVIDER_NAME_INVALID"],
+    },
+  ]);
+});
+
 test("provider issue values stay inside the closed vocabulary", () => {
   const inputs =
     createPlannerExecutionCommandFixtureInputs(READY_ID);
