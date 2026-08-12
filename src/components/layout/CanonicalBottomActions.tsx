@@ -7,6 +7,10 @@ export const BOTTOM_ACTION_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] max-w
 const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
 const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-2";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = BOTTOM_ACTION_GROUP_CLASSNAME;
+export const BOTTOM_ACTION_SPLIT_LAYOUT_CLASSNAME =
+  "grid-cols-1 min-[360px]:grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]";
+export const BOTTOM_ACTION_TRIAD_LAYOUT_CLASSNAME =
+  "grid-cols-1 min-[360px]:grid-cols-[minmax(112px,0.92fr)_minmax(5.75rem,7.25rem)_minmax(0,1.42fr)]";
 
 const CONTROL_LABEL_CLASSNAME = cn(
   "[&_.bottom-action]:leading-[1.08] [&_.bottom-action]:text-center [&_.bottom-action]:whitespace-normal",
@@ -93,7 +97,7 @@ export function BottomActionSplit({ primary, secondary, className }: { primary: 
       data-layout="split"
       className={cn(
         BOTTOM_ACTION_GROUP_CLASSNAME,
-        "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]",
+        BOTTOM_ACTION_SPLIT_LAYOUT_CLASSNAME,
         itemBaseClassName,
         className,
       )}
@@ -130,7 +134,7 @@ export function BottomActionTriad({
       data-layout="triad"
       className={cn(
         BOTTOM_ACTION_GROUP_CLASSNAME,
-        "grid-cols-[minmax(112px,0.92fr)_minmax(5.75rem,7.25rem)_minmax(0,1.42fr)]",
+        BOTTOM_ACTION_TRIAD_LAYOUT_CLASSNAME,
         itemBaseClassName,
         className,
       )}
