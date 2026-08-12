@@ -3384,12 +3384,15 @@ function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
   const fixture = getRegressionExerciseDetailFixture(scenario);
 
   return (
-    <RegressionExerciseInfoSheet
-      scenarioId={scenario.id}
-      scrollToBottom={scenario.captureScrollPosition === "bottom"}
-      exercise={fixture.exercise}
-      stats={fixture.stats}
-    />
+    <>
+      <RegressionMarker scenario={scenario} />
+      <RegressionExerciseInfoSheet
+        scenarioId={scenario.id}
+        scrollToBottom={scenario.captureScrollPosition === "bottom"}
+        exercise={fixture.exercise}
+        stats={fixture.stats}
+      />
+    </>
   );
 }
 

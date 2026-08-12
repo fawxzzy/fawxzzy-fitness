@@ -20,6 +20,13 @@ test("mobile regression surface preserves the production guard unless the server
   assert.match(source, /process\.env\.NODE_ENV === "production" && !allowProductionPreview/);
 });
 
+test("exercise-detail fixtures preserve the standard regression root marker contract", async () => {
+  const source = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /function renderExerciseDetailScenario\(scenario: MobileFixtureScenario\)[\s\S]*?<RegressionMarker scenario=\{scenario\} \/>/);
+  assert.match(source, /<RegressionExerciseInfoSheet[\s\S]*?scenarioId=\{scenario\.id\}/);
+});
+
 test("automatic progression review fixture represents completed target work", async () => {
   const source = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
 
