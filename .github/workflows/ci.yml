@@ -28,7 +28,7 @@ jobs:
 
       - name: Verify curated engine, planning intake, exercise catalog, and roadmap contracts
         run: |
-          node --test src/app/viewport.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/app/viewport.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/normalize.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts
