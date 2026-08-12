@@ -136,6 +136,10 @@ function isTransientFallbackFetchError(error) {
   ));
 }
 
+function isTransientFallbackResponse(response) {
+  return response?.status === 502 || response?.status === 503 || response?.status === 504;
+}
+
 async function fetchOfficialFallbackArtifactWithRetry({ fetchImpl, url, logger }) {
   let lastError;
 
@@ -161,6 +165,12 @@ async function fetchOfficialFallbackArtifactWithRetry({ fetchImpl, url, logger }
     }
 
     if (!response.ok) {
+      if (attempt < TRANSIENT_FALLBACK_FETCH_ATTEMPTS && isTransientFallbackResponse(response)) {
+        logger.error(`[playbook-runtime] Download response: HTTP ${response.status} ${response.statusText}`.trim());
+        logger.error(`[playbook-runtime] Retrying official fallback download after transient HTTP response (${attempt}/${TRANSIENT_FALLBACK_FETCH_ATTEMPTS}).`);
+        continue;
+      }
+
       return { response, buffer: null };
     }
 
