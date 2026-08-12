@@ -253,7 +253,7 @@ function isSupportedTimezone(value: string) {
   }
 }
 
-export function validatePlannerExecutionProviderContextV1(
+function validatePlannerExecutionProviderContextUnsafe(
   value: unknown,
 ) {
   const errorCodes: PlannerExecutionProviderContextErrorCode[] = [];
@@ -313,6 +313,19 @@ export function validatePlannerExecutionProviderContextV1(
     },
     errorCodes: [] as PlannerExecutionProviderContextErrorCode[],
   };
+}
+
+export function validatePlannerExecutionProviderContextV1(
+  value: unknown,
+) {
+  try {
+    return validatePlannerExecutionProviderContextUnsafe(value);
+  } catch {
+    return {
+      context: null,
+      errorCodes: ["PROVIDER_CONTEXT_NOT_RECORD"] as const,
+    };
+  }
 }
 
 export function createPlannerExecutionCommandIssue(
@@ -655,26 +668,47 @@ export function validatePlannerExecutionCommandV1(
   return errors;
 }
 
+function readPlannerExecutionCommandReceiptIdentity(
+  value: unknown,
+): Pick<
+  PlannerExecutionCommandRuntimeValidationReceiptV1,
+  "schemaVersion" | "commandDigest"
+> {
+  try {
+    const root =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : null;
+    const schemaVersion = root?.schemaVersion;
+    const commandDigest = root?.commandDigest;
+    return {
+      schemaVersion:
+        schemaVersion === PLANNER_EXECUTION_COMMAND_SCHEMA_VERSION
+          ? PLANNER_EXECUTION_COMMAND_SCHEMA_VERSION
+          : null,
+      commandDigest:
+        typeof commandDigest === "string"
+        && DIGEST_PATTERN.test(commandDigest)
+          ? commandDigest
+          : null,
+    };
+  } catch {
+    return {
+      schemaVersion: null,
+      commandDigest: null,
+    };
+  }
+}
+
 export function validatePlannerExecutionCommandV1WithReceipt(
   value: unknown,
 ): PlannerExecutionCommandRuntimeValidationReceiptV1 {
-  const root =
-    value && typeof value === "object" && !Array.isArray(value)
-      ? value as Record<string, unknown>
-      : null;
   const errors = validatePlannerExecutionCommandV1(value);
+  const identity = readPlannerExecutionCommandReceiptIdentity(value);
   return {
     validatorVersion:
       PLANNER_EXECUTION_COMMAND_RUNTIME_VALIDATOR_VERSION,
-    schemaVersion:
-      root?.schemaVersion === PLANNER_EXECUTION_COMMAND_SCHEMA_VERSION
-        ? PLANNER_EXECUTION_COMMAND_SCHEMA_VERSION
-        : null,
-    commandDigest:
-      typeof root?.commandDigest === "string"
-      && DIGEST_PATTERN.test(root.commandDigest)
-        ? root.commandDigest
-        : null,
+    ...identity,
     valid: errors.length === 0,
     errors,
   };

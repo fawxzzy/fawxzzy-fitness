@@ -20,6 +20,7 @@ import {
   PLANNER_EXECUTION_PROVIDER_CONTEXT_ERROR_CODES,
   digestPlannerExecutionCommand,
   validatePlannerExecutionCommandV1WithReceipt,
+  validatePlannerExecutionProviderContextV1,
   type PlannerExecutionCommandV1,
 } from "./contract.ts";
 import {
@@ -413,6 +414,109 @@ test("validator is non-throwing for malformed roots and canonical JSON attacks",
       validatePlannerExecutionCommandV1WithReceipt(value).valid,
       false,
     );
+  }
+});
+
+test("hostile provider and command accessors fail closed without throwing", () => {
+  const inputs =
+    createPlannerExecutionCommandFixtureInputs(READY_ID);
+  const providerOwnKeysProxy = new Proxy(
+    { ...inputs.providerContext },
+    {
+      ownKeys() {
+        throw new Error("provider-ownKeys-secret");
+      },
+    },
+  );
+  const providerAccessor = Object.defineProperties({}, {
+    name: {
+      enumerable: true,
+      get() {
+        throw new Error("provider-getter-secret");
+      },
+    },
+    startDate: {
+      enumerable: true,
+      value: inputs.providerContext.startDate,
+    },
+    timezone: {
+      enumerable: true,
+      value: inputs.providerContext.timezone,
+    },
+  });
+
+  for (const providerContext of [
+    providerOwnKeysProxy,
+    providerAccessor,
+  ]) {
+    let providerValidation: ReturnType<
+      typeof validatePlannerExecutionProviderContextV1
+    > | undefined;
+    assert.doesNotThrow(() => {
+      providerValidation =
+        validatePlannerExecutionProviderContextV1(providerContext);
+    });
+    assert.deepEqual(providerValidation, {
+      context: null,
+      errorCodes: ["PROVIDER_CONTEXT_NOT_RECORD"],
+    });
+
+    let compiled: PlannerExecutionCommandV1 | undefined;
+    assert.doesNotThrow(() => {
+      compiled = compilePlannerExecutionCommandV1(
+        inputs.onboarding,
+        inputs.catalog,
+        inputs.request,
+        providerContext,
+      );
+    });
+    assert.ok(compiled);
+    assert.equal(compiled.status, "invalid_input");
+    assert.equal(compiled.command, null);
+    assert.deepEqual(compiled.issues, [
+      {
+        code: "PROVIDER_CONTEXT_INVALID",
+        issueClass: "invalid",
+        path: "/providerContext",
+        values: ["PROVIDER_CONTEXT_NOT_RECORD"],
+      },
+    ]);
+    assert.doesNotMatch(JSON.stringify(compiled), /secret/);
+  }
+
+  const hostileCommands = [
+    new Proxy({}, {
+      ownKeys() {
+        throw new Error("command-ownKeys-secret");
+      },
+    }),
+    new Proxy({}, {
+      get() {
+        throw new Error("command-get-secret");
+      },
+    }),
+    Object.defineProperty({}, "schemaVersion", {
+      enumerable: true,
+      get() {
+        throw new Error("command-getter-secret");
+      },
+    }),
+  ];
+
+  for (const hostileCommand of hostileCommands) {
+    let receipt: ReturnType<
+      typeof validatePlannerExecutionCommandV1WithReceipt
+    > | undefined;
+    assert.doesNotThrow(() => {
+      receipt =
+        validatePlannerExecutionCommandV1WithReceipt(hostileCommand);
+    });
+    assert.ok(receipt);
+    assert.equal(receipt.valid, false);
+    assert.equal(receipt.schemaVersion, null);
+    assert.equal(receipt.commandDigest, null);
+    assert.ok(receipt.errors.length > 0);
+    assert.doesNotMatch(receipt.errors.join("\n"), /secret/);
   }
 });
 
