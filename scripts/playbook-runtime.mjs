@@ -32,6 +32,7 @@ const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
 const DEFAULT_PLAYBOOK_VERSION = '0.1.8';
 const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
 const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/ZachariahRedfield/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+const TRANSIENT_FALLBACK_FETCH_ATTEMPTS = 2;
 const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC ?? DEFAULT_OFFICIAL_FALLBACK_SPEC;
 const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? DEFAULT_PACKAGE_SPEC;
 const command = process.argv[2];
@@ -129,6 +130,61 @@ function ensureNonEmptyFile(filePath) {
   return stats.size;
 }
 
+function isTransientFallbackFetchError(error) {
+  return summarizeError(error).some((detail) => (
+    /socketerror:\s*other side closed|socket[^\n]*closed|econnreset|etimedout|eai_again/i.test(detail)
+  ));
+}
+
+async function fetchOfficialFallbackArtifactWithRetry({ fetchImpl, url, logger }) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= TRANSIENT_FALLBACK_FETCH_ATTEMPTS; attempt += 1) {
+    let response;
+
+    try {
+      response = await fetchImpl(url);
+    } catch (error) {
+      lastError = error;
+      const canRetry = attempt < TRANSIENT_FALLBACK_FETCH_ATTEMPTS && isTransientFallbackFetchError(error);
+
+      for (const detail of summarizeError(error)) {
+        logger.error(`[playbook-runtime] Download failure detail: ${detail}`);
+      }
+
+      if (!canRetry) {
+        break;
+      }
+
+      logger.error(`[playbook-runtime] Retrying official fallback download after transient transport failure (${attempt}/${TRANSIENT_FALLBACK_FETCH_ATTEMPTS}).`);
+      continue;
+    }
+
+    if (!response.ok) {
+      return { response, buffer: null };
+    }
+
+    try {
+      return { response, buffer: Buffer.from(await response.arrayBuffer()) };
+    } catch (error) {
+      lastError = error;
+      const canRetry = attempt < TRANSIENT_FALLBACK_FETCH_ATTEMPTS && isTransientFallbackFetchError(error);
+
+      for (const detail of summarizeError(error)) {
+        logger.error(`[playbook-runtime] Download failure detail: ${detail}`);
+      }
+
+      if (!canRetry) {
+        break;
+      }
+
+      logger.error(`[playbook-runtime] Retrying official fallback download after transient transport failure (${attempt}/${TRANSIENT_FALLBACK_FETCH_ATTEMPTS}).`);
+    }
+  }
+
+  throw lastError;
+}
+
 export async function normalizeFallbackInstallTarget({
   rawSpec,
   runtimeRoot = OFFICIAL_FALLBACK_ROOT,
@@ -165,12 +221,14 @@ export async function normalizeFallbackInstallTarget({
   logger.error(`[playbook-runtime] Temporary download path: ${downloadPath}`);
 
   let response;
+  let buffer;
   try {
-    response = await fetchImpl(fallbackSpec.normalized);
+    ({ response, buffer } = await fetchOfficialFallbackArtifactWithRetry({
+      fetchImpl,
+      url: fallbackSpec.normalized,
+      logger
+    }));
   } catch (error) {
-    for (const detail of summarizeError(error)) {
-      logger.error(`[playbook-runtime] Download failure detail: ${detail}`);
-    }
     throw new Error(`Failed to download fallback artifact from ${fallbackSpec.normalized}`);
   }
 
@@ -182,7 +240,6 @@ export async function normalizeFallbackInstallTarget({
     throw new Error(`Failed to download fallback artifact: HTTP ${response.status} ${response.statusText}`.trim());
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
   writeFileSync(downloadPath, buffer);
   const fileSize = ensureNonEmptyFile(downloadPath);
   logger.error(`[playbook-runtime] Downloaded fallback artifact size: ${fileSize} bytes`);
