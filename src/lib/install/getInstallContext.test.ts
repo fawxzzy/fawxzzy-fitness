@@ -14,8 +14,8 @@ test("detects iPhone Safari browser tab as Add to Home Screen gate", () => {
   assert.equal(context.isIOS, true);
   assert.equal(context.isSafari, true);
   assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
-  assert.equal(context.shouldBlockAppAccess, false);
-  assert.equal(context.shouldAllowAppAccess, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
 });
 test("detects iPhone in-app browser as Open in Safari gate", () => {
   const context = getInstallContext({
@@ -73,8 +73,8 @@ test("detects Android install prompt support", () => {
 
   assert.equal(context.isAndroid, true);
   assert.equal(context.canUseNativeInstallPrompt, true);
-  assert.equal(context.shouldBlockAppAccess, false);
-  assert.equal(context.shouldAllowAppAccess, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
 });
 
 test("detects desktop fallback without iOS gates", () => {
@@ -102,10 +102,11 @@ test("detects iPadOS Safari desktop platform with touch", () => {
 
   assert.equal(context.isIOS, true);
   assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
-  assert.equal(context.shouldAllowAppAccess, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
 });
 
-test("ios safari override remains guidance-only for local install QA", () => {
+test("ios safari override retains the installed-app boundary for local install QA", () => {
   const context = getInstallContext({
     override: "ios-safari",
     allowOverride: true,
@@ -113,8 +114,8 @@ test("ios safari override remains guidance-only for local install QA", () => {
   });
 
   assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
-  assert.equal(context.shouldBlockAppAccess, false);
-  assert.equal(context.shouldAllowAppAccess, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
 });
 
 test("install context override is opt-in so protected routes cannot bypass install gate by query string", () => {
@@ -174,6 +175,8 @@ test("documented Android and desktop install contexts resolve to concrete browse
 
   assert.equal(android.platform, "android");
   assert.equal(android.browserKind, "chrome");
+  assert.equal(android.shouldBlockAppAccess, true);
+  assert.equal(android.shouldAllowAppAccess, false);
   assert.equal(edge.platform, "desktop");
   assert.equal(edge.browserKind, "edge");
   assert.equal(safari.platform, "desktop");

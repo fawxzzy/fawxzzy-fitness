@@ -1121,3 +1121,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Planner Execution Command v1 is provider-neutral and source-only. It does not import or invoke the executor or DAL, apply migrations, call Supabase, persist or activate routines, integrate server actions or UI, deploy, or alter production.
 - Evidence: `src/features/curated-onboarding/planning/execution/contract.ts`, `src/features/curated-onboarding/planning/execution/compile.ts`, `src/features/curated-onboarding/planning/execution/compile.test.ts`, `src/features/curated-onboarding/planning/execution/fixtures.ts`, `.github/workflows/planning-execution-command-contract.yml`, `docs/curated-planning-contract.md`
 - Status: Proposed
+
+## 2026-08-13 - Require installed mode for mobile app entry
+
+- Type: Access boundary + Coverage
+- WHAT changed: Protected app routes now redirect iOS and Android browser tabs to the existing install guide and render a loading state while that client-only decision resolves. The guide keeps desktop continuation available, but withholds its primary entry action on mobile until the app is running in standalone mode. Local development login automation remains an explicit query opt-in. Added context and source-contract coverage for iPhone, iPadOS, Android, standalone mode, and the mobile install surfaces.
+- WHY it changed: Mobile browser tabs could render protected Fitness content before the install decision settled, and Android did not share the iOS installed-app boundary. That conflicted with the product rule that mobile access starts from the Home Screen app rather than a browser tab.
+- Rule: On iOS and Android, only a standalone or fullscreen installed launch may enter protected Fitness routes. Browser tabs and in-app browsers must stay on installation guidance without an app-entry continuation. Desktop browser access remains unchanged.
+- Failure Mode: Treating installation as a decorative prompt leaves a browser-tab bypass, can flash protected content during hydration, and makes iOS and Android follow different entry rules.
+- Evidence: `src/components/install/ProtectedAppInstallGate.tsx`, `src/components/install/InstallRouteSurface.tsx`, `src/components/install/IOSAddToHomeScreenGate.tsx`, `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/lib/install/config.test.ts`, `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`.
+- Status: Applied in source; normal PR review and lifecycle remain pending. No Auth, provider, deployment, or production mutation is part of this change.
