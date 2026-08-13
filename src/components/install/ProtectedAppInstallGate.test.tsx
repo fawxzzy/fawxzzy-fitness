@@ -18,5 +18,6 @@ test("iOS in-app browsers redirect protected routes to the install guide while k
   const source = readFileSync(new URL("./ProtectedAppInstallGate.tsx", import.meta.url), "utf8");
   assert.match(source, /context\.shouldBlockAppAccess && pathname !== "\/install"/);
   assert.match(source, /router\.replace\(getInstallRouteHrefForReturnTo\(currentPath\)\)/);
+  assert.match(source, /!hasResolvedClientInstallContext \|\| shouldRedirectToInstall/);
   assert.match(source, /return <RouteLoading label="Opening install guide" variant="route" \/>;/);
 });

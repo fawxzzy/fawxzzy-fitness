@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { RouteLoading } from "@/components/RouteLoading";
@@ -15,17 +15,20 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [hasResolvedClientInstallContext, setHasResolvedClientInstallContext] = useState(false);
   const context = useMemo(() => getInstallContext(), []);
   const currentPath = searchParams.size > 0 ? `${pathname}?${searchParams}` : pathname;
   const shouldRedirectToInstall = context.shouldBlockAppAccess && pathname !== "/install";
 
   useEffect(() => {
+    setHasResolvedClientInstallContext(true);
+
     if (shouldRedirectToInstall) {
       router.replace(getInstallRouteHrefForReturnTo(currentPath));
     }
   }, [currentPath, router, shouldRedirectToInstall]);
 
-  if (shouldRedirectToInstall) {
+  if (!hasResolvedClientInstallContext || shouldRedirectToInstall) {
     return <RouteLoading label="Opening install guide" variant="route" />;
   }
 
