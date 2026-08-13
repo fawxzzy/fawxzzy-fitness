@@ -43,6 +43,7 @@ export function InstallRouteSurface({
     : context.browserKind === "safari"
       ? "Safari Install"
       : "Browser Install";
+  const canContinueWithoutInstall = !context.shouldBlockAppAccess;
   useEffect(() => {
     if (context.isStandalone) {
       router.replace(getInstalledAppHref(initialReturnTo ?? "/login"));
@@ -71,7 +72,7 @@ export function InstallRouteSurface({
         copyState={copyState}
         installUrl={installUrl}
         onCopy={handleCopy}
-        primaryHref={continueHref}
+        primaryHref={canContinueWithoutInstall ? continueHref : undefined}
       />
     );
   }
@@ -86,8 +87,8 @@ export function InstallRouteSurface({
       eyebrow="Install"
       installUrl={installUrl}
       onCopy={handleCopy}
-      primaryHref={installPrompt.canPromptInstall ? undefined : continueHref}
-      primaryLabel={installPrompt.canPromptInstall ? undefined : "Open Fitness"}
+      primaryHref={installPrompt.canPromptInstall || !canContinueWithoutInstall ? undefined : continueHref}
+      primaryLabel={installPrompt.canPromptInstall || !canContinueWithoutInstall ? undefined : "Open Fitness"}
       secondaryAction={installPrompt.canPromptInstall ? (
         <BottomDockButton
           intent="info"
@@ -104,7 +105,9 @@ export function InstallRouteSurface({
       subtitle={
         context.isStandalone
           ? "Fitness is already running in installed mode on this device."
-          : "Use the browser install prompt here, or open Fitness directly."
+          : canContinueWithoutInstall
+            ? "Use the browser install prompt here, or open Fitness directly."
+            : "Install Fitness from this browser, then open it from your Home Screen."
       }
       title={context.isStandalone ? "Fitness is already installed" : "Install Fitness"}
     >
@@ -129,8 +132,8 @@ export function InstallRouteSurface({
       ) : (
         <div className="rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
           <p>
-            This browser is not offering the one-tap install prompt right now. You can still open Fitness normally,
-            or use your browser menu to add it to your home screen.
+            This browser is not offering the one-tap install prompt right now. Use your browser menu to add Fitness
+            to your Home Screen, then open it from the new app icon.
           </p>
           <p className="mt-2 text-[0.82rem] leading-5 text-[rgb(var(--text-muted)/0.9)]">
             Look for Share, Add to Home Screen, or Install app depending on your browser.
