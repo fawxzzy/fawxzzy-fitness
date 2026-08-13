@@ -18,7 +18,9 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
   const [hasResolvedClientInstallContext, setHasResolvedClientInstallContext] = useState(false);
   const context = useMemo(() => getInstallContext(), []);
   const currentPath = searchParams.size > 0 ? `${pathname}?${searchParams}` : pathname;
-  const shouldRedirectToInstall = context.shouldBlockAppAccess && pathname !== "/install";
+  // Recovery tokens are intentionally delivered in the URL fragment, which cannot survive an install-guide redirect.
+  const isPasswordRecovery = pathname === "/reset-password" && searchParams.get("recovery") === "1";
+  const shouldRedirectToInstall = context.shouldBlockAppAccess && pathname !== "/install" && !isPasswordRecovery;
 
   useEffect(() => {
     setHasResolvedClientInstallContext(true);
