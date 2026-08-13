@@ -27,7 +27,7 @@ function resolvePreferredLocalDevAccount(value: string | undefined): LocalDevAut
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const shouldAttemptLocalDevAutoLogin = searchParams?.manual !== "1" && searchParams?.localAutoAuth !== "failed";
+  const shouldAttemptLocalDevAutoLogin = searchParams?.localAutoAuth === "1";
   const returnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams.returnTo : undefined;
 
   if (shouldAttemptLocalDevAutoLogin) {

@@ -131,7 +131,16 @@ test("browser fallback preserves the full install presentation alongside explici
   assert.doesNotMatch(installSource, /Manual Open/);
 });
 
-test("normal app and auth entry never route through the install surface", () => {
+test("iOS in-app guidance does not expose an install-bypass continuation", () => {
+  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+  const chromeSource = readFileSync(new URL("../../components/install/InstallGateChrome.tsx", import.meta.url), "utf8");
+  const inAppGate = installSource.split("if (context.shouldShowIOSOpenInSafariGate)")[1]?.split("if (context.shouldShowIOSAddToHomeScreenGate)")[0] ?? "";
+
+  assert.doesNotMatch(inAppGate, /primaryHref=\{continueHref\}/);
+  assert.doesNotMatch(chromeSource, /showCopyButton && primaryHref && primaryLabel/);
+});
+
+test("the protected app shell routes iOS in-app access to the install surface", () => {
   const homeSource = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
   const loginSource = readFileSync(new URL("../../app/login/page.tsx", import.meta.url), "utf8");
   const signupSource = readFileSync(new URL("../../app/signup/page.tsx", import.meta.url), "utf8");
@@ -141,9 +150,7 @@ test("normal app and auth entry never route through the install surface", () => 
   assert.doesNotMatch(homeSource, /getInstallRouteHrefForReturnTo/);
   assert.doesNotMatch(loginSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
   assert.doesNotMatch(signupSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
-  assert.match(gateSource, /return children;/);
-  assert.doesNotMatch(
-    gateSource,
-    /AUTH_INSTALL_ENTRY_PATHS|Opening install guide|router\.replace|shouldBlockAppAccess|IOSOpenInSafariGate|getInstallContext/,
-  );
+  assert.match(gateSource, /shouldBlockAppAccess/);
+  assert.match(gateSource, /pathname !== "\/install"/);
+  assert.match(gateSource, /getInstallRouteHrefForReturnTo\(currentPath\)/);
 });
