@@ -37,6 +37,18 @@ test("automatic progression review fixture represents completed target work", as
   assert.match(source, /linkedDayNames: \["Lower A", "Lower B"\]/);
 });
 
+test("history fixtures preserve selected-session identity and fixture-relative calendar framing", async () => {
+  const source = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
+  const historyClientSource = await readFile(new URL("../../history/HistorySessionsClient.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const historySession = scenario\.fixture === "progression-expanded"[\s\S]*?mockHistorySessions\[0\]/);
+  assert.match(source, /logId=\{historySession\.id\}/);
+  assert.match(source, /sessionSummary=\{historySession\}/);
+  assert.match(source, /calendarNow="2026-04-10T12:00:00\.000Z"/);
+  assert.match(historyClientSource, /calendarNow\?: string/);
+  assert.match(historyClientSource, /now: calendarNow/);
+});
+
 test("session completion uses the progression promotion receipt contract", async () => {
   const source = await readFile(new URL("../../../components/SessionPageClient.tsx", import.meta.url), "utf8");
 
