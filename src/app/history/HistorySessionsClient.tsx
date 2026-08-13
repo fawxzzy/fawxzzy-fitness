@@ -490,6 +490,7 @@ export function HistorySessionsClient({
   initialSelectedTags = [],
   showBottomActions = true,
   sessionHrefOverrides,
+  calendarNow,
 }: {
   sessions: SessionSummary[];
   filterOptions?: ExerciseInfoFilterOptions;
@@ -516,6 +517,7 @@ export function HistorySessionsClient({
   initialSelectedTags?: string[];
   showBottomActions?: boolean;
   sessionHrefOverrides?: Record<string, string>;
+  calendarNow?: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
@@ -843,7 +845,8 @@ export function HistorySessionsClient({
     selectedDayKey: effectiveSelectedDayKey,
     selectedMonthKey,
     skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
-  }), [effectiveSelectedDayKey, monthFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone, selectedMonthKey]);
+    now: calendarNow,
+  }), [calendarNow, effectiveSelectedDayKey, monthFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone, selectedMonthKey]);
 
   const monthlyProgress = useMemo(() => buildHistoryMonthlyProgress({
     sessions: queryFilteredSessions,

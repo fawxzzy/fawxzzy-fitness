@@ -2797,6 +2797,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}
             sessionHrefOverrides={sessionHrefOverrides}
+            calendarNow="2026-04-10T12:00:00.000Z"
           />
         </ContentRail>
       </ScrollScreenWithBottomActions>
@@ -2846,6 +2847,13 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
+  const historySession = scenario.fixture === "progression-expanded"
+    ? mockHistorySessions[0]
+    : scenario.fixture === "feedback-note"
+      ? mockHistorySessions[1]
+      : scenario.fixture === "broken-images"
+        ? mockHistorySessions[2]
+        : mockHistorySessions[1];
   const initialExpandedExerciseId = scenario.fixture === "progression-expanded"
     ? "audit-1"
     : scenario.fixture === "feedback-note"
@@ -2876,25 +2884,25 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
         <ContentRail>
           <ScreenScaffold className="space-y-2">
             <HistoryLogPageClient
-              logId="history-session-2"
-              initialDayName={PREVIEW_DAY_LABEL}
+              logId={historySession.id}
+              initialDayName={historySession.dayTitle ?? null}
               initialNotes={scenario.fixture === "feedback-note" ? null : "Broken media fixtures should preserve spacing and not collapse summary rows."}
               unitLabel="lbs"
               exerciseNameMap={exerciseNameMap}
-              sessionSummary={mockHistorySessions[1]}
+              sessionSummary={historySession}
               recapArtifact={{
-                id: "recap:history-session-2",
-                sessionId: "history-session-2",
-                title: "Atlas Routine | Lower A recap",
-                completedAt: "2026-04-08T17:00:00.000Z",
+                id: `recap:${historySession.id}`,
+                sessionId: historySession.id,
+                title: `${historySession.routineTitle} | ${historySession.dayTitle ?? "Workout"} recap`,
+                completedAt: historySession.startedAt,
                 metrics: [
-                  { label: "Exercises", value: "2" },
-                  { label: "Sets", value: "5" },
-                  { label: "Duration", value: "42:10" },
+                  { label: "Exercises", value: String(historySession.exerciseCount) },
+                  { label: "Sets", value: String(historySession.setCount) },
+                  { label: "Duration", value: `${Math.floor(historySession.durationSec / 60)}m` },
                 ],
-                topEfforts: [{ exerciseName: "Back Squat", value: "225 lbs x 5" }],
-                prMoments: ["Back Squat"],
-                shareText: "Atlas Routine | Lower A recap\nExercises: 2 | Sets: 5 | Duration: 42:10\nPRs: Back Squat\nTop efforts:\n- Back Squat: 225 lbs x 5",
+                topEfforts: historySession.topSet ? [{ exerciseName: historySession.topSet.exerciseName, value: historySession.topSet.display }] : [],
+                prMoments: historySession.topSet && historySession.prCounts.total > 0 ? [historySession.topSet.exerciseName] : [],
+                shareText: `${historySession.routineTitle} | ${historySession.dayTitle ?? "Workout"} recap\nExercises: ${historySession.exerciseCount} | Sets: ${historySession.setCount} | Duration: ${Math.floor(historySession.durationSec / 60)}m`,
               }}
               backHref="/history?tab=sessions"
               exercises={[...exercises]}
