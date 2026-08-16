@@ -41,7 +41,7 @@ test("bundle recovery loop guard only reloads once per build and signature", () 
 
 test("bundle recovery reload href adds a cache-busting recovery signature", () => {
   assert.equal(
-    buildClientBundleRecoveryHref("https://fawxzzy-fitness-local.vercel.app/today?tab=current", "build-9", "chunk-load-error"),
-    "https://fawxzzy-fitness-local.vercel.app/today?tab=current&app-recovery=chunk-load-error&app-build=build-9",
+    buildClientBundleRecoveryHref("https://fitness.fawxzzy.com/today?tab=current", "build-9", "chunk-load-error"),
+    "https://fitness.fawxzzy.com/today?tab=current&app-recovery=chunk-load-error&app-build=build-9",
   );
 });

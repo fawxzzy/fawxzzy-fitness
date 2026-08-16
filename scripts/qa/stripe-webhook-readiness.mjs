@@ -19,7 +19,7 @@ for (const [key, value] of Object.entries(fileEnv)) {
   }
 }
 
-const DEFAULT_ENDPOINT_URL = "https://fawxzzy-fitness-local.vercel.app/api/billing/webhook/stripe";
+const DEFAULT_ENDPOINT_URL = "https://fitness.fawxzzy.com/api/billing/webhook/stripe";
 const DEFAULT_REQUIRED_EVENTS = [
   "checkout.session.completed",
   "checkout.session.expired",

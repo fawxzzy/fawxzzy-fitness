@@ -18,6 +18,7 @@ import { buildLocalDevBrowserResetScript, buildPreHydrationAppBootPrimerScript }
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { APP_BOOT_PREFERENCES_COOKIE_KEY, readAppBootPreferencesCookieValue } from "@/lib/app-boot-preferences";
 import { getAppThemeCssVariables, getAppThemeSignature } from "@/lib/app-theme";
+import { resolveCanonicalAppOrigin } from "@/lib/app-origin";
 import "./globals.css";
 
 const APP_NAME = "FawxzzyFitness";
@@ -50,31 +51,14 @@ function versionedAppIcon(pathname: string) {
 }
 
 function resolveMetadataBase() {
-  const candidates = [
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.APP_URL,
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    "https://fawxzzy-fitness.vercel.app",
-  ];
-
-  for (const candidate of candidates) {
-    if (!candidate) {
-      continue;
-    }
-
-    try {
-      return new URL(candidate);
-    } catch {
-      continue;
-    }
-  }
-
-  return undefined;
+  return new URL(resolveCanonicalAppOrigin());
 }
 
 export const metadata: Metadata = {
   metadataBase: resolveMetadataBase(),
+  alternates: {
+    canonical: "/",
+  },
   title: APP_NAME,
   description: APP_DESCRIPTION,
   appleWebApp: {

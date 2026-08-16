@@ -51,7 +51,7 @@ test("shouldAttemptAppLaunchRecovery blocks repeated refresh loops for the same 
 
 test("buildAppLaunchRecoveryHref adds a cache-busting recovery marker", () => {
   const href = buildAppLaunchRecoveryHref(
-    "https://fawxzzy-fitness-local.vercel.app/today",
+    "https://fitness.fawxzzy.com/today",
     "build-123",
     "/today",
   );
