@@ -335,7 +335,7 @@ export function SessionPageClient({
         <div
           role="group"
           aria-label="Bottom actions"
-          className="grid w-full max-w-full grid-cols-1 items-stretch gap-2 overflow-x-clip min-[360px]:grid-cols-[minmax(84px,0.72fr)_minmax(6.5rem,7.8rem)_minmax(0,1.16fr)]"
+          className="grid w-full max-w-full grid-cols-[minmax(84px,0.72fr)_minmax(6.5rem,7.8rem)_minmax(0,1.16fr)] items-stretch gap-2 overflow-x-clip max-[359px]:grid-cols-1"
         >
           <div className="flex min-w-0 items-stretch [&>*]:w-full">
             {quickAddAction}

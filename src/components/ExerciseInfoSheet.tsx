@@ -2428,7 +2428,7 @@ export function ExerciseInfoSheet({
               className={cn(
                 ACTION_CHROME_CONTROL_CLASS_NAME,
                 ACTION_CHROME_SEGMENTED_CLASS_NAME,
-                "inline-flex h-8 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
+                "inline-flex min-h-11 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
               )}
             >
               <span>Re-sync</span>
@@ -2442,7 +2442,7 @@ export function ExerciseInfoSheet({
               countBadge={appliedFilterCount > 0 ? appliedFilterCount : null}
               className={cn(
                 appTokens.exercisePickerFilterToggle,
-                "!w-auto !min-w-[3.45rem] !border-[rgb(var(--accent)/0.52)] !bg-[rgb(var(--surface-2-rgb)/0.28)] !px-2.5 !pl-3 !pr-1.5",
+                "!min-h-[44px] !w-auto !min-w-[3.45rem] !border-[rgb(var(--accent)/0.52)] !bg-[rgb(var(--surface-2-rgb)/0.28)] !px-2.5 !pl-3 !pr-1.5",
               )}
             />
           )}

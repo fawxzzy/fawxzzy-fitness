@@ -17,16 +17,16 @@ test("canonical bottom actions retain accessible targets and narrow-layout reflo
 
   assert.equal(
     BOTTOM_ACTION_SPLIT_LAYOUT_CLASSNAME,
-    "grid-cols-1 min-[360px]:grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]",
+    "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)] max-[359px]:grid-cols-1",
   );
   assert.equal(
     BOTTOM_ACTION_TRIAD_LAYOUT_CLASSNAME,
-    "grid-cols-1 min-[360px]:grid-cols-[minmax(112px,0.92fr)_minmax(5.75rem,7.25rem)_minmax(0,1.42fr)]",
+    "grid-cols-[minmax(112px,0.92fr)_minmax(5.75rem,7.25rem)_minmax(0,1.42fr)] max-[359px]:grid-cols-1",
   );
 
   const sessionSource = fs.readFileSync(path.resolve(process.cwd(), "src/components/SessionPageClient.tsx"), "utf8");
   assert.match(
     sessionSource,
-    /grid-cols-1[^"\n]*min-\[360px\]:grid-cols-\[minmax\(84px,0\.72fr\)_minmax\(6\.5rem,7\.8rem\)_minmax\(0,1\.16fr\)\]/,
+    /grid-cols-\[minmax\(84px,0\.72fr\)_minmax\(6\.5rem,7\.8rem\)_minmax\(0,1\.16fr\)\][^"\n]*max-\[359px\]:grid-cols-1/,
   );
 });
