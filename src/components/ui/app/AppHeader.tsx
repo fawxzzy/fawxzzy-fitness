@@ -4,6 +4,9 @@ import { EyebrowText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 import { headerTokens } from "@/components/ui/app/headerTokens";
 
+export const CENTERED_HEADER_COPY_COLUMN_WITH_ACTION_CLASSNAME =
+  "max-w-[calc(100%-3.75rem)] px-1 sm:max-w-[calc(100%-4rem)] sm:px-1";
+
 export function AppHeader({
   eyebrow,
   title,
@@ -57,7 +60,7 @@ export function AppHeader({
     ? cn(
       "mx-auto w-fit min-w-0 flex-none",
       hasRightRail
-        ? "max-w-[calc(100%-4.85rem)] px-[1.75rem] sm:max-w-[calc(100%-5.4rem)] sm:px-[2.1rem]"
+        ? CENTERED_HEADER_COPY_COLUMN_WITH_ACTION_CLASSNAME
         : "max-w-[calc(100%-1rem)] px-1",
     )
     : "flex-1";
