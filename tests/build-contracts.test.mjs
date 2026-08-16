@@ -24,3 +24,18 @@ test("service worker source includes a version marker and skip-waiting recovery 
   assert.match(firstBuild, /self\.skipWaiting\(\)/);
   assert.match(firstBuild, /self\.clients\.claim\(\)/);
 });
+
+test("legacy worker retires old-host caches while the current worker uses a distinct URL", () => {
+  const generator = readFileSync(path.join(repoRoot, "scripts", "generate-service-worker.mjs"), "utf8");
+  const bootstrap = readFileSync(path.join(repoRoot, "src", "components", "ServiceWorkerBootstrap.tsx"), "utf8");
+  const retirementWorker = readFileSync(path.join(repoRoot, "public", "sw.js"), "utf8");
+
+  assert.match(generator, /public", "app-sw\.js"/);
+  assert.match(bootstrap, /register\("\/app-sw\.js", \{ scope: "\/" \}\)/);
+  assert.match(retirementWorker, /const LEGACY_ORIGIN = "https:\/\/fawxzzy-fitness-local\.vercel\.app";/);
+  assert.match(retirementWorker, /const CANONICAL_ORIGIN = "https:\/\/fitness\.fawxzzy\.com";/);
+  assert.match(retirementWorker, /await caches\.delete\(cacheName\)/);
+  assert.match(retirementWorker, /await self\.registration\.unregister\(\)/);
+  assert.match(retirementWorker, /canonicalUrl\.pathname = clientUrl\.pathname/);
+  assert.match(retirementWorker, /canonicalUrl\.search = clientUrl\.search/);
+});
