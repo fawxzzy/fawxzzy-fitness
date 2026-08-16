@@ -88,7 +88,7 @@ Runtime resolution order is deterministic and must remain:
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
 - `npm ci` succeeds without hard-requiring a Playbook npm package in the base dependency graph.
-- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned official fallback asset `https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz` unless intentionally overridden.
+- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned retained fallback asset `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz` unless intentionally overridden.
 - Official acquisition diagnostics must surface the source URL, final resolved URL, HTTP status/status text, local tarball path, tarball size, and underlying error/cause details on failure.
 - Package acquisition is optional and must only run when explicitly enabled by env/config (`PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1` and/or `PLAYBOOK_PACKAGE_SPEC=...`).
 - CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable verified upstream coordinate and must not depend on a known-missing or non-authoritative npm package path for clean-environment bootstrap.

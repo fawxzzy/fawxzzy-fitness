@@ -93,7 +93,7 @@ Notes:
 
 ### Official fallback spec rules
 
-`PLAYBOOK_OFFICIAL_FALLBACK_SPEC` defaults to the pinned official GitHub release asset: `https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz`.
+`PLAYBOOK_OFFICIAL_FALLBACK_SPEC` defaults to the pinned retained GitHub release asset: `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz`.
 
 Supported forms:
 - `https://` / `http://` tarball URL

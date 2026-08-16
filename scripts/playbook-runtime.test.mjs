@@ -7,6 +7,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
+  DEFAULT_OFFICIAL_FALLBACK_SPEC,
+  DEFAULT_PACKAGE_SPEC,
+  DEFAULT_PLAYBOOK_VERSION,
   classifyFallbackSpec,
   isPackageAcquisitionEnabled,
   normalizeFallbackInstallTarget,
@@ -14,6 +17,15 @@ import {
 } from './playbook-runtime.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+test('default Playbook acquisition uses the retained canonical release', () => {
+  assert.equal(DEFAULT_PLAYBOOK_VERSION, '0.54.0');
+  assert.equal(DEFAULT_PACKAGE_SPEC, '@fawxzzy/playbook-cli@0.54.0');
+  assert.equal(
+    DEFAULT_OFFICIAL_FALLBACK_SPEC,
+    'https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz'
+  );
+});
 
 test('package acquisition stays disabled unless explicitly enabled by env or spec override', () => {
   assert.equal(isPackageAcquisitionEnabled({}), false);

@@ -29,9 +29,9 @@ const COMPAT_ALIASES = new Set([
   'pilot'
 ]);
 const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
-const DEFAULT_PLAYBOOK_VERSION = '0.1.8';
-const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
-const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/ZachariahRedfield/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+export const DEFAULT_PLAYBOOK_VERSION = '0.54.0';
+export const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
+export const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/fawxzzy/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
 const TRANSIENT_FALLBACK_FETCH_ATTEMPTS = 2;
 const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC ?? DEFAULT_OFFICIAL_FALLBACK_SPEC;
 const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? DEFAULT_PACKAGE_SPEC;

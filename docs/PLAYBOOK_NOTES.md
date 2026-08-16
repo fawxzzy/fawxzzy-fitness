@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-15 - Bind Fitness to its branded origin and retained Playbook distribution
+- Type: Configuration + Reliability + Coverage
+- WHAT changed: Centralized the application-origin fallback on `https://fitness.fawxzzy.com`, updated metadata, install, recovery, environment-example, and Stripe-readiness surfaces to use that branded origin, and added focused origin regressions. Rebound the active Playbook fallback from the deleted legacy GitHub account to the source-bound `fawxzzy/playbook` v0.54.0 release asset, with exact acquisition tests and aligned workflow/operator documentation.
+- WHY it changed: Fitness must be ready to operate under its owned `fawxzzy.com` subdomain without retaining `vercel.app` as application identity, while clean-environment verification must remain reproducible after the legacy GitHub account retirement.
+- Rule: Application identity belongs in one resolver and release-tool acquisition must use a retained, immutable, source-bound artifact.
+- Failure Mode: Scattered origin fallbacks produce mixed canonical URLs after a domain cutover; a deleted or unverifiable release coordinate makes otherwise-correct source changes fail CI.
+- Decision: Source readiness only. Vercel production deployment, DNS, Supabase Auth redirect configuration, Spotify callback changes, and every live provider cutover remain separately authorized.
+- Evidence: `src/lib/app-origin.ts`; `src/app/layout.tsx`; `src/lib/install/config.ts`; recovery/install tests; `scripts/playbook-runtime.mjs`; `scripts/playbook-runtime.test.mjs`; `.github/workflows/ci.yml`; retained Playbook release `v0.54.0` at source commit `eaa36197f7f4161979f85c36358b1864e1481698`.
+- Status: Source-proven; live domain cutover not performed
+
 ## 2026-08-11 - Close the local authenticated Fitness qualification integrity gaps
 - Type: Fix + Security + Coverage
 - WHAT changed: Bound quick-log copy and payload to one render-captured action; made offline skip-toggle claims lease-aware and provider errors closed/non-echoing; accepted exact authoritative logged-set-count decreases; transitioned completed sessions to a non-actionable local UI state; made the local Supabase banner honor the launcher-provided expected host; made QA reset lookup-only for an exact pre-existing synthetic user and removed automatic Auth create/update fallback from session bootstrap; replaced the caller-selectable session-start adapter with a server-only repository-authenticated export; tightened the session-start RPC to service-role execution with explicit user binding and exact day/exercise ownership; and recreated the follow-up claim function with qualified columns. Added focused regressions and a dedicated CI contract. The corrective migration is source-only until separately authorized for a target database.
