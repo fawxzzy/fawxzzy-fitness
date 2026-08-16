@@ -4,12 +4,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## 2026-08-15 - Bind Fitness to its branded origin and retained Playbook distribution
 - Type: Configuration + Reliability + Coverage
-- WHAT changed: Centralized the application-origin fallback on `https://fitness.fawxzzy.com`, updated metadata, install, recovery, environment-example, and Stripe-readiness surfaces to use that branded origin, and added focused origin regressions. Rebound the active Playbook fallback from the deleted legacy GitHub account to the source-bound `fawxzzy/playbook` v0.54.0 release asset, with exact acquisition tests and aligned workflow/operator documentation.
+- WHAT changed: Centralized the application-origin fallback on `https://fitness.fawxzzy.com`, updated metadata, install, recovery, environment-example, and Stripe-readiness surfaces to use that branded origin, and added focused origin regressions. Rebound the active Playbook fallback from the deleted legacy GitHub account to the source-bound `fawxzzy/playbook` v0.54.0 release asset, enforced its exact SHA-256 before write/install, and added default, override, and mismatch acquisition tests with aligned workflow/operator documentation.
 - WHY it changed: Fitness must be ready to operate under its owned `fawxzzy.com` subdomain without retaining `vercel.app` as application identity, while clean-environment verification must remain reproducible after the legacy GitHub account retirement.
-- Rule: Application identity belongs in one resolver and release-tool acquisition must use a retained, immutable, source-bound artifact.
-- Failure Mode: Scattered origin fallbacks produce mixed canonical URLs after a domain cutover; a deleted or unverifiable release coordinate makes otherwise-correct source changes fail CI.
+- Rule: Application identity belongs in one resolver and release-tool acquisition must use a retained, source-bound artifact whose expected digest is enforced before installation.
+- Failure Mode: Scattered origin fallbacks produce mixed canonical URLs after a domain cutover; a deleted coordinate breaks CI, while a URL-only release contract can silently install replaced or redirected bytes.
 - Decision: Source readiness only. Vercel production deployment, DNS, Supabase Auth redirect configuration, Spotify callback changes, and every live provider cutover remain separately authorized.
-- Evidence: `src/lib/app-origin.ts`; `src/app/layout.tsx`; `src/lib/install/config.ts`; recovery/install tests; `scripts/playbook-runtime.mjs`; `scripts/playbook-runtime.test.mjs`; `.github/workflows/ci.yml`; retained Playbook release `v0.54.0` at source commit `eaa36197f7f4161979f85c36358b1864e1481698`.
+- Evidence: `src/lib/app-origin.ts`; `src/app/layout.tsx`; `src/lib/install/config.ts`; recovery/install tests; `scripts/playbook-runtime.mjs`; `scripts/playbook-runtime.test.mjs`; `.github/workflows/ci.yml`; retained Playbook release `v0.54.0` at source commit `eaa36197f7f4161979f85c36358b1864e1481698`, asset SHA-256 `1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5`.
 - Status: Source-proven; live domain cutover not performed
 
 ## 2026-08-11 - Close the local authenticated Fitness qualification integrity gaps

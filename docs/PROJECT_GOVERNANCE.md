@@ -88,10 +88,10 @@ Runtime resolution order is deterministic and must remain:
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
 - `npm ci` succeeds without hard-requiring a Playbook npm package in the base dependency graph.
-- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned retained fallback asset `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz` unless intentionally overridden.
-- Official acquisition diagnostics must surface the source URL, final resolved URL, HTTP status/status text, local tarball path, tarball size, and underlying error/cause details on failure.
+- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned retained fallback asset `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz` with SHA-256 `1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5` unless intentionally overridden with both a spec and digest.
+- Official acquisition must hash the downloaded or local artifact before writing/installing it and fail closed on mismatch. Diagnostics must surface the source URL, final resolved URL, HTTP status/status text, local tarball path, tarball size, verified digest, and underlying error/cause details on failure.
 - Package acquisition is optional and must only run when explicitly enabled by env/config (`PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1` and/or `PLAYBOOK_PACKAGE_SPEC=...`).
-- CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable verified upstream coordinate and must not depend on a known-missing or non-authoritative npm package path for clean-environment bootstrap.
+- CI must pin both `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and `PLAYBOOK_OFFICIAL_FALLBACK_SHA256` to the retained verified artifact and must not depend on a known-missing or non-authoritative npm package path for clean-environment bootstrap.
 - With `PLAYBOOK_BIN` unset, commands resolve through repo-local installs first if present, then through the official fallback install.
 - Runtime outputs continue to land only under `.playbook/`.
 - The non-applying CI ladder must assert its planning artifacts: `.playbook/findings.json`, `.playbook/plan.json`, and `.playbook/repo-graph.json`. `.playbook/last-run.json` is apply execution state and is required only when an apply/governed execution path runs.

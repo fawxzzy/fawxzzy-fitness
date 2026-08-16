@@ -75,7 +75,7 @@ env -u PLAYBOOK_BIN node scripts/playbook-runtime.mjs ai-context
 Expected behavior:
 - clean dependency install succeeds without any Playbook registry package assumption
 - official runtime acquisition downloads the pinned release tarball to a temp `.tgz` under `.playbook/runtime/`
-- installer logs the source URL, final resolved URL, HTTP status, local tarball path, and artifact size
+- installer verifies the pinned SHA-256 before writing or installing the tarball, then logs the source URL, final resolved URL, HTTP status, local tarball path, artifact size, and verified digest
 - runtime writes under `.playbook/`
 
 ### Optional package acquisition path (explicit opt-in only)
@@ -93,13 +93,14 @@ Notes:
 
 ### Official fallback spec rules
 
-`PLAYBOOK_OFFICIAL_FALLBACK_SPEC` defaults to the pinned retained GitHub release asset: `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz`.
+`PLAYBOOK_OFFICIAL_FALLBACK_SPEC` defaults to the pinned retained GitHub release asset: `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz`. Its canonical SHA-256 is `1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5`.
 
 Supported forms:
 - `https://` / `http://` tarball URL
 - `file:` URL
 - local filesystem tarball path
-- `git+`/git URL when the upstream distribution contract explicitly uses git install targets
+
+Every custom URL, `file:` URL, or local tarball override must also set `PLAYBOOK_OFFICIAL_FALLBACK_SHA256` to the expected 64-character digest. Git install targets are not accepted by this verified artifact path because they cannot satisfy the tarball digest contract.
 
 Unsupported form:
 - registry-style package specs such as `@fawxzzy/playbook-cli@0.1.8`

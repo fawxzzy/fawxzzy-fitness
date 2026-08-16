@@ -54,6 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PLAYBOOK_OFFICIAL_FALLBACK_SPEC: https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz
+      PLAYBOOK_OFFICIAL_FALLBACK_SHA256: 1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
