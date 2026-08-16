@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /**
  * Playbook runtime bridge (thin adapter only).
@@ -29,9 +30,10 @@ const COMPAT_ALIASES = new Set([
   'pilot'
 ]);
 const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
-const DEFAULT_PLAYBOOK_VERSION = '0.1.8';
-const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
-const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/ZachariahRedfield/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+export const DEFAULT_PLAYBOOK_VERSION = '0.54.0';
+export const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
+export const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/fawxzzy/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+export const DEFAULT_OFFICIAL_FALLBACK_SHA256 = '1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5';
 const TRANSIENT_FALLBACK_FETCH_ATTEMPTS = 2;
 const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC ?? DEFAULT_OFFICIAL_FALLBACK_SPEC;
 const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? DEFAULT_PACKAGE_SPEC;
@@ -39,6 +41,31 @@ const command = process.argv[2];
 
 function normalizeSpec(spec) {
   return typeof spec === 'string' ? spec.trim() : '';
+}
+
+function normalizeSha256(value) {
+  const digest = normalizeSpec(value).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(digest)) {
+    throw new Error('Official fallback acquisition requires an expected SHA-256 digest.');
+  }
+  return digest;
+}
+
+export function resolveOfficialFallbackSha256(rawSpec, env = process.env) {
+  const explicitDigest = normalizeSpec(env.PLAYBOOK_OFFICIAL_FALLBACK_SHA256);
+  if (explicitDigest) return normalizeSha256(explicitDigest);
+  return normalizeSpec(rawSpec) === DEFAULT_OFFICIAL_FALLBACK_SPEC
+    ? DEFAULT_OFFICIAL_FALLBACK_SHA256
+    : '';
+}
+
+function verifyArtifactSha256(buffer, expectedSha256) {
+  const expected = normalizeSha256(expectedSha256);
+  const actual = createHash('sha256').update(buffer).digest('hex');
+  if (actual !== expected) {
+    throw new Error('Official fallback artifact failed SHA-256 verification.');
+  }
+  return actual;
 }
 
 function isLikelyLocalPath(spec) {
@@ -197,22 +224,34 @@ async function fetchOfficialFallbackArtifactWithRetry({ fetchImpl, url, logger }
 
 export async function normalizeFallbackInstallTarget({
   rawSpec,
+  expectedSha256,
   runtimeRoot = OFFICIAL_FALLBACK_ROOT,
   fetchImpl = globalThis.fetch,
   logger = console
 }) {
   const fallbackSpec = classifyFallbackSpec(rawSpec);
   if (!fallbackSpec.valid) {
-    return { fallbackSpec, installSpec: null, downloadedFrom: null, finalUrl: null, fileSize: null };
+    return { fallbackSpec, installSpec: null, downloadedFrom: null, finalUrl: null, fileSize: null, sha256: null };
   }
+  const verifiedExpectedSha256 = normalizeSha256(expectedSha256);
 
   if (fallbackSpec.kind !== 'https-url') {
+    if (fallbackSpec.kind === 'git-url') {
+      throw new Error('Official fallback git targets are not supported by the verified artifact contract.');
+    }
+
+    const localPath = fallbackSpec.kind === 'file-url'
+      ? fileURLToPath(fallbackSpec.normalized)
+      : toAbsolutePath(fallbackSpec.normalized);
+    const fileSize = ensureNonEmptyFile(localPath);
+    const sha256 = verifyArtifactSha256(readFileSync(localPath), verifiedExpectedSha256);
     return {
       fallbackSpec,
       installSpec: fallbackSpec.normalized,
       downloadedFrom: null,
       finalUrl: null,
-      fileSize: fallbackSpec.kind === 'local-path' ? ensureNonEmptyFile(toAbsolutePath(fallbackSpec.normalized)) : null
+      fileSize,
+      sha256
     };
   }
 
@@ -250,17 +289,44 @@ export async function normalizeFallbackInstallTarget({
     throw new Error(`Failed to download fallback artifact: HTTP ${response.status} ${response.statusText}`.trim());
   }
 
+  if (!buffer || buffer.length === 0) {
+    throw new Error('Downloaded fallback artifact was empty.');
+  }
+  const sha256 = verifyArtifactSha256(buffer, verifiedExpectedSha256);
   writeFileSync(downloadPath, buffer);
   const fileSize = ensureNonEmptyFile(downloadPath);
   logger.error(`[playbook-runtime] Downloaded fallback artifact size: ${fileSize} bytes`);
+  logger.error(`[playbook-runtime] Verified fallback artifact SHA-256: ${sha256}`);
 
   return {
     fallbackSpec,
     installSpec: downloadPath,
     downloadedFrom: fallbackSpec.normalized,
     finalUrl,
-    fileSize
+    fileSize,
+    sha256
   };
+}
+
+export function buildOfficialFallbackEvidenceMessages(resolvedFallback) {
+  const messages = [
+    `[playbook-runtime] Official acquisition target (original): ${resolvedFallback.fallbackSpec.normalized}`,
+    `[playbook-runtime] Official acquisition spec type: ${resolvedFallback.fallbackSpec.kind}`
+  ];
+
+  if (resolvedFallback.downloadedFrom) {
+    messages.push(
+      `[playbook-runtime] Official acquisition download source: ${resolvedFallback.downloadedFrom}`,
+      `[playbook-runtime] Official acquisition final URL: ${resolvedFallback.finalUrl}`
+    );
+  }
+
+  messages.push(
+    `[playbook-runtime] Official acquisition local tarball: ${resolvedFallback.installSpec}`,
+    `[playbook-runtime] Official acquisition tarball size: ${resolvedFallback.fileSize} bytes`,
+    `[playbook-runtime] Official acquisition verified SHA-256: ${resolvedFallback.sha256}`
+  );
+  return messages;
 }
 
 function installViaNpm({ targetSpec, prefix }) {
@@ -311,6 +377,7 @@ async function installOfficialFallback() {
   try {
     resolvedFallback = await normalizeFallbackInstallTarget({
       rawSpec: OFFICIAL_FALLBACK_SPEC,
+      expectedSha256: resolveOfficialFallbackSha256(OFFICIAL_FALLBACK_SPEC),
       runtimeRoot: OFFICIAL_FALLBACK_ROOT,
       logger: console
     });
@@ -334,13 +401,8 @@ async function installOfficialFallback() {
     return 1;
   }
 
-  console.log(`[playbook-runtime] Official acquisition target (original): ${fallbackSpec.normalized}`);
-  console.log(`[playbook-runtime] Official acquisition spec type: ${fallbackSpec.kind}`);
-  if (resolvedFallback.downloadedFrom) {
-    console.log(`[playbook-runtime] Official acquisition download source: ${resolvedFallback.downloadedFrom}`);
-    console.log(`[playbook-runtime] Official acquisition final URL: ${resolvedFallback.finalUrl}`);
-    console.log(`[playbook-runtime] Official acquisition local tarball: ${resolvedFallback.installSpec}`);
-    console.log(`[playbook-runtime] Official acquisition tarball size: ${resolvedFallback.fileSize} bytes`);
+  for (const message of buildOfficialFallbackEvidenceMessages(resolvedFallback)) {
+    console.log(message);
   }
 
   const installPlan = installViaNpm({

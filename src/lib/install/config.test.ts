@@ -61,6 +61,12 @@ test("canonical install URL strips trailing app URL slashes", () => {
   });
 });
 
+test("canonical install URL falls back to the branded Fitness origin", () => {
+  withAppUrl(undefined, () => {
+    assert.equal(getCanonicalInstallUrl(), "https://fitness.fawxzzy.com/install");
+  });
+});
+
 test("install context URL appends the exact install step override", () => {
   withAppUrl("https://example.test", () => {
     assert.equal(

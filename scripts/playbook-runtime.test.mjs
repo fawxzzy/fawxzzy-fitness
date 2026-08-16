@@ -4,16 +4,40 @@ import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import {
+  DEFAULT_OFFICIAL_FALLBACK_SPEC,
+  DEFAULT_OFFICIAL_FALLBACK_SHA256,
+  DEFAULT_PACKAGE_SPEC,
+  DEFAULT_PLAYBOOK_VERSION,
+  buildOfficialFallbackEvidenceMessages,
   classifyFallbackSpec,
   isPackageAcquisitionEnabled,
   normalizeFallbackInstallTarget,
+  resolveOfficialFallbackSha256,
   shouldUseShellForExecutable
 } from './playbook-runtime.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sha256 = (value) => createHash('sha256').update(value).digest('hex');
+
+test('default Playbook acquisition uses the retained canonical release', () => {
+  assert.equal(DEFAULT_PLAYBOOK_VERSION, '0.54.0');
+  assert.equal(DEFAULT_PACKAGE_SPEC, '@fawxzzy/playbook-cli@0.54.0');
+  assert.equal(
+    DEFAULT_OFFICIAL_FALLBACK_SPEC,
+    'https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz'
+  );
+  assert.equal(DEFAULT_OFFICIAL_FALLBACK_SHA256, '1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5');
+  assert.equal(resolveOfficialFallbackSha256(DEFAULT_OFFICIAL_FALLBACK_SPEC, {}), DEFAULT_OFFICIAL_FALLBACK_SHA256);
+  assert.equal(resolveOfficialFallbackSha256('https://example.com/custom.tgz', {}), '');
+  assert.equal(
+    resolveOfficialFallbackSha256('https://example.com/custom.tgz', { PLAYBOOK_OFFICIAL_FALLBACK_SHA256: 'A'.repeat(64) }),
+    'a'.repeat(64)
+  );
+});
 
 test('package acquisition stays disabled unless explicitly enabled by env or spec override', () => {
   assert.equal(isPackageAcquisitionEnabled({}), false);
@@ -47,13 +71,20 @@ test('normalizeFallbackInstallTarget keeps local file fallback spec unchanged an
   const tarballPath = path.join(runtimeRoot, 'artifact.tgz');
   await import('node:fs/promises').then((fs) => fs.writeFile(tarballPath, Buffer.from('fake tgz')));
 
-  const result = await normalizeFallbackInstallTarget({ rawSpec: tarballPath });
+  const result = await normalizeFallbackInstallTarget({ rawSpec: tarballPath, expectedSha256: sha256('fake tgz') });
 
   assert.equal(result.fallbackSpec.valid, true);
   assert.equal(result.fallbackSpec.kind, 'local-path');
   assert.equal(result.installSpec, tarballPath);
   assert.equal(result.downloadedFrom, null);
   assert.equal(result.fileSize, 8);
+  assert.equal(result.sha256, sha256('fake tgz'));
+
+  const evidence = buildOfficialFallbackEvidenceMessages(result).join('\n');
+  assert.match(evidence, /Official acquisition local tarball:/);
+  assert.match(evidence, /Official acquisition tarball size: 8 bytes/);
+  assert.match(evidence, new RegExp(`Official acquisition verified SHA-256: ${sha256('fake tgz')}`));
+  assert.doesNotMatch(evidence, /Official acquisition download source:/);
 });
 
 test('normalizeFallbackInstallTarget downloads https fallback to temp tgz path and logs final URL', async () => {
@@ -72,6 +103,7 @@ test('normalizeFallbackInstallTarget downloads https fallback to temp tgz path a
   const spec = 'https://example.com/releases/playbook-cli-0.1.8.tgz';
   const result = await normalizeFallbackInstallTarget({
     rawSpec: spec,
+    expectedSha256: sha256(payload),
     runtimeRoot,
     fetchImpl,
     logger: { error: (message) => messages.push(message) }
@@ -84,6 +116,7 @@ test('normalizeFallbackInstallTarget downloads https fallback to temp tgz path a
   assert.equal(existsSync(result.installSpec), true);
   assert.deepEqual(readFileSync(result.installSpec), payload);
   assert.equal(result.fileSize, payload.length);
+  assert.equal(result.sha256, sha256(payload));
   assert.match(messages.join('\n'), /Downloading official fallback URL/);
   assert.match(messages.join('\n'), /Final resolved URL/);
 });
@@ -102,6 +135,7 @@ test('normalizeFallbackInstallTarget retries one transient socket-close failure 
 
   const result = await normalizeFallbackInstallTarget({
     rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+    expectedSha256: sha256(payload),
     runtimeRoot,
     fetchImpl: async () => {
       calls += 1;
@@ -130,6 +164,7 @@ test('normalizeFallbackInstallTarget retries one transient socket-close during r
 
   const result = await normalizeFallbackInstallTarget({
     rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+    expectedSha256: sha256(payload),
     runtimeRoot,
     fetchImpl: async () => {
       calls += 1;
@@ -160,6 +195,7 @@ test('normalizeFallbackInstallTarget exhausts the single transient retry without
   await assert.rejects(
     normalizeFallbackInstallTarget({
       rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      expectedSha256: '0'.repeat(64),
       runtimeRoot,
       fetchImpl: async () => {
         calls += 1;
@@ -181,6 +217,7 @@ test('normalizeFallbackInstallTarget exhausts the single retry when response bod
   await assert.rejects(
     normalizeFallbackInstallTarget({
       rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      expectedSha256: '0'.repeat(64),
       runtimeRoot,
       fetchImpl: async () => {
         calls += 1;
@@ -209,6 +246,7 @@ for (const [status, statusText] of [[502, 'Bad Gateway'], [503, 'Service Unavail
 
     const result = await normalizeFallbackInstallTarget({
       rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      expectedSha256: sha256(payload),
       runtimeRoot,
       fetchImpl: async () => {
         calls += 1;
@@ -236,6 +274,7 @@ for (const [status, statusText] of [[502, 'Bad Gateway'], [503, 'Service Unavail
     await assert.rejects(
       normalizeFallbackInstallTarget({
         rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+        expectedSha256: '0'.repeat(64),
         runtimeRoot,
         fetchImpl: async () => {
           calls += 1;
@@ -257,6 +296,7 @@ test('normalizeFallbackInstallTarget does not retry a deterministic HTTP failure
   await assert.rejects(
     normalizeFallbackInstallTarget({
       rawSpec: 'https://example.com/releases/playbook-cli-0.1.8.tgz',
+      expectedSha256: '0'.repeat(64),
       runtimeRoot,
       fetchImpl: async () => {
         calls += 1;
@@ -268,6 +308,42 @@ test('normalizeFallbackInstallTarget does not retry a deterministic HTTP failure
   );
 
   assert.equal(calls, 1);
+});
+
+test('normalizeFallbackInstallTarget rejects a digest-mismatched artifact before writing or install', async () => {
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'playbook-runtime-test-'));
+  const payload = Buffer.from('unexpected artifact bytes');
+
+  await assert.rejects(
+    normalizeFallbackInstallTarget({
+      rawSpec: 'https://example.com/releases/playbook-cli.tgz',
+      expectedSha256: sha256('expected artifact bytes'),
+      runtimeRoot,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        arrayBuffer: async () => payload,
+        url: 'https://cdn.example.com/playbook-cli.tgz'
+      }),
+      logger: { error() {} }
+    }),
+    /failed SHA-256 verification/
+  );
+});
+
+test('custom official fallback overrides require an explicit digest', () => {
+  const run = spawnSync('node', ['scripts/playbook-runtime.mjs', '--install-official-fallback'], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: 'https://example.com/custom.tgz',
+      PLAYBOOK_OFFICIAL_FALLBACK_SHA256: ''
+    }
+  });
+
+  assert.notEqual(run.status, 0);
+  assert.match(run.stderr, /requires an expected SHA-256 digest/);
 });
 
 test('install-package explains that package acquisition is disabled unless explicitly enabled', () => {
@@ -320,7 +396,8 @@ test('install-official-fallback reports detailed download failures for https fal
     encoding: 'utf8',
     env: {
       ...process.env,
-      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: 'https://127.0.0.1:9/never-there.tgz'
+      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: 'https://127.0.0.1:9/never-there.tgz',
+      PLAYBOOK_OFFICIAL_FALLBACK_SHA256: '0'.repeat(64)
     }
   });
 

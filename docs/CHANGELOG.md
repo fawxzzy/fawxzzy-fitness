@@ -5,11 +5,14 @@ All notable changes to this project are documented in this file.
 ## Unreleased - 2026-07-16
 
 ### WHAT
+- Rebound the active Playbook runtime fallback from the retired `ZachariahRedfield` GitHub release to the source-bound `fawxzzy/playbook` v0.54.0 fallback asset, pinned its exact SHA-256 before install, and added default-acquisition, mismatch, and local-artifact evidence regressions.
+- Kept the branded metadata base without inheriting a homepage canonical across every application route.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
 
 ### WHY
+- Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
 - Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
 

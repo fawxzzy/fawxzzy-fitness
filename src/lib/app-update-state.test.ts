@@ -9,7 +9,7 @@ import {
 
 test("parseStoredAppUpdateReloadState accepts fresh valid state", () => {
   const rawValue = serializeStoredAppUpdateReloadState({
-    href: "https://fawxzzy-fitness-local.vercel.app/history?tab=recent#top",
+    href: "https://fitness.fawxzzy.com/history?tab=recent#top",
     scrollX: 4,
     scrollY: 180,
     targetBuildId: "build-123",
@@ -17,7 +17,7 @@ test("parseStoredAppUpdateReloadState accepts fresh valid state", () => {
   });
 
   assert.deepEqual(parseStoredAppUpdateReloadState(rawValue, 2_000), {
-    href: "https://fawxzzy-fitness-local.vercel.app/history?tab=recent#top",
+    href: "https://fitness.fawxzzy.com/history?tab=recent#top",
     scrollX: 4,
     scrollY: 180,
     targetBuildId: "build-123",
@@ -27,7 +27,7 @@ test("parseStoredAppUpdateReloadState accepts fresh valid state", () => {
 
 test("parseStoredAppUpdateReloadState rejects stale state", () => {
   const rawValue = serializeStoredAppUpdateReloadState({
-    href: "https://fawxzzy-fitness-local.vercel.app/today",
+    href: "https://fitness.fawxzzy.com/today",
     scrollX: 0,
     scrollY: 0,
     targetBuildId: null,
@@ -40,15 +40,15 @@ test("parseStoredAppUpdateReloadState rejects stale state", () => {
 test("shouldRestoreReloadState only restores the same document location", () => {
   assert.equal(
     shouldRestoreReloadState(
-      "https://fawxzzy-fitness-local.vercel.app/history?tab=recent#top",
-      "https://fawxzzy-fitness-local.vercel.app/history?tab=recent#top",
+      "https://fitness.fawxzzy.com/history?tab=recent#top",
+      "https://fitness.fawxzzy.com/history?tab=recent#top",
     ),
     true,
   );
   assert.equal(
     shouldRestoreReloadState(
-      "https://fawxzzy-fitness-local.vercel.app/history?tab=recent#top",
-      "https://fawxzzy-fitness-local.vercel.app/history?tab=favorites#top",
+      "https://fitness.fawxzzy.com/history?tab=recent#top",
+      "https://fitness.fawxzzy.com/history?tab=favorites#top",
     ),
     false,
   );
