@@ -51,7 +51,7 @@ export function BackButton({
     ? getAppButtonClassName({
         variant: "ghost",
         size: "sm",
-        className: ["min-w-10 rounded-full px-2", className].filter(Boolean).join(" "),
+        className: ["!h-11 !w-11 rounded-full px-2", className].filter(Boolean).join(" "),
       })
     : `${baseClassName} ${className}`.trim();
   const resolvedAriaLabel = ariaLabel ?? (iconOnly ? label : undefined);

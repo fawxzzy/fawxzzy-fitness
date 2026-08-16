@@ -438,7 +438,7 @@ export function ExerciseTagFilterControl({
           countBadge={selectedTags.length > 0 ? selectedTags.length : null}
           className={cn(
             compact
-              ? cn(appTokens.exercisePickerFilterToggle, "!w-auto !min-w-[3.45rem] !border-[rgb(var(--accent)/0.52)] !bg-[rgb(var(--surface-2-rgb)/0.28)] !px-2.5 !pl-3 !pr-1.5")
+              ? cn(appTokens.exercisePickerFilterToggle, "!min-h-[44px] !w-auto !min-w-[3.45rem] !border-[rgb(var(--accent)/0.52)] !bg-[rgb(var(--surface-2-rgb)/0.28)] !px-2.5 !pl-3 !pr-1.5")
               : "w-auto min-w-[3.45rem] border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]",
             buttonClassName,
           )}

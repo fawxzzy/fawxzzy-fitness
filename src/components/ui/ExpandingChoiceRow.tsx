@@ -18,7 +18,7 @@ type ExpandingChoiceOption = {
 const expandingChoiceButtonClassName = cn(
   ACTION_CHROME_CONTROL_CLASS_NAME,
   ACTION_CHROME_SEGMENTED_CLASS_NAME,
-  "min-h-10 rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+  "min-h-11 rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
 );
 
 type ExpandingChoiceRowProps = {
@@ -73,7 +73,7 @@ export function ExpandingChoiceRow({
       className={cn(
         "w-full max-w-full overflow-visible",
         resolvedExpanded
-          ? "grid min-h-10 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center"
+          ? "grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center"
           : "flex justify-center",
         className,
       )}
@@ -100,7 +100,7 @@ export function ExpandingChoiceRow({
 
       {resolvedExpanded ? (
         <>
-        <div className="col-start-2 flex min-h-10 min-w-0 items-center justify-center">
+        <div className="col-start-2 flex min-h-11 min-w-0 items-center justify-center">
           <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
           {trailingOptions.map((option) => (
             <button

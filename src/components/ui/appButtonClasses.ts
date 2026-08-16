@@ -25,7 +25,7 @@ export function getAppButtonClassName({
     size === "lg"
       ? "app-button-lg min-h-[3.5rem]"
       : size === "sm"
-        ? "app-button-sm min-h-[2.5rem]"
+        ? "app-button-sm min-h-[2.75rem]"
         : "app-button-md min-h-[3rem]";
   const resolvedFocusRingClassName =
     focusRingClassName

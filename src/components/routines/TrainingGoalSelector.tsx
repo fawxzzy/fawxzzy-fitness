@@ -66,7 +66,7 @@ export function TrainingGoalSelector({
                 className={cn(
                   ACTION_CHROME_CONTROL_CLASS_NAME,
                   ACTION_CHROME_SEGMENTED_CLASS_NAME,
-                  "min-h-10 min-w-[7.4rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                  "min-h-11 min-w-[7.4rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
                   isActive
                     ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
                     : "text-[rgb(var(--text-secondary)/0.9)]",

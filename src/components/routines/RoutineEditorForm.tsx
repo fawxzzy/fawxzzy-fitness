@@ -159,7 +159,7 @@ function RoutineEditorBinaryToggleButton({
       className={cn(
         ACTION_CHROME_CONTROL_CLASS_NAME,
         ACTION_CHROME_SEGMENTED_CLASS_NAME,
-        "inline-flex min-h-10 items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+        "inline-flex min-h-11 items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
         className,
       )}
     >
@@ -176,6 +176,7 @@ const routineEditorCycleInputClassName = cn(
   labeledEditorFieldControlClassName,
   "h-11 rounded-[inherit] !border-0 !bg-transparent px-8 py-0 text-center !shadow-none placeholder:text-[rgb(var(--text-muted)/0.7)] focus-visible:!border-0 focus-visible:!ring-0 tabular-nums",
 );
+const routineEditorCycleLengthInputClassName = cn(routineEditorCycleInputClassName, "px-12");
 const routineEditorCycleFieldWidthClassName = "w-[9.75rem]";
 const routineEditorCycleFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 const routineEditorCycleFieldLegendClassName = "ml-auto mr-3 whitespace-nowrap px-1 py-0 text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-[rgb(var(--accent)/0.94)]";
@@ -334,7 +335,7 @@ function RoutineEditorCollapsibleSection({
       <button
         type="button"
         className={cn(
-          "group block w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pt-3 pb-2 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
+          "group block min-h-11 w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pt-3 pb-2 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
           appTokens.routineEditorInlineTitle,
         )}
         onClick={() => {
@@ -670,6 +671,7 @@ export function RoutineEditorCycleLengthField({
             side="left"
             ariaLabel="Decrease routine length"
             onClick={() => applySteppedValue("decrement")}
+            className="!h-11 !w-11"
             contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
           >
             −
@@ -694,12 +696,13 @@ export function RoutineEditorCycleLengthField({
               event.preventDefault();
               onCycleLengthInputCommit?.();
             }}
-            className={routineEditorCycleInputClassName}
+            className={routineEditorCycleLengthInputClassName}
           />
           <InlineEdgeControlButton
             side="right"
             ariaLabel="Increase routine length"
             onClick={() => applySteppedValue("increment")}
+            className="!h-11 !w-11"
             contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
           >
             +

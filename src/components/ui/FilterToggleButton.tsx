@@ -37,7 +37,7 @@ export function FilterToggleButton({
       className={cn(
         ACTION_CHROME_CONTROL_CLASS_NAME,
         ACTION_CHROME_SEGMENTED_CLASS_NAME,
-        "relative inline-flex h-8 min-w-[3.45rem] items-center justify-between gap-2 rounded-full px-2.5 pl-3 pr-1.5 focus-visible:ring-[rgb(var(--accent)/0.22)]",
+        "relative inline-flex min-h-11 min-w-[3.45rem] items-center justify-between gap-2 rounded-full px-2.5 pl-3 pr-1.5 focus-visible:ring-[rgb(var(--accent)/0.22)]",
         className,
       )}
     >
