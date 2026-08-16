@@ -508,7 +508,7 @@ export function ServiceWorkerBootstrap() {
 
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
 
-    navigator.serviceWorker.register("/sw.js", { scope: "/" })
+    navigator.serviceWorker.register("/app-sw.js", { scope: "/" })
       .then((registration) => {
         if (cancelled) {
           return;

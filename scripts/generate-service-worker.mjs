@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, "..");
 const manifestPath = path.join(rootDir, "src", "generated", "appBuildManifest.json");
-const outputPath = path.join(rootDir, "public", "sw.js");
+const outputPath = path.join(rootDir, "public", "app-sw.js");
 
 export function renderServiceWorkerSource(buildId) {
   const safeBuildId = JSON.stringify(String(buildId));
