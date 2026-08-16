@@ -308,6 +308,27 @@ export async function normalizeFallbackInstallTarget({
   };
 }
 
+export function buildOfficialFallbackEvidenceMessages(resolvedFallback) {
+  const messages = [
+    `[playbook-runtime] Official acquisition target (original): ${resolvedFallback.fallbackSpec.normalized}`,
+    `[playbook-runtime] Official acquisition spec type: ${resolvedFallback.fallbackSpec.kind}`
+  ];
+
+  if (resolvedFallback.downloadedFrom) {
+    messages.push(
+      `[playbook-runtime] Official acquisition download source: ${resolvedFallback.downloadedFrom}`,
+      `[playbook-runtime] Official acquisition final URL: ${resolvedFallback.finalUrl}`
+    );
+  }
+
+  messages.push(
+    `[playbook-runtime] Official acquisition local tarball: ${resolvedFallback.installSpec}`,
+    `[playbook-runtime] Official acquisition tarball size: ${resolvedFallback.fileSize} bytes`,
+    `[playbook-runtime] Official acquisition verified SHA-256: ${resolvedFallback.sha256}`
+  );
+  return messages;
+}
+
 function installViaNpm({ targetSpec, prefix }) {
   const args = ['install', '--no-save'];
   if (prefix) {
@@ -380,14 +401,8 @@ async function installOfficialFallback() {
     return 1;
   }
 
-  console.log(`[playbook-runtime] Official acquisition target (original): ${fallbackSpec.normalized}`);
-  console.log(`[playbook-runtime] Official acquisition spec type: ${fallbackSpec.kind}`);
-  if (resolvedFallback.downloadedFrom) {
-    console.log(`[playbook-runtime] Official acquisition download source: ${resolvedFallback.downloadedFrom}`);
-    console.log(`[playbook-runtime] Official acquisition final URL: ${resolvedFallback.finalUrl}`);
-    console.log(`[playbook-runtime] Official acquisition local tarball: ${resolvedFallback.installSpec}`);
-    console.log(`[playbook-runtime] Official acquisition tarball size: ${resolvedFallback.fileSize} bytes`);
-    console.log(`[playbook-runtime] Official acquisition verified SHA-256: ${resolvedFallback.sha256}`);
+  for (const message of buildOfficialFallbackEvidenceMessages(resolvedFallback)) {
+    console.log(message);
   }
 
   const installPlan = installViaNpm({

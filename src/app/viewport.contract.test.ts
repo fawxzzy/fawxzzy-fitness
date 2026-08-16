@@ -21,3 +21,11 @@ test("server and client viewport contracts preserve browser zoom", async () => {
   assert.match(layoutSource, /viewportFit: "cover"/);
   assert.match(guardSource, /width=device-width, initial-scale=1, viewport-fit=cover/);
 });
+
+test("root metadata does not collapse child routes onto the home canonical", async () => {
+  const layoutSource = await readFile(layoutUrl, "utf8");
+
+  assert.match(layoutSource, /metadataBase: resolveMetadataBase\(\)/);
+  assert.doesNotMatch(layoutSource, /\balternates\s*:/);
+  assert.doesNotMatch(layoutSource, /canonical:\s*["']\/["']/);
+});

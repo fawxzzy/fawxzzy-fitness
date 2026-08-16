@@ -12,6 +12,7 @@ import {
   DEFAULT_OFFICIAL_FALLBACK_SHA256,
   DEFAULT_PACKAGE_SPEC,
   DEFAULT_PLAYBOOK_VERSION,
+  buildOfficialFallbackEvidenceMessages,
   classifyFallbackSpec,
   isPackageAcquisitionEnabled,
   normalizeFallbackInstallTarget,
@@ -78,6 +79,12 @@ test('normalizeFallbackInstallTarget keeps local file fallback spec unchanged an
   assert.equal(result.downloadedFrom, null);
   assert.equal(result.fileSize, 8);
   assert.equal(result.sha256, sha256('fake tgz'));
+
+  const evidence = buildOfficialFallbackEvidenceMessages(result).join('\n');
+  assert.match(evidence, /Official acquisition local tarball:/);
+  assert.match(evidence, /Official acquisition tarball size: 8 bytes/);
+  assert.match(evidence, new RegExp(`Official acquisition verified SHA-256: ${sha256('fake tgz')}`));
+  assert.doesNotMatch(evidence, /Official acquisition download source:/);
 });
 
 test('normalizeFallbackInstallTarget downloads https fallback to temp tgz path and logs final URL', async () => {

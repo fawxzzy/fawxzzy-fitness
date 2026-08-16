@@ -56,9 +56,6 @@ function resolveMetadataBase() {
 
 export const metadata: Metadata = {
   metadataBase: resolveMetadataBase(),
-  alternates: {
-    canonical: "/",
-  },
   title: APP_NAME,
   description: APP_DESCRIPTION,
   appleWebApp: {

@@ -5,7 +5,8 @@ All notable changes to this project are documented in this file.
 ## Unreleased - 2026-07-16
 
 ### WHAT
-- Rebound the active Playbook runtime fallback from the retired `ZachariahRedfield` GitHub release to the source-bound `fawxzzy/playbook` v0.54.0 fallback asset, pinned its exact SHA-256 before install, and added default-acquisition plus mismatch regressions.
+- Rebound the active Playbook runtime fallback from the retired `ZachariahRedfield` GitHub release to the source-bound `fawxzzy/playbook` v0.54.0 fallback asset, pinned its exact SHA-256 before install, and added default-acquisition, mismatch, and local-artifact evidence regressions.
+- Kept the branded metadata base without inheriting a homepage canonical across every application route.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
