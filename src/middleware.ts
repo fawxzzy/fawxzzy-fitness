@@ -15,6 +15,29 @@ import {
 } from "@/lib/history-preview-config";
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
+import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
+
+export const FITNESS_LEGACY_STABLE_HOSTNAME = "fawxzzy-fitness-local.vercel.app";
+
+export function shouldRedirectLegacyFitnessNavigation(request: NextRequest) {
+  const method = request.method.toUpperCase();
+
+  if (method !== "GET" && method !== "HEAD") {
+    return false;
+  }
+
+  if (request.nextUrl.hostname.toLowerCase() !== FITNESS_LEGACY_STABLE_HOSTNAME) {
+    return false;
+  }
+
+  return !request.nextUrl.pathname.startsWith("/api/");
+}
+
+function buildCanonicalHostRedirect(request: NextRequest) {
+  const destination = new URL(request.nextUrl.pathname, FITNESS_CANONICAL_ORIGIN);
+  destination.search = request.nextUrl.search;
+  return NextResponse.redirect(destination, 308);
+}
 
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
   const responseUrl = new URL("/login", request.url);
@@ -186,6 +209,10 @@ export async function handleAuthSessionMiddleware(
 }
 
 export async function middleware(request: NextRequest) {
+  if (shouldRedirectLegacyFitnessNavigation(request)) {
+    return buildCanonicalHostRedirect(request);
+  }
+
   return handleAuthSessionMiddleware(request);
 }
 

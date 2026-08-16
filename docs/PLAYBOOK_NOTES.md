@@ -1141,3 +1141,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating installation as a decorative prompt leaves a browser-tab bypass, can flash protected content during hydration, and makes iOS and Android follow different entry rules.
 - Evidence: `src/components/install/ProtectedAppInstallGate.tsx`, `src/components/install/InstallRouteSurface.tsx`, `src/components/install/IOSAddToHomeScreenGate.tsx`, `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/lib/install/config.test.ts`, `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`.
 - Status: Applied in source; normal PR review and lifecycle remain pending. No Auth, provider, deployment, or production mutation is part of this change.
+
+## 2026-08-16 - Migrate legacy Fitness browser links to the branded origin
+
+- Type: Routing contract + Migration safety
+- WHAT changed: Fitness middleware now returns a permanent redirect from the exact stable legacy browser host `fawxzzy-fitness-local.vercel.app` to `fitness.fawxzzy.com`, preserving the requested path and query. The rule applies only to `GET` and `HEAD` requests outside `/api/`; branded, preview, immutable-deployment, spoofed-header, and API requests do not match. Focused coverage pins those boundaries, and the migration runbook records the user, provider, PWA, and rollback contracts.
+- WHY it changed: The branded origin was already canonical and live, but old bookmarks and public Vercel links still rendered directly on the legacy host. A blanket redirect would risk breaking signed webhooks and OAuth callbacks before their separately governed provider configuration is migrated, while deleting or redirecting immutable deployment URLs would weaken rollback evidence.
+- Rule: Redirect only the exact stable legacy hostname and only browser-safe navigation methods. Keep API traffic compatible until provider destinations and allowlists are independently moved and read back. Never redirect previews or immutable deployment URLs as part of a stable-alias migration.
+- Failure Mode: Redirecting every legacy-host request can interrupt signed provider traffic; matching a forwarded host header can allow spoofed routing; redirecting every `*.vercel.app` hostname removes preview and rollback isolation.
+- Evidence: `src/middleware.ts`, `src/middleware.test.ts`, `docs/ops/FITNESS-BRANDED-HOST-MIGRATION-2026-08-16.md`.
+- Status: Applied in source; provider configuration, ready, merge, deployment, and production remain separate lifecycle boundaries.
