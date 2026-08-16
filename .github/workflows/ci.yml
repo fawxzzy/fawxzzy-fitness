@@ -34,6 +34,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/app/login/page.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/routines/RoutineEditorForm.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/FilterToggleButton.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/components/ui/app/AppHeader.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/normalize.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts
