@@ -1,7 +1,56 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { NextRequest } from "next/server.js";
-import { config, handleAuthSessionMiddleware } from "@/middleware";
+import {
+  config,
+  handleAuthSessionMiddleware,
+  middleware,
+  shouldRedirectLegacyFitnessNavigation,
+} from "@/middleware";
+
+test("middleware permanently redirects legacy browser routes to the branded origin", async () => {
+  for (const method of ["GET", "HEAD"]) {
+    const request = new NextRequest(
+      "https://fawxzzy-fitness-local.vercel.app/history?tab=recent&source=bookmark",
+      { method },
+    );
+
+    const response = await middleware(request);
+
+    assert.equal(response.status, 308);
+    assert.equal(
+      response.headers.get("location"),
+      "https://fitness.fawxzzy.com/history?tab=recent&source=bookmark",
+    );
+  }
+});
+
+test("legacy-host migration keeps API traffic compatible during provider cutover", () => {
+  const legacyWebhook = new NextRequest(
+    "https://fawxzzy-fitness-local.vercel.app/api/billing/webhook/stripe",
+    { method: "POST" },
+  );
+  const legacyApiRead = new NextRequest(
+    "https://fawxzzy-fitness-local.vercel.app/api/health",
+  );
+
+  assert.equal(shouldRedirectLegacyFitnessNavigation(legacyWebhook), false);
+  assert.equal(shouldRedirectLegacyFitnessNavigation(legacyApiRead), false);
+});
+
+test("legacy-host migration never redirects branded, preview, or spoofed hosts", () => {
+  const requests = [
+    new NextRequest("https://fitness.fawxzzy.com/today"),
+    new NextRequest("https://fawxzzy-fitness-abc123-fawxzzy.vercel.app/today"),
+    new NextRequest("https://fitness.fawxzzy.com/today", {
+      headers: { "x-forwarded-host": "fawxzzy-fitness-local.vercel.app" },
+    }),
+  ];
+
+  for (const request of requests) {
+    assert.equal(shouldRedirectLegacyFitnessNavigation(request), false);
+  }
+});
 
 test("middleware recovers when only the refresh cookie is present", async () => {
   const request = new NextRequest("https://example.com/today", {
