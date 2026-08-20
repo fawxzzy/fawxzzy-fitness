@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { resolve } from "node:path";
 import {
   buildFitnessLegacyOriginAnalyticsPayload,
   consumeFitnessLegacyOriginMarker,
@@ -12,6 +14,15 @@ test("legacy origin analytics uses a closed anonymous payload", () => {
     product: "fitness",
     route: "app",
   });
+});
+
+test("legacy origin analytics transport is explicitly credentialless", () => {
+  const client = readFileSync(
+    resolve(process.cwd(), "src/components/LegacyOriginAnalytics.tsx"),
+    "utf8",
+  );
+  assert.match(client, /credentials:\s*["']omit["']/);
+  assert.doesNotMatch(client, /sendBeacon/);
 });
 
 test("legacy origin marker is consumed once without disturbing other query state", () => {

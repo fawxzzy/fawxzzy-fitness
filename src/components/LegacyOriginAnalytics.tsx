@@ -17,11 +17,6 @@ export function LegacyOriginAnalytics() {
     if (!endpoint) return;
 
     const body = JSON.stringify(buildFitnessLegacyOriginAnalyticsPayload());
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(endpoint, new Blob([body], { type: "application/json" }));
-      return;
-    }
-
     void fetch(endpoint, {
       body,
       credentials: "omit",
