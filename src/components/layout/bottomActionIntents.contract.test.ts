@@ -28,6 +28,7 @@ test("canonical bottom actions retain accessible targets while only triads reflo
   const sessionSource = fs.readFileSync(path.resolve(process.cwd(), "src/components/SessionPageClient.tsx"), "utf8");
   assert.match(
     sessionSource,
-    /grid-cols-\[minmax\(84px,0\.72fr\)_minmax\(6\.5rem,7\.8rem\)_minmax\(0,1\.16fr\)\][^"\n]*max-\[359px\]:grid-cols-1/,
+    /<BottomActionSplit\s+secondary=\{quickAddAction\}\s+primary=\{\(/,
   );
+  assert.doesNotMatch(sessionSource, /currentSessionDurationPill|formatDurationClock/);
 });

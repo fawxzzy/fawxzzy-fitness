@@ -75,3 +75,13 @@ test("session completion immediately retires all live workout controls", async (
   assert.match(source, /isSessionCompleted \? null : emptyState/);
   assert.match(sessionPageSource, /initialIsSessionCompleted=\{sessionRow\.status === "completed"\}/);
 });
+
+test("active session keeps elapsed duration persisted without rendering it in the bottom dock", async () => {
+  const source = await readFile(new URL("../../../components/SessionPageClient.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<input type="hidden" name="durationSeconds" value=\{String\(durationSeconds\)\} \/>/);
+  assert.match(source, /<BottomActionSplit\s+secondary=\{quickAddAction\}\s+primary=\{\(/);
+  assert.match(source, /<BottomDockButton\s+type="submit"\s+intent="positive"[\s\S]*?>\s*Finish\s*<\/BottomDockButton>/);
+  assert.doesNotMatch(source, /currentSessionDurationPill/);
+  assert.doesNotMatch(source, /formatDurationClock/);
+});
