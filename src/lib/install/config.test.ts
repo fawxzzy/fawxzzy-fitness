@@ -102,10 +102,17 @@ test("install bypass href returns to the intended auth route with a one-time byp
   );
 });
 
-test("installed app href returns to the intended route without reopening install", () => {
+test("installed app href routes the legacy login target through authenticated entry without reopening install", () => {
   assert.equal(
     getInstalledAppHref("/login"),
-    "/login?installedApp=1",
+    "/entry?installedApp=1",
+  );
+});
+
+test("installed app href preserves an intended non-login route", () => {
+  assert.equal(
+    getInstalledAppHref("/today?view=week"),
+    "/today?view=week&installedApp=1",
   );
 });
 

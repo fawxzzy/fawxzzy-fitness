@@ -12,7 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "FawxzzyFitness",
     short_name: "FawxzzyFitness",
     description: "Track sessions and progress with a focused training workflow.",
-    start_url: "/login?installedApp=1",
+    // A standalone app must re-enter through the authenticated entry gate. Starting
+    // on /login mounts the explicit reauthentication screen, which clears the local
+    // browser session before an existing member can be routed to their experience.
+    start_url: "/entry?installedApp=1",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

@@ -42,7 +42,12 @@ export function getInstallBypassHref(returnTo: string | null | undefined) {
 }
 
 export function getInstalledAppHref(returnTo: string | null | undefined) {
-  const target = new URL(normalizeLocalPath(returnTo), "https://fitness.local");
+  const requestedTarget = normalizeLocalPath(returnTo, "/entry");
+  // `/login` is an explicit reauthentication surface. A newly installed or
+  // re-opened standalone app should instead give an existing session the
+  // authenticated entry handoff, which redirects to login only if that session
+  // is actually missing or invalid.
+  const target = new URL(requestedTarget === "/login" ? "/entry" : requestedTarget, "https://fitness.local");
   target.searchParams.set(INSTALLED_APP_QUERY_PARAM, "1");
   return `${target.pathname}${target.search}${target.hash}`;
 }
