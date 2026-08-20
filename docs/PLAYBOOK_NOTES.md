@@ -1151,3 +1151,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Redirecting every legacy-host request can interrupt signed provider traffic; matching a forwarded host header can allow spoofed routing; redirecting every `*.vercel.app` hostname removes preview and rollback isolation.
 - Evidence: `src/middleware.ts`, `src/middleware.test.ts`, `docs/ops/FITNESS-BRANDED-HOST-MIGRATION-2026-08-16.md`.
 - Status: Applied in source; provider configuration, ready, merge, deployment, and production remain separate lifecycle boundaries.
+
+## 2026-08-20 - Measure legacy Fitness origin visits without identity
+
+- Type: Privacy boundary + Migration evidence
+- WHAT changed: The legacy-host redirect now carries a one-use categorical compatibility marker to the branded origin. The client removes that marker immediately and, only when a separately configured first-party collector exists, sends one fixed `compatibility_visit` payload with credentialless `fetch`. No cookies, account identifiers, referrer, user agent, free-form URL, or free-form text are collected.
+- WHY it changed: The legacy origin cannot be retired safely without a trustworthy observation window, but measuring that traffic must not create a new identity or credential surface.
+- Rule: Compatibility analytics are closed categorical evidence only. The browser transport must explicitly omit credentials, and provider activation, retention, production deployment, and eventual redirect retirement remain separate decisions.
+- Failure Mode: Using credential-including browser transport or accepting caller-defined analytics fields would turn a bounded migration counter into an unintended tracking surface.
+- Evidence: `src/middleware.ts`, `src/middleware.test.ts`, `src/components/LegacyOriginAnalytics.tsx`, `src/lib/legacy-origin-analytics.ts`, `src/lib/legacy-origin-analytics.test.ts`, `docs/ops/FITNESS-LEGACY-ORIGIN-ANALYTICS-2026-08-20.md`.
+- Status: Applied in source; collector activation, review, merge, deployment, production, observation, and redirect retirement remain separate boundaries.

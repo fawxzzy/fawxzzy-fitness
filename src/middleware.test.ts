@@ -20,7 +20,7 @@ test("middleware permanently redirects legacy browser routes to the branded orig
     assert.equal(response.status, 308);
     assert.equal(
       response.headers.get("location"),
-      "https://fitness.fawxzzy.com/history?tab=recent&source=bookmark",
+      "https://fitness.fawxzzy.com/history?tab=recent&source=bookmark&compatibility=fitness_legacy_origin",
     );
   }
 });
