@@ -8,7 +8,7 @@ const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
 const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-2";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = BOTTOM_ACTION_GROUP_CLASSNAME;
 export const BOTTOM_ACTION_SPLIT_LAYOUT_CLASSNAME =
-  "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)] max-[359px]:grid-cols-1";
+  "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]";
 export const BOTTOM_ACTION_TRIAD_LAYOUT_CLASSNAME =
   "grid-cols-[minmax(112px,0.92fr)_minmax(5.75rem,7.25rem)_minmax(0,1.42fr)] max-[359px]:grid-cols-1";
 
