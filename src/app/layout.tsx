@@ -14,6 +14,7 @@ import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
 import { DevSupabaseTargetBanner } from "@/components/dev/DevSupabaseTargetBanner";
+import { LegacyOriginAnalytics } from "@/components/LegacyOriginAnalytics";
 import { buildLocalDevBrowserResetScript, buildPreHydrationAppBootPrimerScript } from "@/lib/app-boot-primer";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { APP_BOOT_PREFERENCES_COOKIE_KEY, readAppBootPreferencesCookieValue } from "@/lib/app-boot-preferences";
@@ -137,6 +138,7 @@ export default async function RootLayout({
         </Script>
       </head>
       <body className="relative overflow-x-hidden">
+        <LegacyOriginAnalytics />
         <DevSupabaseTargetBanner />
         <AppThemeBootstrap />
         <PersistentAppChrome />

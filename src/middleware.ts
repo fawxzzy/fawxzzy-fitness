@@ -36,6 +36,7 @@ export function shouldRedirectLegacyFitnessNavigation(request: NextRequest) {
 function buildCanonicalHostRedirect(request: NextRequest) {
   const destination = new URL(request.nextUrl.pathname, FITNESS_CANONICAL_ORIGIN);
   destination.search = request.nextUrl.search;
+  destination.searchParams.set("compatibility", "fitness_legacy_origin");
   return NextResponse.redirect(destination, 308);
 }
 
