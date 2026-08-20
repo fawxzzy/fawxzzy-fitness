@@ -71,8 +71,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: APP_PREVIEW_IMAGE,
-        width: 1280,
-        height: 1280,
+        width: 1024,
+        height: 1024,
         alt: "FawxzzyFitness neon fox dumbbell app icon",
       },
     ],
