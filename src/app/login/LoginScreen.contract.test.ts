@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   buildRememberedLoginState,
@@ -9,6 +10,8 @@ import {
   type RememberedLoginStorage,
 } from "@/lib/remembered-login";
 import { getLoginScreenViewState } from "./loginScreenState.ts";
+
+const loginScreenSource = readFileSync(new URL("./LoginScreen.tsx", import.meta.url), "utf8");
 
 function createMemoryStorage(initial: Record<string, string> = {}): RememberedLoginStorage {
   const store = new Map(Object.entries(initial));
@@ -68,29 +71,23 @@ test("authenticated sync is the only path that marks remembered login ready", ()
   assert.equal(rememberedLogin?.email, "athlete@example.com");
 });
 
-test("remembered account plus a valid password enables submit", () => {
+test("remembered account prefills the normal email-and-password login form", () => {
   const viewState = getLoginScreenViewState({
-    email: "",
+    email: "athlete@example.com",
     password: "secret12",
-    rememberedEmail: "athlete@example.com",
-    hasHydrated: true,
-    showCredentialStep: true,
     isSubmitting: false,
     requiresReauth: false,
   });
 
   assert.equal(viewState.formReady, true);
   assert.equal(viewState.submitLabel, "Enter Gym");
-  assert.equal(viewState.showEmailField, false);
+  assert.equal(viewState.showEmailField, true);
 });
 
-test("remembered account mode does not blank auth readiness when the email field is hidden", () => {
+test("normal login form validates the visible remembered email", () => {
   const viewState = getLoginScreenViewState({
-    email: "",
+    email: "athlete@example.com",
     password: "secret12",
-    rememberedEmail: "athlete@example.com",
-    hasHydrated: true,
-    showCredentialStep: true,
     isSubmitting: false,
     requiresReauth: false,
   });
@@ -99,28 +96,22 @@ test("remembered account mode does not blank auth readiness when the email field
   assert.equal(viewState.formReady, true);
 });
 
-test("remembered account identity is rendered from a single UI slot", () => {
+test("login state never renders a remembered-account decision card", () => {
   const viewState = getLoginScreenViewState({
-    email: "",
+    email: "athlete@example.com",
     password: "",
-    rememberedEmail: "athlete@example.com",
-    hasHydrated: true,
-    showCredentialStep: true,
     isSubmitting: false,
     requiresReauth: false,
   });
 
-  assert.equal(viewState.showRememberedAccountCard, true);
-  assert.equal(viewState.showReadonlyRememberedAccount, false);
+  assert.equal(viewState.showManualAuth, true);
+  assert.equal(viewState.showEmailField, true);
 });
 
-test("normal remembered-account login path keeps the CTA calm without extra helper copy", () => {
+test("normal login path does not add a redundant remembered-account prompt", () => {
   const viewState = getLoginScreenViewState({
-    email: "",
+    email: "athlete@example.com",
     password: "secret12",
-    rememberedEmail: "athlete@example.com",
-    hasHydrated: true,
-    showCredentialStep: true,
     isSubmitting: false,
     requiresReauth: false,
   });
@@ -131,15 +122,19 @@ test("normal remembered-account login path keeps the CTA calm without extra help
 
 test("session-expired path still keeps explicit helper messaging", () => {
   const viewState = getLoginScreenViewState({
-    email: "",
+    email: "athlete@example.com",
     password: "secret12",
-    rememberedEmail: "athlete@example.com",
-    hasHydrated: true,
-    showCredentialStep: true,
     isSubmitting: false,
     requiresReauth: true,
   });
 
   assert.equal(viewState.submitLabel, "Enter Gym");
-  assert.equal(viewState.helperText, null);
+  assert.equal(viewState.helperText, "Your session ended. Enter your password to continue.");
+});
+
+test("login screen always renders the credential form instead of a remembered-account choice", () => {
+  assert.match(loginScreenSource, /label="Email or username"/);
+  assert.match(loginScreenSource, /name="password"/);
+  assert.doesNotMatch(loginScreenSource, /BottomActionSplit/);
+  assert.doesNotMatch(loginScreenSource, /handleRevealCredentialStep|handleSwitchAccount|clearRememberedLoginState/);
 });

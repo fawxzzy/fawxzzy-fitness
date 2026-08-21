@@ -180,8 +180,8 @@ function contextFromOverride(
     canUseNativeInstallPrompt,
     shouldShowIOSOpenInSafariGate: false,
     shouldShowIOSAddToHomeScreenGate: false,
-    shouldBlockAppAccess: false,
-    shouldAllowAppAccess: true,
+    shouldBlockAppAccess: true,
+    shouldAllowAppAccess: false,
   };
 }
 
@@ -239,7 +239,7 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
 
   const shouldShowIOSOpenInSafariGate = isIOS && isInAppBrowser && !isStandalone;
   const shouldShowIOSAddToHomeScreenGate = isIOS && !isInAppBrowser && isSafari && !isStandalone;
-  const shouldBlockAppAccess = (isIOS || isAndroid) && !isStandalone;
+  const shouldBlockAppAccess = !isStandalone;
 
   return {
     platform: isIOS ? "ios" : isAndroid ? "android" : userAgent ? "desktop" : "unknown",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { login, requestPasswordResetInline } from "@/app/auth/actions";
-import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   getLoginScreenViewState,
@@ -33,7 +33,6 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 import {
-  clearRememberedLoginState,
   deriveRememberedLoginDisplayName,
   readRememberedLoginState,
   toReauthRequiredRememberedLoginState,
@@ -83,12 +82,10 @@ export function LoginScreen({
   const [password, setPassword] = useState("");
   const [rememberedLogin, setRememberedLogin] = useState<RememberedLoginState | null>(null);
   const [formSeed, setFormSeed] = useState(0);
-  const [hasHydrated, setHasHydrated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetCooldownRemaining, setResetCooldownRemaining] = useState(0);
   const [showCredentialStep, setShowCredentialStep] = useState(shouldStartCredentialStepOpen);
-  const [forceFullCredentialForm, setForceFullCredentialForm] = useState(false);
   const toast = useToast();
 
   useToastMessageEffect("error", resolvedError, { id: "login-route-error" });
@@ -111,7 +108,6 @@ export function LoginScreen({
     }
     setIsSubmitting(false);
     if (resolvedError) {
-      setForceFullCredentialForm(true);
       setShowCredentialStep(true);
       setFormSeed((current) => current + 1);
     }
@@ -132,12 +128,11 @@ export function LoginScreen({
       if (nextLogin.sessionState !== storedLogin.sessionState) {
         writeRememberedLoginState(nextLogin);
       }
-      if (shouldStartCredentialStepOpen) {
-        setShowCredentialStep(true);
-      }
+      // A remembered identity is a convenience for prefilling the full login
+      // form, never a separate Continue/Log Out decision screen.
+      setShowCredentialStep(true);
     }
 
-    setHasHydrated(true);
   }, [previewRememberedLogin, shouldStartCredentialStepOpen]);
 
   useEffect(() => {
@@ -164,12 +159,11 @@ export function LoginScreen({
   }, [resetCooldownRemaining]);
 
   const rememberedEmail = rememberedLogin?.email ?? null;
-  const effectiveRememberedEmail = forceFullCredentialForm ? null : rememberedEmail;
+  const effectiveRememberedEmail = rememberedEmail;
   const rememberedIdentity = rememberedLogin
     ? { displayName: rememberedLogin.displayName || deriveRememberedLoginDisplayName(rememberedLogin.email) }
     : null;
-  const hasRememberedAccount = hasHydrated && Boolean(effectiveRememberedEmail);
-  const showEmailField = !hasRememberedAccount;
+  const showEmailField = true;
 
   useEffect(() => {
     if (!showCredentialStep) {
@@ -206,9 +200,6 @@ export function LoginScreen({
   const viewState = getLoginScreenViewState({
     email,
     password,
-    rememberedEmail: effectiveRememberedEmail,
-    hasHydrated,
-    showCredentialStep,
     isSubmitting,
     requiresReauth: resolvedRequiresReauth,
   });
@@ -216,46 +207,14 @@ export function LoginScreen({
     emailValid,
     passwordValid,
     formReady,
-    showRememberedAccountCard,
     showManualAuth,
-    rememberedAccountPrompt,
     helperText,
     submitLabel,
   } = viewState;
   const rememberedDisplayName = rememberedIdentity?.displayName ?? null;
-  const showRememberedAccountChoice = showRememberedAccountCard && Boolean(rememberedEmail) && !showCredentialStep;
   const highlightInteractiveCard = showManualAuth && emailValid;
   const readyInteractiveCard = showManualAuth && formReady;
   const resetPasswordLabel = resetCooldownRemaining > 0 ? `Try again in ${resetCooldownRemaining}s` : PASSWORD_LOGIN_UI_COPY.forgotPassword;
-
-  function handleSwitchAccount() {
-    if (loginPendingTimeoutRef.current) {
-      window.clearTimeout(loginPendingTimeoutRef.current);
-      loginPendingTimeoutRef.current = null;
-    }
-    clearRememberedLoginState();
-    setRememberedLogin(null);
-    setEmail("");
-    setPassword("");
-    setIsSubmitting(false);
-    setForceFullCredentialForm(false);
-    setShowCredentialStep(false);
-    setFormSeed((current) => current + 1);
-
-    window.setTimeout(() => {
-      const emailInput = document.getElementById(EMAIL_INPUT_ID) as HTMLInputElement | null;
-      emailInput?.focus();
-    }, 30);
-  }
-
-  function handleRevealCredentialStep() {
-    if (!rememberedEmail || isSubmitting) {
-      return;
-    }
-
-    setForceFullCredentialForm(false);
-    setShowCredentialStep(true);
-  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
@@ -321,19 +280,16 @@ export function LoginScreen({
           {rememberedDisplayName ? (
             <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
           ) : null}
-          {helperText && !showRememberedAccountChoice ? (
+          {helperText ? (
             <p
               aria-live="polite"
-              className={cn(
-                appTokens.authHelperText,
-                showRememberedAccountCard ? appTokens.authHelperTextCentered : "",
-              )}
+              className={appTokens.authHelperText}
             >
               {helperText}
             </p>
           ) : null}
         </AuthStack>
-        {!showRememberedAccountCard && copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
+        {copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
       </AuthStack>
     </AuthStack>
   );
@@ -350,9 +306,6 @@ export function LoginScreen({
         )}
       >
         <AuthForm id={LOGIN_FORM_ID} action={login} onSubmit={handleSubmit}>
-          {showRememberedAccountCard && effectiveRememberedEmail ? (
-            <input type="hidden" name="email" value={effectiveRememberedEmail} />
-          ) : null}
           {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <AuthFormFields
             key={formSeed}
@@ -415,26 +368,18 @@ export function LoginScreen({
           </AuthFormFields>
         </AuthForm>
 
-        {showManualAuth ? (
-          <AuthFooter>
-            <AuthFooterText>
-              <Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
-                {PASSWORD_LOGIN_UI_COPY.createAccountAction}
-              </Link>
-              <AuthFooterSeparator />
-              <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
-                {isSendingReset ? "Sending..." : resetPasswordLabel}
-              </AuthInlineLinkButton>
-              <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
-            </AuthFooterText>
-          </AuthFooter>
-        ) : showRememberedAccountChoice ? (
-          <AuthFooter>
-            <AuthFooterText>
-              <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
-            </AuthFooterText>
-          </AuthFooter>
-        ) : null}
+        <AuthFooter>
+          <AuthFooterText>
+            <Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
+              {PASSWORD_LOGIN_UI_COPY.createAccountAction}
+            </Link>
+            <AuthFooterSeparator />
+            <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
+              {isSendingReset ? "Sending..." : resetPasswordLabel}
+            </AuthInlineLinkButton>
+            <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
+          </AuthFooterText>
+        </AuthFooter>
       </AuthCard>
 
       {showManualAuth ? (
@@ -452,31 +397,6 @@ export function LoginScreen({
               {submitLabel}
             </BottomDockButton>
           </BottomActionSingle>
-        </AuthDock>
-      ) : showRememberedAccountChoice && rememberedAccountPrompt ? (
-        <AuthDock>
-          <BottomActionSplit
-            secondary={(
-              <BottomDockButton
-                type="button"
-                intent="danger"
-                disabled={isSubmitting}
-                onClick={handleSwitchAccount}
-              >
-                Log Out
-              </BottomDockButton>
-            )}
-            primary={(
-              <BottomDockButton
-                type="button"
-                intent="positive"
-                disabled={isSubmitting}
-                onClick={handleRevealCredentialStep}
-              >
-                {rememberedAccountPrompt.label}
-              </BottomDockButton>
-            )}
-          />
         </AuthDock>
       ) : null}
     </AuthShell>

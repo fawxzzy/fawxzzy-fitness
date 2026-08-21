@@ -4,24 +4,10 @@ import assert from "node:assert/strict";
 import {
   getLoginHelperText,
   getLoginSubmitLabel,
-  getRememberedAccountPromptState,
   getSyncedLoginFieldState,
   resolveLoginRouteMessages,
   shouldStartCredentialStepOpenForLogin,
 } from "./loginScreenState.ts";
-
-test("remembered account CTA reveals credentials instead of taking an auth shortcut", () => {
-  assert.deepEqual(
-    getRememberedAccountPromptState({
-      hasRememberedAccount: true,
-      showCredentialStep: false,
-    }),
-    {
-      action: "reveal-credentials",
-      label: "Continue",
-    },
-  );
-});
 
 test("failed login attempts keep the credential step open on the next login render", () => {
   assert.equal(
@@ -44,7 +30,7 @@ test("submit labels stay tied to password auth state", () => {
   );
 });
 
-test("hidden email sync preserves remembered email in password-only mode", () => {
+test("remembered email still supports field synchronization when an input is unavailable", () => {
   assert.deepEqual(
     getSyncedLoginFieldState({
       emailInputValue: null,
@@ -59,25 +45,21 @@ test("hidden email sync preserves remembered email in password-only mode", () =>
   );
 });
 
-test("remembered-account password step falls back to normal helper copy", () => {
+test("normal login path does not add a remembered-account helper prompt", () => {
   assert.equal(
     getLoginHelperText({
-      hasRememberedAccount: true,
-      showCredentialStep: true,
       requiresReauth: false,
     }),
     null,
   );
 });
 
-test("reauth path reuses the same remembered-password helper copy", () => {
+test("reauth path uses explicit session-expired helper copy", () => {
   assert.equal(
     getLoginHelperText({
-      hasRememberedAccount: true,
-      showCredentialStep: true,
       requiresReauth: true,
     }),
-    null,
+    "Your session ended. Enter your password to continue.",
   );
 });
 

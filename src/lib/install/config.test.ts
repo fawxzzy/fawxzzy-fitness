@@ -121,27 +121,27 @@ test("install return and bypass helpers reject external targets", () => {
   assert.equal(getInstallBypassHref("//evil.example/login"), "/login?installBypass=1");
 });
 
-test("mobile install guidance does not offer a continuation before standalone mode", () => {
+test("install guidance does not offer a continuation before standalone mode", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
   const iosSource = readFileSync(new URL("../../components/install/IOSAddToHomeScreenGate.tsx", import.meta.url), "utf8");
 
   assert.doesNotMatch(installSource, /shouldAutoContinueWithoutGuide/);
   assert.doesNotMatch(installSource, /router\.replace\(getInstallBypassHref/);
-  assert.match(installSource, /const canContinueWithoutInstall = !context\.shouldBlockAppAccess/);
-  assert.match(installSource, /primaryHref=\{installPrompt\.canPromptInstall \|\| !canContinueWithoutInstall \? undefined : continueHref\}/);
-  assert.match(installSource, /primaryHref=\{canContinueWithoutInstall \? continueHref : undefined\}/);
+  assert.doesNotMatch(installSource, /getInstallBypassHref/);
+  assert.doesNotMatch(installSource, /continueHref/);
+  assert.doesNotMatch(installSource, /primaryHref=/);
   assert.match(iosSource, /primaryHref=\{primaryHref\}/);
   assert.match(iosSource, /primaryLabel=\{primaryHref \? "Continue" : undefined\}/);
 });
 
-test("desktop browser fallback preserves the full install presentation alongside explicit continuation", () => {
+test("desktop browser install presentation does not expose an app-entry continuation", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
 
-  assert.match(installSource, /Use the browser install prompt here, or open Fitness directly\./);
+  assert.match(installSource, /Install Fitness from this browser, then open it from the new app icon\./);
   assert.match(installSource, /Menu Install/);
   assert.match(installSource, /This browser is not offering the one-tap install prompt right now\. Use your browser menu to add Fitness/);
   assert.match(installSource, /Look for Share, Add to Home Screen, or Install app depending on your browser\./);
-  assert.match(installSource, /primaryLabel=\{installPrompt\.canPromptInstall \|\| !canContinueWithoutInstall \? undefined : "Open Fitness"\}/);
+  assert.doesNotMatch(installSource, /"Open Fitness"/);
   assert.doesNotMatch(installSource, /Manual Open/);
 });
 
@@ -158,8 +158,8 @@ test("the Android install surface does not expose an app-entry bypass", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
   const contextSource = readFileSync(new URL("./getInstallContext.ts", import.meta.url), "utf8");
 
-  assert.match(contextSource, /const shouldBlockAppAccess = \(isIOS \|\| isAndroid\) && !isStandalone/);
-  assert.match(installSource, /Install Fitness from this browser, then open it from your Home Screen\./);
+  assert.match(contextSource, /const shouldBlockAppAccess = !isStandalone/);
+  assert.match(installSource, /Install Fitness from this browser, then open it from the new app icon\./);
   assert.doesNotMatch(installSource, /You can still open Fitness normally/);
 });
 

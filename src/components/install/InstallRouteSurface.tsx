@@ -8,7 +8,7 @@ import { IOSOpenInSafariGate } from "@/components/install/IOSOpenInSafariGate";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { getCanonicalInstallUrl, getInstallBypassHref, getInstalledAppHref, getIOSBrowserInstallUrl } from "@/lib/install/config";
+import { getCanonicalInstallUrl, getInstalledAppHref, getIOSBrowserInstallUrl } from "@/lib/install/config";
 import { copyInstallUrl, getInstallContext } from "@/lib/install/getInstallContext";
 import { useInstallContextOverride } from "@/lib/install/useInstallContextOverride";
 import { usePWAInstallPrompt } from "@/components/install/usePWAInstallPrompt";
@@ -27,7 +27,6 @@ export function InstallRouteSurface({
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const installPrompt = usePWAInstallPrompt();
   const override = useInstallContextOverride(initialInstallContext);
-  const continueHref = getInstallBypassHref(initialReturnTo ?? "/login");
 
   const context = useMemo(
     () =>
@@ -43,7 +42,6 @@ export function InstallRouteSurface({
     : context.browserKind === "safari"
       ? "Safari Install"
       : "Browser Install";
-  const canContinueWithoutInstall = !context.shouldBlockAppAccess;
   useEffect(() => {
     if (context.isStandalone) {
       router.replace(getInstalledAppHref(initialReturnTo ?? "/login"));
@@ -72,7 +70,6 @@ export function InstallRouteSurface({
         copyState={copyState}
         installUrl={installUrl}
         onCopy={handleCopy}
-        primaryHref={canContinueWithoutInstall ? continueHref : undefined}
       />
     );
   }
@@ -87,8 +84,6 @@ export function InstallRouteSurface({
       eyebrow="Install"
       installUrl={installUrl}
       onCopy={handleCopy}
-      primaryHref={installPrompt.canPromptInstall || !canContinueWithoutInstall ? undefined : continueHref}
-      primaryLabel={installPrompt.canPromptInstall || !canContinueWithoutInstall ? undefined : "Open Fitness"}
       secondaryAction={installPrompt.canPromptInstall ? (
         <BottomDockButton
           intent="info"
@@ -105,9 +100,7 @@ export function InstallRouteSurface({
       subtitle={
         context.isStandalone
           ? "Fitness is already running in installed mode on this device."
-          : canContinueWithoutInstall
-            ? "Use the browser install prompt here, or open Fitness directly."
-            : "Install Fitness from this browser, then open it from your Home Screen."
+          : "Install Fitness from this browser, then open it from the new app icon."
       }
       title={context.isStandalone ? "Fitness is already installed" : "Install Fitness"}
     >
