@@ -54,7 +54,7 @@ test("automatic session promotion uses the owning sessions.id rather than the se
     routineGoal = candidate.proposedTarget?.weightMax ?? routineGoal;
   }
 
-  assert.equal(candidate.sourceSession?.sessionId, "session-exercise-1");
+  assert.equal(candidate.sourceSession?.sessionId, "session-1");
   assert.equal(candidate.sourceSession?.sessionRecordId, "session-1");
   assert.equal(shouldApply, true);
   assert.equal(routineGoal, 230);
