@@ -1161,3 +1161,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Using credential-including browser transport or accepting caller-defined analytics fields would turn a bounded migration counter into an unintended tracking surface.
 - Evidence: `src/middleware.ts`, `src/middleware.test.ts`, `src/components/LegacyOriginAnalytics.tsx`, `src/lib/legacy-origin-analytics.ts`, `src/lib/legacy-origin-analytics.test.ts`, `docs/ops/FITNESS-LEGACY-ORIGIN-ANALYTICS-2026-08-20.md`.
 - Status: Applied in source; collector activation, review, merge, deployment, production, observation, and redirect retirement remain separate boundaries.
+
+## 2026-08-22 - Keep unsupported browsers blocked without giving impossible install guidance
+
+- Type: Access boundary + Install guidance + Coverage
+- WHAT changed: The installed-app gate still blocks protected Fitness routes outside standalone mode. The install surface now classifies whether the current browser has a supported installation path; unsupported browsers receive a fixed browser-choice explanation and may copy the Fitness link, but receive no continuation or app-entry action. Added Firefox and install-surface contract coverage for that boundary.
+- WHY it changed: Firefox and similar unsupported contexts cannot complete the prescribed installation flow. Sending them to a nonexistent browser menu was misleading, while letting them continue into the app would violate the product rule that Fitness access begins from the installed Home Screen app.
+- Rule: Browser support detection may improve installation guidance, never relax the standalone-only protected-route boundary. Unsupported contexts must receive a truthful alternate-browser instruction rather than an app-entry bypass.
+- Failure Mode: Treating every non-standalone browser as install-capable creates dead-end instructions; treating unsupported capability as an access exception reintroduces a browser-tab bypass.
+- Evidence: `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/components/install/InstallRouteSurface.tsx`, `src/lib/install/config.test.ts`.
+- Status: Source-proven locally; normal PR correction lifecycle remains pending. No Auth, provider, deployment, or production mutation is part of this change.

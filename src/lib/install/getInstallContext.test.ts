@@ -87,6 +87,21 @@ test("requires desktop browser installs before protected app access", () => {
   });
 
   assert.equal(context.platform, "desktop");
+  assert.equal(context.hasSupportedInstallPath, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
+});
+
+test("blocks Firefox without pretending that it can install the protected app", () => {
+  const context = getInstallContext({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
+    platform: "Win32",
+    maxTouchPoints: 0,
+    standalone: false,
+  });
+
+  assert.equal(context.browserKind, "firefox");
+  assert.equal(context.hasSupportedInstallPath, false);
   assert.equal(context.shouldBlockAppAccess, true);
   assert.equal(context.shouldAllowAppAccess, false);
 });

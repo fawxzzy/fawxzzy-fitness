@@ -21,6 +21,7 @@ export type InstallContext = {
   isSafari: boolean;
   isStandalone: boolean;
   isBrowserTab: boolean;
+  hasSupportedInstallPath: boolean;
   canUseNativeInstallPrompt: boolean;
   shouldShowIOSOpenInSafariGate: boolean;
   shouldShowIOSAddToHomeScreenGate: boolean;
@@ -102,6 +103,7 @@ function contextFromOverride(
       isSafari: false,
       isStandalone: false,
       isBrowserTab: true,
+      hasSupportedInstallPath: false,
       canUseNativeInstallPrompt,
       shouldShowIOSOpenInSafariGate: true,
       shouldShowIOSAddToHomeScreenGate: false,
@@ -120,6 +122,7 @@ function contextFromOverride(
       isSafari: true,
       isStandalone: false,
       isBrowserTab: true,
+      hasSupportedInstallPath: true,
       canUseNativeInstallPrompt,
       shouldShowIOSOpenInSafariGate: false,
       shouldShowIOSAddToHomeScreenGate: true,
@@ -138,6 +141,7 @@ function contextFromOverride(
       isSafari: true,
       isStandalone: true,
       isBrowserTab: false,
+      hasSupportedInstallPath: true,
       canUseNativeInstallPrompt: false,
       shouldShowIOSOpenInSafariGate: false,
       shouldShowIOSAddToHomeScreenGate: false,
@@ -156,6 +160,7 @@ function contextFromOverride(
       isSafari: false,
       isStandalone: false,
       isBrowserTab: true,
+      hasSupportedInstallPath: true,
       canUseNativeInstallPrompt,
       shouldShowIOSOpenInSafariGate: false,
       shouldShowIOSAddToHomeScreenGate: false,
@@ -177,6 +182,7 @@ function contextFromOverride(
     isSafari: false,
     isStandalone: false,
     isBrowserTab: true,
+    hasSupportedInstallPath: true,
     canUseNativeInstallPrompt,
     shouldShowIOSOpenInSafariGate: false,
     shouldShowIOSAddToHomeScreenGate: false,
@@ -240,6 +246,10 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
   const shouldShowIOSOpenInSafariGate = isIOS && isInAppBrowser && !isStandalone;
   const shouldShowIOSAddToHomeScreenGate = isIOS && !isInAppBrowser && isSafari && !isStandalone;
   const shouldBlockAppAccess = !isStandalone;
+  // Fitness intentionally opens protected routes only from its installed shell.
+  // Never suggest a menu-install path in a browser that cannot create that shell.
+  const hasSupportedInstallPath = isStandalone
+    || (isIOS ? isSafari && !isInAppBrowser : browserKind === "chrome" || browserKind === "edge" || browserKind === "safari");
 
   return {
     platform: isIOS ? "ios" : isAndroid ? "android" : userAgent ? "desktop" : "unknown",
@@ -250,6 +260,7 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
     isSafari,
     isStandalone,
     isBrowserTab: !isStandalone,
+    hasSupportedInstallPath,
     canUseNativeInstallPrompt,
     shouldShowIOSOpenInSafariGate,
     shouldShowIOSAddToHomeScreenGate,

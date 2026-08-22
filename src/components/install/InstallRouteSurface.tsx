@@ -78,6 +78,30 @@ export function InstallRouteSurface({
     return <RouteLoading label="Opening Fitness" variant="route" />;
   }
 
+  if (!context.hasSupportedInstallPath) {
+    return (
+      <InstallGateChrome
+        copyState={copyState}
+        eyebrow="Supported browser required"
+        installUrl={installUrl}
+        onCopy={handleCopy}
+        subtitle="Fitness opens only from its installed app."
+        title="Use Safari, Chrome, or Edge"
+        showCopyButton
+      >
+        <div className="rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
+          <p>
+            Open Fitness in Safari on iPhone or iPad, or Chrome or Edge on Android or desktop. Install it there, then
+            open the new app icon.
+          </p>
+          <p className="mt-2 text-[0.82rem] leading-5 text-[rgb(var(--text-muted)/0.9)]">
+            This browser cannot install Fitness, so browser-tab access stays unavailable.
+          </p>
+        </div>
+      </InstallGateChrome>
+    );
+  }
+
   return (
     <InstallGateChrome
       copyState={copyState}

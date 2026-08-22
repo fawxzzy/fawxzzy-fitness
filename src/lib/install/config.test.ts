@@ -145,6 +145,15 @@ test("desktop browser install presentation does not expose an app-entry continua
   assert.doesNotMatch(installSource, /Manual Open/);
 });
 
+test("unsupported browsers receive a supported-browser handoff without app access", () => {
+  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+
+  assert.match(installSource, /!context\.hasSupportedInstallPath/);
+  assert.match(installSource, /title="Use Safari, Chrome, or Edge"/);
+  assert.match(installSource, /This browser cannot install Fitness, so browser-tab access stays unavailable\./);
+  assert.doesNotMatch(installSource, /primaryHref=/);
+});
+
 test("iOS in-app guidance does not expose an install-bypass continuation", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
   const chromeSource = readFileSync(new URL("../../components/install/InstallGateChrome.tsx", import.meta.url), "utf8");
