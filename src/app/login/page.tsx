@@ -1,6 +1,7 @@
 import type { LocalDevAutoLoginAccount } from "@/lib/local-dev-auto-entry";
 import { getLocalDevAutoLoginCredentials } from "@/lib/local-dev-auto-entry";
 import { isSafeAppPath } from "@/lib/navigation-return";
+import { redirect } from "next/navigation";
 import { resolveLoginRouteMessages } from "@/app/login/loginScreenState";
 import { LoginScreen } from "@/app/login/LoginScreen";
 import { LocalDevAutoLoginRedirect } from "@/app/login/LocalDevAutoLoginRedirect";
@@ -13,6 +14,7 @@ type LoginPageProps = {
     localAccount?: string;
     manual?: string;
     returnTo?: string;
+    installedApp?: string;
     verified?: string;
   };
 };
@@ -29,6 +31,21 @@ function resolvePreferredLocalDevAccount(value: string | undefined): LocalDevAut
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const shouldAttemptLocalDevAutoLogin = searchParams?.localAutoAuth === "1";
   const returnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams.returnTo : undefined;
+
+  // Home Screen installs created before the manifest start URL moved to /entry
+  // still launch /login?installedApp=1. Redirect before LoginScreen mounts: it
+  // intentionally clears browser and mirrored server sessions for true reauth.
+  const isLegacyInstalledAppLaunch =
+    searchParams?.installedApp === "1" &&
+    !searchParams?.error &&
+    !searchParams?.info &&
+    !searchParams?.verified &&
+    !returnTo &&
+    !shouldAttemptLocalDevAutoLogin;
+
+  if (isLegacyInstalledAppLaunch) {
+    redirect("/entry?installedApp=1");
+  }
 
   if (shouldAttemptLocalDevAutoLogin) {
     const preferredAccount = resolvePreferredLocalDevAccount(searchParams?.localAccount);
