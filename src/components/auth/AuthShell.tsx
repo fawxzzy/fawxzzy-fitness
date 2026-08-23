@@ -16,6 +16,9 @@ import { cn } from "@/lib/cn";
 export const AUTH_PLAIN_CARD_CHROME_CLASS_NAME =
   "auth-card-plain !border-transparent !bg-transparent !shadow-none [backdrop-filter:none] [-webkit-backdrop-filter:none]";
 
+export const AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME =
+  "!h-14 !min-h-14 !rounded-[28px] !border !border-[rgb(var(--accent)/0.32)] !bg-[linear-gradient(180deg,#f4f4f5_0%,rgb(var(--accent))_180%)] !text-[#050505] !shadow-[inset_0_1px_0_rgb(255_255_255/0.82),0_10px_28px_rgb(var(--accent)/0.16)] disabled:!opacity-[0.68]";
+
 export function AuthShell({
   children,
   className,
@@ -29,15 +32,9 @@ export function AuthShell({
 }) {
   return (
     <main
-      className={cn(appTokens.authShell, "bg-transparent", "[caret-color:transparent]")}
+      className={cn(appTokens.authShell, "[caret-color:transparent]")}
       data-testid="auth-shell"
     >
-      <div aria-hidden="true" className={appTokens.authShellBackdrop}>
-        <div className={appTokens.authShellBackdropGrid} />
-        <div className={appTokens.authShellBackdropGlowLeading} />
-        <div className={appTokens.authShellBackdropGlowTrailing} />
-      </div>
-
       <div className={appTokens.authShellFrame}>
         <AppSoftErrorBoundary area="auth-shell">
           {topAction ? (
@@ -46,12 +43,12 @@ export function AuthShell({
             </div>
           ) : null}
           {header ? (
-            <div className="flex justify-center pt-4 text-center sm:pt-6">
+            <div className="flex justify-center text-center">
               {header}
             </div>
           ) : null}
           <div
-            className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
+            className={cn("flex min-h-0 min-w-0 flex-1 flex-col", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
             data-testid="auth-shell-content"
           >
             {children}
@@ -141,7 +138,7 @@ export function AuthFormFields({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("mx-auto w-full max-w-[23rem] space-y-3 px-0.5 pt-1.5 sm:space-y-4 sm:px-0 sm:pt-2", className)}>{children}</div>;
+  return <div className={cn("mx-auto w-full max-w-[15rem] space-y-[18px]", className)}>{children}</div>;
 }
 
 export function AuthStatusText({ children, className }: { children: ReactNode; className?: string }) {
@@ -248,8 +245,8 @@ export function AuthDock({
 
   return (
     <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-30", className)}>
-      <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto")}>
-        <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>{children}</div>
+      <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto !max-w-[390px] !px-6")}>
+        <div className={cn(BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME, "!pb-6 !pt-0")}>{children}</div>
       </div>
     </div>
   );

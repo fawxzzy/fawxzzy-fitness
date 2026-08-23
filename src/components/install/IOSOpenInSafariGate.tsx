@@ -1,4 +1,5 @@
 import { InstallGateChrome, type InstallCopyState } from "@/components/install/InstallGateChrome";
+import { FITNESS_INSTALL_STEPS } from "@/components/install/InstallRouteSurface";
 
 type IOSOpenInSafariGateProps = {
   copyState: InstallCopyState;
@@ -9,29 +10,11 @@ type IOSOpenInSafariGateProps = {
 };
 
 export function IOSOpenInSafariGate({
-  copyState,
-  installUrl,
-  onCopy,
-  primaryHref,
-  primaryLabel,
+  copyState: _copyState,
+  installUrl: _installUrl,
+  onCopy: _onCopy,
+  primaryHref: _primaryHref,
+  primaryLabel: _primaryLabel,
 }: IOSOpenInSafariGateProps) {
-  return (
-    <InstallGateChrome
-      copyState={copyState}
-      eyebrow="Install Flow"
-      installUrl={installUrl}
-      onCopy={onCopy}
-      primaryHref={primaryHref}
-      primaryLabel={primaryLabel}
-      showCopyButton
-      showInstallUrlCard
-      title="Open Fitness in your browser"
-    >
-      <ol className="space-y-2 rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.56)] px-4 py-4 text-center text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
-        <li>1. Copy this link.</li>
-        <li>2. Open Safari or your default browser.</li>
-        <li>3. Paste the link, then add Fitness to your Home Screen.</li>
-      </ol>
-    </InstallGateChrome>
-  );
+  return <InstallGateChrome steps={FITNESS_INSTALL_STEPS} />;
 }

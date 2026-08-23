@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LoginScreen } from "@/app/login/LoginScreen";
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { SignupForm } from "@/components/auth/SignupForm";
+import { InstallRouteSurface } from "@/components/install/InstallRouteSurface";
 import { AuthCard, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
@@ -22,6 +24,7 @@ const screens = [
   { id: "login-remembered-password", label: "Login remembered password" },
   { id: "login-remembered-reauth", label: "Login remembered reauth" },
   { id: "signup", label: "Create account" },
+  { id: "install", label: "Install" },
   { id: "reset-password-linking", label: "Reset linking" },
   { id: "loading-boot", label: "Boot loading" },
   { id: "loading-route", label: "Route loading" },
@@ -107,11 +110,16 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
   }
 
   if (searchParams.screen === "signup") {
+    const copy = AUTH_MODE_COPY["create-account"];
     return (
-      <AuthShell>
+      <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />}>
         <SignupForm />
       </AuthShell>
     );
+  }
+
+  if (searchParams.screen === "install") {
+    return <InstallRouteSurface initialInstallContext="other" initialReturnTo="/today" />;
   }
 
   if (searchParams.screen === "reset-password-linking") {

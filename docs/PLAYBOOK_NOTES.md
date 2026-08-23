@@ -1161,3 +1161,23 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Using credential-including browser transport or accepting caller-defined analytics fields would turn a bounded migration counter into an unintended tracking surface.
 - Evidence: `src/middleware.ts`, `src/middleware.test.ts`, `src/components/LegacyOriginAnalytics.tsx`, `src/lib/legacy-origin-analytics.ts`, `src/lib/legacy-origin-analytics.test.ts`, `docs/ops/FITNESS-LEGACY-ORIGIN-ANALYTICS-2026-08-20.md`.
 - Status: Applied in source; collector activation, review, merge, deployment, production, observation, and redirect retirement remain separate boundaries.
+
+## 2026-08-22 - Keep unsupported browsers blocked without giving impossible install guidance
+
+- Type: Access boundary + Install guidance + Coverage
+- WHAT changed: The installed-app gate still blocks protected Fitness routes outside standalone mode. The install surface now classifies whether the current browser has a supported installation path; unsupported browsers receive a fixed browser-choice explanation and may copy the Fitness link, but receive no continuation or app-entry action. Added Firefox and install-surface contract coverage for that boundary.
+- WHY it changed: Firefox and similar unsupported contexts cannot complete the prescribed installation flow. Sending them to a nonexistent browser menu was misleading, while letting them continue into the app would violate the product rule that Fitness access begins from the installed Home Screen app.
+- Rule: Browser support detection may improve installation guidance, never relax the standalone-only protected-route boundary. Unsupported contexts must receive a truthful alternate-browser instruction rather than an app-entry bypass.
+- Failure Mode: Treating every non-standalone browser as install-capable creates dead-end instructions; treating unsupported capability as an access exception reintroduces a browser-tab bypass.
+- Evidence: `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/components/install/InstallRouteSurface.tsx`, `src/lib/install/config.test.ts`.
+- Status: Source-proven locally; normal PR correction lifecycle remains pending. No Auth, provider, deployment, or production mutation is part of this change.
+
+## 2026-08-22 - Keep supported browser guidance and editable login fields truthful
+
+- Type: Install guidance + Login interaction + Coverage
+- WHAT changed: Desktop Safari is now identified as Safari when determining whether a browser has a supported Fitness installation path; iOS-only install gates remain iOS-only and protected app routes remain standalone-only. The login form no longer moves focus to Password during delayed remembered-email synchronization, so an explicit user interaction with the editable email-or-username field is never interrupted.
+- WHY it changed: The unsupported-browser guidance could misclassify macOS Safari and instruct it to use Safari. Separately, delayed synchronization at 160, 520, and 1100 milliseconds could take focus away from a user who had selected the editable remembered email field, sending subsequent typing to Password.
+- Rule: Browser capability detection must distinguish guidance from protected-route access. Form synchronization may update state from existing controls but must not override a user-selected editable field.
+- Failure Mode: An iOS-specific Safari predicate reused as desktop capability detection gives circular guidance. Repeated timer-driven focus calls make a visible editable field appear usable while silently redirecting user input.
+- Evidence: `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/app/login/LoginScreen.tsx`, `src/app/login/LoginScreen.contract.test.ts`.
+- Status: Source correction pending focused verification and exact-head review. No Auth, provider, deployment, or production mutation is part of this change.

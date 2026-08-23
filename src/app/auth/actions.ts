@@ -6,6 +6,7 @@ import { setSessionCookies } from "@/lib/auth-session";
 import { isSafeAppPath } from "@/lib/navigation-return";
 import { hasSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
+import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -13,10 +14,6 @@ function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
 
 function isEmailIdentifier(identifier: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-}
-
-function isUsernameIdentifier(identifier: string) {
-  return /^[a-z0-9][a-z0-9._-]{1,14}$/i.test(identifier);
 }
 
 async function resolveEmailForLogin(identifier: string) {
@@ -167,7 +164,7 @@ export async function signup(formData: FormData) {
   if (username && !isUsernameIdentifier(username)) {
     redirect(
       `/signup?error=${encodeURIComponent(
-        "Username must be 2-15 characters and use letters, numbers, periods, underscores, or hyphens.",
+        USERNAME_VALIDATION_MESSAGE,
       )}`,
     );
   }

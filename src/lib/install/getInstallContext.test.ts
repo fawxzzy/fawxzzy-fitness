@@ -27,6 +27,7 @@ test("detects iPhone in-app browser as Open in Safari gate", () => {
   });
 
   assert.equal(context.isInAppBrowser, true);
+  assert.equal(context.hasSupportedInstallPath, false);
   assert.equal(context.shouldShowIOSOpenInSafariGate, true);
   assert.equal(context.shouldBlockAppAccess, true);
   assert.equal(context.shouldAllowAppAccess, false);
@@ -42,6 +43,7 @@ test("detects link-in-bio iPhone browsers as Open in Safari gate", () => {
   });
 
   assert.equal(context.isInAppBrowser, true);
+  assert.equal(context.hasSupportedInstallPath, false);
   assert.equal(context.shouldShowIOSOpenInSafariGate, true);
   assert.equal(context.shouldBlockAppAccess, true);
   assert.equal(context.shouldAllowAppAccess, false);
@@ -77,7 +79,7 @@ test("detects Android install prompt support", () => {
   assert.equal(context.shouldAllowAppAccess, false);
 });
 
-test("detects desktop fallback without iOS gates", () => {
+test("requires desktop browser installs before protected app access", () => {
   const context = getInstallContext({
     userAgent:
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
@@ -87,8 +89,39 @@ test("detects desktop fallback without iOS gates", () => {
   });
 
   assert.equal(context.platform, "desktop");
-  assert.equal(context.shouldBlockAppAccess, false);
-  assert.equal(context.shouldAllowAppAccess, true);
+  assert.equal(context.hasSupportedInstallPath, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
+});
+
+test("recognizes macOS Safari as a supported browser without relaxing the installed-app boundary", () => {
+  const context = getInstallContext({
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+    platform: "MacIntel",
+    maxTouchPoints: 0,
+    standalone: false,
+  });
+
+  assert.equal(context.platform, "desktop");
+  assert.equal(context.browserKind, "safari");
+  assert.equal(context.hasSupportedInstallPath, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
+});
+
+test("blocks Firefox without pretending that it can install the protected app", () => {
+  const context = getInstallContext({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
+    platform: "Win32",
+    maxTouchPoints: 0,
+    standalone: false,
+  });
+
+  assert.equal(context.browserKind, "firefox");
+  assert.equal(context.hasSupportedInstallPath, false);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
 });
 
 test("detects iPadOS Safari desktop platform with touch", () => {
@@ -179,6 +212,10 @@ test("documented Android and desktop install contexts resolve to concrete browse
   assert.equal(android.shouldAllowAppAccess, false);
   assert.equal(edge.platform, "desktop");
   assert.equal(edge.browserKind, "edge");
+  assert.equal(edge.shouldBlockAppAccess, true);
+  assert.equal(edge.shouldAllowAppAccess, false);
   assert.equal(safari.platform, "desktop");
   assert.equal(safari.browserKind, "safari");
+  assert.equal(safari.shouldBlockAppAccess, true);
+  assert.equal(safari.shouldAllowAppAccess, false);
 });

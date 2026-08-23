@@ -1,7 +1,7 @@
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
+import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -69,34 +69,8 @@ export function getSyncedLoginFieldState(args: {
   };
 }
 
-export function getRememberedAccountPromptState(args: {
-  hasRememberedAccount: boolean;
-  showCredentialStep: boolean;
-}) {
-  if (!args.hasRememberedAccount || args.showCredentialStep) {
-    return null;
-  }
-
-  return {
-    action: "reveal-credentials" as const,
-    label: PASSWORD_LOGIN_UI_COPY.cta.continue,
-  };
-}
-
-export function getLoginHelperText(args: {
-  hasRememberedAccount: boolean;
-  showCredentialStep: boolean;
-  requiresReauth?: boolean;
-}) {
-  if (args.hasRememberedAccount && !args.showCredentialStep) {
-    return PASSWORD_LOGIN_UI_COPY.helper.remembered;
-  }
-
-  if (PASSWORD_LOGIN_UI_COPY.helper.default) {
-    return PASSWORD_LOGIN_UI_COPY.helper.default;
-  }
-
-  return null;
+export function getLoginHelperText(args: { requiresReauth?: boolean }) {
+  return args.requiresReauth ? PASSWORD_LOGIN_UI_COPY.helper.reauth : PASSWORD_LOGIN_UI_COPY.helper.default || null;
 }
 
 export function getLoginSubmitLabel(args: {
@@ -118,22 +92,17 @@ export function getLoginSubmitLabel(args: {
 export function getLoginScreenViewState(args: {
   email: string;
   password: string;
-  rememberedEmail?: string | null;
-  hasHydrated: boolean;
-  showCredentialStep: boolean;
   isSubmitting: boolean;
   requiresReauth?: boolean;
 }) {
-  const hasRememberedAccount = args.hasHydrated && Boolean(args.rememberedEmail);
-  const showRememberedAccountCard = hasRememberedAccount;
-  const showManualAuth = args.showCredentialStep || !hasRememberedAccount;
-  const showEmailField = !hasRememberedAccount;
+  const showManualAuth = true;
+  const showEmailField = true;
   const effectiveEmail = getAuthoritativeLoginEmail({
     email: args.email,
-    rememberedEmail: args.rememberedEmail,
+    rememberedEmail: null,
     showEmailField,
   });
-  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail)) || USERNAME_PATTERN.test(effectiveEmail.trim());
+  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail)) || isUsernameIdentifier(effectiveEmail);
   const passwordValid = args.password.length >= 6;
   const formReady = emailValid && passwordValid;
 
@@ -141,17 +110,9 @@ export function getLoginScreenViewState(args: {
     emailValid,
     passwordValid,
     formReady,
-    showRememberedAccountCard,
     showManualAuth,
     showEmailField,
-    showReadonlyRememberedAccount: showManualAuth && !showEmailField && !showRememberedAccountCard,
-    rememberedAccountPrompt: getRememberedAccountPromptState({
-      hasRememberedAccount: showRememberedAccountCard,
-      showCredentialStep: args.showCredentialStep,
-    }),
     helperText: getLoginHelperText({
-      hasRememberedAccount,
-      showCredentialStep: args.showCredentialStep,
       requiresReauth: args.requiresReauth,
     }),
     submitLabel: getLoginSubmitLabel({
