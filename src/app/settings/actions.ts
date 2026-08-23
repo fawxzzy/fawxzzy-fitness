@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { QA_LLEL_VISIBILITY_COOKIE } from "@/lib/qa-data-visibility";
 import { supabaseServer, supabaseServerWithSession } from "@/lib/supabase/server";
+import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 
 export type EmailUpdateState = {
   status: "idle" | "success" | "error";
@@ -13,7 +14,6 @@ export type EmailUpdateState = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_REGEX = /^[A-Za-z0-9._-]{2,15}$/;
 const PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE =
   "Unit preferences require the latest profile migration. Run migrations and try again.";
 const PROFILE_QA_VISIBILITY_COLUMN_MISSING_MESSAGE =
@@ -57,10 +57,10 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
     return { status: "error", message: "Enter a valid email address." };
   }
 
-  if (nextUsername && !USERNAME_REGEX.test(nextUsername)) {
+  if (nextUsername && !isUsernameIdentifier(nextUsername)) {
     return {
       status: "error",
-      message: "Username must be 2-15 characters and use letters, numbers, periods, underscores, or hyphens.",
+      message: USERNAME_VALIDATION_MESSAGE,
     };
   }
 

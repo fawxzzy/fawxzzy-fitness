@@ -130,37 +130,27 @@ test("install guidance does not offer a continuation before standalone mode", ()
   assert.doesNotMatch(installSource, /getInstallBypassHref/);
   assert.doesNotMatch(installSource, /continueHref/);
   assert.doesNotMatch(installSource, /primaryHref=/);
-  assert.match(iosSource, /primaryHref=\{primaryHref\}/);
-  assert.match(iosSource, /primaryLabel=\{primaryHref \? "Continue" : undefined\}/);
+  assert.match(iosSource, /FITNESS_INSTALL_STEPS/);
+  assert.doesNotMatch(iosSource, /primaryHref=/);
 });
 
-test("desktop browser install presentation does not expose an app-entry continuation", () => {
+test("every browser receives the same concise three-step install presentation", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+  const chromeSource = readFileSync(new URL("../../components/install/InstallGateChrome.tsx", import.meta.url), "utf8");
 
-  assert.match(installSource, /Install Fitness from this browser, then open it from the new app icon\./);
-  assert.match(installSource, /Menu Install/);
-  assert.match(installSource, /This browser is not offering the one-tap install prompt right now\. Use your browser menu to add Fitness/);
-  assert.match(installSource, /Look for Share, Add to Home Screen, or Install app depending on your browser\./);
+  assert.match(installSource, /default browser/);
+  assert.match(installSource, /Open Share, then choose More/);
+  assert.match(installSource, /Add to Home Screen, Install app, or Download/);
+  assert.match(chromeSource, /aria-label="Install Fitness"/);
   assert.doesNotMatch(installSource, /"Open Fitness"/);
-  assert.doesNotMatch(installSource, /Manual Open/);
-});
-
-test("unsupported browsers receive a supported-browser handoff without app access", () => {
-  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
-
-  assert.match(installSource, /!context\.hasSupportedInstallPath/);
-  assert.match(installSource, /title="Use Safari, Chrome, or Edge"/);
-  assert.match(installSource, /This browser cannot install Fitness, so browser-tab access stays unavailable\./);
-  assert.doesNotMatch(installSource, /primaryHref=/);
+  assert.doesNotMatch(installSource, /Safari|supported browser|required browser/i);
 });
 
 test("iOS in-app guidance does not expose an install-bypass continuation", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
   const chromeSource = readFileSync(new URL("../../components/install/InstallGateChrome.tsx", import.meta.url), "utf8");
-  const inAppGate = installSource.split("if (context.shouldShowIOSOpenInSafariGate)")[1]?.split("if (context.shouldShowIOSAddToHomeScreenGate)")[0] ?? "";
-
-  assert.doesNotMatch(inAppGate, /primaryHref=\{continueHref\}/);
-  assert.doesNotMatch(chromeSource, /showCopyButton && primaryHref && primaryLabel/);
+  assert.doesNotMatch(installSource, /IOSOpenInSafariGate|IOSAddToHomeScreenGate/);
+  assert.doesNotMatch(chromeSource, /showCopyButton|primaryHref|primaryLabel/);
 });
 
 test("the Android install surface does not expose an app-entry bypass", () => {
@@ -168,7 +158,7 @@ test("the Android install surface does not expose an app-entry bypass", () => {
   const contextSource = readFileSync(new URL("./getInstallContext.ts", import.meta.url), "utf8");
 
   assert.match(contextSource, /const shouldBlockAppAccess = !isStandalone/);
-  assert.match(installSource, /Install Fitness from this browser, then open it from the new app icon\./);
+  assert.match(installSource, /Add to Home Screen, Install app, or Download/);
   assert.doesNotMatch(installSource, /You can still open Fitness normally/);
 });
 

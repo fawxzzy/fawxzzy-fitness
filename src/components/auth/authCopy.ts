@@ -58,7 +58,7 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
 };
 
 export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
-  wordmark: "Fawxzzy Fitness",
+  wordmark: "Fitness",
   helper: {
     default: "",
     remembered: "Continue with this account to log in.",
@@ -67,11 +67,11 @@ export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
     ready: "",
   },
   cta: {
-    idle: "Enter Gym",
+    idle: "Log in",
     continue: "Continue",
-    ready: "Enter Gym",
+    ready: "Log in",
     reauth: "Continue",
-    pending: "Entering...",
+    pending: "Signing in...",
     restoring: "Restoring session...",
   },
   returningUserLabel: "Account",

@@ -80,7 +80,7 @@ test("remembered account prefills the normal email-and-password login form", () 
   });
 
   assert.equal(viewState.formReady, true);
-  assert.equal(viewState.submitLabel, "Enter Gym");
+  assert.equal(viewState.submitLabel, "Log in");
   assert.equal(viewState.showEmailField, true);
 });
 
@@ -116,7 +116,7 @@ test("normal login path does not add a redundant remembered-account prompt", () 
     requiresReauth: false,
   });
 
-  assert.equal(viewState.submitLabel, "Enter Gym");
+  assert.equal(viewState.submitLabel, "Log in");
   assert.equal(viewState.helperText, null);
 });
 
@@ -128,7 +128,7 @@ test("session-expired path still keeps explicit helper messaging", () => {
     requiresReauth: true,
   });
 
-  assert.equal(viewState.submitLabel, "Enter Gym");
+  assert.equal(viewState.submitLabel, "Log in");
   assert.equal(viewState.helperText, "Your session ended. Enter your password to continue.");
 });
 
@@ -137,4 +137,9 @@ test("login screen always renders the credential form instead of a remembered-ac
   assert.match(loginScreenSource, /name="password"/);
   assert.doesNotMatch(loginScreenSource, /BottomActionSplit/);
   assert.doesNotMatch(loginScreenSource, /handleRevealCredentialStep|handleSwitchAccount|clearRememberedLoginState/);
+});
+
+test("remembered email synchronization never steals focus from an editable credential field", () => {
+  assert.doesNotMatch(loginScreenSource, /focusTarget\.focus\(\)/);
+  assert.doesNotMatch(loginScreenSource, /passwordInput\.focus\(\)/);
 });

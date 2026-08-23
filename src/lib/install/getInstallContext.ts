@@ -226,7 +226,10 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
   const isIOS = detectIOS(userAgent, platform, maxTouchPoints);
   const isAndroid = detectAndroid(userAgent);
   const isInAppBrowser = IN_APP_BROWSER_PATTERN.test(userAgent);
-  const isSafari = isIOS && /Safari/i.test(userAgent) && !SAFARI_EXCLUSION_PATTERN.test(userAgent) && !isInAppBrowser;
+  // Safari also has a supported installation path on macOS. Keep the iOS-only
+  // gates below iOS-specific, but classify Safari itself independently so the
+  // unsupported-browser surface never tells desktop Safari to switch to Safari.
+  const isSafari = /Safari/i.test(userAgent) && !SAFARI_EXCLUSION_PATTERN.test(userAgent) && !isInAppBrowser;
   const isStandalone = options.standalone ?? resolveStandaloneFromWindow();
 
   let browserKind: InstallBrowserKind = "unknown";

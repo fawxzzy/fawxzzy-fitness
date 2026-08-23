@@ -24,12 +24,12 @@ import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
+import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const COOLDOWN_SECONDS = 60;
 const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const RESET_FORM_ID = "reset-password-request-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 type ForgotPasswordFormClientProps = {
@@ -83,7 +83,7 @@ export default function ForgotPasswordFormClient({
     const formData = new FormData(event.currentTarget);
     const identifier = String(formData.get("email") ?? "").trim();
 
-    if ((!EMAIL_PATTERN.test(identifier.toLowerCase()) && !USERNAME_PATTERN.test(identifier)) || cooldownRemaining > 0) {
+    if ((!EMAIL_PATTERN.test(identifier.toLowerCase()) && !isUsernameIdentifier(identifier)) || cooldownRemaining > 0) {
       event.preventDefault();
       return;
     }
@@ -93,7 +93,7 @@ export default function ForgotPasswordFormClient({
 
   const isCoolingDown = cooldownRemaining > 0;
   const identifierValue = email.trim();
-  const emailValid = EMAIL_PATTERN.test(identifierValue.toLowerCase()) || USERNAME_PATTERN.test(identifierValue);
+  const emailValid = EMAIL_PATTERN.test(identifierValue.toLowerCase()) || isUsernameIdentifier(identifierValue);
   const submitLabel = isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
 
   return (

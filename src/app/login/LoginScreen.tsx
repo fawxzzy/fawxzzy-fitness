@@ -13,6 +13,7 @@ import {
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import {
   AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
+  AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME,
   AuthCard,
   AuthDock,
   AuthFooter,
@@ -20,11 +21,11 @@ import {
   AuthFooterText,
   AuthForm,
   AuthFormFields,
+  AuthIntro,
   AuthInlineLinkButton,
   AuthShell,
   AuthStack,
 } from "@/components/auth/AuthShell";
-import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -40,12 +41,12 @@ import {
   type RememberedLoginState,
 } from "@/lib/remembered-login";
 import { clearBrowserSupabaseSession } from "@/lib/supabase/client";
+import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const EMAIL_INPUT_ID = "login-email";
 const PASSWORD_INPUT_ID = "login-password";
 const LOGIN_FORM_ID = "login-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 const RESET_COOLDOWN_SECONDS = 60;
 const RESET_NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const LOGIN_PENDING_TIMEOUT_MS = 12000;
@@ -173,7 +174,6 @@ export function LoginScreen({
     const syncFormValues = () => {
       const emailInput = document.getElementById(EMAIL_INPUT_ID) as HTMLInputElement | null;
       const passwordInput = document.getElementById(PASSWORD_INPUT_ID) as HTMLInputElement | null;
-      const focusTarget = effectiveRememberedEmail ? passwordInput : emailInput ?? passwordInput;
       const nextFormState = getSyncedLoginFieldState({
         emailInputValue: emailInput?.value,
         passwordInputValue: passwordInput?.value,
@@ -183,9 +183,6 @@ export function LoginScreen({
 
       setEmail(nextFormState.email);
       setPassword(nextFormState.password);
-      if (focusTarget && document.activeElement !== focusTarget) {
-        focusTarget.focus();
-      }
     };
 
     const frameId = window.requestAnimationFrame(syncFormValues);
@@ -221,7 +218,7 @@ export function LoginScreen({
     const submittedEmail = normalizeEmail(String(formData.get("email") ?? rememberedEmail ?? ""));
     const submittedPassword = String(formData.get("password") ?? "");
 
-    const identifierValid = EMAIL_PATTERN.test(submittedEmail) || USERNAME_PATTERN.test(submittedEmail);
+    const identifierValid = EMAIL_PATTERN.test(submittedEmail) || isUsernameIdentifier(submittedEmail);
     if (!identifierValid || submittedPassword.length < 6) {
       event.preventDefault();
       return;
@@ -245,7 +242,7 @@ export function LoginScreen({
     }
 
     const identifier = normalizeEmail(email || rememberedEmail || "");
-    if (!EMAIL_PATTERN.test(identifier) && !USERNAME_PATTERN.test(identifier)) {
+    if (!EMAIL_PATTERN.test(identifier) && !isUsernameIdentifier(identifier)) {
       toast.error("Enter your email or username to reset your password.");
       return;
     }
@@ -270,27 +267,19 @@ export function LoginScreen({
   }
 
   const loginHeader = (
-    <AuthStack size="lg" className="mx-auto w-full max-w-sm text-center">
-      <AuthStack>
-        <div className="flex min-h-8 items-center justify-center">
-          <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
-        </div>
-        <AuthStack size="sm" className="text-center">
-          <h1 className={appTokens.authIntroTitle}>{copy.title}</h1>
-          {rememberedDisplayName ? (
-            <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
-          ) : null}
-          {helperText ? (
-            <p
-              aria-live="polite"
-              className={appTokens.authHelperText}
-            >
-              {helperText}
-            </p>
-          ) : null}
-        </AuthStack>
-        {copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
-      </AuthStack>
+    <AuthStack size="sm" className="mx-auto w-full max-w-sm text-center">
+      <AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />
+      {rememberedDisplayName ? (
+        <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
+      ) : null}
+      {helperText ? (
+        <p
+          aria-live="polite"
+          className={appTokens.authHelperText}
+        >
+          {helperText}
+        </p>
+      ) : null}
     </AuthStack>
   );
 
@@ -332,7 +321,7 @@ export function LoginScreen({
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     emailValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
@@ -356,7 +345,7 @@ export function LoginScreen({
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
@@ -377,7 +366,6 @@ export function LoginScreen({
             <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
               {isSendingReset ? "Sending..." : resetPasswordLabel}
             </AuthInlineLinkButton>
-            <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
         </AuthFooter>
       </AuthCard>
@@ -392,7 +380,8 @@ export function LoginScreen({
               disabled={!formReady || isSubmitting}
               loading={isSubmitting}
               loadingLabel={PASSWORD_LOGIN_UI_COPY.cta.pending}
-              className={cn(isSubmitting ? appTokens.authActionButtonPending : "")}
+              className={cn(AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME, isSubmitting ? appTokens.authActionButtonPending : "")}
+              data-auth-primary-action="true"
             >
               {submitLabel}
             </BottomDockButton>

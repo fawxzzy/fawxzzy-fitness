@@ -15,3 +15,10 @@ test("shared PasswordInput is adopted across auth and account password fields", 
     assert.match(source, /<PasswordInput/);
   }
 });
+
+test("sign-in and account creation preserve the shared password-preview control", () => {
+  for (const relativePath of adoptionFiles.slice(0, 2)) {
+    const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /showVisibilityToggle=\{false\}/);
+  }
+});

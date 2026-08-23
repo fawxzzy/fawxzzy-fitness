@@ -26,7 +26,7 @@ test("submit labels stay tied to password auth state", () => {
       isExceptionalReauth: false,
       isSubmitting: false,
     }),
-    "Enter Gym",
+    "Log in",
   );
 });
 

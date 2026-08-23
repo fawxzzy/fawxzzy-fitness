@@ -13,6 +13,7 @@ type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & 
   fitContent?: boolean;
   minVisibleCharacters?: number;
   wrapperClassName?: string;
+  showVisibilityToggle?: boolean;
 };
 
 function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
@@ -40,6 +41,7 @@ export function PasswordInput({
   fitContent = false,
   minVisibleCharacters = 0,
   wrapperClassName,
+  showVisibilityToggle = true,
   onChange,
   value,
   defaultValue,
@@ -83,20 +85,20 @@ export function PasswordInput({
         defaultValue={defaultValue}
         type={resolvePasswordInputType(isVisible)}
         onChange={handleChange}
-        className={cn("pr-12", fitContent ? "w-full min-w-0" : undefined, className)}
+        className={cn(showVisibilityToggle ? "pr-12" : undefined, fitContent ? "w-full min-w-0" : undefined, className)}
       />
-      <button
+      {showVisibilityToggle ? <button
         type="button"
         aria-label={toggleLabel}
         aria-pressed={isVisible}
         onClick={() => setIsVisible((current) => !current)}
         className={cn(
-          "absolute right-1 top-1/2 inline-flex h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-full bg-transparent px-1.5 text-[rgb(var(--text-primary)/0.98)] transition-colors hover:bg-[rgb(var(--surface-2-rgb)/0.18)] hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]",
+          "absolute right-1 top-1/2 inline-flex h-11 min-w-11 -translate-y-1/2 appearance-none items-center justify-center !border-0 !bg-transparent px-1.5 text-[rgb(var(--text-primary)/0.98)] !shadow-none transition-[color,filter] hover:!border-0 hover:!bg-transparent hover:text-[rgb(var(--text-primary)/0.98)] hover:!shadow-none focus:!border-0 focus:!bg-transparent focus:!shadow-none focus-visible:!border-0 focus-visible:!bg-transparent focus-visible:!shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:drop-shadow-[0_0_5px_rgb(var(--accent)/0.5)]",
           toggleClassName,
         )}
       >
         <PasswordVisibilityIcon visible={isVisible} />
-      </button>
+      </button> : null}
     </div>
   );
 }

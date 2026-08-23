@@ -1171,3 +1171,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating every non-standalone browser as install-capable creates dead-end instructions; treating unsupported capability as an access exception reintroduces a browser-tab bypass.
 - Evidence: `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/components/install/InstallRouteSurface.tsx`, `src/lib/install/config.test.ts`.
 - Status: Source-proven locally; normal PR correction lifecycle remains pending. No Auth, provider, deployment, or production mutation is part of this change.
+
+## 2026-08-22 - Keep supported browser guidance and editable login fields truthful
+
+- Type: Install guidance + Login interaction + Coverage
+- WHAT changed: Desktop Safari is now identified as Safari when determining whether a browser has a supported Fitness installation path; iOS-only install gates remain iOS-only and protected app routes remain standalone-only. The login form no longer moves focus to Password during delayed remembered-email synchronization, so an explicit user interaction with the editable email-or-username field is never interrupted.
+- WHY it changed: The unsupported-browser guidance could misclassify macOS Safari and instruct it to use Safari. Separately, delayed synchronization at 160, 520, and 1100 milliseconds could take focus away from a user who had selected the editable remembered email field, sending subsequent typing to Password.
+- Rule: Browser capability detection must distinguish guidance from protected-route access. Form synchronization may update state from existing controls but must not override a user-selected editable field.
+- Failure Mode: An iOS-specific Safari predicate reused as desktop capability detection gives circular guidance. Repeated timer-driven focus calls make a visible editable field appear usable while silently redirecting user input.
+- Evidence: `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/app/login/LoginScreen.tsx`, `src/app/login/LoginScreen.contract.test.ts`.
+- Status: Source correction pending focused verification and exact-head review. No Auth, provider, deployment, or production mutation is part of this change.

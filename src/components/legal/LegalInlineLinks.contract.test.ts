@@ -7,5 +7,9 @@ test("legal inline links use the canonical app pipe by default", () => {
 
   assert.match(source, /SignatureMiniPipe/);
   assert.match(source, /<SignatureMiniPipe className=\{separatorClassName\} \/>/);
+  assert.match(source, /centerSeparator = false/);
+  assert.match(source, /grid-cols-\[minmax\(0,1fr\)_0\.465rem_minmax\(0,1fr\)\]/);
+  assert.match(source, /centerSeparator \? "justify-self-end"/);
+  assert.match(source, /centerSeparator \? "justify-self-start"/);
   assert.doesNotMatch(source, />\s*\|\s*</);
 });

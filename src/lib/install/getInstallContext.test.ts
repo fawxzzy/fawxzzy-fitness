@@ -92,6 +92,22 @@ test("requires desktop browser installs before protected app access", () => {
   assert.equal(context.shouldAllowAppAccess, false);
 });
 
+test("recognizes macOS Safari as a supported browser without relaxing the installed-app boundary", () => {
+  const context = getInstallContext({
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+    platform: "MacIntel",
+    maxTouchPoints: 0,
+    standalone: false,
+  });
+
+  assert.equal(context.platform, "desktop");
+  assert.equal(context.browserKind, "safari");
+  assert.equal(context.hasSupportedInstallPath, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
+});
+
 test("blocks Firefox without pretending that it can install the protected app", () => {
   const context = getInstallContext({
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",

@@ -1,7 +1,7 @@
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
+import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -102,7 +102,7 @@ export function getLoginScreenViewState(args: {
     rememberedEmail: null,
     showEmailField,
   });
-  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail)) || USERNAME_PATTERN.test(effectiveEmail.trim());
+  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail)) || isUsernameIdentifier(effectiveEmail);
   const passwordValid = args.password.length >= 6;
   const formReady = emailValid && passwordValid;
 
