@@ -11,6 +11,7 @@ Implemented surfaces:
 - an unframed line-work password eye, one consistent footer rail, and legal links only on account creation because Fitness has real Privacy Policy and Terms of Service routes.
 - the canonical field-text contract: 14px text, 20px line height, 18px left inset, transparent fill, native caret, and product-themed value/placeholder contrast.
 - the shared username syntax: 2-15 ASCII letters, numbers, periods, underscores, or hyphens.
+- unsupported browsers keep the same three-step visual structure but name Safari, Chrome, or Edge explicitly and expose no app-entry continuation.
 - an Install heading and three structured steps with no decorative outer dividers.
 
 The portable review packet is stored at stack scope under `packages/visual-evidence/unified-auth-install-final-consistent-source-20260822/`. It contains one source capture per surface, the combined contact sheet, SHA-256 manifest, and the approved interactive design.

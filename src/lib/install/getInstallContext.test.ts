@@ -27,6 +27,7 @@ test("detects iPhone in-app browser as Open in Safari gate", () => {
   });
 
   assert.equal(context.isInAppBrowser, true);
+  assert.equal(context.hasSupportedInstallPath, false);
   assert.equal(context.shouldShowIOSOpenInSafariGate, true);
   assert.equal(context.shouldBlockAppAccess, true);
   assert.equal(context.shouldAllowAppAccess, false);
@@ -42,6 +43,7 @@ test("detects link-in-bio iPhone browsers as Open in Safari gate", () => {
   });
 
   assert.equal(context.isInAppBrowser, true);
+  assert.equal(context.hasSupportedInstallPath, false);
   assert.equal(context.shouldShowIOSOpenInSafariGate, true);
   assert.equal(context.shouldBlockAppAccess, true);
   assert.equal(context.shouldAllowAppAccess, false);

@@ -15,6 +15,12 @@ export const FITNESS_INSTALL_STEPS = [
   "Select Add to Home Screen, Install app, or Download.",
 ] as const;
 
+export const FITNESS_UNSUPPORTED_INSTALL_STEPS = [
+  "Open this page in Safari, Chrome, or Edge.",
+  "Use that browser's Share or menu button, then choose More.",
+  "Select Add to Home Screen, Install app, or Download.",
+] as const;
+
 export function InstallRouteSurface({
   initialInstallContext = null,
   initialReturnTo = null,
@@ -42,6 +48,10 @@ export function InstallRouteSurface({
 
   if (context.isStandalone) {
     return <RouteLoading label="Opening Fitness" variant="route" />;
+  }
+
+  if (!context.hasSupportedInstallPath) {
+    return <InstallGateChrome steps={FITNESS_UNSUPPORTED_INSTALL_STEPS} />;
   }
 
   return <InstallGateChrome steps={FITNESS_INSTALL_STEPS} />;

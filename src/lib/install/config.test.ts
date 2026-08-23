@@ -134,16 +134,25 @@ test("install guidance does not offer a continuation before standalone mode", ()
   assert.doesNotMatch(iosSource, /primaryHref=/);
 });
 
-test("every browser receives the same concise three-step install presentation", () => {
+test("supported browsers receive the concise three-step install presentation", () => {
   const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
   const chromeSource = readFileSync(new URL("../../components/install/InstallGateChrome.tsx", import.meta.url), "utf8");
 
   assert.match(installSource, /default browser/);
-  assert.match(installSource, /Open Share, then choose More/);
+  assert.match(installSource, /Tap Share, then choose More/);
   assert.match(installSource, /Add to Home Screen, Install app, or Download/);
   assert.match(chromeSource, /aria-label="Install Fitness"/);
   assert.doesNotMatch(installSource, /"Open Fitness"/);
-  assert.doesNotMatch(installSource, /Safari|supported browser|required browser/i);
+});
+
+test("unsupported browsers receive truthful supported-browser guidance without app entry", () => {
+  const installSource = readFileSync(new URL("../../components/install/InstallRouteSurface.tsx", import.meta.url), "utf8");
+  const chromeSource = readFileSync(new URL("../../components/install/InstallGateChrome.tsx", import.meta.url), "utf8");
+
+  assert.match(installSource, /if \(!context\.hasSupportedInstallPath\)/);
+  assert.match(installSource, /FITNESS_UNSUPPORTED_INSTALL_STEPS/);
+  assert.match(installSource, /Safari, Chrome, or Edge/);
+  assert.doesNotMatch(chromeSource, /continueHref|primaryHref|primaryLabel/);
 });
 
 test("iOS in-app guidance does not expose an install-bypass continuation", () => {
