@@ -2,6 +2,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-08-24 - Bind current Fitness clients to the master fitness schema
+
+- Type: Database binding + Migration safety
+- WHAT changed: Every current-project Fitness Supabase client now uses the shared factory with `db.schema` fixed to `fitness`: the browser, server, anonymous-server, admin, session-recovery, server-session, password-reset, and three live history diagnostic constructors. The explicit legacy migration bridge remains bound to its legacy source project through `LEGACY_SUPABASE_URL` and `LEGACY_SUPABASE_ANON_KEY`; it does not inherit the master-schema default.
+- WHY it changed: The consolidated master Supabase project exposes Fitness application objects through the custom `fitness` schema rather than the implicit `public` default. Leaving a current client on `public` would make authenticated reads and writes target the wrong Data API surface after cutover. The legacy bridge is a separate migration boundary and must retain its source-project binding until its own mapping/cutover lifecycle is proven.
+- Rule: All current-project Fitness `createClient` paths use the canonical non-secret `fitness` schema factory. Legacy-origin clients are explicit exceptions, never silent bypasses.
+- Failure Mode: Mixing implicit `public`-schema clients with custom-schema clients can produce a partial cutover, silent read or write failures, and misleading Auth success while application data targets the wrong schema. Rebinding the legacy bridge early can sever the retained source-side import path before identity mapping and rollback acceptance are complete.
+- Decision: Source-only schema-binding contract. It changes no environment value, provider configuration, Auth state, live data, migration, deployment, or production traffic. The contract test enumerates every current-project constructor and proves the legacy bridge remains isolated.
+- Evidence: `src/lib/supabase/schema.ts`; the PR #177 current-project client constructors; `src/lib/supabase/schema-binding.contract.test.mjs`; `src/lib/migration/fitness-legacy-bridge.ts`; `package.json` (`test:supabase-schema-binding`).
+- Status: Source-proven on PR #177; independent exact-head rereview, ready, merge, deployment, and production cutover remain separate gates.
+
 ## 2026-08-15 - Bind Fitness to its branded origin and retained Playbook distribution
 - Type: Configuration + Reliability + Coverage
 - WHAT changed: Centralized the application-origin fallback on `https://fitness.fawxzzy.com`, updated metadata, install, recovery, environment-example, and Stripe-readiness surfaces to use that branded origin, and added focused origin regressions. Root metadata retains the branded `metadataBase` without publishing a homepage canonical from the shared layout, so child routes are not misidentified as duplicates of `/`. Rebound the active Playbook fallback from the deleted legacy GitHub account to the source-bound `fawxzzy/playbook` v0.54.0 release asset, enforced its exact SHA-256 before write/install, and added default, override, mismatch, and local-artifact evidence regressions with aligned workflow/operator documentation.
