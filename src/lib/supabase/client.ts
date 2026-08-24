@@ -1,9 +1,9 @@
 import "client-only";
-import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { clearPersistedWorkoutClientState, pruneStaleSessionDrafts } from "@/lib/offline/client-storage";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
-let browserSupabase: ReturnType<typeof createClient> | null = null;
+let browserSupabase: ReturnType<typeof createFitnessSupabaseClient> | null = null;
 let hasAuthStateListener = false;
 let lastSyncedSessionSignature: string | null = null;
 
@@ -85,7 +85,7 @@ export async function clearBrowserSupabaseSession() {
 
 export function createBrowserSupabase() {
   if (!browserSupabase) {
-    browserSupabase = createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+    browserSupabase = createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
       auth: {
         persistSession: true,
         autoRefreshToken: true,

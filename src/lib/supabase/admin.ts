@@ -1,7 +1,7 @@
 import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/env";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 const MODERN_ADMIN_CREDENTIAL_ENV = "SUPABASE_SECRET_KEY";
 const LEGACY_ADMIN_CREDENTIAL_ENV = "SUPABASE_SERVICE_ROLE_KEY";
@@ -62,11 +62,11 @@ export function hasSupabaseAdminCredential(
   return selectSupabaseAdminCredential(env) !== null;
 }
 
-let adminClient: ReturnType<typeof createClient> | null = null;
+let adminClient: ReturnType<typeof createFitnessSupabaseClient> | null = null;
 
 export function supabaseAdmin() {
   if (!adminClient) {
-    adminClient = createClient(SUPABASE_URL(), resolveSupabaseAdminCredential(), {
+    adminClient = createFitnessSupabaseClient(SUPABASE_URL(), resolveSupabaseAdminCredential(), {
       auth: {
         autoRefreshToken: false,
         persistSession: false,

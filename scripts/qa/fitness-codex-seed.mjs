@@ -100,6 +100,9 @@ function createServiceClient() {
     report.supabaseUrl,
     getRequiredEnv(SUPABASE_SERVICE_ROLE_KEY_ENV),
     {
+      db: {
+        schema: "fitness",
+      },
       auth: {
         persistSession: false,
         autoRefreshToken: false,

@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { headers } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { BottomActionsProvider } from "@/components/layout/bottom-actions";
@@ -8,6 +7,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 import type { SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "@/app/history/[sessionId]/HistoryLogPageClient";
 import { buildSessionSummary } from "@/app/history/session-summary";
@@ -21,7 +21,7 @@ function isLocalRequest() {
 }
 
 function buildAccessTokenClient(accessToken: string) {
-  return createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+  return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
