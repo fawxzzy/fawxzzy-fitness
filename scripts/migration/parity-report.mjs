@@ -74,6 +74,9 @@ async function getRemoteCounts(userId) {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    db: {
+      schema: "fitness",
+    },
     auth: {
       autoRefreshToken: false,
       persistSession: false,

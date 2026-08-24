@@ -15,6 +15,13 @@ const currentProjectClientPaths = [
   "src/app/dev/history-session-detail-live/page.tsx",
 ];
 
+const currentProjectScriptClientPaths = [
+  ["scripts/qa/fitness-qa-config.mjs", 2],
+  ["scripts/qa/fitness-codex-seed.mjs", 1],
+  ["scripts/qa/seed-zac-llel-routine.mjs", 1],
+  ["scripts/migration/parity-report.mjs", 1],
+];
+
 test("every current-project client binds the sealed Fitness schema", () => {
   for (const path of currentProjectClientPaths) {
     const source = readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
@@ -27,6 +34,17 @@ test("every current-project client binds the sealed Fitness schema", () => {
       `${path} must import the typed canonical factory`,
     );
     assert.doesNotMatch(source, /createClient\(/, `${path} must not bypass the canonical factory`);
+  }
+});
+
+test("every current-project script client binds the sealed Fitness schema", () => {
+  for (const [path, expectedConstructors] of currentProjectScriptClientPaths) {
+    const source = readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+    const constructors = source.match(/createClient\(/g) ?? [];
+    const schemaBindings = source.match(/db:\s*\{\s*schema:\s*["']fitness["']\s*,?\s*\}/g) ?? [];
+
+    assert.equal(constructors.length, expectedConstructors, `${path} client inventory drifted`);
+    assert.equal(schemaBindings.length, expectedConstructors, `${path} must bind every client to fitness`);
   }
 });
 

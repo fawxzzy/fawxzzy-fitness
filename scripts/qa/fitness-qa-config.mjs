@@ -255,6 +255,9 @@ export function createServiceRoleClient() {
     getRequiredEnv(NEXT_PUBLIC_SUPABASE_URL_ENV),
     getRequiredEnv(SUPABASE_SERVICE_ROLE_KEY_ENV),
     {
+      db: {
+        schema: "fitness",
+      },
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -268,6 +271,9 @@ export function createAnonClient() {
     getRequiredEnv(NEXT_PUBLIC_SUPABASE_URL_ENV),
     getRequiredEnv(NEXT_PUBLIC_SUPABASE_ANON_KEY_ENV),
     {
+      db: {
+        schema: "fitness",
+      },
       auth: {
         persistSession: false,
         autoRefreshToken: false,
