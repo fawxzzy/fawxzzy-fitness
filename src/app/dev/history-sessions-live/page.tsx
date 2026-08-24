@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 import { HistorySessionsClient } from "@/app/history/HistorySessionsClient";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
@@ -8,6 +7,7 @@ import { loadHistorySessionsPageData } from "@/lib/history-sessions-page-loader"
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { QA_LLEL_VISIBILITY_COOKIE, resolveQaLlelVisibilityOverride } from "@/lib/qa-data-visibility";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ function isLocalRequest() {
 }
 
 function buildAccessTokenClient(accessToken: string) {
-  return createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+  return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

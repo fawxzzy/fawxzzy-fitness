@@ -1,11 +1,11 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { recoverSupabaseSessionFromCookies } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 function getRequestAuthTokens() {
   const cookieStore = cookies();
@@ -36,7 +36,7 @@ function getRequestAuthTokens() {
 }
 
 function createSupabaseServerClient(accessToken?: string | null) {
-  return createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+  return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

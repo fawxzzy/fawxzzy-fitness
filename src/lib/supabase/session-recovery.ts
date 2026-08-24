@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import {
   classifyAuthSessionFailure,
   decodeJwtExp,
@@ -6,6 +5,7 @@ import {
   type SessionCookiePayload,
 } from "@/lib/auth-session";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 export type SessionRecoveryAuthState =
   | "authenticated"
@@ -81,7 +81,7 @@ export function isAccessTokenFresh(accessToken: string, refreshWindowSeconds = 6
 }
 
 export function createSupabaseSessionRecoveryClient(): RefreshSessionClient {
-  return createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+  return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

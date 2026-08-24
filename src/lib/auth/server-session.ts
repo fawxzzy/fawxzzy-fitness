@@ -1,10 +1,10 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from "@/lib/auth-session";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { resolveServerSessionTokens, type ServerSessionTokenSnapshot } from "@/lib/auth/server-session-core";
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 type RecoverSessionArgs = {
   accessToken?: string | null;
@@ -14,7 +14,7 @@ type RecoverSessionArgs = {
 type RecoverSession = (args: RecoverSessionArgs) => Promise<SessionRecoveryResult>;
 
 export function createSupabaseServerClient(accessToken?: string | null) {
-  return createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+  return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

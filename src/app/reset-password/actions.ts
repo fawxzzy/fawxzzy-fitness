@@ -1,11 +1,11 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
 import { supabaseServerWithSession } from "@/lib/supabase/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
 
@@ -20,7 +20,7 @@ export async function establishRecoverySession(input: { accessToken: string; ref
     };
   }
 
-  const supabase = createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+  const supabase = createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`,
