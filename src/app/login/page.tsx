@@ -2,9 +2,8 @@ import type { LocalDevAutoLoginAccount } from "@/lib/local-dev-auto-entry";
 import { getLocalDevAutoLoginCredentials } from "@/lib/local-dev-auto-entry";
 import { isSafeAppPath } from "@/lib/navigation-return";
 import { redirect } from "next/navigation";
-import { resolveLoginRouteMessages } from "@/app/login/loginScreenState";
-import { LoginScreen } from "@/app/login/LoginScreen";
 import { LocalDevAutoLoginRedirect } from "@/app/login/LocalDevAutoLoginRedirect";
+import { getFitnessAccountPortalUrl } from "@/lib/account-portal";
 
 type LoginPageProps = {
   searchParams?: {
@@ -66,18 +65,5 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     }
   }
 
-  const routeState = resolveLoginRouteMessages({
-    errorCode: searchParams?.error,
-    infoCode: searchParams?.info,
-    verified: searchParams?.verified,
-  });
-
-  return (
-    <LoginScreen
-      error={routeState.error}
-      info={routeState.info}
-      requiresReauth={routeState.requiresReauth}
-      returnTo={returnTo}
-    />
-  );
+  redirect(getFitnessAccountPortalUrl("/login"));
 }
