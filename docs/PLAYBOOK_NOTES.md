@@ -1192,3 +1192,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: An iOS-specific Safari predicate reused as desktop capability detection gives circular guidance. Repeated timer-driven focus calls make a visible editable field appear usable while silently redirecting user input.
 - Evidence: `src/lib/install/getInstallContext.ts`, `src/lib/install/getInstallContext.test.ts`, `src/app/login/LoginScreen.tsx`, `src/app/login/LoginScreen.contract.test.ts`.
 - Status: Source correction pending focused verification and exact-head review. No Auth, provider, deployment, or production mutation is part of this change.
+
+## 2026-08-27 - Preserve Fitness session and navigation boundaries at shared account entry
+
+- Type: Authentication handoff + Navigation safety + Coverage
+- WHAT changed: Normal Fitness login now clears the Fitness-origin browser session and mirrored session cookies before navigating to the shared account portal. Trusted localhost manual and failed-auto-login routes retain the Fitness-local login fallback. A validated local `returnTo` path is converted to the canonical Fitness origin and forwarded to the portal.
+- WHY it changed: A server-only cross-origin redirect skipped the local session cleanup, removed the development escape hatch, and discarded deep-link recovery destinations. Those regressions could restore a stale account, block local QA, or return a signed-in user to the wrong Fitness screen.
+- Rule: Cross-origin account entry must clean the source-origin session first, preserve explicit trusted-local fallbacks, and forward navigation only as an allowlisted canonical-origin URL derived from a previously validated local path.
+- Failure Mode: Redirecting before source-origin cleanup can rehydrate a stale session; accepting a caller-defined absolute return URL can create an open redirect or leak token material.
+- Evidence: `src/app/login/AccountPortalRedirect.tsx`, `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`, `src/lib/account-portal.ts`, `src/lib/account-portal.test.ts`.
+- Status: Source-proven locally; review, merge, deployment, and production remain separate lifecycle boundaries.
