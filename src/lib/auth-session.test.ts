@@ -56,6 +56,7 @@ test("shouldRefreshAuthSession protects app boot and authenticated routes", () =
 });
 
 test("shouldRefreshAuthSession skips public auth and install routes", () => {
+  assert.equal(shouldRefreshAuthSession("/account"), false);
   assert.equal(shouldRefreshAuthSession("/login"), false);
   assert.equal(shouldRefreshAuthSession("/signup"), false);
   assert.equal(shouldRefreshAuthSession("/forgot-password"), false);

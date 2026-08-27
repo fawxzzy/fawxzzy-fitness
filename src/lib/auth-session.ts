@@ -7,6 +7,7 @@ export const PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
 import { isSafeAppPath } from "@/lib/navigation-return";
 
 const PUBLIC_AUTHLESS_PATH_PREFIXES = [
+  "/account",
   "/auth",
   "/dev",
   "/forgot-password",
