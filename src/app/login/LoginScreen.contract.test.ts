@@ -139,6 +139,11 @@ test("login screen always renders the credential form instead of a remembered-ac
   assert.doesNotMatch(loginScreenSource, /handleRevealCredentialStep|handleSwitchAccount|clearRememberedLoginState/);
 });
 
+test("normal credential login never races an in-flight session clear on mount", () => {
+  assert.doesNotMatch(loginScreenSource, /clearBrowserSupabaseSession/);
+  assert.doesNotMatch(loginScreenSource, /auth\/session-sync/);
+});
+
 test("remembered email synchronization never steals focus from an editable credential field", () => {
   assert.doesNotMatch(loginScreenSource, /focusTarget\.focus\(\)/);
   assert.doesNotMatch(loginScreenSource, /passwordInput\.focus\(\)/);
