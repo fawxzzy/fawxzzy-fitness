@@ -167,7 +167,6 @@ export default async function SettingsPage({
             <SurfaceCard className="!border-transparent !bg-transparent !shadow-none !backdrop-blur-0">
               <SettingsAccordionClient
                 email={user.email ?? ""}
-                username={username}
                 legacyBridgeConfigured={legacyBridgeConfigured}
                 userKind={profile.user_kind}
                 userNumber={profile.user_number}

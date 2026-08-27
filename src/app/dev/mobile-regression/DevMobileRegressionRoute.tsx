@@ -2938,7 +2938,6 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
               <div className="pointer-events-none">
                 <SettingsAccordionClient
                   email="dev-regression@example.com"
-                  username="dev-regression"
                   legacyBridgeConfigured={false}
                   userKind="human"
                   userNumber={null}

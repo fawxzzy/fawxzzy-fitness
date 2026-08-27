@@ -1,7 +1,8 @@
 "use client";
 
-import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
+import { SignOutButton } from "@/components/SignOutButton";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
@@ -17,6 +18,7 @@ import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import type { HistoryAchievement } from "@/lib/history-achievements";
+import { getFitnessAccountPortalUrl } from "@/lib/account-portal";
 
 type SettingsSectionMeta = {
   title: string;
@@ -79,9 +81,34 @@ export function SettingsAccordionTrigger({
   );
 }
 
+export function SettingsExternalTrigger({
+  href,
+  title,
+}: {
+  href: string;
+  title: string;
+}) {
+  return (
+    <a
+      className="group relative block w-full appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      href={href}
+    >
+      <span className="grid min-h-[2rem] grid-cols-[2rem_minmax(0,1fr)_2rem] items-end px-4 pb-3">
+        <span aria-hidden="true" />
+        <span className="min-w-0 w-full text-center">
+          <span className="block text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
+        </span>
+        <span className="flex items-center justify-end text-[rgb(var(--text-muted)/0.84)] transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]">
+          <StateChevron className="h-4 w-4 -rotate-90" expanded={false} />
+        </span>
+      </span>
+      <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
+    </a>
+  );
+}
+
 export function SettingsAccordionClient({
   email,
-  username,
   legacyBridgeConfigured,
   userKind,
   userNumber,
@@ -94,7 +121,6 @@ export function SettingsAccordionClient({
   achievements,
 }: {
   email: string;
-  username: string;
   legacyBridgeConfigured: boolean;
   userKind: "human" | "automation" | "unknown";
   userNumber: number | null;
@@ -120,14 +146,10 @@ export function SettingsAccordionClient({
     <div className="space-y-3">
       {showAccount ? (
         <div className="space-y-3">
-          {expandedSection !== "account" ? (
-            <SettingsAccordionTrigger
-              title="Account"
-              expanded={false}
-              onClick={() => setExpandedSection("account")}
-            />
-          ) : null}
-          {expandedSection === "account" ? <AccountSettingsForm email={email} username={username} /> : null}
+          <SettingsExternalTrigger href={getFitnessAccountPortalUrl()} title="Account" />
+          <PublishBottomActions>
+            <SignOutButton />
+          </PublishBottomActions>
         </div>
       ) : null}
 
