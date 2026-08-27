@@ -27,5 +27,6 @@ test("Achievements use the Account accordion and remain deep-linkable", () => {
 
 test("Account is an external portal button instead of an expandable settings form", () => {
   assert.match(accordionSource, /<SettingsExternalTrigger href=\{getFitnessAccountPortalUrl\(\)\} title="Account" \/>/);
+  assert.match(accordionSource, /<PublishBottomActions>\s*<SignOutButton \/>\s*<\/PublishBottomActions>/);
   assert.doesNotMatch(accordionSource, /expandedSection === "account" \? <AccountSettingsForm/);
 });

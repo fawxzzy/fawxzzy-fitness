@@ -1,6 +1,8 @@
 "use client";
 
 import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
+import { SignOutButton } from "@/components/SignOutButton";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
@@ -145,6 +147,9 @@ export function SettingsAccordionClient({
       {showAccount ? (
         <div className="space-y-3">
           <SettingsExternalTrigger href={getFitnessAccountPortalUrl()} title="Account" />
+          <PublishBottomActions>
+            <SignOutButton />
+          </PublishBottomActions>
         </div>
       ) : null}
 
