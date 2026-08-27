@@ -11,4 +11,8 @@ test("Fitness account routes stay bound to the shared account host and presentat
     getFitnessAccountPortalUrl("/login"),
     "https://account.fawxzzy.com/login?app=fitness",
   );
+  assert.equal(
+    getFitnessAccountPortalUrl("/login", "/session/abc?returnTo=%2Ftoday"),
+    "https://account.fawxzzy.com/login?app=fitness&returnTo=https%3A%2F%2Ffitness.fawxzzy.com%2Fsession%2Fabc%3FreturnTo%3D%252Ftoday",
+  );
 });

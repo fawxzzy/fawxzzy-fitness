@@ -7,9 +7,17 @@ test("local development auto-login stays explicit while normal login enters the 
 
   assert.match(source, /const shouldAttemptLocalDevAutoLogin = searchParams\?\.localAutoAuth === "1"/);
   assert.match(source, /return <LocalDevAutoLoginRedirect href=\{href\} \/>;/);
-  assert.match(source, /redirect\(getFitnessAccountPortalUrl\("\/login"\)\)/);
-  assert.doesNotMatch(source, /<LoginScreen/);
-  assert.doesNotMatch(source, /manual !== "1" && searchParams\?\.localAutoAuth !== "failed"/);
+  assert.match(source, /<AccountPortalRedirect href=\{getFitnessAccountPortalUrl\("\/login", returnTo\)\} \/>/);
+  assert.match(source, /isTrustedLocalDevRequest\(\)/);
+  assert.match(source, /searchParams\?\.manual === "1" \|\| searchParams\?\.localAutoAuth === "failed"/);
+  assert.match(source, /<LoginScreen/);
+});
+
+test("the account handoff clears the Fitness-origin session before leaving", async () => {
+  const source = await readFile(new URL("./AccountPortalRedirect.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /clearBrowserSupabaseSession\(\)\.finally/);
+  assert.match(source, /window\.location\.replace\(href\)/);
 });
 
 test("legacy Home Screen launches bypass the session-clearing login screen", async () => {
