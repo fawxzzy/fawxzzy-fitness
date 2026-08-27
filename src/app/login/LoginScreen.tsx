@@ -40,7 +40,6 @@ import {
   writeRememberedLoginState,
   type RememberedLoginState,
 } from "@/lib/remembered-login";
-import { clearBrowserSupabaseSession } from "@/lib/supabase/client";
 import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const EMAIL_INPUT_ID = "login-email";
@@ -113,10 +112,6 @@ export function LoginScreen({
       setFormSeed((current) => current + 1);
     }
   }, [resolvedError, resolvedInfo]);
-
-  useEffect(() => {
-    void clearBrowserSupabaseSession();
-  }, []);
 
   useEffect(() => {
     const storedLogin = previewRememberedLogin ?? readRememberedLoginState();

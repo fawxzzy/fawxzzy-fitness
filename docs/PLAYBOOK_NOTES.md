@@ -1202,3 +1202,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Redirecting before source-origin cleanup can rehydrate a stale session; accepting a caller-defined absolute return URL can create an open redirect or leak token material.
 - Evidence: `src/app/login/AccountPortalRedirect.tsx`, `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`, `src/lib/account-portal.ts`, `src/lib/account-portal.test.ts`.
 - Status: Source-proven locally; review, merge, deployment, and production remain separate lifecycle boundaries.
+
+## 2026-08-27 - Keep normal Fitness credential login on the Fitness origin until a broker exists
+
+- Type: Authentication boundary + Regression prevention
+- WHAT changed: Normal Fitness `/login` renders the Fitness credential form rather than navigating to the shared account portal. The login screen no longer clears the Fitness-origin session when it mounts, so a delayed cleanup request cannot erase the cookie pair written by a successful same-origin password login. Installed-app entry, trusted-local development behavior, and validated local-only `returnTo` handling remain unchanged.
+- WHY it changed: The shared account portal's current phase shares credentials, not browser sessions. Its successful redirect returned to Fitness without establishing a Fitness-origin session; Fitness then redirected the user back to login. Reusing the prior portal-departure cleanup on every local login also created a second race: a late cleanup response could clear the new session after password login succeeded.
+- Rule: A browser session is origin-scoped. Normal credential login must authenticate and hydrate the session at the same origin that owns the protected-route guard. Cross-origin account entry is admissible only after a separately governed opaque one-time broker is live; access and refresh tokens never travel in URLs.
+- Failure Mode: A plain redirect after cross-origin authentication cannot establish the destination's browser session, creating a login loop. An unconditional asynchronous session clear on a credential-login mount can independently recreate the same loop by deleting a newly written session.
+- Evidence: `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`, `src/app/login/LoginScreen.tsx`, `src/app/login/LoginScreen.contract.test.ts`, `src/middleware.ts`, `docs/shared-account-portal-phase1.md`.
+- Status: Source-proven locally; exact-head review, merge, deployment, and production acceptance remain separate lifecycle boundaries.
