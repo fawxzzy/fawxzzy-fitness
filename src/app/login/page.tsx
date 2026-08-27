@@ -1,15 +1,12 @@
 import type { LocalDevAutoLoginAccount } from "@/lib/local-dev-auto-entry";
 import {
   getLocalDevAutoLoginCredentials,
-  isTrustedLocalDevRequest,
 } from "@/lib/local-dev-auto-entry";
 import { isSafeAppPath } from "@/lib/navigation-return";
 import { redirect } from "next/navigation";
-import { AccountPortalRedirect } from "@/app/login/AccountPortalRedirect";
 import { LocalDevAutoLoginRedirect } from "@/app/login/LocalDevAutoLoginRedirect";
 import { LoginScreen } from "@/app/login/LoginScreen";
 import { resolveLoginRouteMessages } from "@/app/login/loginScreenState";
-import { getFitnessAccountPortalUrl } from "@/lib/account-portal";
 
 type LoginPageProps = {
   searchParams?: {
@@ -71,26 +68,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     }
   }
 
-  const shouldRenderLocalManualLogin =
-    isTrustedLocalDevRequest() &&
-    (searchParams?.manual === "1" || searchParams?.localAutoAuth === "failed");
+  // Account and Fitness sessions are origin-scoped. Until the separately governed
+  // one-time broker is live, signing in at account.fawxzzy.com cannot establish
+  // the Fitness cookies required by this app's protected-route guard.
+  const routeState = resolveLoginRouteMessages({
+    errorCode: searchParams?.error,
+    infoCode: searchParams?.info,
+    verified: searchParams?.verified,
+  });
 
-  if (shouldRenderLocalManualLogin) {
-    const routeState = resolveLoginRouteMessages({
-      errorCode: searchParams?.error,
-      infoCode: searchParams?.info,
-      verified: searchParams?.verified,
-    });
-
-    return (
-      <LoginScreen
-        error={routeState.error}
-        info={routeState.info}
-        requiresReauth={routeState.requiresReauth}
-        returnTo={returnTo}
-      />
-    );
-  }
-
-  return <AccountPortalRedirect href={getFitnessAccountPortalUrl("/login", returnTo)} />;
+  return (
+    <LoginScreen
+      error={routeState.error}
+      info={routeState.info}
+      requiresReauth={routeState.requiresReauth}
+      returnTo={returnTo}
+    />
+  );
 }
