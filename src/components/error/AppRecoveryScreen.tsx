@@ -57,16 +57,25 @@ export function AppRecoveryScreen({
           <div className="text-sm text-[rgb(var(--text-secondary))]">{topMessage}</div>
         ) : (
           <p className="text-sm text-[rgb(var(--text-secondary))]">
-            Your account is still signed in. Retry after the data service is available.
+            This error did not sign you out. Retry after the data service is available.
           </p>
         )}
-        <button
-          type="button"
-          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-6 text-sm font-semibold text-[rgb(var(--text-primary))]"
-          onClick={() => onReopen?.()}
-        >
-          Retry
-        </button>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-6 text-sm font-semibold text-[rgb(var(--text-primary))]"
+            onClick={() => onReopen?.()}
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-6 text-sm font-semibold text-[rgb(var(--text-primary))]"
+            onClick={() => window.location.reload()}
+          >
+            Reload app
+          </button>
+        </div>
       </div>
     </div>
   );

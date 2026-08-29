@@ -14,6 +14,8 @@ test("generic app errors preserve valid auth sessions", () => {
     assert.doesNotMatch(source, /window\.location\.assign/);
   }
 
-  assert.match(recoveryScreenSource, /Your account is still signed in/);
-  assert.match(softBoundarySource, /Your account is still signed in/);
+  for (const source of [recoveryScreenSource, softBoundarySource]) {
+    assert.match(source, /This error did not sign you out/);
+    assert.match(source, /window\.location\.reload/);
+  }
 });

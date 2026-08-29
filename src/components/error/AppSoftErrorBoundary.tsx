@@ -39,16 +39,25 @@ function AppSoftErrorFallback({
         Fitness could not load {area}.
       </p>
       <p className="text-xs text-[rgb(var(--text-secondary))]">
-        Your account is still signed in.
+        This error did not sign you out.
         {process.env.NODE_ENV !== "production" ? ` (${error.name})` : ""}
       </p>
-      <button
-        type="button"
-        className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
-        onClick={onRetry}
-      >
-        Retry
-      </button>
+      <div className="flex flex-wrap justify-center gap-3">
+        <button
+          type="button"
+          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
+          onClick={onRetry}
+        >
+          Retry
+        </button>
+        <button
+          type="button"
+          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
+          onClick={() => window.location.reload()}
+        >
+          Reload app
+        </button>
+      </div>
     </div>
   );
 }
