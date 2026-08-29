@@ -4,17 +4,10 @@ import {
   Component,
   type ErrorInfo,
   type ReactNode,
-  useEffect,
 } from "react";
 import { usePathname } from "next/navigation";
-import { navigateToFirstSafeRecoveryHref } from "@/components/error/safeRecoveryNavigation";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
-import { SESSION_EXPIRED_LOGIN_ERROR } from "@/lib/auth-session";
 import { recordClientBootDiagnostic } from "@/lib/boot-diagnostics";
-import {
-  buildFreshRecoveryReloadHref,
-  clearClientRecoveryState,
-} from "@/lib/client-recovery-reset";
 
 type AppSoftErrorBoundaryProps = {
   children: ReactNode;
@@ -31,56 +24,40 @@ type AppSoftErrorBoundaryState = {
   retryNonce: number;
 };
 
-const SOFT_ERROR_TOAST_MESSAGE = "That screen crashed. Fitness recovered to a safe screen.";
-
-function isPath(pathname: string | null | undefined, target: string) {
-  return pathname === target || Boolean(pathname?.startsWith(`${target}/`));
-}
-
 function AppSoftErrorFallback({
   area,
   error,
-  currentPath,
-  onNavigationFailure,
-  navigationMessage,
+  onRetry,
 }: {
   area: string;
   error: Error;
-  currentPath: string;
-  onNavigationFailure: (message: string) => void;
-  navigationMessage: string | null;
+  onRetry: () => void;
 }) {
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    clearClientRecoveryState(window.sessionStorage);
-    const loginHref = `/login?error=${encodeURIComponent(SESSION_EXPIRED_LOGIN_ERROR)}`;
-    const preferredHrefs = isPath(currentPath, "/today") ? [loginHref] : [];
-
-    void navigateToFirstSafeRecoveryHref({
-      currentPath,
-      preferredHrefs,
-      recoveryErrorMessage: SOFT_ERROR_TOAST_MESSAGE,
-    }).then((href) => {
-      if (!href) {
-        if (isPath(currentPath, "/login")) {
-          window.location.assign(buildFreshRecoveryReloadHref("/login"));
-          return;
-        }
-        onNavigationFailure("The screen crashed and no safe route was confirmed. Reloading Today.");
-        window.location.assign(buildFreshRecoveryReloadHref("/today"));
-      }
-    });
-  }, [currentPath, onNavigationFailure]);
-
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center p-4">
-      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-secondary)/0.82)]">
-        Recovering {area}{process.env.NODE_ENV !== "production" ? ` (${error.name})` : ""}
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
+      <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">
+        Fitness could not load {area}.
       </p>
-      {navigationMessage ? <span className="sr-only">{navigationMessage}</span> : null}
+      <p className="text-xs text-[rgb(var(--text-secondary))]">
+        This error did not sign you out.
+        {process.env.NODE_ENV !== "production" ? ` (${error.name})` : ""}
+      </p>
+      <div className="flex flex-wrap justify-center gap-3">
+        <button
+          type="button"
+          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
+          onClick={onRetry}
+        >
+          Retry
+        </button>
+        <button
+          type="button"
+          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
+          onClick={() => window.location.reload()}
+        >
+          Reload app
+        </button>
+      </div>
     </div>
   );
 }
@@ -133,8 +110,12 @@ class AppSoftErrorBoundaryInner extends Component<
     }
   }
 
-  private handleNavigationFailure = (message: string) => {
-    this.setState({ navigationMessage: message });
+  private handleRetry = () => {
+    this.setState((current) => ({
+      error: null,
+      navigationMessage: null,
+      retryNonce: current.retryNonce + 1,
+    }));
   };
 
   render() {
@@ -143,9 +124,7 @@ class AppSoftErrorBoundaryInner extends Component<
         <AppSoftErrorFallback
           area={this.props.area ?? "app-content"}
           error={this.state.error}
-          currentPath={this.props.routeKey}
-          onNavigationFailure={this.handleNavigationFailure}
-          navigationMessage={this.state.navigationMessage}
+          onRetry={this.handleRetry}
         />
       );
     }
