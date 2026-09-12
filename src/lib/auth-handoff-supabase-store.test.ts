@@ -332,6 +332,43 @@ test("runtime readiness attests only the exact master audience, anon validator, 
   }), null);
 });
 
+test("runtime readiness fingerprints the canonically normalized validator key", () => {
+  const runtime: FitnessHandoffRuntime = {
+    now: () => 0,
+    store: { begin: async () => true, consume: async () => null },
+  };
+  const sourceCommit = "c".repeat(40);
+  const names = [
+    "FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA",
+    "VERCEL_GIT_COMMIT_SHA",
+  ] as const;
+  const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+
+  try {
+    process.env.FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256 = `\uFEFF ${masterAnonKeySha256}\\n`;
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = `\uFEFF ${masterAnonKey}\\n`;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = `\uFEFF ${FITNESS_HANDOFF_MASTER_SUPABASE_URL}\\n`;
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA = ` ${sourceCommit}\\n`;
+    process.env.VERCEL_GIT_COMMIT_SHA = ` ${sourceCommit}\\n`;
+
+    assert.deepEqual(getFitnessHandoffReadiness(runtime), {
+      authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+      contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+      handoffStore: "available",
+      sourceCommit,
+    });
+  } finally {
+    for (const name of names) {
+      const value = previous[name];
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+});
+
 test("adapter returns categorical failures without surfacing backend details", async () => {
   const store = createFitnessHandoffSupabaseStore({
     async rpc() {

@@ -172,11 +172,11 @@ function isFitnessHandoffMasterAnonKey(
 export function getFitnessHandoffReadiness(
   runtime: FitnessHandoffRuntime | null,
   env: FitnessHandoffReadinessEnvironment = {
-    FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256: process.env.FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
-    VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA,
+    FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256: optionalEnv("FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256") ?? undefined,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ?? undefined,
+    NEXT_PUBLIC_SUPABASE_URL: optionalEnv("NEXT_PUBLIC_SUPABASE_URL") ?? undefined,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: optionalEnv("NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA") ?? undefined,
+    VERCEL_GIT_COMMIT_SHA: optionalEnv("VERCEL_GIT_COMMIT_SHA") ?? undefined,
   },
 ): FitnessHandoffReadiness | null {
   if (!runtime || typeof runtime.now !== "function" || typeof runtime.store?.begin !== "function" || typeof runtime.store?.consume !== "function") {
