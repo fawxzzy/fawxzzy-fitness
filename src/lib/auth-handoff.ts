@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { optionalEnv, SUPABASE_URL } from "@/lib/env";
 import { createFitnessHandoffSupabaseStore } from "@/lib/auth-handoff-supabase-store";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
@@ -61,6 +61,8 @@ export type FitnessHandoffReadiness = {
 };
 
 type FitnessHandoffReadinessEnvironment = {
+  FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256?: string;
+  NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?: string;
   VERCEL_GIT_COMMIT_SHA?: string;
@@ -110,12 +112,71 @@ export function isFitnessHandoffMasterUrl(value: string) {
   return value === FITNESS_HANDOFF_MASTER_SUPABASE_URL;
 }
 
+function decodeCanonicalBase64UrlJson(segment: string) {
+  if (!/^[A-Za-z0-9_-]+$/.test(segment)) {
+    return null;
+  }
+
+  try {
+    const bytes = Buffer.from(segment, "base64url");
+    if (bytes.toString("base64url") !== segment) {
+      return null;
+    }
+    const parsed = JSON.parse(bytes.toString("utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function isFitnessHandoffMasterAnonKey(
+  value: string | undefined,
+  expectedSha256: string | undefined,
+  now: number,
+) {
+  if (!value || value.length > 4 * 1024 || !/^[0-9a-f]{64}$/.test(expectedSha256 ?? "")) {
+    return false;
+  }
+
+  const actualDigest = Buffer.from(createHash("sha256").update(value, "utf8").digest("hex"), "utf8");
+  const expectedDigest = Buffer.from(expectedSha256!, "utf8");
+  if (!timingSafeEqual(actualDigest, expectedDigest)) {
+    return false;
+  }
+
+  const segments = value.split(".");
+  if (segments.length !== 3 || segments.some((segment) => !/^[A-Za-z0-9_-]+$/.test(segment))) {
+    return false;
+  }
+
+  try {
+    const header = decodeCanonicalBase64UrlJson(segments[0]);
+    const payload = decodeCanonicalBase64UrlJson(segments[1]);
+    const signature = Buffer.from(segments[2], "base64url");
+    return header?.alg === "HS256"
+      && header.typ === "JWT"
+      && payload?.iss === "supabase"
+      && payload.ref === FITNESS_HANDOFF_MASTER_PROJECT_REF
+      && payload.role === "anon"
+      && Number.isInteger(payload.iat)
+      && Number.isInteger(payload.exp)
+      && (payload.iat as number) <= now
+      && (payload.exp as number) > now
+      && signature.length === 32
+      && signature.toString("base64url") === segments[2];
+  } catch {
+    return false;
+  }
+}
+
 export function getFitnessHandoffReadiness(
   runtime: FitnessHandoffRuntime | null,
   env: FitnessHandoffReadinessEnvironment = {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
-    VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA,
+    FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256: optionalEnv("FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256") ?? undefined,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ?? undefined,
+    NEXT_PUBLIC_SUPABASE_URL: optionalEnv("NEXT_PUBLIC_SUPABASE_URL") ?? undefined,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: optionalEnv("NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA") ?? undefined,
+    VERCEL_GIT_COMMIT_SHA: optionalEnv("VERCEL_GIT_COMMIT_SHA") ?? undefined,
   },
 ): FitnessHandoffReadiness | null {
   if (!runtime || typeof runtime.now !== "function" || typeof runtime.store?.begin !== "function" || typeof runtime.store?.consume !== "function") {
@@ -132,6 +193,23 @@ export function getFitnessHandoffReadiness(
       return null;
     }
   } catch {
+    return null;
+  }
+
+  let now: number;
+  try {
+    now = runtime.now();
+  } catch {
+    return null;
+  }
+  if (
+    !Number.isFinite(now)
+    || !isFitnessHandoffMasterAnonKey(
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      env.FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256,
+      now,
+    )
+  ) {
     return null;
   }
 

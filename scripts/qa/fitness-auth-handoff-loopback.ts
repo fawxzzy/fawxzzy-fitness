@@ -233,6 +233,7 @@ export async function startFitnessHandoffLoopback(
     });
     const sync = createSessionSyncHandlers({
       getHandoffRuntime: () => runtime,
+      getReadiness: () => SYNTHETIC_HANDOFF_READINESS,
       validateSession: async (tokens: SessionTokenPair) => (
         tokens.accessToken === SYNTHETIC_PORTAL_ACCESS_TOKEN
         && tokens.refreshToken === SYNTHETIC_PORTAL_REFRESH_TOKEN

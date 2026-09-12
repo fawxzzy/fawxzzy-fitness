@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile as executeFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { promisify } from "node:util";
 import os from "node:os";
@@ -25,6 +26,24 @@ import {
 } from "@/lib/auth-handoff-supabase-store";
 
 const execFile = promisify(executeFile);
+
+function createSyntheticAnonKey(
+  ref = FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  role = "anon",
+  claims: { exp?: number; iat?: number } = {},
+) {
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({
+    exp: claims.exp ?? 4_102_444_800,
+    iat: claims.iat ?? 0,
+    iss: "supabase",
+    ref,
+    role,
+  })}.${Buffer.alloc(32, 1).toString("base64url")}`;
+}
+
+const masterAnonKey = createSyntheticAnonKey();
+const masterAnonKeySha256 = createHash("sha256").update(masterAnonKey, "utf8").digest("hex");
 
 const record: FitnessHandoffRecord = {
   audience: FITNESS_HANDOFF_AUDIENCE,
@@ -220,7 +239,7 @@ test("runtime configuration fails closed for missing, malformed, and legacy Supa
   assert.equal(await readRuntimeState({ ...base, NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL }), "active");
 });
 
-test("runtime readiness attests only the exact master audience, immutable source, and available store", () => {
+test("runtime readiness attests only the exact master audience, anon validator, immutable source, and available store", () => {
   const runtime: FitnessHandoffRuntime = {
     now: () => 0,
     store: { begin: async () => true, consume: async () => null },
@@ -232,40 +251,122 @@ test("runtime readiness attests only the exact master audience, immutable source
     handoffStore: "available",
     sourceCommit,
   };
+  const validEnvironment = {
+    FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256: masterAnonKeySha256,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: masterAnonKey,
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  };
 
+  assert.deepEqual(getFitnessHandoffReadiness(runtime, validEnvironment), expected);
   assert.deepEqual(getFitnessHandoffReadiness(runtime, {
-    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
-    VERCEL_GIT_COMMIT_SHA: sourceCommit,
-  }), expected);
-  assert.deepEqual(getFitnessHandoffReadiness(runtime, {
-    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    ...validEnvironment,
     NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: sourceCommit,
-    VERCEL_GIT_COMMIT_SHA: sourceCommit,
   }), expected);
   assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
     NEXT_PUBLIC_SUPABASE_URL: "https://lpswxoyfniocuhljgzbc.supabase.co",
-    VERCEL_GIT_COMMIT_SHA: sourceCommit,
   }), null);
   assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
     NEXT_PUBLIC_SUPABASE_URL: "not-a-url",
-    VERCEL_GIT_COMMIT_SHA: sourceCommit,
   }), null);
   assert.equal(getFitnessHandoffReadiness(runtime, {
-    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    ...validEnvironment,
+    VERCEL_GIT_COMMIT_SHA: undefined,
   }), null);
   assert.equal(getFitnessHandoffReadiness(runtime, {
-    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    ...validEnvironment,
     VERCEL_GIT_COMMIT_SHA: "not-a-commit",
   }), null);
   assert.equal(getFitnessHandoffReadiness(runtime, {
-    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    ...validEnvironment,
     NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: "b".repeat(40),
-    VERCEL_GIT_COMMIT_SHA: sourceCommit,
   }), null);
-  assert.equal(getFitnessHandoffReadiness(null, {
-    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
-    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  assert.equal(getFitnessHandoffReadiness(null, validEnvironment), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined,
   }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256: undefined,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256: "0".repeat(64),
+  }), null);
+  const [masterHeader, masterPayload] = masterAnonKey.split(".");
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: `${masterHeader}.${masterPayload}.${Buffer.alloc(32).toString("base64url")}`,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "malformed-key",
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: createSyntheticAnonKey("lpswxoyfniocuhljgzbc"),
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: createSyntheticAnonKey(FITNESS_HANDOFF_MASTER_PROJECT_REF, "service_role"),
+  }), null);
+  const payloadSegment = masterAnonKey.split(".")[1];
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: `not-json.${payloadSegment}.${Buffer.alloc(32, 1).toString("base64url")}`,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: `${masterAnonKey.slice(0, masterAnonKey.lastIndexOf("."))}.short-signature`,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: createSyntheticAnonKey(FITNESS_HANDOFF_MASTER_PROJECT_REF, "anon", { exp: 0 }),
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    ...validEnvironment,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: createSyntheticAnonKey(FITNESS_HANDOFF_MASTER_PROJECT_REF, "anon", { iat: 1 }),
+  }), null);
+});
+
+test("runtime readiness fingerprints the canonically normalized validator key", () => {
+  const runtime: FitnessHandoffRuntime = {
+    now: () => 0,
+    store: { begin: async () => true, consume: async () => null },
+  };
+  const sourceCommit = "c".repeat(40);
+  const names = [
+    "FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA",
+    "VERCEL_GIT_COMMIT_SHA",
+  ] as const;
+  const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+
+  try {
+    process.env.FITNESS_AUTH_HANDOFF_ANON_KEY_SHA256 = `\uFEFF ${masterAnonKeySha256}\\n`;
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = `\uFEFF ${masterAnonKey}\\n`;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = `\uFEFF ${FITNESS_HANDOFF_MASTER_SUPABASE_URL}\\n`;
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA = ` ${sourceCommit}\\n`;
+    process.env.VERCEL_GIT_COMMIT_SHA = ` ${sourceCommit}\\n`;
+
+    assert.deepEqual(getFitnessHandoffReadiness(runtime), {
+      authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+      contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+      handoffStore: "available",
+      sourceCommit,
+    });
+  } finally {
+    for (const name of names) {
+      const value = previous[name];
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
 });
 
 test("adapter returns categorical failures without surfacing backend details", async () => {
