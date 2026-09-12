@@ -1,5 +1,7 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+- Decision: The production Auth handoff runtime uses the shared server-only Supabase admin-credential resolver. A modern `SUPABASE_SECRET_KEY` is preferred while `SUPABASE_SERVICE_ROLE_KEY` remains a temporary legacy fallback, matching every other privileged Fitness server path. This lets the master cutover add and remove the modern credential without overwriting Vercel's intentionally unreadable legacy sensitive value, preserving an exact rollback boundary.
+
 ## PROPOSED
 
 ## 2026-09-12 - Preserve rotated refresh-token lineage during Fitness session synchronization
