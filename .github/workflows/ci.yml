@@ -34,6 +34,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/app/login/page.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/error/auth-session-preservation.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-sync/route.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/client.session-sync.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-handoff/route.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/auth-handoff-supabase-store.test.ts scripts/qa/fitness-auth-handoff-loopback.test.ts
           npm run test:supabase-schema-binding
