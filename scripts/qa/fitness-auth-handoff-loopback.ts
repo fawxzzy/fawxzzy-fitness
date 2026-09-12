@@ -9,13 +9,25 @@ import {
   type SessionTokenPair,
 } from "@/lib/auth-handoff-handlers";
 import {
+  FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+  type FitnessHandoffReadiness,
+} from "@/lib/auth-handoff";
+import {
+  createFitnessHandoffSupabaseStore,
   type FitnessHandoffRpcClient,
 } from "@/lib/auth-handoff-supabase-store";
-import { createFitnessHandoffSupabaseStore } from "@/lib/auth-handoff-supabase-store";
 
 export const FITNESS_HANDOFF_LOOPBACK_CONTRACT = "fitness-handoff-local-integration-v1";
 export const SYNTHETIC_PORTAL_ACCESS_TOKEN = "portal-integration-synthetic-access";
 export const SYNTHETIC_PORTAL_REFRESH_TOKEN = "portal-integration-synthetic-refresh";
+
+const SYNTHETIC_HANDOFF_READINESS: FitnessHandoffReadiness = {
+  authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+  handoffStore: "available",
+  sourceCommit: "0".repeat(40),
+};
 
 type LoopbackOptions = {
   port?: number;
@@ -215,7 +227,10 @@ export async function startFitnessHandoffLoopback(
       now: () => Math.floor(Date.now() / 1000),
       store,
     };
-    const handoff = createSessionHandoffHandlers({ getRuntime: () => runtime });
+    const handoff = createSessionHandoffHandlers({
+      getReadiness: () => SYNTHETIC_HANDOFF_READINESS,
+      getRuntime: () => runtime,
+    });
     const sync = createSessionSyncHandlers({
       getHandoffRuntime: () => runtime,
       validateSession: async (tokens: SessionTokenPair) => (

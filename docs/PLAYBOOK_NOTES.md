@@ -1222,3 +1222,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A plain redirect after cross-origin authentication cannot establish the destination's browser session, creating a login loop. An unconditional asynchronous session clear on a credential-login mount can independently recreate the same loop by deleting a newly written session.
 - Evidence: `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`, `src/app/login/LoginScreen.tsx`, `src/app/login/LoginScreen.contract.test.ts`, `src/middleware.ts`, `docs/shared-account-portal-phase1.md`.
 - Status: Source-proven locally; exact-head review, merge, deployment, and production acceptance remain separate lifecycle boundaries.
+
+## 2026-09-12 - Attest the Fitness handoff runtime before issuing a broker handoff
+
+- Type: Authentication boundary + Runtime attestation + Coverage
+- WHAT changed: The Fitness session-handoff endpoint now returns a fixed readiness contract only when the runtime has the exact master Supabase audience, an immutable deployment source commit, and an available durable one-time handoff store. Missing, malformed, legacy, or conflicting runtime identity fails closed before a handoff record is written. The provider-free loopback fixture supplies the same contract with a deterministic synthetic source identity.
+- WHY it changed: A portal producer must not infer that Fitness is ready for cross-origin session handoff from an HTTP success alone. Explicit runtime attestation prevents activation against a legacy Auth audience, an unidentified deployment, or an unavailable single-use store while preserving non-echoing failure behavior.
+- Rule: Cross-origin session handoff activation requires exact consumer runtime attestation; local fixtures may inject deterministic readiness but production must derive it from immutable runtime evidence.
+- Failure Mode: Issuing a handoff without proving the destination Auth audience, deployed source, and durable store can create login loops, cross-audience token rejection, or replay-prone session transport.
+- Evidence: `src/app/auth/session-handoff/route.test.ts`, `src/lib/auth-handoff.ts`, `src/lib/auth-handoff-handlers.ts`, `src/lib/auth-handoff-supabase-store.test.ts`, `scripts/qa/fitness-auth-handoff-loopback.ts`.
+- Status: Source-proven locally; provider activation, production deployment, portal activation, and live authenticated acceptance remain separate boundaries.

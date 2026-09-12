@@ -6,6 +6,10 @@ import path from "node:path";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import {
+  FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+} from "@/lib/auth-handoff";
+import {
   FITNESS_HANDOFF_LOOPBACK_CONTRACT,
   startFitnessHandoffLoopback,
   SYNTHETIC_PORTAL_ACCESS_TOKEN,
@@ -28,9 +32,25 @@ async function begin(baseUrl: string) {
     method: "POST",
   });
   const setCookie = response.headers.get("set-cookie") ?? "";
-  const payload = await response.json() as { handoffId: string; ok: boolean; returnTo: string };
+  const payload = await response.json() as {
+    handoffId: string;
+    ok: boolean;
+    readiness: {
+      authProjectRef: string;
+      contractVersion: string;
+      handoffStore: string;
+      sourceCommit: string;
+    };
+    returnTo: string;
+  };
   assert.equal(response.status, 200);
   assert.equal(payload.ok, true);
+  assert.deepEqual(payload.readiness, {
+    authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+    contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+    handoffStore: "available",
+    sourceCommit: "0".repeat(40),
+  });
   const binding = cookieValue(setCookie, "__Host-fitness-handoff");
   assert.ok(binding);
   return { binding, handoffId: payload.handoffId };
