@@ -57,6 +57,10 @@ export async function syncSessionCookies(
       return;
     }
 
+    if (!latestRequestedSessionSignature) {
+      return sessionSyncQueue;
+    }
+
     latestRequestedSessionSignature = null;
     return enqueueSessionSync(async () => {
       lastSyncedSessionSignature = null;
@@ -172,31 +176,22 @@ async function persistValidatedBrowserSession(tokens: SessionSyncTokenPair) {
   }
 }
 
-export async function clearBrowserSupabaseSession() {
+export async function clearBrowserSupabaseSession(localSignOut?: () => Promise<unknown>) {
   if (typeof window === "undefined") {
     return;
   }
 
-  const supabase = createBrowserSupabase();
-
   try {
-    await supabase.auth.signOut({ scope: "local" });
+    if (localSignOut) {
+      await localSignOut();
+    } else {
+      await createBrowserSupabase().auth.signOut({ scope: "local" });
+    }
   } catch {
     // Ignore local session cleanup failures and still clear server-side cookie mirrors below.
   }
 
-  lastSyncedSessionSignature = null;
-  latestRequestedSessionSignature = null;
-
-  try {
-    await fetch("/auth/session-sync", {
-      method: "DELETE",
-      credentials: "same-origin",
-      keepalive: true,
-    });
-  } catch {
-    // Ignore cookie sync cleanup failures; login can still continue with a fresh server action.
-  }
+  await syncSessionCookies(null);
 }
 
 export function createBrowserSupabase() {

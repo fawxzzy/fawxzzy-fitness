@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { syncSessionCookies } from "./client.ts";
+import { clearBrowserSupabaseSession, syncSessionCookies } from "./client.ts";
 
 test("same-origin cookie sync persists the server-rotated pair before a later refresh can revoke its parent", async () => {
   const originalFetch = globalThis.fetch;
@@ -200,4 +200,66 @@ test("duplicate same-pair syncs are coalesced before the cookie endpoint rotates
 
   assert.equal(fetches, 1);
   assert.equal(persisted, 1);
+});
+
+test("the public sign-out path waits for an in-flight sync before deleting cookies", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  const calls: string[] = [];
+  let persisted = 0;
+  let resolvePost: ((response: Response) => void) | undefined;
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      localStorage: {
+        length: 0,
+        key: () => null,
+        removeItem: () => undefined,
+      },
+      indexedDB: {
+        deleteDatabase: () => undefined,
+      },
+    },
+  });
+  globalThis.fetch = async (_input, init) => {
+    const method = String(init?.method);
+    calls.push(method);
+    if (method === "POST") {
+      return new Promise<Response>((resolve) => {
+        resolvePost = resolve;
+      });
+    }
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    await syncSessionCookies(null);
+    calls.length = 0;
+
+    const staleSync = syncSessionCookies(
+      { access_token: "access-public-signout-r0", refresh_token: "refresh-public-signout-r0" },
+      async () => { persisted += 1; },
+    );
+    while (!resolvePost) {
+      await Promise.resolve();
+    }
+
+    const signOut = clearBrowserSupabaseSession(async () => undefined);
+    resolvePost(new Response(JSON.stringify({
+      session: {
+        accessToken: "access-public-signout-r1",
+        refreshToken: "refresh-public-signout-r1",
+      },
+    }), { status: 200 }));
+
+    await Promise.all([staleSync, signOut]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
+  }
+
+  assert.deepEqual(calls, ["POST", "DELETE"]);
+  assert.equal(persisted, 0);
 });
