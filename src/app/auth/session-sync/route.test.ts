@@ -10,12 +10,21 @@ import {
   FITNESS_HANDOFF_AUDIENCE,
   FITNESS_HANDOFF_BINDING_COOKIE,
   FITNESS_HANDOFF_ISSUER,
+  FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
   FITNESS_PORTAL_ORIGIN,
+  type FitnessHandoffReadiness,
 } from "@/lib/auth-handoff";
 
 const ORIGIN = "https://fitness.fawxzzy.com";
 const URL = `${ORIGIN}/auth/session-sync`;
 const cacheControl = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+const handoffReadiness: FitnessHandoffReadiness = {
+  authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+  handoffStore: "available" as const,
+  sourceCommit: "a".repeat(40),
+};
 
 function request(body: string, origin = ORIGIN) {
   return new Request(URL, {
@@ -64,6 +73,24 @@ test("session validation requires the master access identity and refreshed ident
     accessToken: "refreshed-access-a",
     refreshToken: "refreshed-refresh-a",
   });
+});
+
+test("session validation fails closed when its configured client cannot be constructed", async () => {
+  const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const previousAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  try {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    assert.equal(await validateSubmittedSession({
+      accessToken: "access-a",
+      refreshToken: "refresh-a",
+    }), null);
+  } finally {
+    if (previousUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = previousUrl;
+    if (previousAnonKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previousAnonKey;
+  }
 });
 
 test("session validation rejects an invalid refresh token and cross-user token pairs", async () => {
@@ -280,6 +307,7 @@ test("portal session sync consumes the binding once before writing validated ses
         },
       },
     }),
+    getReadiness: () => handoffReadiness,
     validateSession: async () => ({
       accessToken: "validated-access",
       refreshToken: "validated-refresh",
@@ -336,6 +364,7 @@ test("portal session sync consumes the challenge before failed credential valida
         },
       },
     }),
+    getReadiness: () => handoffReadiness,
     validateSession: async () => null,
   });
   const response = await sync.POST(new Request(URL, {
@@ -370,6 +399,7 @@ test("portal session sync rejects malformed challenge values before it touches t
         },
       },
     }),
+    getReadiness: () => handoffReadiness,
     validateSession: async () => ({ accessToken: "unused", refreshToken: "unused" }),
   });
   const response = await sync.POST(new Request(URL, {
@@ -395,4 +425,52 @@ test("portal session-sync preflight is unavailable without a durable runtime", a
 
   assert.equal(response.status, 503);
   assert.equal(response.headers.get("access-control-allow-origin"), null);
+});
+
+test("portal session sync stays unavailable without exact runtime readiness", async () => {
+  let consumed = 0;
+  let validated = 0;
+  const runtime = {
+    now: () => 0,
+    store: {
+      begin: async () => true,
+      consume: async () => {
+        consumed += 1;
+        return { returnTo: "/today" };
+      },
+    },
+  };
+  const sync = createSessionSyncHandlers({
+    getHandoffRuntime: () => runtime,
+    getReadiness: () => null,
+    validateSession: async () => {
+      validated += 1;
+      return { accessToken: "unused", refreshToken: "unused" };
+    },
+  });
+  const preflight = await sync.OPTIONS(new Request(URL, {
+    headers: { origin: FITNESS_PORTAL_ORIGIN },
+    method: "OPTIONS",
+  }));
+  const response = await sync.POST(new Request(URL, {
+    body: JSON.stringify({
+      accessToken: "access-token",
+      handoffId: "E".repeat(43),
+      refreshToken: "refresh-token",
+    }),
+    headers: {
+      "content-type": "application/json",
+      cookie: `${FITNESS_HANDOFF_BINDING_COOKIE}=${"F".repeat(43)}`,
+      origin: FITNESS_PORTAL_ORIGIN,
+    },
+    method: "POST",
+  }));
+
+  assert.equal(preflight.status, 503);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), null);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { ok: false, error: "Session handoff unavailable." });
+  assert.equal(response.headers.get("set-cookie"), null);
+  assert.equal(consumed, 0);
+  assert.equal(validated, 0);
 });

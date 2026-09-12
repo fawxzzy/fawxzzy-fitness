@@ -69,6 +69,7 @@ export type SessionHandoffDependencies = {
 
 export type SessionSyncDependencies = {
   getHandoffRuntime: () => FitnessHandoffRuntime | null;
+  getReadiness?: (runtime: FitnessHandoffRuntime | null) => FitnessHandoffReadiness | null;
   validateSession: (tokens: SessionTokenPair) => Promise<SessionTokenPair | null>;
 };
 
@@ -200,16 +201,17 @@ function createSessionValidationClient(): SessionValidationClient {
 
 export async function validateSubmittedSession(
   tokens: SessionTokenPair,
-  client: SessionValidationClient = createSessionValidationClient(),
+  client?: SessionValidationClient,
 ): Promise<SessionTokenPair | null> {
   try {
-    const access = await client.auth.getUser(tokens.accessToken);
+    const validationClient = client ?? createSessionValidationClient();
+    const access = await validationClient.auth.getUser(tokens.accessToken);
     const accessSubject = access.data.user?.id;
     if (access.error || !accessSubject) {
       return null;
     }
 
-    const refreshed = await client.auth.refreshSession({ refresh_token: tokens.refreshToken });
+    const refreshed = await validationClient.auth.refreshSession({ refresh_token: tokens.refreshToken });
     const refreshedSession = refreshed.data.session;
     const refreshedAccessToken = normalizeToken(refreshedSession?.access_token);
     const refreshedRefreshToken = normalizeToken(refreshedSession?.refresh_token);
@@ -302,7 +304,8 @@ export function createSessionSyncHandlers(dependencies: SessionSyncDependencies 
 }) {
   async function OPTIONS(request: Request) {
     const runtime = dependencies.getHandoffRuntime();
-    if (!runtime || !isPortalBrowserRequest(request)) {
+    const readiness = (dependencies.getReadiness ?? getFitnessHandoffReadiness)(runtime);
+    if (!runtime || !readiness || !isPortalBrowserRequest(request)) {
       return buildResponse({ ok: false, error: "Session handoff unavailable." }, 503);
     }
 
@@ -326,7 +329,10 @@ export function createSessionSyncHandlers(dependencies: SessionSyncDependencies 
     }
 
     const runtime = portalRequest ? dependencies.getHandoffRuntime() : null;
-    if (portalRequest && !runtime) {
+    const readiness = portalRequest
+      ? (dependencies.getReadiness ?? getFitnessHandoffReadiness)(runtime)
+      : null;
+    if (portalRequest && (!runtime || !readiness)) {
       return buildResponse({ ok: false, error: "Session handoff unavailable." }, 503);
     }
 
