@@ -9,11 +9,13 @@ import {
   FITNESS_HANDOFF_ISSUER,
   FITNESS_HANDOFF_TTL_SECONDS,
   FITNESS_PORTAL_ORIGIN,
+  getFitnessHandoffReadiness,
   getFitnessHandoffRuntime,
   isHandoffSecret,
   normalizeFitnessHandoffReturnTo,
   setFitnessHandoffBindingCookie,
   type FitnessHandoffRuntime,
+  type FitnessHandoffReadiness,
 } from "@/lib/auth-handoff";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
@@ -61,6 +63,7 @@ export type SessionTokenPair = {
 };
 
 export type SessionHandoffDependencies = {
+  getReadiness?: (runtime: FitnessHandoffRuntime | null) => FitnessHandoffReadiness | null;
   getRuntime: () => FitnessHandoffRuntime | null;
 };
 
@@ -74,7 +77,7 @@ type JsonBodyResult =
   | { error: "Invalid session payload." | "Session payload is too large." | "Unsupported session payload."; ok: false; status: 400 | 413 | 415 };
 
 function buildResponse(
-  body: { ok: true; handoffId?: string; returnTo?: string; session?: SessionTokenPair } | { ok: false; error: string },
+  body: { ok: true; handoffId?: string; readiness?: FitnessHandoffReadiness; returnTo?: string; session?: SessionTokenPair } | { ok: false; error: string },
   status = 200,
   origin?: string,
 ) {
@@ -228,11 +231,13 @@ export async function validateSubmittedSession(
 }
 
 export function createSessionHandoffHandlers(dependencies: SessionHandoffDependencies = {
+  getReadiness: getFitnessHandoffReadiness,
   getRuntime: getFitnessHandoffRuntime,
 }) {
   async function OPTIONS(request: Request) {
     const runtime = dependencies.getRuntime();
-    if (!runtime || !isPortalBrowserRequest(request)) {
+    const readiness = (dependencies.getReadiness ?? getFitnessHandoffReadiness)(runtime);
+    if (!runtime || !readiness || !isPortalBrowserRequest(request)) {
       return buildResponse({ ok: false, error: "Session handoff unavailable." }, 503);
     }
 
@@ -251,7 +256,8 @@ export function createSessionHandoffHandlers(dependencies: SessionHandoffDepende
 
   async function POST(request: Request) {
     const runtime = dependencies.getRuntime();
-    if (!runtime || !isPortalBrowserRequest(request)) {
+    const readiness = (dependencies.getReadiness ?? getFitnessHandoffReadiness)(runtime);
+    if (!runtime || !readiness || !isPortalBrowserRequest(request)) {
       return buildResponse({ ok: false, error: "Session handoff unavailable." }, 503);
     }
 
@@ -282,7 +288,7 @@ export function createSessionHandoffHandlers(dependencies: SessionHandoffDepende
       return buildResponse({ ok: false, error: "Session handoff unavailable." }, 503, FITNESS_PORTAL_ORIGIN);
     }
 
-    const response = buildResponse({ ok: true, handoffId, returnTo }, 200, FITNESS_PORTAL_ORIGIN);
+    const response = buildResponse({ ok: true, handoffId, readiness, returnTo }, 200, FITNESS_PORTAL_ORIGIN);
     setFitnessHandoffBindingCookie(response.cookies, binding);
     return response;
   }

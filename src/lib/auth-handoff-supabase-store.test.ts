@@ -9,9 +9,13 @@ import { PGlite } from "@electric-sql/pglite";
 import {
   FITNESS_HANDOFF_AUDIENCE,
   FITNESS_HANDOFF_ISSUER,
+  FITNESS_HANDOFF_MASTER_PROJECT_REF,
   FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+  FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+  getFitnessHandoffReadiness,
   isFitnessHandoffMasterUrl,
   type FitnessHandoffRecord,
+  type FitnessHandoffRuntime,
 } from "@/lib/auth-handoff";
 import {
   createFitnessHandoffSupabaseStore,
@@ -214,6 +218,54 @@ test("runtime configuration fails closed for missing, malformed, and legacy Supa
   assert.equal(await readRuntimeState({ ...base, NEXT_PUBLIC_SUPABASE_URL: "not-a-url" }), "null");
   assert.equal(await readRuntimeState({ ...base, NEXT_PUBLIC_SUPABASE_URL: "https://lpswxoyfniocuhljgzbc.supabase.co" }), "null");
   assert.equal(await readRuntimeState({ ...base, NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL }), "active");
+});
+
+test("runtime readiness attests only the exact master audience, immutable source, and available store", () => {
+  const runtime: FitnessHandoffRuntime = {
+    now: () => 0,
+    store: { begin: async () => true, consume: async () => null },
+  };
+  const sourceCommit = "a".repeat(40);
+  const expected = {
+    authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+    contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+    handoffStore: "available",
+    sourceCommit,
+  };
+
+  assert.deepEqual(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  }), expected);
+  assert.deepEqual(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: sourceCommit,
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  }), expected);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: "https://lpswxoyfniocuhljgzbc.supabase.co",
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: "not-a-url",
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    VERCEL_GIT_COMMIT_SHA: "not-a-commit",
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(runtime, {
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: "b".repeat(40),
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  }), null);
+  assert.equal(getFitnessHandoffReadiness(null, {
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+    VERCEL_GIT_COMMIT_SHA: sourceCommit,
+  }), null);
 });
 
 test("adapter returns categorical failures without surfacing backend details", async () => {

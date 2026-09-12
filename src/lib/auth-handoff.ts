@@ -7,6 +7,8 @@ export const FITNESS_HANDOFF_AUDIENCE = "fitness";
 export const FITNESS_HANDOFF_BINDING_COOKIE = "__Host-fitness-handoff";
 export const FITNESS_HANDOFF_ISSUER = "https://bxtcuhkotumitoqtrcej.supabase.co/auth/v1";
 export const FITNESS_HANDOFF_MASTER_SUPABASE_URL = "https://bxtcuhkotumitoqtrcej.supabase.co";
+export const FITNESS_HANDOFF_MASTER_PROJECT_REF = "bxtcuhkotumitoqtrcej";
+export const FITNESS_HANDOFF_READINESS_CONTRACT_VERSION = "fitness.auth-handoff-readiness.v1";
 export const FITNESS_HANDOFF_TTL_SECONDS = 60;
 export const FITNESS_PORTAL_ORIGIN = "https://account.fawxzzy.com";
 
@@ -51,6 +53,19 @@ export type FitnessHandoffRuntime = {
   store: FitnessHandoffStore;
 };
 
+export type FitnessHandoffReadiness = {
+  authProjectRef: typeof FITNESS_HANDOFF_MASTER_PROJECT_REF;
+  contractVersion: typeof FITNESS_HANDOFF_READINESS_CONTRACT_VERSION;
+  handoffStore: "available";
+  sourceCommit: string;
+};
+
+type FitnessHandoffReadinessEnvironment = {
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?: string;
+  VERCEL_GIT_COMMIT_SHA?: string;
+};
+
 export function normalizeFitnessHandoffReturnTo(value: unknown) {
   return typeof value === "string" && ALLOWED_RETURN_PATHS.has(value) ? value : "/entry";
 }
@@ -93,6 +108,49 @@ export function clearFitnessHandoffBindingCookie(writer: HandoffCookieWriter) {
 
 export function isFitnessHandoffMasterUrl(value: string) {
   return value === FITNESS_HANDOFF_MASTER_SUPABASE_URL;
+}
+
+export function getFitnessHandoffReadiness(
+  runtime: FitnessHandoffRuntime | null,
+  env: FitnessHandoffReadinessEnvironment = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
+    VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA,
+  },
+): FitnessHandoffReadiness | null {
+  if (!runtime || typeof runtime.now !== "function" || typeof runtime.store?.begin !== "function" || typeof runtime.store?.consume !== "function") {
+    return null;
+  }
+
+  let projectRef: string;
+  try {
+    const configuredUrl = new URL(env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    projectRef = configuredUrl.hostname.endsWith(".supabase.co")
+      ? configuredUrl.hostname.slice(0, -".supabase.co".length)
+      : "";
+    if (configuredUrl.origin !== FITNESS_HANDOFF_MASTER_SUPABASE_URL || projectRef !== FITNESS_HANDOFF_MASTER_PROJECT_REF) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  const sourceCandidates = [env.VERCEL_GIT_COMMIT_SHA, env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA]
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+  if (
+    sourceCandidates.length === 0
+    || sourceCandidates.some((value) => !/^[0-9a-f]{40}$/.test(value))
+    || new Set(sourceCandidates).size !== 1
+  ) {
+    return null;
+  }
+
+  return {
+    authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+    contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+    handoffStore: "available",
+    sourceCommit: sourceCandidates[0],
+  };
 }
 
 // Production stays closed until the migration owner installs the atomic RPC

@@ -8,13 +8,23 @@ import {
 import {
   FITNESS_HANDOFF_AUDIENCE,
   FITNESS_HANDOFF_ISSUER,
+  FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
   FITNESS_PORTAL_ORIGIN,
+  type FitnessHandoffReadiness,
   type FitnessHandoffRecord,
 } from "@/lib/auth-handoff";
 
 const FITNESS_ORIGIN = "https://fitness.fawxzzy.com";
 const URL = `${FITNESS_ORIGIN}/auth/session-handoff`;
 const cacheControl = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+const sourceCommit = "a".repeat(40);
+const readiness: FitnessHandoffReadiness = {
+  authProjectRef: FITNESS_HANDOFF_MASTER_PROJECT_REF,
+  contractVersion: FITNESS_HANDOFF_READINESS_CONTRACT_VERSION,
+  handoffStore: "available",
+  sourceCommit,
+};
 
 function request(body: string, origin = FITNESS_PORTAL_ORIGIN) {
   return new Request(URL, {
@@ -37,6 +47,7 @@ test("handoff begin is disabled by default and does not establish a browser bind
 test("handoff begin binds an opaque challenge to the Fitness browser and normalizes returnTo", async () => {
   const records: FitnessHandoffRecord[] = [];
   const handlers = createSessionHandoffHandlers({
+    getReadiness: () => readiness,
     getRuntime: () => ({
       now: () => 1_700_000_000,
       store: {
@@ -49,11 +60,12 @@ test("handoff begin binds an opaque challenge to the Fitness browser and normali
     }),
   });
   const response = await handlers.POST(request(JSON.stringify({ returnTo: "https://hostile.example" })));
-  const payload = await response.json() as { ok: boolean; handoffId: string; returnTo: string };
+  const payload = await response.json() as { ok: boolean; handoffId: string; readiness: FitnessHandoffReadiness; returnTo: string };
 
   assert.equal(response.status, 200);
   assert.deepEqual(payload.ok, true);
   assert.match(payload.handoffId, /^[A-Za-z0-9_-]{43}$/);
+  assert.deepEqual(payload.readiness, readiness);
   assert.equal(payload.returnTo, "/entry");
   assert.equal(response.headers.get("access-control-allow-origin"), FITNESS_PORTAL_ORIGIN);
   assert.equal(response.headers.get("access-control-allow-credentials"), "true");
@@ -79,6 +91,7 @@ test("handoff begin binds an opaque challenge to the Fitness browser and normali
 test("handoff begin rejects hostile origins without touching the atomic store", async () => {
   let begins = 0;
   const handlers = createSessionHandoffHandlers({
+    getReadiness: () => readiness,
     getRuntime: () => ({
       now: () => 0,
       store: {
@@ -100,6 +113,7 @@ test("handoff begin rejects hostile origins without touching the atomic store", 
 test("handoff begin rejects non-JSON and oversized payloads before it touches the atomic store", async () => {
   let begins = 0;
   const handlers = createSessionHandoffHandlers({
+    getReadiness: () => readiness,
     getRuntime: () => ({
       now: () => 0,
       store: {
@@ -161,6 +175,7 @@ test("session route modules export only Next-supported handler methods", () => {
 
 test("handoff preflight is enabled only when the exact portal runtime is ready", async () => {
   const handlers = createSessionHandoffHandlers({
+    getReadiness: () => readiness,
     getRuntime: () => ({
       now: () => 0,
       store: { begin: async () => true, consume: async () => null },
@@ -174,4 +189,27 @@ test("handoff preflight is enabled only when the exact portal runtime is ready",
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("access-control-allow-origin"), FITNESS_PORTAL_ORIGIN);
   assert.equal(response.headers.get("access-control-allow-methods"), "POST, OPTIONS");
+});
+
+test("handoff begin fails closed before storing when runtime attestation is unavailable", async () => {
+  let begins = 0;
+  const handlers = createSessionHandoffHandlers({
+    getReadiness: () => null,
+    getRuntime: () => ({
+      now: () => 0,
+      store: {
+        begin: async () => {
+          begins += 1;
+          return true;
+        },
+        consume: async () => null,
+      },
+    }),
+  });
+
+  const response = await handlers.POST(request(JSON.stringify({ returnTo: "/today" })));
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { ok: false, error: "Session handoff unavailable." });
+  assert.equal(response.headers.get("set-cookie"), null);
+  assert.equal(begins, 0);
 });
