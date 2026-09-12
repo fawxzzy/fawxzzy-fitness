@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { optionalEnv, SUPABASE_URL } from "@/lib/env";
 import { createFitnessHandoffSupabaseStore } from "@/lib/auth-handoff-supabase-store";
+import { resolveSupabaseAdminCredential } from "@/lib/supabase/admin";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 export const FITNESS_HANDOFF_AUDIENCE = "fitness";
@@ -13,7 +14,6 @@ export const FITNESS_HANDOFF_TTL_SECONDS = 60;
 export const FITNESS_PORTAL_ORIGIN = "https://account.fawxzzy.com";
 
 const FITNESS_HANDOFF_RUNTIME_ENABLED_ENV = "FITNESS_AUTH_HANDOFF_ENABLED";
-const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
 
 const ALLOWED_RETURN_PATHS = new Set(["/", "/entry", "/today"]);
 const BASE64_URL_32_BYTE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
@@ -238,21 +238,18 @@ export function getFitnessHandoffRuntime(): FitnessHandoffRuntime | null {
     return null;
   }
 
-  const serviceRoleKey = optionalEnv(SUPABASE_SERVICE_ROLE_KEY_ENV);
-  if (!serviceRoleKey) {
-    return null;
-  }
-
   try {
     const supabaseUrl = SUPABASE_URL();
     if (!isFitnessHandoffMasterUrl(supabaseUrl)) {
       return null;
     }
 
+    const adminCredential = resolveSupabaseAdminCredential();
+
     return {
       now: () => Math.floor(Date.now() / 1000),
       store: createFitnessHandoffSupabaseStore(
-        createFitnessSupabaseClient(supabaseUrl, serviceRoleKey, {
+        createFitnessSupabaseClient(supabaseUrl, adminCredential, {
           auth: {
             autoRefreshToken: false,
             persistSession: false,

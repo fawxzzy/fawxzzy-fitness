@@ -239,6 +239,16 @@ test("runtime configuration fails closed for missing, malformed, and legacy Supa
   assert.equal(await readRuntimeState({ ...base, NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL }), "active");
 });
 
+test("runtime configuration accepts the modern admin credential without requiring the legacy rollback key", async () => {
+  const base = {
+    FITNESS_AUTH_HANDOFF_ENABLED: "1",
+    NEXT_PUBLIC_SUPABASE_URL: FITNESS_HANDOFF_MASTER_SUPABASE_URL,
+  };
+
+  assert.equal(await readRuntimeState({ ...base, SUPABASE_SECRET_KEY: "synthetic-modern-key" }), "active");
+  assert.equal(await readRuntimeState(base), "null");
+});
+
 test("runtime readiness attests only the exact master audience, anon validator, immutable source, and available store", () => {
   const runtime: FitnessHandoffRuntime = {
     now: () => 0,
