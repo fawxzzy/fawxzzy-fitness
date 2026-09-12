@@ -2,6 +2,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-09-12 - Preserve rotated refresh-token lineage during Fitness session synchronization
+
+- Type: Authentication handoff + Session continuity + Coverage
+- WHAT changed: Successful `/auth/session-sync` responses now return the already validated and rotated session pair only to the initiating origin-checked caller. The Fitness browser client persists that returned pair through Supabase before its next auth event, while the cross-origin portal contract now requires the producer to do the same before continuing to its return path. Added a regression that proves a same-origin cookie sync advances local browser persistence from the submitted parent pair to the validated pair.
+- WHY it changed: Validation deliberately calls Supabase refresh-token rotation before mirroring the result into Fitness HttpOnly cookies. Keeping the browser on the submitted parent refresh token while the server advances its cookie pair lets a later server refresh make that browser token a grandparent, outside Supabase's immediate-parent reuse allowance; reopening the app could then revoke a valid session. Advancing both stores together preserves the rotation lineage without weakening token validation or exposing tokens in navigation URLs, logs, or durable evidence.
+- Rule: Any session consumer that rotates a supplied refresh token must return the resulting pair only through the established origin-checked response contract and the initiating client must persist it before relying on a later refresh. Cookie mirrors and browser session persistence are one rotation lineage, not independent token stores.
+- Failure Mode: Rotating only the server cookie leaves a stale browser parent token that may appear valid briefly but later triggers refresh-token reuse detection after another server-side refresh, presenting as an intermittent login loop.
+- Evidence: `src/lib/auth-handoff-handlers.ts`, `src/lib/supabase/client.ts`, `src/app/auth/session-sync/route.test.ts`, `src/lib/supabase/client.session-sync.contract.test.ts`, `docs/ops/FITNESS-MASTER-AUTH-HANDOFF-STORE-INSTALLATION-CONTRACT.md`.
+- Status: Source correction in the existing draft PR lifecycle; portal producer adoption, runtime activation, provider cutover, and production acceptance remain separate boundaries.
+
 ## 2026-08-24 - Bind current Fitness clients to the master fitness schema
 
 - Type: Database binding + Migration safety

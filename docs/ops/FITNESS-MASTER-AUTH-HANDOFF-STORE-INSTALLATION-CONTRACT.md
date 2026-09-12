@@ -28,7 +28,7 @@ RPC failures must be converted by Fitness to fixed non-echoing `unavailable` or 
 
 ## Runtime binding and rollback
 
-Fitness creates the store only when `FITNESS_AUTH_HANDOFF_ENABLED=1`, a server-only service-role key, and the exact master Supabase URL are all present. Before that, both cross-origin handlers remain unavailable. The adapter calls the named RPCs through the shared `fitness` schema client, while the submitted session pair is still independently validated against the same master audience before Fitness writes its HttpOnly session cookies.
+Fitness creates the store only when `FITNESS_AUTH_HANDOFF_ENABLED=1`, a server-only service-role key, and the exact master Supabase URL are all present. Before that, both cross-origin handlers remain unavailable. The adapter calls the named RPCs through the shared `fitness` schema client, while the submitted session pair is still independently validated against the same master audience before Fitness writes its HttpOnly session cookies. That validation rotates the refresh token, so the success response returns the validated pair only to the initiating origin-checked caller. The Fitness browser client and portal producer must persist that returned pair before continuing; a caller must never retain the submitted parent refresh token.
 
 Rollback is immediate: remove the enable flag or make the service-role key unavailable. New cross-origin handoffs receive the existing categorical unavailable response; no browser session cookie is created by the handoff path.
 

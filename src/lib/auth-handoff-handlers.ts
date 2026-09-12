@@ -74,7 +74,7 @@ type JsonBodyResult =
   | { error: "Invalid session payload." | "Session payload is too large." | "Unsupported session payload."; ok: false; status: 400 | 413 | 415 };
 
 function buildResponse(
-  body: { ok: true; handoffId?: string; returnTo?: string } | { ok: false; error: string },
+  body: { ok: true; handoffId?: string; returnTo?: string; session?: SessionTokenPair } | { ok: false; error: string },
   status = 200,
   origin?: string,
 ) {
@@ -375,7 +375,16 @@ export function createSessionSyncHandlers(dependencies: SessionSyncDependencies 
       return response;
     }
 
-    const response = buildResponse(returnTo ? { ok: true, returnTo } : { ok: true }, 200, portalRequest ? FITNESS_PORTAL_ORIGIN : undefined);
+    // `refreshSession` intentionally rotates the submitted refresh token. Return
+    // that validated pair only to the initiating, origin-checked caller so its
+    // own persisted Supabase session can advance with the HttpOnly cookie mirror.
+    // Leaving the caller on the submitted parent token would eventually trigger
+    // refresh-token reuse detection after the server refreshes the cookie again.
+    const response = buildResponse(
+      returnTo ? { ok: true, returnTo, session } : { ok: true, session },
+      200,
+      portalRequest ? FITNESS_PORTAL_ORIGIN : undefined,
+    );
     setSessionCookies(response.cookies, session);
     if (portalRequest) {
       clearFitnessHandoffBindingCookie(response.cookies);

@@ -200,7 +200,13 @@ test("session sync writes only the validated session cookies for a same-origin h
   })));
 
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true });
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    session: {
+      accessToken: "validated-access",
+      refreshToken: "validated-refresh",
+    },
+  });
   assert.equal(response.headers.get("cache-control"), cacheControl);
   const setCookie = response.headers.get("set-cookie") ?? "";
   assert.match(setCookie, /sb-access-token=validated-access/);
@@ -295,7 +301,14 @@ test("portal session sync consumes the binding once before writing validated ses
 
   const response = await sync.POST(buildPortalRequest());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, returnTo: "/today" });
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    returnTo: "/today",
+    session: {
+      accessToken: "validated-access",
+      refreshToken: "validated-refresh",
+    },
+  });
   assert.equal(response.headers.get("access-control-allow-origin"), FITNESS_PORTAL_ORIGIN);
   assert.equal(response.headers.get("access-control-allow-credentials"), "true");
   const setCookie = response.headers.get("set-cookie") ?? "";

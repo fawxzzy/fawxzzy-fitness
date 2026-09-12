@@ -7,7 +7,31 @@ let browserSupabase: ReturnType<typeof createFitnessSupabaseClient> | null = nul
 let hasAuthStateListener = false;
 let lastSyncedSessionSignature: string | null = null;
 
-async function syncSessionCookies(session: { access_token: string; refresh_token: string } | null) {
+type SessionSyncTokenPair = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+function readValidatedSessionPair(value: unknown): SessionSyncTokenPair | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const session = (value as { session?: unknown }).session;
+  if (!session || typeof session !== "object") {
+    return null;
+  }
+
+  const { accessToken, refreshToken } = session as Partial<SessionSyncTokenPair>;
+  return typeof accessToken === "string" && accessToken && typeof refreshToken === "string" && refreshToken
+    ? { accessToken, refreshToken }
+    : null;
+}
+
+export async function syncSessionCookies(
+  session: { access_token: string; refresh_token: string } | null,
+  persistValidatedSession?: (tokens: SessionSyncTokenPair) => Promise<unknown>,
+) {
   if (typeof window === "undefined") {
     return;
   }
@@ -40,7 +64,7 @@ async function syncSessionCookies(session: { access_token: string; refresh_token
   lastSyncedSessionSignature = nextSignature;
 
   try {
-    await fetch("/auth/session-sync", {
+    const response = await fetch("/auth/session-sync", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -52,9 +76,50 @@ async function syncSessionCookies(session: { access_token: string; refresh_token
         refreshToken: session.refresh_token,
       }),
     });
+
+    if (!response.ok || !persistValidatedSession) {
+      return;
+    }
+
+    let validated: SessionSyncTokenPair | null = null;
+    try {
+      validated = readValidatedSessionPair(await response.json());
+    } catch {
+      return;
+    }
+
+    if (!validated) {
+      return;
+    }
+
+    const validatedSignature = `${validated.accessToken}:${validated.refreshToken}`;
+    if (validatedSignature === nextSignature) {
+      return;
+    }
+
+    // Set the signature first because setSession emits an auth event. That event
+    // observes the same rotated pair and must not submit it for another rotation.
+    lastSyncedSessionSignature = validatedSignature;
+    try {
+      await persistValidatedSession(validated);
+    } catch {
+      // Allow a later auth event to retry if local persistence itself fails.
+      lastSyncedSessionSignature = null;
+    }
   } catch {
     // Ignore background sync failures and let the next auth event retry.
   }
+}
+
+async function persistValidatedBrowserSession(tokens: SessionSyncTokenPair) {
+  if (!browserSupabase) {
+    throw new Error("Browser Supabase client is unavailable.");
+  }
+
+  await browserSupabase.auth.setSession({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+  });
 }
 
 export async function clearBrowserSupabaseSession() {
@@ -95,7 +160,7 @@ export function createBrowserSupabase() {
     });
 
     void browserSupabase.auth.getSession().then(({ data }) => {
-      void syncSessionCookies(data.session ?? null);
+      void syncSessionCookies(data.session ?? null, persistValidatedBrowserSession);
       if (data.session) {
         pruneStaleSessionDrafts();
       }
@@ -120,7 +185,7 @@ export function createBrowserSupabase() {
       }
 
       if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
-        void syncSessionCookies(session);
+        void syncSessionCookies(session, persistValidatedBrowserSession);
         pruneStaleSessionDrafts();
       }
     });
