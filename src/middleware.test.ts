@@ -106,9 +106,11 @@ test("middleware clears cookies and redirects to login when refresh recovery fai
 });
 
 test("middleware preserves the Account destination when refresh recovery fails", async () => {
-  const request = new NextRequest("https://example.com/account?returnTo=%2Fsettings", {
+  const request = new NextRequest("http://internal-fitness:3000/account?returnTo=%2Fsettings", {
     headers: {
       cookie: "sb-access-token=old-access; sb-refresh-token=bad-refresh",
+      "x-forwarded-host": "127.0.0.1:3002",
+      "x-forwarded-proto": "http",
     },
   });
 
@@ -127,7 +129,7 @@ test("middleware preserves the Account destination when refresh recovery fails",
 
   assert.equal(response.status, 307);
   const location = new URL(response.headers.get("location") ?? "");
-  assert.equal(location.origin, "https://example.com");
+  assert.equal(location.origin, "http://127.0.0.1:3002");
   assert.equal(location.pathname, "/login");
   assert.equal(location.searchParams.get("error"), "session_expired");
   assert.equal(location.searchParams.get("returnTo"), "/account?returnTo=%2Fsettings");

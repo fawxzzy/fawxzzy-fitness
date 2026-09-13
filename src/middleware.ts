@@ -16,6 +16,7 @@ import {
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
+import { buildRequestScopedUrl } from "@/lib/request-origin";
 
 export const FITNESS_LEGACY_STABLE_HOSTNAME = "fawxzzy-fitness-local.vercel.app";
 
@@ -51,7 +52,7 @@ function getLoginReturnTo(request: NextRequest) {
 }
 
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
-  const responseUrl = new URL("/login", request.url);
+  const responseUrl = buildRequestScopedUrl(request, "/login");
 
   if (errorCode) {
     responseUrl.searchParams.set("error", errorCode);
