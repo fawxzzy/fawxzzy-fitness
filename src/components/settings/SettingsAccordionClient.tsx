@@ -1,8 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
-import { SignOutButton } from "@/components/SignOutButton";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
@@ -18,7 +17,7 @@ import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import type { HistoryAchievement } from "@/lib/history-achievements";
-import { getFitnessAccountPortalUrl } from "@/lib/account-portal";
+import { getAccountRouteHref } from "@/lib/account-navigation";
 
 type SettingsSectionMeta = {
   title: string;
@@ -81,7 +80,7 @@ export function SettingsAccordionTrigger({
   );
 }
 
-export function SettingsExternalTrigger({
+export function SettingsRouteTrigger({
   href,
   title,
 }: {
@@ -89,7 +88,7 @@ export function SettingsExternalTrigger({
   title: string;
 }) {
   return (
-    <a
+    <Link
       className="group relative block w-full appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       href={href}
     >
@@ -103,7 +102,7 @@ export function SettingsExternalTrigger({
         </span>
       </span>
       <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
-    </a>
+    </Link>
   );
 }
 
@@ -146,10 +145,7 @@ export function SettingsAccordionClient({
     <div className="space-y-3">
       {showAccount ? (
         <div className="space-y-3">
-          <SettingsExternalTrigger href={getFitnessAccountPortalUrl()} title="Account" />
-          <PublishBottomActions>
-            <SignOutButton />
-          </PublishBottomActions>
+          <SettingsRouteTrigger href={getAccountRouteHref("/settings")} title="Account" />
         </div>
       ) : null}
 

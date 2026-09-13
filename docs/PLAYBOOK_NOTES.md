@@ -1244,3 +1244,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Per-screen offsets make rows jump, double focus lines cross floating legends, capped safe-area padding moves actions under the home indicator, and a shell-level transparent caret makes centered fields appear non-editable.
 - Evidence: `src/components/auth/AuthShell.tsx`, `src/components/auth/AuthAccountField.tsx`, `src/app/globals.css`, `src/app/login/LoginScreen.tsx`, `src/components/auth/SignupForm.tsx`, `src/app/forgot-password/ForgotPasswordFormClient.tsx`, `src/app/reset-password/ResetPasswordForm.tsx`, `src/app/reset-password/page.tsx`, `src/app/login/accountSurfaceParity.contract.test.ts`, `src/app/dev/auth-screen-lab/page.tsx`.
 - Status: Source-only correction; Auth/provider/session behavior, session-sync activation, deployment, and production remain separate boundaries.
+
+## 2026-09-13 - Keep installed-app account navigation on the product origin
+
+- Type: Installed PWA navigation + Account ownership + Safe return
+- WHAT changed: Fitness now owns `/account` as a same-origin authenticated screen. It reuses the established Account form and sign-out behavior, publishes its actions through the measured mobile-shell dock, uses the shared top-right back control with a sanitized local fallback, and keeps the Settings Account trigger inside the Fitness navigation scope.
+- WHY it changed: Sending an installed iPhone app to a separate account origin breaks the standalone shell and makes the user appear to have left the app even when both products share the same master identity.
+- Rule: An installed product's account entry point must stay inside its manifest scope. Shared identity does not imply cross-origin presentation; reuse the product's local session and UI, and use a broker only for secure session transport when a cross-origin producer is genuinely required.
+- Failure Mode: A cross-origin Account link exits the Home Screen app, loses product-owned safe-area and dock contracts, and makes return behavior depend on browser history or an unrelated portal deployment.
+- Evidence: `src/app/account/page.tsx`, `src/components/account/AccountScreen.tsx`, `src/lib/account-navigation.ts`, `src/app/account/accountSurface.contract.test.ts`, `scripts/qa/fitness-account-same-origin-proof.mjs`, and the adopted `docs/atlas/patterns/standalone-mobile-shell-and-bottom-dock.md` contract.
+- Status: Source-proven only; Git publication, deployment, production, and provider effects remain separately governed.
