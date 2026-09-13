@@ -9,6 +9,7 @@ import {
   BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME,
 } from "@/components/layout/CanonicalBottomActions";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -32,7 +33,7 @@ export function AuthShell({
 }) {
   return (
     <main
-      className={cn(appTokens.authShell, "[caret-color:transparent]")}
+      className={appTokens.authShell}
       data-testid="auth-shell"
     >
       <div className={appTokens.authShellFrame}>
@@ -138,7 +139,14 @@ export function AuthFormFields({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("mx-auto w-full max-w-[15rem] space-y-[18px]", className)}>{children}</div>;
+  return (
+    <div
+      className={cn("auth-form-fields-centered mx-auto w-full max-w-[15rem] space-y-[18px]", className)}
+      data-testid="auth-form-fields"
+    >
+      {children}
+    </div>
+  );
 }
 
 export function AuthStatusText({ children, className }: { children: ReactNode; className?: string }) {
@@ -194,7 +202,14 @@ export function AuthActionBar({
 }
 
 export function AuthFooter({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(appTokens.authFooter, className)}>{children}</div>;
+  return (
+    <footer
+      className={cn(appTokens.authFooter, "grid grid-rows-[24px_24px] gap-1", className)}
+      data-testid="auth-footer"
+    >
+      {children}
+    </footer>
+  );
 }
 
 export function AuthFooterSeparator() {
@@ -202,7 +217,45 @@ export function AuthFooterSeparator() {
 }
 
 export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center leading-6", className)}>{children}</p>;
+  return <p className={cn("flex min-h-6 flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center leading-6", className)}>{children}</p>;
+}
+
+export function AuthCenteredFooterRow({
+  leading,
+  trailing,
+  className,
+}: {
+  leading: ReactNode;
+  trailing: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn("grid min-h-6 w-full grid-cols-[minmax(0,1fr)_0.465rem_minmax(0,1fr)] items-center gap-x-2 leading-6", className)}
+      data-testid="auth-secondary-row"
+    >
+      <span className="flex min-w-0 justify-end">{leading}</span>
+      <AuthFooterSeparator />
+      <span className="flex min-w-0 justify-start">{trailing}</span>
+    </div>
+  );
+}
+
+export function AuthFooterSpacer() {
+  return <span aria-hidden="true" className="block min-h-6" data-testid="auth-secondary-row" />;
+}
+
+export function AuthLegalRow({ returnTo }: { returnTo?: string }) {
+  return (
+    <div className="min-h-6 leading-6" data-testid="auth-legal-row">
+      <LegalInlineLinks
+        centerSeparator
+        className="h-full"
+        linkClassName={appTokens.authInlineLink}
+        returnTo={returnTo}
+      />
+    </div>
+  );
 }
 
 export function AuthInlineLinkButton({
@@ -244,9 +297,9 @@ export function AuthDock({
   }
 
   return (
-    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-30", className)}>
+    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-30", className)} data-testid="auth-dock">
       <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto !max-w-[390px] !px-6")}>
-        <div className={cn(BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME, "!pb-6 !pt-0")}>{children}</div>
+        <div className={cn(BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME, "!pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] !pt-0")}>{children}</div>
       </div>
     </div>
   );

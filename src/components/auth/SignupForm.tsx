@@ -6,10 +6,9 @@ import { signup } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AUTH_PLAIN_CARD_CHROME_CLASS_NAME, AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME, AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields } from "@/components/auth/AuthShell";
-import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
+import { AUTH_PLAIN_CARD_CHROME_CLASS_NAME, AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME, AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields, AuthLegalRow } from "@/components/auth/AuthShell";
+import { AUTH_ACCOUNT_INPUT_CLASS_NAME, AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME, AuthAccountField } from "@/components/auth/AuthAccountField";
 import { FitContentInput } from "@/components/ui/FitContentInput";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
@@ -20,7 +19,6 @@ import { isUsernameIdentifier, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "
 const SIGNUP_FORM_ID = "signup-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS = 8;
-const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -63,7 +61,7 @@ export function SignupForm({
       <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
         <AuthForm id={SIGNUP_FORM_ID} action={signup} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="Username" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+            <AuthAccountField label="Username">
               <FitContentInput
                 type="text"
                 name="username"
@@ -76,13 +74,12 @@ export function SignupForm({
                 minVisibleCharacters={SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS}
                 wrapperClassName="w-full"
                 className={cn(
-                  labeledEditorFieldControlClassName,
-                  "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  AUTH_ACCOUNT_INPUT_CLASS_NAME,
                 )}
                 onChange={(event) => setUsername(event.target.value)}
               />
-            </LabeledEditorField>
-            <LabeledEditorField label="Email" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+            </AuthAccountField>
+            <AuthAccountField label="Email">
               <FitContentInput
                 type="email"
                 name="email"
@@ -92,13 +89,12 @@ export function SignupForm({
                 minVisibleCharacters={SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS}
                 wrapperClassName="w-full"
                 className={cn(
-                  labeledEditorFieldControlClassName,
-                  "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  AUTH_ACCOUNT_INPUT_CLASS_NAME,
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />
-            </LabeledEditorField>
-            <LabeledEditorField label="Password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+            </AuthAccountField>
+            <AuthAccountField label="Password">
               <PasswordInput
                 name="password"
                 minLength={6}
@@ -108,12 +104,11 @@ export function SignupForm({
                 minVisibleCharacters={SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS}
                 wrapperClassName="w-full"
                 className={cn(
-                  labeledEditorFieldControlClassName,
-                  "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME,
                 )}
                 onChange={(event) => setPassword(event.target.value)}
               />
-            </LabeledEditorField>
+            </AuthAccountField>
           </AuthFormFields>
         </AuthForm>
 
@@ -122,8 +117,8 @@ export function SignupForm({
             <Link href="/login" className={appTokens.authInlineLink}>
               Log in
             </Link>
-            <LegalInlineLinks centerSeparator className="basis-full" linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
+          <AuthLegalRow />
         </AuthFooter>
       </AuthCard>
 

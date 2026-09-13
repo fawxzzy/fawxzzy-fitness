@@ -12,8 +12,11 @@ function readWorkflow() {
 
 const GLOB_PATHS = [
   "src/app/login/**",
+  "src/app/signup/**",
   "src/app/forgot-password/**",
   "src/app/reset-password/**",
+  "src/app/dev/auth-screen-lab/**",
+  "src/components/auth/**",
   "src/components/install/**",
   "src/lib/install/**",
   "truth-pack/fitness/design-system/**",
@@ -27,6 +30,8 @@ const LITERAL_PATHS = [
   "src/lib/local-dev-auto-login-credentials.ts",
   "src/lib/remembered-login.ts",
   "src/components/auth/authCopy.ts",
+  "src/app/globals.css",
+  "scripts/qa/auth-surface-parity-proof.mjs",
   "package.json",
   "tests/design-system-contract.test.mjs",
   "truth-pack/fitness/README.md",
