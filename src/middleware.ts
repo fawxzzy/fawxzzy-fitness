@@ -40,11 +40,26 @@ function buildCanonicalHostRedirect(request: NextRequest) {
   return NextResponse.redirect(destination, 308);
 }
 
+function getLoginReturnTo(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  if (pathname !== "/account" && !pathname.startsWith("/account/")) {
+    return null;
+  }
+
+  return `${pathname}${search}`;
+}
+
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
   const responseUrl = new URL("/login", request.url);
 
   if (errorCode) {
     responseUrl.searchParams.set("error", errorCode);
+  }
+
+  const returnTo = getLoginReturnTo(request);
+  if (returnTo) {
+    responseUrl.searchParams.set("returnTo", returnTo);
   }
 
   const response = NextResponse.redirect(responseUrl);

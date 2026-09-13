@@ -105,6 +105,37 @@ test("middleware clears cookies and redirects to login when refresh recovery fai
   assert.match(setCookie, /sb-refresh-token=;/);
 });
 
+test("middleware preserves the Account destination when refresh recovery fails", async () => {
+  const request = new NextRequest("https://example.com/account?returnTo=%2Fsettings", {
+    headers: {
+      cookie: "sb-access-token=old-access; sb-refresh-token=bad-refresh",
+    },
+  });
+
+  const response = await handleAuthSessionMiddleware(request, {
+    async recoverSession() {
+      return {
+        status: "failed",
+        failure: {
+          reason: "refresh-token-invalid",
+          loginErrorCode: "session_expired",
+        },
+        error: new Error("Invalid Refresh Token: Refresh Token Not Found"),
+      };
+    },
+  });
+
+  assert.equal(response.status, 307);
+  const location = new URL(response.headers.get("location") ?? "");
+  assert.equal(location.origin, "https://example.com");
+  assert.equal(location.pathname, "/login");
+  assert.equal(location.searchParams.get("error"), "session_expired");
+  assert.equal(location.searchParams.get("returnTo"), "/account?returnTo=%2Fsettings");
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.match(setCookie, /sb-access-token=;/);
+  assert.match(setCookie, /sb-refresh-token=;/);
+});
+
 test("middleware matcher excludes the web manifest route from auth-session interception", () => {
   const matcher = config.matcher[0];
 
