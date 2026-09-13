@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LoginScreen } from "@/app/login/LoginScreen";
+import ForgotPasswordFormClient from "@/app/forgot-password/ForgotPasswordFormClient";
+import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { InstallRouteSurface } from "@/components/install/InstallRouteSurface";
-import { AuthCard, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { AuthCard, AuthDock, AuthFooter, AuthFooterSpacer, AuthIntro, AuthLegalRow, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
+import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { RouteLoading } from "@/components/RouteLoading";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -24,6 +26,9 @@ const screens = [
   { id: "login-remembered-password", label: "Login remembered password" },
   { id: "login-remembered-reauth", label: "Login remembered reauth" },
   { id: "signup", label: "Create account" },
+  { id: "forgot-password", label: "Reset password request" },
+  { id: "reset-password", label: "Set new password" },
+  { id: "reset-password-expired", label: "Expired reset callback" },
   { id: "install", label: "Install" },
   { id: "reset-password-linking", label: "Reset linking" },
   { id: "loading-boot", label: "Boot loading" },
@@ -114,6 +119,45 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
     return (
       <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />}>
         <SignupForm />
+      </AuthShell>
+    );
+  }
+
+  if (searchParams.screen === "forgot-password") {
+    return (
+      <ForgotPasswordFormClient
+        errorMessage={null}
+        infoMessage={null}
+        shouldStartCooldown={false}
+      />
+    );
+  }
+
+  if (searchParams.screen === "reset-password") {
+    const copy = AUTH_MODE_COPY["reset-password"];
+    return (
+      <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}>
+        <ResetPasswordForm />
+      </AuthShell>
+    );
+  }
+
+  if (searchParams.screen === "reset-password-expired") {
+    const copy = AUTH_MODE_COPY["reset-password"];
+    return (
+      <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}>
+        <AuthCard className={appTokens.authInteractiveCard}>
+          <AuthStatusText>Reset link expired.</AuthStatusText>
+        </AuthCard>
+        <AuthFooter>
+          <AuthFooterSpacer />
+          <AuthLegalRow />
+        </AuthFooter>
+        <AuthDock>
+          <BottomActionSingle>
+            <BottomDockLink href="/login" intent="positive">Log In</BottomDockLink>
+          </BottomActionSingle>
+        </AuthDock>
       </AuthShell>
     );
   }

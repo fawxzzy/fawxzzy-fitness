@@ -6,24 +6,22 @@ import { updatePasswordAction } from "@/app/reset-password/actions";
 import {
   AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
   AuthCard,
+  AuthCenteredFooterRow,
   AuthDock,
   AuthFooter,
-  AuthFooterSeparator,
-  AuthFooterText,
   AuthForm,
   AuthFormFields,
+  AuthLegalRow,
 } from "@/components/auth/AuthShell";
-import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
+import { AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME, AuthAccountField } from "@/components/auth/AuthAccountField";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 
 const RESET_PASSWORD_FORM_ID = "reset-password-form";
-const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 export function ResetPasswordForm({ error }: { error?: string }) {
   const [password, setPassword] = useState("");
@@ -47,7 +45,7 @@ export function ResetPasswordForm({ error }: { error?: string }) {
       <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
         <AuthForm id={RESET_PASSWORD_FORM_ID} action={updatePasswordAction} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="New password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+            <AuthAccountField label="New password">
               <PasswordInput
                 name="password"
                 minLength={6}
@@ -57,13 +55,12 @@ export function ResetPasswordForm({ error }: { error?: string }) {
                 minVisibleCharacters={12}
                 wrapperClassName="w-full"
                 className={cn(
-                  labeledEditorFieldControlClassName,
-                  "h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME,
                 )}
                 onChange={(event) => setPassword(event.target.value)}
               />
-            </LabeledEditorField>
-            <LabeledEditorField label="Confirm new password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+            </AuthAccountField>
+            <AuthAccountField label="Confirm new password">
               <PasswordInput
                 name="confirmPassword"
                 minLength={6}
@@ -73,25 +70,23 @@ export function ResetPasswordForm({ error }: { error?: string }) {
                 minVisibleCharacters={20}
                 wrapperClassName="w-full"
                 className={cn(
-                  labeledEditorFieldControlClassName,
-                  "h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME,
                 )}
                 onChange={(event) => setConfirmPassword(event.target.value)}
               />
-            </LabeledEditorField>
+            </AuthAccountField>
           </AuthFormFields>
         </AuthForm>
         <AuthFooter>
-          <AuthFooterText>
-            <Link href="/signup" className={appTokens.authInlineLink}>
+          <AuthCenteredFooterRow
+            leading={<Link href="/signup" className={appTokens.authInlineLink}>
               Create account
-            </Link>
-            <AuthFooterSeparator />
-            <Link href="/login" className={appTokens.authInlineLink}>
+            </Link>}
+            trailing={<Link href="/login" className={appTokens.authInlineLink}>
               Log In
-            </Link>
-            <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
-          </AuthFooterText>
+            </Link>}
+          />
+          <AuthLegalRow />
         </AuthFooter>
       </AuthCard>
 

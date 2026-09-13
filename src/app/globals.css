@@ -2359,6 +2359,107 @@ a:focus-visible {
   transition: background-color 99999s ease-in-out 0s;
 }
 
+.auth-form-fields-centered {
+  position: fixed;
+  top: 50dvh;
+  left: 50%;
+  z-index: 10;
+  width: min(15rem, calc(100vw - 3rem));
+  transform: translate(-50%, -50%);
+}
+
+.auth-account-input,
+.auth-account-input::placeholder {
+  text-align: center;
+}
+
+.auth-account-input {
+  caret-color: rgb(var(--text-primary));
+  touch-action: manipulation;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.auth-account-input::-ms-reveal,
+.auth-account-input::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.auth-account-field:focus-within {
+  border-color: rgb(var(--accent) / 0.68) !important;
+  box-shadow: 0 0 0 1px rgb(var(--accent) / 0.14);
+}
+
+.auth-account-field:has(.auth-account-input:user-invalid),
+.auth-account-field:has(.auth-account-input[aria-invalid="true"]) {
+  border-color: rgb(var(--danger-rgb) / 0.92) !important;
+  box-shadow: 0 0 0 1px rgb(var(--danger-rgb) / 0.18);
+}
+
+@media (max-height: 38rem) {
+  [data-testid="auth-shell-content"] {
+    flex: none;
+    min-height: max-content;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10rem);
+  }
+
+  [data-testid="auth-shell-content"] > [data-testid="auth-card"] {
+    flex: none;
+    min-height: max-content;
+  }
+
+  .auth-form-fields-centered {
+    position: static;
+    width: 100%;
+    margin-top: 2rem;
+    transform: none;
+  }
+
+  [data-testid="auth-footer"] {
+    position: static !important;
+    inset: auto !important;
+    margin-top: 6rem;
+  }
+
+  [data-testid="auth-dock"] {
+    background: linear-gradient(180deg, rgb(7 25 35 / 0.98), #071923);
+    box-shadow: 0 -1.25rem 1.5rem #071923;
+  }
+}
+
+@media (max-height: 38rem) and (min-width: 40rem) {
+  .auth-form-fields-centered {
+    display: grid;
+    width: calc(100vw - 3rem);
+    max-width: calc(100vw - 3rem);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .auth-form-fields-centered > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0 !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .auth-account-field:focus-within {
+    border-color: Highlight !important;
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .auth-account-field:has(.auth-account-input:user-invalid),
+  .auth-account-field:has(.auth-account-input[aria-invalid="true"]) {
+    border-color: Mark !important;
+    outline-color: Mark;
+  }
+}
+
 .app-page-scroll {
   min-height: 100dvh;
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 12px);

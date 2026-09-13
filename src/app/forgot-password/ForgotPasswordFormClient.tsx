@@ -9,19 +9,18 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
   AuthCard,
+  AuthCenteredFooterRow,
   AuthDock,
   AuthFooter,
-  AuthFooterSeparator,
-  AuthFooterText,
   AuthForm,
   AuthFormFields,
   AuthIntro,
+  AuthLegalRow,
   AuthShell,
 } from "@/components/auth/AuthShell";
-import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
+import { AUTH_ACCOUNT_INPUT_CLASS_NAME, AuthAccountField } from "@/components/auth/AuthAccountField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { FitContentInput } from "@/components/ui/FitContentInput";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 import { isUsernameIdentifier } from "@/lib/username-policy";
@@ -30,7 +29,6 @@ const COOLDOWN_SECONDS = 60;
 const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const RESET_FORM_ID = "reset-password-request-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 type ForgotPasswordFormClientProps = {
   errorMessage: string | null;
@@ -101,7 +99,7 @@ export default function ForgotPasswordFormClient({
       <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
         <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="Email or username" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+            <AuthAccountField label="Email or username">
               <FitContentInput
                 type="text"
                 name="email"
@@ -111,26 +109,24 @@ export default function ForgotPasswordFormClient({
                 minVisibleCharacters={17}
                 wrapperClassName="w-full"
                 className={cn(
-                  labeledEditorFieldControlClassName,
-                  "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  AUTH_ACCOUNT_INPUT_CLASS_NAME,
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />
-            </LabeledEditorField>
+            </AuthAccountField>
           </AuthFormFields>
         </AuthForm>
 
         <AuthFooter>
-          <AuthFooterText>
-            <Link href="/signup" className={appTokens.authInlineLink}>
+          <AuthCenteredFooterRow
+            leading={<Link href="/signup" className={appTokens.authInlineLink}>
               Create account
-            </Link>
-            <AuthFooterSeparator />
-            <Link href="/login" className={appTokens.authInlineLink}>
+            </Link>}
+            trailing={<Link href="/login" className={appTokens.authInlineLink}>
               Log In
-            </Link>
-            <LegalInlineLinks className="basis-full" linkClassName={appTokens.authInlineLink} />
-          </AuthFooterText>
+            </Link>}
+          />
+          <AuthLegalRow />
         </AuthFooter>
       </AuthCard>
 

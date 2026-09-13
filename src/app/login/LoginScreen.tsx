@@ -15,19 +15,23 @@ import {
   AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
   AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME,
   AuthCard,
+  AuthCenteredFooterRow,
   AuthDock,
   AuthFooter,
-  AuthFooterSeparator,
-  AuthFooterText,
   AuthForm,
   AuthFormFields,
   AuthIntro,
   AuthInlineLinkButton,
+  AuthLegalRow,
   AuthShell,
   AuthStack,
 } from "@/components/auth/AuthShell";
+import {
+  AUTH_ACCOUNT_INPUT_CLASS_NAME,
+  AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME,
+  AuthAccountField,
+} from "@/components/auth/AuthAccountField";
 import { FitContentInput } from "@/components/ui/FitContentInput";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -50,7 +54,6 @@ const RESET_COOLDOWN_SECONDS = 60;
 const RESET_NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const LOGIN_PENDING_TIMEOUT_MS = 12000;
 const LOGIN_PENDING_TIMEOUT_MESSAGE = "Login took too long. Check your password or try again.";
-const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -302,7 +305,7 @@ export function LoginScreen({
             )}
           >
             {showEmailField ? (
-              <LabeledEditorField label="Email or username" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <AuthAccountField label="Email or username">
                 <FitContentInput
                   id={EMAIL_INPUT_ID}
                   type="text"
@@ -315,19 +318,18 @@ export function LoginScreen({
                   wrapperClassName="w-full"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
-                    labeledEditorFieldControlClassName,
-                    "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    AUTH_ACCOUNT_INPUT_CLASS_NAME,
                     emailValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
                     setEmail(event.target.value);
                   }}
                 />
-              </LabeledEditorField>
+              </AuthAccountField>
             ) : null}
 
             <AuthStack size="sm">
-              <LabeledEditorField label="Password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <AuthAccountField label="Password">
                 <PasswordInput
                   id={PASSWORD_INPUT_ID}
                   name="password"
@@ -339,29 +341,28 @@ export function LoginScreen({
                   wrapperClassName="w-full"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
-                    labeledEditorFieldControlClassName,
-                    "auth-input-plain h-[54px] w-full min-w-0 px-[18px] py-0 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME,
                     passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
                     setPassword(event.target.value);
                   }}
                 />
-              </LabeledEditorField>
+              </AuthAccountField>
             </AuthStack>
           </AuthFormFields>
         </AuthForm>
 
         <AuthFooter>
-          <AuthFooterText>
-            <Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
+          <AuthCenteredFooterRow
+            leading={<Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
               {PASSWORD_LOGIN_UI_COPY.createAccountAction}
-            </Link>
-            <AuthFooterSeparator />
-            <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
+            </Link>}
+            trailing={<AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
               {isSendingReset ? "Sending..." : resetPasswordLabel}
-            </AuthInlineLinkButton>
-          </AuthFooterText>
+            </AuthInlineLinkButton>}
+          />
+          <AuthLegalRow returnTo={returnTo} />
         </AuthFooter>
       </AuthCard>
 

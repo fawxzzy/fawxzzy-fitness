@@ -5,7 +5,7 @@ import test from "node:test";
 test("AuthFormFields keeps the shared compact pre-login field stack", () => {
   const source = readFileSync(new URL("./AuthShell.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /mx-auto w-full max-w-\[15rem\] space-y-\[18px\]/);
+  assert.match(source, /auth-form-fields-centered mx-auto w-full max-w-\[15rem\] space-y-\[18px\]/);
 });
 
 test("auth chrome keeps the final shared title, eye, separator, and dock contract", () => {
@@ -18,4 +18,6 @@ test("auth chrome keeps the final shared title, eye, separator, and dock contrac
   assert.match(designSource, /introTitleClassName: "mt-\[26px\]/);
   assert.doesNotMatch(designSource, /footerSeparatorClassName: `px-/);
   assert.match(passwordSource, /className="h-5 w-5"/);
+  assert.doesNotMatch(shellSource, /\[caret-color:transparent\]/);
+  assert.match(shellSource, /AuthLegalRow/);
 });

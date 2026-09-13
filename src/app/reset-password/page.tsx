@@ -1,7 +1,7 @@
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
 import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
-import { AuthCard, AuthDock, AuthIntro, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
+import { AuthCard, AuthDock, AuthFooter, AuthFooterSpacer, AuthIntro, AuthLegalRow, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -30,6 +30,10 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
         <AuthCard className={appTokens.authInteractiveCard}>
           <RecoverySessionBridge initialError={error} />
         </AuthCard>
+        <AuthFooter>
+          <AuthFooterSpacer />
+          <AuthLegalRow />
+        </AuthFooter>
         <AuthDock>
           <BottomActionSingle>
             <BottomDockLink href="/login" intent="positive">
@@ -53,6 +57,10 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
         <AuthCard className={appTokens.authInteractiveCard}>
           <AuthStatusText>{error ?? "Reset link expired."}</AuthStatusText>
         </AuthCard>
+        <AuthFooter>
+          <AuthFooterSpacer />
+          <AuthLegalRow />
+        </AuthFooter>
         <AuthDock>
           <BottomActionSingle>
             <BottomDockLink href="/login" intent="positive">
