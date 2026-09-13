@@ -16,6 +16,7 @@ import {
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
+import { buildRequestScopedUrl } from "@/lib/request-origin";
 
 export const FITNESS_LEGACY_STABLE_HOSTNAME = "fawxzzy-fitness-local.vercel.app";
 
@@ -40,11 +41,26 @@ function buildCanonicalHostRedirect(request: NextRequest) {
   return NextResponse.redirect(destination, 308);
 }
 
+function getLoginReturnTo(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  if (pathname !== "/account" && !pathname.startsWith("/account/")) {
+    return null;
+  }
+
+  return `${pathname}${search}`;
+}
+
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
-  const responseUrl = new URL("/login", request.url);
+  const responseUrl = buildRequestScopedUrl(request, "/login");
 
   if (errorCode) {
     responseUrl.searchParams.set("error", errorCode);
+  }
+
+  const returnTo = getLoginReturnTo(request);
+  if (returnTo) {
+    responseUrl.searchParams.set("returnTo", returnTo);
   }
 
   const response = NextResponse.redirect(responseUrl);

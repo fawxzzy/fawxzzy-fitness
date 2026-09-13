@@ -1254,3 +1254,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A cross-origin Account link exits the Home Screen app, loses product-owned safe-area and dock contracts, and makes return behavior depend on browser history or an unrelated portal deployment.
 - Evidence: `src/app/account/page.tsx`, `src/components/account/AccountScreen.tsx`, `src/lib/account-navigation.ts`, `src/app/account/accountSurface.contract.test.ts`, `scripts/qa/fitness-account-same-origin-proof.mjs`, and the adopted `docs/atlas/patterns/standalone-mobile-shell-and-bottom-dock.md` contract.
 - Status: Source-proven only; Git publication, deployment, production, and provider effects remain separately governed.
+
+## 2026-09-13 - Refresh Account sessions without losing the requested destination
+
+- Type: Authentication continuity + Navigation safety + Coverage
+- WHAT changed: The same-origin `/account` route now participates in the shared middleware session-refresh contract. Successful refresh writes the rotated access and refresh cookies before Account renders. Failed or expired refresh still clears the invalid cookie pair and returns to login at the forwarded-aware public request origin, carrying the requested Account path and its encoded local return state so successful reauthentication resumes the intended Account flow. Other protected routes retain their existing login redirect behavior.
+- WHY it changed: Treating Account as authless skipped durable refresh-cookie rotation. Protecting it without preserving the destination then fixed session durability but regressed navigation by sending a reauthenticated user to the default app entry instead of back to Account.
+- Rule: Same-origin Account navigation must refresh the local session before rendering, and an Account-only authentication failure must preserve its same-origin destination as encoded login state at the forwarded-aware request origin; it must never promote a nested caller value into an external redirect origin.
+- Failure Mode: Skipping middleware refresh leaves rotated sessions undurable, while clearing cookies and dropping the Account destination turns successful reauthentication into an unexpected route change.
+- Evidence: `src/lib/auth-session.ts`, `src/lib/auth-session.test.ts`, `src/middleware.ts`, and `src/middleware.test.ts`.
+- Status: Source correction under exact-head verification; deployment, production, provider, Supabase, Auth/live-data, and cross-origin session activation remain separate boundaries.
