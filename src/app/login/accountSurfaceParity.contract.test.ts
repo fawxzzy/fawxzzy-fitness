@@ -73,10 +73,11 @@ test("password inputs keep one product reveal control while native reveal chrome
   assert.match(globalCssSource, /::-ms-reveal/);
 });
 
-test("dev lab covers the public account screen family without changing account routing", () => {
-  for (const screen of ["login", "signup", "forgot-password", "reset-password", "reset-password-expired", "entry-handoff-error"]) {
+test("dev lab covers the public auth and same-origin account screen family", () => {
+  for (const screen of ["login", "signup", "forgot-password", "reset-password", "reset-password-expired", "entry-handoff-error", "account"]) {
     assert.match(labSource, new RegExp(`id: "${screen}"`));
   }
 
-  assert.match(accountSource, /redirect\(getFitnessAccountPortalUrl\(\)\)/);
+  assert.match(accountSource, /<AccountScreen/);
+  assert.doesNotMatch(accountSource, /getFitnessAccountPortalUrl|account\.fawxzzy\.com/);
 });

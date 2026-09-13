@@ -14,6 +14,7 @@ type NavLink = {
 
 type AppNavProps = {
   mode?: "fixed" | "topChrome";
+  activePathnameOverride?: string;
 };
 
 const NAV_PENDING_HINT_DELAY_MS = 140;
@@ -74,8 +75,9 @@ const links: NavLink[] = [
   },
 ];
 
-export function AppNav({ mode = "fixed" }: AppNavProps) {
+export function AppNav({ mode = "fixed", activePathnameOverride }: AppNavProps) {
   const pathname = usePathname();
+  const activePathname = activePathnameOverride ?? pathname;
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [showPendingHint, setShowPendingHint] = useState(false);
@@ -139,7 +141,11 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
           <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
-                const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const isAccountAlias = link.href === "/settings"
+                  && (activePathname === "/account" || activePathname.startsWith("/account/"));
+                const isActive = activePathname === link.href
+                  || activePathname.startsWith(`${link.href}/`)
+                  || isAccountAlias;
                 const isPending = !isActive && pendingHref === link.href && showPendingHint;
                 const Icon = link.Icon;
 

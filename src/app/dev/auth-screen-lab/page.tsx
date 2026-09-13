@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LoginScreen } from "@/app/login/LoginScreen";
+import { AccountScreen } from "@/components/account/AccountScreen";
 import ForgotPasswordFormClient from "@/app/forgot-password/ForgotPasswordFormClient";
 import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
@@ -22,6 +23,7 @@ type AuthScreenLabPageProps = {
 
 const screens = [
   { id: "login", label: "Login" },
+  { id: "account", label: "Signed-in account" },
   { id: "login-remembered", label: "Login remembered account" },
   { id: "login-remembered-password", label: "Login remembered password" },
   { id: "login-remembered-reauth", label: "Login remembered reauth" },
@@ -89,6 +91,17 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
 
   if (searchParams.screen === "login") {
     return <LoginScreen />;
+  }
+
+  if (searchParams.screen === "account") {
+    return (
+      <AccountScreen
+        email="atlas.qa@example.com"
+        username="Atlas QA"
+        returnHref="/settings"
+        activePathnameOverride="/account"
+      />
+    );
   }
 
   if (searchParams.screen === "login-remembered") {

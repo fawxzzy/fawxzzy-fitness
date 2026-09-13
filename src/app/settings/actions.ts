@@ -87,6 +87,7 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
   }
 
   revalidatePath("/settings");
+  revalidatePath("/account");
   return {
     status: "success",
     message: emailChanged

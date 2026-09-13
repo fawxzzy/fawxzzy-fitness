@@ -25,8 +25,10 @@ test("Achievements use the Account accordion and remain deep-linkable", () => {
   assert.match(achievementsSource, /appTokens\.settingsTwoColumnGrid/);
 });
 
-test("Account is an external portal button instead of an expandable settings form", () => {
-  assert.match(accordionSource, /<SettingsExternalTrigger href=\{getFitnessAccountPortalUrl\(\)\} title="Account" \/>/);
-  assert.match(accordionSource, /<PublishBottomActions>\s*<SignOutButton \/>\s*<\/PublishBottomActions>/);
+test("Account opens the same-origin Fitness account route instead of an external portal", () => {
+  assert.match(accordionSource, /<SettingsRouteTrigger href=\{getAccountRouteHref\("\/settings"\)\} title="Account" \/>/);
+  assert.match(accordionSource, /import Link from "next\/link"/);
+  assert.doesNotMatch(accordionSource, /getFitnessAccountPortalUrl|SettingsExternalTrigger/);
+  assert.doesNotMatch(accordionSource, /<PublishBottomActions>\s*<SignOutButton/);
   assert.doesNotMatch(accordionSource, /expandedSection === "account" \? <AccountSettingsForm/);
 });
