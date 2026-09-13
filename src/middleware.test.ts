@@ -122,11 +122,32 @@ test("middleware leaves legal documents public without session cookies", async (
   }
 });
 
-test("middleware leaves the shared account portal redirect public without session cookies", async () => {
-  const response = await handleAuthSessionMiddleware(new NextRequest("https://example.com/account"));
+test("middleware durably refreshes the authenticated local account session", async () => {
+  const response = await handleAuthSessionMiddleware(
+    new NextRequest("https://example.com/account", {
+      headers: {
+        cookie: "sb-refresh-token=account-refresh-123",
+      },
+    }),
+    {
+      async recoverSession() {
+        return {
+          status: "refreshed",
+          authState: "missing-access-cookie-recovered",
+          session: {
+            accessToken: "account-access-rotated",
+            refreshToken: "account-refresh-rotated",
+          },
+        };
+      },
+    },
+  );
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("location"), null);
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.match(setCookie, /sb-access-token=account-access-rotated/);
+  assert.match(setCookie, /sb-refresh-token=account-refresh-rotated/);
 });
 
 test("middleware leaves the optional day review fixture public without session cookies", async () => {
