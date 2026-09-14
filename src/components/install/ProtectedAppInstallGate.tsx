@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { RouteLoading } from "@/components/RouteLoading";
 import { getInstallRouteHrefForReturnTo } from "@/lib/install/config";
 import { getInstallContext } from "@/lib/install/getInstallContext";
+import { isInstallGatePublicPath } from "@/lib/install/protectedAppRoutePolicy";
 
 type ProtectedAppInstallGateProps = {
   children: ReactNode;
@@ -18,9 +19,8 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
   const [hasResolvedClientInstallContext, setHasResolvedClientInstallContext] = useState(false);
   const context = useMemo(() => getInstallContext(), []);
   const currentPath = searchParams.size > 0 ? `${pathname}?${searchParams}` : pathname;
-  // Recovery tokens are intentionally delivered in the URL fragment, which cannot survive an install-guide redirect.
-  const isPasswordRecovery = pathname === "/reset-password" && searchParams.get("recovery") === "1";
-  const shouldRedirectToInstall = context.shouldBlockAppAccess && pathname !== "/install" && !isPasswordRecovery;
+  const isPublicRoute = isInstallGatePublicPath(pathname);
+  const shouldRedirectToInstall = context.shouldBlockAppAccess && !isPublicRoute;
 
   useEffect(() => {
     setHasResolvedClientInstallContext(true);
@@ -30,7 +30,7 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
     }
   }, [currentPath, router, shouldRedirectToInstall]);
 
-  if (!hasResolvedClientInstallContext || shouldRedirectToInstall) {
+  if (!isPublicRoute && (!hasResolvedClientInstallContext || shouldRedirectToInstall)) {
     return <RouteLoading label="Opening install guide" variant="route" />;
   }
 
