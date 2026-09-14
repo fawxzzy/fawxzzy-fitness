@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { guardLiveSessionMutation, type LiveSessionMutationRepository } from "./session-live-mutation.ts";
+import {
+  guardLiveSessionMutation,
+  parseLiveSessionStatus,
+  type LiveSessionMutationRepository,
+} from "./session-live-mutation.ts";
 
 function createRepository(args?: {
   session?: { id: string; userId: string; status: "in_progress" | "completed" } | null;
@@ -16,6 +20,13 @@ function createRepository(args?: {
     },
   };
 }
+
+test("parseLiveSessionStatus accepts only runtime-supported statuses", () => {
+  assert.equal(parseLiveSessionStatus("in_progress"), "in_progress");
+  assert.equal(parseLiveSessionStatus("completed"), "completed");
+  assert.equal(parseLiveSessionStatus("paused"), null);
+  assert.equal(parseLiveSessionStatus(null), null);
+});
 
 test("guardLiveSessionMutation rejects wrong-user writes", async () => {
   const result = await guardLiveSessionMutation(

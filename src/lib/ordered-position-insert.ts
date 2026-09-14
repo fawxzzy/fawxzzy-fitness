@@ -67,7 +67,9 @@ async function insertOrderedRowAtEnd<TData = null>(args: InsertOrderedRowAtEndAr
     if (args.select) {
       const { data, error } = await args.supabase
         .from(args.table)
-        .insert(insertPayload)
+        // The table and payload are correlated at runtime, but the PostgREST
+        // overload sees the dynamic table name as a union of both relations.
+        .insert(insertPayload as never)
         .select(args.select)
         .single();
 
@@ -83,7 +85,7 @@ async function insertOrderedRowAtEnd<TData = null>(args: InsertOrderedRowAtEndAr
       continue;
     }
 
-    const { error } = await args.supabase.from(args.table).insert(insertPayload);
+    const { error } = await args.supabase.from(args.table).insert(insertPayload as never);
     if (!error) {
       return { data: null, error: null };
     }

@@ -125,7 +125,7 @@ const ROUTINE_DAY_EXERCISE_PROGRESSION_CONFIG_SELECT = "id, progression_playbook
 
 function buildConfigWithUpdatedDayAdjustment(args: {
   playbookId: string | null | undefined;
-  config: Record<string, unknown> | null | undefined;
+  config: unknown;
   dayIndex: number;
   cycleLengthDays: number;
   direction: SetFlowDirection;
@@ -136,7 +136,9 @@ function buildConfigWithUpdatedDayAdjustment(args: {
 
   const state = createProgressionPlaybookFormState({
     playbookId: args.playbookId,
-    config: args.config ?? null,
+    config: args.config && typeof args.config === "object" && !Array.isArray(args.config)
+      ? args.config as Record<string, unknown>
+      : null,
   });
 
   if (!state.progressionPlaybookId) {

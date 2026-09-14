@@ -1,6 +1,10 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { optionalEnv, SUPABASE_URL } from "@/lib/env";
-import { createFitnessHandoffSupabaseStore } from "@/lib/auth-handoff-supabase-store";
+import {
+  createFitnessHandoffSupabaseStore,
+  FITNESS_HANDOFF_BEGIN_RPC,
+  FITNESS_HANDOFF_CONSUME_RPC,
+} from "@/lib/auth-handoff-supabase-store";
 import { resolveSupabaseAdminCredential } from "@/lib/supabase/admin";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
@@ -245,17 +249,41 @@ export function getFitnessHandoffRuntime(): FitnessHandoffRuntime | null {
     }
 
     const adminCredential = resolveSupabaseAdminCredential();
+    const supabase = createFitnessSupabaseClient(supabaseUrl, adminCredential, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     return {
       now: () => Math.floor(Date.now() / 1000),
-      store: createFitnessHandoffSupabaseStore(
-        createFitnessSupabaseClient(supabaseUrl, adminCredential, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        }),
-      ),
+      store: createFitnessHandoffSupabaseStore({
+        rpc(name, args) {
+          if (name === FITNESS_HANDOFF_BEGIN_RPC) {
+            return supabase.rpc(FITNESS_HANDOFF_BEGIN_RPC, {
+              p_audience: args.p_audience,
+              p_binding_digest: args.p_binding_digest,
+              p_expires_at: args.p_expires_at,
+              p_handoff_digest: args.p_handoff_digest,
+              p_issuer: args.p_issuer,
+              p_return_to: args.p_return_to,
+            });
+          }
+
+          if (name === FITNESS_HANDOFF_CONSUME_RPC) {
+            return supabase.rpc(FITNESS_HANDOFF_CONSUME_RPC, {
+              p_audience: args.p_audience,
+              p_binding_digest: args.p_binding_digest,
+              p_handoff_digest: args.p_handoff_digest,
+              p_issuer: args.p_issuer,
+              p_now: args.p_now,
+            });
+          }
+
+          return Promise.resolve({ data: null, error: new Error("Unsupported Fitness handoff RPC.") });
+        },
+      }),
     };
   } catch {
     return null;

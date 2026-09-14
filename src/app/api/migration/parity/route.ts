@@ -10,6 +10,7 @@ import {
   type FitnessLegacySnapshot,
 } from "@/lib/migration/fitness-legacy-contract";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,11 @@ function isFitnessLegacySnapshot(value: unknown): value is FitnessLegacySnapshot
   return snapshot.metadata?.snapshot_version === FITNESS_LEGACY_SNAPSHOT_VERSION;
 }
 
-async function getExactCount(table: string, column: string, userId: string) {
+async function getExactCount(
+  table: keyof Database["fitness"]["Tables"],
+  column: string,
+  userId: string,
+) {
   const { count, error } = await supabaseAdmin()
     .from(table)
     .select("id", { count: "exact", head: true })

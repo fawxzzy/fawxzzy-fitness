@@ -51,7 +51,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
         sessionId={params.id}
         exercises={exercises}
         initialSelectedId={searchParams?.exerciseId}
-        weightUnit={routine?.weight_unit ?? "kg"}
+        weightUnit={routine?.weight_unit === "lbs" ? "lbs" : "kg"}
         defaultProgressionPlaybookId={(routine as RoutineRow | null)?.default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow | null)?.default_progression_playbook_config ?? null}
         exerciseStats={exerciseStats}

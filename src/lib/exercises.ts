@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
@@ -286,7 +286,7 @@ function mergeAndNormalizeExercises(args: {
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-export async function listExercisesForUser(userId: string, client?: SupabaseClient) {
+export async function listExercisesForUser(userId: string, client?: FitnessSupabaseClient) {
   const globalExercises = await listGlobalExercisesCached();
   const customExercises = await listUserExercises(userId, client);
   return mergeAndNormalizeExercises({ globalExercises, customExercises });
@@ -297,7 +297,7 @@ export async function listExercises() {
   return listExercisesForUser(user.id);
 }
 
-async function listUserExercises(userId: string, client?: SupabaseClient): Promise<ExerciseRow[]> {
+async function listUserExercises(userId: string, client?: FitnessSupabaseClient): Promise<ExerciseRow[]> {
   const supabase = client ?? supabaseServer();
   const { data: customData, error: customError } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
     query: (columns) => supabase

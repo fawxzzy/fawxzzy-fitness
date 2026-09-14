@@ -308,7 +308,9 @@ export default async function RoutineHomePage({ params }: PageProps) {
   }
 
   const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
-  inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
+  inSessionDayIndex = typeof resolvedInProgressDayIndex === "number" && Number.isFinite(resolvedInProgressDayIndex)
+    ? resolvedInProgressDayIndex
+    : null;
   const floatingHeaderInfoItems = buildRoutineWorkoutPlanEditorInfoRailItems({
     trainingDays,
     restDays,

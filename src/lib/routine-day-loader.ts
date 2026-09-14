@@ -6,7 +6,7 @@ import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import type { ExerciseRow, RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 
 const EXERCISE_DETAILS_SELECT =
   "id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_icon_path, image_howto_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories";
@@ -226,7 +226,7 @@ function buildCanonicalExerciseIdByRawId(args: {
 }
 
 export async function loadCanonicalExerciseCatalog(args: {
-  supabase: SupabaseClient;
+  supabase: FitnessSupabaseClient;
   exercises: Array<Pick<RoutineDayExerciseRow, "exercise_id">>;
   metadataMode?: "full" | "preview";
 }): Promise<LoadedCanonicalExerciseCatalog> {
@@ -312,7 +312,7 @@ export async function loadCanonicalExerciseCatalog(args: {
 }
 
 export async function buildCanonicalDaySummaries(args: {
-  supabase: SupabaseClient;
+  supabase: FitnessSupabaseClient;
   routineDays: RoutineDayRow[];
   allDayExercises: RoutineDayExerciseRow[];
   metadataMode?: "full" | "preview";

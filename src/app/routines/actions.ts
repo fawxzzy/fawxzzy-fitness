@@ -6,6 +6,7 @@ import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import type { ActionResult } from "@/lib/action-result";
 import { getRoutineEditPath, getRoutineHomePath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/database.types";
 import { deleteRoutineMutation, type RoutineDeleteClient } from "@/lib/dal/routine-delete";
 import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { appendProgressionPlaybookFormData, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
@@ -366,7 +367,7 @@ async function cloneLegacyRoutineDayExercisesIntoDestination(args: {
     default_unit: exercise.default_unit,
     notes: exercise.notes,
     progression_playbook_id: exercise.progression_playbook_id ?? null,
-    progression_playbook_config: exercise.progression_playbook_config ?? null,
+    progression_playbook_config: (exercise.progression_playbook_config ?? null) as Json,
   }));
 
   let insertResult = await args.supabase
@@ -501,9 +502,15 @@ export async function appendRoutineDayAction(formData: FormData): Promise<Append
 
   const nextCycleLength = Math.max(routine.cycle_length_days ?? 0, highestDay?.day_index ?? 0) + 1;
   const nextStartWeekday = getRoutineStartWeekdayFromDate(routine.start_date) ?? ROUTINE_START_WEEKDAYS[0];
+  const routineProgressionConfig = routine.default_progression_playbook_config;
   const nextProgressionState = createProgressionPlaybookFormState({
     playbookId: routine.default_progression_playbook_id ?? null,
-    config: routine.default_progression_playbook_config ?? null,
+    config:
+      routineProgressionConfig &&
+      typeof routineProgressionConfig === "object" &&
+      !Array.isArray(routineProgressionConfig)
+        ? (routineProgressionConfig as Record<string, unknown>)
+        : null,
   });
   const updateFormData = new FormData();
   updateFormData.set("routineId", routineId);
@@ -1201,10 +1208,11 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
     start_date: sourceRoutine.start_date,
     weight_unit: sourceRoutine.weight_unit ?? "lbs",
     default_progression_playbook_id: "default_progression_playbook_id" in sourceRoutine
-      ? sourceRoutine.default_progression_playbook_id ?? null
+      && typeof sourceRoutine.default_progression_playbook_id === "string"
+      ? sourceRoutine.default_progression_playbook_id
       : null,
     default_progression_playbook_config: "default_progression_playbook_config" in sourceRoutine
-      ? sourceRoutine.default_progression_playbook_config ?? null
+      ? (sourceRoutine.default_progression_playbook_config ?? null) as Json
       : null,
   };
 
@@ -1277,8 +1285,8 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
     routine_id: duplicatedRoutine.id,
     day_index: day.day_index,
     name: day.name,
-    is_rest: day.is_rest,
-    notes: day.notes,
+    is_rest: Boolean(day.is_rest),
+    notes: day.notes ?? null,
     duplicate_source_routine_day_id: day.duplicate_source_routine_day_id ?? day.id,
     workout_plan_template_id: day.workout_plan_template_id ?? null,
     workout_plan_template_edit_choice_required: day.workout_plan_template_edit_choice_required ?? false,
@@ -1698,7 +1706,7 @@ function selectedRoutineDefaultProgressionPlaybook(payload: {
 
 function routineDefaultProgressionChanged(args: {
   existingPlaybookId?: string | null;
-  existingConfig?: Record<string, unknown> | null;
+  existingConfig?: unknown;
   nextPlaybookId?: string | null;
   nextConfig?: Record<string, unknown> | null;
 }) {

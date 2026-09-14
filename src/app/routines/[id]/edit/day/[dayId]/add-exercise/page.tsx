@@ -105,7 +105,7 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
         cycleLengthDays={(routine as RoutineRow).cycle_length_days}
         exercises={exercises}
         initialSelectedId={searchParams?.exerciseId}
-        weightUnit={routine.weight_unit}
+        weightUnit={routine.weight_unit === "kg" ? "kg" : "lbs"}
         defaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         addExerciseAction={addRoutineDayExerciseAction}

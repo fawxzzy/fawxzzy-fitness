@@ -1,6 +1,10 @@
 import type { ActionResult } from "@/lib/action-result";
 
-type LiveSessionStatus = "in_progress" | "completed";
+export type LiveSessionStatus = "in_progress" | "completed";
+
+export function parseLiveSessionStatus(value: unknown): LiveSessionStatus | null {
+  return value === "in_progress" || value === "completed" ? value : null;
+}
 
 export type LiveSessionMutationSession = {
   id: string;

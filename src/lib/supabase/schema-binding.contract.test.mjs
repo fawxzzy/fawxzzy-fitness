@@ -50,11 +50,26 @@ test("every current-project script client binds the sealed Fitness schema", () =
 
 test("the canonical binding is an exact non-secret fitness schema literal", () => {
   const source = readFileSync(new URL("./schema.ts", import.meta.url), "utf8");
+  const generatedTypes = readFileSync(
+    new URL("./database.types.ts", import.meta.url),
+    "utf8",
+  );
 
   assert.match(source, /FITNESS_DATABASE_SCHEMA = "fitness" as const/);
-  assert.match(source, /createClient<FitnessDatabase, typeof FITNESS_DATABASE_SCHEMA>/);
+  assert.match(
+    source,
+    /import type \{ Database \} from "@\/lib\/supabase\/database\.types";/,
+  );
+  assert.match(source, /SupabaseClient<\s*Database,\s*typeof FITNESS_DATABASE_SCHEMA\s*>/);
+  assert.match(source, /createClient<Database, typeof FITNESS_DATABASE_SCHEMA>/);
   assert.match(source, /db: \{\s*schema: FITNESS_DATABASE_SCHEMA,/);
-  assert.doesNotMatch(source, /process\.env|NEXT_PUBLIC|SUPABASE_/);
+  assert.doesNotMatch(source, /\bany\b|process\.env|NEXT_PUBLIC|SUPABASE_/);
+
+  assert.match(generatedTypes, /export type Database = \{/);
+  assert.match(generatedTypes, /\sfitness: \{\s*Tables: \{/);
+  assert.match(generatedTypes, /\sauth_handoffs: \{/);
+  assert.match(generatedTypes, /\sbegin_fitness_auth_handoff: \{/);
+  assert.match(generatedTypes, /\sconsume_fitness_auth_handoff: \{/);
 });
 
 test("the legacy bridge remains isolated from the master schema binding", () => {
