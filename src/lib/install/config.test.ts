@@ -182,6 +182,7 @@ test("the protected app shell routes iOS in-app access to the install surface", 
   assert.doesNotMatch(loginSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
   assert.doesNotMatch(signupSource, /getInstallRouteHrefForReturnTo|INSTALL_BYPASS_QUERY_PARAM|INSTALLED_APP_QUERY_PARAM/);
   assert.match(gateSource, /shouldBlockAppAccess/);
-  assert.match(gateSource, /pathname !== "\/install"/);
+  assert.match(gateSource, /isInstallGatePublicPath\(pathname\)/);
+  assert.match(gateSource, /context\.shouldBlockAppAccess && !isPublicRoute/);
   assert.match(gateSource, /getInstallRouteHrefForReturnTo\(currentPath\)/);
 });

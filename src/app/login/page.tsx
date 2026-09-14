@@ -5,7 +5,7 @@ import {
 import { isSafeAppPath } from "@/lib/navigation-return";
 import { redirect } from "next/navigation";
 import { LocalDevAutoLoginRedirect } from "@/app/login/LocalDevAutoLoginRedirect";
-import { LoginScreen } from "@/app/login/LoginScreen";
+import { LoginEntry } from "@/app/login/LoginEntry";
 import { resolveLoginRouteMessages } from "@/app/login/loginScreenState";
 
 type LoginPageProps = {
@@ -68,9 +68,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     }
   }
 
-  // Account and Fitness sessions are origin-scoped. Until the separately governed
-  // one-time broker is live, signing in at account.fawxzzy.com cannot establish
-  // the Fitness cookies required by this app's protected-route guard.
   const routeState = resolveLoginRouteMessages({
     errorCode: searchParams?.error,
     infoCode: searchParams?.info,
@@ -78,11 +75,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   });
 
   return (
-    <LoginScreen
+    <LoginEntry
       error={routeState.error}
       info={routeState.info}
       requiresReauth={routeState.requiresReauth}
       returnTo={returnTo}
+      manualRequested={searchParams?.manual === "1"}
     />
   );
 }

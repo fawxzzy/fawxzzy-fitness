@@ -1,5 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-09-14 - Separate public account entry from installed-only app access
+
+- Type: Authentication handoff + Install boundary + Coverage
+- WHAT changed: The standalone install gate now exempts public account, legal, and authentication-transport routes while continuing to block protected Fitness app routes outside the installed shell. Browser-tab `/login` delegates to the canonical account portal and its one-time handoff, while an installed Fitness app renders the same-origin Fitness login screen. Portal departure no longer clears a valid Fitness session before the one-time handoff can reconcile it.
+- WHY it changed: The global install gate could intercept `/login` and turn authentication into `/install?returnTo=%2Flogin`, while the login page still enforced the superseded pre-broker local-form contract. Those two stale contracts hid the now-active secure handoff and produced the wrong visible account experience.
+- Rule: Installation gates protect app content, never public account entry or authentication transport. Browser tabs authenticate through the canonical account portal; installed shells retain same-origin recovery UI; handoff return paths remain restricted to the consumer allowlist.
+- Failure Mode: A root install gate that treats account entry as protected app content creates an install/login loop. Clearing the destination session before a live one-time broker completes can erase a valid session and recreate the login loop.
+- Evidence: `src/components/install/ProtectedAppInstallGate.tsx`, `src/lib/install/protectedAppRoutePolicy.ts`, `src/app/login/LoginEntry.tsx`, `src/app/login/AccountPortalRedirect.tsx`, `src/lib/account-portal.ts`, and their contract tests.
+- Status: Source correction and rendered-route verification complete; normal release lifecycle pending.
+
 - Decision: The production Auth handoff runtime uses the shared server-only Supabase admin-credential resolver. A modern `SUPABASE_SECRET_KEY` is preferred while `SUPABASE_SERVICE_ROLE_KEY` remains a temporary legacy fallback, matching every other privileged Fitness server path. This lets the master cutover add and remove the modern credential without overwriting Vercel's intentionally unreadable legacy sensitive value, preserving an exact rollback boundary.
 
 ## PROPOSED

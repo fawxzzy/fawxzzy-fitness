@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("normal Fitness login stays on the Fitness origin until the brokered account handoff exists", async () => {
+test("normal Fitness login delegates browser-versus-installed routing to the shared account entry", async () => {
   const source = await readFile(new URL("./page.tsx", import.meta.url), "utf8");
 
   assert.match(source, /const shouldAttemptLocalDevAutoLogin = searchParams\?\.localAutoAuth === "1"/);
   assert.match(source, /return <LocalDevAutoLoginRedirect href=\{href\} \/>;/);
-  assert.match(source, /<LoginScreen/);
-  assert.match(source, /Account and Fitness sessions are origin-scoped/);
-  assert.doesNotMatch(source, /AccountPortalRedirect/);
-  assert.doesNotMatch(source, /getFitnessAccountPortalUrl/);
+  assert.match(source, /<LoginEntry/);
+  assert.match(source, /returnTo=\{returnTo\}/);
+  assert.match(source, /manualRequested=\{searchParams\?\.manual === "1"\}/);
+  assert.doesNotMatch(source, /<LoginScreen/);
 });
 
 test("legacy Home Screen launches bypass the session-clearing login screen", async () => {
