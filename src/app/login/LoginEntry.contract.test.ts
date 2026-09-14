@@ -6,7 +6,8 @@ test("login entry sends browser tabs to the portal and keeps installed apps on t
   const source = await readFile(new URL("./LoginEntry.tsx", import.meta.url), "utf8");
   const redirectSource = await readFile(new URL("./AccountPortalRedirect.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /getInstallContext\(\)\.isStandalone \? "standalone" : "browser"/);
+  assert.match(source, /props\.manualRequested && isTrustedLocalDevHost\(window\.location\.hostname\)/);
+  assert.match(source, /getInstallContext\(\)\.isStandalone \|\| isLocalManualLogin/);
   assert.match(source, /displayMode === "browser"/);
   assert.match(source, /getFitnessLoginPortalUrl\(props\.returnTo\)/);
   assert.match(source, /return <LoginScreen \{\.\.\.props\} \/>/);

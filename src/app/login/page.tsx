@@ -80,6 +80,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       info={routeState.info}
       requiresReauth={routeState.requiresReauth}
       returnTo={returnTo}
+      manualRequested={searchParams?.manual === "1"}
     />
   );
 }

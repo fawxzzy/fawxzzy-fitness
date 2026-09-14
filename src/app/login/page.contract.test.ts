@@ -9,6 +9,7 @@ test("normal Fitness login delegates browser-versus-installed routing to the sha
   assert.match(source, /return <LocalDevAutoLoginRedirect href=\{href\} \/>;/);
   assert.match(source, /<LoginEntry/);
   assert.match(source, /returnTo=\{returnTo\}/);
+  assert.match(source, /manualRequested=\{searchParams\?\.manual === "1"\}/);
   assert.doesNotMatch(source, /<LoginScreen/);
 });
 
