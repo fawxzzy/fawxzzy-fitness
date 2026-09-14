@@ -1,3 +1,5 @@
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
+
 export type SessionFollowUpJobKind = "exercise_stats" | "fitness_integrations";
 export const SESSION_FOLLOW_UP_JOB_KINDS: SessionFollowUpJobKind[] = ["exercise_stats", "fitness_integrations"];
 
@@ -14,10 +16,7 @@ export type SessionFollowUpJobRow = {
 };
 
 type SessionFollowUpHandlerMap = Partial<Record<SessionFollowUpJobKind, () => Promise<void>>>;
-type SessionFollowUpClient = {
-  from: (table: string) => any;
-  rpc: (functionName: string, args: Record<string, unknown>) => any;
-};
+type SessionFollowUpClient = FitnessSupabaseClient;
 
 const SESSION_FOLLOW_UP_PROCESSING_LEASE_MS = 5 * 60 * 1000;
 export const SESSION_FOLLOW_UP_MAX_ATTEMPTS = 5;

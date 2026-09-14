@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 import type { DetailSectionSignalTone } from "@/components/ui/DetailSectionList";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import {
@@ -781,7 +781,7 @@ function buildCycleLabel(startDate: string, endDate: string) {
   return `${formatCycleDayLabel(startDate)} - ${formatCycleDayLabel(endDate)}`;
 }
 
-async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
+async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient) {
   const supabase = client ?? supabaseServer();
   let query = supabase
     .from("sets")
@@ -798,7 +798,7 @@ async function loadHistoricalSetRowsForRoutine(
   userId: string,
   canonicalExerciseId: string,
   routineId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ) {
   const supabase = client ?? supabaseServer();
   return supabase
@@ -816,7 +816,7 @@ async function loadHistoricalSetRowsForCycle(
   canonicalExerciseId: string,
   routineId: string,
   cycleWindow: CurrentCycleWindow,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ) {
   const supabase = client ?? supabaseServer();
   return supabase
@@ -831,7 +831,7 @@ async function loadHistoricalSetRowsForCycle(
     .lt("session_exercise.session.performed_at", cycleWindow.queryEndExclusiveIso);
 }
 
-async function loadSkippedSessionExerciseRows(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
+async function loadSkippedSessionExerciseRows(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient) {
   const supabase = client ?? supabaseServer();
   return supabase
     .from("session_exercises")
@@ -846,7 +846,7 @@ async function loadSkippedSessionExerciseRowsForRoutine(
   userId: string,
   canonicalExerciseId: string,
   routineId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ) {
   const supabase = client ?? supabaseServer();
   return supabase
@@ -864,7 +864,7 @@ async function loadSkippedSessionExerciseRowsForCycle(
   canonicalExerciseId: string,
   routineId: string,
   cycleWindow: CurrentCycleWindow,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ) {
   const supabase = client ?? supabaseServer();
   return supabase
@@ -879,7 +879,7 @@ async function loadSkippedSessionExerciseRowsForCycle(
     .lt("session.performed_at", cycleWindow.queryEndExclusiveIso);
 }
 
-async function loadExerciseProgressionEvents(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
+async function loadExerciseProgressionEvents(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient) {
   const supabase = client ?? supabaseServer();
 
   return supabase
@@ -893,7 +893,7 @@ async function loadExerciseProgressionEventsForRoutine(
   userId: string,
   canonicalExerciseId: string,
   routineId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ) {
   const supabase = client ?? supabaseServer();
 
@@ -910,7 +910,7 @@ async function loadExerciseProgressionEventsForCycle(
   canonicalExerciseId: string,
   routineId: string,
   cycleWindow: CurrentCycleWindow,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ) {
   const supabase = client ?? supabaseServer();
 
@@ -924,7 +924,7 @@ async function loadExerciseProgressionEventsForCycle(
     .lt("created_at", cycleWindow.queryEndExclusiveIso);
 }
 
-async function loadExerciseAnalyticsScopeContext(userId: string, client?: SupabaseClient) {
+async function loadExerciseAnalyticsScopeContext(userId: string, client?: FitnessSupabaseClient) {
   const supabase = client ?? supabaseServer();
   const { data } = await supabase
     .from("profiles")
@@ -977,7 +977,7 @@ async function loadExerciseAnalyticsScopeContext(userId: string, client?: Supaba
 async function resolveExerciseInfoScopeContext(
   userId: string,
   filterState: Partial<ExerciseInfoFilterState> | null | undefined,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<ExerciseInfoScopeContext> {
   const baseContext = await loadExerciseAnalyticsScopeContext(userId, client);
   const analyticsScope = filterState?.analyticsScope === "current_routine"
@@ -1035,7 +1035,7 @@ async function resolveExerciseInfoScopeContext(
   };
 }
 
-async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string, client?: SupabaseClient): Promise<void> {
+async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient): Promise<void> {
   const supabase = client ?? supabaseServer();
   const { data: orphanRows, error: orphanError } = await supabase
     .from("session_exercises")
@@ -1212,7 +1212,7 @@ async function loadPlannedSkippedHistoryDays(args: {
   rows: NormalizedSet[];
   progressionEvents: ProgressionEventRow[];
   scopeContext: ExerciseInfoScopeContext;
-  client?: SupabaseClient;
+  client?: FitnessSupabaseClient;
 }): Promise<PlannedSkippedHistoryDay[]> {
   const routineIds = args.routineIds.filter((routineId, index, values) => routineId.length > 0 && values.indexOf(routineId) === index);
   if (routineIds.length === 0) {
@@ -1386,7 +1386,7 @@ async function loadExerciseInfoRoutineMetas(args: {
   routineIds: string[];
   activeRoutineId: string | null;
   profileTimeZone: string;
-  client?: SupabaseClient;
+  client?: FitnessSupabaseClient;
 }) {
   const uniqueRoutineIds = args.routineIds.filter((routineId, index, routineIds) => routineId.length > 0 && routineIds.indexOf(routineId) === index);
   if (uniqueRoutineIds.length === 0) {
@@ -1477,7 +1477,7 @@ async function buildExerciseInfoFilterOptions(args: {
   progressionEvents: ProgressionEventRow[];
   activeRoutineId: string | null;
   profileTimeZone: string;
-  client?: SupabaseClient;
+  client?: FitnessSupabaseClient;
 }) {
   const routineIds = Array.from(new Set([
     ...args.rows.map((row) => row.routineId ?? "").filter(Boolean),
@@ -2350,7 +2350,7 @@ function runDevStatsVerification(exercise: ExerciseInfoExercise, stats: Exercise
 export async function getExerciseInfoBase(
   exerciseId: string,
   userId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<ExerciseInfoExercise | null> {
   const supabase = client ?? supabaseServer();
 
@@ -2417,7 +2417,7 @@ export async function getExerciseInfoStats(
   exerciseMetadata?: Pick<ExerciseInfoExercise, "name" | "equipment" | "movement_pattern" | "primary_muscle" | "measurement_type" | "default_unit"> | null,
   requestId?: string,
   options?: Partial<ExerciseInfoFilterState>,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<ExerciseStatsVM | null> {
   try {
     const scopeContext = await resolveExerciseInfoScopeContext(userId, options, client);
@@ -2958,7 +2958,7 @@ export async function getExerciseInfoPayload(
   options?: {
     analyticsScope?: ExerciseInfoAnalyticsScope;
   },
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<ExerciseInfoPayload | null> {
   const exercise = await getExerciseInfoBase(exerciseId, userId, client);
   if (!exercise) {

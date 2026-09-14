@@ -1,6 +1,7 @@
 import "server-only";
 
-import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError } from "@supabase/supabase-js";
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 import { unstable_noStore as noStore } from "next/cache";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import { evaluatePrSummaries, formatPrBreakdown } from "@/lib/pr-evaluator";
@@ -784,7 +785,7 @@ async function loadExerciseBrowserRoutineMeta(args: {
   routineId: string;
   activeRoutineId: string | null;
   profileTimeZone: string;
-  client?: SupabaseClient;
+  client?: FitnessSupabaseClient;
 }): Promise<ExerciseBrowserRoutineMeta | null> {
   const supabase = args.client ?? supabaseServer();
   const { data } = await supabase
@@ -847,7 +848,7 @@ function buildExerciseBrowserRoutineCycleOptions(args: {
 async function buildExerciseBrowserFilterOptions(args: {
   userId: string;
   scopeContext: ExerciseBrowserScopeContext;
-  client?: SupabaseClient;
+  client?: FitnessSupabaseClient;
 }): Promise<ExerciseInfoFilterOptions> {
   const supabase = args.client ?? supabaseServer();
   const [{ data: routineRows }, { data: sessionRows }, { data: progressionRows }] = await Promise.all([
@@ -935,7 +936,7 @@ async function buildExerciseBrowserFilterOptions(args: {
   };
 }
 
-async function resolveExerciseBrowserScopeContext(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserScopeContext> {
+async function resolveExerciseBrowserScopeContext(userId: string, client?: FitnessSupabaseClient): Promise<ExerciseBrowserScopeContext> {
   const supabase = client ?? supabaseServer();
   const { data } = await supabase
     .from("profiles")
@@ -985,7 +986,7 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Supab
 async function resolveExerciseBrowserScopedContext(args: {
   userId: string;
   filterState?: Partial<ExerciseInfoFilterState> | null;
-  client?: SupabaseClient;
+  client?: FitnessSupabaseClient;
 }): Promise<ExerciseBrowserScopeContext> {
   const normalizedFilterState = normalizeExerciseInfoFilterState(args.filterState);
   const scopeContext = await resolveExerciseBrowserScopeContext(args.userId, args.client);
@@ -1077,7 +1078,7 @@ function runDevExerciseBrowserVerification(row: ExerciseBrowserRow) {
 
 async function getExercisesWithStats(
   userId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
   options?: {
     analyticsScope?: ExerciseInfoAnalyticsScope;
     scopeContext?: ExerciseBrowserScopeContext | null;
@@ -1536,7 +1537,7 @@ export async function getExerciseBrowserScopePayloadForUser(): Promise<ExerciseB
   };
 }
 
-export async function getExercisesWithStatsForExplicitUser(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserRow[]> {
+export async function getExercisesWithStatsForExplicitUser(userId: string, client?: FitnessSupabaseClient): Promise<ExerciseBrowserRow[]> {
   return getExercisesWithStats(userId, client);
 }
 

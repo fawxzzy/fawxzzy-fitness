@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 import { supabaseServer } from "@/lib/supabase/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { aggregateExerciseStatsFromSets, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
@@ -61,7 +61,7 @@ export async function getExerciseIdsForCompletedSessions(userId: string): Promis
 export async function getExerciseIdsForSession(
   userId: string,
   sessionId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<string[]> {
   const supabase = client ?? supabaseServer();
   const { data, error } = await supabase
@@ -115,7 +115,7 @@ export async function recomputeExerciseStatsForSessionExercises(userId: string, 
 export async function recomputeExerciseStatsForExercises(
   userId: string,
   exerciseIds: string[],
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<void> {
   const uniqueIds = uniqueExerciseIds(exerciseIds);
   if (!uniqueIds.length) {
@@ -205,7 +205,7 @@ export async function rebuildExerciseStatsFromLoggedSessions(userId: string): Pr
 export async function getExerciseStatsForExercises(
   userId: string,
   exerciseIds: string[],
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
 ): Promise<Map<string, ExerciseStatsRow>> {
   noStore();
 
@@ -234,7 +234,9 @@ export async function getExerciseStatsForExercises(
       .in("exercise_id", exerciseIds),
   ]);
 
-  const latestProgressionRows = ((latestProgressionData ?? []) as Array<{
+  // The compatibility read intentionally probes columns that may be absent on
+  // older schemas and handles that PostgREST error below.
+  const latestProgressionRows = ((latestProgressionData ?? []) as unknown as Array<{
     exercise_id: string;
     progression_playbook_id: string | null;
     progression_playbook_config: Record<string, unknown> | null;
@@ -315,7 +317,7 @@ export type ExerciseStatsLookupResult = {
 export async function getExerciseStatsForExercise(
   userId: string,
   exerciseId: string,
-  client?: SupabaseClient,
+  client?: FitnessSupabaseClient,
   options?: {
     skipCanonicalValidation?: boolean;
   },

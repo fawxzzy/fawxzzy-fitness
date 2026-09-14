@@ -1,4 +1,5 @@
 import type { supabaseServer } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/database.types";
 import { resolveUniqueWorkoutPlanName } from "@/lib/workout-plan-template-name";
 import type {
   RoutineDayExerciseRow,
@@ -272,7 +273,7 @@ function buildTemplateExerciseInsertPayload(args: {
     default_unit: args.exercise.default_unit,
     notes: args.exercise.notes,
     progression_playbook_id: args.exercise.progression_playbook_id ?? null,
-    progression_playbook_config: args.exercise.progression_playbook_config ?? null,
+    progression_playbook_config: (args.exercise.progression_playbook_config ?? null) as Json,
   };
 }
 
@@ -300,7 +301,7 @@ function buildRoutineDayExercisePayloadFromTemplate(args: {
     default_unit: args.templateExercise.default_unit,
     notes: args.templateExercise.notes,
     progression_playbook_id: args.templateExercise.progression_playbook_id ?? null,
-    progression_playbook_config: args.templateExercise.progression_playbook_config ?? null,
+    progression_playbook_config: (args.templateExercise.progression_playbook_config ?? null) as Json,
     workout_plan_template_exercise_id: args.templateExercise.id,
   };
 }

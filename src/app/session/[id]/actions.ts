@@ -23,8 +23,9 @@ import {
 } from "@/lib/session-copilot-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { TablesInsert } from "@/lib/supabase/database.types";
 import type { SetRow } from "@/types/db";
-import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
+import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
 import { SKIP_TOGGLE_PERSISTENCE_ERROR } from "@/lib/offline/skip-toggle-reconciliation";
@@ -63,11 +64,12 @@ function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabas
         .eq("id", sessionId)
         .maybeSingle();
 
-      return data
+      const status = parseLiveSessionStatus(data?.status);
+      return data && status
         ? {
             id: data.id,
             userId: data.user_id,
-            status: data.status,
+            status,
           }
         : null;
     },
@@ -460,7 +462,7 @@ export async function addSetAction(payload: {
 
     const nextSetIndex = latestSet ? latestSet.set_index + 1 : 0;
 
-    const insertPayload = {
+    const insertPayload: TablesInsert<{ schema: "fitness" }, "sets"> = {
       session_exercise_id: sessionExerciseId,
       user_id: user.id,
       set_index: nextSetIndex,
@@ -475,7 +477,7 @@ export async function addSetAction(payload: {
       notes,
       weight_unit: weightUnit,
       logged_at: loggedAt,
-    } as Record<string, unknown>;
+    };
 
     if (clientLogId) {
       insertPayload.client_log_id = clientLogId;

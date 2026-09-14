@@ -79,7 +79,7 @@ import {
 } from "@/lib/ecosystem/fitness-integration-server";
 import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-shadow-placement";
 import { isFeatureEnabled } from "@/lib/feature-flags";
-import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
+import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
 import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-shadow-placement.server";
 
 export const dynamic = "force-dynamic";
@@ -93,11 +93,12 @@ function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabas
         .eq("id", sessionId)
         .maybeSingle();
 
-      return data
+      const status = parseLiveSessionStatus(data?.status);
+      return data && status
         ? {
             id: data.id,
             userId: data.user_id,
-            status: data.status,
+            status,
           }
         : null;
     },
@@ -822,12 +823,13 @@ export default async function TodayPage({
   };
 
   if (profile.active_routine_id) {
+    const activeRoutineId = profile.active_routine_id;
     try {
       activeRoutine = await diagnostics.measure("today.active-routine.fetch", async () => {
         const { data: routine, error: routineError } = await supabase
           .from("routines")
       .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit")
-          .eq("id", profile.active_routine_id)
+          .eq("id", activeRoutineId)
           .eq("user_id", user.id)
           .maybeSingle();
 

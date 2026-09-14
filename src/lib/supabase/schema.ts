@@ -3,21 +3,21 @@ import {
   type SupabaseClient,
   type SupabaseClientOptions,
 } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const FITNESS_DATABASE_SCHEMA = "fitness" as const;
 
-type FitnessDatabase = {
-  fitness: any;
-};
-
-export type FitnessSupabaseClient = SupabaseClient<any, any, any>;
+export type FitnessSupabaseClient = SupabaseClient<
+  Database,
+  typeof FITNESS_DATABASE_SCHEMA
+>;
 
 export function createFitnessSupabaseClient(
   supabaseUrl: string,
   supabaseKey: string,
   options: Omit<SupabaseClientOptions<typeof FITNESS_DATABASE_SCHEMA>, "db"> = {},
 ): FitnessSupabaseClient {
-  const client = createClient<FitnessDatabase, typeof FITNESS_DATABASE_SCHEMA>(
+  return createClient<Database, typeof FITNESS_DATABASE_SCHEMA>(
     supabaseUrl,
     supabaseKey,
     {
@@ -27,6 +27,4 @@ export function createFitnessSupabaseClient(
       },
     },
   );
-
-  return client as FitnessSupabaseClient;
 }

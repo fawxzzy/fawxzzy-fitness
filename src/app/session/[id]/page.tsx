@@ -269,7 +269,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     progressionHistoryByRoutineDayExerciseId,
   } = sessionData;
 
-  const unitLabel = routine?.weight_unit ?? "kg";
+  const unitLabel = routine?.weight_unit === "lbs" ? "lbs" : "kg";
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   const mergedSessionLabel = splitSessionHeaderTitle(sessionRow.name);

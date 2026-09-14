@@ -220,7 +220,9 @@ export default async function NewRoutinePage({
         .limit(1)
         .maybeSingle();
       const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
-      inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
+      inSessionDayIndex = typeof resolvedInProgressDayIndex === "number" && Number.isFinite(resolvedInProgressDayIndex)
+        ? resolvedInProgressDayIndex
+        : null;
       const workoutPlanSources = await loadWorkoutPlanSourceList({
         supabase,
         userId: user.id,

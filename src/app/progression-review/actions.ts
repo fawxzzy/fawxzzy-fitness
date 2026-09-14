@@ -25,7 +25,7 @@ import type {
   ProgressionReviewLinkedTargetSnapshot,
   ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
+import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import type { RoutineDayExerciseRow } from "@/types/db";
@@ -46,11 +46,12 @@ function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabas
         .eq("id", sessionId)
         .maybeSingle();
 
-      return data
+      const status = parseLiveSessionStatus(data?.status);
+      return data && status
         ? {
             id: data.id,
             userId: data.user_id,
-            status: data.status,
+            status,
           }
         : null;
     },
