@@ -17,13 +17,40 @@ const resetPageSource = read("../reset-password/page.tsx");
 const passwordSource = read("../../components/ui/PasswordInput.tsx");
 const labSource = read("../dev/auth-screen-lab/page.tsx");
 const accountSource = read("../account/page.tsx");
+const designSystemSource = read("../../components/ui/app/designSystem.ts");
+const loginEntrySource = read("./LoginEntry.tsx");
 
 test("shared auth shell owns the viewport anchors and stable two-row footer", () => {
+  assert.match(shellSource, /data-auth-family="fawxzzy"/);
+  assert.match(shellSource, /data-auth-layout="focused-split"/);
+  assert.match(shellSource, /data-auth-product="fitness"/);
+  assert.match(shellSource, /data-auth-runtime="same-origin"/);
+  assert.match(shellSource, /auth-canonical-account-shell/);
   assert.match(shellSource, /auth-form-fields-centered/);
   assert.match(shellSource, /grid-rows-\[24px_24px\]/);
   assert.match(shellSource, /grid-cols-\[minmax\(0,1fr\)_0\.465rem_minmax\(0,1fr\)\]/);
   assert.match(shellSource, /env\(safe-area-inset-bottom,0px\)\+1\.5rem/);
   assert.doesNotMatch(shellSource, /\[caret-color:transparent\]/);
+});
+
+test("installed auth uses the canonical account presentation without crossing origins", () => {
+  assert.match(loginEntrySource, /getInstallContext\(\)\.isStandalone \|\| isLocalManualLogin/);
+  assert.match(loginEntrySource, /return <LoginScreen \{\.\.\.props\} \/>/);
+  assert.match(designSystemSource, /circle_at_50%_34%,rgba\(106,152,120,0\.12\),transparent_40%\),#070b09/);
+  assert.match(globalCssSource, /\.auth-canonical-account-shell[\s\S]*--accent: 160 223 56/);
+  assert.match(globalCssSource, /\.auth-canonical-account-shell[\s\S]*#070b09/);
+  assert.match(globalCssSource, /\.auth-canonical-account-shell \.auth-canonical-legal-link[\s\S]*--text-secondary/);
+  assert.match(read("../../components/auth/authCopy.ts"), /idle: "Sign in"[\s\S]*ready: "Sign in"/);
+
+  assert.match(loginSource, /data-auth-intent="login"/);
+  assert.match(loginSource, /data-auth-surface="credentials"/);
+  assert.match(signupSource, /data-auth-intent="signup"/);
+  assert.match(signupSource, /data-auth-surface="credentials"/);
+  assert.match(forgotSource, /data-auth-surface="recovery"/);
+  assert.match(resetFormSource, /data-auth-surface="recovery"/);
+
+  assert.doesNotMatch(loginSource, /iframe|account\.fawxzzy\.com|accessToken|refreshToken/);
+  assert.doesNotMatch(signupSource, /iframe|account\.fawxzzy\.com|accessToken|refreshToken/);
 });
 
 test("account fields preserve centered native editing and one fieldset focus indicator", () => {

@@ -58,7 +58,12 @@ export function SignupForm({
 
   return (
     <>
-      <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
+      <AuthCard
+        aria-label="Fitness account creation"
+        data-auth-intent="signup"
+        data-auth-surface="credentials"
+        className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}
+      >
         <AuthForm id={SIGNUP_FORM_ID} action={signup} onSubmit={handleSubmit}>
           <AuthFormFields>
             <AuthAccountField label="Username">

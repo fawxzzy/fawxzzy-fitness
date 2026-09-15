@@ -33,7 +33,11 @@ export function AuthShell({
 }) {
   return (
     <main
-      className={appTokens.authShell}
+      className={cn("auth-canonical-account-shell", appTokens.authShell)}
+      data-auth-family="fawxzzy"
+      data-auth-layout="focused-split"
+      data-auth-product="fitness"
+      data-auth-runtime="same-origin"
       data-testid="auth-shell"
     >
       <div className={appTokens.authShellFrame}>
@@ -75,9 +79,14 @@ export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title
   );
 }
 
-export function AuthCard({ children, className }: { children: ReactNode; className?: string }) {
+export function AuthCard({
+  children,
+  className,
+  ...props
+}: ComponentPropsWithoutRef<"section">) {
   return (
     <section
+      {...props}
       className={cn(
         appTokens.authCard,
         className,
@@ -251,7 +260,7 @@ export function AuthLegalRow({ returnTo }: { returnTo?: string }) {
       <LegalInlineLinks
         centerSeparator
         className="h-full"
-        linkClassName={appTokens.authInlineLink}
+        linkClassName={cn(appTokens.authInlineLink, "auth-canonical-legal-link")}
         returnTo={returnTo}
       />
     </div>

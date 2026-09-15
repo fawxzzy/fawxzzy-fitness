@@ -67,10 +67,10 @@ export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
     ready: "",
   },
   cta: {
-    idle: "Log in",
+    idle: "Sign in",
     continue: "Continue",
-    ready: "Log in",
-    reauth: "Continue",
+    ready: "Sign in",
+    reauth: "Sign in",
     pending: "Signing in...",
     restoring: "Restoring session...",
   },

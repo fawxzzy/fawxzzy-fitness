@@ -2347,6 +2347,28 @@ a:focus-visible {
   background-color: transparent !important;
 }
 
+/* The account website and installed Fitness app intentionally share one
+   presentation contract while retaining separate, origin-bound auth adapters.
+   Keep the canonical account canvas opaque so the app's ambient geometry
+   cannot leak through and make installed auth look like a legacy app screen. */
+.auth-canonical-account-shell {
+  --accent: 160 223 56;
+  --accent-strong: 190 242 100;
+  --accent-divider-rgb: 160 223 56;
+  background:
+    radial-gradient(circle at 50% 34%, rgb(106 152 120 / 0.12), transparent 40%),
+    #070b09;
+}
+
+.auth-canonical-account-shell .auth-canonical-legal-link {
+  color: rgb(var(--text-secondary) / 0.72);
+}
+
+.auth-canonical-account-shell .auth-canonical-legal-link:hover,
+.auth-canonical-account-shell .auth-canonical-legal-link:focus-visible {
+  color: rgb(var(--text-secondary) / 0.96);
+}
+
 .auth-input-plain:-webkit-autofill,
 .auth-input-plain:-webkit-autofill:hover,
 .auth-input-plain:-webkit-autofill:focus,
