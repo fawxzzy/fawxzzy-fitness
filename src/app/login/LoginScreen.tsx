@@ -284,6 +284,9 @@ export function LoginScreen({
   return (
     <AuthShell header={loginHeader}>
       <AuthCard
+        aria-label="Fitness account sign in"
+        data-auth-intent="login"
+        data-auth-surface="credentials"
         className={cn(
           appTokens.authInteractiveCard,
           AUTH_PLAIN_CARD_CHROME_CLASS_NAME,

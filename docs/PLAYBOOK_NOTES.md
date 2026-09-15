@@ -1274,3 +1274,9 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Skipping middleware refresh leaves rotated sessions undurable, while clearing cookies and dropping the Account destination turns successful reauthentication into an unexpected route change.
 - Evidence: `src/lib/auth-session.ts`, `src/lib/auth-session.test.ts`, `src/middleware.ts`, and `src/middleware.test.ts`.
 - Status: Source correction under exact-head verification; deployment, production, provider, Supabase, Auth/live-data, and cross-origin session activation remain separate boundaries.
+
+# 2026-09-14 — Installed Fitness adopts the canonical account presentation contract
+
+- WHAT changed: The same-origin Fitness sign-in, account creation, and password-recovery surfaces now identify the shared `fawxzzy` account family, focused account layout, Fitness product context, and same-origin runtime explicitly. Their shared shell now uses the canonical opaque account canvas, Fitness lime account accent, muted legal row, and `Sign in` action copy while retaining its existing server actions/session adapter.
+- WHY it changed: Browser routing already used `account.fawxzzy.com`, but installed Fitness intentionally stayed same-origin and therefore still appeared to use a separate legacy account experience. The presentation contract now matches the canonical account family without embedding, proxying, or moving credentials or tokens across origins.
+- SAFETY boundary: This is presentation-only. It does not change Supabase configuration, Auth/session semantics, callbacks, recovery, logout, safe-return validation, cookies, provider state, or production bindings.

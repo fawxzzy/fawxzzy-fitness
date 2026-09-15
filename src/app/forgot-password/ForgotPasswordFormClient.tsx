@@ -96,7 +96,11 @@ export default function ForgotPasswordFormClient({
 
   return (
     <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}>
-      <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
+      <AuthCard
+        aria-label="Fitness account recovery"
+        data-auth-surface="recovery"
+        className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}
+      >
         <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
           <AuthFormFields>
             <AuthAccountField label="Email or username">

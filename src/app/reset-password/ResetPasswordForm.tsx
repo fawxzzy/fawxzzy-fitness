@@ -42,7 +42,11 @@ export function ResetPasswordForm({ error }: { error?: string }) {
 
   return (
     <>
-      <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
+      <AuthCard
+        aria-label="Fitness password update"
+        data-auth-surface="recovery"
+        className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}
+      >
         <AuthForm id={RESET_PASSWORD_FORM_ID} action={updatePasswordAction} onSubmit={handleSubmit}>
           <AuthFormFields>
             <AuthAccountField label="New password">
