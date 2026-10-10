@@ -1,4 +1,5 @@
-export const FITNESS_DEFAULT_EXPECTED_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
+export const FITNESS_DEFAULT_EXPECTED_SUPABASE_HOST = "bxtcuhkotumitoqtrcej.supabase.co";
+export const FITNESS_RETIRED_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
 
 export const FITNESS_EXPECT_SUPABASE_HOST_ENV = "FITNESS_EXPECT_SUPABASE_HOST";
 
@@ -37,11 +38,12 @@ export function getSupabaseTargetDiagnostic() {
   const expectedHost = resolveExpectedSupabaseHost(
     process.env[FITNESS_EXPECT_SUPABASE_HOST_ENV] ?? null,
   );
+  const retiredHost = host?.replace(/:\d+$/, "").replace(/\.$/, "") === FITNESS_RETIRED_SUPABASE_HOST;
 
   return {
     expectedHost,
     host,
     rawUrl,
-    matchesExpected: host === expectedHost,
+    matchesExpected: host === expectedHost && !retiredHost,
   };
 }

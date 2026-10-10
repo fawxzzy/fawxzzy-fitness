@@ -6,11 +6,8 @@ export const DEFAULT_DEV_ENV_FILE = ".env.local";
 export const DEV_ENV_FILE_OVERRIDE_ENV = "FITNESS_ENV_FILE";
 export const ALLOW_PROD_SUPABASE_IN_DEV_ENV = "ALLOW_PROD_SUPABASE_IN_DEV";
 export const FITNESS_EXPECT_SUPABASE_HOST_ENV = "FITNESS_EXPECT_SUPABASE_HOST";
-export const DEFAULT_EXPECTED_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
-export const DEFAULT_SHARED_ENV_FILES = [
-  "fitness-doctor.env",
-  "fitness-lps-dev.env",
-];
+export const DEFAULT_EXPECTED_SUPABASE_HOST = "bxtcuhkotumitoqtrcej.supabase.co";
+export const RETIRED_FITNESS_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
 
 export function normalizeEnvValue(rawValue) {
   let normalized = rawValue
@@ -92,34 +89,7 @@ export function mergeEnvFileWithShell({
 export function resolveEnvFilePaths(repoRoot, override = process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? "") {
   const requested = override.trim();
   if (!requested) {
-    const repoDefault = path.join(repoRoot, DEFAULT_DEV_ENV_FILE);
-    if (fs.existsSync(repoDefault)) {
-      return [repoDefault];
-    }
-
-    const atlasRoot = path.resolve(repoRoot, "..", "..");
-    const sharedEnvPaths = DEFAULT_SHARED_ENV_FILES
-      .map((candidateName) => path.join(atlasRoot, "secrets", candidateName))
-      .filter((candidatePath) => fs.existsSync(candidatePath));
-
-    if (sharedEnvPaths.length === 0) {
-      return [repoDefault];
-    }
-
-    const expectedHost = resolveExpectedSupabaseHost();
-    return sharedEnvPaths
-      .map((candidatePath, index) => ({
-        ...rankEnvFileForExpectedSupabaseHost(candidatePath, expectedHost),
-        index,
-      }))
-      .sort((left, right) => {
-        if (left.matchesExpected !== right.matchesExpected) {
-          return left.matchesExpected ? -1 : 1;
-        }
-
-        return left.index - right.index;
-      })
-      .map((entry) => entry.filePath);
+    return [path.join(repoRoot, DEFAULT_DEV_ENV_FILE)];
   }
 
   return [path.isAbsolute(requested)
@@ -143,20 +113,9 @@ export function resolveUrlHost(value) {
   }
 }
 
-function resolveExpectedSupabaseHost(rawValue = process.env[FITNESS_EXPECT_SUPABASE_HOST_ENV] ?? "") {
+function resolveExpectedSupabaseHost(rawValue) {
   const normalized = String(rawValue ?? "").trim().toLowerCase();
   return normalized || DEFAULT_EXPECTED_SUPABASE_HOST;
-}
-
-function rankEnvFileForExpectedSupabaseHost(filePath, expectedHost) {
-  const env = parseDotenvFile(filePath);
-  const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || "");
-
-  return {
-    filePath,
-    actualHost,
-    matchesExpected: Boolean(expectedHost) && actualHost === expectedHost,
-  };
 }
 
 function looksLikeProductionEnvFile(filePath) {
@@ -194,6 +153,20 @@ export function assertExpectedFitnessSupabaseHost({
   const expectedHost = resolveExpectedSupabaseHost(env[FITNESS_EXPECT_SUPABASE_HOST_ENV]);
   const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || "");
   const usageTarget = commandName ? ` for ${commandName}` : "";
+
+  const hasRetiredTarget = [env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_URL].some((url) => {
+    try {
+      return new URL(url).hostname.toLowerCase().replace(/\.$/, "") === RETIRED_FITNESS_SUPABASE_HOST;
+    } catch {
+      return false;
+    }
+  });
+  if (hasRetiredTarget) {
+    throw new Error(
+      `Refusing to continue${usageTarget}: the legacy Fitness Supabase project is retired. ` +
+      `Configure the shared master or an explicit local emulator before running this workflow.`,
+    );
+  }
 
   if (!expectedHost) {
     return;

@@ -80,7 +80,39 @@ function createCleanMigrationState(overrides = {}) {
   };
 }
 
-test("passes when draft, ledger, verify, LLEL, and migration state are ready", async () => {
+test("the real default migration collector reports retirement without remote access", async () => {
+  const report = await buildFitnessReleaseReadinessReport({
+    repoRoot,
+    gitState: createCleanGitState(),
+    verifyResult: createVerifyResult(),
+    draft: createBaseDraft(),
+    llelReport: createBaseReport({ migrationValidation: { missingRemoteVersions: [] } }),
+    ledgerRaw: "",
+  });
+  assert.equal(report.productionDeployReady, false);
+  assert.deepEqual(report.checks.migration.details, ["LEGACY_REMOTE_VALIDATION_RETIRED"]);
+  assert.equal(report.checks.llel.status, "warn");
+  assert.match(report.checks.llel.summary, /master migration freshness is not evaluated/);
+  assert.doesNotMatch(report.checks.llel.summary, /current and complete/);
+  assert.match(report.nextActions.join("\n"), /source-bound schema and security review/);
+  assert.doesNotMatch(report.nextActions.join("\n"), /Fix linked Supabase access|Apply the pending migrations remotely/);
+});
+
+test("a caller cannot promote historical evidence by changing its scope label", async () => {
+  const report = await buildFitnessReleaseReadinessReport({
+    repoRoot,
+    gitState: createCleanGitState(),
+    verifyResult: createVerifyResult(),
+    migrationState: createCleanMigrationState({ validationScope: "master" }),
+    draft: createBaseDraft(),
+    llelReport: createBaseReport({ migrationValidation: { missingRemoteVersions: [] } }),
+    ledgerRaw: "",
+  });
+  assert.equal(report.productionDeployReady, false);
+  assert.equal(report.checks.migration.status, "fail");
+});
+
+test("a clean historical ledger cannot certify master release readiness", async () => {
   const report = await buildFitnessReleaseReadinessReport({
     repoRoot,
     gitState: createCleanGitState(),
@@ -93,11 +125,12 @@ test("passes when draft, ledger, verify, LLEL, and migration state are ready", a
     ledgerRaw: `${JSON.stringify({ version: "fitness-2026.05.09-1", commit: "abc123", deployedAt: "2026-05-09T12:00:00Z" })}\n`,
   });
 
-  assert.equal(report.status, "pass");
-  assert.equal(report.productionDeployReady, true);
+  assert.equal(report.status, "fail");
+  assert.equal(report.productionDeployReady, false);
   assert.equal(report.checks.releaseDraft.status, "pass");
-  assert.equal(report.checks.llel.status, "pass");
-  assert.equal(report.checks.migration.status, "pass");
+  assert.equal(report.checks.llel.status, "warn");
+  assert.equal(report.checks.migration.status, "fail");
+  assert.match(report.checks.migration.summary, /Master migration acceptance has not been evaluated/);
 });
 
 test("fails when the current release draft is missing", async () => {
@@ -141,7 +174,8 @@ test("reports the pending migration order and blocks production readiness", asyn
   assert.equal(report.productionDeployReady, false);
   assert.equal(report.checks.migration.status, "fail");
   assert.deepEqual(report.expectedRedMigrations, pendingMigrations);
-  assert.deepEqual(report.checks.migration.details, pendingMigrations.map((version, index) => `${index + 1}. ${version}`));
+  assert.deepEqual(report.checks.migration.details.slice(1), pendingMigrations.map((version, index) => `Historical ledger only: ${index + 1}. ${version}`));
+  assert.doesNotMatch(report.nextActions.join("\n"), /Apply the pending migrations remotely/);
 });
 
 test("fails when the LLEL receipt still carries a stale four-item migration snapshot", async () => {
@@ -214,8 +248,8 @@ test("json output remains stable when requested", async () => {
   const parsed = JSON.parse(output);
 
   assert.equal(parsed.command, "npm run release:fitness:ready");
-  assert.equal(parsed.status, "pass");
-  assert.equal(parsed.productionDeployReady, true);
+  assert.equal(parsed.status, "fail");
+  assert.equal(parsed.productionDeployReady, false);
 });
 
 test("release readiness artifact paths stay under runtime fitness", () => {
@@ -225,7 +259,7 @@ test("release readiness artifact paths stay under runtime fitness", () => {
 });
 
 test("release readiness lane has a durable local-only operator contract", async () => {
-  const doc = await fs.readFile(RELEASE_READINESS_DOC_PATH, "utf8");
+  const doc = (await fs.readFile(RELEASE_READINESS_DOC_PATH, "utf8")).replace(/\s+/g, " ");
   assert.match(doc, /review-only snapshots for human inspection/i);
   assert.match(doc, /must not mutate production, deploy state, release ledger entries, or ATLAS receipts/i);
   assert.match(doc, /failing readiness result is still a valid report outcome/i);
