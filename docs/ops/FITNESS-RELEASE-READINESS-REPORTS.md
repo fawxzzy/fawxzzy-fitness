@@ -102,3 +102,20 @@ overrides, guard ordering before spawn, and retained production-file opt-in.
 Rule: retiring a database consumer must remove its implicit connection and
 credential lookup. Never translate historical ledger success into current
 shared-schema acceptance.
+
+## Root layout route-slot release check
+
+The root layout must render its Next.js route slot exactly once, inside
+`ProtectedAppInstallGate`. Its Suspense fallback uses independent loading UI;
+it must not reuse `children`. Duplicate route-slot serialization is associated
+with the upstream `parallelRouterKey` null-props defect
+([Next.js #64271](https://github.com/vercel/next.js/pull/64271)).
+
+The October 10 PR193 production candidate passed build and public HTTP checks,
+but canonical browser login failed with this error and was rolled back. The
+single-slot source regression covers this structural defect; it does not prove
+the cutover failure is fixed. A subsequent release must still verify fresh and
+reused browser `/login` -> `/install` -> `/login` navigation on its candidate and
+canonical URLs, with exact rollback on failure. Keep authenticated and installed
+app acceptance separate. Do not bypass the installed-app gate or clear user
+storage to obtain a passing result.
