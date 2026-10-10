@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { InstallGateChrome } from "@/components/install/InstallGateChrome";
 import { getInstalledAppHref } from "@/lib/install/config";
@@ -31,6 +31,7 @@ export function InstallRouteSurface({
   const router = useRouter();
   const installPrompt = usePWAInstallPrompt();
   const override = useInstallContextOverride(initialInstallContext);
+  const [hasResolvedClientInstallContext, setHasResolvedClientInstallContext] = useState(false);
   const context = useMemo(
     () => getInstallContext({
       override,
@@ -41,12 +42,13 @@ export function InstallRouteSurface({
   );
 
   useEffect(() => {
+    setHasResolvedClientInstallContext(true);
     if (context.isStandalone) {
       router.replace(getInstalledAppHref(initialReturnTo ?? "/login"));
     }
   }, [context.isStandalone, initialReturnTo, router]);
 
-  if (context.isStandalone) {
+  if (!hasResolvedClientInstallContext || context.isStandalone) {
     return <RouteLoading label="Opening Fitness" variant="route" />;
   }
 
