@@ -4,7 +4,11 @@ import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { getMigrationHistoryDrift } from "../migration/validate-supabase-chain.mjs";
+import {
+  getMigrationHistoryDrift,
+  LEGACY_VALIDATION_RETIRED,
+  MASTER_VALIDATION_REQUIRED,
+} from "../migration/validate-supabase-chain.mjs";
 import { QA_LLEL_CAPTURE_ROOT } from "../qa/fitness-auth-state.mjs";
 import {
   parseLedgerLines,
@@ -150,7 +154,8 @@ async function collectMigrationState({ repoRoot = defaultRepoRoot } = {}) {
     return {
       ok: false,
       command: drift.command,
-      classification: "drift-check-failed",
+      classification: drift.classification ?? "drift-check-failed",
+      validationScope: "legacy-ledger",
       missingRemoteVersions: [],
       result: drift.result,
       productionDeployBlocked: true,
@@ -164,6 +169,7 @@ async function collectMigrationState({ repoRoot = defaultRepoRoot } = {}) {
 
   return {
     ok: true,
+    validationScope: "legacy-ledger",
     command: drift.command,
     classification: missingRemoteVersions.length > 0 ? "expected-red" : "clean",
     missingRemoteVersions,
@@ -332,36 +338,26 @@ function evaluateLlelCheck({ report, reportPath, migrationState }) {
   }
 
   return createCheck({
-    status: "pass",
-    summary: "Progression LLEL receipt is current and complete.",
+    status: "warn",
+    summary: "Progression visual evidence is complete; master migration freshness is not evaluated.",
     details: REQUIRED_LLEL_ROUTES.map((key) => `${key}: captured`),
   });
 }
 
 function evaluateMigrationCheck(migrationState) {
-  if (!migrationState.ok) {
-    return createCheck({
-      status: "fail",
-      summary: "`npm run migration:validate` could not read linked-remote migration drift.",
-      details: [migrationState.result?.combined?.trim() || "Supabase migration list command failed."],
-      nextActions: ["Fix linked Supabase access before relying on production migration readiness."],
-    });
-  }
-
-  if (migrationState.missingRemoteVersions.length === 0) {
-    return createCheck({
-      status: "pass",
-      summary: "Migration history is clean for production deploy.",
-    });
-  }
-
+  // This report's only migration evidence contract is the retired legacy ledger.
+  // Even a clean retained snapshot cannot certify the shared master's schema.
+  // Do not accept a caller-supplied `ok` or scope label as a new evidence contract.
+  const historicalMismatches = migrationState.missingRemoteVersions ?? [];
   return createCheck({
     status: "fail",
-    summary: "Production deploy is blocked by pending branch-stack migrations.",
-    details: migrationState.missingRemoteVersions.map((version, index) => `${index + 1}. ${version}`),
+    summary: "Master migration acceptance has not been evaluated by this report.",
+    details: [
+      LEGACY_VALIDATION_RETIRED,
+      ...historicalMismatches.map((version, index) => `Historical ledger only: ${index + 1}. ${version}`),
+    ],
     nextActions: [
-      "Apply the pending migrations remotely in the documented order before production deploy.",
-      "Re-run `npm run migration:validate` after the remote chain is updated.",
+      MASTER_VALIDATION_REQUIRED,
     ],
   });
 }

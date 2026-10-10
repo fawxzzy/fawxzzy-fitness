@@ -1,8 +1,6 @@
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseDotenvFile } from "../env-file.mjs";
+import { pathToFileURL } from "node:url";
 
 const MIGRATION_VERSION = /^\d+$/u;
 const MIGRATION_FILENAME = /^\d+_[A-Za-z0-9][A-Za-z0-9._-]*\.sql$/u;
@@ -39,80 +37,17 @@ const DRY_RUN_ARGS = [
   "--output-format",
   "json",
 ];
-const currentFilePath = fileURLToPath(import.meta.url);
-const repoRoot = path.resolve(path.dirname(currentFilePath), "..", "..");
-const atlasRoot = path.resolve(repoRoot, "..", "..");
-const LOCAL_REMOTE_DB_ENV_PATH = path.join(atlasRoot, "secrets", "local", "fawxzzy-fitness-prod-db.env");
-const EXPECTED_PROJECT_REF = "lpswxoyfniocuhljgzbc";
+export const LEGACY_VALIDATION_RETIRED = "LEGACY_REMOTE_VALIDATION_RETIRED";
+export const MASTER_VALIDATION_REQUIRED =
+  `${LEGACY_VALIDATION_RETIRED}: The linked-project Fitness validator is retired. Fitness now uses the shared master fitness schema. `
+  + "Master migration acceptance requires the governed, source-bound schema and security review; "
+  + "a clean legacy ledger or local replay is not master acceptance. "
+  + "Do not relink this migration chain or run its db push against master. "
+  + "See docs/ops/FITNESS-RELEASE-READINESS-REPORTS.md.";
 
-function quoteWindowsArg(value) {
-  const normalized = String(value);
-  if (!/[\s"]/u.test(normalized)) {
-    return normalized;
-  }
-
-  return `"${normalized.replace(/"/g, '\\"')}"`;
-}
-
-function resolveSupabaseCommandEnv() {
-  const commandEnv = { ...process.env };
-  const hasPassword = typeof commandEnv.SUPABASE_DB_PASSWORD === "string" && commandEnv.SUPABASE_DB_PASSWORD.trim().length > 0;
-  if (hasPassword) {
-    return commandEnv;
-  }
-
-  const localSecretEnv = parseDotenvFile(LOCAL_REMOTE_DB_ENV_PATH);
-  const localProjectRef = String(localSecretEnv.SUPABASE_PROJECT_REF ?? "").trim();
-  if (localProjectRef && localProjectRef !== EXPECTED_PROJECT_REF) {
-    throw new Error(
-      `Refusing to use ${LOCAL_REMOTE_DB_ENV_PATH} because SUPABASE_PROJECT_REF must be ${EXPECTED_PROJECT_REF}, got ${localProjectRef}.`,
-    );
-  }
-
-  const localPassword = String(localSecretEnv.SUPABASE_DB_PASSWORD ?? "").trim();
-  if (localPassword) {
-    commandEnv.SUPABASE_DB_PASSWORD = localPassword;
-  }
-
-  return commandEnv;
-}
-
-export function runSupabaseCommand(args) {
-  const commandEnv = resolveSupabaseCommandEnv();
-  const result = process.platform === "win32"
-    ? spawnSync(
-      process.env.ComSpec || "cmd.exe",
-      [
-        "/d",
-        "/s",
-        "/c",
-        ["npx", ...args].map((value) => quoteWindowsArg(value)).join(" "),
-      ],
-      {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        env: commandEnv,
-        shell: false,
-        windowsHide: true,
-      },
-    )
-    : spawnSync(
-      "npx",
-      args,
-      {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        env: commandEnv,
-        shell: false,
-      },
-    );
-
-  return {
-    ...result,
-    stdout: result.stdout ?? "",
-    stderr: result.stderr ?? "",
-    combined: `${result.stdout ?? ""}${result.stderr ?? ""}`,
-  };
+// Compatibility export: no subprocess, implicit linked target, or credential read.
+export function runSupabaseCommand() {
+  return stableCommandFailure(1, MASTER_VALIDATION_REQUIRED);
 }
 
 function isRecord(value) {
@@ -492,7 +427,17 @@ function stableCommandFailure(status, message) {
   };
 }
 
-export function getMigrationHistoryDrift({ runCommand = runSupabaseCommand } = {}) {
+export function getMigrationHistoryDrift({ runCommand } = {}) {
+  if (runCommand === undefined || runCommand === runSupabaseCommand) {
+    return {
+      ok: false,
+      classification: LEGACY_VALIDATION_RETIRED,
+      validationScope: "legacy-ledger",
+      command: null,
+      result: stableCommandFailure(1, MASTER_VALIDATION_REQUIRED),
+      mismatches: [],
+    };
+  }
   let migrationList;
   try {
     migrationList = runCommand(MIGRATION_LIST_ARGS);
@@ -531,6 +476,7 @@ export function getMigrationHistoryDrift({ runCommand = runSupabaseCommand } = {
 
   return {
     ok: true,
+    validationScope: "legacy-ledger",
     command: "npx supabase migration list --linked --output-format json",
     result: migrationList,
     migrations: parsed.migrations,
@@ -539,7 +485,7 @@ export function getMigrationHistoryDrift({ runCommand = runSupabaseCommand } = {
 }
 
 export function validateSupabaseChain({
-  runCommand = runSupabaseCommand,
+  runCommand,
   logger = console,
 } = {}) {
   const migrationHistory = getMigrationHistoryDrift({ runCommand });
@@ -600,7 +546,7 @@ export function validateSupabaseChain({
     return 1;
   }
 
-  logger.log("supabase migration history is clean and db push --dry-run reports no pending migrations.");
+  logger.log("Historical Fitness ledger evidence is consistent; this does not establish master migration acceptance.");
   return 0;
 }
 

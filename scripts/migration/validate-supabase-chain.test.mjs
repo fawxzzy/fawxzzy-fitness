@@ -3,15 +3,167 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 
 import {
   getMigrationHistoryDrift,
   parseDryRunJson,
   parseMigrationListJson,
   validateSupabaseChain,
+  runSupabaseCommand,
+  LEGACY_VALIDATION_RETIRED,
+  MASTER_VALIDATION_REQUIRED,
 } from "./validate-supabase-chain.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+test("legacy export returns 410 without reading the request, credentials, or environment", async () => {
+  const source = await readFile(path.join(repoRoot, "src/app/api/migration/export/route.ts"), "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  });
+  const exports = {};
+  const imports = [];
+  const forbiddenRead = new Proxy({}, {
+    get() { throw new Error("Retired export must not read request or environment"); },
+  });
+  runInNewContext(outputText, {
+    exports,
+    process: forbiddenRead,
+    require(name) {
+      imports.push(name);
+      assert.equal(name, "next/server", "Only the response constructor may be imported");
+      return { NextResponse: { json: (body, init) => Response.json(body, init) } };
+    },
+  });
+  const response = await exports.POST(forbiddenRead);
+  assert.deepEqual(imports, ["next/server"]);
+  assert.equal(exports.dynamic, "force-dynamic");
+  assert.equal(response.status, 410);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "FITNESS_LEGACY_EXPORT_RETIRED",
+    error: "Legacy Fitness export is retired. Retained snapshots can still be imported.",
+  });
+});
+
+test("legacy dev launcher cannot read environment, import dependencies, or start a child", async () => {
+  const source = await readFile(path.join(repoRoot, "scripts/dev-fitness-lps.mjs"), "utf8");
+  const lines = [];
+  const exitCodes = [];
+  runInNewContext(source, {
+    console: { error: (message) => lines.push(message) },
+    process: new Proxy({}, {
+      get() { throw new Error("Retired launcher must not read process state"); },
+      set(_target, property, value) {
+        assert.equal(property, "exitCode");
+        exitCodes.push(value);
+        return true;
+      },
+    }),
+  });
+  assert.deepEqual(exitCodes, [1]);
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /FITNESS_LEGACY_DEV_RETIRED/);
+});
+
+for (const [label, overrides] of [
+  ["default", {}],
+  ["recovery opt-in", { FITNESS_ENABLE_LEGACY_LPS_RECOVERY: "1" }],
+  ["env-file override", { FITNESS_ENV_FILE: "fixture-must-not-be-opened.env" }],
+]) {
+  test(`legacy dev launcher exits nonzero under ${label}`, () => {
+    const env = { ...process.env };
+    delete env.FITNESS_ENABLE_LEGACY_LPS_RECOVERY;
+    delete env.FITNESS_ENV_FILE;
+    const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts/dev-fitness-lps.mjs")], {
+      cwd: path.dirname(repoRoot),
+      env: { ...env, ...overrides },
+      encoding: "utf8",
+      timeout: 10000,
+      windowsHide: true,
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /^FITNESS_LEGACY_DEV_RETIRED:/);
+    assert.doesNotMatch(result.stderr, /fixture-must-not-be-opened/);
+  });
+}
+
+test("default migration lookup retires the remote connection without an empty-list success", () => {
+  const result = getMigrationHistoryDrift();
+  assert.equal(result.ok, false);
+  assert.equal(result.classification, LEGACY_VALIDATION_RETIRED);
+  assert.equal(result.validationScope, "legacy-ledger");
+  assert.equal(result.command, null);
+  assert.equal(result.result.status, 1);
+  assert.equal(result.result.combined, MASTER_VALIDATION_REQUIRED);
+});
+
+test("legacy mirror cannot read arguments or credentials, import dependencies, or start a child", async () => {
+  const source = await readFile(path.join(repoRoot, "scripts/sync-prod-to-local.mjs"), "utf8");
+  const messages = [];
+  const exitCodes = [];
+  runInNewContext(source, {
+    console: { error: (message) => messages.push(message) },
+    process: new Proxy({}, {
+      get() { throw new Error("Retired mirror must not read process state"); },
+      set(_target, property, value) {
+        assert.equal(property, "exitCode");
+        exitCodes.push(value);
+        return true;
+      },
+    }),
+  });
+  assert.deepEqual(exitCodes, [1]);
+  assert.equal(messages.length, 1);
+  assert.match(messages[0], /FITNESS_LEGACY_MIRROR_RETIRED/);
+});
+
+test("legacy mirror CLI refuses default, help, and explicit mutation/env arguments", () => {
+  for (const args of [[], ["--help"], ["--yes", "--keep-dump", "--env", "fixture-must-not-be-read.env"]]) {
+    const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts/sync-prod-to-local.mjs"), ...args], {
+      cwd: path.dirname(repoRoot),
+      env: { ...process.env, PROD_DATABASE_URL: "fixture-credential-must-not-appear" },
+      encoding: "utf8",
+      timeout: 10000,
+      windowsHide: true,
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /^FITNESS_LEGACY_MIRROR_RETIRED:/);
+    assert.doesNotMatch(result.stderr, /fixture-credential-must-not-appear|fixture-must-not-be-read/);
+  }
+});
+
+test("compatibility runner cannot reactivate the legacy CLI", () => {
+  assert.equal(runSupabaseCommand(["supabase", "db", "push"]).status, 1);
+  assert.equal(getMigrationHistoryDrift({ runCommand: runSupabaseCommand }).classification, LEGACY_VALIDATION_RETIRED);
+});
+
+test("default CLI stays retired even with a password and a different cwd", () => {
+  const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts/migration/validate-supabase-chain.mjs")], {
+    cwd: path.dirname(repoRoot),
+    env: { ...process.env, SUPABASE_DB_PASSWORD: "fixture-password-must-not-appear" },
+    encoding: "utf8",
+    timeout: 10000,
+    windowsHide: true,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /linked-project Fitness validator is retired/);
+  assert.doesNotMatch(result.stdout + result.stderr, /fixture-password-must-not-appear/);
+});
+
+test("validator has no subprocess or credential-file dependency", async () => {
+  const source = await readFile(path.join(repoRoot, "scripts/migration/validate-supabase-chain.mjs"), "utf8");
+  assert.equal(/node:child_process|env-file\.mjs|parseDotenvFile|process\.env|fawxzzy-fitness-prod-db\.env/.test(source), false);
+});
 const workflowPath = path.join(
   repoRoot,
   ".github",
@@ -368,7 +520,7 @@ test("validator accepts only a matched history and an up-to-date JSON dry run", 
   assert.equal(exitCode, 0);
   assert.deepEqual(calls, [LIST_ARGS, DRY_RUN_ARGS]);
   assert.deepEqual(lines, [
-    "log:supabase migration history is clean and db push --dry-run reports no pending migrations.",
+    "log:Historical Fitness ledger evidence is consistent; this does not establish master migration acceptance.",
   ]);
 });
 

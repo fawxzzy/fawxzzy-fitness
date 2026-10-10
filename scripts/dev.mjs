@@ -174,7 +174,7 @@ function warnIfUnexpectedSupabaseHost(env) {
       "[dev-target] WARNING: Fitness dev is not pointed at the expected Supabase project.",
       `[dev-target] Expected: ${expectedHost}`,
       `[dev-target] Actual:   ${actualHost || "(missing NEXT_PUBLIC_SUPABASE_URL)"}`,
-      "[dev-target] Use `npm run dev:fitness:lps` or fix .env.local before smoke testing FIT work.",
+      "[dev-target] Configure .env.local or an explicit FITNESS_ENV_FILE for master or your local emulator before smoke testing FIT work.",
       "",
     ].join("\n"),
   );
