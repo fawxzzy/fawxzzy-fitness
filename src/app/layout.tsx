@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
+import { RouteLoading } from "@/components/RouteLoading";
 import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
 import { AppAmbientThemeBootstrap } from "@/components/ui/AppAmbientThemeBootstrap";
 import { AppThemeBootstrap } from "@/components/ui/AppThemeBootstrap";
@@ -153,7 +154,7 @@ export default async function RootLayout({
           <DisplayModeBootstrap />
           <MobileViewportGuard />
           <main className="safe-area-main relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden">
-            <Suspense fallback={children}>
+            <Suspense fallback={<RouteLoading label="Opening Fitness" variant="route" />}>
               <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
             </Suspense>
           </main>
