@@ -119,3 +119,24 @@ reused browser `/login` -> `/install` -> `/login` navigation on its candidate an
 canonical URLs, with exact rollback on failure. Keep authenticated and installed
 app acceptance separate. Do not bypass the installed-app gate or clear user
 storage to obtain a passing result.
+
+## Install route hydration contract
+
+The install route must render identical initial markup on the server and client.
+Browser and standalone detection may select install guidance or redirect only
+after mount, using the existing route-loading surface during that boundary.
+Keep supported-browser instructions, unsupported-browser instructions, and the
+installed-app redirect intact; do not suppress hydration errors.
+
+The October 10 PR194 candidate failed before canonical cutover: both fresh and
+reused browser contexts reported React 425/422 while navigating to `/install`.
+Its server HTML contained unsupported-browser instructions while the browser
+immediately selected supported-browser instructions. The regression renders the
+actual component with absent, supported, unsupported, and standalone browser
+context and compares initial HTML. The Node test loader bridges Next's documented
+extensionless imports and JSON imports to their actual implementations.
+
+That regression is source evidence, not a browser hydration or installed-auth
+acceptance result. A new release must still pass the candidate and canonical
+navigation checks above. The failed candidate remains unaccepted; it changed no
+canonical alias and required no rollback.

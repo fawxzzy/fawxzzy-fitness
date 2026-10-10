@@ -55,11 +55,11 @@ export async function resolve(specifier, context, defaultResolve) {
     };
   }
 
-  // Node's ESM resolver does not expand Next's documented `next/server` export,
+  // Node's ESM resolver does not expand Next's documented extensionless exports,
   // while the application bundler does. Keep application imports canonical and
   // map only the Node contract-test runtime to Next's matching implementation.
-  if (specifier === "next/server") {
-    return defaultResolve("next/server.js", context, defaultResolve);
+  if (["next/server", "next/navigation", "next/link", "next/image"].includes(specifier)) {
+    return defaultResolve(`${specifier}.js`, context, defaultResolve);
   }
 
   if (specifier.startsWith("@/")) {
@@ -91,6 +91,14 @@ export async function resolve(specifier, context, defaultResolve) {
 }
 
 export async function load(url, context, defaultLoad) {
+  // Match the app bundler's JSON-module handling for real component imports.
+  if (url.startsWith("file:") && url.endsWith(".json") && !context.importAttributes?.type) {
+    return defaultLoad(url, {
+      ...context,
+      importAttributes: { ...context.importAttributes, type: "json" },
+    }, defaultLoad);
+  }
+
   if (url.startsWith("file:") && /\.tsx?$/u.test(fileURLToPath(url))) {
     return {
       format: "module",
