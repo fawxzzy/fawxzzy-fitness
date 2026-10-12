@@ -8,7 +8,7 @@ import { isSafeAppPath } from "@/lib/navigation-return";
 import { hasSupabaseAdminCredential, resolveSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
-import { resolveUsernameEmailFromIndex } from "@/lib/username-signin-index";
+import { resolveLoginIdentifierEmail, resolveUsernameEmailFromIndex } from "@/lib/username-signin-index";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -132,11 +132,10 @@ export async function login(formData: FormData) {
   const returnTo = isSafeAppPath(String(formData.get("returnTo") ?? "").trim())
     ? String(formData.get("returnTo") ?? "").trim()
     : null;
-  const email = isEmailIdentifier(identifier)
-    ? identifier
-    : isUsernameIdentifier(identifier) && hasSupabaseAdminCredential()
-      ? await resolveUsernameEmailFromIndex({
-          identifier,
+  const email = await resolveLoginIdentifierEmail(identifier, async (username) =>
+    hasSupabaseAdminCredential()
+      ? resolveUsernameEmailFromIndex({
+          identifier: username,
           clientAddress: headers().get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown",
           supabaseUrl: SUPABASE_URL(),
           serviceCredential: resolveSupabaseAdminCredential(),
@@ -145,7 +144,8 @@ export async function login(formData: FormData) {
             return error ? null : data.user;
           },
         })
-      : null;
+      : null,
+  );
 
   if (!email) {
     redirect(buildLoginRedirectHref({

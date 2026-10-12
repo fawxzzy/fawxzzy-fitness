@@ -7,6 +7,14 @@ const LEGACY_JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 type ResolvedUser = { email?: string | null } | null;
 
+export async function resolveLoginIdentifierEmail(
+  identifier: string,
+  resolveUsername: (username: string) => Promise<string | null>,
+): Promise<string | null> {
+  if (EMAIL.test(identifier)) return identifier;
+  return USERNAME.test(identifier) ? resolveUsername(identifier) : null;
+}
+
 export async function resolveUsernameEmailFromIndex(args: {
   identifier: string;
   clientAddress: string;

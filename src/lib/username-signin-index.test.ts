@@ -2,10 +2,20 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 
-import { resolveUsernameEmailFromIndex } from "./username-signin-index.ts";
+import { resolveLoginIdentifierEmail, resolveUsernameEmailFromIndex } from "./username-signin-index.ts";
 
 const USER_ID = "11111111-2222-3333-4444-555555555555";
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
+
+test("email login preserves the direct path without invoking username resolution", async () => {
+  let resolverCalls = 0;
+  const email = await resolveLoginIdentifierEmail("user@example.com", async () => {
+    resolverCalls++;
+    return null;
+  });
+  assert.equal(email, "user@example.com");
+  assert.equal(resolverCalls, 0);
+});
 
 test("username login resolves one indexed user without enumerating Auth users", async () => {
   let requestedId = "";
@@ -38,6 +48,54 @@ test("username login resolves one indexed user without enumerating Auth users", 
   });
   assert.equal(requestedId, USER_ID);
   assert.equal(email, "user@example.com");
+});
+
+test("a unique legacy display-name alias uses the same rate-limited resolver contract", async () => {
+  const identifiers: string[] = [];
+  const email = await resolveUsernameEmailFromIndex({
+    identifier: "legacyalias",
+    clientAddress: "192.0.2.6",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: "sb_secret_test-only",
+    fetchImpl: async (_url, init) => {
+      identifiers.push(JSON.parse(String(init?.body)).p_normalized_username);
+      return Response.json([{ resolved_user_id: USER_ID }]);
+    },
+    getUserById: async () => ({ email: "Alias@Example.com" }),
+  });
+  assert.deepEqual(identifiers, ["legacyalias"]);
+  assert.equal(email, "alias@example.com");
+});
+
+test("an ambiguous legacy alias fails closed without selecting an account", async () => {
+  let userReads = 0;
+  const email = await resolveUsernameEmailFromIndex({
+    identifier: "sharedalias",
+    clientAddress: "192.0.2.7",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: "sb_secret_test-only",
+    fetchImpl: async () => Response.json([
+      { resolved_user_id: USER_ID },
+      { resolved_user_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" },
+    ]),
+    getUserById: async () => {
+      userReads++;
+      return { email: "wrong@example.com" };
+    },
+  });
+  assert.equal(email, null);
+  assert.equal(userReads, 0);
+});
+
+test("an indexed identity missing from Auth fails closed", async () => {
+  assert.equal(await resolveUsernameEmailFromIndex({
+    identifier: "fawxzzy",
+    clientAddress: "unknown",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: "sb_secret_test-only",
+    fetchImpl: async () => Response.json([{ resolved_user_id: USER_ID }]),
+    getUserById: async () => null,
+  }), null);
 });
 
 test("username lookup fails closed on provider errors, ambiguity, or malformed identity", async () => {
