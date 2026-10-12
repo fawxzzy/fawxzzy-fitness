@@ -31,6 +31,9 @@ const GLOB_PATHS = [
 const LITERAL_PATHS = [
   "src/lib/account-navigation*",
   "src/app/settings/actions.ts",
+  "src/app/auth/actions.ts",
+  "src/lib/username-signin-index*",
+  "src/lib/password-reset-request*",
   "src/components/AppNav.tsx",
   "src/lib/local-dev-auto-entry.test.ts",
   "src/lib/local-dev-auto-login-credentials.ts",
@@ -102,6 +105,18 @@ test("the workflow installs with npm ci and invokes both contract commands direc
   assert.match(workflow, /run: npm ci/);
   assert.match(workflow, /run: npm run test:auth-ui-contracts/);
   assert.match(workflow, /run: npm run test:design-system-contract/);
+});
+
+test("the invoked auth command includes username and password-reset regressions exactly once", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  const command = manifest.scripts["test:auth-ui-contracts"].split(/\s+/);
+  for (const file of [
+    "src/lib/username-signin-index.test.ts",
+    "src/lib/password-reset-request.test.ts",
+  ]) {
+    assert.equal(command.filter((argument) => argument === file).length, 1, `${file} must run once`);
+    assert.equal(fs.existsSync(path.join(repoRoot, file)), true, `${file} must exist`);
+  }
 });
 
 test("the workflow stays read-only, single-job, and has no dispatch, secrets, or deploy step", () => {
