@@ -3,10 +3,13 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
+import { SUPABASE_URL } from "@/lib/env";
 import { isSafeAppPath } from "@/lib/navigation-return";
-import { hasSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
+import { hasSupabaseAdminCredential, resolveSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
+import { resolveLoginIdentifierEmail, resolveUsernameEmailFromIndex } from "@/lib/username-signin-index";
+import { requestResetForIdentifier } from "@/lib/password-reset-request";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -16,46 +19,19 @@ function isEmailIdentifier(identifier: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
 }
 
-async function resolveEmailForLogin(identifier: string) {
-  if (isEmailIdentifier(identifier)) {
-    return identifier;
-  }
-
-  if (!isUsernameIdentifier(identifier)) {
-    return null;
-  }
-
-  if (!hasSupabaseAdminCredential()) {
-    return null;
-  }
-
-  const admin = supabaseAdmin();
-  let page = 1;
-  let nextPage: number | null = 1;
-
-  while (nextPage) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) {
-      return null;
-    }
-
-    const matchedUser = (data?.users ?? []).find((user) => {
-      const metadata = user.user_metadata ?? {};
-      const username = typeof metadata.username === "string" ? metadata.username.trim().toLowerCase() : "";
-      const displayName = typeof metadata.display_name === "string" ? metadata.display_name.trim().toLowerCase() : "";
-      return username === identifier || displayName === identifier;
-    });
-
-    const email = matchedUser?.email?.trim().toLowerCase();
-    if (email) {
-      return email;
-    }
-
-    nextPage = data?.nextPage ?? null;
-    page = nextPage ?? 0;
-  }
-
-  return null;
+async function resolveIndexedUsername(username: string) {
+  if (!hasSupabaseAdminCredential()) return null;
+  return resolveUsernameEmailFromIndex({
+    identifier: username,
+    clientAddress: headers().get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown",
+    supabaseUrl: SUPABASE_URL(),
+    serviceCredential: resolveSupabaseAdminCredential(),
+    onLookupFailure: (code) => console.error("Username identity lookup failed", { code }),
+    getUserById: async (id) => {
+      const { data, error } = await supabaseAdmin().auth.admin.getUserById(id);
+      return error ? null : data.user;
+    },
+  });
 }
 
 function getOrigin() {
@@ -85,25 +61,6 @@ function getAppOrigin() {
   return getOrigin();
 }
 
-function getResetPasswordErrorCode(message: string | undefined) {
-  const normalizedMessage = (message ?? "").toLowerCase();
-
-  if (normalizedMessage.includes("rate limit")) {
-    return "rate_limited";
-  }
-
-  return "send_failed";
-}
-
-function getResetPasswordErrorMessage(message: string | undefined) {
-  const errorCode = getResetPasswordErrorCode(message);
-  if (errorCode === "rate_limited") {
-    return "Too many reset requests. Please wait a few minutes and try again.";
-  }
-
-  return "Could not send reset email. Please try again in a few minutes.";
-}
-
 function buildLoginRedirectHref(args: {
   error?: string | null;
   info?: string | null;
@@ -130,7 +87,7 @@ export async function login(formData: FormData) {
   const returnTo = isSafeAppPath(String(formData.get("returnTo") ?? "").trim())
     ? String(formData.get("returnTo") ?? "").trim()
     : null;
-  const email = await resolveEmailForLogin(identifier);
+  const email = await resolveLoginIdentifierEmail(identifier, resolveIndexedUsername);
 
   if (!email) {
     redirect(buildLoginRedirectHref({
@@ -212,31 +169,15 @@ export async function requestPasswordReset(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent("Use your email to reset your password.")}`);
   }
 
-  const email = await resolveEmailForLogin(identifier);
-
-  if (!email) {
-    redirect(`/login?info=${encodeURIComponent("reset_requested")}`);
-  }
-
   const supabase = supabaseServer();
   const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
+  const result = await requestResetForIdentifier({
+    identifier,
+    resolveUsername: resolveIndexedUsername,
+    sendReset: (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo }),
+    onSendError: (code) => console.error("Password reset email request failed", { code }),
   });
-
-  if (error) {
-    console.error("Password reset email request failed", {
-      email,
-      redirectTo,
-      message: error.message,
-      status: error.status,
-      name: error.name,
-    });
-
-    const errorCode = getResetPasswordErrorCode(error.message);
-    redirect(`/login?error=${encodeURIComponent(errorCode)}`);
-  }
+  if (result !== "requested") redirect(`/login?error=${encodeURIComponent(result)}`);
 
   redirect(`/login?info=${encodeURIComponent("reset_requested")}`);
 }
@@ -260,32 +201,20 @@ export async function requestPasswordResetInline(identifier: string) {
     };
   }
 
-  const email = await resolveEmailForLogin(normalizedIdentifier);
-
-  if (!email) {
-    return {
-      ok: true,
-    };
-  }
-
   const supabase = supabaseServer();
   const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
+  const result = await requestResetForIdentifier({
+    identifier: normalizedIdentifier,
+    resolveUsername: resolveIndexedUsername,
+    sendReset: (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo }),
+    onSendError: (code) => console.error("Password reset email request failed", { code }),
   });
-
-  if (error) {
-    console.error("Password reset email request failed", {
-      email,
-      redirectTo,
-      message: error.message,
-      status: error.status,
-      name: error.name,
-    });
-
+  if (result !== "requested") {
     return {
       ok: false,
-      error: getResetPasswordErrorMessage(error.message),
+      error: result === "rate_limited"
+        ? "Too many reset requests. Please wait a few minutes and try again."
+        : "Could not send reset email. Please try again in a few minutes.",
     };
   }
 

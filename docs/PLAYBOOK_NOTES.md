@@ -1,5 +1,12 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-10-12 - Use indexed identity resolution for Fitness login and password reset
+
+- Type: Auth reliability + Coverage
+- WHAT changed: Username login and both password-reset entry points use the bounded indexed identity resolver and a single Auth user lookup. Email identifiers retain the direct path. Unknown or ambiguous usernames keep the neutral reset response, and reset send diagnostics contain only bounded error codes.
+- WHY it changed: Global Auth user enumeration could fail on an unrelated malformed account and silently acknowledge a reset request without sending mail. The indexed resolver isolates the requested identity while preserving canonical username precedence and unique legacy aliases when the reviewed resolver contract is installed.
+- Status: Source-only candidate; indexed alias resolver installation and release remain separate decisions.
+
 ## 2026-09-14 - Separate public account entry from installed-only app access
 
 - Type: Authentication handoff + Install boundary + Coverage
