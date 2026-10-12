@@ -3,10 +3,12 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
+import { SUPABASE_URL } from "@/lib/env";
 import { isSafeAppPath } from "@/lib/navigation-return";
-import { hasSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
+import { hasSupabaseAdminCredential, resolveSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
+import { resolveUsernameEmailFromIndex } from "@/lib/username-signin-index";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -130,7 +132,20 @@ export async function login(formData: FormData) {
   const returnTo = isSafeAppPath(String(formData.get("returnTo") ?? "").trim())
     ? String(formData.get("returnTo") ?? "").trim()
     : null;
-  const email = await resolveEmailForLogin(identifier);
+  const email = isEmailIdentifier(identifier)
+    ? identifier
+    : isUsernameIdentifier(identifier) && hasSupabaseAdminCredential()
+      ? await resolveUsernameEmailFromIndex({
+          identifier,
+          clientAddress: headers().get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown",
+          supabaseUrl: SUPABASE_URL(),
+          serviceCredential: resolveSupabaseAdminCredential(),
+          getUserById: async (id) => {
+            const { data, error } = await supabaseAdmin().auth.admin.getUserById(id);
+            return error ? null : data.user;
+          },
+        })
+      : null;
 
   if (!email) {
     redirect(buildLoginRedirectHref({

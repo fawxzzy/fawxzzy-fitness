@@ -1,0 +1,51 @@
+import { createHash } from "node:crypto";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME = /^[a-z0-9._-]{2,15}$/;
+
+type ResolvedUser = { email?: string | null } | null;
+
+export async function resolveUsernameEmailFromIndex(args: {
+  identifier: string;
+  clientAddress: string;
+  supabaseUrl: string;
+  serviceCredential: string;
+  getUserById: (id: string) => Promise<ResolvedUser>;
+  fetchImpl?: typeof fetch;
+}): Promise<string | null> {
+  if (!USERNAME.test(args.identifier)) return null;
+  const digest = (value: string) => createHash("sha256").update(value).digest("hex");
+  const fetchImpl = args.fetchImpl ?? fetch;
+
+  try {
+    const response = await fetchImpl(new URL("/rest/v1/rpc/account_resolve_username_signin_v2", args.supabaseUrl), {
+      method: "POST",
+      redirect: "error",
+      headers: {
+        Accept: "application/json",
+        "Accept-Profile": "account_api",
+        apikey: args.serviceCredential,
+        Authorization: `Bearer ${args.serviceCredential}`,
+        "Content-Type": "application/json",
+        "Content-Profile": "account_api",
+      },
+      body: JSON.stringify({
+        p_normalized_username: args.identifier,
+        p_attempt_key: digest(`username:${args.identifier}`),
+        p_client_attempt_key: digest(`client:${args.clientAddress}`),
+      }),
+    });
+    if (!response.ok) return null;
+
+    const rows: unknown = await response.json();
+    if (!Array.isArray(rows) || rows.length !== 1) return null;
+    const id = rows[0]?.resolved_user_id;
+    if (typeof id !== "string" || !UUID.test(id)) return null;
+
+    const email = (await args.getUserById(id))?.email?.trim().toLowerCase();
+    return email && EMAIL.test(email) ? email : null;
+  } catch {
+    return null;
+  }
+}

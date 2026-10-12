@@ -1,0 +1,89 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import test from "node:test";
+
+import { resolveUsernameEmailFromIndex } from "./username-signin-index.ts";
+
+const USER_ID = "11111111-2222-3333-4444-555555555555";
+const sha = (value: string) => createHash("sha256").update(value).digest("hex");
+
+test("username login resolves one indexed user without enumerating Auth users", async () => {
+  let requestedId = "";
+  let observedUrl = "";
+  let observedInit: RequestInit | undefined;
+  const email = await resolveUsernameEmailFromIndex({
+    identifier: "fawxzzy",
+    clientAddress: "192.0.2.5",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: "test-only",
+    fetchImpl: async (url, init) => {
+      observedUrl = String(url);
+      observedInit = init;
+      return Response.json([{ resolved_user_id: USER_ID }]);
+    },
+    getUserById: async (id) => {
+      requestedId = id;
+      return { email: "User@Example.com" };
+    },
+  });
+  assert.equal(observedUrl, "https://example.supabase.co/rest/v1/rpc/account_resolve_username_signin_v2");
+  assert.equal(observedInit?.method, "POST");
+  assert.equal(new Headers(observedInit?.headers).get("Content-Profile"), "account_api");
+  assert.deepEqual(JSON.parse(String(observedInit?.body)), {
+    p_normalized_username: "fawxzzy",
+    p_attempt_key: sha("username:fawxzzy"),
+    p_client_attempt_key: sha("client:192.0.2.5"),
+  });
+  assert.equal(requestedId, USER_ID);
+  assert.equal(email, "user@example.com");
+});
+
+test("username lookup fails closed on provider errors, ambiguity, or malformed identity", async () => {
+  let userReads = 0;
+  for (const response of [
+    new Response(null, { status: 500 }),
+    Response.json([]),
+    Response.json([{ resolved_user_id: USER_ID }, { resolved_user_id: USER_ID }]),
+    Response.json([{ resolved_user_id: "not-a-uuid" }]),
+  ]) {
+    assert.equal(await resolveUsernameEmailFromIndex({
+      identifier: "fawxzzy",
+      clientAddress: "unknown",
+      supabaseUrl: "https://example.supabase.co",
+      serviceCredential: "test-only",
+      fetchImpl: async () => response,
+      getUserById: async () => {
+        userReads++;
+        return { email: "user@example.com" };
+      },
+    }), null);
+  }
+  assert.equal(userReads, 0);
+});
+
+test("single-user lookup must return a valid email", async () => {
+  assert.equal(await resolveUsernameEmailFromIndex({
+    identifier: "fawxzzy",
+    clientAddress: "unknown",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: "test-only",
+    fetchImpl: async () => Response.json([{ resolved_user_id: USER_ID }]),
+    getUserById: async () => ({ email: null }),
+  }), null);
+});
+
+test("invalid usernames never reach the resolver", async () => {
+  let calls = 0;
+  assert.equal(await resolveUsernameEmailFromIndex({
+    identifier: "User@Example.com",
+    clientAddress: "unknown",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: "test-only",
+    fetchImpl: async () => {
+      calls++;
+      return Response.json([]);
+    },
+    getUserById: async () => null,
+  }), null);
+  assert.equal(calls, 0);
+});
