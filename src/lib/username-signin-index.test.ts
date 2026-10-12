@@ -100,6 +100,7 @@ test("an indexed identity missing from Auth fails closed", async () => {
 
 test("username lookup fails closed on provider errors, ambiguity, or malformed identity", async () => {
   let userReads = 0;
+  const failures: string[] = [];
   for (const response of [
     new Response(null, { status: 500 }),
     Response.json([]),
@@ -112,6 +113,7 @@ test("username lookup fails closed on provider errors, ambiguity, or malformed i
       supabaseUrl: "https://example.supabase.co",
       serviceCredential: "sb_secret_test-only",
       fetchImpl: async () => response,
+      onLookupFailure: (code) => failures.push(code),
       getUserById: async () => {
         userReads++;
         return { email: "user@example.com" };
@@ -119,6 +121,7 @@ test("username lookup fails closed on provider errors, ambiguity, or malformed i
     }), null);
   }
   assert.equal(userReads, 0);
+  assert.deepEqual(failures, ["resolver_unavailable", "invalid_resolver_response"]);
 });
 
 test("single-user lookup must return a valid email", async () => {

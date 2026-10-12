@@ -22,6 +22,7 @@ export async function resolveUsernameEmailFromIndex(args: {
   serviceCredential: string;
   getUserById: (id: string) => Promise<ResolvedUser>;
   fetchImpl?: typeof fetch;
+  onLookupFailure?: (code: "resolver_unavailable" | "invalid_resolver_response" | "auth_user_unavailable") => void;
 }): Promise<string | null> {
   if (!USERNAME.test(args.identifier)) return null;
   const modernSecret = args.serviceCredential.startsWith("sb_secret_");
@@ -47,16 +48,32 @@ export async function resolveUsernameEmailFromIndex(args: {
         p_client_attempt_key: digest(`client:${args.clientAddress}`),
       }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      args.onLookupFailure?.("resolver_unavailable");
+      return null;
+    }
 
     const rows: unknown = await response.json();
-    if (!Array.isArray(rows) || rows.length !== 1) return null;
+    if (!Array.isArray(rows)) {
+      args.onLookupFailure?.("invalid_resolver_response");
+      return null;
+    }
+    // An empty result covers both unknown and ambiguous identifiers. Keep that private.
+    if (rows.length !== 1) return null;
     const id = rows[0]?.resolved_user_id;
-    if (typeof id !== "string" || !UUID.test(id)) return null;
+    if (typeof id !== "string" || !UUID.test(id)) {
+      args.onLookupFailure?.("invalid_resolver_response");
+      return null;
+    }
 
     const email = (await args.getUserById(id))?.email?.trim().toLowerCase();
-    return email && EMAIL.test(email) ? email : null;
+    if (!email || !EMAIL.test(email)) {
+      args.onLookupFailure?.("auth_user_unavailable");
+      return null;
+    }
+    return email;
   } catch {
+    args.onLookupFailure?.("resolver_unavailable");
     return null;
   }
 }
