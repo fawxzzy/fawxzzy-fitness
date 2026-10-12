@@ -24,13 +24,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 test('default Playbook acquisition uses the retained canonical release', () => {
-  assert.equal(DEFAULT_PLAYBOOK_VERSION, '0.54.0');
-  assert.equal(DEFAULT_PACKAGE_SPEC, '@fawxzzy/playbook-cli@0.54.0');
+  assert.equal(DEFAULT_PLAYBOOK_VERSION, '0.54.1');
+  assert.equal(DEFAULT_PACKAGE_SPEC, '@fawxzzy/playbook-cli@0.54.1');
   assert.equal(
     DEFAULT_OFFICIAL_FALLBACK_SPEC,
-    'https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz'
+    'https://github.com/fawxzzy/playbook/releases/download/v0.54.1/playbook-cli-0.54.1.tgz'
   );
-  assert.equal(DEFAULT_OFFICIAL_FALLBACK_SHA256, '1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5');
+  assert.equal(DEFAULT_OFFICIAL_FALLBACK_SHA256, '6fb915baaa0837c70a942c60caaf110ba56abee6dd722de8a686b4757e768ba1');
   assert.equal(resolveOfficialFallbackSha256(DEFAULT_OFFICIAL_FALLBACK_SPEC, {}), DEFAULT_OFFICIAL_FALLBACK_SHA256);
   assert.equal(resolveOfficialFallbackSha256('https://example.com/custom.tgz', {}), '');
   assert.equal(

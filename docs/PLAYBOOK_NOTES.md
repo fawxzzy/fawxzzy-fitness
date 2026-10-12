@@ -1,5 +1,10 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-10-12 - Pin the released Playbook query fix
+
+- WHAT changed: Fitness runtime acquisition and clean-environment CI now pin the Playbook v0.54.1 GitHub release tarball at `d06af40b8ccd332e39603ff36aef496151a302a8`, SHA-256 `6fb915baaa0837c70a942c60caaf110ba56abee6dd722de8a686b4757e768ba1`.
+- Evidence: Release `https://github.com/fawxzzy/playbook/releases/tag/v0.54.1` and publish workflow `https://github.com/fawxzzy/playbook/actions/runs/38317660352`; the downloaded 1,230,309-byte asset matched GitHub's digest independently. All five npm publish attempts failed with `ENEEDAUTH`, so acquisition continues through the verified release tarball.
+
 ## 2026-10-12 - Use indexed identity resolution for Fitness login and password reset
 
 - Type: Auth reliability + Coverage
