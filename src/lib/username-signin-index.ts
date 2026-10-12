@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[a-z0-9._-]{2,15}$/;
+const LEGACY_JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 type ResolvedUser = { email?: string | null } | null;
 
@@ -15,6 +16,8 @@ export async function resolveUsernameEmailFromIndex(args: {
   fetchImpl?: typeof fetch;
 }): Promise<string | null> {
   if (!USERNAME.test(args.identifier)) return null;
+  const modernSecret = args.serviceCredential.startsWith("sb_secret_");
+  if (!modernSecret && !LEGACY_JWT.test(args.serviceCredential)) return null;
   const digest = (value: string) => createHash("sha256").update(value).digest("hex");
   const fetchImpl = args.fetchImpl ?? fetch;
 
@@ -26,7 +29,7 @@ export async function resolveUsernameEmailFromIndex(args: {
         Accept: "application/json",
         "Accept-Profile": "account_api",
         apikey: args.serviceCredential,
-        Authorization: `Bearer ${args.serviceCredential}`,
+        ...(modernSecret ? {} : { Authorization: `Bearer ${args.serviceCredential}` }),
         "Content-Type": "application/json",
         "Content-Profile": "account_api",
       },

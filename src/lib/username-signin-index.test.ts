@@ -15,7 +15,7 @@ test("username login resolves one indexed user without enumerating Auth users", 
     identifier: "fawxzzy",
     clientAddress: "192.0.2.5",
     supabaseUrl: "https://example.supabase.co",
-    serviceCredential: "test-only",
+    serviceCredential: "sb_secret_test-only",
     fetchImpl: async (url, init) => {
       observedUrl = String(url);
       observedInit = init;
@@ -29,6 +29,8 @@ test("username login resolves one indexed user without enumerating Auth users", 
   assert.equal(observedUrl, "https://example.supabase.co/rest/v1/rpc/account_resolve_username_signin_v2");
   assert.equal(observedInit?.method, "POST");
   assert.equal(new Headers(observedInit?.headers).get("Content-Profile"), "account_api");
+  assert.equal(new Headers(observedInit?.headers).get("apikey"), "sb_secret_test-only");
+  assert.equal(new Headers(observedInit?.headers).get("Authorization"), null);
   assert.deepEqual(JSON.parse(String(observedInit?.body)), {
     p_normalized_username: "fawxzzy",
     p_attempt_key: sha("username:fawxzzy"),
@@ -50,7 +52,7 @@ test("username lookup fails closed on provider errors, ambiguity, or malformed i
       identifier: "fawxzzy",
       clientAddress: "unknown",
       supabaseUrl: "https://example.supabase.co",
-      serviceCredential: "test-only",
+      serviceCredential: "sb_secret_test-only",
       fetchImpl: async () => response,
       getUserById: async () => {
         userReads++;
@@ -66,7 +68,7 @@ test("single-user lookup must return a valid email", async () => {
     identifier: "fawxzzy",
     clientAddress: "unknown",
     supabaseUrl: "https://example.supabase.co",
-    serviceCredential: "test-only",
+    serviceCredential: "sb_secret_test-only",
     fetchImpl: async () => Response.json([{ resolved_user_id: USER_ID }]),
     getUserById: async () => ({ email: null }),
   }), null);
@@ -78,7 +80,7 @@ test("invalid usernames never reach the resolver", async () => {
     identifier: "User@Example.com",
     clientAddress: "unknown",
     supabaseUrl: "https://example.supabase.co",
-    serviceCredential: "test-only",
+    serviceCredential: "sb_secret_test-only",
     fetchImpl: async () => {
       calls++;
       return Response.json([]);
@@ -86,4 +88,23 @@ test("invalid usernames never reach the resolver", async () => {
     getUserById: async () => null,
   }), null);
   assert.equal(calls, 0);
+});
+
+test("legacy service-role JWT is sent in both API-key and Bearer headers", async () => {
+  let authorization: string | null = null;
+  const credential = "header.payload.signature";
+  await resolveUsernameEmailFromIndex({
+    identifier: "fawxzzy",
+    clientAddress: "unknown",
+    supabaseUrl: "https://example.supabase.co",
+    serviceCredential: credential,
+    fetchImpl: async (_url, init) => {
+      const headers = new Headers(init?.headers);
+      assert.equal(headers.get("apikey"), credential);
+      authorization = headers.get("Authorization");
+      return Response.json([]);
+    },
+    getUserById: async () => null,
+  });
+  assert.equal(authorization, `Bearer ${credential}`);
 });
