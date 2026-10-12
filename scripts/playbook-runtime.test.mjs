@@ -39,6 +39,17 @@ test('default Playbook acquisition uses the retained canonical release', () => {
   );
 });
 
+test('clean-environment CI pins the same verified fallback as the runtime adapter', () => {
+  const workflow = readFileSync(path.join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const jobStart = workflow.indexOf('  playbook-clean-environment:');
+  assert.notEqual(jobStart, -1);
+  const cleanEnvironmentJob = workflow.slice(jobStart);
+  const pinnedValue = (name) => cleanEnvironmentJob.match(new RegExp(`^      ${name}: (\\S+)$`, 'm'))?.[1];
+
+  assert.equal(pinnedValue('PLAYBOOK_OFFICIAL_FALLBACK_SPEC'), DEFAULT_OFFICIAL_FALLBACK_SPEC);
+  assert.equal(pinnedValue('PLAYBOOK_OFFICIAL_FALLBACK_SHA256'), DEFAULT_OFFICIAL_FALLBACK_SHA256);
+});
+
 test('package acquisition stays disabled unless explicitly enabled by env or spec override', () => {
   assert.equal(isPackageAcquisitionEnabled({}), false);
   assert.equal(isPackageAcquisitionEnabled({ PLAYBOOK_ENABLE_PACKAGE_ACQUIRE: '1' }), true);
