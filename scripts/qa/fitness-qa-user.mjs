@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { guardAndDeleteUserOwnedRows } from "./fitness-qa-baseline-ownership.mjs";
 import {
   QA_BASELINE,
   FITNESS_QA_EMAIL_ENV,
@@ -802,7 +803,7 @@ export async function resetQaUserData() {
   );
   const exerciseCatalog = await loadBaselineExerciseCatalog(serviceRoleClient);
 
-  await deleteUserOwnedRows(serviceRoleClient, user.id);
+  await guardAndDeleteUserOwnedRows(serviceRoleClient, user.id, QA_BASELINE, deleteUserOwnedRows);
 
   const dataset = buildBaselineDataset(user.id, exerciseCatalog);
 
