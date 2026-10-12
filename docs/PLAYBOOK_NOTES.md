@@ -1287,3 +1287,10 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - WHAT changed: The same-origin Fitness sign-in, account creation, and password-recovery surfaces now identify the shared `fawxzzy` account family, focused account layout, Fitness product context, and same-origin runtime explicitly. Their shared shell now uses the canonical opaque account canvas, Fitness lime account accent, muted legal row, and `Sign in` action copy while retaining its existing server actions/session adapter.
 - WHY it changed: Browser routing already used `account.fawxzzy.com`, but installed Fitness intentionally stayed same-origin and therefore still appeared to use a separate legacy account experience. The presentation contract now matches the canonical account family without embedding, proxying, or moving credentials or tokens across origins.
 - SAFETY boundary: This is presentation-only. It does not change Supabase configuration, Auth/session semantics, callbacks, recovery, logout, safe-return validation, cookies, provider state, or production bindings.
+
+## 2026-10-12 - Keep migrated auth regressions in CI
+
+- Rule: When CI enumerates tests, adding a regression file also requires adding it to an invoked test command and watching its source and test paths in both pull-request and main-push triggers.
+- Change: The existing auth contract command now runs the username resolver and password-reset regressions. Its workflow watches both helpers and `src/app/auth/actions.ts`; the workflow policy test checks that both regression files remain in the invoked command.
+- Failure Mode: A passing one-off local suite can hide missing CI coverage when new tests are never discovered automatically.
+- Scope: Source verification only; no Auth request, reset email, provider setting, or deployment is performed by this change.
