@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Unreleased - 2026-07-16
 
 ### WHAT
+- Advanced the Playbook runtime and clean-environment CI fallback to the source-bound v0.54.1 release tarball, with the independently verified SHA-256 `6fb915baaa0837c70a942c60caaf110ba56abee6dd722de8a686b4757e768ba1`. The upstream npm publish attempts failed for missing registry authentication; the GitHub release tarball is the verified acquisition path.
 - Rebound the active Playbook runtime fallback from the retired `ZachariahRedfield` GitHub release to the source-bound `fawxzzy/playbook` v0.54.0 fallback asset, pinned its exact SHA-256 before install, and added default-acquisition, mismatch, and local-artifact evidence regressions.
 - Kept the branded metadata base without inheriting a homepage canonical across every application route.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.

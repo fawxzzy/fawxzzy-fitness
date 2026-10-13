@@ -88,7 +88,7 @@ Runtime resolution order is deterministic and must remain:
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
 - `npm ci` succeeds without hard-requiring a Playbook npm package in the base dependency graph.
-- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned retained fallback asset `https://github.com/fawxzzy/playbook/releases/download/v0.54.0/playbook-cli-0.54.0.tgz` with SHA-256 `1803d9313d8ed8b36e5c674ce71b39e5193b70aa291b67a1223afa7eb18508b5` unless intentionally overridden with both a spec and digest.
+- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned retained fallback asset `https://github.com/fawxzzy/playbook/releases/download/v0.54.1/playbook-cli-0.54.1.tgz` with SHA-256 `6fb915baaa0837c70a942c60caaf110ba56abee6dd722de8a686b4757e768ba1` unless intentionally overridden with both a spec and digest.
 - Official acquisition must hash the downloaded or local artifact before writing/installing it and fail closed on mismatch. Diagnostics must surface the source URL, final resolved URL, HTTP status/status text, local tarball path, tarball size, verified digest, and underlying error/cause details on failure.
 - Package acquisition is optional and must only run when explicitly enabled by env/config (`PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1` and/or `PLAYBOOK_PACKAGE_SPEC=...`).
 - CI must pin both `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and `PLAYBOOK_OFFICIAL_FALLBACK_SHA256` to the retained verified artifact and must not depend on a known-missing or non-authoritative npm package path for clean-environment bootstrap.
