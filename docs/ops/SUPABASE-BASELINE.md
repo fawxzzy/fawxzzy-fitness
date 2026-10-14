@@ -34,6 +34,33 @@ Those credentials are local fixture data only. They are not production credentia
 - If seed data needs to change, update `supabase/seed.sql` with deterministic IDs and idempotent `insert ... on conflict` behavior.
 - Keep live project refs, service role keys, database passwords, access tokens, and `.env*` values out of commits.
 
+## Member classification authority
+
+The forward migration `20261014175935_trust_server_metadata_for_member_classification.sql`
+classifies new automation accounts only from the server-controlled Auth
+`app_metadata.account_kind` value. Email naming patterns and user-editable
+metadata are not authority. Historical migrations remain unchanged as provenance.
+
+Existing profile kinds, member numbers, assignment timestamps and sequence state
+are preserved. A legacy automation label without a server tag does not establish
+that an account is human, disposable, or safe to reclassify. Changing those
+existing records requires a separate provenance review.
+
+The migration checks the existing classifier owner and grants before replacing
+its body. An unexpected grantee, grantor or nonowner grant option stops the
+transaction for review. The accepted baseline leaves direct execution with
+`postgres` and `service_role` only; it does not silently remove unknown grants.
+
+This checked-in baseline uses `public`; the consolidated master uses the
+separately managed `fitness` schema. This source correction aligns the local
+classifier rule with the accepted master rule. It does not deploy a migration,
+move a table, or establish live master state.
+
+CI runs `node --test scripts/migration/member-identity-authority.contract.test.mjs`
+against disposable PGlite data. The tests cover trusted metadata, spoofed metadata,
+email heuristics, missing identities, exact privileges, ACL drift rejection, function shadowing, allocator
+integration, immutable identity and preservation on reapplication.
+
 ## No Secrets
 
 Do not commit Supabase project credentials, service role keys, pooled database URLs, JWT secrets, or production user data. Local examples may use documented fixture credentials only when they are clearly non-secret and scoped to local reset data.
