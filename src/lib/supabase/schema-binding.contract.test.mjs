@@ -72,13 +72,13 @@ test("the canonical binding is an exact non-secret fitness schema literal", () =
   assert.match(generatedTypes, /\sconsume_fitness_auth_handoff: \{/);
 });
 
-test("the legacy bridge remains isolated from the master schema binding", () => {
+test("the retained snapshot importer has no remote legacy client", () => {
   const source = readFileSync(
     new URL("../migration/fitness-legacy-bridge.ts", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /LEGACY_SUPABASE_URL/);
-  assert.match(source, /LEGACY_SUPABASE_ANON_KEY/);
+  assert.match(source, /export async function importFitnessLegacySnapshot/);
+  assert.doesNotMatch(source, /LEGACY_SUPABASE_|createClient|exportFitnessLegacySnapshot/);
   assert.doesNotMatch(source, /FITNESS_DATABASE_OPTIONS|FITNESS_DATABASE_SCHEMA/);
 });

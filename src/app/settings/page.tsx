@@ -79,9 +79,8 @@ export default async function SettingsPage({
       : "";
   const normalizedEmail = (user.email ?? "").trim().toLowerCase();
   const zacEmail = optionalEnv("FITNESS_ZAC_EMAIL")?.trim().toLowerCase() ?? null;
-  const legacyBridgeConfigured = Boolean(
-    optionalEnv("LEGACY_SUPABASE_URL") && optionalEnv("LEGACY_SUPABASE_ANON_KEY"),
-  );
+  // Remote export is retired; retained snapshots use the offline import API.
+  const legacyBridgeConfigured = false;
   const canAccessQaVisibilitySetting =
     profile.user_number === 0
     || (Boolean(zacEmail) && normalizedEmail === zacEmail)
