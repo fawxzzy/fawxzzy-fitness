@@ -1,5 +1,41 @@
 # Fitness Legacy Migration Plan
 
+## Current disposition — 2026-10-14
+
+The legacy database has been retired. `POST /api/migration/export` returns
+`410 FITNESS_LEGACY_EXPORT_RETIRED` without reading credentials or contacting a
+backend. The unused remote exporter, legacy sign-in client, environment getters,
+and development environment forwarding have been removed. Settings does not
+read legacy connection configuration and its legacy migration UI remains disabled.
+
+Retained `fitness-legacy-v1` snapshots remain supported by the authenticated
+`POST /api/migration/import` and `POST /api/migration/parity` routes. The snapshot
+contract, importer mapping/conflict behavior, and parity implementation are
+unchanged. They use the caller-supplied master Fitness client; never point an old
+legacy client at master as a replacement for the retired exporter.
+
+`LEGACY_SUPABASE_URL` and `LEGACY_SUPABASE_ANON_KEY` are no longer app runtime
+requirements. This source change does not remove provider settings or prove a
+production deployment. Remove obsolete provider entries only after verifying the
+selected deployment no longer reads them.
+
+Rule: retiring a remote migration transport must preserve the offline snapshot
+contract and its recovery tests. The historical plan below records the original
+migration design; its live export and old-project setup instructions are obsolete.
+
+### Verification
+
+Run the focused retirement and offline recovery cases with:
+
+```sh
+node --import ./scripts/register-test-aliases.mjs --test src/lib/migration/fitness-legacy-bridge.test.ts src/lib/migration/fitness-legacy-retirement.contract.test.mjs src/lib/supabase/schema-binding.contract.test.mjs src/components/settings/SettingsAccordionClient.contract.test.ts
+```
+
+Then run `npm run typecheck` and `npm run verify`. These local checks do not
+perform a live import or change provider configuration.
+
+## Historical migration plan (April 2026)
+
 ## Goal
 
 Ship the new Supabase backend behind the same Fitness app and the same production URL, with one migration window where the app can still read old user data before the production cutover is finalized.
