@@ -1,5 +1,12 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-10-14 - Keep local member classification tied to server authority
+
+- WHAT changed: A forward local-baseline migration classifies automation only from server-controlled Auth app metadata, fixes the classifier search path, and rejects unexpected owner or ACL drift before replacement. Existing profile identities and sequence values remain unchanged. Behavioral tests cover spoofed metadata, email names, exact grants, drift rejection and allocator preservation.
+- WHY it changed: User-editable metadata and email patterns cannot establish automation authority. Replaying the old local baseline could otherwise restore behavior already corrected on master.
+- Rule: Replay tests verify the complete ordered discovered chain and required milestones; a historical migration is not permanently the last migration. Both PostgreSQL and PGlite checks retain the integrity-completion milestone and require the new classifier correction.
+- Status: Source-only local `public` baseline correction. The separate master `fitness` schema is not changed or deployed by this PR.
+
 ## 2026-10-12 - Pin the released Playbook query fix
 
 - WHAT changed: Fitness runtime acquisition and clean-environment CI now pin the Playbook v0.54.1 GitHub release tarball at `d06af40b8ccd332e39603ff36aef496151a302a8`, SHA-256 `6fb915baaa0837c70a942c60caaf110ba56abee6dd722de8a686b4757e768ba1`.

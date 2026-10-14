@@ -80,7 +80,10 @@ test("supabase/migrations/*.sql replays from an empty real-Postgres database to 
     result.appliedMigrations.includes("20260806090000_explicit_fitness_data_api_grants.sql"),
     "expected the explicit Data API grants migration to be part of the real-Postgres replayed chain",
   );
-  assert.equal(result.appliedMigrations.at(-1), "20260811043408_fitness_integrity_completion_v1.sql");
+  // Required milestones remain present as the forward-only chain grows.
+  // Exact full-chain ordering and completeness are checked above.
+  assert.ok(result.appliedMigrations.includes("20260811043408_fitness_integrity_completion_v1.sql"));
+  assert.ok(result.appliedMigrations.includes("20261014175935_trust_server_metadata_for_member_classification.sql"));
 
   // Requirement: assert the final state includes the slug column, the
   // atomicity index, and the RPC -- against the REAL Postgres backend
