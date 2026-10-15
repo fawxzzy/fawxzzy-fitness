@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 import { buildProjectBoardOwnerExport, renderProjectBoardOwnerExport, runProjectBoardOwnerExport } from "../scripts/export-project-board-owner.mjs";
 
@@ -15,6 +16,38 @@ const readSources = () => ({
 });
 const bytes = readSources();
 const registry = JSON.parse(bytes.registry);
+const acceptedSnapshot = JSON.parse(fs.readFileSync(path.join(repoRoot, "exports/fitness.project-board.owner-export.v1.json"), "utf8"));
+
+const syntheticCard = (cardId = "FF-TEST-001") => ({
+  cardId, title: "Synthetic owner card", description: "Synthetic fixture only, never a live card.",
+  priority: "P2", dependsOn: ["FF-CORE-001"],
+  acceptanceCriteria: ["Stable identity is retained.", "Visibility is reviewed explicitly.", "No live mutation is performed."],
+});
+
+async function fixture(t, definitions = []) {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "fitness-owner-export-"));
+  t.after(() => {
+    const relative = path.relative(os.tmpdir(), temp);
+    assert.ok(relative && !relative.startsWith("..") && !path.isAbsolute(relative));
+    fs.rmSync(temp, { recursive: true, force: true });
+  });
+  for (const relative of ["config/fitness-owner-work-registry.json", "scripts/feedback-monetization-roadmap.mjs", "scripts/feedback-session-exercise-timer-cards.mjs", "scripts/export-project-board-owner.mjs"]) {
+    fs.mkdirSync(path.dirname(path.join(temp, relative)), { recursive: true });
+    fs.copyFileSync(path.join(repoRoot, relative), path.join(temp, relative));
+  }
+  for (const definition of definitions) {
+    fs.appendFileSync(path.join(temp, "scripts/feedback-monetization-roadmap.mjs"), `\nFEEDBACK_MONETIZATION_ROADMAP.push(${JSON.stringify(definition)});\n`);
+  }
+  const module = await import(pathToFileURL(path.join(temp, "scripts/export-project-board-owner.mjs")).href);
+  const changed = structuredClone(registry);
+  const fixtureBytes = {
+    ...bytes,
+    roadmap: fs.readFileSync(path.join(temp, "scripts/feedback-monetization-roadmap.mjs"), "utf8"),
+  };
+  const build = () => module.buildProjectBoardOwnerExport(changed, { ...fixtureBytes, registry: JSON.stringify(changed) });
+  const add = (id, visibility, status = "planning") => changed.workItems.push({ id, status, updatedAt: changed.updatedAt, ...(visibility === undefined ? {} : { visibility }) });
+  return { temp, module, changed, build, add };
+}
 
 test("exports the exact stable active and planned Fitness owner set", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
@@ -26,6 +59,7 @@ test("exports the exact stable active and planned Fitness owner set", () => {
   assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 24);
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-GAM-002"));
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-ROUTINE-001"));
+  assert.deepEqual(output.cards, acceptedSnapshot.cards);
 });
 
 test("keeps completed owner truth out of the live export", () => {
@@ -108,9 +142,12 @@ test("reconciles the owner and research denominators without importing research 
   assert.equal(output.extensions.external_system_identifiers_included, false);
 });
 
-test("render is deterministic and the checked export is current", () => {
+test("render is deterministic and synthetic write/check readback is current", async (t) => {
   assert.equal(renderProjectBoardOwnerExport(repoRoot), renderProjectBoardOwnerExport(repoRoot));
-  runProjectBoardOwnerExport(["--check"], repoRoot);
+  const f = await fixture(t);
+  f.module.runProjectBoardOwnerExport([], f.temp);
+  f.module.runProjectBoardOwnerExport(["--check"], f.temp);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.temp, "exports/fitness.project-board.owner-export.v1.json"), "utf8")).cards, acceptedSnapshot.cards);
 });
 
 test("fails closed on unstable identities, duplicates, and stale output", () => {
@@ -119,7 +156,7 @@ test("fails closed on unstable identities, duplicates, and stale output", () => 
   assert.throws(() => buildProjectBoardOwnerExport(duplicate, { ...bytes, registry: JSON.stringify(duplicate) }), /unique stable FF ids/);
   const missing = structuredClone(registry);
   missing.workItems.pop();
-  assert.throws(() => buildProjectBoardOwnerExport(missing, { ...bytes, registry: JSON.stringify(missing) }), /exactly 39/);
+  assert.throws(() => buildProjectBoardOwnerExport(missing, { ...bytes, registry: JSON.stringify(missing) }), /missing baseline card/);
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), "fitness-owner-export-"));
   fs.mkdirSync(path.join(temp, "config"), { recursive: true });
   fs.mkdirSync(path.join(temp, "scripts"), { recursive: true });
@@ -131,4 +168,137 @@ test("fails closed on unstable identities, duplicates, and stale output", () => 
   fs.writeFileSync(path.join(temp, "exports/fitness.project-board.owner-export.v1.json"), "{}\n");
   assert.throws(() => runProjectBoardOwnerExport(["--check"], temp), /stale/);
   fs.rmSync(temp, { recursive: true, force: true });
+});
+
+test("supports bounded source-backed growth without changing the accepted snapshot", async (t) => {
+  const f = await fixture(t, [syntheticCard(), syntheticCard("FF-TEST-002")]);
+  f.add("FF-TEST-001", "private");
+  f.add("FF-TEST-002", "public");
+  const output = f.build();
+  assert.equal(output.extensions.source_work_item_count, 41);
+  assert.equal(output.extensions.exported_card_count, 26);
+  assert.equal(output.extensions.excluded_completed_card_count, 15);
+  assert.deepEqual(output.cards.filter((card) => !card.record.card_id.startsWith("FF-TEST-")), acceptedSnapshot.cards);
+  const added = output.cards.find((card) => card.record.card_id === "FF-TEST-002");
+  assert.equal(added.record.extensions.public_safe, true);
+  assert.equal(added.record.extensions.visibility, "public");
+  assert.equal(added.idempotency_key, "pbk_fitness_ff-test-002_v1");
+  assert.deepEqual(output, f.build());
+  fs.writeFileSync(path.join(f.temp, "config/fitness-owner-work-registry.json"), JSON.stringify(f.changed));
+  f.module.runProjectBoardOwnerExport([], f.temp);
+  f.module.runProjectBoardOwnerExport(["--check"], f.temp);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.temp, "exports/fitness.project-board.owner-export.v1.json"), "utf8")), output);
+});
+
+test("requires an explicit valid visibility decision for every new card", async (t) => {
+  const f = await fixture(t, [syntheticCard()]);
+  f.add("FF-TEST-001");
+  assert.throws(f.build, /explicit visibility/);
+  for (const visibility of [null, true, "PUBLIC", "", "internal"]) {
+    f.changed.workItems.at(-1).visibility = visibility;
+    assert.throws(f.build, /visibility/);
+  }
+});
+
+test("marks private and unknown cards non-public without claiming a sanitized export", async (t) => {
+  const f = await fixture(t, [syntheticCard()]);
+  f.add("FF-TEST-001", "unknown");
+  for (const visibility of ["unknown", "private"]) {
+    f.changed.workItems.at(-1).visibility = visibility;
+    const output = f.build();
+    const card = output.cards.find((entry) => entry.record.card_id === "FF-TEST-001");
+    assert.equal(card.record.extensions.public_safe, false);
+    assert.equal(card.record.extensions.visibility, visibility);
+    assert.equal(output.extensions.private_records_included, true);
+    assert.equal(output.extensions.external_system_identifiers_included, false);
+  }
+});
+
+test("does not inherit public visibility for a previously excluded baseline card", () => {
+  const changed = structuredClone(registry);
+  const item = changed.workItems.find((entry) => entry.status === "fixed");
+  item.status = "planning";
+  const output = buildProjectBoardOwnerExport(changed, { ...bytes, registry: JSON.stringify(changed) });
+  assert.equal(output.cards.find((card) => card.record.card_id === item.id).record.extensions.public_safe, false);
+});
+
+test("honors an explicit private decision on an accepted identity in a synthetic clone", () => {
+  const changed = structuredClone(registry);
+  const item = changed.workItems.find((entry) => entry.id === acceptedSnapshot.cards[0].record.card_id);
+  item.visibility = "private";
+  const output = buildProjectBoardOwnerExport(changed, { ...bytes, registry: JSON.stringify(changed) });
+  assert.equal(output.cards.find((card) => card.record.card_id === item.id).record.extensions.public_safe, false);
+  assert.equal(output.extensions.private_records_included, true);
+});
+
+test("derives completed exclusions when a synthetic new card is already fixed", async (t) => {
+  const f = await fixture(t, [syntheticCard()]);
+  f.add("FF-TEST-001", "private", "fixed");
+  const output = f.build();
+  assert.equal(output.extensions.source_work_item_count, 40);
+  assert.equal(output.extensions.excluded_completed_card_count, 16);
+  assert.deepEqual(output.cards, acceptedSnapshot.cards);
+});
+
+test("validates fixed-card source data before excluding it from the export", async (t) => {
+  for (const definition of [
+    { cardId: "FF-TEST-999" },
+    { ...syntheticCard("FF-TEST-999"), title: "" },
+    { ...syntheticCard("FF-TEST-999"), description: "" },
+    { ...syntheticCard("FF-TEST-999"), acceptanceCriteria: ["Only one."] },
+    { ...syntheticCard("FF-TEST-999"), dependsOn: ["FF-ABSENT-001"] },
+  ]) {
+    const f = await fixture(t, [definition]);
+    f.add("FF-TEST-999", "private", "fixed");
+    assert.throws(f.build, /title|description|acceptance criteria|invalid dependencies/);
+  }
+});
+
+test("requires a matching source definition and preserves baseline identities", async (t) => {
+  const f = await fixture(t);
+  f.add("FF-TEST-001", "private");
+  assert.throws(f.build, /missing scoped source card/);
+  f.changed.workItems = f.changed.workItems.filter((item) => item.id !== "FF-CORE-001");
+  assert.throws(f.build, /missing baseline card/);
+});
+
+test("rejects duplicate source definitions, duplicate registry IDs and invalid card data", async (t) => {
+  const duplicateSource = await fixture(t, [syntheticCard("FF-CORE-001")]);
+  assert.throws(duplicateSource.build, /duplicate source card/);
+  const f = await fixture(t, [syntheticCard()]);
+  f.add("FF-TEST-001", "private");
+  f.add("FF-TEST-001", "private");
+  assert.throws(f.build, /unique stable FF ids/);
+  f.changed.workItems.pop();
+  f.changed.workItems.at(-1).id = "FF-test-001";
+  assert.throws(f.build, /unique stable FF ids/);
+  f.changed.workItems.at(-1).id = "FF-TEST-001";
+  f.changed.workItems.at(-1).status = "deleted";
+  assert.throws(f.build, /unsupported live status/);
+  f.changed.workItems.at(-1).status = "planning";
+  f.changed.workItems.at(-1).updatedAt = "invalid";
+  assert.throws(f.build, /timestamp/);
+  f.changed.workItems.at(-1).updatedAt = f.changed.updatedAt;
+  f.changed.workItems.push(null);
+  assert.throws(f.build, /registry items must be objects/);
+});
+
+test("retains validation for acceptance criteria, dependencies and reconciliation provenance", async (t) => {
+  const badCriteria = await fixture(t, [{ ...syntheticCard(), acceptanceCriteria: ["Only one."] }]);
+  badCriteria.add("FF-TEST-001", "private");
+  assert.throws(badCriteria.build, /at least three acceptance criteria/);
+  const badDependency = await fixture(t, [{ ...syntheticCard(), dependsOn: ["FF-ABSENT-001"] }]);
+  badDependency.add("FF-TEST-001", "private");
+  assert.throws(badDependency.build, /invalid dependencies/);
+  const f = await fixture(t, [syntheticCard()]);
+  f.add("FF-TEST-001", "private");
+  f.changed.provenance.researchCandidateImport.adoptedCount = 1;
+  assert.throws(f.build, /reconciliation denominator/);
+});
+
+test("binds new-card provenance to its actual collection rather than its ID prefix", async (t) => {
+  const f = await fixture(t, [syntheticCard("FF-SESSION-999")]);
+  f.add("FF-SESSION-999", "private");
+  const card = f.build().cards.find((entry) => entry.record.card_id === "FF-SESSION-999");
+  assert.equal(card.record.source_ref, "repos/fawxzzy-fitness/scripts/feedback-monetization-roadmap.mjs#FF-SESSION-999");
 });
