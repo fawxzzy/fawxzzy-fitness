@@ -119,12 +119,13 @@ reader consumes a separately approved sanitized projection.
   owner/canonical intake path. Never send it directly to a public reader;
   sanitization, visibility approval and consumer checks remain required.
 
-The accepted `exports/fitness.project-board.owner-export.v1.json` is retained
-unchanged during source-only preparation. Adapter edits change source provenance,
-so `npm run project-board:owner-export:check` will report that retained snapshot
-stale until the source owner separately admits regeneration. This does not change
-the original 24 card bodies or their decisions. Synthetic fixtures prove local
-growth, privacy rejection/defaults, deterministic export and write/check readback.
+The committed `exports/fitness.project-board.owner-export.v1.json` has been
+regenerated for the integrated adapter. Only its export ID and source revisions
+change; the original 24 card bodies and their decisions remain unchanged.
+`npm run project-board:owner-export:check` must pass. A stale result blocks
+integration until the source owner reviews and regenerates the export from the
+intended source state. Synthetic fixtures prove local growth, privacy
+rejection/defaults, deterministic export and write/check readback.
 
 Adding cards is ready for the operator only after source integration and one
 authorized real card has been saved by the canonical writer and read back with
