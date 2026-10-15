@@ -167,6 +167,23 @@ function validateSourceCard(item, source, validIds) {
   };
 }
 
+function validateDependencyGraph(sources) {
+  const remaining = new Map();
+  const dependents = new Map([...sources.keys()].map((id) => [id, []]));
+  for (const [id, source] of sources) {
+    remaining.set(id, source.dependencies.length);
+    for (const dependency of source.dependencies) dependents.get(dependency).push(id);
+  }
+  const ready = [...remaining.keys()].filter((id) => remaining.get(id) === 0);
+  for (let index = 0; index < ready.length; index += 1) {
+    for (const id of dependents.get(ready[index])) {
+      remaining.set(id, remaining.get(id) - 1);
+      if (remaining.get(id) === 0) ready.push(id);
+    }
+  }
+  if (ready.length !== sources.size) throw new Error("Fitness source dependency cycle");
+}
+
 function mapCard(item, source, sourcePath) {
   const mapping = STATUS_MAPPING.get(item.status);
   if (!mapping) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
@@ -233,6 +250,7 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
     visibilityFor(item);
     validatedSources.set(item.id, validateSourceCard(item, sources.get(item.id).card, validIds));
   }
+  validateDependencyGraph(validatedSources);
   const combined = [sourceBytes.registry, sourceBytes.roadmap, sourceBytes.session, sourceBytes.adapter].map(normalize).join("\n--FITNESS-OWNER-SOURCE--\n");
   const sourceRevision = `sha256:${digest(combined)}`;
   const generatedAt = normalizeTimestamp(registry.updatedAt);

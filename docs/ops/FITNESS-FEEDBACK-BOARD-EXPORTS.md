@@ -104,6 +104,8 @@ reader consumes a separately approved sanitized projection.
   remain enforced. Titles, acceptance criteria, dependency identities, status
   and timestamps must remain valid. A source reference identifies the actual
   defining collection rather than guessing from an ID prefix.
+- Dependency cycles are rejected across all adopted source cards before fixed
+  cards are excluded. Acyclic dependencies may share prerequisites.
 - Every new registry entry must explicitly set `visibility` to `public`,
   `private` or `unknown`. Missing or invalid decisions fail closed. An undecided
   card uses explicit `unknown`, which has `public_safe: false`, as does `private`.

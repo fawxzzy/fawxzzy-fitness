@@ -200,6 +200,31 @@ test("requires an explicit valid visibility decision for every new card", async 
   }
 });
 
+test("rejects dependency cycles across newly adopted cards, including fixed cards", async (t) => {
+  for (const firstStatus of ["planning", "fixed"]) {
+    for (const length of [2, 3]) {
+      const ids = Array.from({ length }, (_, index) => `FF-TEST-00${index + 1}`);
+      const definitions = ids.map((id, index) => ({ ...syntheticCard(id), dependsOn: [ids[(index + 1) % length]] }));
+      const f = await fixture(t, definitions);
+      ids.forEach((id, index) => f.add(id, "private", index === 0 ? firstStatus : "planning"));
+      assert.throws(f.build, /dependency cycle/);
+    }
+  }
+});
+
+test("accepts acyclic dependencies with a shared prerequisite", async (t) => {
+  const definitions = [
+    syntheticCard(),
+    { ...syntheticCard("FF-TEST-002"), dependsOn: ["FF-TEST-001", "FF-CORE-001"] },
+    { ...syntheticCard("FF-TEST-003"), dependsOn: ["FF-TEST-001", "FF-TEST-002"] },
+  ];
+  const f = await fixture(t, definitions);
+  definitions.forEach(({ cardId }) => f.add(cardId, "private"));
+  const output = f.build();
+  assert.equal(output.cards.length, 27);
+  assert.deepEqual(output.cards.find((card) => card.record.card_id === "FF-TEST-003").record.dependencies, ["FF-TEST-001", "FF-TEST-002"]);
+});
+
 test("marks private and unknown cards non-public without claiming a sanitized export", async (t) => {
   const f = await fixture(t, [syntheticCard()]);
   f.add("FF-TEST-001", "unknown");
