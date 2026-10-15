@@ -86,3 +86,49 @@ When workflow logic changes, keep this doc aligned with:
 - `scripts/export-feedback-board.mjs`
 - `scripts/export-feedback-board.test.mjs`
 - `docs/ops/FITNESS-FEEDBACK-BOARD.md`
+
+## Reviewed owner registry projection
+
+The existing `npm run project-board:owner-export` adapter reads the reviewed
+`config/fitness-owner-work-registry.json` and matching definitions in the existing
+roadmap/session/supplemental collections. This source projection does not create
+canonical shared cards or replace the live feedback export workflow above.
+FawxzzyPlatform remains the sole logical canonical shared-card writer; the Web
+reader consumes a separately approved sanitized projection.
+
+- The 39 reconciled baseline IDs must remain present and unique. Additional
+  stable `FF-AREA-001` IDs need both an owner registry entry and one matching
+  definition in an existing source collection. Counts are derived from the
+  adopted entries; source-only definitions and unadopted research are not added.
+- Existing fixed-card exclusions and the historical reconciliation provenance
+  remain enforced. Titles, acceptance criteria, dependency identities, status
+  and timestamps must remain valid. A source reference identifies the actual
+  defining collection rather than guessing from an ID prefix.
+- Dependency cycles are rejected across all adopted source cards before fixed
+  cards are excluded. Acyclic dependencies may share prerequisites.
+- Every new registry entry must explicitly set `visibility` to `public`,
+  `private` or `unknown`. Missing or invalid decisions fail closed. An undecided
+  card uses explicit `unknown`, which has `public_safe: false`, as does `private`.
+  This requirement also applies to new entries already marked fixed.
+- Only the accepted 24-card snapshot retains its existing visibility when the
+  field is absent. Previously excluded baseline cards default to unknown, and
+  an explicit private/unknown decision overrides a retained public decision.
+  The source flag is not approval to publish a card.
+- An owner export can contain private/unknown cards and reports that fact with
+  `extensions.private_records_included`. Keep that full export in the controlled
+  owner/canonical intake path. Never send it directly to a public reader;
+  sanitization, visibility approval and consumer checks remain required.
+
+The committed `exports/fitness.project-board.owner-export.v1.json` has been
+regenerated for the integrated adapter. Only its export ID and source revisions
+change; the original 24 card bodies and their decisions remain unchanged.
+`npm run project-board:owner-export:check` must pass. A stale result blocks
+integration until the source owner reviews and regenerates the export from the
+intended source state. Synthetic fixtures prove local growth, privacy
+rejection/defaults, deterministic export and write/check readback.
+
+Adding cards is ready for the operator only after source integration and one
+authorized real card has been saved by the canonical writer and read back with
+the same ID, idempotency key, revision and status after refresh/reopen, followed
+by the required sanitized consumer acceptance and correlated owner result. These
+tests do not provide that live acceptance.

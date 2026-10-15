@@ -14,6 +14,26 @@ const ADAPTER_PATH = "scripts/export-project-board-owner.mjs";
 const DEFAULT_OUTPUT_PATH = "exports/fitness.project-board.owner-export.v1.json";
 const BOARD_ID = "fitness:project-feedback:fitness-active";
 const ATLAS_PREFIX = "repos/fawxzzy-fitness/";
+const STABLE_CARD_ID = /^FF-[A-Z]+-[0-9]{3}$/;
+// Retained reconciliation identities, not an upper bound on adopted work.
+const BASELINE_CARD_IDS = new Set([
+  "FF-ACCOUNT-001", "FF-ANALYTICS-001", "FF-ANALYTICS-002", "FF-BETA-001", "FF-COPILOT-001",
+  "FF-CORE-001", "FF-CORE-002", "FF-ENGINE-001", "FF-ENGINE-002", "FF-GAM-001", "FF-GAM-002",
+  "FF-HISTORY-001", "FF-LEGAL-001", "FF-MKT-001", "FF-MON-001", "FF-MON-002", "FF-MON-003",
+  "FF-ONBOARD-001", "FF-PROG-001", "FF-PWA-001", "FF-PWA-002", "FF-PWA-003", "FF-QA-001",
+  "FF-QA-002", "FF-RECAP-001", "FF-RET-001", "FF-RET-002", "FF-RET-003", "FF-RET-004",
+  "FF-ROUTINE-001", "FF-SEC-001", "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003",
+  "FF-SESSION-004", "FF-SESSION-005", "FF-SOC-001", "FF-SOC-002", "FF-TEMPLATES-001",
+]);
+// Only the accepted 24-card snapshot retains its existing public-safe decision.
+const ACCEPTED_PUBLIC_CARD_IDS = new Set([
+  "FF-ANALYTICS-001", "FF-ANALYTICS-002", "FF-BETA-001", "FF-ENGINE-001", "FF-ENGINE-002",
+  "FF-GAM-001", "FF-GAM-002", "FF-MKT-001", "FF-ONBOARD-001", "FF-PWA-003", "FF-QA-002",
+  "FF-RECAP-001", "FF-RET-001", "FF-RET-002", "FF-RET-003", "FF-RET-004", "FF-ROUTINE-001",
+  "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005",
+  "FF-SOC-001", "FF-SOC-002",
+]);
+const VISIBILITIES = new Set(["public", "private", "unknown"]);
 const STATUS_MAPPING = new Map([
   ["fawxzzy_review", { recordStatus: "active", lifecycle: "review" }],
   ["confirmed", { recordStatus: "candidate", lifecycle: "planning" }],
@@ -100,34 +120,74 @@ function requireString(value, label) {
 }
 
 function normalizeTimestamp(value) {
+  if (typeof value !== "string" || value.trim() === "") throw new Error("invalid registry timestamp");
   const parsed = new Date(value);
   if (!value || Number.isNaN(parsed.getTime())) throw new Error("invalid registry timestamp");
   return parsed.toISOString();
 }
 
 function sourceCards() {
-  const cards = [...FEEDBACK_MONETIZATION_ROADMAP, ...FEEDBACK_SESSION_TIMER_CARDS, ...SUPPLEMENTAL_CARDS];
   const byId = new Map();
-  for (const card of cards) {
-    const id = requireString(card.cardId, "cardId");
-    if (byId.has(id)) throw new Error(`duplicate source card ${id}`);
-    byId.set(id, card);
+  for (const [cards, sourcePath] of [[FEEDBACK_MONETIZATION_ROADMAP, ROADMAP_PATH], [FEEDBACK_SESSION_TIMER_CARDS, SESSION_PATH], [SUPPLEMENTAL_CARDS, ADAPTER_PATH]]) {
+    for (const card of cards) {
+      const id = requireString(card.cardId, "cardId");
+      if (!STABLE_CARD_ID.test(id)) throw new Error(`invalid source card ${id}`);
+      if (byId.has(id)) throw new Error(`duplicate source card ${id}`);
+      // Keep legacy supplemental refs stable; new cards use the defining file.
+      byId.set(id, { card, sourcePath: sourcePath === ADAPTER_PATH && BASELINE_CARD_IDS.has(id) ? REGISTRY_PATH : sourcePath });
+    }
   }
   return byId;
 }
 
-function mapCard(item, source, generatedAt) {
-  const mapping = STATUS_MAPPING.get(item.status);
-  if (!mapping) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
+function visibilityFor(item) {
+  if (item.visibility === undefined) {
+    if (!BASELINE_CARD_IDS.has(item.id)) throw new Error(`${item.id} requires explicit visibility: public, private or unknown`);
+    return ACCEPTED_PUBLIC_CARD_IDS.has(item.id) ? "public" : "unknown";
+  }
+  if (!VISIBILITIES.has(item.visibility)) throw new Error(`invalid visibility for ${item.id}`);
+  return item.visibility;
+}
+
+function validateSourceCard(item, source, validIds) {
   const priority = source.priority ?? null;
   const priorityMapping = new Map([["P0", "critical"], ["P1", "high"], ["P2", "medium"], ["P3", "low"]]);
   if (priority !== null && !priorityMapping.has(priority)) throw new Error(`invalid priority for ${item.id}`);
-  const dependencies = uniqueSorted(source.dependsOn ?? []);
+  const dependencyInput = source.dependsOn ?? [];
+  if (!Array.isArray(dependencyInput) || dependencyInput.some((id) => typeof id !== "string" || !STABLE_CARD_ID.test(id) || !validIds.has(id) || id === item.id)) throw new Error(`invalid dependencies for ${item.id}`);
+  const dependencies = uniqueSorted(dependencyInput);
   const criteria = source.acceptanceCriteria ?? [];
   if (!Array.isArray(criteria) || criteria.length < 3) throw new Error(`${item.id} requires at least three acceptance criteria`);
-  const sourcePath = item.id.startsWith("FF-SESSION-") ? SESSION_PATH
-    : FEEDBACK_MONETIZATION_ROADMAP.some((card) => card.cardId === item.id) ? ROADMAP_PATH
-      : REGISTRY_PATH;
+  return {
+    title: requireString(source.title, `${item.id}.title`),
+    description: requireString(source.description, `${item.id}.description`),
+    priority: priority === null ? null : priorityMapping.get(priority),
+    dependencies,
+    criteria: criteria.map((criterion) => requireString(criterion, `${item.id}.acceptanceCriteria`)),
+  };
+}
+
+function validateDependencyGraph(sources) {
+  const remaining = new Map();
+  const dependents = new Map([...sources.keys()].map((id) => [id, []]));
+  for (const [id, source] of sources) {
+    remaining.set(id, source.dependencies.length);
+    for (const dependency of source.dependencies) dependents.get(dependency).push(id);
+  }
+  const ready = [...remaining.keys()].filter((id) => remaining.get(id) === 0);
+  for (let index = 0; index < ready.length; index += 1) {
+    for (const id of dependents.get(ready[index])) {
+      remaining.set(id, remaining.get(id) - 1);
+      if (remaining.get(id) === 0) ready.push(id);
+    }
+  }
+  if (ready.length !== sources.size) throw new Error("Fitness source dependency cycle");
+}
+
+function mapCard(item, source, sourcePath) {
+  const mapping = STATUS_MAPPING.get(item.status);
+  if (!mapping) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
+  const visibility = visibilityFor(item);
   const sourceRef = `${atlasPath(sourcePath)}#${item.id}`;
   const normalizedId = item.id.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return {
@@ -139,23 +199,23 @@ function mapCard(item, source, generatedAt) {
       card_id: item.id,
       project_id: "fitness",
       board_id: BOARD_ID,
-      title: requireString(source.title, `${item.id}.title`),
-      description: requireString(source.description, `${item.id}.description`),
+      title: source.title,
+      description: source.description,
       card_type: "feature",
       lifecycle: mapping.lifecycle,
-      priority: priority === null ? null : priorityMapping.get(priority),
+      priority: source.priority,
       owner: "fitness",
-      dependencies,
+      dependencies: source.dependencies,
       board_version: 1,
       updated_at: normalizeTimestamp(item.updatedAt),
       source_ref: sourceRef,
-      extensions: { owner_status: item.status, public_safe: true },
+      extensions: { owner_status: item.status, public_safe: visibility === "public", ...(item.visibility === undefined ? {} : { visibility }) },
     },
     source: { source_id: "fitness-owner-work-registry", source_ref: sourceRef, source_status: "current", source_updated_at: normalizeTimestamp(item.updatedAt) },
     content: {
-      summary: requireString(source.description, `${item.id}.description`),
-      objective: requireString(source.description, `${item.id}.description`),
-      acceptance_criteria: criteria.map((criterion) => requireString(criterion, `${item.id}.acceptanceCriteria`)),
+      summary: source.description,
+      objective: source.description,
+      acceptance_criteria: source.criteria,
       discoveries: [], next_actions: [], blockers: [], evidence: [atlasPath(sourcePath)],
     },
     relationships: { parent_card_id: null, duplicate_of: null, superseded_by: null },
@@ -164,9 +224,12 @@ function mapCard(item, source, generatedAt) {
 
 export function buildProjectBoardOwnerExport(registry, sourceBytes) {
   if (registry?.schemaVersion !== 1 || registry.projectId !== "fitness" || registry.state !== "active") throw new Error("unexpected Fitness registry identity");
-  if (!Array.isArray(registry.workItems) || registry.workItems.length !== 39) throw new Error("Fitness owner truth must contain exactly 39 stable cards");
+  if (!Array.isArray(registry.workItems)) throw new Error("Fitness workItems must be an array");
+  if (registry.workItems.some((item) => !item || typeof item !== "object" || Array.isArray(item))) throw new Error("Fitness registry items must be objects");
   const ids = registry.workItems.map((item) => item.id);
-  if (new Set(ids).size !== ids.length || ids.some((id) => !/^FF-[A-Z]+-[0-9]{3}$/.test(id))) throw new Error("Fitness registry ids must be unique stable FF ids");
+  const validIds = new Set(ids);
+  if (validIds.size !== ids.length || ids.some((id) => typeof id !== "string" || !STABLE_CARD_ID.test(id))) throw new Error("Fitness registry ids must be unique stable FF ids");
+  for (const id of BASELINE_CARD_IDS) if (!validIds.has(id)) throw new Error(`missing baseline card ${id}`);
   const provenance = registry.provenance;
   if (provenance?.selectedOwnerSnapshot?.recordCount !== 55 || provenance.selectedOwnerSnapshot.stableCardCount !== 37
     || provenance.deferredBoardJournal?.eventCount !== 38 || provenance.deferredBoardJournal.publicStableAdditions !== 2
@@ -179,13 +242,23 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
     throw new Error("Fitness reconciliation denominator is incomplete");
   }
   const sources = sourceCards();
-  for (const id of ids) if (!sources.has(id)) throw new Error(`missing public-safe source card ${id}`);
+  const validatedSources = new Map();
+  for (const item of registry.workItems) {
+    if (!sources.has(item.id)) throw new Error(`missing scoped source card ${item.id}`);
+    if (item.status !== "fixed" && !STATUS_MAPPING.has(item.status)) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
+    normalizeTimestamp(item.updatedAt);
+    visibilityFor(item);
+    validatedSources.set(item.id, validateSourceCard(item, sources.get(item.id).card, validIds));
+  }
+  validateDependencyGraph(validatedSources);
   const combined = [sourceBytes.registry, sourceBytes.roadmap, sourceBytes.session, sourceBytes.adapter].map(normalize).join("\n--FITNESS-OWNER-SOURCE--\n");
   const sourceRevision = `sha256:${digest(combined)}`;
   const generatedAt = normalizeTimestamp(registry.updatedAt);
-  const cards = registry.workItems.filter((item) => item.status !== "fixed").map((item) => mapCard(item, sources.get(item.id), generatedAt))
+  const cards = registry.workItems.filter((item) => item.status !== "fixed").map((item) => {
+    const source = sources.get(item.id);
+    return mapCard(item, validatedSources.get(item.id), source.sourcePath);
+  })
     .sort((left, right) => left.record.card_id.localeCompare(right.record.card_id));
-  if (cards.length !== 24) throw new Error("Fitness live owner export must contain exactly 24 active/planned cards");
   return {
     contract_version: "atlas.project-board.owner-export.v1",
     export_id: `pbe_fitness_owner_registry_${sourceRevision.slice(7, 19)}`,
@@ -199,7 +272,7 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
     ],
     cards,
     extensions: {
-      source_work_item_count: 39, exported_card_count: 24, excluded_completed_card_count: 15,
+      source_work_item_count: registry.workItems.length, exported_card_count: cards.length, excluded_completed_card_count: registry.workItems.length - cards.length,
       selected_owner_snapshot_record_count: 55, excluded_unstable_or_nonfitness_record_count: 18,
       deferred_board_journal_event_count: 38, deferred_board_journal_public_stable_additions: 2,
       deferred_board_journal_security_incident_exclusions: 1,
@@ -208,7 +281,7 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
       deferred_board_journal_sha256: provenance.deferredBoardJournal.sha256,
       research_candidate_count: 64, research_candidate_exported_count: 0, research_stable_id_overlap_count: 0,
       research_disposition: "planning-only candidates require explicit owner adoption before export",
-      private_records_included: false, external_system_identifiers_included: false,
+      private_records_included: cards.some((card) => !card.record.extensions.public_safe), external_system_identifiers_included: false,
     },
   };
 }
