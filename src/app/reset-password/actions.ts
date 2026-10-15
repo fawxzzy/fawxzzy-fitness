@@ -7,6 +7,8 @@ import { supabaseServerWithSession } from "@/lib/supabase/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
+import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
+
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
 
 export async function establishRecoverySession(input: { accessToken: string; refreshToken: string }) {
@@ -51,6 +53,10 @@ export async function establishRecoverySession(input: { accessToken: string; ref
 }
 
 export async function updatePassword(newPassword: string) {
+  if (!isValidNewPassword(newPassword)) {
+    return { ok: false as const, error: NEW_PASSWORD_REQUIREMENT };
+  }
+
   const supabase = await supabaseServerWithSession();
   const { data: userData } = await supabase.auth.getUser();
 
@@ -79,11 +85,11 @@ export async function updatePassword(newPassword: string) {
 }
 
 export async function updatePasswordAction(formData: FormData) {
-  const password = String(formData.get("password") ?? "").trim();
-  const confirmPassword = String(formData.get("confirmPassword") ?? "").trim();
+  const password = formData.get("password");
+  const confirmPassword = formData.get("confirmPassword");
 
-  if (password.length < 6) {
-    redirect("/reset-password?error=Password%20must%20be%20at%20least%206%20characters");
+  if (!isValidNewPassword(password)) {
+    redirect(`/reset-password?error=${encodeURIComponent(NEW_PASSWORD_REQUIREMENT)}`);
   }
 
   if (password !== confirmPassword) {

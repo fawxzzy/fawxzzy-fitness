@@ -21,13 +21,15 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 
+import { isValidNewPassword, NEW_PASSWORD_MINIMUM } from "@/lib/password-policy";
+
 const RESET_PASSWORD_FORM_ID = "reset-password-form";
 
 export function ResetPasswordForm({ error }: { error?: string }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSave = password.length >= 6 && confirmPassword.length >= 6 && password === confirmPassword;
+  const canSave = isValidNewPassword(password) && isValidNewPassword(confirmPassword) && password === confirmPassword;
 
   useToastMessageEffect("error", error, { id: "reset-password-error" });
 
@@ -52,7 +54,7 @@ export function ResetPasswordForm({ error }: { error?: string }) {
             <AuthAccountField label="New password">
               <PasswordInput
                 name="password"
-                minLength={6}
+                minLength={NEW_PASSWORD_MINIMUM}
                 required
                 autoComplete="new-password"
                 fitContent={false}
@@ -67,7 +69,7 @@ export function ResetPasswordForm({ error }: { error?: string }) {
             <AuthAccountField label="Confirm new password">
               <PasswordInput
                 name="confirmPassword"
-                minLength={6}
+                minLength={NEW_PASSWORD_MINIMUM}
                 required
                 autoComplete="new-password"
                 fitContent={false}

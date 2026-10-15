@@ -16,6 +16,8 @@ import { cn } from "@/lib/cn";
 import { writeRememberedLoginState } from "@/lib/remembered-login";
 import { isUsernameIdentifier, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@/lib/username-policy";
 
+import { isValidNewPassword, NEW_PASSWORD_MINIMUM } from "@/lib/password-policy";
+
 const SIGNUP_FORM_ID = "signup-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS = 8;
@@ -35,7 +37,7 @@ export function SignupForm({
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const canCreate = isUsernameIdentifier(username) && EMAIL_PATTERN.test(email.trim().toLowerCase()) && password.length >= 6;
+  const canCreate = isUsernameIdentifier(username) && EMAIL_PATTERN.test(email.trim().toLowerCase()) && isValidNewPassword(password);
 
   useToastMessageEffect("error", error, { id: "signup-route-error" });
   useToastMessageEffect("success", info, { id: "signup-route-info" });
@@ -102,7 +104,7 @@ export function SignupForm({
             <AuthAccountField label="Password">
               <PasswordInput
                 name="password"
-                minLength={6}
+                minLength={NEW_PASSWORD_MINIMUM}
                 required
                 autoComplete="new-password"
                 fitContent={false}

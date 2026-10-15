@@ -34,6 +34,8 @@ const LITERAL_PATHS = [
   "src/app/auth/actions.ts",
   "src/lib/username-signin-index*",
   "src/lib/password-reset-request*",
+  "src/lib/password-policy*",
+  "tests/password-mutation-actions.test.mjs",
   "src/components/AppNav.tsx",
   "src/lib/local-dev-auto-entry.test.ts",
   "src/lib/local-dev-auto-login-credentials.ts",
@@ -113,6 +115,8 @@ test("the invoked auth command includes username and password-reset regressions 
   for (const file of [
     "src/lib/username-signin-index.test.ts",
     "src/lib/password-reset-request.test.ts",
+    "src/lib/password-policy.test.ts",
+    "tests/password-mutation-actions.test.mjs",
   ]) {
     assert.equal(command.filter((argument) => argument === file).length, 1, `${file} must run once`);
     assert.equal(fs.existsSync(path.join(repoRoot, file)), true, `${file} must exist`);
