@@ -10,6 +10,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 import { resolveLoginIdentifierEmail, resolveUsernameEmailFromIndex } from "@/lib/username-signin-index";
 import { requestResetForIdentifier } from "@/lib/password-reset-request";
+import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -115,7 +116,11 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const email = normalizeLoginIdentifier(formData.get("email"));
-  const password = String(formData.get("password") ?? "");
+  const password = formData.get("password");
+
+  if (!isValidNewPassword(password)) {
+    redirect(`/signup?error=${encodeURIComponent(NEW_PASSWORD_REQUIREMENT)}`);
+  }
   const username = String(formData.get("username") ?? "").trim();
 
   if (username && !isUsernameIdentifier(username)) {
