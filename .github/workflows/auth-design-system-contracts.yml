@@ -11,6 +11,7 @@ on:
       - "src/lib/password-reset-request*"
       - "src/lib/password-policy*"
       - "tests/password-mutation-actions.test.mjs"
+      - "tests/login-autofill/**"
       - "src/app/signup/**"
       - "src/app/forgot-password/**"
       - "src/app/reset-password/**"
@@ -30,6 +31,7 @@ on:
       - "src/components/settings/**"
       - "src/lib/account-navigation*"
       - "package.json"
+      - "package-lock.json"
       - "tests/design-system-contract.test.mjs"
       - "tests/auth-design-system-contracts-workflow.test.mjs"
       - "truth-pack/fitness/design-system/**"
@@ -53,6 +55,7 @@ on:
       - "src/lib/password-reset-request*"
       - "src/lib/password-policy*"
       - "tests/password-mutation-actions.test.mjs"
+      - "tests/login-autofill/**"
       - "src/app/signup/**"
       - "src/app/forgot-password/**"
       - "src/app/reset-password/**"
@@ -72,6 +75,7 @@ on:
       - "src/components/settings/**"
       - "src/lib/account-navigation*"
       - "package.json"
+      - "package-lock.json"
       - "tests/design-system-contract.test.mjs"
       - "tests/auth-design-system-contracts-workflow.test.mjs"
       - "truth-pack/fitness/design-system/**"
@@ -106,6 +110,12 @@ jobs:
 
       - name: Verify auth UI contracts
         run: npm run test:auth-ui-contracts
+
+      - name: Install Chromium for login autofill regression
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify login autofill regression
+        run: npm run test:auth-autofill
 
       - name: Verify design-system contract
         run: npm run test:design-system-contract
