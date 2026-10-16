@@ -7,13 +7,11 @@ const repo=path.resolve(dir,'../..');
 const require=createRequire(path.join(repo,'package.json'));
 const esbuild=require('esbuild');
 const {chromium}=require('playwright');
-const component=path.join(repo,'src/app/login/LoginScreen.tsx');
 const baselineRef=process.env.LOGIN_AUTOFILL_BASELINE_REF;
 const bundle=await esbuild.build({
  entryPoints:[path.join(dir,'entry.tsx')],bundle:true,write:false,format:'iife',platform:'browser',jsx:'automatic',
  plugins:[{name:'login-fixture',setup(build){
    build.onResolve({filter:/^react(\/jsx-runtime)?$|^react-dom\/client$/},args=>({path:require.resolve(args.path)}));
-   build.onResolve({filter:/^\.\/LoginScreen$/},()=>({path:component}));
    build.onResolve({filter:/^next\/link$|^@\//},args=>({path:args.path==='@/app/login/loginScreenState'?path.join(repo,'src/app/login/loginScreenState.ts'):path.join(dir,'mocks.tsx')}));
    if(baselineRef)build.onLoad({filter:/LoginScreen\.tsx$/},()=>({contents:execFileSync('git',['show',baselineRef+':src/app/login/LoginScreen.tsx'],{cwd:repo,encoding:'utf8'}),loader:'tsx'}));
  }}]
