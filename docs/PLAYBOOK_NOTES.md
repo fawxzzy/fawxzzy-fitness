@@ -1,5 +1,12 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-10-16 - Keep event-free login autofill submittable
+
+- Type: Authentication UI continuity + Coverage
+- WHAT changed: The Fitness login submit action stays available when a browser fills the credential fields after the startup synchronization window without firing input or change events. The existing form submit handler validates the actual FormData, preserves password bytes, and disables the action while a valid submission is in flight. A browser regression mounts the real LoginScreen with dummy credentials and local action mocks, covering delayed event-free click and Enter, normal typing, invalid identifiers, and in-flight behavior in the auth CI workflow.
+- WHY: A state-derived disabled button could remain locked even though the visible DOM fields held valid browser-filled credentials.
+- Scope: Source and local regression only; the fixture does not prove installed-app autofill timing or live server-action sign-in. No provider, credential, session, deployment, or production effect is included.
+
 ## 2026-10-14 - Keep local member classification tied to server authority
 
 - WHAT changed: A forward local-baseline migration classifies automation only from server-controlled Auth app metadata, fixes the classifier search path, and rejects unexpected owner or ACL drift before replacement. Existing profile identities and sequence values remain unchanged. Behavioral tests cover spoofed metadata, email names, exact grants, drift rejection and allocator preservation.
