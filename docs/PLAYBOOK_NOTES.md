@@ -1314,3 +1314,9 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Recover live follow-up jobs only through an exact, reviewed, one-attempt action with fresh group/catalog preimages and redacted postimage. Source and CI proof do not authorize a job claim, retry, deployment, or merge.
 - Evidence: `src/lib/session-follow-up-jobs.ts`, `src/lib/exercise-stats.ts`, `src/lib/session-follow-up-jobs.test.ts`, and `scripts/process-fitness-followups-exact.mjs`.
 - Status: Draft source only; independent review, protected admission, live acceptance, and the 114 older pending jobs remain separate.
+
+## 2026-10-17 - Prove exact follow-up runner startup before a claim
+
+- Failure Mode: Direct `node` invocation omitted the repository alias loader. The handler's dynamic `@/lib/*` imports would fail only after the exact RPC claim, leaving both jobs in `processing` with an attempt consumed.
+- Rule: Use `npm run fitness:followups:process:exact:preflight` to prove the packaged loader resolves the handler dependencies before any claim. Run the exact action only through `npm run fitness:followups:process:exact -- --execute-exact-incident 2026-10-17T03:09:55.111465Z` after separate protected admission. Missing aliases, target, credentials, or dependencies fail before claim. The exact runner does not auto-install dependencies.
+- Evidence: `scripts/process-fitness-followups-exact.test.mjs` covers startup with and without the loader; `src/lib/exercise-stats.test.ts` covers strict read, delete, and upsert failures. Live settlement remains unproven.

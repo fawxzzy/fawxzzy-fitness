@@ -58,7 +58,7 @@ export async function resolve(specifier, context, defaultResolve) {
   // Node's ESM resolver does not expand Next's documented extensionless exports,
   // while the application bundler does. Keep application imports canonical and
   // map only the Node contract-test runtime to Next's matching implementation.
-  if (["next/server", "next/navigation", "next/link", "next/image"].includes(specifier)) {
+  if (["next/server", "next/navigation", "next/link", "next/image", "next/cache", "next/headers"].includes(specifier)) {
     return defaultResolve(`${specifier}.js`, context, defaultResolve);
   }
 

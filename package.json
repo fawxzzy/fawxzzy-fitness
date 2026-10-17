@@ -140,6 +140,8 @@
     "qa:llel:capture": "node scripts/qa/open-fitness-llel-tabs.mjs --capture",
     "qa:llel:progression": "node scripts/qa/progression-visual-receipt.mjs",
     "fitness:followups:process": "node --import ./scripts/register-test-aliases.mjs scripts/process-fitness-followups.mjs",
+    "fitness:followups:process:exact": "node --import ./scripts/register-test-aliases.mjs scripts/process-fitness-followups-exact.mjs",
+    "fitness:followups:process:exact:preflight": "node --import ./scripts/register-test-aliases.mjs scripts/process-fitness-followups-exact.mjs --preflight-runtime",
     "fitness:followups:process:dry-run": "node --import ./scripts/register-test-aliases.mjs scripts/process-fitness-followups.mjs --dry-run",
     "qa:session": "node scripts/qa/fitness-qa-user.mjs session",
     "qa:session:refresh": "node scripts/qa/fitness-qa-user.mjs session --refresh",
@@ -197,7 +199,7 @@
     "test:promotion-directions": "node --import ./scripts/register-test-aliases.mjs --test src/lib/promotion-directions.test.ts",
     "test:session-start-integrity": "node --import ./scripts/register-test-aliases.mjs --test src/lib/session-start-integrity.test.ts",
     "test:session-start-atomicity": "node --import ./scripts/register-test-aliases.mjs --test src/lib/session-start-atomicity.test.ts",
-    "test:fitness-integrity-completion": "node --import ./scripts/register-test-aliases.mjs --test scripts/qa/fitness-qa-user.test.mjs src/app/dev/mobile-regression/page.contract.test.ts src/components/session/setCountSync.test.ts src/lib/dev-supabase-target.test.ts src/lib/header-info-rail.test.ts src/lib/offline/skip-toggle-queue.test.ts src/lib/offline/skip-toggle-reconciliation.test.ts src/lib/offline/skip-toggle-sync-engine.test.ts src/lib/session-follow-up-jobs.test.ts src/lib/session-quick-log.test.ts src/lib/session-start-atomicity.test.ts",
+    "test:fitness-integrity-completion": "node --import ./scripts/register-test-aliases.mjs --test scripts/process-fitness-followups-exact.test.mjs scripts/qa/fitness-qa-user.test.mjs src/app/dev/mobile-regression/page.contract.test.ts src/components/session/setCountSync.test.ts src/lib/dev-supabase-target.test.ts src/lib/exercise-stats.test.ts src/lib/header-info-rail.test.ts src/lib/offline/skip-toggle-queue.test.ts src/lib/offline/skip-toggle-reconciliation.test.ts src/lib/offline/skip-toggle-sync-engine.test.ts src/lib/session-follow-up-jobs.test.ts src/lib/session-quick-log.test.ts src/lib/session-start-atomicity.test.ts",
     "test:pr-evaluator": "node --import ./scripts/register-test-aliases.mjs --test src/lib/pr-evaluator.test.ts",
     "test:exercise-strength-pr-summaries": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-strength-pr-summaries.test.ts"
   },
