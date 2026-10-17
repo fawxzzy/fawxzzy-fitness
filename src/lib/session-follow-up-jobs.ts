@@ -222,6 +222,7 @@ async function buildSessionFollowUpHandlers(args: {
         memberId: args.userId,
         reason: "session_completed",
         now: args.now,
+        client: args.client,
       });
     },
   } satisfies Record<SessionFollowUpJobKind, () => Promise<void>>;
