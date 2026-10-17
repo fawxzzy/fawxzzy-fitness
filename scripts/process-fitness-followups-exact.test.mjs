@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +11,25 @@ const safeEnv = Object.fromEntries(
   ["PATH", "Path", "SystemRoot", "TEMP", "TMP"].filter((key) => process.env[key])
     .map((key) => [key, process.env[key]]),
 );
+
+test("focused CI watches the exact runner and stats source on PRs and main pushes", () => {
+  const workflow = readFileSync(path.join(repoRoot, ".github/workflows/fitness-integrity-completion-contract.yml"), "utf8");
+  const [pullRequest, mainPush] = workflow.split(/^  push:\s*$/m);
+  assert.ok(pullRequest && mainPush, "both workflow triggers remain inspectable");
+  for (const section of [pullRequest, mainPush]) {
+    for (const sourcePath of [
+      "scripts/process-fitness-followups-exact.mjs",
+      "scripts/process-fitness-followups-exact.test.mjs",
+      "scripts/test-alias-loader.mjs",
+      "src/lib/exercise-stats.ts",
+      "src/lib/exercise-stats.test.ts",
+      "src/lib/session-follow-up-jobs.ts",
+      "src/lib/session-follow-up-jobs.test.ts",
+    ]) {
+      assert.ok(section.includes(`- "${sourcePath}"`), `${sourcePath} must trigger the focused workflow`);
+    }
+  }
+});
 
 test("exact follow-up runner preflight proves its packaged alias loader without provider access", () => {
   const result = spawnSync(process.execPath, [
