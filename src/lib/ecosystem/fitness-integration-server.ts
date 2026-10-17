@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 import {
   buildFitnessSnapshotSourceState,
   fitnessIntegrationClient,
@@ -22,8 +23,12 @@ function shiftDate(date: string, days: number): string {
   return next.toISOString().slice(0, 10);
 }
 
-export async function buildFitnessSnapshotSourceStateFromApp(memberId: string, now: Date | string): Promise<FitnessSnapshotSourceState> {
-  const supabase = supabaseServer();
+export async function buildFitnessSnapshotSourceStateFromApp(
+  memberId: string,
+  now: Date | string,
+  client?: FitnessSupabaseClient,
+): Promise<FitnessSnapshotSourceState> {
+  const supabase = client ?? supabaseServer();
 
   return buildFitnessSnapshotSourceState({
     memberId,
@@ -155,9 +160,10 @@ export async function publishFitnessIntegrationStateForMember(input: {
   memberId: string;
   reason: FitnessOutboundReason;
   now?: Date | string;
+  client?: FitnessSupabaseClient;
 }) {
   const now = input.now ?? new Date();
-  const sourceState = await buildFitnessSnapshotSourceStateFromApp(input.memberId, now);
+  const sourceState = await buildFitnessSnapshotSourceStateFromApp(input.memberId, now, input.client);
 
   const outboundSignals = fitnessIntegrationClient.evaluateAndPackageSignals({
     source: sourceState,
