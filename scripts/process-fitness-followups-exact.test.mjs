@@ -42,6 +42,49 @@ test("exact follow-up runner preflight proves its packaged alias loader without 
   assert.equal(result.stderr, "");
 });
 
+test("exact runner accepts a bounded synthetic credential through stdin without echo", () => {
+  const fixture = "synthetic-fixture-key\n";
+  const result = spawnSync(process.execPath, [
+    "--import", "./scripts/register-test-aliases.mjs", runner, "--preflight-credential-pipe",
+  ], { cwd: repoRoot, env: { ...safeEnv, FITNESS_EXACT_FOLLOWUP_CREDENTIAL_PIPE: "1" }, input: fixture, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), "EXACT_FOLLOW_UP_CREDENTIAL_PIPE_READY");
+  assert.equal(result.stderr, "");
+  assert.ok(!`${result.stdout}${result.stderr}`.includes(fixture.trim()));
+});
+
+test("documented npm runner forwards a synthetic credential pipe", () => {
+  const command = "npm run fitness:followups:process:exact -- --preflight-credential-pipe";
+  const executable = process.platform === "win32" ? "cmd.exe" : "sh";
+  const args = process.platform === "win32" ? ["/d", "/s", "/c", command] : ["-c", command];
+  const result = spawnSync(executable, args, {
+    cwd: repoRoot,
+    env: { ...safeEnv, FITNESS_EXACT_FOLLOWUP_CREDENTIAL_PIPE: "1" },
+    input: "synthetic-npm-credential\n",
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /EXACT_FOLLOW_UP_CREDENTIAL_PIPE_READY/);
+  assert.ok(!`${result.stdout}${result.stderr}`.includes("synthetic-npm-credential"));
+});
+
+test("exact runner rejects ambiguous, oversized, and absent pipe credentials", () => {
+  const cases = [
+    { input: "synthetic-fixture-key\n", env: { SUPABASE_SERVICE_ROLE_KEY: "other-fixture" } },
+    { input: "x".repeat(4097), env: {} },
+    { input: "", env: {} },
+  ];
+  for (const entry of cases) {
+    const result = spawnSync(process.execPath, [
+      "--import", "./scripts/register-test-aliases.mjs", runner, "--preflight-credential-pipe",
+    ], { cwd: repoRoot, env: { ...safeEnv, FITNESS_EXACT_FOLLOWUP_CREDENTIAL_PIPE: "1", ...entry.env }, input: entry.input, encoding: "utf8" });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "EXACT_FOLLOW_UP_PRECLAIM_HOLD\n");
+    assert.ok(!`${result.stdout}${result.stderr}`.includes("synthetic-fixture-key"));
+  }
+});
+
 test("exact follow-up runner rejects a missing alias loader before credentials or a claim", () => {
   const result = spawnSync(process.execPath, [runner, "--preflight-runtime"], {
     cwd: repoRoot, env: safeEnv, encoding: "utf8",

@@ -10,6 +10,8 @@ const INCIDENT_CREATED_AT = "2026-10-17T03:09:55.111465Z";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
+const CREDENTIAL_PIPE_ENV = "FITNESS_EXACT_FOLLOWUP_CREDENTIAL_PIPE";
+const MAX_CREDENTIAL_BYTES = 4096;
 const REQUIRED_ALIASES = [
   "lib/exercise-stats.ts",
   "lib/feature-flags.ts",
@@ -42,6 +44,36 @@ async function assertHandlerImportsReady() {
   ]);
 }
 
+async function readCredentialPipe() {
+  if (process.stdin.isTTY || process.env[SERVICE_ROLE_KEY_ENV] || process.env.SUPABASE_SECRET_KEY) {
+    throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_HOLD");
+  }
+  const buffer = Buffer.alloc(MAX_CREDENTIAL_BYTES);
+  let size = 0;
+  const timeout = setTimeout(() => process.stdin.destroy(new Error("CREDENTIAL_PIPE_TIMEOUT")), 5000);
+  try {
+    for await (const chunk of process.stdin) {
+      if (!Buffer.isBuffer(chunk) || size + chunk.length > MAX_CREDENTIAL_BYTES) {
+        if (Buffer.isBuffer(chunk)) chunk.fill(0);
+        throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_HOLD");
+      }
+      chunk.copy(buffer, size);
+      size += chunk.length;
+      chunk.fill(0);
+    }
+    const key = buffer.subarray(0, size).toString("utf8").trim();
+    if (!key || key.includes("\n") || key.includes("\r")) {
+      throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_HOLD");
+    }
+    return key;
+  } catch {
+    throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_HOLD");
+  } finally {
+    clearTimeout(timeout);
+    buffer.fill(0);
+  }
+}
+
 async function main() {
   const [mode, createdAt, ...extra] = process.argv.slice(2);
   if (path.resolve(process.cwd()) !== REPO_ROOT) {
@@ -53,18 +85,25 @@ async function main() {
     process.stdout.write("EXACT_FOLLOW_UP_RUNTIME_READY\n");
     return;
   }
+  if (mode === "--preflight-credential-pipe" && createdAt === undefined && extra.length === 0) {
+    if (process.env[CREDENTIAL_PIPE_ENV] !== "1") throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_HOLD");
+    await readCredentialPipe();
+    process.stdout.write("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_READY\n");
+    return;
+  }
   if (mode !== "--execute-exact-incident" || extra.length || createdAt !== INCIDENT_CREATED_AT) {
     throw new Error("EXACT_FOLLOW_UP_USAGE_HOLD");
   }
   // Resolve every handler alias before the first service-role job claim.
   assertRuntimeAliases();
   await assertHandlerImportsReady();
-  const env = { ...process.env, ...parseDotenvFiles(resolveEnvFilePaths(REPO_ROOT)) };
+  const pipeMode = process.env[CREDENTIAL_PIPE_ENV] === "1";
+  const env = pipeMode ? process.env : { ...process.env, ...parseDotenvFiles(resolveEnvFilePaths(REPO_ROOT)) };
   const url = env[SUPABASE_URL_ENV]?.trim();
   if (!url || new URL(url).hostname !== MASTER_HOST) {
     throw new Error("EXACT_FOLLOW_UP_TARGET_HOLD");
   }
-  const key = env[SERVICE_ROLE_KEY_ENV]?.trim();
+  const key = pipeMode ? await readCredentialPipe() : env[SERVICE_ROLE_KEY_ENV]?.trim();
   if (!key) throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_HOLD");
   // This runner must never invoke the QA helper's dependency installer before a claim.
   const { createClient } = await import("@supabase/supabase-js");
