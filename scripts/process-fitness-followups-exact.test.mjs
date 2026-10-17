@@ -23,6 +23,8 @@ test("focused CI watches the exact runner and stats source on PRs and main pushe
       "scripts/test-alias-loader.mjs",
       "src/lib/exercise-stats.ts",
       "src/lib/exercise-stats.test.ts",
+      "src/lib/ecosystem/fitness-integration-server.ts",
+      "src/lib/ecosystem/fitness-integration-server.test.ts",
       "src/lib/session-follow-up-jobs.ts",
       "src/lib/session-follow-up-jobs.test.ts",
     ]) {
