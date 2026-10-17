@@ -204,7 +204,7 @@ async function buildSessionFollowUpHandlers(args: {
         });
       }
 
-      const signal = await recordFitnessSignalForMember({
+      await recordFitnessSignalForMember({
         memberId: args.userId,
         signalType: "workout_completed",
         reason: "session_completed",
@@ -217,14 +217,12 @@ async function buildSessionFollowUpHandlers(args: {
           completionRate: 1,
         },
       });
-      if (signal.shadowTelemetry.errors.length) throw new Error("FOLLOW_UP_SIGNAL_TELEMETRY_FAILED");
 
-      const publication = await publishFitnessIntegrationStateForMember({
+      await publishFitnessIntegrationStateForMember({
         memberId: args.userId,
         reason: "session_completed",
         now: args.now,
       });
-      if (publication.shadowTelemetry.errors.length) throw new Error("FOLLOW_UP_STATE_TELEMETRY_FAILED");
     },
   } satisfies Record<SessionFollowUpJobKind, () => Promise<void>>;
 }

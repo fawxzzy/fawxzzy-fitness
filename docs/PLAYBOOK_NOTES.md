@@ -1306,3 +1306,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Change: The existing auth contract command now runs the username resolver and password-reset regressions. Its workflow watches both helpers and `src/app/auth/actions.ts`; the workflow policy test checks that both regression files remain in the invoked command.
 - Failure Mode: A passing one-off local suite can hide missing CI coverage when new tests are never discovered automatically.
 - Scope: Source verification only; no Auth request, reset email, provider setting, or deployment is performed by this change.
+
+## 2026-10-17 - Bound incident follow-up recovery without changing shadow telemetry semantics
+
+- WHAT changed: An exact incident runner selects the two pending follow-up jobs by their pinned creation timestamp, verifies the complete session group, and stops before handlers if the claim differs. The worker now surfaces exercise-stat read/write errors in strict follow-up mode and treats a failed or zero-row job-status update as a settlement failure.
+- WHY it changed: The generic oldest-first batch would reach 114 older jobs before this incident, and silent stats or settlement errors could falsely mark follow-up work complete. The shadow telemetry emitter remains best effort by design; its file receipts have no active downstream handler and do not decide the job result.
+- Rule: Recover live follow-up jobs only through an exact, reviewed, one-attempt action with fresh group/catalog preimages and redacted postimage. Source and CI proof do not authorize a job claim, retry, deployment, or merge.
+- Evidence: `src/lib/session-follow-up-jobs.ts`, `src/lib/exercise-stats.ts`, `src/lib/session-follow-up-jobs.test.ts`, and `scripts/process-fitness-followups-exact.mjs`.
+- Status: Draft source only; independent review, protected admission, live acceptance, and the 114 older pending jobs remain separate.
