@@ -376,7 +376,7 @@ export function LoginScreen({
               type="submit"
               form={LOGIN_FORM_ID}
               intent="positive"
-              disabled={!formReady || isSubmitting}
+              disabled={isSubmitting}
               loading={isSubmitting}
               loadingLabel={PASSWORD_LOGIN_UI_COPY.cta.pending}
               className={cn(AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME, isSubmitting ? appTokens.authActionButtonPending : "")}
