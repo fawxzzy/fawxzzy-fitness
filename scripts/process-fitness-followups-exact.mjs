@@ -19,6 +19,14 @@ const REQUIRED_ALIASES = [
 ];
 let providerBoundaryEntered = false;
 
+function assertExactMasterOrigin(rawUrl) {
+  const url = rawUrl?.trim();
+  if (url !== `https://${MASTER_HOST}` && url !== `https://${MASTER_HOST}/`) {
+    throw new Error("EXACT_FOLLOW_UP_TARGET_HOLD");
+  }
+  return url;
+}
+
 function assertRuntimeAliases() {
   for (const sourcePath of REQUIRED_ALIASES) {
     const specifier = `@/${sourcePath.replace(/\.ts$/, "")}`;
@@ -91,6 +99,11 @@ async function main() {
     process.stdout.write("EXACT_FOLLOW_UP_CREDENTIAL_PIPE_READY\n");
     return;
   }
+  if (mode === "--preflight-target" && createdAt === undefined && extra.length === 0) {
+    assertExactMasterOrigin(process.env[SUPABASE_URL_ENV]);
+    process.stdout.write("EXACT_FOLLOW_UP_TARGET_READY\n");
+    return;
+  }
   if (mode !== "--execute-exact-incident" || extra.length || createdAt !== INCIDENT_CREATED_AT) {
     throw new Error("EXACT_FOLLOW_UP_USAGE_HOLD");
   }
@@ -99,10 +112,7 @@ async function main() {
   await assertHandlerImportsReady();
   const pipeMode = process.env[CREDENTIAL_PIPE_ENV] === "1";
   const env = pipeMode ? process.env : { ...process.env, ...parseDotenvFiles(resolveEnvFilePaths(REPO_ROOT)) };
-  const url = env[SUPABASE_URL_ENV]?.trim();
-  if (!url || new URL(url).hostname !== MASTER_HOST) {
-    throw new Error("EXACT_FOLLOW_UP_TARGET_HOLD");
-  }
+  const url = assertExactMasterOrigin(env[SUPABASE_URL_ENV]);
   const key = pipeMode ? await readCredentialPipe() : env[SERVICE_ROLE_KEY_ENV]?.trim();
   if (!key) throw new Error("EXACT_FOLLOW_UP_CREDENTIAL_HOLD");
   // This runner must never invoke the QA helper's dependency installer before a claim.

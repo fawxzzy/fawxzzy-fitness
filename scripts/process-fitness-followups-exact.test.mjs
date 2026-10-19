@@ -42,6 +42,65 @@ test("exact follow-up runner preflight proves its packaged alias loader without 
   assert.equal(result.stderr, "");
 });
 
+test("exact runner accepts only the canonical HTTPS master origin before provider access", () => {
+  for (const url of [
+    "https://bxtcuhkotumitoqtrcej.supabase.co",
+    "https://bxtcuhkotumitoqtrcej.supabase.co/",
+  ]) {
+    const result = spawnSync(process.execPath, [
+      "--import", "./scripts/register-test-aliases.mjs", runner, "--preflight-target",
+    ], { cwd: repoRoot, env: { ...safeEnv, NEXT_PUBLIC_SUPABASE_URL: url }, encoding: "utf8" });
+    assert.equal(result.status, 0, `${url}: ${result.stderr}`);
+    assert.equal(result.stdout, "EXACT_FOLLOW_UP_TARGET_READY\n");
+    assert.equal(result.stderr, "");
+  }
+});
+
+test("exact runner rejects noncanonical master URLs before provider access", () => {
+  for (const url of [
+    "http://bxtcuhkotumitoqtrcej.supabase.co",
+    "https://user:pass@bxtcuhkotumitoqtrcej.supabase.co",
+    "https://bxtcuhkotumitoqtrcej.supabase.co:8443",
+    "https://bxtcuhkotumitoqtrcej.supabase.co:443",
+    "https://bxtcuhkotumitoqtrcej.supabase.co/rest/v1",
+    "https://bxtcuhkotumitoqtrcej.supabase.co?x=1",
+    "https://bxtcuhkotumitoqtrcej.supabase.co#fragment",
+    "https://bxtcuhkotumitoqtrcej.supabase.co.",
+    "https://other.supabase.co",
+    "HTTPS://bxtcuhkotumitoqtrcej.supabase.co",
+    "not-a-url",
+    "",
+  ]) {
+    const result = spawnSync(process.execPath, [
+      "--import", "./scripts/register-test-aliases.mjs", runner, "--preflight-target",
+    ], { cwd: repoRoot, env: { ...safeEnv, NEXT_PUBLIC_SUPABASE_URL: url }, encoding: "utf8" });
+    assert.equal(result.status, 1, url);
+    assert.equal(result.stdout, "", url);
+    assert.equal(result.stderr, "EXACT_FOLLOW_UP_PRECLAIM_HOLD\n", url);
+  }
+});
+
+test("exact incident path rejects an HTTP master URL before reading a credential or claiming a job", () => {
+  const fixture = "synthetic-unused-credential\n";
+  const result = spawnSync(process.execPath, [
+    "--import", "./scripts/register-test-aliases.mjs", runner,
+    "--execute-exact-incident", "2026-10-17T03:09:55.111465Z",
+  ], {
+    cwd: repoRoot,
+    env: {
+      ...safeEnv,
+      FITNESS_EXACT_FOLLOWUP_CREDENTIAL_PIPE: "1",
+      NEXT_PUBLIC_SUPABASE_URL: "http://bxtcuhkotumitoqtrcej.supabase.co",
+    },
+    input: fixture,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "EXACT_FOLLOW_UP_PRECLAIM_HOLD\n");
+  assert.ok(!`${result.stdout}${result.stderr}`.includes(fixture.trim()));
+});
+
 test("exact runner accepts a bounded synthetic credential through stdin without echo", () => {
   const fixture = "synthetic-fixture-key\n";
   const result = spawnSync(process.execPath, [
