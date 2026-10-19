@@ -58,7 +58,7 @@ test("QA data reset rejects a missing identity before any Auth mutation", async 
 test("QA session bootstrap has no automatic credential-management fallback", async () => {
   const source = await readFile(new URL("./fitness-qa-user.mjs", import.meta.url), "utf8");
   const match = source.match(
-    /export async function bootstrapQaSession\(\) \{([\s\S]*?)\n\}\n\nexport async function readQaSessionArtifact/,
+    /export async function bootstrapQaSession\(\) \{([\s\S]*?)\r?\n\}\r?\n\r?\nexport async function readQaSessionArtifact/,
   );
 
   assert.ok(match, "bootstrapQaSession source block must remain inspectable");

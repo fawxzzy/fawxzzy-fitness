@@ -1306,3 +1306,21 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Change: The existing auth contract command now runs the username resolver and password-reset regressions. Its workflow watches both helpers and `src/app/auth/actions.ts`; the workflow policy test checks that both regression files remain in the invoked command.
 - Failure Mode: A passing one-off local suite can hide missing CI coverage when new tests are never discovered automatically.
 - Scope: Source verification only; no Auth request, reset email, provider setting, or deployment is performed by this change.
+
+## 2026-10-17 - Bound incident follow-up recovery without changing shadow telemetry semantics
+
+- WHAT changed: An exact incident runner selects the two pending follow-up jobs by their pinned creation timestamp, verifies the complete session group, and stops before handlers if the claim differs. The worker now surfaces exercise-stat read/write errors in strict follow-up mode and treats a failed or zero-row job-status update as a settlement failure.
+- WHY it changed: The generic oldest-first batch would reach 114 older jobs before this incident, and silent stats or settlement errors could falsely mark follow-up work complete. The shadow telemetry emitter remains best effort by design; its file receipts have no active downstream handler and do not decide the job result.
+- Rule: Recover live follow-up jobs only through an exact, reviewed, one-attempt action with fresh group/catalog preimages and redacted postimage. Source and CI proof do not authorize a job claim, retry, deployment, or merge.
+- Evidence: `src/lib/session-follow-up-jobs.ts`, `src/lib/exercise-stats.ts`, `src/lib/session-follow-up-jobs.test.ts`, and `scripts/process-fitness-followups-exact.mjs`.
+- Status: Draft source only; independent review, protected admission, live acceptance, and the 114 older pending jobs remain separate.
+
+## 2026-10-17 - Prove exact follow-up runner startup before a claim
+
+- Failure Mode: Direct `node` invocation omitted the repository alias loader. The handler's dynamic `@/lib/*` imports would fail only after the exact RPC claim, leaving both jobs in `processing` with an attempt consumed.
+- Rule: Use `npm run fitness:followups:process:exact:preflight` to prove the packaged loader resolves the handler dependencies before any claim. Run the exact action only through `npm run fitness:followups:process:exact -- --execute-exact-incident 2026-10-17T03:09:55.111465Z` after separate protected admission. Missing aliases, target, credentials, or dependencies fail before claim. The exact runner does not auto-install dependencies.
+- Failure Mode: A standalone follow-up runner has no Next request context. The `fitness_integrations` snapshot must use the already-scoped client passed into the claimed-job handler; falling back to `supabaseServer()` after a claim can fail on `cookies()`/`headers()` and leave a partial job outcome. The standalone client path has a provider-free regression test.
+- Pattern: An admitted one-shot host may set nonsecret `FITNESS_EXACT_FOLLOWUP_CREDENTIAL_PIPE=1` and send one bounded service-role credential through stdin to the documented npm runner. Pipe mode ignores dotenv, rejects inherited service-role credentials, emits no credential bytes, and has a synthetic transport fixture. This source contract alone does not authorize decrypting the retained capsule or claiming a live job.
+- Evidence: `scripts/process-fitness-followups-exact.test.mjs` covers startup with and without the loader; `src/lib/exercise-stats.test.ts` covers strict read, delete, and upsert failures. Live settlement remains unproven.
+- Verification: The existing QA bootstrap source-contract test now accepts both LF and CRLF so the Fitness integrity suite can run on Windows as well as CI Linux.
+- CI Rule: Keep both PR and main-push path filters in the focused Fitness integrity workflow aligned with every enumerated runner and stats test plus its source dependencies; the runner test checks this watch contract.

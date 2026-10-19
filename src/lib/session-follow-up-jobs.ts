@@ -78,6 +78,24 @@ export function selectProcessableSessionFollowUpGroups(args: {
   return [...groups.values()];
 }
 
+export function selectExactPendingSessionFollowUpGroup(rows: SessionFollowUpJobRow[]) {
+  if (rows.length !== SESSION_FOLLOW_UP_JOB_KINDS.length) {
+    throw new Error("EXACT_FOLLOW_UP_GROUP_MISMATCH");
+  }
+  const [first] = rows;
+  if (!first?.session_id || !first.user_id ||
+      new Set(rows.map((row) => row.id)).size !== rows.length ||
+      new Set(rows.map((row) => row.job_kind)).size !== rows.length ||
+      rows.some((row) => row.session_id !== first.session_id ||
+        row.user_id !== first.user_id || row.status !== "pending" ||
+        !Number.isInteger(row.attempt_count) || row.attempt_count < 0 ||
+        row.attempt_count >= SESSION_FOLLOW_UP_MAX_ATTEMPTS ||
+        !SESSION_FOLLOW_UP_JOB_KINDS.includes(row.job_kind))) {
+    throw new Error("EXACT_FOLLOW_UP_GROUP_MISMATCH");
+  }
+  return { sessionId: first.session_id, userId: first.user_id, rows };
+}
+
 export function buildSessionFollowUpExecutionPlan(
   claimedJobs: SessionFollowUpJobRow[],
 ) {
@@ -174,7 +192,7 @@ async function buildSessionFollowUpHandlers(args: {
 
   return {
     exercise_stats: async () => {
-      await recomputeExerciseStatsForExercises(args.userId, args.affectedExerciseIds, args.client as never);
+      await recomputeExerciseStatsForExercises(args.userId, args.affectedExerciseIds, args.client as never, { strict: true });
     },
     fitness_integrations: async () => {
       if (isFeatureEnabled("shareableRecapArtifacts")) {
@@ -204,12 +222,13 @@ async function buildSessionFollowUpHandlers(args: {
         memberId: args.userId,
         reason: "session_completed",
         now: args.now,
+        client: args.client,
       });
     },
   } satisfies Record<SessionFollowUpJobKind, () => Promise<void>>;
 }
 
-async function settleClaimedSessionFollowUpJobs(args: {
+export async function settleClaimedSessionFollowUpJobs(args: {
   client: SessionFollowUpClient;
   claimedJobs: SessionFollowUpJobRow[];
   sessionId: string;
@@ -217,17 +236,19 @@ async function settleClaimedSessionFollowUpJobs(args: {
   durationSeconds: number | null;
   affectedExerciseIds: string[];
   now: Date;
+  handlersByKind?: SessionFollowUpHandlerMap;
 }) {
   if (args.claimedJobs.length === 0) {
     return { ok: true as const, hadFailures: false, results: [] as SessionFollowUpHandlerResult[] };
   }
 
   const executionPlan = buildSessionFollowUpExecutionPlan(args.claimedJobs);
-  const handlersByKind = await buildSessionFollowUpHandlers(args);
+  const handlersByKind = args.handlersByKind ?? await buildSessionFollowUpHandlers(args);
   const results = await settleSessionFollowUpHandlers(Object.fromEntries(
     executionPlan.runnable.map((job) => [job.job_kind, handlersByKind[job.job_kind]]),
   ) as SessionFollowUpHandlerMap);
   const allResults = [...executionPlan.terminalResults, ...results];
+  const settlementFailures: SessionFollowUpHandlerResult[] = [];
 
   for (const result of allResults) {
     const matchingJob = args.claimedJobs.find((job) => job.job_kind === result.kind);
@@ -235,7 +256,7 @@ async function settleClaimedSessionFollowUpJobs(args: {
       continue;
     }
 
-    await args.client
+    const { data: settled, error: settlementError } = await args.client
       .from("session_follow_up_jobs")
       .update({
         status: result.ok ? "completed" : "failed",
@@ -244,13 +265,18 @@ async function settleClaimedSessionFollowUpJobs(args: {
         updated_at: args.now.toISOString(),
       })
       .eq("id", matchingJob.id)
-      .eq("user_id", args.userId);
+      .eq("user_id", args.userId)
+      .select("id")
+      .maybeSingle();
+    if (settlementError || !settled) {
+      settlementFailures.push({ kind: result.kind, ok: false, error: "FOLLOW_UP_SETTLEMENT_FAILED" });
+    }
   }
 
   return {
     ok: true as const,
-    hadFailures: allResults.some((result) => !result.ok),
-    results: allResults,
+    hadFailures: allResults.some((result) => !result.ok) || settlementFailures.length > 0,
+    results: [...allResults, ...settlementFailures],
   };
 }
 
@@ -284,6 +310,84 @@ export async function processSessionFollowUpJobs(args: {
     affectedExerciseIds: args.affectedExerciseIds,
     now,
   });
+}
+
+export async function processExactPendingSessionFollowUpGroup(args: {
+  client: SessionFollowUpClient;
+  createdAt: string;
+  now?: Date;
+}) {
+  const now = args.now ?? new Date();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(args.createdAt)) {
+    throw new Error("EXACT_FOLLOW_UP_TIMESTAMP_INVALID");
+  }
+  const columns = "id, session_id, user_id, job_kind, status, attempt_count, updated_at";
+  const { data: timestampRows, error: timestampError } = await args.client
+    .from("session_follow_up_jobs")
+    .select(columns)
+    .eq("created_at", args.createdAt);
+  if (timestampError) throw new Error("EXACT_FOLLOW_UP_TIMESTAMP_READ_FAILED");
+  const target = selectExactPendingSessionFollowUpGroup((timestampRows ?? []) as SessionFollowUpJobRow[]);
+
+  const { data: groupRows, error: groupError } = await args.client
+    .from("session_follow_up_jobs")
+    .select(columns)
+    .eq("session_id", target.sessionId);
+  if (groupError) throw new Error("EXACT_FOLLOW_UP_GROUP_READ_FAILED");
+  const group = selectExactPendingSessionFollowUpGroup((groupRows ?? []) as SessionFollowUpJobRow[]);
+  if (group.userId !== target.userId ||
+      group.rows.some((row) => !target.rows.some((expected) => expected.id === row.id && expected.job_kind === row.job_kind))) {
+    throw new Error("EXACT_FOLLOW_UP_GROUP_CHANGED");
+  }
+
+  const { data: session, error: sessionError } = await args.client
+    .from("sessions")
+    .select("duration_seconds, status")
+    .eq("id", target.sessionId)
+    .eq("user_id", target.userId)
+    .maybeSingle();
+  if (sessionError || !session || session.status !== "completed") {
+    throw new Error("EXACT_FOLLOW_UP_SESSION_INVALID");
+  }
+  const { data: sessionExercises, error: exercisesError } = await args.client
+    .from("session_exercises")
+    .select("exercise_id")
+    .eq("session_id", target.sessionId)
+    .eq("user_id", target.userId);
+  if (exercisesError) throw new Error("EXACT_FOLLOW_UP_EXERCISES_READ_FAILED");
+  const affectedExerciseIds = Array.from(new Set(
+    ((sessionExercises ?? []) as Array<{ exercise_id: string | null }>).map((row) => row.exercise_id).filter(Boolean) as string[],
+  ));
+  if (affectedExerciseIds.length === 0) throw new Error("EXACT_FOLLOW_UP_EXERCISES_EMPTY");
+
+  const claimedJobs = await claimSessionFollowUpJobs({
+    client: args.client,
+    sessionId: target.sessionId,
+    userId: target.userId,
+    staleBefore: new Date(now.getTime() - SESSION_FOLLOW_UP_PROCESSING_LEASE_MS),
+    claimTime: now,
+  });
+  if (claimedJobs.length !== target.rows.length ||
+      claimedJobs.some((job) => !target.rows.some((expected) =>
+        expected.id === job.id && expected.job_kind === job.job_kind &&
+        job.status === "processing" && job.attempt_count === expected.attempt_count + 1))) {
+    throw new Error("EXACT_FOLLOW_UP_CLAIM_CHANGED");
+  }
+  const settlement = await settleClaimedSessionFollowUpJobs({
+    client: args.client,
+    claimedJobs,
+    sessionId: target.sessionId,
+    userId: target.userId,
+    durationSeconds: session.duration_seconds,
+    affectedExerciseIds,
+    now,
+  });
+  return {
+    ok: !settlement.hadFailures,
+    claimedJobCount: claimedJobs.length,
+    hadFailures: settlement.hadFailures,
+    results: settlement.results.map((result) => ({ kind: result.kind, ok: result.ok })),
+  };
 }
 
 export async function processSessionFollowUpJobBatch(args: {

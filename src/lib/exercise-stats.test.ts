@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import {
   mergeExerciseStatsWithLatestProgression,
   type ExerciseStatsWithLatestProgression as ExerciseStatsRow,
@@ -151,4 +152,61 @@ test("mergeExerciseStatsWithLatestProgression prefers completed-session progress
   assert.equal(merged[0]?.last_configured_target_reps_min, 10);
   assert.equal(merged[0]?.last_configured_target_reps_max, 12);
   assert.equal(merged[0]?.last_configured_target_weight, 65);
+});
+
+function strictStatsClient(options: { historySets?: unknown[]; readError?: boolean; deleteError?: boolean; upsertError?: boolean }) {
+  const touched: string[] = [];
+  const privateError = { message: "private provider detail" };
+  const client = {
+    from(table: string) {
+      touched.push(table);
+      const query = {
+        select() { return this; },
+        delete() { return this; },
+        eq() { return this; },
+        in() { return this; },
+        upsert() { return Promise.resolve({ error: options.upsertError ? privateError : null }); },
+        then(resolve: (value: unknown) => void) {
+          resolve(table === "sets"
+            ? { data: options.historySets ?? [], error: options.readError ? privateError : null }
+            : { data: null, error: options.deleteError ? privateError : null });
+        },
+      };
+      return query;
+    },
+  };
+  return { client, touched };
+}
+
+test("strict follow-up stats reports a read failure without writing", async () => {
+  const { client, touched } = strictStatsClient({ readError: true });
+  await assert.rejects(
+    () => recomputeExerciseStatsForExercises("user", ["exercise"], client as never, { strict: true }),
+    { message: "FOLLOW_UP_STATS_READ_FAILED" },
+  );
+  assert.deepEqual(touched, ["sets"]);
+});
+
+test("strict follow-up stats reports a stale-row deletion failure", async () => {
+  const { client, touched } = strictStatsClient({ deleteError: true });
+  await assert.rejects(
+    () => recomputeExerciseStatsForExercises("user", ["exercise"], client as never, { strict: true }),
+    { message: "FOLLOW_UP_STATS_DELETE_FAILED" },
+  );
+  assert.deepEqual(touched, ["sets", "exercise_stats"]);
+});
+
+test("strict follow-up stats reports an upsert failure", async () => {
+  const { client, touched } = strictStatsClient({ upsertError: true, historySets: [{
+    set_index: 1, weight: 50, reps: 8, weight_unit: "lbs",
+    session_exercise: {
+      session_id: "session", exercise_id: "exercise",
+      session: { performed_at: "2026-10-17T03:00:00Z", status: "completed" },
+    },
+  }] });
+  await assert.rejects(
+    () => recomputeExerciseStatsForExercises("user", ["exercise"], client as never, { strict: true }),
+    { message: "FOLLOW_UP_STATS_UPSERT_FAILED" },
+  );
+  assert.deepEqual(touched, ["sets", "exercise_stats"]);
 });

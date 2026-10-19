@@ -116,6 +116,7 @@ export async function recomputeExerciseStatsForExercises(
   userId: string,
   exerciseIds: string[],
   client?: FitnessSupabaseClient,
+  options?: { strict?: boolean },
 ): Promise<void> {
   const uniqueIds = uniqueExerciseIds(exerciseIds);
   if (!uniqueIds.length) {
@@ -133,6 +134,7 @@ export async function recomputeExerciseStatsForExercises(
     .eq("session_exercise.session.status", "completed");
 
   if (error) {
+    if (options?.strict) throw new Error("FOLLOW_UP_STATS_READ_FAILED");
     return;
   }
 
@@ -165,17 +167,19 @@ export async function recomputeExerciseStatsForExercises(
   const exerciseIdsWithoutHistory = uniqueIds.filter((exerciseId) => !aggregatedStats.has(exerciseId));
 
   if (exerciseIdsWithoutHistory.length) {
-    await supabase
+    const { error: deleteError } = await supabase
       .from("exercise_stats")
       .delete()
       .eq("user_id", userId)
       .in("exercise_id", exerciseIdsWithoutHistory);
+    if (deleteError && options?.strict) throw new Error("FOLLOW_UP_STATS_DELETE_FAILED");
   }
 
   if (upserts.length) {
-    await supabase
+    const { error: upsertError } = await supabase
       .from("exercise_stats")
       .upsert(upserts, { onConflict: "user_id,exercise_id" });
+    if (upsertError && options?.strict) throw new Error("FOLLOW_UP_STATS_UPSERT_FAILED");
   }
 }
 
