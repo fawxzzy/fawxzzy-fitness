@@ -41,6 +41,7 @@ import {
   type HistorySkippedWorkoutDay,
 } from "@/lib/history-planned-days";
 import { isRequiredRoutineDay } from "@/lib/routine-day-kind";
+import { resolveHistoryTimeZone } from "@/lib/timezones";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
 
@@ -1097,10 +1098,16 @@ async function loadHistorySessionsScopeContext({
     ? (routineNameById.get(profileSettings.activeRoutineId) ?? null)
     : null;
   const activeRoutineMetadata = normalizeRoutineMetadata(allRoutineRows, profileSettings.activeRoutineId);
+  // One local-day timezone for every History surface. The profile timezone is server-captured (UTC), so the
+  // active routine's device-derived timezone wins; see resolveHistoryTimeZone.
+  const historyTimezone = resolveHistoryTimeZone({
+    activeRoutineTimeZone: activeRoutineMetadata?.timezone,
+    profileTimeZone: profileTimezone,
+  });
   const currentCycleWindow = buildCurrentCycleWindow({
     cycleLengthDays: activeRoutineMetadata?.cycleLengthDays,
     startDate: activeRoutineMetadata?.startDate,
-    profileTimeZone: activeRoutineMetadata?.timezone ?? profileTimezone,
+    profileTimeZone: historyTimezone,
     referenceDate: now,
   });
   const routineDayNameByKey = normalizeRoutineDayNames(routineDayRows);
@@ -1130,7 +1137,7 @@ async function loadHistorySessionsScopeContext({
   const completedSessionDayKeyById = new Map(
     sessions.map((session) => [
       session.id,
-      getWeeklyProgressDayKey(session.performed_at, profileTimezone),
+      getWeeklyProgressDayKey(session.performed_at, historyTimezone),
     ] as const),
   );
   for (const event of progressionEvents) {
@@ -1138,7 +1145,7 @@ async function loadHistorySessionsScopeContext({
       continue;
     }
 
-    const eventDayKey = getWeeklyProgressDayKey(event.created_at, profileTimezone);
+    const eventDayKey = getWeeklyProgressDayKey(event.created_at, historyTimezone);
     if (!eventDayKey) {
       continue;
     }
@@ -1229,7 +1236,7 @@ async function loadHistorySessionsScopeContext({
   const visibleSessionItems = profileSettings.showQaLlelData
     ? sessionItems
     : filterQaLlelRows(sessionItems, (session) => [session.routineTitle, session.dayTitle]);
-  const routineMetas = normalizeRoutineMetas(allRoutineRows, profileSettings.activeRoutineId, profileTimezone);
+  const routineMetas = normalizeRoutineMetas(allRoutineRows, profileSettings.activeRoutineId, historyTimezone);
   const plannedSkippedWorkoutDays = buildHistorySkippedWorkoutDays({
     routines: routineMetas.map((routine) => ({
       id: routine.id,
@@ -1245,7 +1252,7 @@ async function loadHistorySessionsScopeContext({
   const filterOptions = buildHistorySessionsFilterOptions({
     routineMetas,
     sessions: visibleSessionItems,
-    profileTimeZone: profileTimezone,
+    profileTimeZone: historyTimezone,
   });
 
   return {
@@ -1260,7 +1267,7 @@ async function loadHistorySessionsScopeContext({
       exerciseNameById,
       routineDayCountByRoutineId,
       plannedSkippedWorkoutDays,
-      profileTimeZone: profileTimezone,
+      profileTimeZone: historyTimezone,
       now,
       activeRoutineId: profileSettings.activeRoutineId,
       activeRoutineTitle,

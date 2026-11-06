@@ -1,3 +1,4 @@
+import { DEFAULT_HISTORY_TIMEZONE } from "@/lib/timezones";
 import type { ProfileRow } from "@/types/db";
 
 const PROFILE_SELECT_WITH_PREFERENCES =
@@ -252,7 +253,10 @@ async function insertProfile(
   supabase: ProfileSupabaseClient,
   hasExtendedColumnsHint: boolean | null,
 ): Promise<InsertProfileResult> {
-  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
+  // Profile bootstrap runs on the server, whose runtime timezone is UTC on Vercel and is not the user's.
+  // Never capture it: it silently moved late-evening US sessions onto the next UTC day in History. Routines
+  // carry the device-derived timezone; this is only the fallback for users who have no routine yet.
+  const defaultTimeZone = DEFAULT_HISTORY_TIMEZONE;
 
   async function attemptInsert(hasExtendedColumns: boolean): Promise<InsertProfileResult> {
     const insertPayload: {

@@ -66,3 +66,37 @@ export function toCanonicalRoutineTimezone(value: string | null | undefined) {
 
   return ROUTINE_TIMEZONE_ALIASES.get(value) ?? null;
 }
+
+export const DEFAULT_HISTORY_TIMEZONE = "America/New_York";
+
+function isValidIanaTimeZone(value: string | null | undefined): value is string {
+  if (!value || !value.trim()) {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value.trim() });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The single timezone History uses to bucket sessions into local days (streak, heatmap, calendar, weekly and
+ * monthly progress). The active routine's timezone is device-derived when the routine is saved, so it is the
+ * user's real local zone. `profiles.timezone` is only a fallback: it was historically captured from the server
+ * runtime (UTC on Vercel) and is never user-edited, so it must not outrank the routine.
+ */
+export function resolveHistoryTimeZone(args: {
+  activeRoutineTimeZone?: string | null;
+  profileTimeZone?: string | null;
+}) {
+  if (isValidIanaTimeZone(args.activeRoutineTimeZone)) {
+    return args.activeRoutineTimeZone.trim();
+  }
+  if (isValidIanaTimeZone(args.profileTimeZone)) {
+    return args.profileTimeZone.trim();
+  }
+  return DEFAULT_HISTORY_TIMEZONE;
+}
