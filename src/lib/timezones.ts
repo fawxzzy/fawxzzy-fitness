@@ -6,28 +6,6 @@ const SIMPLE_ROUTINE_TIMEZONE_CHOICES = [
   { label: "UTC", value: "UTC", aliases: [] },
 ] as const;
 
-const LEGACY_ROUTINE_TIMEZONES = [
-  "America/Sao_Paulo",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Madrid",
-  "Europe/Rome",
-  "Europe/Athens",
-  "Europe/Moscow",
-  "Africa/Johannesburg",
-  "Asia/Dubai",
-  "Asia/Kolkata",
-  "Asia/Bangkok",
-  "Asia/Singapore",
-  "Asia/Hong_Kong",
-  "Asia/Tokyo",
-  "Asia/Seoul",
-  "Australia/Perth",
-  "Australia/Sydney",
-  "Pacific/Auckland",
-] as const;
-
 export const ROUTINE_TIMEZONE_OPTIONS = SIMPLE_ROUTINE_TIMEZONE_CHOICES.map((choice) => choice.value);
 
 const ROUTINE_TIMEZONE_ALIASES = new Map<string, (typeof ROUTINE_TIMEZONE_OPTIONS)[number]>();
@@ -39,37 +17,7 @@ for (const choice of SIMPLE_ROUTINE_TIMEZONE_CHOICES) {
   }
 }
 
-for (const legacyTimeZone of LEGACY_ROUTINE_TIMEZONES) {
-  ROUTINE_TIMEZONE_ALIASES.set(legacyTimeZone, "UTC");
-}
-
-export function isRoutineTimezone(value: string) {
-  return ROUTINE_TIMEZONE_ALIASES.has(value);
-}
-
-export function getRoutineTimezoneLabel(value: (typeof ROUTINE_TIMEZONE_OPTIONS)[number]) {
-  return SIMPLE_ROUTINE_TIMEZONE_CHOICES.find((choice) => choice.value === value)?.label ?? value;
-}
-
-export function normalizeRoutineTimezone(value: string | null | undefined) {
-  if (!value) {
-    return "America/New_York" as const;
-  }
-
-  return ROUTINE_TIMEZONE_ALIASES.get(value) ?? ("America/New_York" as const);
-}
-
-export function toCanonicalRoutineTimezone(value: string | null | undefined) {
-  if (!value) {
-    return null;
-  }
-
-  return ROUTINE_TIMEZONE_ALIASES.get(value) ?? null;
-}
-
-export const DEFAULT_HISTORY_TIMEZONE = "America/New_York";
-
-function isValidIanaTimeZone(value: string | null | undefined): value is string {
+export function isValidIanaTimeZone(value: string | null | undefined): value is string {
   if (!value || !value.trim()) {
     return false;
   }
@@ -81,6 +29,40 @@ function isValidIanaTimeZone(value: string | null | undefined): value is string 
     return false;
   }
 }
+
+// Routine timezones are any valid IANA zone: the device zone is stored as is, so Phoenix, Honolulu, London,
+// Tokyo, ... bucket on their real local days. The five choices above are only the picker presets, and their
+// aliases (Toronto, Vancouver, Mexico City) still fold into the preset with the same day boundaries.
+// Previously a fixed list of European/Asian/Australian zones was collapsed to UTC and every other unknown
+// zone to America/New_York; stored values are unchanged, they are simply no longer rewritten on read.
+export function isRoutineTimezone(value: string) {
+  return ROUTINE_TIMEZONE_ALIASES.has(value) || isValidIanaTimeZone(value);
+}
+
+export function getRoutineTimezoneLabel(value: string) {
+  return SIMPLE_ROUTINE_TIMEZONE_CHOICES.find((choice) => choice.value === value)?.label ?? value;
+}
+
+export function toCanonicalRoutineTimezone(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const alias = ROUTINE_TIMEZONE_ALIASES.get(value);
+  if (alias) {
+    return alias;
+  }
+
+  return isValidIanaTimeZone(value) ? value.trim() : null;
+}
+
+export function normalizeRoutineTimezone(value: string | null | undefined): string {
+  return toCanonicalRoutineTimezone(value) ?? DEFAULT_HISTORY_TIMEZONE;
+}
+
+// Matches the app's long-standing fallback; the DB column default (America/Toronto, 002_routines.sql) is
+// day-boundary-equivalent to it, and nothing relies on that default because profile bootstrap writes this value.
+export const DEFAULT_HISTORY_TIMEZONE = "America/New_York";
 
 /**
  * The single timezone History uses to bucket sessions into local days (streak, heatmap, calendar, weekly and

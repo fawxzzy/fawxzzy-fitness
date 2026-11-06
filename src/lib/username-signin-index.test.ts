@@ -185,8 +185,10 @@ const resolverArgs = {
   getUserById: async () => ({ email: "user@example.com" }),
 };
 
-test("a transient 5xx or transport failure is retried once and then resolves", async () => {
-  for (const firstAttempt of [
+test("the resolver is called exactly once per sign-in, whatever it returns, so the DB throttle is never double counted", async () => {
+  for (const respond of [
+    () => Response.json([]),
+    () => new Response(null, { status: 401 }),
     () => new Response(null, { status: 503 }),
     () => {
       throw new TypeError("fetch failed");
@@ -199,42 +201,24 @@ test("a transient 5xx or transport failure is retried once and then resolves", a
       onLookupFailure: (code) => failures.push(code),
       fetchImpl: async () => {
         calls++;
-        return calls === 1 ? firstAttempt() : Response.json([{ resolved_user_id: USER_ID }]);
-      },
-    });
-    assert.equal(email, "user@example.com");
-    assert.equal(calls, 2);
-    assert.deepEqual(failures, []);
-  }
-});
-
-test("persistent provider failure is reported as unavailable after a bounded retry", async () => {
-  let calls = 0;
-  const failures: string[] = [];
-  const email = await resolveUsernameEmailFromIndex({
-    ...resolverArgs,
-    onLookupFailure: (code) => failures.push(code),
-    fetchImpl: async () => {
-      calls++;
-      return new Response(null, { status: 502 });
-    },
-  });
-  assert.equal(email, null);
-  assert.equal(calls, 2);
-  assert.deepEqual(failures, ["resolver_unavailable"]);
-});
-
-test("empty (throttled or unknown) and client errors are never retried so attempts are not double counted", async () => {
-  for (const respond of [() => Response.json([]), () => new Response(null, { status: 401 })]) {
-    let calls = 0;
-    await resolveUsernameEmailFromIndex({
-      ...resolverArgs,
-      fetchImpl: async () => {
-        calls++;
         return respond();
       },
     });
+    assert.equal(email, null);
     assert.equal(calls, 1);
+    assert.ok(failures.length <= 1);
+  }
+});
+
+test("transport failures and 5xx are reported as resolver_unavailable", async () => {
+  for (const respond of [() => new Response(null, { status: 502 }), () => { throw new TypeError("fetch failed"); }]) {
+    const failures: string[] = [];
+    await resolveUsernameEmailFromIndex({
+      ...resolverArgs,
+      onLookupFailure: (code) => failures.push(code),
+      fetchImpl: async () => respond(),
+    });
+    assert.deepEqual(failures, ["resolver_unavailable"]);
   }
 });
 
@@ -263,6 +247,13 @@ test("login failure copy separates provider outages from throttled or unknown us
     getLoginResolutionFailureMessage({ identifier: "not a username!", lookupFailure: null }),
     LOGIN_INVALID_CREDENTIALS_MESSAGE,
   );
+  // Failures that only occur after the resolver returned a row (existing username) must not be distinguishable.
+  for (const code of ["auth_user_unavailable", "invalid_resolver_response"] as const) {
+    assert.equal(
+      getLoginResolutionFailureMessage({ identifier: "fawxzzy", lookupFailure: code }),
+      getLoginResolutionFailureMessage({ identifier: "ghost-user", lookupFailure: null }),
+    );
+  }
   // Unknown and throttled usernames share one message.
   assert.equal(
     getLoginResolutionFailureMessage({ identifier: "ghost-user", lookupFailure: null }),

@@ -15,6 +15,8 @@ import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
  * access token (row-level security) and is additionally pinned to the caller's user id.
  */
 
+export const DETAIL_LOOKUP_TIMEOUT_MS = 1000;
+
 export type DetailRouteTarget =
   | { kind: "history-session"; id: string }
   | { kind: "routine"; id: string };
@@ -99,7 +101,10 @@ export const lookupDetailRecordForUser: DetailRecordLookup = async ({ target, ac
   try {
     const supabase = createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
       auth: { autoRefreshToken: false, persistSession: false },
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      global: {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(DETAIL_LOOKUP_TIMEOUT_MS) }),
+      },
     });
     const userId = decodeJwtSubject(accessToken);
 
@@ -130,6 +135,7 @@ export async function shouldAnswerDetailRouteWithNotFound(args: {
   pathname: string;
   accessToken: string;
   lookup?: DetailRecordLookup;
+  timeoutMs?: number;
 }): Promise<boolean> {
   const match = matchDetailRoute(args.pathname);
   if (match.status === "none") {
@@ -140,5 +146,19 @@ export async function shouldAnswerDetailRouteWithNotFound(args: {
   }
 
   const lookup = args.lookup ?? lookupDetailRecordForUser;
-  return (await lookup({ target: match.target, accessToken: args.accessToken })) === "missing";
+  // The lookup sits in front of the page's first byte, so a stalled database must not stall owned pages:
+  // past the deadline the answer is "unknown" and the page is served (fail open).
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<"unknown">((resolve) => {
+    timer = setTimeout(() => resolve("unknown"), args.timeoutMs ?? DETAIL_LOOKUP_TIMEOUT_MS);
+  });
+  try {
+    const result = await Promise.race([
+      lookup({ target: match.target, accessToken: args.accessToken }).catch(() => "unknown" as const),
+      deadline,
+    ]);
+    return result === "missing";
+  } finally {
+    clearTimeout(timer);
+  }
 }

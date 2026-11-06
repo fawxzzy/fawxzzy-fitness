@@ -71,6 +71,51 @@ test("only a confirmed-missing record is a 404; lookup errors fail open to the p
   assert.equal(await outcome("unknown"), false);
 });
 
+test("a lookup that never answers fails open after the deadline instead of blocking the page", async () => {
+  const startedAt = Date.now();
+  const stalled = await shouldAnswerDetailRouteWithNotFound({
+    pathname: `/history/${SESSION_ID}`,
+    accessToken: "t",
+    timeoutMs: 50,
+    lookup: () => new Promise(() => {}),
+  });
+  assert.equal(stalled, false);
+  assert.ok(Date.now() - startedAt < 1000);
+
+  const rejected = await shouldAnswerDetailRouteWithNotFound({
+    pathname: `/history/${SESSION_ID}`,
+    accessToken: "t",
+    lookup: async () => {
+      throw new Error("boom");
+    },
+  });
+  assert.equal(rejected, false);
+});
+
+test("a stalled default lookup (never-answering PostgREST) is aborted by the fetch deadline", async () => {
+  const { createServer } = await import("node:http");
+  const server = createServer(() => {});
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as { port: number };
+  const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const previousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = `http://127.0.0.1:${port}`;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-test";
+  try {
+    const startedAt = Date.now();
+    const blocked = await shouldAnswerDetailRouteWithNotFound({ pathname: `/history/${SESSION_ID}`, accessToken: "a.b.c", timeoutMs: 200 });
+    assert.equal(blocked, false);
+    assert.ok(Date.now() - startedAt < 2500);
+  } finally {
+    if (previousUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = previousUrl;
+    if (previousKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previousKey;
+    server.closeAllConnections();
+    server.close();
+  }
+});
+
 test("another user's record and a nonexistent record are the same missing result", async () => {
   // The lookup runs with the caller's own token, so both cases come back as "missing" from the data layer.
   const seen: Array<{ kind: string; id: string; accessToken: string }> = [];

@@ -35,6 +35,10 @@ test("a day key follows the requested timezone across the UTC midnight boundary"
   // A zone ahead of UTC buckets the other way.
   assert.equal(getWeeklyProgressDayKey("2026-11-05T15:30:00.000Z", "Asia/Tokyo"), "2026-11-06");
   assert.equal(getWeeklyProgressDayKey("2026-11-05T15:30:00.000Z", "America/Los_Angeles"), "2026-11-05");
+  // Zones outside the picker presets (stored as is) bucket on their own local day.
+  assert.equal(getWeeklyProgressDayKey("2026-11-06T09:59:59.000Z", "Pacific/Honolulu"), "2026-11-05");
+  assert.equal(getWeeklyProgressDayKey("2026-11-06T10:00:00.000Z", "Pacific/Honolulu"), "2026-11-06");
+  assert.equal(getWeeklyProgressDayKey("2026-11-06T06:59:59.000Z", "America/Phoenix"), "2026-11-05");
 });
 
 test("session streak buckets a Nov 5 evening Eastern session on Nov 5, not the UTC date", () => {

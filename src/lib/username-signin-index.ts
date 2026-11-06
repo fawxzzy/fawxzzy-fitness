@@ -10,7 +10,6 @@ type ResolvedUser = { email?: string | null } | null;
 export type UsernameLookupFailureCode = "resolver_unavailable" | "invalid_resolver_response" | "auth_user_unavailable";
 
 const RESOLVER_TIMEOUT_MS = 5000;
-const RESOLVER_MAX_ATTEMPTS = 2;
 
 export const LOGIN_INVALID_CREDENTIALS_MESSAGE = "Invalid email, username, or password";
 export const LOGIN_USERNAME_UNAVAILABLE_MESSAGE =
@@ -28,7 +27,10 @@ export function getLoginResolutionFailureMessage(args: {
   identifier: string;
   lookupFailure: UsernameLookupFailureCode | null;
 }): string {
-  if (args.lookupFailure) return LOGIN_USERNAME_UNAVAILABLE_MESSAGE;
+  // Only failures that happen before any user row is known (transport, timeout, 5xx, missing credential) may
+  // say "unavailable". invalid_resolver_response and auth_user_unavailable occur only after the resolver
+  // returned a row, i.e. only for an existing username, so they share the unknown-username copy.
+  if (args.lookupFailure === "resolver_unavailable") return LOGIN_USERNAME_UNAVAILABLE_MESSAGE;
   return USERNAME.test(args.identifier) ? LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE : LOGIN_INVALID_CREDENTIALS_MESSAGE;
 }
 
@@ -75,16 +77,14 @@ export async function resolveUsernameEmailFromIndex(args: {
   const resolverUrl = new URL("/rest/v1/rpc/account_resolve_username_signin_v2", args.supabaseUrl);
 
   try {
-    // One bounded retry for transient transport/5xx failures only. A 2xx (including an empty, throttled or
-    // unknown-user result) is never retried, so a retry cannot consume extra per-username attempts.
-    let response: Response | null = null;
-    for (let attempt = 1; attempt <= RESOLVER_MAX_ATTEMPTS; attempt++) {
-      try {
-        response = await fetchImpl(resolverUrl, { ...requestInit, signal: AbortSignal.timeout(RESOLVER_TIMEOUT_MS) });
-      } catch {
-        response = null;
-      }
-      if (response && response.status < 500) break;
+    // Deliberately a single bounded attempt, never retried: the RPC counts every call against a per-username
+    // limit (10 per 15 minutes), and after a timeout or lost response the caller cannot tell whether the RPC
+    // already ran, so a retry could burn a second attempt. A failure is reported as "unavailable" instead.
+    let response: Response | null;
+    try {
+      response = await fetchImpl(resolverUrl, { ...requestInit, signal: AbortSignal.timeout(RESOLVER_TIMEOUT_MS) });
+    } catch {
+      response = null;
     }
     if (!response || !response.ok) {
       args.onLookupFailure?.("resolver_unavailable");
