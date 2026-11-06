@@ -7,6 +7,31 @@ const LEGACY_JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 type ResolvedUser = { email?: string | null } | null;
 
+export type UsernameLookupFailureCode = "resolver_unavailable" | "invalid_resolver_response" | "auth_user_unavailable";
+
+const RESOLVER_TIMEOUT_MS = 5000;
+const RESOLVER_MAX_ATTEMPTS = 2;
+
+export const LOGIN_INVALID_CREDENTIALS_MESSAGE = "Invalid email, username, or password";
+export const LOGIN_USERNAME_UNAVAILABLE_MESSAGE =
+  "Username sign-in is temporarily unavailable. Sign in with your email or try again in a moment.";
+// The username resolver is rate limited per username (it counts successful sign-ins too) and a throttled
+// lookup is deliberately indistinguishable from an unknown username. Say so without confirming anything.
+export const LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE =
+  "Invalid email, username, or password. Username sign-in is limited after several recent attempts, so try your email or wait a few minutes.";
+
+/**
+ * Maps a failed identifier-to-email resolution to the message shown on the login screen. Provider/infra
+ * failures must not masquerade as bad credentials; everything else for a username stays non-enumerating.
+ */
+export function getLoginResolutionFailureMessage(args: {
+  identifier: string;
+  lookupFailure: UsernameLookupFailureCode | null;
+}): string {
+  if (args.lookupFailure) return LOGIN_USERNAME_UNAVAILABLE_MESSAGE;
+  return USERNAME.test(args.identifier) ? LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE : LOGIN_INVALID_CREDENTIALS_MESSAGE;
+}
+
 export async function resolveLoginIdentifierEmail(
   identifier: string,
   resolveUsername: (username: string) => Promise<string | null>,
@@ -22,7 +47,7 @@ export async function resolveUsernameEmailFromIndex(args: {
   serviceCredential: string;
   getUserById: (id: string) => Promise<ResolvedUser>;
   fetchImpl?: typeof fetch;
-  onLookupFailure?: (code: "resolver_unavailable" | "invalid_resolver_response" | "auth_user_unavailable") => void;
+  onLookupFailure?: (code: UsernameLookupFailureCode) => void;
 }): Promise<string | null> {
   if (!USERNAME.test(args.identifier)) return null;
   const modernSecret = args.serviceCredential.startsWith("sb_secret_");
@@ -30,25 +55,38 @@ export async function resolveUsernameEmailFromIndex(args: {
   const digest = (value: string) => createHash("sha256").update(value).digest("hex");
   const fetchImpl = args.fetchImpl ?? fetch;
 
+  const requestInit: RequestInit = {
+    method: "POST",
+    redirect: "error",
+    headers: {
+      Accept: "application/json",
+      "Accept-Profile": "account_api",
+      apikey: args.serviceCredential,
+      ...(modernSecret ? {} : { Authorization: `Bearer ${args.serviceCredential}` }),
+      "Content-Type": "application/json",
+      "Content-Profile": "account_api",
+    },
+    body: JSON.stringify({
+      p_normalized_username: args.identifier,
+      p_attempt_key: digest(`username:${args.identifier}`),
+      p_client_attempt_key: digest(`client:${args.clientAddress}`),
+    }),
+  };
+  const resolverUrl = new URL("/rest/v1/rpc/account_resolve_username_signin_v2", args.supabaseUrl);
+
   try {
-    const response = await fetchImpl(new URL("/rest/v1/rpc/account_resolve_username_signin_v2", args.supabaseUrl), {
-      method: "POST",
-      redirect: "error",
-      headers: {
-        Accept: "application/json",
-        "Accept-Profile": "account_api",
-        apikey: args.serviceCredential,
-        ...(modernSecret ? {} : { Authorization: `Bearer ${args.serviceCredential}` }),
-        "Content-Type": "application/json",
-        "Content-Profile": "account_api",
-      },
-      body: JSON.stringify({
-        p_normalized_username: args.identifier,
-        p_attempt_key: digest(`username:${args.identifier}`),
-        p_client_attempt_key: digest(`client:${args.clientAddress}`),
-      }),
-    });
-    if (!response.ok) {
+    // One bounded retry for transient transport/5xx failures only. A 2xx (including an empty, throttled or
+    // unknown-user result) is never retried, so a retry cannot consume extra per-username attempts.
+    let response: Response | null = null;
+    for (let attempt = 1; attempt <= RESOLVER_MAX_ATTEMPTS; attempt++) {
+      try {
+        response = await fetchImpl(resolverUrl, { ...requestInit, signal: AbortSignal.timeout(RESOLVER_TIMEOUT_MS) });
+      } catch {
+        response = null;
+      }
+      if (response && response.status < 500) break;
+    }
+    if (!response || !response.ok) {
       args.onLookupFailure?.("resolver_unavailable");
       return null;
     }
