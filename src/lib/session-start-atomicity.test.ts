@@ -22,6 +22,13 @@ function correctionMigrationSql(): string {
   ).toLowerCase();
 }
 
+function masterSql(): string {
+  return readFileSync(
+    new URL("../../supabase/master-fitness/20261106000000_session_start_atomicity_fitness_v1.sql", import.meta.url),
+    "utf8",
+  ).toLowerCase();
+}
+
 test("production session-start executor exposes only a one-argument repository-owned boundary", () => {
   assert.equal(startSessionFromDayAtomicV1.length, 1);
   assert.deepEqual(Object.keys(sessionStartModule).sort(), ["startSessionFromDayAtomicV1"]);
@@ -118,8 +125,49 @@ test("corrective migration qualifies follow-up job status and updated_at referen
   assert.match(functionBody, /security invoker\s+set search_path = ''/);
 });
 
-test("start-session call-site activation remains separately gated", () => {
+test("the production session-start flow is wired to this RPC through session-start-activation.ts", () => {
+  // start-session.ts reaches the adapter only via session-start-activation.ts
+  // (extracted so the mapping logic is unit-testable outside Next.js), and it
+  // never passes a caller-selected executor.
   const startSession = readFileSync(new URL("./start-session.ts", import.meta.url), "utf8");
-  assert.doesNotMatch(startSession, /start_session_from_day_v1/);
-  assert.doesNotMatch(startSession, /session-start-atomicity/);
+  const activation = readFileSync(new URL("./session-start-activation.ts", import.meta.url), "utf8");
+
+  assert.match(startSession, /createSessionAtomicallyFromDay\(\{[\s\S]*?\}\);/);
+  assert.doesNotMatch(startSession, /createSessionAtomicallyFromDay\(\{[\s\S]*?\},\s*\w+/);
+  assert.match(activation, /execute: SessionStartExecutor = startSessionFromDayAtomicV1/);
+});
+
+test("master fitness-schema apply package targets only fitness.* and matches the repo RPC contract", () => {
+  const sql = masterSql();
+
+  assert.match(sql, /create unique index if not exists sessions_user_routine_active_uq\s+on fitness\.sessions \(user_id, routine_id\)\s+where status = 'in_progress' and routine_id is not null/);
+  assert.match(sql, /create or replace function fitness\.start_session_from_day_v1\(/);
+  assert.match(sql, /p_authenticated_user_id uuid/);
+  assert.match(sql, /auth\.role\(\) is distinct from 'service_role'/);
+  assert.match(sql, /security invoker/);
+  assert.match(sql, /set search_path = ''/);
+  assert.match(sql, /pg_advisory_xact_lock/);
+  assert.match(sql, /'session_start_v1:' \|\| v_user_id::text \|\| ':' \|\| p_routine_id::text/);
+  assert.match(sql, /exception\s+when unique_violation then/);
+  assert.match(sql, /planned_exercise\.routine_day_id = p_day_id/);
+  assert.match(sql, /revoke all on function fitness\.start_session_from_day_v1\(\s*uuid, uuid, uuid, text, text, jsonb\s*\) from public, anon, authenticated/);
+  assert.match(sql, /grant execute on function fitness\.start_session_from_day_v1\(\s*uuid, uuid, uuid, text, text, jsonb\s*\) to service_role/);
+  // Never touches the public schema: every table reference is schema-qualified.
+  assert.doesNotMatch(sql, /\bpublic\./);
+  assert.match(sql, /begin;/);
+  assert.match(sql, /commit;/);
+});
+
+test("master apply package ships a read-only preimage, a read-only readback, and a rollback", () => {
+  const dir = new URL("../../supabase/master-fitness/", import.meta.url);
+  const preimage = readFileSync(new URL("20261106000000_session_start_atomicity_fitness_v1.preimage.sql", dir), "utf8").toLowerCase();
+  const readback = readFileSync(new URL("20261106000000_session_start_atomicity_fitness_v1.readback.sql", dir), "utf8").toLowerCase();
+  const rollback = readFileSync(new URL("20261106000000_session_start_atomicity_fitness_v1.rollback.sql", dir), "utf8").toLowerCase();
+
+  for (const readOnly of [preimage, readback]) {
+    assert.doesNotMatch(readOnly, /\b(insert|update|delete|drop|alter|create|grant|revoke|truncate)\b/);
+  }
+  assert.match(preimage, /dup_user_routine_groups/);
+  assert.match(rollback, /drop function if exists fitness\.start_session_from_day_v1\(\s*uuid, uuid, uuid, text, text, jsonb\s*\)/);
+  assert.match(rollback, /drop index if exists fitness\.sessions_user_routine_active_uq/);
 });

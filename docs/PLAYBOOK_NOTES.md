@@ -1,5 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-06 - Restack session-start atomicity activation onto main and retarget the master apply package to the `fitness` schema
+
+- Type: Activation (source) + provider apply package (not applied)
+- WHAT changed: `createSessionFromDay` in `src/lib/start-session.ts` now delegates to `createSessionAtomicallyFromDay` (new `src/lib/session-start-activation.ts`), which maps runnable exercises to RPC intents (mapping relocated unchanged) and calls the service-role adapter `startSessionFromDayAtomicV1`. `session-start-integrity.ts` and its test are removed (no callers remain). `supabase/master-fitness/` holds the hand-applied `fitness.*` package: index `sessions_user_routine_active_uq`, function `fitness.start_session_from_day_v1`, a duplicate-active-session preflight guard, read-only preimage and readback, and a rollback. This restacks superseded draft PR #147, whose adapter contract predates the service-role rewrite on main.
+- WHY: On master the Fitness tables are in schema `fitness`; the repo-chain migrations target `public.*`, so neither the index nor the function exists there, and the app client is bound to `fitness`. Merging the call-site change before the package is applied would fail every session start.
+- Rule: a migration chain that CI replays in one schema layout cannot double as the apply artifact for a differently laid-out provider; keep provider-layout packages separate, hash-approved, and read-back verified.
+- Failure Mode: merging the call-site change before the apply package is live; applying without re-running the duplicate preflight (the guard aborts the transaction, it never edits data).
+- Decision: apply package first (separate approval), app merge second. No runtime fallback to direct inserts.
+- Evidence: `src/lib/session-start-activation.ts` and test, `src/lib/session-start-atomicity.test.ts`, `supabase/master-fitness/*`; local PostgreSQL 17 proof (apply, rerun, 8-client concurrency, unique-violation handler, duplicate guard, rollback).
+- Status: source only; nothing applied to any provider.
 ## 2026-10-16 - Keep event-free login autofill submittable
 
 - Type: Authentication UI continuity + Coverage
