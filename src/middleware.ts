@@ -17,6 +17,14 @@ import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
 import { buildRequestScopedUrl } from "@/lib/request-origin";
+import {
+  isDocumentNavigation,
+  shouldAnswerDetailRouteWithNotFound,
+  type DetailRecordLookup,
+} from "@/lib/detail-route-guard";
+
+// A path no route serves, so Next answers the rewrite with the app's standard 404 page and a real 404 status.
+export const DETAIL_NOT_FOUND_REWRITE_PATH = "/__detail-not-found";
 
 export const FITNESS_LEGACY_STABLE_HOSTNAME = "fawxzzy-fitness-local.vercel.app";
 
@@ -69,6 +77,7 @@ function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
 }
 
 type AuthSessionMiddlewareDependencies = {
+  lookupDetailRecord?: DetailRecordLookup;
   recoverSession?: (args: {
     accessToken?: string | null;
     refreshToken?: string | null;
@@ -82,6 +91,30 @@ function isHistoryPreviewRequest(request: NextRequest) {
   }
 
   return isHistoryPreviewEnabledInEnv() && isHistoryPreviewAllowedHost(request.nextUrl.host);
+}
+
+async function buildDetailNotFoundResponse(
+  request: NextRequest,
+  accessToken: string,
+  deps: AuthSessionMiddlewareDependencies,
+) {
+  if (!isDocumentNavigation(request)) {
+    return null;
+  }
+
+  const notFound = await shouldAnswerDetailRouteWithNotFound({
+    pathname: request.nextUrl.pathname,
+    accessToken,
+    lookup: deps.lookupDetailRecord,
+  });
+  if (!notFound) {
+    return null;
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = DETAIL_NOT_FOUND_REWRITE_PATH;
+  url.search = "";
+  return NextResponse.rewrite(url, { status: 404 });
 }
 
 export async function handleAuthSessionMiddleware(
@@ -139,7 +172,7 @@ export async function handleAuthSessionMiddleware(
   });
 
   if (recovery.status === "existing") {
-    return NextResponse.next();
+    return (await buildDetailNotFoundResponse(request, recovery.session.accessToken, deps)) ?? NextResponse.next();
   }
 
   if (recovery.status === "failed") {
@@ -194,6 +227,12 @@ export async function handleAuthSessionMiddleware(
     buildId: CURRENT_APP_BUILD_ID,
     authState: recovery.authState,
   });
+
+  const detailNotFound = await buildDetailNotFoundResponse(request, recovery.session.accessToken, deps);
+  if (detailNotFound) {
+    setSessionCookies(detailNotFound.cookies, recovery.session);
+    return detailNotFound;
+  }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("cookie", serializeRequestCookiesWithSession(request.cookies.getAll(), {
