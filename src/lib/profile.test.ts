@@ -243,7 +243,8 @@ test("ensureProfile creates a profile in legacy mode without preference columns 
 
   assert.equal(fake.tracker.inserts.length, 1);
   assert.equal(fake.tracker.inserts[0].id, "user-3");
-  assert.equal(typeof fake.tracker.inserts[0].timezone, "string");
+  // Never the server runtime timezone (UTC on Vercel), which mis-buckets History days for US users.
+  assert.equal(fake.tracker.inserts[0].timezone, "America/New_York");
   assert.equal("user_number" in fake.tracker.inserts[0], false);
   assert.equal("user_kind" in fake.tracker.inserts[0], false);
   assert.equal("user_number_assigned_at" in fake.tracker.inserts[0], false);

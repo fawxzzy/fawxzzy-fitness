@@ -41,6 +41,13 @@ const timezoneOptions = ROUTINE_TIMEZONE_OPTIONS.map((value) => ({
   label: getRoutineTimezoneLabel(value),
 }));
 
+// A device-derived zone outside the five presets (for example Phoenix) is shown as its own selected option.
+function withCurrentTimezoneOption(current: string) {
+  return timezoneOptions.some((option) => option.value === current)
+    ? timezoneOptions
+    : [...timezoneOptions, { value: current, label: getRoutineTimezoneLabel(current) }];
+}
+
 const scheduleModeOptions = [
   { value: "weekday_anchored", label: "Week-based" },
   { value: "rolling_n_day", label: "#-based" },
@@ -980,7 +987,7 @@ export function RoutineEditorFormFields({
               ariaLabel="Routine time zone"
               value={normalizeRoutineTimezone(values?.timezone ?? timezoneDefaultValue)}
               onChange={(nextValue) => onFieldChange?.("timezone", nextValue)}
-              options={timezoneOptions}
+              options={withCurrentTimezoneOption(normalizeRoutineTimezone(values?.timezone ?? timezoneDefaultValue))}
               display="expanding"
               fullWidthWhenExpanded
               showLabel={false}

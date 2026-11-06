@@ -8,7 +8,12 @@ import { isSafeAppPath } from "@/lib/navigation-return";
 import { hasSupabaseAdminCredential, resolveSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
-import { resolveLoginIdentifierEmail, resolveUsernameEmailFromIndex } from "@/lib/username-signin-index";
+import {
+  getLoginResolutionFailureMessage,
+  resolveLoginIdentifierEmail,
+  resolveUsernameEmailFromIndex,
+  type UsernameLookupFailureCode,
+} from "@/lib/username-signin-index";
 import { requestResetForIdentifier } from "@/lib/password-reset-request";
 import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
 
@@ -20,14 +25,20 @@ function isEmailIdentifier(identifier: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
 }
 
-async function resolveIndexedUsername(username: string) {
-  if (!hasSupabaseAdminCredential()) return null;
+async function resolveIndexedUsername(username: string, onLookupFailure?: (code: UsernameLookupFailureCode) => void) {
+  if (!hasSupabaseAdminCredential()) {
+    onLookupFailure?.("resolver_unavailable");
+    return null;
+  }
   return resolveUsernameEmailFromIndex({
     identifier: username,
     clientAddress: headers().get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown",
     supabaseUrl: SUPABASE_URL(),
     serviceCredential: resolveSupabaseAdminCredential(),
-    onLookupFailure: (code) => console.error("Username identity lookup failed", { code }),
+    onLookupFailure: (code) => {
+      console.error("Username identity lookup failed", { code });
+      onLookupFailure?.(code);
+    },
     getUserById: async (id) => {
       const { data, error } = await supabaseAdmin().auth.admin.getUserById(id);
       return error ? null : data.user;
@@ -88,11 +99,15 @@ export async function login(formData: FormData) {
   const returnTo = isSafeAppPath(String(formData.get("returnTo") ?? "").trim())
     ? String(formData.get("returnTo") ?? "").trim()
     : null;
-  const email = await resolveLoginIdentifierEmail(identifier, resolveIndexedUsername);
+  let lookupFailure: UsernameLookupFailureCode | null = null;
+  const email = await resolveLoginIdentifierEmail(identifier, (username) =>
+    resolveIndexedUsername(username, (code) => {
+      lookupFailure = code;
+    }));
 
   if (!email) {
     redirect(buildLoginRedirectHref({
-      error: "Invalid email, username, or password",
+      error: getLoginResolutionFailureMessage({ identifier, lookupFailure }),
       returnTo,
     }));
   }

@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 
-import { resolveLoginIdentifierEmail, resolveUsernameEmailFromIndex } from "./username-signin-index.ts";
+import {
+  getLoginResolutionFailureMessage,
+  LOGIN_INVALID_CREDENTIALS_MESSAGE,
+  LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE,
+  LOGIN_USERNAME_UNAVAILABLE_MESSAGE,
+  resolveLoginIdentifierEmail,
+  resolveUsernameEmailFromIndex,
+} from "./username-signin-index.ts";
 
 const USER_ID = "11111111-2222-3333-4444-555555555555";
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -168,4 +175,102 @@ test("legacy service-role JWT is sent in both API-key and Bearer headers", async
     getUserById: async () => null,
   });
   assert.equal(authorization, `Bearer ${credential}`);
+});
+
+const resolverArgs = {
+  identifier: "fawxzzy",
+  clientAddress: "192.0.2.9",
+  supabaseUrl: "https://example.supabase.co",
+  serviceCredential: "sb_secret_test-only",
+  getUserById: async () => ({ email: "user@example.com" }),
+};
+
+test("the resolver is called exactly once per sign-in, whatever it returns, so the DB throttle is never double counted", async () => {
+  for (const respond of [
+    () => Response.json([]),
+    () => new Response(null, { status: 401 }),
+    () => new Response(null, { status: 503 }),
+    () => {
+      throw new TypeError("fetch failed");
+    },
+  ]) {
+    let calls = 0;
+    const failures: string[] = [];
+    const email = await resolveUsernameEmailFromIndex({
+      ...resolverArgs,
+      onLookupFailure: (code) => failures.push(code),
+      fetchImpl: async () => {
+        calls++;
+        return respond();
+      },
+    });
+    assert.equal(email, null);
+    assert.equal(calls, 1);
+    assert.ok(failures.length <= 1);
+  }
+});
+
+test("transport failures and 5xx are reported as resolver_unavailable", async () => {
+  for (const respond of [() => new Response(null, { status: 502 }), () => { throw new TypeError("fetch failed"); }]) {
+    const failures: string[] = [];
+    await resolveUsernameEmailFromIndex({
+      ...resolverArgs,
+      onLookupFailure: (code) => failures.push(code),
+      fetchImpl: async () => respond(),
+    });
+    assert.deepEqual(failures, ["resolver_unavailable"]);
+  }
+});
+
+test("a throw from the Auth user read is auth_user_unavailable, not resolver_unavailable", async () => {
+  const failures: string[] = [];
+  const email = await resolveUsernameEmailFromIndex({
+    ...resolverArgs,
+    onLookupFailure: (code) => failures.push(code),
+    fetchImpl: async () => Response.json([{ resolved_user_id: USER_ID }]),
+    getUserById: async () => {
+      throw new Error("auth admin down");
+    },
+  });
+  assert.equal(email, null);
+  assert.deepEqual(failures, ["auth_user_unavailable"]);
+});
+
+test("each resolver request is time bounded", async () => {
+  let signal: AbortSignal | null | undefined;
+  await resolveUsernameEmailFromIndex({
+    ...resolverArgs,
+    fetchImpl: async (_url, init) => {
+      signal = init?.signal;
+      return Response.json([]);
+    },
+  });
+  assert.ok(signal instanceof AbortSignal);
+});
+
+test("login failure copy separates provider outages from throttled or unknown usernames without confirming accounts", () => {
+  assert.equal(
+    getLoginResolutionFailureMessage({ identifier: "fawxzzy", lookupFailure: "resolver_unavailable" }),
+    LOGIN_USERNAME_UNAVAILABLE_MESSAGE,
+  );
+  assert.equal(
+    getLoginResolutionFailureMessage({ identifier: "fawxzzy", lookupFailure: null }),
+    LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE,
+  );
+  assert.equal(
+    getLoginResolutionFailureMessage({ identifier: "not a username!", lookupFailure: null }),
+    LOGIN_INVALID_CREDENTIALS_MESSAGE,
+  );
+  // Failures that only occur after the resolver returned a row (existing username) must not be distinguishable.
+  for (const code of ["auth_user_unavailable", "invalid_resolver_response"] as const) {
+    assert.equal(
+      getLoginResolutionFailureMessage({ identifier: "fawxzzy", lookupFailure: code }),
+      getLoginResolutionFailureMessage({ identifier: "ghost-user", lookupFailure: null }),
+    );
+  }
+  // Unknown and throttled usernames share one message.
+  assert.equal(
+    getLoginResolutionFailureMessage({ identifier: "ghost-user", lookupFailure: null }),
+    getLoginResolutionFailureMessage({ identifier: "fawxzzy", lookupFailure: null }),
+  );
 });

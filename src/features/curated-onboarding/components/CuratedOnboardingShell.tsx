@@ -350,7 +350,10 @@ export function CuratedOnboardingShell({
     startCreatingDraft(async () => {
       setGenerationError(null);
       try {
-        const result = await createCuratedRoutineDraftAction(state.draft.data);
+        const result = await createCuratedRoutineDraftAction(
+          state.draft.data,
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        );
         if (!result.ok) {
           setGenerationError(result.error);
           return;

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { buildHistoryWorkoutStreak } from "./history-workout-streak.ts";
 import {
   decodeHistoryCursor,
   encodeHistoryCursor,
@@ -301,4 +302,44 @@ test("history cursor round-trips and rejects invalid payloads", () => {
   const cursor = { performedAt: "2026-04-20T12:00:00.000Z", id: "session-1" };
   assert.deepEqual(decodeHistoryCursor(encodeHistoryCursor(cursor)), cursor);
   assert.equal(decodeHistoryCursor("not-base64"), null);
+});
+
+test("history buckets a late-evening US Eastern session on its local day even when the profile timezone is UTC", async () => {
+  // 2026-11-06T02:35:00Z is Nov 5 21:35 (EST). profiles.timezone was captured from the UTC server runtime.
+  const supabase = createSupabaseStub({
+    sessions: async () => ({
+      data: [{
+        id: "session-1",
+        user_id: "user-1",
+        performed_at: "2026-11-06T02:35:00.000Z",
+        notes: null,
+        routine_id: "routine-1",
+        routine_day_index: 1,
+        name: "QA Routine",
+        routine_day_name: null,
+        day_name_override: null,
+        duration_seconds: 600,
+        status: "completed",
+      }],
+    }),
+    profiles: async () => ({ data: [{ timezone: "UTC", active_routine_id: "routine-1" }] }),
+    routines: async () => ({ data: [{ id: "routine-1", name: "QA Routine", start_date: "2026-11-05", cycle_length_days: 7, timezone: "America/New_York" }] }),
+    routine_days: async () => ({ data: [{ routine_id: "routine-1", day_index: 1, name: "Day 1", is_rest: false }] }),
+  });
+
+  const result = await loadHistorySessionsPageData({
+    supabase,
+    userId: "user-1",
+    now: "2026-11-06T03:00:00.000Z",
+    searchParams: {},
+    logger: { warn() {} },
+  });
+
+  assert.equal(result.weeklyProgress.timezone, "America/New_York");
+  const streak = buildHistoryWorkoutStreak({
+    sessions: result.sessionItems,
+    timezone: result.weeklyProgress.timezone,
+  });
+  assert.equal(streak.lastCompletedDayKey, "2026-11-05");
+  assert.equal(streak.currentEndDayKey, "2026-11-05");
 });

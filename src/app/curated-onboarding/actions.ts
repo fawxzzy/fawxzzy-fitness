@@ -18,7 +18,7 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import { getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import { normalizeRoutineTimezone } from "@/lib/timezones";
+import { isValidIanaTimeZone, normalizeRoutineTimezone } from "@/lib/timezones";
 import { activateProfileRoutineId } from "@/app/curated-onboarding/activate-profile-routine";
 
 export type CreateCuratedRoutineDraftResult =
@@ -104,13 +104,16 @@ export async function generateCuratedWorkoutPlanAction(
 
 export async function createCuratedRoutineDraftAction(
   onboarding: CuratedOnboardingData,
+  deviceTimeZone?: string | null,
 ): Promise<CreateCuratedRoutineDraftResult> {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
   const signals = await loadCuratedHistorySignals({ userId: user.id, activeRoutineId: profile.active_routine_id, supabase });
   const plan = generateAdaptiveCuratedWorkoutPlan(onboarding, signals);
-  const timezone = normalizeRoutineTimezone(profile.timezone);
+  // The client's device zone is the user's real zone; profile.timezone was historically the server zone (UTC),
+  // so it is only the fallback when the client did not send one.
+  const timezone = normalizeRoutineTimezone(isValidIanaTimeZone(deviceTimeZone) ? deviceTimeZone : profile.timezone);
   const progressionState = createProgressionPlaybookFormState({ playbookId: plan.progressionPlaybookId });
   const progressionConfig = buildProgressionPlaybookConfigFromFormState(progressionState);
   const schedule = buildCuratedRoutineSchedule(plan);

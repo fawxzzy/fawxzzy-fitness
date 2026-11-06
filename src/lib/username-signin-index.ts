@@ -7,6 +7,33 @@ const LEGACY_JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 type ResolvedUser = { email?: string | null } | null;
 
+export type UsernameLookupFailureCode = "resolver_unavailable" | "invalid_resolver_response" | "auth_user_unavailable";
+
+const RESOLVER_TIMEOUT_MS = 5000;
+
+export const LOGIN_INVALID_CREDENTIALS_MESSAGE = "Invalid email, username, or password";
+export const LOGIN_USERNAME_UNAVAILABLE_MESSAGE =
+  "Username sign-in is temporarily unavailable. Sign in with your email or try again in a moment.";
+// The username resolver is rate limited per username (it counts successful sign-ins too) and a throttled
+// lookup is deliberately indistinguishable from an unknown username. Say so without confirming anything.
+export const LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE =
+  "Invalid email, username, or password. Username sign-in is limited after several recent attempts, so try your email or wait a few minutes.";
+
+/**
+ * Maps a failed identifier-to-email resolution to the message shown on the login screen. Provider/infra
+ * failures must not masquerade as bad credentials; everything else for a username stays non-enumerating.
+ */
+export function getLoginResolutionFailureMessage(args: {
+  identifier: string;
+  lookupFailure: UsernameLookupFailureCode | null;
+}): string {
+  // Only failures that happen before any user row is known (transport, timeout, 5xx, missing credential) may
+  // say "unavailable". invalid_resolver_response and auth_user_unavailable occur only after the resolver
+  // returned a row, i.e. only for an existing username, so they share the unknown-username copy.
+  if (args.lookupFailure === "resolver_unavailable") return LOGIN_USERNAME_UNAVAILABLE_MESSAGE;
+  return USERNAME.test(args.identifier) ? LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE : LOGIN_INVALID_CREDENTIALS_MESSAGE;
+}
+
 export async function resolveLoginIdentifierEmail(
   identifier: string,
   resolveUsername: (username: string) => Promise<string | null>,
@@ -22,7 +49,7 @@ export async function resolveUsernameEmailFromIndex(args: {
   serviceCredential: string;
   getUserById: (id: string) => Promise<ResolvedUser>;
   fetchImpl?: typeof fetch;
-  onLookupFailure?: (code: "resolver_unavailable" | "invalid_resolver_response" | "auth_user_unavailable") => void;
+  onLookupFailure?: (code: UsernameLookupFailureCode) => void;
 }): Promise<string | null> {
   if (!USERNAME.test(args.identifier)) return null;
   const modernSecret = args.serviceCredential.startsWith("sb_secret_");
@@ -30,25 +57,36 @@ export async function resolveUsernameEmailFromIndex(args: {
   const digest = (value: string) => createHash("sha256").update(value).digest("hex");
   const fetchImpl = args.fetchImpl ?? fetch;
 
+  const requestInit: RequestInit = {
+    method: "POST",
+    redirect: "error",
+    headers: {
+      Accept: "application/json",
+      "Accept-Profile": "account_api",
+      apikey: args.serviceCredential,
+      ...(modernSecret ? {} : { Authorization: `Bearer ${args.serviceCredential}` }),
+      "Content-Type": "application/json",
+      "Content-Profile": "account_api",
+    },
+    body: JSON.stringify({
+      p_normalized_username: args.identifier,
+      p_attempt_key: digest(`username:${args.identifier}`),
+      p_client_attempt_key: digest(`client:${args.clientAddress}`),
+    }),
+  };
+  const resolverUrl = new URL("/rest/v1/rpc/account_resolve_username_signin_v2", args.supabaseUrl);
+
   try {
-    const response = await fetchImpl(new URL("/rest/v1/rpc/account_resolve_username_signin_v2", args.supabaseUrl), {
-      method: "POST",
-      redirect: "error",
-      headers: {
-        Accept: "application/json",
-        "Accept-Profile": "account_api",
-        apikey: args.serviceCredential,
-        ...(modernSecret ? {} : { Authorization: `Bearer ${args.serviceCredential}` }),
-        "Content-Type": "application/json",
-        "Content-Profile": "account_api",
-      },
-      body: JSON.stringify({
-        p_normalized_username: args.identifier,
-        p_attempt_key: digest(`username:${args.identifier}`),
-        p_client_attempt_key: digest(`client:${args.clientAddress}`),
-      }),
-    });
-    if (!response.ok) {
+    // Deliberately a single bounded attempt, never retried: the RPC counts every call against a per-username
+    // limit (10 per 15 minutes), and after a timeout or lost response the caller cannot tell whether the RPC
+    // already ran, so a retry could burn a second attempt. A failure is reported as "unavailable" instead.
+    let response: Response | null;
+    try {
+      response = await fetchImpl(resolverUrl, { ...requestInit, signal: AbortSignal.timeout(RESOLVER_TIMEOUT_MS) });
+    } catch {
+      response = null;
+    }
+    if (!response || !response.ok) {
       args.onLookupFailure?.("resolver_unavailable");
       return null;
     }
@@ -66,7 +104,15 @@ export async function resolveUsernameEmailFromIndex(args: {
       return null;
     }
 
-    const email = (await args.getUserById(id))?.email?.trim().toLowerCase();
+    // A throw here happens only after the resolver returned a row (an existing username), so it must report the
+    // post-row code that shares the unknown-username copy, never resolver_unavailable.
+    let email: string | undefined;
+    try {
+      email = (await args.getUserById(id))?.email?.trim().toLowerCase();
+    } catch {
+      args.onLookupFailure?.("auth_user_unavailable");
+      return null;
+    }
     if (!email || !EMAIL.test(email)) {
       args.onLookupFailure?.("auth_user_unavailable");
       return null;
