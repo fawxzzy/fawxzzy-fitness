@@ -41,6 +41,12 @@ const STATUS_MAPPING = new Map([
   ["in_progress", { recordStatus: "active", lifecycle: "in-progress" }],
   ["review", { recordStatus: "active", lifecycle: "review" }],
 ]);
+// Owner-completed (`fixed`) cards export as lifecycle `completed` ONLY when the id is in
+// ACCEPTED_PUBLIC_CARD_IDS and its resolved visibility is `public`. Every other `fixed` card stays
+// excluded, so completed private/monetization/security work never becomes public by accident.
+// record_status "active" mirrors the only closed-type values this exporter has emitted (active, candidate).
+const COMPLETED_MAPPING = { recordStatus: "active", lifecycle: "completed" };
+const isExportedCompleted = (item) => item.status === "fixed" && ACCEPTED_PUBLIC_CARD_IDS.has(item.id) && visibilityFor(item) === "public";
 
 const SUPPLEMENTAL_CARDS = [
   {
@@ -106,6 +112,54 @@ const SUPPLEMENTAL_CARDS = [
     dependsOn: [],
     description: "Provide reusable day-level exercise templates without expanding into broad routine sharing.",
     acceptanceCriteria: ["Day templates are reusable and editable.", "The workflow is clear on mobile.", "Routine sharing remains outside this card."],
+  },
+  {
+    cardId: "FF-RELIABILITY-001",
+    title: "Make Workout Start Atomic",
+    priority: "P1",
+    dependsOn: [],
+    description: "Make starting a workout an all-or-nothing step so an interrupted start never leaves a partial session behind.",
+    acceptanceCriteria: ["Starting a workout either fully succeeds or leaves no partial session.", "Retried or double-tapped starts do not create duplicate sessions.", "The change goes live only after the matching database update is reviewed and applied."],
+  },
+  {
+    cardId: "FF-ACCOUNT-002",
+    title: "Enable Account Portal to Fitness Handoff",
+    priority: "P1",
+    dependsOn: [],
+    description: "Let people who begin in the Fawxzzy account portal continue straight into Fitness without a second sign-in step.",
+    acceptanceCriteria: ["Opening Fitness from the account portal lands the signed-in user in the app.", "When the handoff is unavailable the user sees a clear sign-in path instead of a dead end.", "The handoff stays off until readiness checks pass."],
+  },
+  {
+    cardId: "FF-ACCOUNT-003",
+    title: "Complete Self-Service Account Tools",
+    priority: "P2",
+    dependsOn: [],
+    description: "Finish the self-service account lifecycle: recovering a forgotten sign-in, downloading your own data, and removing your account.",
+    acceptanceCriteria: ["Forgotten-sign-in recovery is verified end to end.", "People can export their own data.", "People can request account removal with a clear confirmation step."],
+  },
+  {
+    cardId: "FF-AUTH-001",
+    title: "Make Sign-In Outcomes Clear",
+    priority: "P1",
+    dependsOn: [],
+    description: "Show a clear message whenever a sign-in attempt does not complete, instead of quietly returning to the sign-in form.",
+    acceptanceCriteria: ["Every sign-in attempt that does not complete explains the next step.", "Temporary delays tell the user how to retry.", "Successful sign-in behavior is unchanged."],
+  },
+  {
+    cardId: "FF-RET-005",
+    title: "Respect the Local Day Boundary in Workout Streaks",
+    priority: "P1",
+    dependsOn: ["FF-RET-002"],
+    description: "Count streak days in the user's local time zone so an evening workout is credited to the day it was logged.",
+    acceptanceCriteria: ["A workout logged in the evening counts toward that local calendar day.", "Streak, best-streak, and calendar views agree on day boundaries.", "Users without a saved time zone keep a clear, documented default."],
+  },
+  {
+    cardId: "FF-QA-003",
+    title: "Return a Proper Not-Found Status for Missing Pages",
+    priority: "P2",
+    dependsOn: [],
+    description: "Pages for items that do not exist or are unavailable should respond with a real not-found status along with the friendly not-found screen.",
+    acceptanceCriteria: ["Missing or unavailable pages respond with a not-found status, not a success status.", "The friendly not-found screen still renders.", "Existing pages are unaffected."],
   },
 ];
 
@@ -185,7 +239,7 @@ function validateDependencyGraph(sources) {
 }
 
 function mapCard(item, source, sourcePath) {
-  const mapping = STATUS_MAPPING.get(item.status);
+  const mapping = item.status === "fixed" ? COMPLETED_MAPPING : STATUS_MAPPING.get(item.status);
   if (!mapping) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
   const visibility = visibilityFor(item);
   const sourceRef = `${atlasPath(sourcePath)}#${item.id}`;
@@ -254,7 +308,7 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
   const combined = [sourceBytes.registry, sourceBytes.roadmap, sourceBytes.session, sourceBytes.adapter].map(normalize).join("\n--FITNESS-OWNER-SOURCE--\n");
   const sourceRevision = `sha256:${digest(combined)}`;
   const generatedAt = normalizeTimestamp(registry.updatedAt);
-  const cards = registry.workItems.filter((item) => item.status !== "fixed").map((item) => {
+  const cards = registry.workItems.filter((item) => item.status !== "fixed" || isExportedCompleted(item)).map((item) => {
     const source = sources.get(item.id);
     return mapCard(item, validatedSources.get(item.id), source.sourcePath);
   })
@@ -272,7 +326,7 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
     ],
     cards,
     extensions: {
-      source_work_item_count: registry.workItems.length, exported_card_count: cards.length, excluded_completed_card_count: registry.workItems.length - cards.length,
+      source_work_item_count: registry.workItems.length, exported_card_count: cards.length, exported_completed_card_count: cards.filter((card) => card.record.lifecycle === "completed").length, excluded_completed_card_count: registry.workItems.length - cards.length,
       selected_owner_snapshot_record_count: 55, excluded_unstable_or_nonfitness_record_count: 18,
       deferred_board_journal_event_count: 38, deferred_board_journal_public_stable_additions: 2,
       deferred_board_journal_security_incident_exclusions: 1,
