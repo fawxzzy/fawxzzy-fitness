@@ -222,6 +222,20 @@ test("transport failures and 5xx are reported as resolver_unavailable", async ()
   }
 });
 
+test("a throw from the Auth user read is auth_user_unavailable, not resolver_unavailable", async () => {
+  const failures: string[] = [];
+  const email = await resolveUsernameEmailFromIndex({
+    ...resolverArgs,
+    onLookupFailure: (code) => failures.push(code),
+    fetchImpl: async () => Response.json([{ resolved_user_id: USER_ID }]),
+    getUserById: async () => {
+      throw new Error("auth admin down");
+    },
+  });
+  assert.equal(email, null);
+  assert.deepEqual(failures, ["auth_user_unavailable"]);
+});
+
 test("each resolver request is time bounded", async () => {
   let signal: AbortSignal | null | undefined;
   await resolveUsernameEmailFromIndex({

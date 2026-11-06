@@ -1,7 +1,7 @@
 const SIMPLE_ROUTINE_TIMEZONE_CHOICES = [
   { label: "Pacific", value: "America/Los_Angeles", aliases: ["America/Vancouver"] },
   { label: "Mountain", value: "America/Denver", aliases: [] },
-  { label: "Central", value: "America/Chicago", aliases: ["America/Mexico_City"] },
+  { label: "Central", value: "America/Chicago", aliases: [] },
   { label: "Eastern", value: "America/New_York", aliases: ["America/Toronto"] },
   { label: "UTC", value: "UTC", aliases: [] },
 ] as const;
@@ -32,7 +32,8 @@ export function isValidIanaTimeZone(value: string | null | undefined): value is 
 
 // Routine timezones are any valid IANA zone: the device zone is stored as is, so Phoenix, Honolulu, London,
 // Tokyo, ... bucket on their real local days. The five choices above are only the picker presets, and their
-// aliases (Toronto, Vancouver, Mexico City) still fold into the preset with the same day boundaries.
+// aliases (Toronto, Vancouver) still fold into the preset with the same day boundaries. Mexico City is NOT an
+// alias of Central: it has no DST (UTC-6 year round), so it is kept as its own zone.
 // Previously a fixed list of European/Asian/Australian zones was collapsed to UTC and every other unknown
 // zone to America/New_York; stored values are unchanged, they are simply no longer rewritten on read.
 export function isRoutineTimezone(value: string) {

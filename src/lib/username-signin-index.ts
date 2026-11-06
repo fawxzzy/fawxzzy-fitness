@@ -104,7 +104,15 @@ export async function resolveUsernameEmailFromIndex(args: {
       return null;
     }
 
-    const email = (await args.getUserById(id))?.email?.trim().toLowerCase();
+    // A throw here happens only after the resolver returned a row (an existing username), so it must report the
+    // post-row code that shares the unknown-username copy, never resolver_unavailable.
+    let email: string | undefined;
+    try {
+      email = (await args.getUserById(id))?.email?.trim().toLowerCase();
+    } catch {
+      args.onLookupFailure?.("auth_user_unavailable");
+      return null;
+    }
     if (!email || !EMAIL.test(email)) {
       args.onLookupFailure?.("auth_user_unavailable");
       return null;

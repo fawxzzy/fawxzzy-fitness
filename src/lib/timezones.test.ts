@@ -20,6 +20,12 @@ test("device zones outside the picker presets are kept, not collapsed to Eastern
 test("preset aliases still fold into their preset and invalid zones are rejected or defaulted", () => {
   assert.equal(normalizeRoutineTimezone("America/Toronto"), "America/New_York");
   assert.equal(normalizeRoutineTimezone("America/Vancouver"), "America/Los_Angeles");
+  // Mexico City has no DST, so it is not Central: keep it as its own zone.
+  assert.equal(normalizeRoutineTimezone("America/Mexico_City"), "America/Mexico_City");
+  const instant = new Date("2026-06-01T05:30:00.000Z");
+  const dayIn = (timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(instant);
+  assert.equal(dayIn("America/Mexico_City"), "2026-05-31");
+  assert.equal(dayIn("America/Chicago"), "2026-06-01");
   assert.equal(normalizeRoutineTimezone("Not/AZone"), DEFAULT_HISTORY_TIMEZONE);
   assert.equal(normalizeRoutineTimezone(null), DEFAULT_HISTORY_TIMEZONE);
   assert.equal(toCanonicalRoutineTimezone("Not/AZone"), null);
