@@ -53,20 +53,81 @@ test("exports the exact stable active and planned Fitness owner set", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
   assert.equal(output.contract_version, "atlas.project-board.owner-export.v1");
   assert.equal(output.project_id, "fitness");
-  assert.equal(output.extensions.source_work_item_count, 39);
-  assert.equal(output.cards.length, 24);
+  // 39 original registry items + 6 board-safe real-work cards added 2026-11-06 = 45 source items.
+  // 30 exported = 24 accepted public/held-out snapshot ids + the 6 new cards; 15 older fixed items stay excluded.
+  assert.equal(output.extensions.source_work_item_count, 45);
+  assert.equal(output.cards.length, 30);
   assert.deepEqual(output.cards.map((card) => card.record.card_id), [...output.cards.map((card) => card.record.card_id)].sort());
-  assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 24);
+  assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 30);
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-GAM-002"));
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-ROUTINE-001"));
   assert.deepEqual(output.cards, acceptedSnapshot.cards);
 });
 
-test("keeps completed owner truth out of the live export", () => {
+// The 15 `fixed` registry items that were never part of the accepted public snapshot. They stay out of the
+// export on every status refresh: completed private, monetization, security and internal work is not public.
+const STILL_EXCLUDED_COMPLETED_IDS = [
+  "FF-ACCOUNT-001", "FF-COPILOT-001", "FF-CORE-001", "FF-CORE-002", "FF-HISTORY-001", "FF-LEGAL-001",
+  "FF-MON-001", "FF-MON-002", "FF-MON-003", "FF-PROG-001", "FF-PWA-001", "FF-PWA-002", "FF-QA-001",
+  "FF-SEC-001", "FF-TEMPLATES-001",
+];
+// Accepted public cards the owner registry now marks `fixed` (evidence-based proposals, 2026-11-06).
+// They export as lifecycle `completed` instead of being dropped.
+const EXPORTED_COMPLETED_IDS = [
+  "FF-GAM-001", "FF-PWA-003", "FF-QA-002", "FF-RET-001", "FF-RET-004", "FF-ROUTINE-001",
+  "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004",
+];
+
+test("keeps non-public completed owner truth out of the live export and exports accepted completed cards", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
   const completed = registry.workItems.filter((item) => item.status === "fixed");
-  assert.equal(completed.length, 15);
-  for (const item of completed) assert.equal(output.cards.some((card) => card.record.card_id === item.id), false);
+  assert.equal(completed.length, 25);
+  assert.deepEqual(completed.map((item) => item.id).filter((id) => !EXPORTED_COMPLETED_IDS.includes(id)).sort(), STILL_EXCLUDED_COMPLETED_IDS);
+  for (const id of STILL_EXCLUDED_COMPLETED_IDS) assert.equal(output.cards.some((card) => card.record.card_id === id), false, id);
+  assert.deepEqual(output.cards.filter((card) => card.record.lifecycle === "completed").map((card) => card.record.card_id), EXPORTED_COMPLETED_IDS);
+  for (const card of output.cards.filter((entry) => entry.record.lifecycle === "completed")) {
+    assert.equal(card.record.extensions.owner_status, "fixed");
+    assert.equal(card.record.extensions.public_safe, true);
+    assert.equal(card.record_status, "active");
+  }
+  assert.equal(output.extensions.excluded_completed_card_count, 15);
+  assert.equal(output.extensions.exported_completed_card_count, 10);
+  assert.equal(output.extensions.private_records_included, false);
+});
+
+test("never exports a fixed card that is not an accepted public id or whose visibility is not public", async (t) => {
+  // Accepted id, explicit private decision: stays excluded.
+  const privateClone = structuredClone(registry);
+  const accepted = privateClone.workItems.find((item) => item.id === "FF-GAM-001");
+  accepted.visibility = "private";
+  const privateOutput = buildProjectBoardOwnerExport(privateClone, { ...bytes, registry: JSON.stringify(privateClone) });
+  assert.equal(privateOutput.cards.some((card) => card.record.card_id === "FF-GAM-001"), false);
+  assert.equal(privateOutput.extensions.excluded_completed_card_count, 16);
+  // Baseline non-accepted id, explicit public decision: still excluded while fixed (public allowlist is the web owner's call).
+  const publicClone = structuredClone(registry);
+  publicClone.workItems.find((item) => item.id === "FF-MON-001").visibility = "public";
+  const publicOutput = buildProjectBoardOwnerExport(publicClone, { ...bytes, registry: JSON.stringify(publicClone) });
+  assert.equal(publicOutput.cards.some((card) => card.record.card_id === "FF-MON-001"), false);
+  // New (non-baseline) fixed card is never exported even when marked public.
+  const f = await fixture(t, [syntheticCard()]);
+  f.add("FF-TEST-001", "public", "fixed");
+  assert.equal(f.build().cards.some((card) => card.record.card_id === "FF-TEST-001"), false);
+});
+
+test("board-safe real-work cards are public, screened wording, and never completed", () => {
+  const output = buildProjectBoardOwnerExport(registry, bytes);
+  const expected = new Map([
+    ["FF-RELIABILITY-001", "in-progress"], ["FF-ACCOUNT-002", "planning"], ["FF-ACCOUNT-003", "planning"],
+    ["FF-AUTH-001", "planning"], ["FF-RET-005", "planning"], ["FF-QA-003", "planning"],
+  ]);
+  const screen = /\b(passwords?|secrets?|credentials?|tokens?|cookies?|jwt|security|vulnerabilit\w*|incident|exploit\w*|leak\w*|premium|paid|payments?|billing|subscriptions?|monetiz\w*|throttl\w*|rate[ -]limit\w*|session id|e-?mail)\b|https?:\/\/|[\w-]+\.(?:json|mjs|ts|tsx|sql|md)\b/i;
+  for (const [cardId, lifecycle] of expected) {
+    const card = output.cards.find((entry) => entry.record.card_id === cardId);
+    assert.ok(card, cardId);
+    assert.equal(card.record.lifecycle, lifecycle, cardId);
+    assert.equal(card.record.extensions.visibility, "public");
+    for (const text of [card.record.title, card.record.description, ...card.content.acceptance_criteria]) assert.equal(screen.test(text), false, `${cardId}: ${text}`);
+  }
 });
 
 test("maps owner snapshot and latest accepted journal states without inventing readiness", () => {
@@ -76,6 +137,9 @@ test("maps owner snapshot and latest accepted journal states without inventing r
     if (ownerState === "fawxzzy_review" || ownerState === "review") {
       assert.equal(card.record_status, "active");
       assert.equal(card.record.lifecycle, "review");
+    } else if (ownerState === "fixed") {
+      assert.equal(card.record_status, "active");
+      assert.equal(card.record.lifecycle, "completed");
     } else if (ownerState === "confirmed" || ownerState === "planning") {
       assert.equal(card.record_status, "candidate");
       assert.equal(card.record.lifecycle, "planning");
@@ -87,15 +151,26 @@ test("maps owner snapshot and latest accepted journal states without inventing r
   }
 });
 
-test("applies the latest accepted non-security journal lifecycle and timestamp", () => {
+test("applies the evidence-based 2026-11-06 status refresh and keeps untouched cards at their prior state", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
+  const refreshed = "2026-11-06T17:20:00.000Z";
   const expected = new Map([
     ["FF-ANALYTICS-002", ["planning", "2026-07-15T00:49:00.000Z"]],
-    ["FF-GAM-001", ["in-progress", "2026-07-15T15:10:00.000Z"]],
+    ["FF-GAM-001", ["completed", refreshed]],
     ["FF-GAM-002", ["planning", "2026-07-15T15:20:00.000Z"]],
-    ["FF-RET-004", ["in-progress", "2026-07-15T14:30:00.000Z"]],
-    ["FF-ROUTINE-001", ["review", "2026-07-15T18:00:00.000Z"]],
-    ["FF-SESSION-001", ["review", "2026-07-15T20:22:00.000Z"]],
+    ["FF-RET-003", ["in-progress", refreshed]],
+    ["FF-RET-004", ["completed", refreshed]],
+    ["FF-ROUTINE-001", ["completed", refreshed]],
+    ["FF-SESSION-001", ["completed", refreshed]],
+    ["FF-SESSION-005", ["in-progress", refreshed]],
+    // Dormant behind default-off flags or a known defect: stay in review.
+    ["FF-ENGINE-001", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-ENGINE-002", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-ONBOARD-001", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-RECAP-001", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-RET-002", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-ANALYTICS-001", ["planning", "2026-07-09T23:41:16.303Z"]],
+    ["FF-SOC-002", ["planning", "2026-07-14T22:23:17.502Z"]],
   ]);
   for (const [cardId, [lifecycle, updatedAt]] of expected) {
     const card = output.cards.find((entry) => entry.record.card_id === cardId);
@@ -155,7 +230,7 @@ test("fails closed on unstable identities, duplicates, and stale output", () => 
   duplicate.workItems[1].id = duplicate.workItems[0].id;
   assert.throws(() => buildProjectBoardOwnerExport(duplicate, { ...bytes, registry: JSON.stringify(duplicate) }), /unique stable FF ids/);
   const missing = structuredClone(registry);
-  missing.workItems.pop();
+  missing.workItems = missing.workItems.filter((item) => item.id !== "FF-TEMPLATES-001");
   assert.throws(() => buildProjectBoardOwnerExport(missing, { ...bytes, registry: JSON.stringify(missing) }), /missing baseline card/);
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), "fitness-owner-export-"));
   fs.mkdirSync(path.join(temp, "config"), { recursive: true });
@@ -175,8 +250,8 @@ test("supports bounded source-backed growth without changing the accepted snapsh
   f.add("FF-TEST-001", "private");
   f.add("FF-TEST-002", "public");
   const output = f.build();
-  assert.equal(output.extensions.source_work_item_count, 41);
-  assert.equal(output.extensions.exported_card_count, 26);
+  assert.equal(output.extensions.source_work_item_count, 47);
+  assert.equal(output.extensions.exported_card_count, 32);
   assert.equal(output.extensions.excluded_completed_card_count, 15);
   assert.deepEqual(output.cards.filter((card) => !card.record.card_id.startsWith("FF-TEST-")), acceptedSnapshot.cards);
   const added = output.cards.find((card) => card.record.card_id === "FF-TEST-002");
@@ -221,7 +296,7 @@ test("accepts acyclic dependencies with a shared prerequisite", async (t) => {
   const f = await fixture(t, definitions);
   definitions.forEach(({ cardId }) => f.add(cardId, "private"));
   const output = f.build();
-  assert.equal(output.cards.length, 27);
+  assert.equal(output.cards.length, 33);
   assert.deepEqual(output.cards.find((card) => card.record.card_id === "FF-TEST-003").record.dependencies, ["FF-TEST-001", "FF-TEST-002"]);
 });
 
@@ -260,7 +335,7 @@ test("derives completed exclusions when a synthetic new card is already fixed", 
   const f = await fixture(t, [syntheticCard()]);
   f.add("FF-TEST-001", "private", "fixed");
   const output = f.build();
-  assert.equal(output.extensions.source_work_item_count, 40);
+  assert.equal(output.extensions.source_work_item_count, 46);
   assert.equal(output.extensions.excluded_completed_card_count, 16);
   assert.deepEqual(output.cards, acceptedSnapshot.cards);
 });

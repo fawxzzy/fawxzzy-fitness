@@ -62,7 +62,8 @@ const LITERAL_PATHS_ALSO_RUN = ["tests/auth-design-system-contracts-workflow.tes
 test("the dedicated auth/design-system workflow file exists and names its job", () => {
   const workflow = readWorkflow();
   assert.match(workflow, /^name: Auth and design-system contract proof/m);
-  assert.match(workflow, /auth-design-system-contracts:\s*\n\s*runs-on: ubuntu-latest/);
+  // Pinned to ubuntu-24.04: ubuntu-latest now resolves to 26.04, which Playwright's Chromium install does not support.
+  assert.match(workflow, /auth-design-system-contracts:\s*\n\s*runs-on: ubuntu-24\.04/);
 });
 
 test("pull_request and push-to-main both trigger the workflow", () => {
