@@ -10,6 +10,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 import {
   getLoginResolutionFailureMessage,
+  getLoginSignInFailureMessage,
   resolveLoginIdentifierEmail,
   resolveUsernameEmailFromIndex,
   type UsernameLookupFailureCode,
@@ -116,8 +117,12 @@ export async function login(formData: FormData) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.session) {
+    if (error?.code !== "invalid_credentials") {
+      console.error("Password sign-in failed", { code: error?.code ?? null, status: error?.status ?? null });
+    }
+    // Never forward the provider's raw message: for a username it would confirm that the account exists.
     redirect(buildLoginRedirectHref({
-      error: error?.message ?? "Invalid email or password",
+      error: getLoginSignInFailureMessage({ identifier, error }),
       returnTo,
     }));
   }
