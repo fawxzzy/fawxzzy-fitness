@@ -15,6 +15,7 @@ import {
   resolveUsernameEmailFromIndex,
   type UsernameLookupFailureCode,
 } from "@/lib/username-signin-index";
+import { enforceLoginFailureFloor } from "@/lib/login-failure-floor";
 import { requestResetForIdentifier } from "@/lib/password-reset-request";
 import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
 
@@ -95,6 +96,7 @@ function buildLoginRedirectHref(args: {
 }
 
 export async function login(formData: FormData) {
+  const startedAt = Date.now();
   const identifier = normalizeLoginIdentifier(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const returnTo = isSafeAppPath(String(formData.get("returnTo") ?? "").trim())
@@ -107,6 +109,7 @@ export async function login(formData: FormData) {
     }));
 
   if (!email) {
+    await enforceLoginFailureFloor(startedAt);
     redirect(buildLoginRedirectHref({
       error: getLoginResolutionFailureMessage({ identifier, lookupFailure }),
       returnTo,
@@ -120,6 +123,7 @@ export async function login(formData: FormData) {
     if (error?.code !== "invalid_credentials") {
       console.error("Password sign-in failed", { code: error?.code ?? null, status: error?.status ?? null });
     }
+    await enforceLoginFailureFloor(startedAt);
     // Never forward the provider's raw message: for a username it would confirm that the account exists.
     redirect(buildLoginRedirectHref({
       error: getLoginSignInFailureMessage({ identifier, error }),

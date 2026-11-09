@@ -318,6 +318,8 @@ test("sign-in failure classification uses provider error code and status, not me
   assert.equal(withMisleadingMessage({ code: "over_request_rate_limit", status: 429 }), LOGIN_RATE_LIMITED_MESSAGE);
   assert.equal(withMisleadingMessage({ status: 429 }), LOGIN_RATE_LIMITED_MESSAGE);
   assert.equal(withMisleadingMessage({ code: "unexpected_failure", status: 500 }), LOGIN_PROVIDER_UNAVAILABLE_MESSAGE);
+  assert.equal(withMisleadingMessage({ status: 503 }), LOGIN_PROVIDER_UNAVAILABLE_MESSAGE);
+  assert.equal(withMisleadingMessage({ code: "something_new" }), LOGIN_PROVIDER_UNAVAILABLE_MESSAGE);
   assert.equal(withMisleadingMessage({ status: 0 }), LOGIN_PROVIDER_UNAVAILABLE_MESSAGE);
   assert.equal(withMisleadingMessage({ code: "email_not_confirmed", status: 400 }), LOGIN_EMAIL_NOT_CONFIRMED_MESSAGE);
   assert.equal(getLoginSignInFailureMessage({ identifier: "fawxzzy", error: null }), LOGIN_PROVIDER_UNAVAILABLE_MESSAGE);
@@ -325,4 +327,24 @@ test("sign-in failure classification uses provider error code and status, not me
     assert.notEqual(message, LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE);
     assert.notEqual(message, LOGIN_INVALID_CREDENTIALS_MESSAGE);
   }
+});
+
+test("a banned account and other post-lookup client errors read as bad credentials, never as an outage", () => {
+  // GoTrue checks the banned flag before the password and answers user_banned, so it must not become a distinct signal.
+  const banned = { code: "user_banned", status: 403 };
+  assert.equal(getLoginSignInFailureMessage({ identifier: "fawxzzy", error: banned }), LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE);
+  assert.equal(
+    getLoginSignInFailureMessage({ identifier: "fawxzzy", error: banned }),
+    getLoginResolutionFailureMessage({ identifier: "ghost-user", lookupFailure: null }),
+  );
+  assert.equal(getLoginSignInFailureMessage({ identifier: "a@example.com", error: banned }), LOGIN_INVALID_CREDENTIALS_MESSAGE);
+  for (const error of [{ code: "user_banned" }, { status: 403 }, { code: "validation_failed", status: 422 }, { code: "weird", status: 401 }]) {
+    assert.equal(getLoginSignInFailureMessage({ identifier: "fawxzzy", error }), LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE);
+    assert.equal(getLoginSignInFailureMessage({ identifier: "a@example.com", error }), LOGIN_INVALID_CREDENTIALS_MESSAGE);
+  }
+  // 429 and rate-limit codes still win over the 4xx rule.
+  assert.equal(
+    getLoginSignInFailureMessage({ identifier: "fawxzzy", error: { code: "over_request_rate_limit", status: 429 } }),
+    LOGIN_RATE_LIMITED_MESSAGE,
+  );
 });

@@ -46,17 +46,20 @@ export type LoginProviderError = { code?: string | null; status?: number | null 
  * screen. Credential failures must be indistinguishable from an unresolved identifier of the same shape, so a
  * username never reveals whether it exists. Classification uses the provider's error code/status only, never the
  * message text, and the raw provider message is never returned.
+ *
+ * Only these outcomes keep distinct copy: email_not_confirmed (reported after the password verified), 429 or a
+ * rate-limit code, and transport/5xx/unknown failures (no 4xx status and no recognised credential code). Every
+ * other client error is treated as a credential failure. In particular GoTrue checks a banned account before it
+ * checks the password and answers `user_banned`, so that code must read as bad credentials, never as an outage.
  */
 export function getLoginSignInFailureMessage(args: { identifier: string; error: LoginProviderError }): string {
   const code = args.error?.code ?? null;
   const status = args.error?.status ?? null;
-  // Supabase only reports email_not_confirmed after the password was verified, so this discloses nothing an
-  // attacker without the password could learn.
   if (code === "email_not_confirmed") return LOGIN_EMAIL_NOT_CONFIRMED_MESSAGE;
   if (status === 429 || (code !== null && code.includes("rate_limit"))) return LOGIN_RATE_LIMITED_MESSAGE;
-  // Older GoTrue responses omit the code on a 400 for bad credentials.
-  const isCredentialFailure = code === "invalid_credentials" || code === "user_not_found" || (code === null && status === 400);
-  if (!isCredentialFailure) return LOGIN_PROVIDER_UNAVAILABLE_MESSAGE;
+  const isClientError = status !== null && status >= 400 && status < 500;
+  const isKnownCredentialCode = code === "invalid_credentials" || code === "user_not_found" || code === "user_banned";
+  if (!isClientError && !isKnownCredentialCode) return LOGIN_PROVIDER_UNAVAILABLE_MESSAGE;
   return USERNAME.test(args.identifier) ? LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE : LOGIN_INVALID_CREDENTIALS_MESSAGE;
 }
 
