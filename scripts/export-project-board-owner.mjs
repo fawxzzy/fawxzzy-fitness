@@ -25,13 +25,15 @@ const BASELINE_CARD_IDS = new Set([
   "FF-ROUTINE-001", "FF-SEC-001", "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003",
   "FF-SESSION-004", "FF-SESSION-005", "FF-SOC-001", "FF-SOC-002", "FF-TEMPLATES-001",
 ]);
-// Only the accepted 24-card snapshot retains its existing public-safe decision.
+// The accepted 24-card snapshot retains its existing public-safe decision; board-safe cards join once accepted.
 const ACCEPTED_PUBLIC_CARD_IDS = new Set([
   "FF-ANALYTICS-001", "FF-ANALYTICS-002", "FF-BETA-001", "FF-ENGINE-001", "FF-ENGINE-002",
   "FF-GAM-001", "FF-GAM-002", "FF-MKT-001", "FF-ONBOARD-001", "FF-PWA-003", "FF-QA-002",
   "FF-RECAP-001", "FF-RET-001", "FF-RET-002", "FF-RET-003", "FF-RET-004", "FF-ROUTINE-001",
   "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005",
   "FF-SOC-001", "FF-SOC-002",
+  // Board-safe cards the owner has fixed and accepted from live verification (2026-11-09).
+  "FF-ACCOUNT-002", "FF-QA-003", "FF-RELIABILITY-001", "FF-RET-005",
 ]);
 const VISIBILITIES = new Set(["public", "private", "unknown"]);
 const STATUS_MAPPING = new Map([
