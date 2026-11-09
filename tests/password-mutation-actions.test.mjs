@@ -53,6 +53,7 @@ function fixture({ signedIn = true, updateError = null } = {}) {
     "@/lib/supabase/server": { supabaseServer: makeClient, supabaseServerWithSession: makeClient },
     "@/lib/username-policy": { isUsernameIdentifier: (name) => name === "synthetic-user", USERNAME_VALIDATION_MESSAGE: "Invalid username" },
     "@/lib/username-signin-index": { resolveLoginIdentifierEmail: async (value) => value, resolveUsernameEmailFromIndex: unexpected },
+    "@/lib/login-failure-floor": { enforceLoginFailureFloor: async () => 0 },
     "@/lib/password-reset-request": { requestResetForIdentifier: unexpected },
     "@/lib/supabase/schema": { createFitnessSupabaseClient: unexpected },
     "@/lib/password-policy": policy,

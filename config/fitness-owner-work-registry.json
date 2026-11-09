@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-06T17:20:00.000Z",
+  "updatedAt": "2026-11-09T00:00:00.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -43,7 +43,7 @@
     { "id": "FF-QA-002", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-RECAP-001", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
     { "id": "FF-RET-001", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
-    { "id": "FF-RET-002", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
+    { "id": "FF-RET-002", "status": "fixed", "updatedAt": "2026-11-09T00:00:00.000Z" },
     { "id": "FF-RET-003", "status": "in_progress", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-RET-004", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-ROUTINE-001", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
@@ -56,11 +56,11 @@
     { "id": "FF-SOC-001", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
     { "id": "FF-SOC-002", "status": "confirmed", "updatedAt": "2026-07-14T22:23:17.502Z" },
     { "id": "FF-TEMPLATES-001", "status": "fixed", "updatedAt": "2026-05-18T07:50:11.361Z" },
-    { "id": "FF-RELIABILITY-001", "status": "in_progress", "updatedAt": "2026-11-06T17:20:00.000Z", "visibility": "public" },
-    { "id": "FF-ACCOUNT-002", "status": "planning", "updatedAt": "2026-11-06T17:20:00.000Z", "visibility": "public" },
+    { "id": "FF-RELIABILITY-001", "status": "fixed", "updatedAt": "2026-11-09T00:00:00.000Z", "visibility": "public" },
+    { "id": "FF-ACCOUNT-002", "status": "fixed", "updatedAt": "2026-11-09T00:00:00.000Z", "visibility": "public" },
     { "id": "FF-ACCOUNT-003", "status": "planning", "updatedAt": "2026-11-06T17:20:00.000Z", "visibility": "public" },
-    { "id": "FF-AUTH-001", "status": "planning", "updatedAt": "2026-11-06T17:20:00.000Z", "visibility": "public" },
-    { "id": "FF-RET-005", "status": "planning", "updatedAt": "2026-11-06T17:20:00.000Z", "visibility": "public" },
-    { "id": "FF-QA-003", "status": "planning", "updatedAt": "2026-11-06T17:20:00.000Z", "visibility": "public" }
+    { "id": "FF-AUTH-001", "status": "in_progress", "updatedAt": "2026-11-09T00:00:00.000Z", "visibility": "public" },
+    { "id": "FF-RET-005", "status": "fixed", "updatedAt": "2026-11-09T00:00:00.000Z", "visibility": "public" },
+    { "id": "FF-QA-003", "status": "fixed", "updatedAt": "2026-11-09T00:00:00.000Z", "visibility": "public" }
   ]
 }

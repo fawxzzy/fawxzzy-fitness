@@ -34,6 +34,35 @@ export function getLoginResolutionFailureMessage(args: {
   return USERNAME.test(args.identifier) ? LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE : LOGIN_INVALID_CREDENTIALS_MESSAGE;
 }
 
+export const LOGIN_RATE_LIMITED_MESSAGE = "Too many sign-in attempts. Please wait a few minutes and try again.";
+export const LOGIN_PROVIDER_UNAVAILABLE_MESSAGE = "Sign-in is temporarily unavailable. Please try again in a moment.";
+export const LOGIN_EMAIL_NOT_CONFIRMED_MESSAGE = "Confirm your email address before signing in. Check your inbox for the confirmation link.";
+
+/** The subset of a Supabase AuthError that classification may read. Message text is deliberately not part of it. */
+export type LoginProviderError = { code?: string | null; status?: number | null } | null | undefined;
+
+/**
+ * Maps a failed password sign-in (after the identifier resolved to an email) to the message shown on the login
+ * screen. Credential failures must be indistinguishable from an unresolved identifier of the same shape, so a
+ * username never reveals whether it exists. Classification uses the provider's error code/status only, never the
+ * message text, and the raw provider message is never returned.
+ *
+ * Only these outcomes keep distinct copy: email_not_confirmed (reported after the password verified), 429 or a
+ * rate-limit code, and transport/5xx/unknown failures (no 4xx status and no recognised credential code). Every
+ * other client error is treated as a credential failure. In particular GoTrue checks a banned account before it
+ * checks the password and answers `user_banned`, so that code must read as bad credentials, never as an outage.
+ */
+export function getLoginSignInFailureMessage(args: { identifier: string; error: LoginProviderError }): string {
+  const code = args.error?.code ?? null;
+  const status = args.error?.status ?? null;
+  if (code === "email_not_confirmed") return LOGIN_EMAIL_NOT_CONFIRMED_MESSAGE;
+  if (status === 429 || (code !== null && code.includes("rate_limit"))) return LOGIN_RATE_LIMITED_MESSAGE;
+  const isClientError = status !== null && status >= 400 && status < 500;
+  const isKnownCredentialCode = code === "invalid_credentials" || code === "user_not_found" || code === "user_banned";
+  if (!isClientError && !isKnownCredentialCode) return LOGIN_PROVIDER_UNAVAILABLE_MESSAGE;
+  return USERNAME.test(args.identifier) ? LOGIN_USERNAME_NOT_RECOGNIZED_MESSAGE : LOGIN_INVALID_CREDENTIALS_MESSAGE;
+}
+
 export async function resolveLoginIdentifierEmail(
   identifier: string,
   resolveUsername: (username: string) => Promise<string | null>,

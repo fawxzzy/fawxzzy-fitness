@@ -116,3 +116,11 @@ test("reset-password delivery failures avoid leaking raw error codes", () => {
     },
   );
 });
+
+test("login route error toast shares one id between the global feedback bridge and the login screen", async () => {
+  const { readFileSync } = await import("node:fs");
+  const bridge = readFileSync(new URL("../../components/ActionFeedbackToasts.tsx", import.meta.url), "utf8");
+  const screen = readFileSync(new URL("./LoginScreen.tsx", import.meta.url), "utf8");
+  assert.match(screen, /id: "login-route-error"/);
+  assert.match(bridge, /pathname === "\/login" \? \{ id: "login-route-error" \}/);
+});

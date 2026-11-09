@@ -19,7 +19,9 @@ export function ActionFeedbackToasts() {
     }
 
     if (error) {
-      toast.error(error);
+      // The login screen shows its own error toast for ?error=, keyed by this id. Sharing the id makes the two
+      // toasts collapse into one instead of rendering the same message twice.
+      toast.error(error, pathname === "/login" ? { id: "login-route-error" } : undefined);
     }
 
     if (success) {
