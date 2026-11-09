@@ -33,7 +33,7 @@ const ACCEPTED_PUBLIC_CARD_IDS = new Set([
   "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005",
   "FF-SOC-001", "FF-SOC-002",
   // Board-safe cards the owner has fixed and accepted from live verification (2026-11-09).
-  "FF-ACCOUNT-002", "FF-QA-003", "FF-RELIABILITY-001", "FF-RET-005",
+  "FF-ACCOUNT-002", "FF-AUTH-001", "FF-QA-003", "FF-RELIABILITY-001", "FF-RET-005",
 ]);
 const VISIBILITIES = new Set(["public", "private", "unknown"]);
 const STATUS_MAPPING = new Map([
@@ -147,6 +147,15 @@ const SUPPLEMENTAL_CARDS = [
     description: "Show a clear message whenever a sign-in attempt does not complete, instead of quietly returning to the sign-in form.",
     acceptanceCriteria: ["Every sign-in attempt that does not complete explains the next step.", "Temporary delays tell the user how to retry.", "Successful sign-in behavior is unchanged."],
   },
+  {
+    cardId: "FF-ACCOUNT-004",
+    title: "Finish Account Site Setup for the Fitness App",
+    priority: "P1",
+    dependsOn: ["FF-AUTH-001"],
+    description: "Complete the shared account site that Fitness relies on for sign-in, sign-out, forgotten-sign-in recovery and returning people to the app, so the account side is finished before more Fitness work builds on it.",
+    acceptanceCriteria: ["Sign-up, sign-in, sign-out and forgotten-sign-in recovery all work from the account site and return people to the Fitness app.", "The account site and the app always agree on who is signed in.", "Every account screen Fitness links to is complete and checked in the installed phone app."],
+  },
+
   {
     cardId: "FF-RET-005",
     title: "Respect the Local Day Boundary in Workout Streaks",
