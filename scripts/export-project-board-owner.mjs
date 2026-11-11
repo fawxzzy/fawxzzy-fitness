@@ -152,10 +152,26 @@ const SUPPLEMENTAL_CARDS = [
     title: "Finish Account Site Setup for the Fitness App",
     priority: "P1",
     dependsOn: ["FF-AUTH-001"],
-    description: "Complete the shared account site that Fitness relies on for sign-in, sign-out, forgotten-sign-in recovery and returning people to the app, so the account side is finished before more Fitness work builds on it.",
+    description: "Complete the shared account site that Fitness relies on for sign-in, sign-out, forgotten-sign-in recovery and returning people to the app, so the account side is finished before more Fitness work builds on it. Progress: the sign-in, sign-up and reset forms now list in plain language what is missing or wrong; this is live on the account site and has not been checked on a real phone.",
     acceptanceCriteria: ["Sign-up, sign-in, sign-out and forgotten-sign-in recovery all work from the account site and return people to the Fitness app.", "The account site and the app always agree on who is signed in.", "Every account screen Fitness links to is complete and checked in the installed phone app."],
   },
 
+  {
+    cardId: "FF-AUTH-002",
+    title: "Send Branded Account Messages for Fitness and Mazer",
+    priority: "P1",
+    dependsOn: ["FF-AUTH-001"],
+    description: "Account messages such as forgotten-sign-in recovery now come from one no-reply Fawxzzy sender with a per-app look (Fitness green, Mazer cyan). Checked live on 2026-11-10 with a throwaway account: the message arrived, its link opened the new sign-in form, a new sign-in was saved and sign-in worked. Not verified: sign-up and change-of-address messages, and other mail clients. The hourly send allowance was raised from 2 to 30 on 2026-11-11 (confirmed by reload); the delivery service's free tier allows 100 messages a day.",
+    acceptanceCriteria: ["Account messages arrive from one branded sender with the app's own look (Fitness green, Mazer cyan).", "Forgotten-sign-in recovery works end to end: the message arrives, its link opens the new sign-in form, a new sign-in is saved and works (checked live 2026-11-10).", "Sign-up and change-of-address messages are checked and other mail clients are reviewed (not yet verified).", "Daily and hourly send allowances are watched as use grows."],
+  },
+  {
+    cardId: "FF-RELIABILITY-002",
+    title: "Lock Down Database Access for Signed-Out Visitors",
+    priority: "P1",
+    dependsOn: [],
+    description: "On 2026-11-10 signed-out visitors lost the ability to run 5 Fitness database functions and 5 internal tables became deny-by-default. The change was applied by approved hash and a rollback file is kept. Re-tested live afterward: sign-in, portal handoff, History and workout resume. Not verified: finishing a workout and reordering a routine were not clicked through.",
+    acceptanceCriteria: ["Signed-out visitors cannot run the five affected Fitness functions.", "The five internal tables deny access by default and a rollback file is kept.", "Sign-in, portal handoff, History and workout resume still work after the change (checked live 2026-11-10).", "Finishing a workout and reordering a routine are clicked through after the change (not yet done)."],
+  },
   {
     cardId: "FF-RET-005",
     title: "Respect the Local Day Boundary in Workout Streaks",
