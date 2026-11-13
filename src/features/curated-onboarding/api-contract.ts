@@ -1,4 +1,5 @@
 import {
+  CURATED_INTAKE_INCOMPLETE_MESSAGE,
   resolveCuratedWorkoutPlan,
   type CuratedHistorySignals,
   type CuratedPlanResult,
@@ -9,6 +10,7 @@ import {
   deriveCuratedEngineData,
   removeHiddenCuratedResponses,
 } from "./questionnaire.ts";
+import { isCuratedOnboardingReadyForHandoff } from "./selectors.ts";
 import type { CuratedIntakeResponse, CuratedIntakeResponses, CuratedOnboardingData } from "./types.ts";
 
 /**
@@ -40,11 +42,22 @@ export type CuratedWorkoutGenerationOutcome =
 
 export type CuratedGenerationFailureCode =
   | "safety-clearance-required"
+  | "guardian-permission-required"
+  | "feature-disabled"
   | "incomplete-intake"
   | "no-safe-plan"
   | "invalid-request"
   | "plan-changed"
   | "unavailable";
+
+export const CURATED_DISABLED_MESSAGE = "Guided routine setup is not available right now. You can build a routine manually.";
+export const CURATED_UNAVAILABLE_MESSAGE =
+  "The routine could not be generated right now. Try again, or build a routine manually.";
+export const CURATED_CREATE_FAILED_MESSAGE =
+  "Your routine could not be created. Nothing was saved. Try again, or build a routine manually.";
+
+export const CURATED_CREATE_PARTIAL_MESSAGE =
+  "Your routine was only partly created. Open Routines to check it, then try again or build a routine manually.";
 
 export const CURATED_PLAN_CHANGED_MESSAGE =
   "Your recent workouts changed what fits. Review the updated routine before creating it.";
@@ -106,6 +119,12 @@ export function compileCuratedWorkoutGeneration(
       reason: "invalid-request",
       message: "The saved setup could not be read. Review your setup and try again.",
     };
+  }
+
+  // Fail closed server-side: every required answer (including the safety questions and acknowledgment) must be
+  // present and well-typed before the generator runs, whatever the browser claims about its own progress.
+  if (!isCuratedOnboardingReadyForHandoff(onboarding)) {
+    return { status: "failed", reason: "incomplete-intake", message: CURATED_INTAKE_INCOMPLETE_MESSAGE };
   }
 
   const result = resolveCuratedWorkoutPlan(onboarding, request.signals);
