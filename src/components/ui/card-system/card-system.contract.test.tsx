@@ -18,6 +18,7 @@ import {
   CardSurface,
   DragHandle,
   StatBlock,
+  StatGrid,
   cardStatusChips,
   cardTokens,
 } from "./index";
@@ -280,4 +281,44 @@ test("the Today day picker keeps list semantics: each picker card is an li insid
   const list = picker.slice(picker.indexOf("<DayList"), picker.indexOf("</DayList>"));
 
   assert.match(list, /<RoutineOverviewDayCard[\s\S]*?asListItem/);
+});
+
+test("CardHeader link interaction: one stretched anchor named by the title, right chevron, aria-current, no nested interactive", () => {
+  const html = render(
+    <CardHeader title="Lower Rotation" meta={<CardMeta items={["Day 5"]} />} interaction={{ kind: "link", href: "/history/abc", current: true }} />,
+  );
+
+  assert.match(html, /<a [^>]*data-card-hit="link"[^>]*href="\/history\/abc"/);
+  assert.match(html, /aria-labelledby="[^"]+"/);
+  assert.match(html, /aria-describedby="[^"]+"/);
+  assert.match(html, /aria-current="page"/);
+  assert.match(html, /data-card-affordance="link"/);
+  assert.doesNotMatch(html, /<button/);
+  assert.doesNotMatch(html, /<a [^>]*>[^<]*<(h[1-6]|button)/);
+  assert.doesNotMatch(render(<CardHeader title="x" interaction={{ kind: "link", href: "/y" }} />), /aria-current/);
+});
+
+test("StatGrid: a description list that wraps (never scrolls), direction is glyph plus text, long values get their own row", () => {
+  const html = render(
+    <StatGrid
+      items={[
+        { label: "Sessions", value: "4", tone: "success" },
+        { label: "Vs Last", value: "+2", direction: "up", meta: ["vs prior"] },
+        { label: "Volume", value: "12,000 lbs + 3,000 kg of total load" },
+        { label: "Empty", value: " " },
+        { label: "Path", value: "135 -> 140 lbs | 5 reps" },
+      ]}
+    />,
+  );
+
+  assert.match(html, /<dl data-card-stat-grid="true"/);
+  assert.equal((html.match(/<dt/g) ?? []).length, 4, "blank values drop out");
+  assert.match(html, /<dt[^>]*>Sessions<\/dt>/);
+  assert.match(html, /<span class="sr-only">Up <\/span>/);
+  assert.match(html, /aria-hidden="true" class="mr-1">↑/);
+  assert.match(html, />vs prior</);
+  assert.match(html, /col-span-full[^"]*"[^>]*><dt[^>]*>Volume/);
+  assert.match(html, /135 → 140 lbs · 5 reps/);
+  assert.doesNotMatch(html, /overflow-x|min-w-max|scroll/);
+  assert.equal(render(<StatGrid items={[]} />), "");
 });
