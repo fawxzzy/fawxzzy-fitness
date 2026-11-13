@@ -17,6 +17,7 @@ import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
 import { buildRequestScopedUrl } from "@/lib/request-origin";
+import { isDevOnlyPath, isProductionDeployment } from "@/lib/dev-route-guard";
 import {
   isDocumentNavigation,
   shouldAnswerDetailRouteWithNotFound,
@@ -264,7 +265,19 @@ export async function handleAuthSessionMiddleware(
   return response;
 }
 
+export function buildDevRouteUnavailableResponse() {
+  return NextResponse.json(
+    { ok: false, error: "Not found." },
+    { status: 404, headers: { "cache-control": "no-store" } },
+  );
+}
+
 export async function middleware(request: NextRequest) {
+  // Dev fixtures and diagnostics never run on a production deployment.
+  if (isProductionDeployment() && isDevOnlyPath(request.nextUrl.pathname)) {
+    return buildDevRouteUnavailableResponse();
+  }
+
   if (shouldRedirectLegacyFitnessNavigation(request)) {
     return buildCanonicalHostRedirect(request);
   }

@@ -70,6 +70,7 @@ function harness({ resolverRows = [], signInError = null, resolverStatus = 200 }
     "@/lib/login-failure-floor": { enforceLoginFailureFloor: async () => { calls.floor += 1; return 0; } },
     "@/lib/password-reset-request": { requestResetForIdentifier: unexpected },
     "@/lib/password-policy": { isValidNewPassword: () => true, NEW_PASSWORD_REQUIREMENT: "x" },
+    "@/components/auth/signupFeedback": { buildSignupRedirectHref: unexpected, classifySignupProviderError: unexpected },
   };
   const auth = load("src/app/auth/actions.ts", dependencies);
   return {
