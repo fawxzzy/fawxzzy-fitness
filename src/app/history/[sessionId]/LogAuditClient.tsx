@@ -554,6 +554,11 @@ function buildLoggedSetCountBadge(loggedSetCount: number, targetSetCount: number
   return String(loggedSetCount);
 }
 
+/** The set count badge is a bare `3/4` or `3`; as card meta it reads `3/4 sets` / `1 set`. */
+function formatLoggedSetCountMeta(countLabel: string) {
+  return countLabel.includes("/") || countLabel !== "1" ? `${countLabel} sets` : `${countLabel} set`;
+}
+
 function buildSignalTagItems(args: {
   hasPrInSession?: boolean;
   isBest?: boolean;
@@ -1568,14 +1573,11 @@ export function LogAuditClient({
                     <HistorySessionCard
                       session={focusedSessionSummary}
                       viewMode="detailed"
-                      rightIcon={null}
                       className="mt-0"
                       prExerciseNames={exerciseViewportMeta.prNames}
                       detailedMetrics={focusedDetailedMetrics}
                       detailedSections={focusedDetailedSections}
                       detailedHeaderMode="hidden"
-                      showDetailedDivider={false}
-                      metricAccentRgb="var(--accent-divider-rgb)"
                     />
                   </div>
                 ) : null}
@@ -1654,28 +1656,15 @@ export function LogAuditClient({
                   }}
                   summary={bestSummary}
                   summaryLabel={bestSet ? "Top Set" : "Session"}
-                  metadata={renderMetaTags([
-                    ...collapsedCardBadgeItems.signalItems,
+                  metaItems={[
+                    formatLoggedSetCountMeta(collapsedCardBadgeItems.countLabel),
                     ...(timerSignalItem ? [timerSignalItem] : []),
                     ...(recoveryInsight ? [recoveryInsight.label] : []),
-                  ])}
-                  badgeText={collapsedCardBadgeItems.countLabel}
-                  badgeItems={[collapsedCardBadgeItems.countLabel]}
+                  ]}
+                  signalCodes={collapsedCardBadgeItems.signalItems}
                   onPress={canExpandExercise ? () => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id)) : undefined}
                   expanded={isExpanded}
                   showLeadingVisual={surfacePolicy.showMedia}
-                  className={cn(
-                    "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none] before:!bg-transparent after:!shadow-none hover:!border-transparent",
-                    isEditing && isExpanded ? "-mb-px rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined,
-                  )}
-                  mediaClassName="!border-r-0"
-                  shellStyle={{
-                    borderWidth: 0,
-                    boxShadow: "none",
-                    ["--glass-current-border-alpha" as string]: "0",
-                    ["--glass-current-sheen-strength" as string]: "0",
-                    ["--glass-shadow" as string]: "none",
-                  }}
                 />
               ) : null}
 
@@ -1696,7 +1685,7 @@ export function LogAuditClient({
                         isSkipDisabled: false,
                         quickLogDisabledMessage: "Add Set",
                       }}
-                      className="-mt-px overflow-hidden rounded-b-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] border-t-0 bg-[rgb(var(--surface-1-rgb)/0.16)] [grid-template-columns:72px_minmax(0,1fr)]"
+                      className="mt-2 overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)] [grid-template-columns:72px_minmax(0,1fr)]"
                       onPress={() => handleAddSet(exercise)}
                       onSkip={() => setExerciseToDelete({ id: exercise.id, name })}
                     />

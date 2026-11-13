@@ -4,11 +4,14 @@ import test from "node:test";
 
 const surfaceUrl = new URL("./HistoryCalendarSurface.tsx", import.meta.url);
 
-test("calendar month rail preserves horizontal swipe without blocking vertical page scroll", async () => {
+test("calendar shows one month at a time with 44px day cells instead of a sideways month rail", async () => {
   const source = await readFile(surfaceUrl, "utf8");
 
-  assert.match(source, /\[touch-action:pan-x_pan-y\]/);
-  assert.match(source, /\[overscroll-behavior-y:auto\]/);
+  assert.doesNotMatch(source, /HorizontalScrollHint|min-w-max|touch-action/);
+  assert.match(source, /data-calendar-nav="older"/);
+  assert.match(source, /data-calendar-nav="newer"/);
+  assert.match(source, /aria-live="polite"/);
+  assert.match(source, /flex h-11 min-w-0 flex-col/);
 });
 
 test("calendar exposes distinct training and skipped day states", async () => {

@@ -1,228 +1,98 @@
 "use client";
 
-import { type ReactNode, useEffect, useId, useState } from "react";
-import { cardShellToneClassNames } from "@/components/cardSemanticTones";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
+import { type ReactNode, useId, useState } from "react";
+import { CardHeader, CardMeta, CardSurface, StatGrid, type CardTone } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
+import { toHistoryStatItems } from "@/components/history/historyStats";
+import type { MetricDatum } from "@/components/ui/MetricItem";
 
-const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
-const HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
-const HISTORY_GREEN_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--success-rgb)" };
-const HISTORY_GREEN_ACCENT_BAR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--success-rgb)/0.16),rgb(var(--success-rgb)/0.92),rgb(var(--success-rgb)/0.16))] shadow-[0_0_14px_rgb(var(--success-rgb)/0.22)]";
-
-export type HistoryDisclosureAccentTone = "yellow" | "green";
-
-function getAccentStyle(tone: HistoryDisclosureAccentTone) {
-  return tone === "green" ? HISTORY_GREEN_METRIC_ACCENT_STYLE : HISTORY_YELLOW_METRIC_ACCENT_STYLE;
-}
-
-function getAccentBarClassName(tone: HistoryDisclosureAccentTone) {
-  return tone === "green" ? HISTORY_GREEN_ACCENT_BAR_CLASS_NAME : HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME;
-}
-
-function MetricsBody({ items }: { items: MetricDatum[] }) {
-  return (
-    <div className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
-      <SurfaceMetricGrid items={items} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" scrollable />
-    </div>
-  );
-}
-
-function ExpandedCard({ children, accentTone = "yellow" }: { children: ReactNode; accentTone?: HistoryDisclosureAccentTone }) {
-  return (
-    <div className={cn(
-      "relative overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none",
-      cardShellToneClassNames.logged,
-    )}>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full",
-          accentTone === "green"
-            ? "bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.96),rgb(var(--success-rgb)/0.52))]"
-            : "bg-[linear-gradient(180deg,rgb(var(--accent-yellow-on)/0.96),rgb(var(--accent-yellow-on)/0.52))]",
-        )}
-      />
-      <div className="relative">{children}</div>
-    </div>
-  );
-}
-
-function CompactHeader({
-  title,
-  summary,
-  expanded,
-  controlsId,
-  onToggle,
-  accentTone,
-  titleAlign,
-}: {
-  title: ReactNode;
-  summary?: string;
-  expanded: boolean;
-  controlsId: string;
-  onToggle: () => void;
-  accentTone: HistoryDisclosureAccentTone;
-  titleAlign: "left" | "center";
-}) {
-  return (
-    <button
-      type="button"
-      aria-expanded={expanded}
-      aria-controls={controlsId}
-      onClick={onToggle}
-      className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-    >
-      <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
-        <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
-          <div className="flex min-h-[30px] items-center gap-2">
-            {titleAlign === "center" ? <span aria-hidden="true" className="h-4 w-4 shrink-0" /> : null}
-            <p className={cn(
-              "min-w-0 flex-1 truncate text-[0.79rem] font-semibold leading-[1.08] text-[rgb(var(--text-primary)/0.98)]",
-              titleAlign === "center" ? "text-center" : undefined,
-            )}>{title}</p>
-            {summary ? (
-              <p
-                aria-live="off"
-                className="min-w-0 max-w-[56%] truncate text-right text-[0.68rem] font-semibold text-[rgb(var(--success-rgb)/0.94)]"
-              >
-                {summary}
-              </p>
-            ) : null}
-            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[rgb(var(--text-muted)/0.92)]">
-              {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-            </span>
-          </div>
-          <div className="px-px pt-[3px]" style={getAccentStyle(accentTone)}>
-            <MetricAccentBar variant="compact" className={getAccentBarClassName(accentTone)} />
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
+export type HistoryDisclosureTone = Extract<CardTone, "current" | "logged">;
 
 export function normalizeHistoryCompactSummaryItems(items: Array<string | null | undefined>) {
   return [...new Set(items.map((item) => item?.trim()).filter((item): item is string => Boolean(item)))];
 }
 
-function useRotatingCompactSummary(items: Array<string | null | undefined>) {
-  const normalizedItems = normalizeHistoryCompactSummaryItems(items);
-  const itemCount = normalizedItems.length;
-  const summarySignature = normalizedItems.join("\u001f");
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    setActiveIndex(0);
-    if (itemCount <= 1) {
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % itemCount);
-    }, 3200);
-
-    return () => window.clearInterval(timer);
-  }, [itemCount, summarySignature]);
-
-  return normalizedItems[activeIndex] ?? normalizedItems[0] ?? undefined;
-}
-
-export function HistoryCompactDisclosure({
+/**
+ * The one History summary card (streak, monthly, calendar, heatmap, scope summary, cycle progression).
+ *
+ * - `compact`: the whole header toggles the panel (`CardHeader` toggle: aria-expanded, aria-controls, rotating chevron).
+ * - `detailed`: the same card with the panel always open and no toggle.
+ * - `summaryItems` are plain facts on a wrapping meta line, all visible at once. They used to rotate through a
+ *   timer (3.2 s, no pause) so only one was readable at a time.
+ * - The panel stays mounted while collapsed (`hidden`), so child state (selected calendar month) survives.
+ */
+export function HistoryDisclosureCard({
   title,
+  titleMeta,
   summaryItems = [],
+  tone = "current",
+  viewMode = "compact",
+  defaultExpanded = false,
+  headingLevel = 2,
+  panelClassName,
   children,
-  accentTone = "yellow",
-  titleAlign = "left",
 }: {
   title: ReactNode;
+  /** Qualifier shown after the title (a month, a date range). Part of the heading text. */
+  titleMeta?: ReactNode;
   summaryItems?: Array<string | null | undefined>;
+  tone?: HistoryDisclosureTone;
+  viewMode?: "compact" | "detailed";
+  defaultExpanded?: boolean;
+  headingLevel?: 2 | 3;
+  /** Panel padding override (the calendar wants every pixel of width for its 44px day cells). */
+  panelClassName?: string;
   children: ReactNode;
-  accentTone?: HistoryDisclosureAccentTone;
-  titleAlign?: "left" | "center";
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const panelId = useId();
-  const activeSummary = useRotatingCompactSummary(summaryItems);
+  const isDetailed = viewMode === "detailed";
+  const open = isDetailed || expanded;
+  const normalizedSummaryItems = normalizeHistoryCompactSummaryItems(summaryItems);
 
   return (
-    <section data-history-compact-disclosure="true">
-      <CompactHeader
+    <CardSurface as="section" tone={tone} data-history-compact-disclosure="true" data-history-disclosure-state={open ? "open" : "closed"}>
+      <CardHeader
+        headingLevel={headingLevel}
         title={title}
-        summary={activeSummary}
-        expanded={expanded}
-        controlsId={panelId}
-        onToggle={() => setExpanded((current) => !current)}
-        accentTone={accentTone}
-        titleAlign={titleAlign}
+        titleSecondary={titleMeta}
+        meta={normalizedSummaryItems.length > 0 ? <CardMeta items={normalizedSummaryItems} /> : undefined}
+        interaction={isDetailed ? { kind: "none" } : { kind: "toggle", expanded, onToggle: () => setExpanded((current) => !current), controlsId: panelId }}
       />
-      <div id={panelId} hidden={!expanded} className="pt-2">
-        <ExpandedCard accentTone={accentTone}>{children}</ExpandedCard>
+      <div id={panelId} hidden={!open} className={cn("border-t border-[rgb(var(--border-strong)/0.14)]", panelClassName ?? "px-4 pb-4 pt-3")}>
+        {children}
       </div>
-    </section>
+    </CardSurface>
   );
 }
 
 export function HistoryMetricsDisclosure({
   title,
+  titleMeta,
   summary,
   compactSummaryItems = [],
   items,
   viewMode,
-  accentTone = "yellow",
+  tone = "current",
 }: {
   title: ReactNode;
+  titleMeta?: ReactNode;
+  /** Supporting sentence shown in the detailed view. */
   summary?: string;
   compactSummaryItems?: Array<string | null | undefined>;
   items: MetricDatum[];
   viewMode: "compact" | "detailed";
-  accentTone?: HistoryDisclosureAccentTone;
-}) {
-  if (viewMode === "detailed") {
-    return (
-      <ExpandedCard accentTone={accentTone}>
-        <div className="px-5 pb-2 pt-4">
-          <p className="text-[0.98rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</p>
-          {summary ? <p className="mt-1 text-[0.72rem] font-medium text-[rgb(var(--text-muted)/0.86)]">{summary}</p> : null}
-          <div className="mt-3" style={getAccentStyle(accentTone)}>
-            <MetricAccentBar variant="compact" className={getAccentBarClassName(accentTone)} />
-          </div>
-        </div>
-        <MetricsBody items={items} />
-      </ExpandedCard>
-    );
-  }
-
-  return (
-    <HistoryCompactDisclosure title={title} summaryItems={compactSummaryItems} accentTone={accentTone}>
-      <MetricsBody items={items} />
-    </HistoryCompactDisclosure>
-  );
-}
-
-export function HistoryDisclosureTitle({
-  label,
-  meta,
-  metaTone = "green",
-}: {
-  label: string;
-  meta: string;
-  metaTone?: "green" | "yellow";
+  tone?: HistoryDisclosureTone;
 }) {
   return (
-    <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
-      <span className="truncate">{label}</span>
-      <SignatureMiniPipe />
-      <span className={cn(
-        "truncate",
-        metaTone === "yellow"
-          ? "text-[rgb(var(--accent-yellow-on)/0.98)]"
-          : "text-[rgb(var(--success-rgb)/0.94)]",
-      )}>
-        {meta}
-      </span>
-    </span>
+    <HistoryDisclosureCard
+      title={title}
+      titleMeta={titleMeta}
+      summaryItems={viewMode === "detailed" ? [summary] : compactSummaryItems}
+      tone={tone}
+      viewMode={viewMode}
+    >
+      <StatGrid items={toHistoryStatItems(items)} />
+    </HistoryDisclosureCard>
   );
 }

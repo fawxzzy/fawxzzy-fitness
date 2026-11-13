@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { HistoryCompactDisclosure, HistoryDisclosureTitle } from "@/components/history/HistoryMetricsDisclosure";
+import { HistoryDisclosureCard } from "@/components/history/HistoryMetricsDisclosure";
 import { HistorySection } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
 import {
@@ -138,7 +138,7 @@ function HeatmapLegend() {
     <div
       aria-hidden="true"
       data-history-consistency-heatmap="legend"
-      className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]"
+      className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]"
     >
       <span className="inline-flex items-center gap-1.5">
         <span className={cn("h-3.5 w-3.5 rounded-[0.2rem] border", cellToneClassName("none"), TODAY_CELL_CLASS_NAME)} />
@@ -226,15 +226,14 @@ export function ConsistencyHeatmapSurface({
 
   if (viewMode === "compact") {
     return (
-      <HistoryCompactDisclosure
-        title={<HistoryDisclosureTitle label="Consistency" meta={`${heatmap.weeks.length} weeks`} />}
+      <HistoryDisclosureCard
+        title="Consistency"
+        titleMeta={`${heatmap.weeks.length} weeks`}
         summaryItems={compactSummaryItems}
-        accentTone="green"
+        tone="logged"
       >
-        <div className="px-3 pb-4 pt-4">
-          <HeatmapBody heatmap={heatmap} description={description} emptyMessage={emptyMessage} />
-        </div>
-      </HistoryCompactDisclosure>
+        <HeatmapBody heatmap={heatmap} description={description} emptyMessage={emptyMessage} />
+      </HistoryDisclosureCard>
     );
   }
 

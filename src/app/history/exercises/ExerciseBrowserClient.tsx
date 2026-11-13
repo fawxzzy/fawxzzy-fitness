@@ -7,7 +7,6 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
-import { HistoryMetaLine } from "@/components/history/HistoryMetaLine";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
@@ -392,7 +391,6 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const displayName = getExerciseDisplayName(row);
   const viewModel = buildHistoryExerciseCardViewModel(row);
   const headerMetaItems = buildExerciseHeaderMetaItems(row);
-  const metadata = headerMetaItems.length > 0 ? <HistoryMetaLine items={headerMetaItems} /> : undefined;
 
   return (
     <HistoryExerciseCard
@@ -407,8 +405,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       summaryLabel={viewModel.summaryLabel}
       summary={viewModel.summary}
       comparison={viewModel.comparison}
-      metadata={metadata}
-      badgeText={viewModel.badgeText}
+      metaItems={headerMetaItems}
       badgeItems={viewModel.badgeItems}
       metrics={viewModel.detailedMetrics}
       trendPreview={row.trendPreview}

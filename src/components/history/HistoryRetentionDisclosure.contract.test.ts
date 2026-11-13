@@ -8,30 +8,30 @@ const streakSource = readFileSync(new URL("./WorkoutStreakSurface.tsx", import.m
 const calendarSource = readFileSync(new URL("./HistoryCalendarSurface.tsx", import.meta.url), "utf8");
 const historyClientSource = readFileSync(new URL("../../app/history/HistorySessionsClient.tsx", import.meta.url), "utf8");
 
-test("compact History disclosures rotate green metadata beside the chevron", () => {
-  assert.match(disclosureSource, /window\.setInterval\(\(\) => \{/);
-  assert.match(disclosureSource, /\}, 3200\)/);
-  assert.match(disclosureSource, /text-\[rgb\(var\(--success-rgb\)\/0\.94\)\]/);
-  assert.match(disclosureSource, /\{summary\}[\s\S]*ChevronDownIcon/);
+test("compact History disclosures are one card: a toggle header, every summary fact visible, no timers", () => {
+  assert.match(disclosureSource, /<CardHeader/);
+  assert.match(disclosureSource, /kind: "toggle"/);
+  assert.match(disclosureSource, /controlsId: panelId/);
+  assert.match(disclosureSource, /hidden=\{!open\}/);
+  assert.match(disclosureSource, /<CardMeta items=\{normalizedSummaryItems\}/);
+  assert.doesNotMatch(disclosureSource, /setInterval|useEffect/);
 });
 
-test("monthly and session streak headers use canonical title metadata and rotating summaries", () => {
-  assert.match(disclosureSource, /import \{ SignatureMiniPipe \} from "@\/components\/ui\/app\/SignatureSeparator"/);
-  assert.match(disclosureSource, /<SignatureMiniPipe \/>/);
-  assert.doesNotMatch(disclosureSource, />\|<\/span>/);
-
-  assert.match(monthlySource, /HistoryDisclosureTitle label="Monthly" meta=\{summary\.monthLabel\} metaTone="yellow"/);
+test("monthly and session streak headers use title + qualifier and list every summary fact", () => {
+  assert.match(monthlySource, /title="Monthly"/);
+  assert.match(monthlySource, /titleMeta=\{summary\.monthLabel\}/);
   assert.match(monthlySource, /compactSummaryItems=\{compactSummaryItems\}/);
   assert.match(monthlySource, /summary\.completedWorkoutCount > 0/);
 
-  assert.match(streakSource, /HistoryDisclosureTitle label="Session Streak" meta=\{formatStreakRange\(summary\)\}/);
+  assert.match(streakSource, /title="Session Streak"/);
+  assert.match(streakSource, /titleMeta=\{formatStreakRange\(summary\)\}/);
   assert.match(streakSource, /compactSummaryItems=/);
   assert.doesNotMatch(streakSource, /Weekly Streak/);
 });
 
-test("compact Calendar is collapsible with green disclosure accents and Session Streak follows it", () => {
+test("compact Calendar is a collapsible History disclosure card and Session Streak follows it", () => {
   assert.match(calendarSource, /viewMode: "compact" \| "detailed"/);
-  assert.match(calendarSource, /<HistoryCompactDisclosure title="Calendar" titleAlign="center" accentTone="green">/);
+  assert.match(calendarSource, /<HistoryDisclosureCard title="Calendar" tone="logged"/);
   assert.doesNotMatch(calendarSource, /Tap a day to filter the session list/);
   assert.match(historyClientSource, /onSelectDayKey=\{handleCalendarDayChange\}[\s\S]*viewMode=\{viewMode\}/);
 

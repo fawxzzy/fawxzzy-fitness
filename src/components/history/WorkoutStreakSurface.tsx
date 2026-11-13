@@ -1,7 +1,7 @@
 "use client";
 
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { HistoryDisclosureTitle, HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
+import { HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import type { HistoryWorkoutStreakSummary } from "@/lib/history-workout-streak";
 
 function formatLastCompleted(dayKey: string | null) {
@@ -50,8 +50,10 @@ export function WorkoutStreakSurface({ summary, viewMode }: { summary: HistoryWo
 
   return (
     <HistoryMetricsDisclosure
-      title={<HistoryDisclosureTitle label="Session Streak" meta={formatStreakRange(summary)} />}
-      compactSummaryItems={[`${streakLabel} \u{1F525}`, bestLabel, plannedLabel, lastWorkoutLabel]}
+      title="Session Streak"
+      titleMeta={formatStreakRange(summary)}
+      tone="logged"
+      compactSummaryItems={[streakLabel, bestLabel, plannedLabel, lastWorkoutLabel]}
       items={buildMetrics(summary)}
       viewMode={viewMode}
     />

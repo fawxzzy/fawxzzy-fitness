@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { HistoryMetaLine } from "@/components/history/HistoryMetaLine";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -19,7 +18,7 @@ import { cn } from "@/lib/cn";
 import { getStretchHubMetaItems } from "@/lib/stretch-library";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
 
-const stretchHistoryMeta = <HistoryMetaLine items={getStretchHubMetaItems()} />;
+const stretchHistoryMeta = getStretchHubMetaItems();
 
 export function StretchCardPassSurface() {
   const [activePlanItemId, setActivePlanItemId] = useState<string | null>(stretchPreviewDayPlanItems[0]?.id ?? null);
@@ -59,8 +58,8 @@ export function StretchCardPassSurface() {
             title="Stretch"
             summaryLabel={historyViewModel.summaryLabel}
             summary={historyViewModel.summary}
-            metadata={stretchHistoryMeta}
-            badgeText={historyViewModel.badgeText}
+            metaItems={stretchHistoryMeta}
+            badgeItems={historyViewModel.badgeItems}
             metrics={historyViewModel.detailedMetrics}
             density="compact"
             tone={historyViewModel.semanticTone}
@@ -71,8 +70,8 @@ export function StretchCardPassSurface() {
             title="Stretch"
             summaryLabel={historyViewModel.summaryLabel}
             summary={historyViewModel.summary}
-            metadata={stretchHistoryMeta}
-            badgeText={historyViewModel.badgeText}
+            metaItems={stretchHistoryMeta}
+            badgeItems={historyViewModel.badgeItems}
             metrics={historyViewModel.detailedMetrics}
             density="detailed"
             tone={historyViewModel.semanticTone}

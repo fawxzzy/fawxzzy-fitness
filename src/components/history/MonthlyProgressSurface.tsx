@@ -1,7 +1,7 @@
 "use client";
 
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { HistoryDisclosureTitle, HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
+import { HistoryMetricsDisclosure } from "@/components/history/HistoryMetricsDisclosure";
 import type { HistoryMonthlyProgressSummary } from "@/lib/history-monthly-progress";
 
 function formatVolume(summary: HistoryMonthlyProgressSummary) {
@@ -38,7 +38,8 @@ export function MonthlyProgressSurface({ summary, viewMode }: { summary: History
 
   return (
     <HistoryMetricsDisclosure
-      title={<HistoryDisclosureTitle label="Monthly" meta={summary.monthLabel} metaTone="yellow" />}
+      title="Monthly"
+      titleMeta={summary.monthLabel}
       summary={viewMode === "detailed" ? supportingLine : undefined}
       compactSummaryItems={compactSummaryItems}
       items={buildMetrics(summary)}
