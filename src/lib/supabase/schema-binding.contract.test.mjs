@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { test } from "node:test";
 
 const currentProjectClientPaths = [
@@ -72,13 +72,21 @@ test("the canonical binding is an exact non-secret fitness schema literal", () =
   assert.match(generatedTypes, /\sconsume_fitness_auth_handoff: \{/);
 });
 
-test("the retained snapshot importer has no remote legacy client", () => {
-  const source = readFileSync(
-    new URL("../migration/fitness-legacy-bridge.ts", import.meta.url),
-    "utf8",
-  );
+const repoRoot = new URL("../../../", import.meta.url);
 
-  assert.match(source, /export async function importFitnessLegacySnapshot/);
-  assert.doesNotMatch(source, /LEGACY_SUPABASE_|createClient|exportFitnessLegacySnapshot/);
-  assert.doesNotMatch(source, /FITNESS_DATABASE_OPTIONS|FITNESS_DATABASE_SCHEMA/);
+test("the retired legacy snapshot routes and bridge stay removed", () => {
+  assert.equal(existsSync(new URL("src/app/api/migration", repoRoot)), false);
+  assert.equal(existsSync(new URL("src/lib/migration", repoRoot)), false);
+  assert.equal(existsSync(new URL("src/components/settings/LegacyMigrationSettings.tsx", repoRoot)), false);
+});
+
+test("no workflow runs a production deploy", () => {
+  const workflowDir = new URL(".github/workflows/", repoRoot);
+  const workflows = readdirSync(workflowDir).filter((name) => /\.ya?ml$/.test(name));
+
+  assert.ok(workflows.length > 0);
+  for (const name of workflows) {
+    const source = readFileSync(new URL(name, workflowDir), "utf8");
+    assert.doesNotMatch(source, /vercel[^\n]*--prod\b|--target[= ]production/, name);
+  }
 });

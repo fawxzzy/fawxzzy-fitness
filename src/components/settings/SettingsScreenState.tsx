@@ -2,11 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-export type SettingsSectionKey = "account" | "achievements" | "pro" | "data" | "legacy" | "discord" | "theme" | null;
-
-// Legacy migration stays compiled for support/recovery work, but it is hidden from
-// the active Settings UI until the migration lane is intentionally reopened.
-export const SETTINGS_LEGACY_MIGRATION_ENABLED = false;
+export type SettingsSectionKey = "account" | "achievements" | "pro" | "data" | "discord" | "theme" | null;
 
 const SettingsScreenStateContext = createContext<{
   expandedSection: SettingsSectionKey;

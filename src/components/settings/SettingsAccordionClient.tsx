@@ -5,14 +5,9 @@ import { AccountAchievementsSection } from "@/components/settings/AccountAchieve
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
-import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
 import { ProAccessSettings } from "@/components/settings/ProAccessSettings";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import {
-  SETTINGS_LEGACY_MIGRATION_ENABLED,
-  useSettingsScreenState,
-  type SettingsSectionKey,
-} from "@/components/settings/SettingsScreenState";
+import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
@@ -36,8 +31,6 @@ export function getSettingsSectionMeta(section: Exclude<SettingsSectionKey, null
       return { title: "Pro Access" };
     case "data":
       return { title: "Data" };
-    case "legacy":
-      return SETTINGS_LEGACY_MIGRATION_ENABLED ? { title: "Legacy & Migration" } : null;
     case "discord":
       return { title: "Discord Connector" };
     default:
@@ -107,8 +100,6 @@ export function SettingsRouteTrigger({
 }
 
 export function SettingsAccordionClient({
-  email,
-  legacyBridgeConfigured,
   userKind,
   userNumber,
   canAccessQaVisibilitySetting,
@@ -119,8 +110,6 @@ export function SettingsAccordionClient({
   billingNotice,
   achievements,
 }: {
-  email: string;
-  legacyBridgeConfigured: boolean;
   userKind: "human" | "automation" | "unknown";
   userNumber: number | null;
   canAccessQaVisibilitySetting: boolean;
@@ -137,7 +126,6 @@ export function SettingsAccordionClient({
   const showAchievements = expandedSection === null || expandedSection === "achievements";
   const showPro = expandedSection === null || expandedSection === "pro";
   const showData = expandedSection === null || expandedSection === "data";
-  const showLegacy = SETTINGS_LEGACY_MIGRATION_ENABLED && (expandedSection === null || expandedSection === "legacy");
   const showDiscord = expandedSection === null || expandedSection === "discord";
   const showTheme = expandedSection === null || expandedSection === "theme";
 
@@ -209,24 +197,6 @@ export function SettingsAccordionClient({
           ) : null}
           {expandedSection === "theme" ? (
             <AppThemeSettings />
-          ) : null}
-        </div>
-      ) : null}
-
-      {showLegacy ? (
-        <div className="space-y-3">
-          {expandedSection !== "legacy" ? (
-            <SettingsAccordionTrigger
-              title="Legacy & Migration"
-              expanded={false}
-              onClick={() => setExpandedSection("legacy")}
-            />
-          ) : null}
-          {expandedSection === "legacy" ? (
-            <LegacyMigrationSettings
-              legacyBridgeConfigured={legacyBridgeConfigured}
-              defaultLegacyEmail={email}
-            />
           ) : null}
         </div>
       ) : null}
