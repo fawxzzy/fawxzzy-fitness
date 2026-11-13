@@ -998,6 +998,13 @@ export function SetLoggerCard({
         delete lastQueueStatusByStableIdRef.current[item.clientLogId];
         toast.success("Saved set synced.");
       },
+      onTerminalFailure: () => {
+        // The set stays saved on this device (parked in the queue); say so instead of failing silently.
+        toast.error("Could not sync a saved set. It stays saved on this device.");
+      },
+      onUnexpectedError: () => {
+        // Offline storage failed mid-replay; the item stays pending and is retried on a later tick.
+      },
       onQueueUpdate: () => {
         void readQueuedSetLogsBySessionExerciseIdForUser(userId, sessionExerciseId).then((queued) => {
           const previousQueueStatusByStableId = lastQueueStatusByStableIdRef.current;

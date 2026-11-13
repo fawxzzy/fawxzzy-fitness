@@ -41,11 +41,13 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/client.session-sync.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-handoff/route.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/auth-handoff-supabase-store.test.ts scripts/qa/fitness-auth-handoff-loopback.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/offline/quick-log-queue.test.ts src/lib/offline/sync-engine.test.ts src/components/SessionExerciseFocus.quickLogOffline.contract.test.ts
           npm run test:supabase-schema-binding
           node --test scripts/migration/member-identity-authority.contract.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/app/manifest.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/app/signup/SignupEntry.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/routines/RoutineEditorForm.contract.test.ts
-          node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-info-day-key.test.ts src/lib/progression-summary-activity.test.ts src/lib/progression-activity-zone.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-info-day-key.test.ts src/lib/progression-summary-activity.test.ts src/lib/progression-activity-zone.test.ts src/lib/progression-lifeline-summary.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/FilterToggleButton.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/app/AppHeader.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts src/features/curated-onboarding/engine.safety.test.ts src/features/curated-onboarding/engine.adjustments.test.ts src/features/curated-onboarding/engine.matrix.test.ts src/features/curated-onboarding/api-contract.test.ts src/features/curated-onboarding/api-contract.safety.test.ts

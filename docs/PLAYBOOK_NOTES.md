@@ -1,5 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Route the collapsed-row quick log through the offline set-log queue
+
+- Type: Offline durability (source) + Coverage
+- WHAT changed: The Current Session collapsed-row quick log (`SessionExerciseFocus.tsx`) previously called `addSetAction` directly and, on any failure, rolled the optimistic set back with "Could not quick log set." It now calls `submitQuickLogSet` (`src/lib/offline/quick-log-queue.ts`): offline up front, or a request that throws, writes the set to the existing IndexedDB set-log queue (`enqueueSetLog`, deduped by the optimistic set's `clientLogId`, same payload shape as the expanded logger) and keeps the optimistic set marked queued, with the expanded logger's toast copy. A new session-level worker (`useSessionSetLogSync`) runs the existing `createSetLogSyncEngine` while no `SetLoggerCard` is mounted, so a set queued from a collapsed row (or left queued by a row that was just collapsed) replays after reconnect, and reads the queue once on mount to restore queued sets into collapsed rows (`seedQueuedSetsIntoSnapshots`; the synced set is added when no row held it). Review hardening of `sync-engine.ts`: the replay call is wrapped (a throw is a failure with backoff, no hot loop), retries are bounded (`SET_LOG_MAX_RETRY_ATTEMPTS`, then the item is parked as `failed`: kept, skipped by periodic ticks, and re-armed on engine start or `online` with a fresh bounded burst, retryCount reset to 0, unless the refusal was "session no longer live", which keeps its count and gets one attempt), the replay has a 25 s timeout so a hung fetch cannot hold the in-flight guard, a non-numeric stored retryCount no longer throws in the backoff math, `stop()` is final (an in-flight tick no longer reschedules), an in-tab in-flight guard keeps two engines from replaying one item, and every successful replay is broadcast (`subscribeToSetLogSynced`) so a collapsed row takes the server identity even when another row's card engine ran the replay. The ordinary expanded logger now toasts a parked set instead of failing silently.
+- WHY it changed: One user action had two offline routes and the collapsed one lost data (live UX sift 2026-11-12, finding 1). The only replay worker lived inside the expanded logger card, which is unmounted while collapsed, so queueing alone would have left the set waiting for an unrelated row to be expanded.
+- Rule: One mutation, one offline route. Every UI entry point for the same write must share the queue, the idempotency key and the replay worker.
+- Failure Mode: A second entry point that treats a thrown request as failure drops the write on the one path nobody reproduced offline; a replay worker owned by a component that can unmount silently stops replaying; routing more writes into a queue whose replay call is not wrapped turns "request threw" into a hot retry loop; a restore path that lives in one component leaves every other view of the same state stale after a cold start.
+- Decision: Only "offline up front" and "the request threw" queue. A resolved `{ ok: false }` is an explicit server refusal (validation, auth, completed session) and is rolled back with the server message, never queued, because the set-log engine retries forever. The expanded logger still queues on a resolved `{ ok: false }`; that difference is left for a follow-up rather than widened here. The session worker is on only when no logger card is mounted (`shouldRunSessionSetLogSync`), so exactly one engine replays the queue.
+- Evidence: `src/lib/offline/quick-log-queue.ts` and test, `src/components/session/useSessionSetLogSync.ts`, `src/components/SessionExerciseFocus.tsx`, `src/components/SessionExerciseFocus.quickLogOffline.contract.test.ts`; headless Chromium against the mobile-regression fixture route at 320x568, 390x844 and 430x932 (offline tap queues, reconnect replays with every row collapsed).
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
+
 ## 2026-11-12 - Carry sign-up feedback as allow-listed codes, and keep the recovery redirect on the flow that can read it
 
 - Type: Authentication feedback + Enumeration hygiene + Recovery contract
@@ -11,6 +22,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Fitness keeps its own recovery page; the exact URL `https://fitness.fawxzzy.com/reset-password?recovery=1` still has to be on the Supabase Auth redirect allow-list (provider setting, not changed here).
 - Evidence: `src/components/auth/signupFeedback.ts` and test, `tests/signup-failure-copy-action.test.mjs`, `src/lib/password-reset-request.ts` and test.
 - Status: Source-only; no provider setting, deployment or live account touched.
+
 
 ## 2026-11-12 - "Every difference is explained" needs a property test, and pain is never retained
 
@@ -73,6 +85,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/lib/session-start-activation.ts` and test, `src/lib/session-start-atomicity.test.ts`, `supabase/master-fitness/*`; local PostgreSQL 17 proof (apply, rerun, 8-client concurrency, unique-violation handler, duplicate guard, rollback).
 - Status: source only; nothing applied to any provider.
 
+## 2026-11-12 - Send browser sign-up to the one portal surface, keep installed sign-up in scope
+
+- Type: Account entry routing + Installed PWA scope
+- WHAT changed: Browser (non-installed) `/signup` now redirects to `https://account.fawxzzy.com/login?app=fitness&intent=signup&returnTo=<fitness url>` (`getFitnessSignupPortalUrl`, exactly one `intent` key with the value `signup`); the installed app keeps its own sign-up screen. The split lives in a route layout (`src/app/signup/layout.tsx` + `SignupEntry.tsx`), mirroring `LoginEntry`, with the same `?manual=1` local-review escape hatch.
+- WHY: Two sign-up surfaces (Fitness `/signup`, reachable from any browser, and the portal) meant two sets of copy, errors and enumeration behaviour. Sign-in already sends browser tabs to the portal; sign-up now does the same, while an installed app must not leave its manifest scope.
+- Rule: A product screen reachable from both a browser tab and the installed app delegates to the shared account portal only in the browser; the installed app keeps the in-scope screen (2026-09-13 rule). Add a portal intent as a single query key with an exact value, and let older portal builds ignore it so the product can ship first.
+- Failure Mode: Detecting the installed app on the server (it cannot) or redirecting every `/signup` hit would send installed users out of the app; forwarding a free-form `returnTo` would widen the portal return allowlist.
+- Decision: No Fitness-origin session cleanup before leaving for the portal (same as `AccountPortalRedirect` for `/login`, pinned by test). The earlier "clean the source-origin session first" rule is superseded because the broker handoff now replaces the Fitness cookies on a completed sign-in, and an unconditional clear would sign the member out merely for opening Create account.
+- Evidence: `src/lib/account-portal.ts` and test, `src/app/signup/SignupEntry.tsx`, `src/app/signup/layout.tsx`, `src/app/signup/SignupEntry.contract.test.ts`; the portal side is FawxzzyWeb PR #134.
+- Status: Source only; the portal change and any deploy are separate.
+
 ## 2026-11-12 - Bucket Exercise info sessions by the History local day
 
 - Type: Day-boundary correctness (source) + Coverage
@@ -89,10 +112,10 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Type: Day-boundary correctness (source) + Coverage
 - WHAT changed: `buildExerciseProgressionLifelineSummary` (`src/lib/progression-lifeline-summary.ts`) gained a `timeZone` option and passes it to its activity-day bucketing and its chart sections; Exercise info, the History exercises browser (`exercises-browser.ts`, zone on its scope context) and the History session detail page (new `loadHistoryTimeZone`, `src/lib/history-time-zone.ts`) now pass the History zone from `resolveHistoryTimeZone`. A new test drives `buildWeeklyProgressSummary` and `buildHistoryScopeSummary` so the zone edits in `history-weekly-progress.ts` and `history-scope-summary.ts` are pinned (reverting them now fails CI).
 - WHY it changed: The #220 review found the same UTC default in the per-exercise progression summaries, and that reverting the two one-line zone edits in History still passed CI because nothing asserted them through the builders.
-- Rule: A zone option that defaults to UTC is a latent day-boundary bug: every caller that buckets user events by day passes the History zone, and the builder that forwards it is tested through its public entry point, not only the leaf.
+- Rule: A zone option that defaults to UTC is a latent day-boundary bug: every caller that buckets user events by day passes the History zone, and the builder that forwards it is tested through its public entry point, not only the leaf. `buildExerciseProgressionLifelineSummary` now REQUIRES `timeZone` (`string | null`, `null` being the explicit choice of UTC), so a caller that forgets it fails to compile. Known gap, not fixed here: `progression-history-display.ts` (`buildProgressionHistoryChartSections` ~326 and the dashboard card ~405) still buckets at MONTH granularity with a hard-coded `timeZone: "UTC"` (and `new Date().toISOString().slice(0, 7)` for the current month), so an event in the last hours of a month can land in the next month for users behind UTC.
 - Failure Mode: Fixing the leaf function and the callers one at a time leaves siblings on the default; an untested pass-through can be deleted without any test noticing.
 - Decision: The zone for server pages that hold no routine row is loaded by one helper (`loadHistoryTimeZone`: active routine zone, then profile zone, then default) instead of re-deriving it per page. Defaults are left as they are (UTC) so callers that have no zone keep their behaviour; the contract is that every user-facing caller passes one.
-- Evidence: `src/lib/progression-activity-zone.test.ts` (lifeline summary, weekly progress summary, scope summary, helper; the two History tests fail with the edits reverted).
+- Evidence: `src/lib/progression-activity-zone.test.ts` (lifeline summary, weekly progress summary, scope summary, helper; the two History tests fail with the edits reverted; a `@ts-expect-error` line fails the type-check if `timeZone` becomes optional again; a contract test pins the three callers and the exercises page's single scope resolution; the helper's failure logging is asserted to carry the error code only).
 - Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
 
 ## 2026-10-16 - Keep event-free login autofill submittable
@@ -1347,6 +1370,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Redirecting before source-origin cleanup can rehydrate a stale session; accepting a caller-defined absolute return URL can create an open redirect or leak token material.
 - Evidence: `src/app/login/AccountPortalRedirect.tsx`, `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`, `src/lib/account-portal.ts`, `src/lib/account-portal.test.ts`.
 - Status: Source-proven locally; review, merge, deployment, and production remain separate lifecycle boundaries.
+- Superseded 2026-11-12 (cleanup rule only): the account-portal broker handoff is live, and browser tabs now reach the portal from `/login` and `/signup` without clearing the Fitness-origin session. Departure does not transmit the session, and the handoff replaces the Fitness cookies with whichever account signs in, so the stale-account rehydration this rule guarded against cannot follow a completed sign-in or sign-up. Clearing on departure would sign a member out of Fitness for tapping Create account, and the entry below records that an unconditional session clear races a successful login. The trusted-local fallback and the allowlisted canonical-origin `returnTo` still apply.
 
 ## 2026-08-27 - Keep normal Fitness credential login on the Fitness origin until a broker exists
 
@@ -1428,6 +1452,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `scripts/process-fitness-followups-exact.test.mjs` covers startup with and without the loader; `src/lib/exercise-stats.test.ts` covers strict read, delete, and upsert failures. Live settlement remains unproven.
 - Verification: The existing QA bootstrap source-contract test now accepts both LF and CRLF so the Fitness integrity suite can run on Windows as well as CI Linux.
 - CI Rule: Keep both PR and main-push path filters in the focused Fitness integrity workflow aligned with every enumerated runner and stats test plus its source dependencies; the runner test checks this watch contract.
+
+## 2026-11-12 - Change the password on a client that holds its session, and prove the current password first
+
+- Type: Account security + Supabase client contract
+- WHAT changed: Settings > Account has Change password. `changePasswordAction` verifies the current password with `signInWithPassword` on a throwaway `persistSession: false` client, performs `updateUser({ password })` on that same client, then signs that session out with `scope: "local"`. Shared policy and fixed-copy codes live in `src/lib/password-policy.ts`.
+- WHY: `supabaseServerWithSession()` returns a client that only forwards the access token as a bearer header. `auth.updateUser` reads the session from the client's own storage, so on that client it returns `AuthSessionMissingError` ("Auth session missing!") without sending a request (since 595642d8 replaced `setSession` with the recovery layer). A current-password check also stops a borrowed session from changing the password, and the fresh sign-in satisfies the optional "secure password change" recency rule without a provider setting.
+- Rule: Calls that need a stored session (`updateUser`, `signOut`) belong on a client that was given one (`signInWithPassword` or `setSession`); `getUser()` is the only auth call the bearer-header client supports. Test such calls through the real auth client with a stub fetch, not a hand-written stub of `updateUser`.
+- Failure Mode: A unit test that stubs `updateUser` passes while the real client fails before any request. Signing out the verification client with the default global scope would revoke every session of the member, including the one in use.
+- Decision: Other sessions are not revoked on a password change (shared with the portal and Mazer); revisit as its own card.
+- Evidence: `src/app/settings/actions.ts`, `src/lib/password-policy.ts`, `src/components/settings/AccountPasswordSection.tsx`, `tests/password-mutation-actions.test.mjs`, `src/lib/password-policy.test.ts`, `src/app/account/accountSurface.contract.test.ts`.
+- Status: Source and offline tests only; no provider setting, deployment or live account touched. The other `updateUser` call sites (`updateAccountEmailAction`, the reset save step) share the same defect and are not changed here.
 
 ## 2026-11-12 - Mount the consistency heatmap as a whole-history view (FF-RET-003)
 

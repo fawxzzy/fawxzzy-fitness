@@ -96,7 +96,7 @@ const publicRouteInventory = [
   ["root", "/", { kind: "one-of", values: ["/entry", "/login?manual=1"] }, "Fawxzzy"],
   ["entry", "/entry", { kind: "one-of", values: ["/entry", "/login?manual=1"] }, "Fawxzzy"],
   ["login", "/login?manual=1", { kind: "exact", value: "/login?manual=1" }, "Welcome"],
-  ["signup", "/signup", { kind: "exact", value: "/signup" }, "Create"],
+  ["signup", "/signup?manual=1", { kind: "exact", value: "/signup?manual=1" }, "Create"],
   ["forgot-password", "/forgot-password", { kind: "exact", value: "/login?manual=1" }, "password"],
   ["reset-password", "/reset-password", { kind: "exact", value: "/reset-password" }, "password"],
   ["install", "/install", { kind: "exact", value: "/install" }, "Install"],
