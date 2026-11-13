@@ -28,9 +28,14 @@ export function resolveFitnessHandoffReturnPath(returnTo: string | null | undefi
 export function getFitnessAccountPortalUrl(
   pathname: "/account" | "/login" = "/account",
   returnTo?: string,
+  options?: { intent?: "signup" },
 ) {
   const url = new URL(pathname, ACCOUNT_PORTAL_ORIGIN);
   url.searchParams.set("app", FITNESS_CONTEXT);
+  if (options?.intent) {
+    // `set` keeps exactly one `intent` key; the portal opens Create Account only for one exact `signup` value.
+    url.searchParams.set("intent", options.intent);
+  }
   if (returnTo) {
     url.searchParams.set("returnTo", new URL(returnTo, FITNESS_APP_ORIGIN).href);
   }
@@ -39,4 +44,9 @@ export function getFitnessAccountPortalUrl(
 
 export function getFitnessLoginPortalUrl(returnTo?: string | null) {
   return getFitnessAccountPortalUrl("/login", resolveFitnessHandoffReturnPath(returnTo));
+}
+
+// The ONE portal sign-up surface for browser tabs (the installed app keeps its own in-scope sign-up screen).
+export function getFitnessSignupPortalUrl(returnTo?: string | null) {
+  return getFitnessAccountPortalUrl("/login", resolveFitnessHandoffReturnPath(returnTo), { intent: "signup" });
 }

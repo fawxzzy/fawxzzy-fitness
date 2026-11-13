@@ -10,6 +10,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: apply package first (separate approval), app merge second. No runtime fallback to direct inserts.
 - Evidence: `src/lib/session-start-activation.ts` and test, `src/lib/session-start-atomicity.test.ts`, `supabase/master-fitness/*`; local PostgreSQL 17 proof (apply, rerun, 8-client concurrency, unique-violation handler, duplicate guard, rollback).
 - Status: source only; nothing applied to any provider.
+
+## 2026-11-12 - Send browser sign-up to the one portal surface, keep installed sign-up in scope
+
+- Type: Account entry routing + Installed PWA scope
+- WHAT changed: Browser (non-installed) `/signup` now redirects to `https://account.fawxzzy.com/login?app=fitness&intent=signup&returnTo=<fitness url>` (`getFitnessSignupPortalUrl`, exactly one `intent` key with the value `signup`); the installed app keeps its own sign-up screen. The split lives in a route layout (`src/app/signup/layout.tsx` + `SignupEntry.tsx`), mirroring `LoginEntry`, with the same `?manual=1` local-review escape hatch.
+- WHY: Two sign-up surfaces (Fitness `/signup`, reachable from any browser, and the portal) meant two sets of copy, errors and enumeration behaviour. Sign-in already sends browser tabs to the portal; sign-up now does the same, while an installed app must not leave its manifest scope.
+- Rule: A product screen reachable from both a browser tab and the installed app delegates to the shared account portal only in the browser; the installed app keeps the in-scope screen (2026-09-13 rule). Add a portal intent as a single query key with an exact value, and let older portal builds ignore it so the product can ship first.
+- Failure Mode: Detecting the installed app on the server (it cannot) or redirecting every `/signup` hit would send installed users out of the app; forwarding a free-form `returnTo` would widen the portal return allowlist.
+- Evidence: `src/lib/account-portal.ts` and test, `src/app/signup/SignupEntry.tsx`, `src/app/signup/layout.tsx`, `src/app/signup/SignupEntry.contract.test.ts`; the portal side is FawxzzyWeb PR #134.
+- Status: Source only; the portal change and any deploy are separate.
+
 ## 2026-10-16 - Keep event-free login autofill submittable
 
 - Type: Authentication UI continuity + Coverage
