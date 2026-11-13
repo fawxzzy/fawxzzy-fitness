@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { isDevOnlyPath, isProductionDeployment } from "../../../lib/dev-route-guard.ts";
 import {
   CardActionRow,
   CardChip,
@@ -186,11 +187,19 @@ test("only the two documented controls restate button chrome with !; global butt
   }
 });
 
-test("the card-system dev gallery stays production-blocked with no preview escape hatch", () => {
+test("the card-system dev gallery is covered by the shared dev-route guard and holds no server credentials", () => {
   const page = readFileSync(new URL("../../../app/dev/card-system/page.tsx", import.meta.url), "utf8");
+  const gallery = readFileSync(new URL("../../../app/dev/card-system/CardSystemGallery.tsx", import.meta.url), "utf8");
+  const layout = readFileSync(new URL("../../../app/dev/layout.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /process\.env\.NODE_ENV === "production"/);
-  assert.match(page, /notFound\(\)/);
+  // Withdrawn from production by the layout (isProductionDeployment) and by middleware (isDevOnlyPath("/dev/...")).
+  assert.match(layout, /isProductionDeployment\(\)/);
+  assert.match(layout, /notFound\(\)/);
+  assert.equal(isDevOnlyPath("/dev/card-system"), true);
+  assert.equal(isProductionDeployment({ VERCEL_ENV: "production" }), true);
+  for (const source of [page, gallery]) {
+    assert.doesNotMatch(source, /supabaseAdmin|createSupabase|service[-_ ]role|process\.env/i);
+  }
   assert.doesNotMatch(page, /HISTORY_QA_PREVIEW_ENABLED/);
   assert.match(page, /robots:[\s\S]*index: false/);
 });

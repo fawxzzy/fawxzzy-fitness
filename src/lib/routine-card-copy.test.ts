@@ -20,8 +20,10 @@ test("routine summary parts use canonical terms: day, session (never workout pla
 test("cached mobile abbreviations (plans, train, logs, New) normalize to the same canonical copy", () => {
   assert.deepEqual(
     normalizeRoutineSummaryParts(["7 plans", "4 train", "0 rest", "2 logs", "New", "No logs"]),
-    ["7 days", "4 training days", "0 rest days", "2 sessions", "Not started", "No sessions yet"],
+    ["4 training days", "0 rest days", "2 sessions", "Not started", "No sessions yet"],
   );
+  // the total is dropped only when it restates the training/rest split
+  assert.deepEqual(normalizeRoutineSummaryParts(["7 plans", "2 logs"]), ["7 days", "2 sessions"]);
 });
 
 test("week cell: training day shows weekday and exercise count with a full-sentence description", () => {

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { CardSystemGallery } from "@/app/dev/card-system/CardSystemGallery";
 
@@ -17,14 +16,11 @@ export const metadata: Metadata = {
 
 /**
  * Dev-only gallery of the card system (docs/design-system/CARD-SYSTEM.md): every card kind in every state.
- * Mirrors /dev/ui-system: it is blocked outright in production (no preview-env escape hatch), so it can
- * never be a public fixture route.
+ * Static fixture data only (no Supabase client, no session). Availability is the shared dev-route guard:
+ * middleware answers 404 for `/dev/*` on production deployments before this page runs, and
+ * `src/app/dev/layout.tsx` repeats it. See `src/lib/dev-route-guard.ts`.
  */
 export default function DevCardSystemPage() {
-  if (process.env.NODE_ENV === "production") {
-    notFound();
-  }
-
   return (
     <ContentRail className="pb-24 pt-6">
       <CardSystemGallery />

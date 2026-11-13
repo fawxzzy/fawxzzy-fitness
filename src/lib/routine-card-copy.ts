@@ -48,7 +48,12 @@ export function normalizeRoutineSummaryPart(rawPart: string): string {
 }
 
 export function normalizeRoutineSummaryParts(parts: string[]): string[] {
-  return parts.map(normalizeRoutineSummaryPart).filter((part) => part.length > 0);
+  const normalized = parts.map(normalizeRoutineSummaryPart).filter((part) => part.length > 0);
+  // "5 days" is training + rest days restated; keep it only when the split is not shown.
+  const hasDaySplit = normalized.some((part) => /^\d+ training days?$/.test(part))
+    && normalized.some((part) => /^\d+ rest days?$/.test(part));
+
+  return hasDaySplit ? normalized.filter((part) => !/^\d+ days?$/.test(part)) : normalized;
 }
 
 export type RoutineWeekCellInput = {

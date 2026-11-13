@@ -33,8 +33,13 @@ export const cardTokens = {
   title:
     "m-0 min-w-0 text-base font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--text-primary))] [text-wrap:balance] [overflow-wrap:anywhere]",
   titleSecondary: "ml-1.5 text-sm font-medium text-[rgb(var(--text-secondary)/0.92)]",
-  meta: "m-0 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-medium leading-snug text-[rgb(var(--text-secondary)/0.92)]",
-  metaSeparator: "select-none text-[rgb(var(--text-muted)/0.9)]",
+  // The meta line wraps. Each item carries its own leading dot, drawn in 12px of left padding that the wrapper
+  // pulls outside the line box (-ml-3) and the paragraph clips (overflow-hidden), so a dot never ends a line or
+  // starts the next one.
+  meta: "m-0 min-w-0 overflow-hidden text-xs font-medium leading-snug text-[rgb(var(--text-secondary)/0.92)]",
+  metaWrap: "-ml-3 flex min-w-0 flex-wrap gap-y-0.5",
+  metaItem: "relative min-w-0 pl-3",
+  metaSeparator: "pointer-events-none absolute left-[3px] select-none text-[rgb(var(--text-muted)/0.9)]",
   chips: "flex min-w-0 flex-wrap items-center gap-1.5",
   body: "px-4 pb-3",
   bodyDivider: "border-t border-[rgb(var(--border-strong)/0.14)] pt-3",

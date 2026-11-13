@@ -1,4 +1,4 @@
-import { Children, Fragment, type ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cardTokens } from "@/components/ui/card-system/cardTokens";
 
@@ -27,12 +27,14 @@ export function CardMeta({
 
   return (
     <p id={id} data-card-meta="true" className={cn(cardTokens.meta, flush ? undefined : "mt-0.5", className)}>
-      {visibleItems.map((item, index) => (
-        <Fragment key={index}>
-          {index > 0 ? <span aria-hidden="true" className={cardTokens.metaSeparator}>{"·"}</span> : null}
-          <span className="min-w-0">{item}</span>
-        </Fragment>
-      ))}
+      <span className={cardTokens.metaWrap}>
+        {visibleItems.map((item, index) => (
+          <span key={index} className={cardTokens.metaItem}>
+            {index > 0 ? <span aria-hidden="true" className={cardTokens.metaSeparator}>{"·"}</span> : null}
+            {item}
+          </span>
+        ))}
+      </span>
     </p>
   );
 }
