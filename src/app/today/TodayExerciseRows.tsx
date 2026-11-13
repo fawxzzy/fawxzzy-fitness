@@ -10,7 +10,7 @@ import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 export type TodayExerciseRow = {
   id: string;
-  exerciseId: string;
+  exerciseId?: string;
   name: string;
   targets: string | null;
   image_path?: string | null;
@@ -64,6 +64,7 @@ export function TodayExerciseRows({
   showProgress = true,
   surface = "today",
   isRestDay = false,
+  showInfo = true,
 }: {
   exercises: TodayExerciseRow[];
   emptyMessage: string;
@@ -76,6 +77,8 @@ export function TodayExerciseRows({
    * instead of a plain "no exercises" empty state.
    */
   isRestDay?: boolean;
+  /** Off where the info sheet cannot load (offline session list). */
+  showInfo?: boolean;
 }) {
   return (
     <ul className={cardTokens.list}>
@@ -103,6 +106,7 @@ export function TodayExerciseRows({
               surface={surface}
               state={state}
               progress={progressState ? buildTodayExerciseLoggedProgress(progressState, state === "skipped") : null}
+              showInfo={showInfo}
             />
           </li>
         );

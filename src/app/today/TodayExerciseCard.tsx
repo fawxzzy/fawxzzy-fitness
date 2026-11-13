@@ -14,7 +14,8 @@ import { isStretchHubExercise } from "@/lib/stretch-library";
 import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 export type TodayExerciseCardExercise = {
-  exerciseId: string;
+  /** Catalog exercise id for the info control. Without it (or with `showInfo` false) the card has no info control. */
+  exerciseId?: string;
   name: string;
   targets: string | null;
   image_path?: string | null;
@@ -55,12 +56,15 @@ export function TodayExerciseCard({
   state = "default",
   progress = null,
   footer,
+  showInfo = true,
 }: {
   exercise: TodayExerciseCardExercise;
   surface?: WorkoutCardSurface;
   state?: TodayExerciseCardState;
   progress?: ExerciseRowCardProgress | null;
   footer?: ReactNode;
+  /** Off for screens that cannot open the info sheet (the offline session list: it fetches from the network). */
+  showInfo?: boolean;
 }) {
   const isStretchHub = isStretchHubExercise(exercise);
   const isSkipped = state === "skipped";
@@ -95,7 +99,7 @@ export function TodayExerciseCard({
       showMedia={policy.showMedia && !isSkipped}
       tone={state === "completed" ? "completed" : "neutral"}
       interaction={{ kind: "none" }}
-      trailing={<ExerciseInfoIconButton exerciseId={exercise.exerciseId} exerciseName={exercise.name} />}
+      trailing={showInfo && exercise.exerciseId ? <ExerciseInfoIconButton exerciseId={exercise.exerciseId} exerciseName={exercise.name} /> : undefined}
       footer={footer}
     />
   );

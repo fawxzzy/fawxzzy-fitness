@@ -68,7 +68,7 @@ export function ExerciseTimerControl({
   const isRunning = timer.status === "running";
 
   return (
-    <section className="mx-3 mb-3 overflow-hidden rounded-2xl border border-[rgb(var(--accent)/0.28)] bg-[linear-gradient(180deg,rgb(var(--surface-2-rgb)/0.98),rgb(var(--surface-1-rgb)/0.96))]" aria-label="Exercise timer">
+    <section className="mt-2 overflow-hidden rounded-2xl border border-[rgb(var(--accent)/0.28)] bg-[linear-gradient(180deg,rgb(var(--surface-2-rgb)/0.98),rgb(var(--surface-1-rgb)/0.96))]" aria-label="Exercise timer">
       <div className="flex items-center justify-between gap-3 px-3 py-3">
         <p className="shrink-0 text-xs font-black uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">Exercise Timer</p>
         <output className="shrink-0 text-xs font-black tabular-nums tracking-[0.16em] text-[rgb(var(--accent)/0.92)]" aria-live="off">

@@ -8,10 +8,6 @@ export function SessionExerciseBlock({ children, className }: { children: ReactN
   return <div className={cn("w-full pb-2", className)}>{children}</div>;
 }
 
-export function SessionExerciseCard({ children }: { children: ReactNode }) {
-  return <div>{children}</div>;
-}
-
 function QuickLogActionLabel({ label }: { label: string }) {
   const detailStart = label.indexOf(": ");
   if (detailStart < 1) {

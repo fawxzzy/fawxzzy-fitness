@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+import { buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -165,6 +166,9 @@ export function SessionPageClient({
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialSelectedExerciseId);
+  // Live per-exercise set counts, written by SessionExerciseFocus (read-only mirror of its local state, queued sets included).
+  // The finish card reads it; a session opened already completed has no live list and uses the server snapshot.
+  const liveProgressRef = useRef<SessionFinishedExercise[] | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [isSessionCompleted, setIsSessionCompleted] = useState(initialIsSessionCompleted);
@@ -338,15 +342,7 @@ export function SessionPageClient({
           <ActionFeedbackToasts />
 
           {isSessionCompleted ? (
-            <div
-              role="status"
-              className="rounded-[var(--card-radius)] border border-[rgb(var(--success-rgb)/0.24)] bg-[rgb(var(--success-rgb)/0.08)] px-4 py-6 text-center"
-            >
-              <p className="text-base font-bold text-[rgb(var(--success-rgb)/0.98)]">Workout saved</p>
-              <p className="mt-1 text-sm font-medium text-[rgb(var(--text-muted)/0.92)]">
-                Continue to return to your workout overview.
-              </p>
-            </div>
+            <SessionFinishedCard facts={buildSessionFinishedFacts({ exercises: liveProgressRef.current ?? exercises, durationSeconds })} />
           ) : hasExercises ? (
             <SessionExerciseFocus
               userId={userId}
@@ -367,6 +363,7 @@ export function SessionPageClient({
               updateSessionExerciseTimerAction={updateSessionExerciseTimerAction}
               disableDraftPersistence={disableDraftPersistence}
               bottomDockCenter={null}
+              liveProgressRef={liveProgressRef}
             />
           ) : null}
 

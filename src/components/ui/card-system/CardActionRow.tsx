@@ -44,14 +44,17 @@ export function CardActionFrame({
   children,
   className,
   label = "Card actions",
+  gridClassName: gridClassNameOverride,
 }: {
   columns: 1 | 2 | 3;
   children: ReactNode;
   className?: string;
+  /** Custom column template (session quick log: fixed-width Skip and Log all, flexible Log set). Replaces the equal columns. */
+  gridClassName?: string;
   /** Accessible name of the action group. */
   label?: string;
 }) {
-  const gridClassName = columns === 1 ? "grid-cols-1" : columns === 2 ? "grid-cols-2" : "grid-cols-3";
+  const gridClassName = gridClassNameOverride ?? (columns === 1 ? "grid-cols-1" : columns === 2 ? "grid-cols-2" : "grid-cols-3");
 
   return (
     <div
