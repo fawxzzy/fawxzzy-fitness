@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -17,7 +20,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install
@@ -73,6 +76,28 @@ jobs:
             exit 1
           fi
 
+  all-tests:
+    name: All tests (npm run test:all)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Runs every *.test.{ts,tsx,mjs,js} file except those named with a reason in
+      # scripts/test-all.exclusions.json, so a new test file cannot go unreferenced.
+      - name: Run all tests
+        run: npm run test:all
+
   playbook-clean-environment:
     name: Playbook clean-environment validation
     runs-on: ubuntu-latest
@@ -86,7 +111,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies from a clean environment

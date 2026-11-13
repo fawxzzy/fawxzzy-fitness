@@ -1,0 +1,57 @@
+{
+  "_note": "Test files that npm run test:all skips. Add a file only with a reason; the file must exist. Prefer fixing the test.",
+  "exclusions": [
+    {
+      "path": "scripts/migration/real-postgres-replay-chain.test.mjs",
+      "reason": "Needs a real Postgres server and credentials; runs in the migration-clean-replay-contract workflow."
+    },
+    {
+      "path": "scripts/migration/data-api-grants-contract.test.mjs",
+      "reason": "Replays the migration chain against a real Postgres server; runs in the migration-clean-replay-contract workflow."
+    },
+    {
+      "path": "scripts/migration/fp-fit-user-number-safety-verify.test.mjs",
+      "reason": "Verifies recovery evidence against git history and ATLAS paths; owner-run, not a hosted check."
+    },
+    {
+      "path": "scripts/migration/fp-fit-rec-001-verify.test.mjs",
+      "reason": "Verifies recovery evidence against git history (35 s or more); owner-run, not a hosted check."
+    },
+    {
+      "path": "scripts/migration/fp-fit-content-rec-002-verify.test.mjs",
+      "reason": "Verifies recovery evidence against git history (75 s or more); owner-run, not a hosted check."
+    },
+    {
+      "path": "scripts/qa/fitness-auth-state.test.mjs",
+      "reason": "Refuses to run without the local Fitness QA Supabase environment; local operator tool."
+    },
+    {
+      "path": "scripts/qa/zac-llel-routine.test.mjs",
+      "reason": "Refuses to run without the local Fitness QA Supabase environment; local operator tool."
+    },
+    {
+      "path": "scripts/sync-feedback-forum-posts.test.mjs",
+      "reason": "Refuses to run without the local Fitness Supabase target; local operator tool."
+    },
+    {
+      "path": "tests/playbook-adoption-evidence.test.mjs",
+      "reason": "Looks for Playbook and ATLAS repo paths that exist only on the owner machine."
+    },
+    {
+      "path": "tests/playbook-verification-report.test.mjs",
+      "reason": "Reads the ATLAS root schema from a path that exists only on the owner machine."
+    },
+    {
+      "path": "src/features/curated-onboarding/planning/execution/compile.test.ts",
+      "reason": "Slow property test (over 90 s under load); runs in the planning-execution-command-contract workflow."
+    },
+    {
+      "path": "src/features/curated-onboarding/planning/pipeline/compile.test.ts",
+      "reason": "Slow property test (over 90 s under load); runs in the planning-pipeline-contract workflow."
+    },
+    {
+      "path": "src/lib/dal/planner-routine-create.test.ts",
+      "reason": "Slow test (over 90 s under load); runs in the planning-execution-command and planning-persistence-adapter contract workflows."
+    }
+  ]
+}

@@ -175,6 +175,7 @@
     "test:supabase-schema-binding": "node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/schema-binding.contract.test.mjs src/lib/dev-route-guard.test.ts",
     "test:design-system-contract": "node --import ./scripts/register-test-aliases.mjs --test tests/design-system-contract.test.mjs",
     "test:billing": "node --import ./scripts/register-test-aliases.mjs --test src/lib/billing/stripe-config.test.ts src/lib/billing/pro-access.test.ts src/lib/billing/reconcile-cancelled-checkout.test.ts src/lib/billing/stripe-webhook-signature.test.ts src/lib/billing/subscription-status.test.ts src/lib/pro-tier-limits.test.ts",
+    "test:all": "node scripts/test-all.mjs",
     "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
     "test:fitness-release-ledger": "node --test scripts/release/fitness-release-note.test.mjs",
     "test:fitness-release-readiness": "node --test scripts/release/fitness-release-readiness.test.mjs",

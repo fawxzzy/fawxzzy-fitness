@@ -8,7 +8,7 @@ import { buildExerciseInfoReviewSections, buildExerciseInfoSurfaceMetrics } from
 import { buildStrengthPerformanceMetrics } from "@/lib/exercise-info-strength-performance";
 import { buildStrengthProgressMetrics } from "@/lib/exercise-info-strength-progress";
 
-test("exercise info surface metrics stay on summary-only metrics", () => {
+test("exercise info surface metrics lead with the summary metrics, then progress and performance metrics", () => {
   const metrics = buildExerciseInfoSurfaceMetrics({
     quickMetrics: [
       { label: "Last", value: "225 lbs x 5" },
@@ -30,7 +30,9 @@ test("exercise info surface metrics stay on summary-only metrics", () => {
 
   assert.deepEqual(
     metrics.map((item) => item.label),
-    ["Sessions", "Sets", "Last", "Best"],
+    // PRs stays out of the surface; the summary metrics come first, then progress, then performance.
+    // dedupeMetricList keeps the performance "Last" because its value and timeframe differ.
+    ["Sessions", "Sets", "Last", "Best", "REPS", "30 Days", "Top Set", "Max Estimate", "Last"],
   );
 });
 
