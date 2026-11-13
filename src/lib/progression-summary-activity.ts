@@ -42,6 +42,8 @@ export function buildProgressionSummaryActivityBuckets(args: {
   routineTitleById?: Map<string, string>;
   granularity: "day" | "week";
   limit: number;
+  /** Zone the events are bucketed into local days with (History zone). Omitted keeps the analytics default (UTC). */
+  timeZone?: string | null;
 }) {
   const eventsByBucket = new Map<string, ProgressionAnalyticsEvent[]>();
 
@@ -49,6 +51,7 @@ export function buildProgressionSummaryActivityBuckets(args: {
     const bucketKey = getProgressionEventBucketKey({
       createdAt: event.created_at,
       granularity: args.granularity,
+      timeZone: args.timeZone,
     });
     if (!bucketKey) {
       continue;

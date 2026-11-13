@@ -111,6 +111,7 @@ test("exercise info review sections omit generic PR fallback rows when no dated 
 test("cardio exercise info builds dated PR history items", () => {
   const items = buildCardioPrReviewItems({
     family: "cardio-endurance",
+    timeZone: "UTC",
     sessionAggregates: [
       {
         performedAt: "2026-05-27T12:00:00.000Z",

@@ -36,7 +36,6 @@ import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
 import { cn } from "@/lib/cn";
 import { formatCalories, formatDistance, formatDurationShort } from "@/lib/exercise-stats-formatting";
-import { formatDateShort } from "@/lib/formatting";
 import {
   createDefaultExerciseInfoFilterState,
   normalizeExerciseInfoFilterState,
@@ -818,8 +817,8 @@ function buildExerciseInfoHistoryRangeLabel(stats: ExerciseInfoSheetStats | null
 
   const startDayKey = dayKeys[0]!;
   const endDayKey = dayKeys[dayKeys.length - 1]!;
-  const startLabel = formatDateShort(`${startDayKey}T12:00:00.000Z`);
-  const endLabel = formatDateShort(`${endDayKey}T12:00:00.000Z`);
+  const startLabel = formatHistoryAxisDayLabel(startDayKey);
+  const endLabel = formatHistoryAxisDayLabel(endDayKey);
 
   return startDayKey === endDayKey ? startLabel : `${startLabel} - ${endLabel}`;
 }
