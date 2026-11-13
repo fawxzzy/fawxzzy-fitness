@@ -7,7 +7,7 @@ import { SUPABASE_URL } from "@/lib/env";
 import { isSafeAppPath } from "@/lib/navigation-return";
 import { hasSupabaseAdminCredential, resolveSupabaseAdminCredential, supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
-import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
+import { isUsernameIdentifier } from "@/lib/username-policy";
 import {
   getLoginResolutionFailureMessage,
   getLoginSignInFailureMessage,
@@ -16,8 +16,9 @@ import {
   type UsernameLookupFailureCode,
 } from "@/lib/username-signin-index";
 import { enforceLoginFailureFloor } from "@/lib/login-failure-floor";
-import { requestResetForIdentifier } from "@/lib/password-reset-request";
-import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
+import { buildFitnessRecoveryRedirectUrl, requestResetForIdentifier } from "@/lib/password-reset-request";
+import { isValidNewPassword } from "@/lib/password-policy";
+import { buildSignupRedirectHref, classifySignupProviderError } from "@/components/auth/signupFeedback";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -142,17 +143,20 @@ export async function signup(formData: FormData) {
   const email = normalizeLoginIdentifier(formData.get("email"));
   const password = formData.get("password");
 
+  // Failures redirect with an allow-listed code, never free text: the provider's message is not forwarded (an
+  // "already registered" message would confirm that an address has an account) and /signup renders fixed copy per
+  // code.
   if (!isValidNewPassword(password)) {
-    redirect(`/signup?error=${encodeURIComponent(NEW_PASSWORD_REQUIREMENT)}`);
+    redirect(buildSignupRedirectHref({ error: "password_too_short" }));
   }
   const username = String(formData.get("username") ?? "").trim();
 
   if (username && !isUsernameIdentifier(username)) {
-    redirect(
-      `/signup?error=${encodeURIComponent(
-        USERNAME_VALIDATION_MESSAGE,
-      )}`,
-    );
+    redirect(buildSignupRedirectHref({ error: "username_invalid" }));
+  }
+
+  if (!isEmailIdentifier(email)) {
+    redirect(buildSignupRedirectHref({ error: "email_invalid" }));
   }
 
   const supabase = supabaseServer();
@@ -171,7 +175,9 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    // Log the provider's machine code and status only (no message, no address) for diagnosis.
+    console.error("Sign-up failed", { code: error.code ?? null, status: error.status ?? null });
+    redirect(buildSignupRedirectHref({ error: classifySignupProviderError(error) }));
   }
 
   if (data.session) {
@@ -182,7 +188,7 @@ export async function signup(formData: FormData) {
     redirect("/entry");
   }
 
-  redirect(`/signup?info=${encodeURIComponent("Check your email to confirm your account.")}`);
+  redirect(buildSignupRedirectHref({ info: "check_email" }));
 }
 
 export async function requestPasswordReset(formData: FormData) {
@@ -199,7 +205,7 @@ export async function requestPasswordReset(formData: FormData) {
   }
 
   const supabase = supabaseServer();
-  const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
+  const redirectTo = buildFitnessRecoveryRedirectUrl(getAppOrigin());
   const result = await requestResetForIdentifier({
     identifier,
     resolveUsername: resolveIndexedUsername,
@@ -231,7 +237,7 @@ export async function requestPasswordResetInline(identifier: string) {
   }
 
   const supabase = supabaseServer();
-  const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
+  const redirectTo = buildFitnessRecoveryRedirectUrl(getAppOrigin());
   const result = await requestResetForIdentifier({
     identifier: normalizedIdentifier,
     resolveUsername: resolveIndexedUsername,

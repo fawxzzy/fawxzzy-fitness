@@ -16,6 +16,7 @@ export type CuratedOnboardingAction =
   | { type: "go-to-step"; stepId: CuratedStepId; at: string }
   | { type: "complete-intake"; at: string }
   | { type: "generation-requested" }
+  | { type: "reopen-intake"; at: string }
   | { type: "generation-resolved"; status: ResolvedGenerationStatus; planId?: string | null; message?: string | null }
   | { type: "reset"; nextState: CuratedOnboardingState };
 
@@ -93,6 +94,26 @@ export function curatedOnboardingReducer(state: CuratedOnboardingState, action: 
         generationStatus: "queued",
         planId: null,
         completedAt: action.at,
+      },
+      message: null,
+    };
+  }
+
+  if (action.type === "reopen-intake") {
+    // Back to the review page with the saved answers intact; the intake is a draft again until re-submitted.
+    return {
+      ...state,
+      draft: {
+        ...state.draft,
+        stepId: "review",
+        updatedAt: action.at,
+      },
+      lifecycle: {
+        ...state.lifecycle,
+        intakeStatus: "draft",
+        generationStatus: "idle",
+        planId: null,
+        completedAt: null,
       },
       message: null,
     };

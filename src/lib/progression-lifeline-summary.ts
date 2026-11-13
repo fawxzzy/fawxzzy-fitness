@@ -396,6 +396,7 @@ function buildProgressionActivityDays(args: {
   events: ProgressionEventRow[];
   exerciseNameById?: Map<string, string>;
   routineTitleById?: Map<string, string>;
+  timeZone?: string | null;
 }): ExerciseProgressionActivityDay[] {
   const eventsByDayKey = new Map<string, ProgressionEventRow[]>();
 
@@ -403,6 +404,7 @@ function buildProgressionActivityDays(args: {
     const dayKey = getProgressionEventBucketKey({
       createdAt: event.created_at,
       granularity: "day",
+      timeZone: args.timeZone,
     });
     if (!dayKey) {
       continue;
@@ -570,9 +572,15 @@ export function buildProgressionAnalyticsDigest(events: ProgressionEventRow[]): 
 
 export function buildExerciseProgressionLifelineSummary(
   events: ProgressionEventRow[],
-  options?: {
+  options: {
     exerciseNameById?: Map<string, string>;
     routineTitleById?: Map<string, string>;
+    /**
+     * REQUIRED: the zone the events are bucketed into local days with. User-facing callers pass the History zone
+     * (resolveHistoryTimeZone / loadHistoryTimeZone). `null` is the explicit, deliberate choice of the analytics
+     * default (UTC); leaving it out does not compile, so a caller cannot fall back to UTC by accident.
+     */
+    timeZone: string | null;
   },
 ): ExerciseProgressionLifelineSummary | null {
   const ordered = sortEventsAscending(events);
@@ -596,11 +604,13 @@ export function buildExerciseProgressionLifelineSummary(
   const chartSections = buildProgressionSummaryChartSections({
     events: ordered,
     activityGranularity: "day",
+    timeZone: options.timeZone,
   }).filter((section) => section.id !== "progression-hotspots");
   const activityDays = buildProgressionActivityDays({
     events: ordered,
-    exerciseNameById: options?.exerciseNameById,
-    routineTitleById: options?.routineTitleById,
+    exerciseNameById: options.exerciseNameById,
+    routineTitleById: options.routineTitleById,
+    timeZone: options.timeZone,
   });
   const lifelineItems = [
     latestChangeSummary ? `Latest: ${latestChangeSummary}` : null,

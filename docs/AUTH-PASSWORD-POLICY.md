@@ -12,11 +12,28 @@ application maximum. The minimum check follows the existing account portal's
 JavaScript string-length rule. Provider policy remains a separate authoritative
 check; no provider setting is changed by these source files.
 
-This change does not enable leaked-password protection, implement recent-auth or
-current-password challenges, or prove an installed app flow. Current provider
+This change does not enable leaked-password protection, implement a recent-auth
+challenge for sign-in, or prove an installed app flow. Current provider
 settings must be reconciled through a separately reviewed change after compatible
 application releases. The canonical contract is in FawxzzyPlatform's
 `contracts/v1/auth/domain-session-contract.json` (FP-MAN-012).
+
+## Changing the password while signed in
+
+Settings > Account > Change password (`changePasswordAction`, `src/app/settings/actions.ts`) uses
+the same ten-character rule, requires the current password, and requires the new password to
+differ from it. The current password is verified by signing in on a throwaway client, and that
+fresh session performs the write: `auth.updateUser` needs a session held by the client, and the
+request-bound server client only forwards a bearer header, so `updateUser` on it fails with
+"Auth session missing" without sending a request. The account that is verified is always the signed-in
+session's own email (never a form field), a verification that proves a different account writes nothing, and
+a failed verification waits on the same latency floor as sign-in (`enforceLoginFailureFloor`) so a session
+holder gets no free fast guessing. The throwaway session is revoked with
+`scope: "local"`, so the member's own session and other devices are not touched. Other sessions
+are not signed out on a password change; that is a separate decision because sessions are shared
+with the account portal and Mazer. Every outcome is a fixed message keyed by a code; provider
+text never reaches the screen. No provider setting is needed: a fresh sign-in also satisfies the
+optional "secure password change" recency rule.
 
 ## Verification
 

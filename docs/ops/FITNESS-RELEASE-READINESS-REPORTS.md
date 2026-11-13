@@ -25,11 +25,9 @@ also stops before any remote connection because it uses the same retired entry.
 A complete visual receipt is reported with a warning that master migration
 freshness was not evaluated, even when both historical mismatch lists are empty.
 
-The direct legacy export POST at `/api/migration/export` returns HTTP 410 with
-`FITNESS_LEGACY_EXPORT_RETIRED` and `Cache-Control: no-store`. It imports no auth
-or legacy client code and reads no request body or credentials. Hiding the
-legacy Settings UI alone did not disable this endpoint. Master snapshot import
-and parity endpoints remain available under their existing authentication.
+The legacy export, import and parity routes under `/api/migration/` have been
+removed (2026-11-12), along with the Settings legacy migration section. Earlier
+revisions kept a 410 stub for export; nothing calls it any more.
 
 `npm run dev:fitness:lps` exits 1 with `FITNESS_LEGACY_DEV_RETIRED`, without
 reading environment files or starting a child process. Environment overrides

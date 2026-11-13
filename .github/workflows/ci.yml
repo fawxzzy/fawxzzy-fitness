@@ -32,20 +32,28 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/components/layout/bottomActionIntents.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/reduced-motion.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/login/page.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/components/auth/signupFeedback.test.ts tests/signup-failure-copy-action.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/components/error/auth-session-preservation.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/middleware.test.ts src/lib/detail-route-guard.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/timezones.test.ts src/lib/history-local-day-boundary.test.ts src/lib/history-sessions-page-loader.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/history-consistency-heatmap.test.ts src/components/history/ConsistencyHeatmapSurface.test.tsx
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-sync/route.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/client.session-sync.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-handoff/route.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/auth-handoff-supabase-store.test.ts scripts/qa/fitness-auth-handoff-loopback.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/offline/quick-log-queue.test.ts src/lib/offline/sync-engine.test.ts src/components/SessionExerciseFocus.quickLogOffline.contract.test.ts
           npm run test:supabase-schema-binding
           node --test scripts/migration/member-identity-authority.contract.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/app/manifest.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/app/signup/SignupEntry.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/routines/RoutineEditorForm.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-info-day-key.test.ts src/lib/progression-summary-activity.test.ts src/lib/progression-activity-zone.test.ts src/lib/progression-lifeline-summary.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/FilterToggleButton.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/app/AppHeader.contract.test.ts
-          node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts src/features/curated-onboarding/engine.safety.test.ts src/features/curated-onboarding/engine.adjustments.test.ts src/features/curated-onboarding/engine.matrix.test.ts src/features/curated-onboarding/api-contract.test.ts src/features/curated-onboarding/api-contract.safety.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/questionnaire.test.ts src/features/curated-onboarding/reducer.test.ts src/features/curated-onboarding/storage.test.ts src/features/curated-onboarding/selectors.test.ts src/features/curated-onboarding/handoff.test.ts src/features/curated-onboarding/handoff.actions.test.ts src/app/curated-onboarding/actions.test.ts src/app/curated-onboarding/actions.contract.test.ts src/app/curated-onboarding/replay.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/feature-flags.test.ts src/lib/initial-experience-gate.test.ts src/lib/resolvePostLoginDestination.test.ts
+          node --test tests/curated-onboarding-ui-contract.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/normalize.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts
           node --test scripts/seed-feedback-monetization-roadmap.test.mjs

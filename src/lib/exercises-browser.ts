@@ -27,6 +27,8 @@ import { resolveHistorySetPlotY } from "@/lib/exercise-info-history-layout";
 import { resolveHistoryGraphMetricKey, type HistoryGraphMetricKey } from "@/lib/exercise-info-history-axis";
 import { formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import { loadHistoryTimeZone } from "@/lib/history-time-zone";
+import { resolveHistoryTimeZone } from "@/lib/timezones";
 import type { ProgressionEventRow } from "@/types/db";
 import {
   normalizeExerciseInfoFilterState,
@@ -137,6 +139,8 @@ export type ExerciseBrowserScopePayload = {
 
 type ExerciseBrowserScopeContext = {
   profileTimeZone: string;
+  /** The zone History buckets days with (resolveHistoryTimeZone). */
+  historyTimeZone: string;
   activeRoutineId: string | null;
   activeRoutineTitle: string | null;
   currentCycleWindow: CurrentCycleWindow | null;
@@ -954,6 +958,7 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Fitne
   if (!activeRoutineId) {
     return {
       profileTimeZone,
+      historyTimeZone: resolveHistoryTimeZone({ profileTimeZone }),
       activeRoutineId: null,
       activeRoutineTitle: null,
       currentCycleWindow: null,
@@ -969,6 +974,10 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Fitne
 
   return {
     profileTimeZone,
+    historyTimeZone: resolveHistoryTimeZone({
+      activeRoutineTimeZone: typeof routineData?.timezone === "string" ? routineData.timezone : null,
+      profileTimeZone,
+    }),
     activeRoutineId,
     activeRoutineTitle: typeof routineData?.name === "string" && routineData.name.trim().length > 0
       ? routineData.name.trim()
@@ -1027,6 +1036,7 @@ async function resolveExerciseBrowserScopedContext(args: {
 
   return {
     profileTimeZone: scopeContext.profileTimeZone,
+    historyTimeZone: scopeContext.historyTimeZone,
     activeRoutineId: routineMeta.id,
     activeRoutineTitle: routineMeta.title,
     currentCycleWindow: normalizedFilterState.analyticsScope === "current_cycle"
@@ -1082,6 +1092,8 @@ async function getExercisesWithStats(
   options?: {
     analyticsScope?: ExerciseInfoAnalyticsScope;
     scopeContext?: ExerciseBrowserScopeContext | null;
+    /** The History zone, or a promise of it, when the caller is already resolving the scope context concurrently. */
+    historyTimeZone?: string | Promise<string>;
   },
 ): Promise<ExerciseBrowserRow[]> {
   noStore();
@@ -1098,6 +1110,14 @@ async function getExercisesWithStats(
   const currentCycleWindow = analyticsScope === "current_cycle"
     ? (options?.scopeContext?.currentCycleWindow ?? null)
     : null;
+
+  // Started now, awaited only where the progression summaries are built, so the lookup overlaps the row queries
+  // instead of running (two sequential queries) in front of them.
+  const historyTimeZonePromise = Promise.resolve(
+    options?.scopeContext?.historyTimeZone
+      ?? options?.historyTimeZone
+      ?? loadHistoryTimeZone({ supabase, userId }),
+  );
 
   const exerciseRows = client ? await listExercisesForUser(userId, client) : await listExercises();
 
@@ -1221,6 +1241,7 @@ async function getExercisesWithStats(
     ? new Map<string, ExerciseStatsRow>()
     : new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
   const setRowsByExerciseId = groupNormalizedSetsByExercise((historySetRows ?? []) as HistoricalSetRow[]);
+  const historyTimeZone = await historyTimeZonePromise;
   const progressionEventsByExerciseId = new Map<string, ProgressionEventRow[]>();
   for (const event of (progressionEventRows ?? []) as ProgressionEventRow[]) {
     const current = progressionEventsByExerciseId.get(event.exercise_id) ?? [];
@@ -1487,7 +1508,7 @@ async function getExercisesWithStats(
         deltaFromBest,
         tagsSummary: formatTagSummary(exercise),
         analyticsFamily,
-        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? []),
+        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? [], { timeZone: historyTimeZone }),
         trendPreview: buildExerciseBrowserTrendPreview({
           kind,
           measurementType: exercise.measurement_type,
@@ -1521,9 +1542,13 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
 export async function getExerciseBrowserScopePayloadForUser(): Promise<ExerciseBrowserScopePayload> {
   const user = await requireUser();
+  // One scope resolution feeds both the filter options and the rows' History zone (no second profile/routine lookup).
+  const scopeContextPromise = resolveExerciseBrowserScopeContext(user.id);
   const [scopeContext, initialRows] = await Promise.all([
-    resolveExerciseBrowserScopeContext(user.id),
-    getExercisesWithStats(user.id),
+    scopeContextPromise,
+    getExercisesWithStats(user.id, undefined, {
+      historyTimeZone: scopeContextPromise.then((resolved) => resolved.historyTimeZone),
+    }),
   ]);
   const filterOptions = await buildExerciseBrowserFilterOptions({
     userId: user.id,

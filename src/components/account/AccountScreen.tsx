@@ -1,6 +1,7 @@
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { AccountPasswordSection } from "@/components/settings/AccountPasswordSection";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { SettingsHeaderIdentity } from "@/components/settings/SettingsHeaderIdentity";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
@@ -53,6 +54,7 @@ export function AccountScreen({
             data-testid="account-screen"
           >
             <AccountSettingsForm email={email} username={username} />
+            <AccountPasswordSection email={email} />
           </SurfaceCard>
         </ContentRail>
       </ScrollScreenWithBottomActions>

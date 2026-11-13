@@ -34,3 +34,28 @@ test("the local account surface retains validated sign-out cleanup", () => {
   assert.match(signOutSource, /method: "DELETE"/);
   assert.match(signOutSource, /router\.replace\(AUTH_ENTRY_PATH\)/);
 });
+
+test("change password sits on the Account screen with the shared password field, policy, and its own submit", () => {
+  const sectionSource = readFileSync(new URL("../../components/settings/AccountPasswordSection.tsx", import.meta.url), "utf8");
+  const actionsSource = readFileSync(new URL("../settings/actions.ts", import.meta.url), "utf8");
+
+  assert.match(screenSource, /<AccountPasswordSection email=\{email\} \/>/);
+  assert.match(sectionSource, /changePasswordAction/);
+  assert.match(sectionSource, /validateChangePasswordInput/);
+  assert.equal((sectionSource.match(/<PasswordInput/g) ?? []).length, 3);
+  assert.match(sectionSource, /autoComplete="current-password"/);
+  assert.equal((sectionSource.match(/autoComplete="new-password"/g) ?? []).length, 2);
+  assert.equal((sectionSource.match(/minLength=\{NEW_PASSWORD_MINIMUM\}/g) ?? []).length, 2);
+  assert.doesNotMatch(sectionSource, /maxLength=/);
+  // The Account dock stays Sign out + Save; the password form owns its own submit.
+  assert.doesNotMatch(sectionSource, /PublishBottomActions|BottomDockButton/);
+  assert.match(sectionSource, /type="submit"/);
+
+  // The write runs on a client that holds a session, never on the request-bound client (no stored session there).
+  const action = actionsSource.slice(actionsSource.indexOf("export async function changePasswordAction"), actionsSource.indexOf("export async function updateUnitPreferencesAction"));
+  assert.match(action, /signInWithPassword\(\{ email, password: input\.current \}\)/);
+  assert.match(action, /auth\.updateUser\(\{ password: input\.next \}\)/);
+  assert.match(action, /signOut\(\{ scope: "local" \}\)/);
+  assert.doesNotMatch(action, /supabaseServerWithSession|supabaseServer\(/);
+  assert.doesNotMatch(action, /error\.message/);
+});
