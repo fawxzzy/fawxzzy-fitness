@@ -28,7 +28,7 @@ All notable changes to this project are documented in this file.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
-- Exercise info (PR history, chart axis, day groups, cycle options, last-performed labels, cardio PR dates) now buckets sessions into the user's local day with History's day-key function and zone (`resolveHistoryTimeZone`) instead of slicing the UTC date, so a session after 19:00 US Eastern shows the same day in both places. History's progression-activity buckets receive that zone too.
+- Exercise info (PR history, chart axis, day groups, cycle options, last-performed labels, cardio PR dates) now buckets sessions into the user's local day with History's day-key function and zone (`resolveHistoryTimeZone`) instead of slicing the UTC date, so a session after 19:00 US Eastern shows the same day in both places. History's progression-activity buckets receive that zone too, and so do the per-exercise progression lifeline summaries (exercise info, History exercises, session detail), whose activity days and chart bars were still bucketed by UTC day.
 
 ### WHY
 - Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
