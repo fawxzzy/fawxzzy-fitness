@@ -193,8 +193,8 @@ const SUPPLEMENTAL_CARDS = [
     title: "Consistent cards across the app",
     priority: "P2",
     dependsOn: [],
-    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. The Today screens are merged but not yet live. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
-    acceptanceCriteria: ["Routines screens use the shared cards (merged and live).", "Today screens use the shared cards (merged, not yet live).", "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).", "The result is checked in the installed phone app (not yet done)."],
+    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system, the Routines screens and the Today screen are merged and live (checked only in headless Chromium and dev fixtures, not on a real phone). Still to move over: History, Session, Settings and the routine editor.",
+    acceptanceCriteria: ["Routines screens use the shared cards (merged and live).", "Today screens use the shared cards (merged and live; checked only in headless Chromium and dev fixtures).", "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).", "The result is checked in the installed phone app (not yet done)."],
   },
   {
     cardId: "FF-PLATFORM-001",
@@ -211,6 +211,22 @@ const SUPPLEMENTAL_CARDS = [
     dependsOn: [],
     description: "Add a library for testing what people see and tap, sort out 13 stale tests that are currently left out of the all-tests job, and wire the QA scripts so they run together.",
     acceptanceCriteria: ["A screen-level test library is added and used for key flows.", "The 13 stale tests are fixed or retired and included in the all-tests job.", "QA scripts run together from one command."],
+  },
+  {
+    cardId: "FF-RELIABILITY-003",
+    title: "Keep set logging working offline",
+    priority: "P2",
+    dependsOn: [],
+    description: "Logging a set with the connection off now retries and syncs once the connection returns (quick-log retry and sync, #219 and #226), and each set keeps the time it was tapped rather than the time it was replayed (#234). Live. A click-through passed in headless Chromium. Not yet verified: a replay after reconnecting on a real phone.",
+    acceptanceCriteria: ["Sets logged with the connection off are kept and retried.", "After reconnecting, each set appears once.", "Rest timing uses the real tap time, not the replay time.", "A real offline-then-reconnect replay is checked on a real phone (not yet done)."],
+  },
+  {
+    cardId: "FF-TODAY-004",
+    title: "Show when an exercise has no target",
+    priority: "P3",
+    dependsOn: [],
+    description: "Today rows no longer show 'Goal missing' for an exercise without a target. Add a quiet 'No target set' cue so the gap stays visible without nagging. The day editor still shows the missing target.",
+    acceptanceCriteria: ["An exercise without a target shows a quiet 'No target set' cue on Today.", "Today rows do not show 'Goal missing'.", "The day editor keeps showing the missing target."],
   },
 ];
 

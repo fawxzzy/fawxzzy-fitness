@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-13T17:40:00.000Z",
+  "updatedAt": "2026-11-13T19:02:00.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -65,8 +65,10 @@
     { "id": "FF-ACCOUNT-004", "status": "in_progress", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public" },
     { "id": "FF-AUTH-002", "status": "review", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public" },
     { "id": "FF-RELIABILITY-002", "status": "review", "updatedAt": "2026-11-11T00:00:00.000Z", "visibility": "public" },
-    { "id": "FF-DESIGN-001", "status": "review", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public" },
+    { "id": "FF-DESIGN-001", "status": "review", "updatedAt": "2026-11-13T19:02:00.000Z", "visibility": "public" },
     { "id": "FF-PLATFORM-001", "status": "planning", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public" },
-    { "id": "FF-QA-004", "status": "planning", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public" }
+    { "id": "FF-QA-004", "status": "planning", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public" },
+    { "id": "FF-RELIABILITY-003", "status": "review", "updatedAt": "2026-11-13T19:02:00.000Z", "visibility": "public" },
+    { "id": "FF-TODAY-004", "status": "planning", "updatedAt": "2026-11-13T19:02:00.000Z", "visibility": "public" }
   ]
 }
