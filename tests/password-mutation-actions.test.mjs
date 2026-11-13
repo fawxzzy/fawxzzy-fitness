@@ -11,7 +11,7 @@ const unexpected = () => { throw new Error("Unexpected dependency call in passwo
 
 // Execute the actual server actions; substitute only their external boundaries.
 // No application environment, network client, credentials or live Auth calls load.
-function load(file, dependencies = {}) {
+function load(file, dependencies = {}, globals = {}) {
   const { outputText } = ts.transpileModule(read(file), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   });
@@ -25,6 +25,7 @@ function load(file, dependencies = {}) {
     process: { env: { NEXT_PUBLIC_APP_URL: "https://fitness.example.test" } },
     URLSearchParams,
     console: { error: unexpected },
+    ...globals,
   }, { filename: file });
   return exports;
 }
@@ -35,12 +36,26 @@ const signupFeedback = load("src/components/auth/signupFeedback.ts", {
   "@/lib/username-policy": { USERNAME_VALIDATION_MESSAGE: "Invalid username" },
 });
 
+const REQUEST_ACCESS_TOKEN = "synthetic-request-access-token";
+
+// `updateError` is the HTTP failure the stub provider returns for the password write: { status, error_code, msg }.
 function fixture({ signedIn = true, updateError = null } = {}) {
-  const calls = { clients: 0, users: 0, signup: [], update: [], login: [], cookies: 0 };
+  const calls = { clients: 0, users: 0, signup: [], update: [], login: [], cookies: 0, requests: [], logged: [] };
+  const stubFetch = async (url, init) => {
+    const headers = new Headers(init.headers);
+    calls.requests.push({ method: init.method, url: String(url), bearer: (headers.get("authorization") ?? "").replace(/^Bearer /, ""), body: init.body });
+    calls.update.push(JSON.parse(init.body));
+    if (updateError) {
+      return new Response(JSON.stringify({ code: updateError.status, error_code: updateError.error_code, msg: updateError.msg }), { status: updateError.status, headers: { "content-type": "application/json" } });
+    }
+    return new Response(JSON.stringify({ id: "synthetic-user" }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const updateUserModule = load("src/lib/supabase/update-user.ts", {}, { fetch: stubFetch, AbortSignal });
   const client = { auth: {
     async signUp(input) { calls.signup.push(input); return { data: { session: null }, error: null }; },
     async getUser() { calls.users += 1; return { data: { user: signedIn ? { id: "synthetic-user" } : null } }; },
-    async updateUser(input) { calls.update.push(input); return { error: updateError }; },
+    // The request-bound client has no stored session: the real updateUser fails on it, so nothing may call it.
+    async updateUser() { throw new Error("updateUser must not be used on the request-bound client"); },
     async signInWithPassword(input) {
       calls.login.push(input);
       return { data: { session: { access_token: "synthetic-access", refresh_token: "synthetic-refresh" } }, error: null };
@@ -51,10 +66,11 @@ function fixture({ signedIn = true, updateError = null } = {}) {
     "next/headers": { cookies: () => ({}), headers: unexpected },
     "next/navigation": { redirect(href) { throw { redirect: href }; } },
     "@/lib/auth-session": { setSessionCookies() { calls.cookies += 1; } },
-    "@/lib/env": { SUPABASE_URL: unexpected, SUPABASE_ANON_KEY: unexpected },
+    "@/lib/env": { SUPABASE_URL: () => "https://synthetic.supabase.test", SUPABASE_ANON_KEY: () => "anon-synthetic" },
     "@/lib/navigation-return": { isSafeAppPath: () => false },
     "@/lib/supabase/admin": { hasSupabaseAdminCredential: unexpected, resolveSupabaseAdminCredential: unexpected, supabaseAdmin: unexpected },
-    "@/lib/supabase/server": { supabaseServer: makeClient, supabaseServerWithSession: makeClient },
+    "@/lib/supabase/server": { supabaseServer: makeClient, supabaseServerWithSession: makeClient, getRequestAccessToken: () => REQUEST_ACCESS_TOKEN },
+    "@/lib/supabase/update-user": updateUserModule,
     "@/lib/username-policy": { isUsernameIdentifier: (name) => name === "synthetic-user", USERNAME_VALIDATION_MESSAGE: "Invalid username" },
     "@/lib/username-signin-index": { resolveLoginIdentifierEmail: async (value) => value, resolveUsernameEmailFromIndex: unexpected },
     "@/lib/login-failure-floor": { enforceLoginFailureFloor: async () => 0 },
@@ -66,7 +82,7 @@ function fixture({ signedIn = true, updateError = null } = {}) {
   return {
     calls,
     auth: load("src/app/auth/actions.ts", dependencies),
-    reset: load("src/app/reset-password/actions.ts", dependencies),
+    reset: load("src/app/reset-password/actions.ts", dependencies, { console: { error: (...args) => calls.logged.push(args) } }),
   };
 }
 
@@ -142,13 +158,47 @@ test("valid direct update preserves the password and requires a recovery user", 
   assert.equal(signedOut.calls.update.length, 0);
 });
 
-test("reset provider errors keep fixed user-facing messages", async () => {
-  for (const [message, expected] of [["JWT expired", "Reset link expired. Request a new password reset."], ["synthetic provider failure", "Could not update password. Please try again."]]) {
-    const { reset } = fixture({ updateError: { message } });
+test("reset provider errors keep fixed user-facing messages and never carry the provider's text", async () => {
+  const cases = [
+    [{ status: 401, error_code: "bad_jwt", msg: "invalid JWT: token is expired" }, "Reset link expired. Request a new password reset."],
+    [{ status: 403, error_code: "session_not_found", msg: "Session from session_id claim in JWT does not exist" }, "Reset link expired. Request a new password reset."],
+    [{ status: 422, error_code: "same_password", msg: "New password should be different from the old password." }, "Choose a new password that is different from your current one."],
+    [{ status: 422, error_code: "weak_password", msg: "Password is known to be weak and easy to guess" }, "That password is too easy to guess. Choose a different one."],
+    [{ status: 429, error_code: "over_request_rate_limit", msg: "Request rate limit reached" }, "Too many attempts. Please wait a few minutes and try again."],
+    [{ status: 500, error_code: "unexpected_failure", msg: "synthetic provider failure" }, "Could not update password. Please try again."],
+  ];
+  for (const [updateError, expected] of cases) {
+    const { reset, calls } = fixture({ updateError });
     const result = await reset.updatePassword("synthetic passphrase");
     assert.equal(result.ok, false);
     assert.equal(result.error, expected);
+    for (const text of ["JWT", "session_id", "should be different", "known to be weak", "rate limit", "synthetic provider failure"]) {
+      assert.ok(!result.error.includes(text), `${updateError.error_code}: ${text}`);
+    }
+    // Machine code and status only; never the message or the password.
+    assert.equal(JSON.stringify(calls.logged), JSON.stringify([["Password reset update failed", { code: updateError.error_code, status: updateError.status }]]));
   }
+});
+
+test("the reset save step writes with the request's access token, never the refresh token, and never via updateUser", async () => {
+  const { reset, calls } = fixture();
+  const result = await reset.updatePassword("  passphrase \u00e9\u0301 ");
+  assert.equal(result.ok, true);
+  assert.equal(calls.requests.length, 1);
+  const [request] = calls.requests;
+  assert.equal(request.method, "PUT");
+  assert.equal(request.url, "https://synthetic.supabase.test/auth/v1/user");
+  assert.equal(request.bearer, REQUEST_ACCESS_TOKEN);
+  assert.equal(JSON.stringify(JSON.parse(request.body)), JSON.stringify({ password: "  passphrase \u00e9\u0301 " }));
+  assert.ok(!request.body.includes("refresh"));
+  assert.equal(calls.logged.length, 0);
+});
+
+test("a rejected password makes no provider request at all", async () => {
+  const { reset, calls } = fixture();
+  const result = await reset.updatePassword("short");
+  assert.equal(result.ok, false);
+  assert.equal(calls.requests.length, 0);
 });
 
 test("existing-password login still accepts a six-character password unchanged", async () => {

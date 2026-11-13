@@ -102,6 +102,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - WHY: A state-derived disabled button could remain locked even though the visible DOM fields held valid browser-filled credentials.
 - Scope: Source and local regression only; the fixture does not prove installed-app autofill timing or live server-action sign-in. No provider, credential, session, deployment, or production effect is included.
 
+## 2026-11-13 - Write auth-record updates with the access token, not `auth.updateUser`, on the request-bound client
+
+- Type: Supabase client contract + Account correctness
+- WHAT changed: Settings > Account username/email Save and the reset-password save step write through `updateUserWithAccessToken` (`src/lib/supabase/update-user.ts`): the same `PUT /auth/v1/user` the SDK sends, authorised by the request's access token (`getRequestAccessToken`). Failures map to fixed copy by reason (`session_expired`, `rate_limited`, `same_password`, `weak_password`, `username_taken`, `failed`); the provider's message is never shown, and only its code and status are logged.
+- WHY: `supabaseServerWithSession()` only forwards a bearer header. `auth.updateUser` reads the session from the client's own storage, so on that client it returned `AuthSessionMissingError` ("Auth session missing!") before sending anything (since 595642d8 on 2026-05-03). Account edits failed with that text and the reset save step reported the misleading "Reset link expired". `updateAccountEmailAction` also forwarded the provider message, which for an email already used by another account would confirm that it exists.
+- Rule: On the request-bound server client, call only what works with a bearer header (`getUser`, data reads). Anything that needs a session (`updateUser`, `signOut`) goes through a call that carries the access token itself, or a client that was given a session.
+- Rule: A write that cannot persist a rotated refresh token must never trigger a refresh. `setSession` refreshes a token with under about 90 s left and would rotate the member's real refresh token with no cookie to write it to; the helper never reads the refresh token, and an expired access token is `session_expired`. Authenticated routes keep the request's access token fresh in middleware.
+- Failure Mode: Unit tests that stub `updateUser` pass while the real client fails before any request; the helper is therefore tested against the real supabase-js client for wire parity (method, path, headers, body) and the actions through a stub fetch.
+- Evidence: `src/lib/supabase/update-user.ts` and test, `src/lib/supabase/server.ts` (`getRequestAccessToken`), `src/app/settings/actions.ts`, `src/app/reset-password/actions.ts`, `tests/account-update-actions.test.mjs`, `tests/password-mutation-actions.test.mjs`.
+- Status: Source and offline tests only; no provider setting, deployment or live account touched. Not checked against the live provider or on a phone.
+
 ## 2026-10-14 - Keep local member classification tied to server authority
 
 - WHAT changed: A forward local-baseline migration classifies automation only from server-controlled Auth app metadata, fixes the classifier search path, and rejects unexpected owner or ACL drift before replacement. Existing profile identities and sequence values remain unchanged. Behavioral tests cover spoofed metadata, email names, exact grants, drift rejection and allocator preservation.
