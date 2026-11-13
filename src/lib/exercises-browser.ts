@@ -27,6 +27,8 @@ import { resolveHistorySetPlotY } from "@/lib/exercise-info-history-layout";
 import { resolveHistoryGraphMetricKey, type HistoryGraphMetricKey } from "@/lib/exercise-info-history-axis";
 import { formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import { loadHistoryTimeZone } from "@/lib/history-time-zone";
+import { resolveHistoryTimeZone } from "@/lib/timezones";
 import type { ProgressionEventRow } from "@/types/db";
 import {
   normalizeExerciseInfoFilterState,
@@ -137,6 +139,8 @@ export type ExerciseBrowserScopePayload = {
 
 type ExerciseBrowserScopeContext = {
   profileTimeZone: string;
+  /** The zone History buckets days with (resolveHistoryTimeZone). */
+  historyTimeZone: string;
   activeRoutineId: string | null;
   activeRoutineTitle: string | null;
   currentCycleWindow: CurrentCycleWindow | null;
@@ -954,6 +958,7 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Fitne
   if (!activeRoutineId) {
     return {
       profileTimeZone,
+      historyTimeZone: resolveHistoryTimeZone({ profileTimeZone }),
       activeRoutineId: null,
       activeRoutineTitle: null,
       currentCycleWindow: null,
@@ -969,6 +974,10 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Fitne
 
   return {
     profileTimeZone,
+    historyTimeZone: resolveHistoryTimeZone({
+      activeRoutineTimeZone: typeof routineData?.timezone === "string" ? routineData.timezone : null,
+      profileTimeZone,
+    }),
     activeRoutineId,
     activeRoutineTitle: typeof routineData?.name === "string" && routineData.name.trim().length > 0
       ? routineData.name.trim()
@@ -1027,6 +1036,7 @@ async function resolveExerciseBrowserScopedContext(args: {
 
   return {
     profileTimeZone: scopeContext.profileTimeZone,
+    historyTimeZone: scopeContext.historyTimeZone,
     activeRoutineId: routineMeta.id,
     activeRoutineTitle: routineMeta.title,
     currentCycleWindow: normalizedFilterState.analyticsScope === "current_cycle"
@@ -1098,6 +1108,9 @@ async function getExercisesWithStats(
   const currentCycleWindow = analyticsScope === "current_cycle"
     ? (options?.scopeContext?.currentCycleWindow ?? null)
     : null;
+
+  const historyTimeZone = options?.scopeContext?.historyTimeZone
+    ?? await loadHistoryTimeZone({ supabase, userId });
 
   const exerciseRows = client ? await listExercisesForUser(userId, client) : await listExercises();
 
@@ -1487,7 +1500,7 @@ async function getExercisesWithStats(
         deltaFromBest,
         tagsSummary: formatTagSummary(exercise),
         analyticsFamily,
-        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? []),
+        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? [], { timeZone: historyTimeZone }),
         trendPreview: buildExerciseBrowserTrendPreview({
           kind,
           measurementType: exercise.measurement_type,

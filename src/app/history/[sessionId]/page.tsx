@@ -13,6 +13,7 @@ import {
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
+import { loadHistoryTimeZone } from "@/lib/history-time-zone";
 import {
   hasQaLlelMarker,
   QA_LLEL_VISIBILITY_COOKIE,
@@ -252,6 +253,8 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       timeoutMs: 7000,
     });
     const [profile, sessionResult] = await Promise.all([profilePromise, sessionResultPromise]);
+    // Same local-day zone History uses, so progression activity days match the History surfaces.
+    const historyTimeZone = await loadHistoryTimeZone({ supabase, userId: user.id, profile });
     const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
       profile,
       resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
@@ -477,6 +480,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? [], {
           exerciseNameById: exerciseNameMap,
           routineTitleById: sessionRow.routine_id ? new Map([[sessionRow.routine_id, routineTitle]]) : undefined,
+          timeZone: historyTimeZone,
         }),
         sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
           id: set.id,

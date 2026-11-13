@@ -11,6 +11,19 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/lib/offline/quick-log-queue.ts` and test, `src/components/session/useSessionSetLogSync.ts`, `src/components/SessionExerciseFocus.tsx`, `src/components/SessionExerciseFocus.quickLogOffline.contract.test.ts`; headless Chromium against the mobile-regression fixture route at 320x568, 390x844 and 430x932 (offline tap queues, reconnect replays with every row collapsed).
 - Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
 
+## 2026-11-12 - Carry sign-up feedback as allow-listed codes, and keep the recovery redirect on the flow that can read it
+
+- Type: Authentication feedback + Enumeration hygiene + Recovery contract
+- WHAT changed: `signup()` redirects with an allow-listed code (`password_too_short`, `username_invalid`, `email_invalid`, `username_taken`, `rate_limited`, `signup_failed`) and `/signup?info=check_email`; the screen owns the copy (`src/components/auth/signupFeedback.ts`). The identity provider's raw message is never forwarded, and `/signup` plus the global toast bridge render nothing for a value that is not an allow-listed code. Both password-reset callers build `redirectTo` through `buildFitnessRecoveryRedirectUrl` (`<origin>/reset-password?recovery=1`).
+- WHY: Forwarding `error.message` made an "already registered" provider message an account-existence oracle, and rendering any `?error=` text let a crafted link put attacker-chosen words in a toast on this origin.
+- Rule: A route that shows feedback from a redirect carries a code from a fixed table, never display text; unknown codes render nothing.
+- Rule: Pick a reset email's `redirectTo` by the flow that requested it. A reset requested from a server `supabase-js` client uses the implicit flow, so the link returns with tokens in the URL fragment and must land on a page that reads the fragment (Fitness `/reset-password?recovery=1`). The account portal's reset page accepts only a PKCE `code` started by its own browser and rejects any fragment, so it cannot serve a Fitness-initiated reset.
+- Failure Mode: Aiming a Fitness-initiated reset at the portal recovery URL because that URL is allow-listed and proven for portal-initiated resets: the link lands on "Recovery link invalid." Residual: with email confirmation off, sign-up still differs by outcome (session vs failure) for an existing address; closing that needs email confirmation or CAPTCHA (provider settings).
+- Decision: Fitness keeps its own recovery page; the exact URL `https://fitness.fawxzzy.com/reset-password?recovery=1` still has to be on the Supabase Auth redirect allow-list (provider setting, not changed here).
+- Evidence: `src/components/auth/signupFeedback.ts` and test, `tests/signup-failure-copy-action.test.mjs`, `src/lib/password-reset-request.ts` and test.
+- Status: Source-only; no provider setting, deployment or live account touched.
+
+
 ## 2026-11-12 - "Every difference is explained" needs a property test, and pain is never retained
 
 - Type: Product behavior (source) + property test
@@ -81,6 +94,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Slicing an ISO timestamp, or formatting it in the server runtime zone, is right only while the user's evening is still the same UTC day; it silently moves evening sessions to the next day, and fixing one surface leaves its siblings wrong.
 - Decision: The zone is the History zone for every session-day question in Exercise info, including the planned-skipped comparison; routine zones still drive "today" and cycle windows. Synthetic planned-skipped rows keep their routine-calendar day key and are never re-bucketed. Not changed here, tracked as follow-ups: Settings export date range (UTC day boundaries and a UTC default for "today") and the ecosystem snapshot telemetry (`activeStreakDays`, `consecutiveMisses`), which bucket by UTC day and change an outbound contract.
 - Evidence: `src/lib/exercise-info-day-key.ts`, `src/lib/exercise-info-day-key.test.ts` (23:30 Eastern, DST start and end, parity with History for every 90 minutes across a year in five zones), `src/lib/progression-summary-activity.test.ts`, `src/lib/exercise-info.ts`.
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
+
+## 2026-11-13 - Finish the local-day rule for progression activity (lifeline summaries and the two History zone edits)
+
+- Type: Day-boundary correctness (source) + Coverage
+- WHAT changed: `buildExerciseProgressionLifelineSummary` (`src/lib/progression-lifeline-summary.ts`) gained a `timeZone` option and passes it to its activity-day bucketing and its chart sections; Exercise info, the History exercises browser (`exercises-browser.ts`, zone on its scope context) and the History session detail page (new `loadHistoryTimeZone`, `src/lib/history-time-zone.ts`) now pass the History zone from `resolveHistoryTimeZone`. A new test drives `buildWeeklyProgressSummary` and `buildHistoryScopeSummary` so the zone edits in `history-weekly-progress.ts` and `history-scope-summary.ts` are pinned (reverting them now fails CI).
+- WHY it changed: The #220 review found the same UTC default in the per-exercise progression summaries, and that reverting the two one-line zone edits in History still passed CI because nothing asserted them through the builders.
+- Rule: A zone option that defaults to UTC is a latent day-boundary bug: every caller that buckets user events by day passes the History zone, and the builder that forwards it is tested through its public entry point, not only the leaf.
+- Failure Mode: Fixing the leaf function and the callers one at a time leaves siblings on the default; an untested pass-through can be deleted without any test noticing.
+- Decision: The zone for server pages that hold no routine row is loaded by one helper (`loadHistoryTimeZone`: active routine zone, then profile zone, then default) instead of re-deriving it per page. Defaults are left as they are (UTC) so callers that have no zone keep their behaviour; the contract is that every user-facing caller passes one.
+- Evidence: `src/lib/progression-activity-zone.test.ts` (lifeline summary, weekly progress summary, scope summary, helper; the two History tests fail with the edits reverted).
 - Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
 
 ## 2026-10-16 - Keep event-free login autofill submittable
