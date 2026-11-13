@@ -142,7 +142,7 @@ test("active heatmap has no empty-state message", () => {
   assert.match(html, /data-history-consistency-heatmap="summary"[^>]*>7 sessions on 4 active days in the last 16 weeks\.</);
 });
 
-test("compact History view collapses into the canonical disclosure with a rotating summary", () => {
+test("compact History view collapses into the canonical disclosure card with every summary fact visible", () => {
   const html = render(ACTIVE_SESSIONS, "compact");
 
   assert.match(html, /data-history-compact-disclosure="true"/);
@@ -151,7 +151,7 @@ test("compact History view collapses into the canonical disclosure with a rotati
   assert.match(html, /16 weeks/);
   assert.match(html, />7 sessions</);
   // The grid is rendered but hidden until the disclosure opens.
-  assert.match(html, /<div id="[^"]+" hidden="" class="pt-2">/);
+  assert.match(html, /<div id="[^"]+" hidden="" class="border-t /);
   assert.equal(countMatches(html, /data-heatmap-day="/g), 16 * 7);
 });
 
@@ -169,7 +169,7 @@ test("heatmap fits the card at phone widths without a horizontal scroller or fix
 });
 
 test("heatmap uses the shared History disclosure and section shells and the calendar green ramp", () => {
-  assert.match(surfaceSource, /HistoryCompactDisclosure/);
+  assert.match(surfaceSource, /HistoryDisclosureCard/);
   assert.match(surfaceSource, /HistorySection/);
   assert.match(surfaceSource, /--success-rgb/);
   assert.doesNotMatch(surfaceSource, /blue|sky-|indigo/);

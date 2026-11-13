@@ -1,15 +1,11 @@
 "use client";
 
-import { type ReactNode, useId, useState } from "react";
-import { cardShellToneClassNames } from "@/components/cardSemanticTones";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { HistoryDisclosureCard } from "@/components/history/HistoryMetricsDisclosure";
+import { toHistoryStatItems } from "@/components/history/historyStats";
+import { StatGrid } from "@/components/ui/card-system";
 import { DetailSectionBlock, DetailSectionItems } from "@/components/ui/DetailSectionList";
-import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
-import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { cn } from "@/lib/cn";
+import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
-
-const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
 
 function formatDayKey(dayKey: string) {
   const date = new Date(`${dayKey}T12:00:00.000Z`);
@@ -50,17 +46,11 @@ function buildScopeSummaryTitle(summary: HistoryScopeSummary, routineTitleOverri
   const rangeLabel = normalizeScopeSummaryRangeLabel(summary, routineTitleOverride);
   const isAllTimeScope = rangeLabel === "All Time";
   const resolvedRoutineTitle = isAllTimeScope ? "" : (routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "");
-  const leadingLabel = resolvedRoutineTitle ? `${resolvedRoutineTitle} Summary` : "History Summary";
 
-  return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
-      <span className="min-w-0">{leadingLabel}</span>
-      <span className="inline-flex items-center">
-        <SignatureMiniPipe className="w-[0.38rem]" />
-      </span>
-      <span className="text-[rgb(var(--accent-yellow-on)/0.94)]">{rangeLabel}</span>
-    </span>
-  );
+  return {
+    title: resolvedRoutineTitle ? `${resolvedRoutineTitle} Summary` : "History Summary",
+    rangeLabel,
+  };
 }
 
 function buildMetricItems(summary: HistoryScopeSummary): MetricDatum[] {
@@ -82,8 +72,7 @@ function buildMetricItems(summary: HistoryScopeSummary): MetricDatum[] {
 }
 
 function MetricGrid({ summary }: { summary: HistoryScopeSummary }) {
-  const metricItems = buildMetricItems(summary);
-  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" scrollable />;
+  return <StatGrid items={toHistoryStatItems(buildMetricItems(summary))} />;
 }
 
 function ProgressionRecapRow({ summary }: { summary: HistoryScopeSummary }) {
@@ -115,12 +104,12 @@ function reduceProgressionReviewItems(items: string[]) {
   });
 }
 
-function Body({ summary, topPaddingClassName = "pt-2" }: { summary: HistoryScopeSummary; topPaddingClassName?: string }) {
+function Body({ summary }: { summary: HistoryScopeSummary }) {
   const hasProgressionData = summary.progressionSummary.totalEventCount > 0;
   const progressionReviewItems = reduceProgressionReviewItems(summary.progressionSummary.reviewItems);
 
   return (
-    <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
+    <div className="space-y-4">
       <MetricGrid summary={summary} />
       <ProgressionRecapRow summary={summary} />
       <div className="space-y-3">
@@ -151,68 +140,6 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: HistoryScope
   );
 }
 
-function CompactHeader({
-  title,
-  expanded,
-  controlsId,
-  onToggle,
-}: {
-  title: ReactNode;
-  expanded: boolean;
-  controlsId: string;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-expanded={expanded}
-      aria-controls={controlsId}
-      onClick={onToggle}
-      className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-    >
-      <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
-        <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
-          <div className="flex min-h-[30px] items-center">
-            <div className="w-full min-w-0 pl-px text-[0.79rem] font-semibold leading-[1] tracking-[-0.01em]">
-              <span className="flex w-full min-w-0 items-start gap-2 leading-[1.08]">
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[rgb(var(--text-primary)/0.98)]">{title}</span>
-                </span>
-                <span className="inline-flex h-4 w-4 items-center justify-center text-[rgb(var(--text-muted)/0.92)]">
-                  {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="px-px pt-[1px]" style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
-            <MetricAccentBar
-              variant="compact"
-              className="bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
-            />
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function ExpandedCard({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none",
-        cardShellToneClassNames.logged,
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full bg-[linear-gradient(180deg,rgb(var(--accent-yellow-on)/0.96),rgb(var(--accent-yellow-on)/0.52))]"
-      />
-      <div className="relative">{children}</div>
-    </div>
-  );
-}
-
 export function HistoryScopeSummarySurface({
   summary,
   viewMode = "compact",
@@ -222,42 +149,11 @@ export function HistoryScopeSummarySurface({
   viewMode?: "compact" | "detailed";
   titleRoutineOverride?: string | null;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const panelId = useId();
-  const title = buildScopeSummaryTitle(summary, titleRoutineOverride);
-
-  if (viewMode === "detailed") {
-    return (
-      <ExpandedCard>
-        <div className="px-5 pb-2 pt-4">
-          <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
-            {title}
-          </div>
-          <div style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
-            <MetricAccentBar
-              variant="compact"
-              className="mt-3 bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
-            />
-          </div>
-        </div>
-        <Body summary={summary} />
-      </ExpandedCard>
-    );
-  }
+  const { title, rangeLabel } = buildScopeSummaryTitle(summary, titleRoutineOverride);
 
   return (
-    <section>
-      <CompactHeader
-        title={title}
-        expanded={expanded}
-        controlsId={panelId}
-        onToggle={() => setExpanded((current) => !current)}
-      />
-      <div id={panelId} hidden={!expanded} className="pt-2">
-        <ExpandedCard>
-          <Body summary={summary} topPaddingClassName="pt-4" />
-        </ExpandedCard>
-      </div>
-    </section>
+    <HistoryDisclosureCard title={title} titleMeta={rangeLabel} viewMode={viewMode}>
+      <Body summary={summary} />
+    </HistoryDisclosureCard>
   );
 }

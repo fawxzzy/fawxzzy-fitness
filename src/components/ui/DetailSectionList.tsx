@@ -3,7 +3,6 @@
 import { Fragment } from "react";
 import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { cn } from "@/lib/cn";
 import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 
@@ -111,7 +110,7 @@ export function DetailSectionBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em]",
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]",
         config.chipClassName,
       )}
     >
@@ -242,7 +241,7 @@ function renderSlashSeparatedText(part: string, keyPrefix: string) {
       {slashParts.map((slashPart, slashIndex) => (
         <Fragment key={`${keyPrefix}-${slashPart}-${slashIndex}`}>
           {slashIndex > 0 ? <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">/</span> : null}
-          <span className="min-w-0 whitespace-nowrap">{slashPart}</span>
+          <span className="min-w-0">{slashPart}</span>
         </Fragment>
       ))}
     </span>
@@ -260,17 +259,6 @@ function renderLabeledColonText(part: string, key: string) {
       <span>{match[1]}</span>
       <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">:</span>
       <span> {renderSlashSeparatedText(match[2], `${key}-slash`) ?? match[2]}</span>
-    </span>
-  );
-}
-
-function DetailSectionInlineSeparator() {
-  return (
-    <span
-      aria-hidden="true"
-      className="mt-[0.02rem] inline-flex h-[2.35rem] w-[0.465rem] shrink-0 items-start justify-center"
-    >
-      <span className="block h-full w-[3px] rounded-full bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.78))] shadow-[0_0_14px_rgb(var(--accent-divider-rgb)/0.44)]" />
     </span>
   );
 }
@@ -313,7 +301,7 @@ function renderDetailSectionItemContent(item: string) {
               {arrowParts.map((arrowPart, arrowIndex) => (
                 <Fragment key={`${arrowPart}-${arrowIndex}`}>
                   {arrowIndex > 0 ? <span className={cn("px-1", arrowToneClassName)}>&rarr;</span> : null}
-                  {arrowPart ? <span className="min-w-0 whitespace-nowrap">{arrowPart.trim()}</span> : null}
+                  {arrowPart ? <span className="min-w-0">{arrowPart.trim()}</span> : null}
                 </Fragment>
               ))}
             </span>
@@ -340,7 +328,7 @@ function renderDetailSectionItemContent(item: string) {
             <span
               key={`${part}-${index}`}
               className={cn(
-                "min-w-0 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]",
+                "min-w-0 whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.12em]",
                 normalizedToken === "AUTO"
                   ? "text-[rgb(var(--accent-strong)/0.98)]"
                   : normalizedToken === "MANUAL"
@@ -382,14 +370,8 @@ export function DetailSectionItems({
   const shouldUseTwoColumnGrid = normalizedItems.length > 1;
 
   if (layout === "inline") {
-    const showInlineBullets = false;
-
     return (
-      <HorizontalScrollHint
-        className={className}
-        scrollClassName="px-1.5 pb-1"
-        contentClassName="flex min-w-max flex-nowrap gap-x-3 gap-y-1"
-      >
+      <ul data-detail-items="inline" className={cn("m-0 flex min-w-0 list-none flex-wrap justify-center gap-x-5 gap-y-2 p-0", className)}>
         {normalizedItems.map((item, index) => {
           const rowText = buildDetailSectionItemText(item);
           const normalizedItem = normalizeDecoratedText(rowText);
@@ -401,52 +383,45 @@ export function DetailSectionItems({
             || normalizedItem.includes("->");
 
           return (
-            <Fragment key={item.id || `${rowText}-${index}`}>
-              <div
-                className={cn("inline-grid min-w-fit max-w-[24rem] shrink-0 justify-items-center", item.rowClassName)}
-              >
-                <div className={cn("flex min-w-0 items-start justify-center text-center", showInlineBullets ? "gap-2" : "gap-0")}>
-                  {showInlineBullets ? (
-                    <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
-                      <SignatureDot />
-                    </div>
-                  ) : null}
-                  <span className="min-w-0 text-center">
-                    <span
-                      className={cn(
-                        appTokens.workoutCardDetailCompact,
-                        "min-w-0 block whitespace-nowrap text-center text-[12.5px] leading-[1.28]",
-                        (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
-                        primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
-                        item.contentClassName,
-                      )}
-                    >
-                      {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
+            <li
+              key={item.id || `${rowText}-${index}`}
+              className={cn("inline-grid min-w-0 max-w-full justify-items-center", item.rowClassName)}
+            >
+              <div className="flex min-w-0 items-start justify-center text-center">
+                <span className="min-w-0 text-center">
+                  <span
+                    className={cn(
+                      appTokens.workoutCardDetailCompact,
+                      "min-w-0 block text-center text-[12.5px] leading-[1.28] [overflow-wrap:anywhere]",
+                      (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
+                      primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
+                      item.contentClassName,
+                    )}
+                  >
+                    {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
+                  </span>
+                  {item.meta ? (
+                    <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.1em] text-[rgb(var(--text-secondary)/0.9)] [overflow-wrap:anywhere]">
+                      {renderDetailSectionItemContent(item.meta)}
                     </span>
-                    {item.meta ? (
-                      <span className="mt-0.5 block whitespace-nowrap text-[10.5px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.76)]">
-                        {renderDetailSectionItemContent(item.meta)}
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
-                {item.tagLabels?.length || signals.length > 0 ? (
-                  <span className="mt-1 flex max-w-[24rem] flex-wrap items-center justify-center gap-1 text-center">
-                    {renderTagChips(item.tagLabels)}
-                    {renderSignalChips(signals)}
-                  </span>
-                ) : null}
+                  ) : null}
+                </span>
               </div>
-              {index < normalizedItems.length - 1 ? <DetailSectionInlineSeparator /> : null}
-            </Fragment>
+              {item.tagLabels?.length || signals.length > 0 ? (
+                <span className="mt-1 flex max-w-full flex-wrap items-center justify-center gap-1 text-center">
+                  {renderTagChips(item.tagLabels)}
+                  {renderSignalChips(signals)}
+                </span>
+              ) : null}
+            </li>
           );
         })}
-      </HorizontalScrollHint>
+      </ul>
     );
   }
 
   return (
-    <div className={cn(shouldUseTwoColumnGrid ? "grid grid-cols-2 gap-x-3 gap-y-1.5 pl-px" : "space-y-1.5 pl-px", className)}>
+    <ul data-detail-items="grid" className={cn("m-0 list-none p-0", shouldUseTwoColumnGrid ? "grid grid-cols-2 gap-x-3 gap-y-1.5 pl-px" : "space-y-1.5 pl-px", className)}>
       {normalizedItems.map((item, index) => {
         const rowText = buildDetailSectionItemText(item);
         const normalizedItem = normalizeDecoratedText(rowText);
@@ -469,7 +444,7 @@ export function DetailSectionItems({
           || normalizedItem.includes("->");
 
         return (
-          <div
+          <li
             key={item.id || `${rowText}-${index}`}
             className={cn(
               "flex min-w-0 items-start",
@@ -497,7 +472,7 @@ export function DetailSectionItems({
                   {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
                 </span>
                 {item.meta ? (
-                  <span className="mt-0.5 block text-[10.5px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.76)]">
+                  <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.1em] text-[rgb(var(--text-secondary)/0.9)]">
                     {renderDetailSectionItemContent(item.meta)}
                   </span>
                 ) : null}
@@ -507,10 +482,10 @@ export function DetailSectionItems({
                 {renderSignalChips(signals)}
               </span>
             </span>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 

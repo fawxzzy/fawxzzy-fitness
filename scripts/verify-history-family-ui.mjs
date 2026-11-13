@@ -14,6 +14,9 @@ const STACK_ROOT = path.resolve(REPO_ROOT, "..", "..");
 const QA_UI_PASS_SCRIPT = path.resolve(REPO_ROOT, "scripts", "qa-ui-pass.mjs");
 const OUTPUT_DIR = path.resolve(STACK_ROOT, "tmp", "history-family-ui-pass");
 const HISTORY_DETAIL_SESSION_ID = "history-preview-session-2";
+// `/history` needs a signed-in user even in the preview lane; point this at `/dev/history-overview` (static preview data, no
+// user) to run the sessions capture without one.
+const SESSIONS_ROUTE = process.env.HISTORY_QA_SESSIONS_ROUTE ?? "/history";
 const BASE_URL = (process.env.HISTORY_QA_BASE_URL ?? process.env.QA_BASE_URL ?? "http://127.0.0.1:3100").replace(/\/+$/, "");
 
 process.env.HISTORY_QA_PREVIEW_ENABLED ??= "1";
@@ -67,10 +70,9 @@ function buildNoCardTextClipExpression(cardSelector) {
       if (!(card instanceof HTMLElement)) return false;
       const cardRect = card.getBoundingClientRect();
       const measured = Array.from(card.querySelectorAll([
-        "[data-exercise-card-title='true']",
-        "[data-exercise-card-summary='true']",
-        "[data-exercise-card-supporting='true']",
-        "[data-history-card-metadata='true']",
+        "[data-card-title='true']",
+        "[data-card-meta='true']",
+        "[data-card-details='true']",
       ].join(",")));
 
       return measured.length > 0 && measured.every((node) => {
@@ -99,10 +101,9 @@ function buildHistoryDetailNoClipExpression() {
       if (!(card instanceof HTMLElement)) return false;
       const cardRect = card.getBoundingClientRect();
       const measured = Array.from(card.querySelectorAll([
-        "[data-exercise-card-title='true']",
-        "[data-exercise-card-summary='true']",
-        "[data-exercise-card-supporting='true']",
-        "[data-history-card-metadata='true']",
+        "[data-card-title='true']",
+        "[data-card-meta='true']",
+        "[data-card-details='true']",
       ].join(",")));
 
       return measured.length > 0 && measured.every((node) => {
@@ -123,24 +124,12 @@ function buildCompactTopRhythmExpression(cardSelector) {
   return `(() => {
     const card = document.querySelector(${JSON.stringify(cardSelector)});
     if (!(card instanceof HTMLElement)) return false;
-    const body = card.querySelector("[data-exercise-card-density='compact']");
-    const title = card.querySelector("[data-exercise-card-title='true']");
-    const summary = card.querySelector("[data-exercise-card-summary='true']");
-    const metadata = card.querySelector("[data-history-card-metadata='true']");
-    if (!(body instanceof HTMLElement) || !(title instanceof HTMLElement)) return false;
+    const header = card.querySelector("[data-card-header='true']");
+    const title = card.querySelector("[data-card-title='true']");
+    if (!(header instanceof HTMLElement) || !(title instanceof HTMLElement)) return false;
 
-    const bodyRect = body.getBoundingClientRect();
-    const titleRect = title.getBoundingClientRect();
-    const summaryRect = summary instanceof HTMLElement ? summary.getBoundingClientRect() : titleRect;
-    const titleInset = titleRect.top - bodyRect.top;
-    const metadataGap = metadata instanceof HTMLElement
-      ? metadata.getBoundingClientRect().top - summaryRect.bottom
-      : 0;
-
-    return titleInset >= 4
-      && titleInset <= 24
-      && metadataGap >= -1
-      && metadataGap <= 8;
+    const titleInset = title.getBoundingClientRect().top - header.getBoundingClientRect().top;
+    return titleInset >= 4 && titleInset <= 24;
   })()`;
 }
 
@@ -165,7 +154,7 @@ function buildFirstCardHeightMatchesStoredExpression(cardSelector, storageKey) {
 
 async function writeCaptureConfig(directoryPath, name, captureConfig) {
   const filePath = path.join(directoryPath, `${name}.capture.json`);
-  await fs.writeFile(filePath, `${JSON.stringify(captureConfig, null, 2)}\n`, "utf8");
+  await fs.writeFile(filePath, `${JSON.stringify({ standalone: true, ...captureConfig }, null, 2)}\n`, "utf8");
 }
 
 async function main() {
@@ -180,7 +169,7 @@ async function main() {
       deviceScaleFactor: 1,
       initialWaitMs: 1200,
       actions: [
-        { type: "navigate", url: `${BASE_URL}/history` },
+        { type: "navigate", url: `${BASE_URL}${SESSIONS_ROUTE}` },
         { type: "waitForSelector", selector: `a[href='/history/${HISTORY_DETAIL_SESSION_ID}?returnTab=sessions']`, timeoutMs: 10000 },
         { type: "waitForSelector", selector: "input[placeholder^='Search ']", timeoutMs: 10000 },
         { type: "waitForSelector", selector: "[data-history-retention-surface='calendar']", timeoutMs: 10000 },
@@ -204,14 +193,15 @@ async function main() {
         },
         {
           type: "assertExpression",
-          message: "History sessions must render compact explicit session cards on the shared no-media card shell.",
+          message: "History sessions must render compact session cards on the card system with a stretched header link.",
           expression: `(() => {
             const cards = Array.from(document.querySelectorAll("[data-history-card='session']"));
-            return cards.length > 0 && cards.every((card) => (
-              card.getAttribute("data-history-density") === "compact"
-              && card instanceof HTMLAnchorElement
-              && card.getAttribute("href")?.startsWith("/history/")
-            ));
+            return cards.length > 0 && cards.every((card) => {
+              const link = card.querySelector("a[data-card-hit='link']");
+              return card.getAttribute("data-history-density") === "compact"
+                && link instanceof HTMLAnchorElement
+                && link.getAttribute("href")?.startsWith("/history/");
+            });
           })()`,
         },
         {
@@ -231,13 +221,13 @@ async function main() {
         },
         {
           type: "assertExpression",
-          message: "History compact session cards must not push the title down with badge-only top padding.",
+          message: "History compact session cards must stay a bounded height (title, meta and chips only).",
           expression: `(() => {
             const cards = Array.from(document.querySelectorAll("[data-history-card='session']"));
             return cards.length > 0 && cards.every((card) => {
               if (!(card instanceof HTMLElement)) return false;
               const height = card.getBoundingClientRect().height;
-              return height >= 36 && height <= 64 && Boolean(card.textContent?.trim());
+              return height >= 36 && height <= 200 && Boolean(card.textContent?.trim());
             });
           })()`,
         },
@@ -282,7 +272,7 @@ async function main() {
             const cards = Array.from(document.querySelectorAll("[data-history-card='exercise'][data-history-surface='history-browser']"));
             return cards.length > 0 && cards.every((card) => (
               card.getAttribute("data-history-density") === "compact"
-              && Boolean(card.querySelector("[data-exercise-card-density='compact'][data-exercise-card-media='rail']"))
+              && Boolean(card.querySelector("[data-card-leading='true']"))
             ));
           })()`,
         },
@@ -293,14 +283,10 @@ async function main() {
             const cards = Array.from(document.querySelectorAll("[data-history-card='exercise'][data-history-surface='history-browser']"));
             const documentFits = document.documentElement.scrollWidth <= window.innerWidth + 1;
             return documentFits && cards.every((card) => {
-              const body = card.querySelector("[data-exercise-card-density='compact'][data-exercise-card-media='rail']");
-              if (!(body instanceof HTMLElement)) return false;
-              const mediaGrid = body.querySelector("div[style*='grid-template-columns']");
-              if (!(mediaGrid instanceof HTMLElement)) return false;
-              const firstColumn = mediaGrid.firstElementChild;
-              if (!(firstColumn instanceof HTMLElement)) return false;
-              const width = firstColumn.getBoundingClientRect().width;
-              return width >= 84 && width <= 92;
+              const media = card.querySelector("[data-card-leading='true']");
+              if (!(media instanceof HTMLElement)) return false;
+              const width = media.getBoundingClientRect().width;
+              return width >= 52 && width <= 72;
             });
           })()`,
         },
@@ -369,7 +355,7 @@ async function main() {
             const cards = Array.from(document.querySelectorAll("[data-history-card='detail-exercise'][data-history-surface='history-detail']"));
             return cards.length > 0 && cards.every((card) => (
               card.getAttribute("data-history-density") === "compact"
-              && Boolean(card.querySelector("[data-exercise-card-density='compact']"))
+              && Boolean(card.querySelector("[data-card-header='true']"))
             ));
           })()`,
         },

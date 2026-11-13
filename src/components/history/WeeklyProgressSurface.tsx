@@ -1,17 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useId, useState } from "react";
-import { cardShellToneClassNames } from "@/components/cardSemanticTones";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { HistoryDisclosureCard } from "@/components/history/HistoryMetricsDisclosure";
+import { toHistoryStatItems } from "@/components/history/historyStats";
+import { StatGrid } from "@/components/ui/card-system";
 import { DetailSectionBlock, DetailSectionItems } from "@/components/ui/DetailSectionList";
-import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
-import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { cn } from "@/lib/cn";
+import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
-
-const HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
-const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
 
 function formatDayKey(dayKey: string) {
   const date = new Date(`${dayKey}T12:00:00.000Z`);
@@ -37,19 +31,12 @@ function buildWeeklyHeaderTitle({
   fallbackLabel: string;
   routineTitleOverride?: string | null;
 }) {
-  const rangeLabel = formatWeekRangeLabel(summary);
   const routineTitle = routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim();
-  const leadingLabel = routineTitle ? `${routineTitle} ${suffix}` : fallbackLabel;
 
-  return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
-      <span className="min-w-0">{leadingLabel}</span>
-      <span className="inline-flex items-center">
-        <SignatureMiniPipe className="w-[0.38rem] translate-y-px" />
-      </span>
-      <span className="text-[rgb(var(--accent-yellow-on)/0.94)]">{rangeLabel}</span>
-    </span>
-  );
+  return {
+    title: routineTitle ? `${routineTitle} ${suffix}` : fallbackLabel,
+    rangeLabel: formatWeekRangeLabel(summary),
+  };
 }
 
 function buildHistoricalSummaryTitle(summary: WeeklyProgressSummary, routineTitleOverride?: string | null) {
@@ -220,8 +207,7 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
 }
 
 function CurrentWeeklyMetricGrid({ summary }: { summary: WeeklyProgressSummary }) {
-  const metricItems = buildCurrentMetricItems(summary);
-  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" scrollable />;
+  return <StatGrid items={toHistoryStatItems(buildCurrentMetricItems(summary))} />;
 }
 
 function ProgressionRecapRow({ summary }: { summary: WeeklyProgressSummary }) {
@@ -253,19 +239,13 @@ function reduceProgressionReviewItems(items: string[]) {
   });
 }
 
-function WeeklyProgressBody({
-  summary,
-  topPaddingClassName = "pt-2",
-}: {
-  summary: WeeklyProgressSummary;
-  topPaddingClassName?: string;
-}) {
+function WeeklyProgressBody({ summary }: { summary: WeeklyProgressSummary }) {
   const hasProgressionData = summary.progressionSummary.totalEventCount > 0;
   const progressionReviewItems = reduceProgressionReviewItems(summary.progressionSummary.reviewItems);
   const watchItems = summary.attentionItems.filter((item) => !isOpenPlannedDaysAttentionItem(item));
 
   return (
-    <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
+    <div className="space-y-4">
       <CurrentWeeklyMetricGrid summary={summary} />
       <ProgressionRecapRow summary={summary} />
       <div className="space-y-3">
@@ -294,145 +274,21 @@ function WeeklyProgressBody({
   );
 }
 
-function HistoryGroupCompactHeader({
-  title,
-  summary,
-  label = "Cycle Progression",
-  expanded,
-  controlsId,
-  onToggle,
-  variant = "split",
-}: {
-  title: ReactNode;
-  summary?: ReactNode;
-  label?: string;
-  expanded: boolean;
-  controlsId: string;
-  onToggle: () => void;
-  variant?: "split" | "title";
-}) {
-  return (
-    <button
-      type="button"
-      aria-expanded={expanded}
-      aria-controls={controlsId}
-      onClick={onToggle}
-      className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-    >
-      <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
-        <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
-          <div className="flex min-h-[30px] items-center">
-            <div className="w-full min-w-0 pl-px text-[0.79rem] font-semibold leading-[1] tracking-[-0.01em]">
-              {variant === "title" ? (
-                <span className="flex w-full min-w-0 items-start gap-2 leading-[1.08]">
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[rgb(var(--text-primary)/0.98)]">
-                      {title}
-                    </span>
-                    {summary && !expanded ? (
-                      <span className="mt-1 block text-[0.68rem] font-medium leading-[1.28] text-[rgb(var(--text-secondary)/0.82)] [text-wrap:pretty]">
-                        {summary}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="inline-flex h-4 w-4 items-center justify-center text-[rgb(var(--text-muted)/0.92)]">
-                    {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-                  </span>
-                </span>
-              ) : (
-                <span className="flex w-full min-w-0 items-center gap-3 leading-[1.08]">
-                  <span className="min-w-0 flex-1 truncate text-[rgb(var(--text-primary)/0.98)]">{label}</span>
-                  <span className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap align-middle">
-                    <span className="text-[0.79rem] font-semibold tracking-[-0.01em] text-[rgb(var(--success-rgb)/0.94)]">
-                      {title}
-                    </span>
-                    <span className="inline-flex h-4 w-4 items-center justify-center text-[rgb(var(--text-muted)/0.92)]">
-                      {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-                    </span>
-                  </span>
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="px-px pt-[1px]" style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
-            <MetricAccentBar variant="compact" className={HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME} />
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function ExpandedWeeklySummaryCard({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none",
-        cardShellToneClassNames.logged,
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full bg-[linear-gradient(180deg,rgb(var(--accent-yellow-on)/0.96),rgb(var(--accent-yellow-on)/0.52))]"
-      />
-      <div className="relative">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function HistoricalWeeklyProgressSurface({
   summary,
   viewMode,
-  defaultExpanded = false,
   titleRoutineOverride = null,
 }: {
   summary: WeeklyProgressSummary;
   viewMode: "compact" | "detailed";
-  defaultExpanded?: boolean;
   titleRoutineOverride?: string | null;
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded || viewMode === "detailed");
-  const panelId = useId();
-  const summaryTitle = buildHistoricalSummaryTitle(summary, titleRoutineOverride);
-
-  if (viewMode === "detailed") {
-    return (
-      <ExpandedWeeklySummaryCard>
-        <div className="px-5 pb-2 pt-4">
-          <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
-            {summaryTitle}
-          </div>
-          <div style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
-            <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
-          </div>
-        </div>
-        <WeeklyProgressBody summary={summary} />
-      </ExpandedWeeklySummaryCard>
-    );
-  }
+  const { title, rangeLabel } = buildHistoricalSummaryTitle(summary, titleRoutineOverride);
 
   return (
-    <section>
-      <HistoryGroupCompactHeader
-        title={summaryTitle}
-        label=""
-        expanded={expanded}
-        controlsId={panelId}
-        onToggle={() => setExpanded((current) => !current)}
-        variant="title"
-      />
-      <div id={panelId} hidden={!expanded} className="pt-2">
-        <ExpandedWeeklySummaryCard>
-          <WeeklyProgressBody summary={summary} topPaddingClassName="pt-4" />
-        </ExpandedWeeklySummaryCard>
-      </div>
-    </section>
+    <HistoryDisclosureCard title={title} titleMeta={rangeLabel} viewMode={viewMode}>
+      <WeeklyProgressBody summary={summary} />
+    </HistoryDisclosureCard>
   );
 }
 
@@ -447,49 +303,15 @@ export function WeeklyProgressSurface({
   presentation?: "current" | "historical";
   titleRoutineOverride?: string | null;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const panelId = useId();
-  const progressionTitle = buildCurrentProgressionTitle(summary, titleRoutineOverride);
-
   if (presentation === "historical") {
     return <HistoricalWeeklyProgressSurface summary={summary} viewMode={viewMode} titleRoutineOverride={titleRoutineOverride} />;
   }
 
-  if (viewMode === "detailed") {
-    return (
-      <ExpandedWeeklySummaryCard>
-        <div className="px-5 pb-2 pt-4">
-          <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
-            {progressionTitle}
-          </div>
-          <div style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
-            <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
-          </div>
-        </div>
-        <WeeklyProgressBody
-          summary={summary}
-        />
-      </ExpandedWeeklySummaryCard>
-    );
-  }
+  const { title, rangeLabel } = buildCurrentProgressionTitle(summary, titleRoutineOverride);
 
   return (
-    <section>
-      <HistoryGroupCompactHeader
-        title={progressionTitle}
-        expanded={expanded}
-        controlsId={panelId}
-        onToggle={() => setExpanded((current) => !current)}
-        variant="title"
-      />
-      <div id={panelId} hidden={!expanded} className="pt-2">
-        <ExpandedWeeklySummaryCard>
-          <WeeklyProgressBody
-            summary={summary}
-            topPaddingClassName="pt-4"
-          />
-        </ExpandedWeeklySummaryCard>
-      </div>
-    </section>
+    <HistoryDisclosureCard title={title} titleMeta={rangeLabel} viewMode={viewMode}>
+      <WeeklyProgressBody summary={summary} />
+    </HistoryDisclosureCard>
   );
 }

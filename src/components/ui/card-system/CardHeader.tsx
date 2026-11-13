@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { cn } from "@/lib/cn";
@@ -20,7 +21,9 @@ export type CardHeaderInteraction =
   /** Whole header expands or collapses a panel. Shows a down chevron that rotates; wires aria-expanded/controls. */
   | { kind: "toggle"; expanded: boolean; onToggle: () => void; controlsId?: string; disabled?: boolean; buttonProps?: CardHeaderButtonProps }
   /** Whole header selects the card (chooser lists). Wires aria-pressed; no chevron. */
-  | { kind: "select"; selected: boolean; onSelect: () => void; disabled?: boolean; buttonProps?: CardHeaderButtonProps };
+  | { kind: "select"; selected: boolean; onSelect: () => void; disabled?: boolean; buttonProps?: CardHeaderButtonProps }
+  /** Whole header is a link (list rows that open a route). Same stretched hit area and right chevron as `press`; `current` sets aria-current="page". */
+  | { kind: "link"; href: string; current?: boolean; linkProps?: CardHeaderButtonProps };
 
 export type CardHeadingLevel = 2 | 3 | 4;
 
@@ -72,7 +75,7 @@ export function CardHeader({
   const titleId = `${instanceId}-title`;
   const metaId = `${instanceId}-meta`;
   const Heading = `h${headingLevel}` as "h2" | "h3" | "h4";
-  const showsAffordance = interaction.kind === "press" || interaction.kind === "toggle";
+  const showsAffordance = interaction.kind === "press" || interaction.kind === "toggle" || interaction.kind === "link";
   const hasMeta = meta !== null && meta !== undefined && meta !== false;
 
   return (
@@ -102,7 +105,17 @@ export function CardHeader({
           )}
         </span>
       ) : null}
-      {interaction.kind !== "none" ? (
+      {interaction.kind === "link" ? (
+        <Link
+          href={interaction.href}
+          {...(interaction.linkProps as Record<string, unknown> | undefined)}
+          className={cardTokens.headerHit}
+          aria-labelledby={titleId}
+          aria-describedby={hasMeta ? metaId : undefined}
+          aria-current={interaction.current ? "page" : undefined}
+          data-card-hit="link"
+        />
+      ) : interaction.kind !== "none" ? (
         <button
           type="button"
           {...interaction.buttonProps}

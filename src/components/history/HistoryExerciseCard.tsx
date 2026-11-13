@@ -1,49 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
-import { type CardSemanticTone } from "@/components/cardSemanticTones";
-import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
+import type { ReactNode } from "react";
+import { HistoryDetailExerciseCard, type HistoryExerciseVisual } from "@/components/history/HistoryDetailExerciseCard";
+import { toHistoryMetaText, toHistoryStatItems } from "@/components/history/historyStats";
+import { StatGrid, type CardTone } from "@/components/ui/card-system";
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { ExerciseBrowserTrendPreview } from "@/lib/exercises-browser";
-import { resolveWorkoutCardMediaRailWidth } from "@/lib/workout-card-surface-policy";
-
-const HISTORY_EXERCISE_MEDIA_SIZE = resolveWorkoutCardMediaRailWidth("history-browser");
-const HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH = HISTORY_EXERCISE_MEDIA_SIZE + 32;
-function renderMetaBadge(value: string) {
-  return (
-    <SignatureMetaTag>
-      {value}
-    </SignatureMetaTag>
-  );
-}
-
-function RotatingMetaBadge({
-  items,
-}: {
-  items: string[];
-}) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (items.length <= 1) {
-      setIndex(0);
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      setIndex((current) => (current + 1) % items.length);
-    }, 3200);
-
-    return () => window.clearInterval(timer);
-  }, [items]);
-
-  const current = items[index] ?? items[0] ?? null;
-  return current ? renderMetaBadge(current) : null;
-}
 
 function MiniExerciseTrendPreview({ trend }: { trend?: ExerciseBrowserTrendPreview | null }) {
   const points = trend?.points ?? [];
@@ -87,9 +50,9 @@ function MiniExerciseTrendPreview({ trend }: { trend?: ExerciseBrowserTrendPrevi
   return (
     <div
       aria-hidden="true"
-      className="relative h-full min-h-[104px] overflow-hidden rounded-[0.8rem] border border-[rgb(var(--accent-divider-rgb)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.42)] px-2 py-1.5"
+      className="relative h-full min-h-[104px] overflow-hidden rounded-[var(--radius-md)] border border-[rgb(var(--accent-divider-rgb)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.42)] px-3 py-2"
     >
-      <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.82)]">
+      <div className="mb-0.5 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.82)]">
         <span className="truncate">{trend.label}</span>
         <span className="text-[rgb(var(--accent-divider-rgb)/0.88)]">{points.length}</span>
       </div>
@@ -134,42 +97,58 @@ function MiniExerciseTrendPreview({ trend }: { trend?: ExerciseBrowserTrendPrevi
           );
         })}
       </svg>
-      <div className={cn("pointer-events-none absolute bottom-1.5 right-2 text-[0.58rem] font-semibold uppercase tracking-[0.14em]", trendTone)}>
+      <div className={cn("pointer-events-none absolute bottom-2 right-3 text-[11px] font-semibold uppercase tracking-[0.12em]", trendTone)}>
         Trend
       </div>
     </div>
   );
 }
 
+function HistoryBulletSection({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="grid gap-1.5">
+      <h3 className="m-0 text-[11px] font-semibold uppercase leading-none tracking-[0.12em] text-[rgb(var(--text-muted)/0.98)]">{title}</h3>
+      <ul className="m-0 grid list-disc gap-1 pl-4 marker:text-[rgb(var(--accent-divider-rgb)/0.96)]">
+        {items.map((item, index) => (
+          <li key={`${title}-${index}`} className="text-[12.5px] leading-snug text-[rgb(var(--text-primary)/0.95)] [overflow-wrap:anywhere]">{item}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Exercise browser row. Compact: thumbnail, name, facts, `Last` summary and signals. Detailed: the same header
+ * plus a body with the trend sparkline, the metric grid and the detail bullets (the old detailed card put a
+ * 120px thumbnail in a float cut-out and the metrics in a sideways scroller). Opening the exercise info sheet is
+ * the one action (`press`, right chevron).
+ */
 export function HistoryExerciseCard({
   exercise,
   title,
   summaryLabel,
   summary,
   comparison,
-  metadata,
-  badgeText,
+  metaItems = [],
   badgeItems = [],
   metrics,
   trendPreview,
   detailSections = [],
   density,
   tone,
+  showMedia = true,
   onPress,
 }: {
-  exercise?: {
-    name: string;
-    slug?: string | null;
-    image_path?: string | null;
-    image_icon_path?: string | null;
-    image_howto_path?: string | null;
-  };
+  exercise?: HistoryExerciseVisual;
   title: string;
   summaryLabel: string;
   summary: string;
   comparison?: string | null;
-  metadata?: ReactNode;
-  badgeText?: string;
+  metaItems?: string[];
   badgeItems?: string[];
   metrics?: MetricDatum[];
   trendPreview?: ExerciseBrowserTrendPreview | null;
@@ -178,54 +157,15 @@ export function HistoryExerciseCard({
     items: string[];
   }>;
   density: "compact" | "detailed";
-  tone: CardSemanticTone;
+  tone: CardTone;
+  /** Hide the thumbnail (surface policy, tests). */
+  showMedia?: boolean;
   onPress: () => void;
 }) {
   const resolvedExercise = exercise ?? { name: title };
-  const resolvedBadgeItems = badgeItems.length > 0 ? badgeItems : (badgeText ? [badgeText] : []);
-  const summaryText = comparison ? `${summary} | ${comparison}` : summary;
-  const resolvedSubtitleLabel = summaryLabel;
-  const resolvedSubtitle = summaryText;
-
-  if (density === "detailed") {
-    return (
-      <div
-        data-history-card="exercise"
-        data-history-density={density}
-        data-history-surface="history-browser"
-      >
-        <HistoryDetailExerciseCard
-          exercise={resolvedExercise}
-          summary=""
-          summaryLabel=""
-          headerMetadata={metadata}
-          badgeText={badgeText}
-          badgeItems={resolvedBadgeItems}
-          metrics={metrics}
-          density="detailed"
-          tone={tone}
-          leadingVisual={(
-            <ExerciseThumb
-              exercise={resolvedExercise}
-              detailed={false}
-              layout="inline"
-              width={HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}
-              height={HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}
-              sizes={`${HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}px`}
-              fitOverride="contain"
-              intent="row-card"
-              className="h-full w-full rounded-[0.8rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.92)]"
-            />
-          )}
-          mediaRailWidthOverride={HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}
-          detailVisualAside={<MiniExerciseTrendPreview trend={trendPreview} />}
-          detailSections={detailSections}
-          expanded={false}
-          onPress={onPress}
-        />
-      </div>
-    );
-  }
+  const summaryText = [summary, comparison].filter((part): part is string => Boolean(part && part.trim())).map(toHistoryMetaText).join(" · ");
+  const isDetailed = density === "detailed";
+  const hasBody = isDetailed && ((metrics?.length ?? 0) > 0 || detailSections.length > 0 || (trendPreview?.points.length ?? 0) >= 2);
 
   return (
     <div
@@ -235,34 +175,23 @@ export function HistoryExerciseCard({
     >
       <HistoryDetailExerciseCard
         exercise={resolvedExercise}
-        summary={resolvedSubtitle}
-        summaryLabel={resolvedSubtitleLabel}
-        headerMetadata={metadata}
-        badgeText={badgeText}
-        badgeItems={resolvedBadgeItems}
-        density="compact"
+        summary={isDetailed ? undefined : summaryText}
+        summaryLabel={summaryLabel}
+        metaItems={metaItems}
+        factItems={badgeItems}
         tone={tone}
-        surface="history-browser"
-        dataSurface="history-browser"
-        compactBadgePlacement="stack"
-        leadingVisual={(
-          <ExerciseThumb
-            exercise={resolvedExercise}
-            detailed={false}
-            layout="rail"
-            railWidth={HISTORY_EXERCISE_MEDIA_SIZE}
-            sizes={`${HISTORY_EXERCISE_MEDIA_SIZE}px`}
-            intent="row-card"
-          />
-        )}
-        mediaRailWidthOverride={HISTORY_EXERCISE_MEDIA_SIZE}
-        footerContent={resolvedBadgeItems.length > 0 ? (
-          <div className="pt-[1px]">
-            <RotatingMetaBadge items={resolvedBadgeItems} />
-          </div>
-        ) : null}
-        expanded={false}
+        interaction="press"
+        showLeadingVisual={showMedia}
         onPress={onPress}
+        dataSurface="history-browser"
+        density={density}
+        body={hasBody ? (
+          <div className="grid gap-4">
+            <MiniExerciseTrendPreview trend={trendPreview} />
+            <StatGrid items={toHistoryStatItems(metrics ?? [])} />
+            {detailSections.map((section) => <HistoryBulletSection key={section.title} title={section.title} items={section.items} />)}
+          </div>
+        ) : undefined}
       />
     </div>
   );

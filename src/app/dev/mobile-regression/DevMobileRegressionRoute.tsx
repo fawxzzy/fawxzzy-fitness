@@ -3355,6 +3355,16 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
       },
       prLabel: "Load PR",
       prCount: 1,
+      // Renders the "Current State" strip card (DetailSectionItems inside the overview strip).
+      progressionDerived: {
+        signalLabel: "Ready to promote",
+        methodLabel: "Auto | Session | Set",
+        currentTargetLabel: "4 sets x 5 reps | 225 lbs",
+        nextTargetLabel: "4 sets x 5 reps | 230 lbs",
+        reason: "Hit every target rep for the last two sessions, so the next session adds 5 lbs.",
+        historySessionCount: 14,
+        historySetCount: 42,
+      },
       quickMetrics: [
           { label: "Last", value: "Wed, Apr 9", timeframe: "225 lbs x 5" },
           { label: "Best Set", value: "275 lbs x 3" },

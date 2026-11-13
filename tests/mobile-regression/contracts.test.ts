@@ -216,8 +216,9 @@ test("history-browser compact rows stay on the shared history card wrapper with 
   assert.match(browserSource, /density=\{viewMode\}/);
   assert.doesNotMatch(browserSource, /<StandardExerciseRow/);
   assert.match(cardSource, /data-history-card="exercise"/);
-  assert.match(cardSource, /leadingVisual=\{/);
-  assert.match(cardSource, /<ExerciseThumb/);
+  assert.match(cardSource, /<HistoryDetailExerciseCard/);
+  assert.match(cardSource, /showLeadingVisual=\{showMedia\}/);
+  assert.match(readSource("../../src/components/history/HistoryDetailExerciseCard.tsx"), /<ExerciseThumb/);
 });
 
 test("standard exercise rows gate rail media behind the surface policy", () => {
@@ -250,10 +251,11 @@ test("history sessions keep compact chips and detailed metrics on the shared car
 test("history session wrapper owns the shared card contract directly", () => {
   const source = readSource("../../src/components/history/HistorySessionCard.tsx");
 
-  assert.match(source, /<ExerciseCard/);
+  assert.match(source, /<CardSurface/);
+  assert.match(source, /<CardHeader/);
   assert.match(source, /data-history-card="session"/);
-  assert.match(source, /appTokens\.historyExerciseCardShell/);
-  assert.doesNotMatch(source, /SessionSummaryCard/);
+  assert.match(source, /kind: "link"/);
+  assert.doesNotMatch(source, /<ExerciseCard|SessionSummaryCard/);
 });
 
 test("history detail stays on explicit history wrappers instead of raw generic cards", () => {
@@ -279,11 +281,11 @@ test("history detail compact exercise rows keep the session-native summary rhyth
   const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
 
   assert.match(source, /summaryLabel=\{bestSet \? "Top Set" : "Session"\}/);
-  assert.match(source, /metadata=\{renderMetaTags\(\[\s*\.\.\.collapsedCardBadgeItems\.signalItems,/);
+  assert.match(source, /signalCodes=\{collapsedCardBadgeItems\.signalItems\}/);
+  assert.match(source, /metaItems=\{\[\s*formatLoggedSetCountMeta\(collapsedCardBadgeItems\.countLabel\),/);
   assert.match(source, /\.\.\.\(timerSignalItem \? \[timerSignalItem\] : \[\]\)/);
   assert.match(source, /\.\.\.\(recoveryInsight \? \[recoveryInsight\.label\] : \[\]\)/);
   assert.match(source, /buildCollapsedExerciseCardBadgeItems/);
-  assert.match(source, /badgeItems=\{\[collapsedCardBadgeItems\.countLabel\]\}/);
 });
 
 test("history detail notes fall back to saved copilot feedback when exercise notes are empty", () => {

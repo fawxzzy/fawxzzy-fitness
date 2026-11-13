@@ -1,7 +1,9 @@
 "use client";
 
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
-import { HistoryCompactDisclosure } from "@/components/history/HistoryMetricsDisclosure";
+import { useState } from "react";
+import { HistoryDisclosureCard } from "@/components/history/HistoryMetricsDisclosure";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { cardTokens } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
 import type { HistoryCalendarView } from "@/lib/history-calendar";
 import { HistorySection } from "./HistoryShared";
@@ -69,6 +71,22 @@ function getDayBackgroundColor(args: {
   }
 }
 
+/** Accessible name for a day button: the printed day first, then what the cell means (`12, 2 sessions`). */
+function formatDayLabel(day: { dayNumber: number; sessionCount: number; isSkipped: boolean }) {
+  if (day.sessionCount > 0) {
+    return `${day.dayNumber}, ${day.sessionCount === 1 ? "1 session" : `${day.sessionCount} sessions`}`;
+  }
+  return day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined;
+}
+
+const MONTH_NAV_BUTTON_CLASS_NAME = cardTokens.iconControl;
+
+/**
+ * One month at a time with older / newer controls (`aria-disabled`, not `disabled`, so the pressed control keeps
+ * keyboard focus when it reaches the end of the range). The months used to sit side by side in a sideways scroller,
+ * and every cell shrank to about 35px so the whole month fit in a 280px column; one month fills the card width
+ * (cells are 44px tall, as wide as the card allows) and the month label is a polite live region.
+ */
 function CalendarContent({
   calendarView,
   onSelectDayKey,
@@ -76,86 +94,103 @@ function CalendarContent({
   calendarView: HistoryCalendarView;
   onSelectDayKey: (dayKey: string | null) => void;
 }) {
-  return (
-    <>
-      <HorizontalScrollHint
-        scrollClassName="-mx-1.5 px-1.5 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
-        contentClassName="flex min-w-max gap-2 pb-1"
-      >
-        {calendarView.months.map((month) => (
-          <section
-            key={month.monthKey}
-            className="min-w-[17.5rem] space-y-2 rounded-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--surface-1-rgb)/0.5)] p-3 shadow-[inset_0_0_0_1px_rgb(var(--surface-2-rgb)/0.2)]"
-          >
-            <div className="space-y-1">
-              <p className="text-center text-[0.88rem] font-semibold tracking-[-0.01em] text-[rgb(var(--text-primary)/0.98)]">
-                {month.monthLabel}
-              </p>
-              <p className="text-center text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
-                {formatMonthSummary(month.activeDayCount, month.sessionCount)}
-              </p>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.72)]">
-              {["M", "T", "W", "T", "F", "S", "S"].map((label, index) => (
-                <span key={`${month.monthKey}-weekday-${index}`}>
-                  {label}
-                </span>
-              ))}
-            </div>
-            <div className="space-y-1">
-              {month.weeks.map((week, weekIndex) => (
-                <div key={`${month.monthKey}-week-${weekIndex}`} className="grid grid-cols-7 gap-1">
-                  {week.map((day) => {
-                    if (!day.inMonth) {
-                      return (
-                        <span
-                          key={day.dayKey}
-                          aria-hidden="true"
-                          data-calendar-day-filler="true"
-                          className="block aspect-square min-h-[2.2rem]"
-                        />
-                      );
-                    }
+  // The shown month is held by its key, not by a position: `months` is newest first, so a newer month arriving
+  // (a new session in a later month) would shift every index and silently switch the view. No key (or a key that
+  // left the list) shows the newest month.
+  const [shownMonthKey, setShownMonthKey] = useState<string | null>(null);
+  const foundIndex = shownMonthKey ? calendarView.months.findIndex((candidate) => candidate.monthKey === shownMonthKey) : -1;
+  const monthIndex = foundIndex >= 0 ? foundIndex : 0;
+  const month = calendarView.months[monthIndex];
+  const olderMonth = calendarView.months[monthIndex + 1];
+  const newerMonth = calendarView.months[monthIndex - 1];
 
-                    return (
-                      <button
-                        key={day.dayKey}
-                        type="button"
-                        aria-pressed={day.isSelected}
-                        aria-label={day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined}
-                        data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
-                        disabled={day.sessionCount === 0}
-                        onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
-                        style={{ backgroundColor: getDayBackgroundColor(day) }}
-                        className={cn(
-                          "flex aspect-square min-h-[2.2rem] flex-col items-center justify-center rounded-[0.55rem] border px-1 py-1 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-default disabled:opacity-100",
-                          getDayButtonClassName(day),
-                        )}
-                      >
-                        <span className="text-[0.78rem] font-semibold leading-none">
-                          {day.dayNumber}
-                        </span>
-                        <span className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.1em]">
-                          {day.sessionCount > 0 ? day.sessionCount : ""}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-      </HorizontalScrollHint>
-      <div className="flex items-center justify-center gap-1.5 pt-1 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.72)]">
-        <span className="h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--accent-yellow-on)/0.5)] bg-[rgb(var(--accent-yellow-on)/0.18)]" />
-        <span>Today</span>
-        <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)] bg-[rgb(17_91_49)]" />
-        <span>Training</span>
-        <span className="ml-2 h-2.5 w-2.5 rounded-[0.2rem] border border-[rgb(var(--danger-rgb)/0.62)] bg-[rgb(92_26_31)]" />
-        <span>Skipped</span>
+  if (!month) {
+    return null;
+  }
+
+  return (
+    <div data-history-calendar="true" className="grid gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          aria-label={olderMonth ? `Show ${olderMonth.monthLabel}` : "Show older month"}
+          aria-disabled={!olderMonth}
+          onClick={() => olderMonth && setShownMonthKey(olderMonth.monthKey)}
+          data-calendar-nav="older"
+          className={MONTH_NAV_BUTTON_CLASS_NAME}
+        >
+          <ChevronRightIcon className="h-5 w-5 rotate-180" />
+        </button>
+        <div aria-live="polite" data-calendar-month-label="true" className="min-w-0 flex-1 text-center">
+          <p className="m-0 text-base font-semibold leading-snug text-[rgb(var(--text-primary)/0.98)]">{month.monthLabel}</p>
+          <p className="m-0 text-xs font-medium leading-snug text-[rgb(var(--text-secondary)/0.92)]">
+            {formatMonthSummary(month.activeDayCount, month.sessionCount)}
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label={newerMonth ? `Show ${newerMonth.monthLabel}` : "Show newer month"}
+          aria-disabled={!newerMonth}
+          onClick={() => newerMonth && setShownMonthKey(newerMonth.monthKey)}
+          data-calendar-nav="newer"
+          className={MONTH_NAV_BUTTON_CLASS_NAME}
+        >
+          <ChevronRightIcon className="h-5 w-5" />
+        </button>
       </div>
-    </>
+      <div className="grid gap-px">
+        <div aria-hidden="true" className="grid grid-cols-7 gap-px text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.95)]">
+          {["M", "T", "W", "T", "F", "S", "S"].map((label, index) => (
+            <span key={`${month.monthKey}-weekday-${index}`}>{label}</span>
+          ))}
+        </div>
+        {month.weeks.map((week, weekIndex) => (
+          <div key={`${month.monthKey}-week-${weekIndex}`} className="grid grid-cols-7 gap-px">
+            {week.map((day) => {
+              if (!day.inMonth) {
+                return <span key={day.dayKey} aria-hidden="true" data-calendar-day-filler="true" className="block h-11" />;
+              }
+
+              return (
+                <button
+                  key={day.dayKey}
+                  type="button"
+                  aria-pressed={day.isSelected}
+                  aria-label={formatDayLabel(day)}
+                  data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
+                  disabled={day.sessionCount === 0}
+                  onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
+                  style={{ backgroundColor: getDayBackgroundColor(day) }}
+                  className={cn(
+                    "flex h-11 min-w-0 flex-col items-center justify-center rounded-lg border px-0.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-default disabled:opacity-100 motion-reduce:transition-none",
+                    getDayButtonClassName(day),
+                  )}
+                >
+                  <span className="text-sm font-semibold leading-none">{day.dayNumber}</span>
+                  <span className="mt-0.5 h-[11px] text-[11px] font-semibold leading-none">
+                    {day.sessionCount > 0 ? day.sessionCount : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.95)]">
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--accent-yellow-on)/0.5)] bg-[rgb(var(--accent-yellow-on)/0.18)]" />
+          <span>Today</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)] bg-[rgb(17_91_49)]" />
+          <span>Training</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--danger-rgb)/0.62)] bg-[rgb(92_26_31)]" />
+          <span>Skipped</span>
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -172,9 +207,9 @@ export function HistoryCalendarSurface({
 
   if (viewMode === "compact") {
     return (
-      <HistoryCompactDisclosure title="Calendar" titleAlign="center" accentTone="green">
-        <div className="px-3 pb-4 pt-4">{content}</div>
-      </HistoryCompactDisclosure>
+      <HistoryDisclosureCard title="Calendar" tone="logged" panelClassName="px-1 pb-3 pt-3">
+        {content}
+      </HistoryDisclosureCard>
     );
   }
 
