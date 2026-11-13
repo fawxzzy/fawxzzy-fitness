@@ -1,5 +1,17 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - "Every difference is explained" needs a property test, and pain is never retained
+
+- Type: Product behavior (source) + property test
+- WHAT changed: Curated plan adjustments are computed by diffing each final day against its first-choice day (limitations and dislikes only, same split), so a cascade (de-duplication, the exercise limit, an omitted role) is named by a `day-adjusted` entry instead of going unexplained. Session feedback is split: pain and form-breakdown lifts are always replaced or omitted (with a reason; the three-lift floor still protects the day), while only too-hard or bad-day lifts may stay, with a reason, when nothing else fits. A seeded fuzz test over 4000 random intakes and feedback sets asserts every added or removed exercise is named by an adjustment, and that no pain or form lift survives; a mutation check (disabling the cascade entries) makes it fail.
+- WHY it changed: A review fuzz found about 2% of intakes with a day-level difference and no reason entry, and pain-flagged lifts could be retained.
+- Rule: A claim of the form "every X is explained" is pinned by a property test that fails when the explanation is removed.
+- Rule: Safety-relevant feedback (pain, form) is an exclusion, not a preference; only effort feedback may be softened.
+- Failure Mode: explaining only the role-level decision hides the knock-on changes it causes inside a day.
+- Decision: the first-choice routine is the explanation baseline; schedule reduction is reported separately and the split is held constant for the diff.
+- Evidence: `src/features/curated-onboarding/engine.ts`, `engine.adjustments.test.ts`, `src/app/curated-onboarding/actions.ts` (signal split).
+- Status: Source only; real feedback data and the browser rendering are not verified.
+
 ## 2026-11-12 - A failed generation must never dead-end a setup
 
 - Type: Product behavior (source)

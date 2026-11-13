@@ -71,6 +71,7 @@ async function loadCuratedHistorySignals(args: {
     .limit(40);
   const failedExerciseSlugs = new Set<string>();
   const fatiguedExerciseSlugs = new Set<string>();
+  const painOrFormExerciseSlugs = new Set<string>();
   for (const row of (feedbackResult.data ?? []) as Array<{
     copilot_feedback_signal?: string | null;
     exercise?: { name?: string | null } | Array<{ name?: string | null }> | null;
@@ -78,7 +79,11 @@ async function loadCuratedHistorySignals(args: {
     const exercise = Array.isArray(row.exercise) ? row.exercise[0] : row.exercise;
     const slug = exercise?.name ? toCatalogSlug(exercise.name) : "";
     if (!slug) continue;
-    if (["too_hard", "form_breakdown", "pain_flag"].includes(row.copilot_feedback_signal ?? "")) {
+    // Pain and form breakdown are never kept in a routine; "too hard" may stay with a visible reason.
+    if (["form_breakdown", "pain_flag"].includes(row.copilot_feedback_signal ?? "")) {
+      painOrFormExerciseSlugs.add(slug);
+    }
+    if (row.copilot_feedback_signal === "too_hard") {
       failedExerciseSlugs.add(slug);
     }
     if (["too_hard", "bad_day"].includes(row.copilot_feedback_signal ?? "")) {
@@ -92,6 +97,7 @@ async function loadCuratedHistorySignals(args: {
       missedWorkoutCount: 0,
       failedExerciseSlugs: [...failedExerciseSlugs],
       fatiguedExerciseSlugs: [...fatiguedExerciseSlugs],
+      painOrFormExerciseSlugs: [...painOrFormExerciseSlugs],
     };
   }
 
@@ -113,6 +119,7 @@ async function loadCuratedHistorySignals(args: {
     missedWorkoutCount: Math.max(0, expectedWorkouts - completedWorkouts),
     failedExerciseSlugs: [...failedExerciseSlugs],
     fatiguedExerciseSlugs: [...fatiguedExerciseSlugs],
+    painOrFormExerciseSlugs: [...painOrFormExerciseSlugs],
   };
 }
 
