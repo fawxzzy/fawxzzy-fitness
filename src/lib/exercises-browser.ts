@@ -1092,6 +1092,8 @@ async function getExercisesWithStats(
   options?: {
     analyticsScope?: ExerciseInfoAnalyticsScope;
     scopeContext?: ExerciseBrowserScopeContext | null;
+    /** The History zone, or a promise of it, when the caller is already resolving the scope context concurrently. */
+    historyTimeZone?: string | Promise<string>;
   },
 ): Promise<ExerciseBrowserRow[]> {
   noStore();
@@ -1109,8 +1111,13 @@ async function getExercisesWithStats(
     ? (options?.scopeContext?.currentCycleWindow ?? null)
     : null;
 
-  const historyTimeZone = options?.scopeContext?.historyTimeZone
-    ?? await loadHistoryTimeZone({ supabase, userId });
+  // Started now, awaited only where the progression summaries are built, so the lookup overlaps the row queries
+  // instead of running (two sequential queries) in front of them.
+  const historyTimeZonePromise = Promise.resolve(
+    options?.scopeContext?.historyTimeZone
+      ?? options?.historyTimeZone
+      ?? loadHistoryTimeZone({ supabase, userId }),
+  );
 
   const exerciseRows = client ? await listExercisesForUser(userId, client) : await listExercises();
 
@@ -1234,6 +1241,7 @@ async function getExercisesWithStats(
     ? new Map<string, ExerciseStatsRow>()
     : new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
   const setRowsByExerciseId = groupNormalizedSetsByExercise((historySetRows ?? []) as HistoricalSetRow[]);
+  const historyTimeZone = await historyTimeZonePromise;
   const progressionEventsByExerciseId = new Map<string, ProgressionEventRow[]>();
   for (const event of (progressionEventRows ?? []) as ProgressionEventRow[]) {
     const current = progressionEventsByExerciseId.get(event.exercise_id) ?? [];
@@ -1534,9 +1542,13 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
 export async function getExerciseBrowserScopePayloadForUser(): Promise<ExerciseBrowserScopePayload> {
   const user = await requireUser();
+  // One scope resolution feeds both the filter options and the rows' History zone (no second profile/routine lookup).
+  const scopeContextPromise = resolveExerciseBrowserScopeContext(user.id);
   const [scopeContext, initialRows] = await Promise.all([
-    resolveExerciseBrowserScopeContext(user.id),
-    getExercisesWithStats(user.id),
+    scopeContextPromise,
+    getExercisesWithStats(user.id, undefined, {
+      historyTimeZone: scopeContextPromise.then((resolved) => resolved.historyTimeZone),
+    }),
   ]);
   const filterOptions = await buildExerciseBrowserFilterOptions({
     userId: user.id,

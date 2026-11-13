@@ -70,7 +70,7 @@ test("buildExerciseProgressionLifelineSummary formats the target path", () => {
       from_target: { measurementType: "reps", repsMin: 10, repsMax: 12, weightMin: 135, weightMax: 135, weightUnit: "lbs" },
       to_target: { measurementType: "reps", repsMin: 12, repsMax: 12, weightMin: 140, weightMax: 140, weightUnit: "lbs" },
     }),
-  ]);
+  ], { timeZone: null });
 
   assert.ok(summary);
   assert.equal(summary?.promotionCount, 2);
@@ -109,7 +109,7 @@ test("buildExerciseProgressionLifelineSummary condenses shared cardio target seg
       from_target: { measurementType: "time_distance", durationSeconds: 180, distance: 1, distanceUnit: "mi" },
       to_target: { measurementType: "time", durationSeconds: 180 },
     }),
-  ]);
+  ], { timeZone: null });
 
   assert.equal(summary?.latestChangeSummary, "Distance removed");
 });
@@ -121,7 +121,7 @@ test("buildExerciseProgressionLifelineSummary labels single-measurement reductio
       from_target: { measurementType: "time_distance", durationSeconds: 180, distance: 2, distanceUnit: "mi" },
       to_target: { measurementType: "time_distance", durationSeconds: 180, distance: 1, distanceUnit: "mi" },
     }),
-  ]);
+  ], { timeZone: null });
 
   assert.equal(summary?.latestChangeSummary, "Distance reduced | 2 mi → 1 mi");
 });
@@ -173,7 +173,7 @@ test("buildExerciseProgressionLifelineSummary reports mixed recent activity when
       event_type: "deload_applied",
       created_at: "2026-05-14T12:00:00.000Z",
     }),
-  ]);
+  ], { timeZone: null });
 
   assert.equal(summary?.recentEventCount, 3);
   assert.equal(summary?.recentPromotionCount, 1);
@@ -194,7 +194,7 @@ test("buildExerciseProgressionLifelineSummary keeps recent focus only when one s
       event_type: "manual_target_change",
       created_at: "2026-05-14T12:00:00.000Z",
     }),
-  ]);
+  ], { timeZone: null });
 
   assert.equal(summary?.recentEventCount, 3);
   assert.equal(summary?.recentPromotionCount, 2);
