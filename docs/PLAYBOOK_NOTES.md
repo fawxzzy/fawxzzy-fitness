@@ -1416,6 +1416,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/lib/history-consistency-heatmap.ts`, `src/components/history/ConsistencyHeatmapSurface.tsx`, `src/app/history/HistorySessionsClient.tsx`, and their tests (`src/lib/history-consistency-heatmap.test.ts`, `src/components/history/ConsistencyHeatmapSurface.test.tsx`), which are enumerated in the `ci.yml` contract step.
 - Status: Source only; merge, deploy and a real-device check remain separate.
 
+## 2026-11-12 - Withdraw dev-only routes from production deployments
+
+- WHAT changed: One shared guard, `src/lib/dev-route-guard.ts`, keyed on `VERCEL_ENV === "production"`. `src/middleware.ts` answers a real 404 for `/dev/*`, `/api/dev/*` and `/api/ecosystem/fitness/debug` before any page or handler runs; `src/app/dev/layout.tsx` calls `notFound()` for the `/dev` tree; every dev route handler and the ecosystem debug handler return the guard response as their first statement. Preview deployments, local development and `next start` verification runs are unchanged. The unused root `middleware.ts` was removed: the production build manifest lists only `src/middleware`, which is the file Next compiles when the app lives under `src/`.
+- WHY it changed: Dev fixtures and diagnostics ship in the production build and each page carried its own check (a `NODE_ENV` test, a `Host` header test, or an env flag). CI and local verification run `next start` in production mode on localhost and still need the fixtures, so `NODE_ENV` cannot be the key; the deployment environment can.
+- Rule: Key dev-route availability on the deployment environment, enforce it in middleware so page code never runs, and repeat it in the layout and in each route handler (a layout does not cover handlers).
+- Failure Mode: A layout `notFound()` alone does not stop its page from rendering in Next 14.2.5: the page's server code still runs and its output is in the response. A guard on `NODE_ENV` breaks production-mode verification runs; a guard on a request header depends on the platform setting that header.
+- Evidence: `src/lib/dev-route-guard.test.ts` (wired through `npm run test:supabase-schema-binding`) calls the middleware, the layout and every dev handler under production and non-production environments. A `next start` run with `VERCEL_ENV=production` answered the fixture pages, the dev handlers and the debug endpoint with 404.
+- Status: Source only; merge, deploy and a check on the live host remain separate.
+
 ## 2026-11-12 - Remove the retired legacy migration routes and the tag-triggered deploy workflow
 
 - WHAT changed: Deleted `/api/migration/export`, `/api/migration/import` and `/api/migration/parity`, the Settings "Legacy & Migration" section (`LegacyMigrationSettings`, the `legacy` section key and deep link, and the props that only fed it), `src/lib/migration/` (snapshot bridge, contract and tests), and `.github/workflows/deploy-prod-on-tag.yml`. `scripts/migration/parity-report.mjs` stays as an offline operator script. `docs/ops/fitness-legacy-migration-plan.md` now records the retirement.

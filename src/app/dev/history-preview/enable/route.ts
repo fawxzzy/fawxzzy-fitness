@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
 import {
   HISTORY_PREVIEW_COOKIE_NAME,
   normalizeHistoryPreviewTarget,
@@ -9,6 +10,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export function GET(request: NextRequest) {
+  const unavailable = devRouteUnavailableResponse();
+  if (unavailable) {
+    return unavailable;
+  }
+
   if (!isHistoryPreviewEnabledInEnv() || !isHistoryPreviewAllowedHost(request.nextUrl.host)) {
     return new NextResponse(null, { status: 404 });
   }

@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
 import { getExercisesWithStatsForExplicitUser } from "@/lib/exercises-browser";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const unavailable = devRouteUnavailableResponse();
+  if (unavailable) {
+    return unavailable;
+  }
+
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
   }
