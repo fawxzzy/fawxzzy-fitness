@@ -2,68 +2,106 @@
 //
 // A route is withdrawn (404) when either:
 // - the platform says this is a production deployment (`VERCEL_ENV === "production"`), or
-// - the platform signal is missing or unrecognised, this is a production-mode server
-//   (`NODE_ENV === "production"`), the opt-in `HISTORY_QA_PREVIEW_ENABLED=1` is not set, and
-//   the request host is not loopback. That branch fails closed when `VERCEL_ENV` is not
-//   exposed to the runtime.
+// - the platform signal is missing or unrecognised and nothing else shows this is a local
+//   run: `NODE_ENV` is anything other than an explicit "development" or "test" (undefined,
+//   "", "Production", "staging" and every unknown value fail closed), the opt-in
+//   `HISTORY_QA_PREVIEW_ENABLED=1` is not honoured, and the request is not loopback.
 //
 // `VERCEL_ENV=preview|development` is a positive platform signal and keeps the routes
 // available. `NODE_ENV` alone is never the key: Vercel previews and local `next start`
-// runs are production mode too. Local production-mode runs (for example
-// `scripts/verify-history-family-ui.mjs`, which sets `HISTORY_QA_PREVIEW_ENABLED=1`) stay
-// reachable through the opt-in or through a loopback host. No CI workflow runs `next start`.
+// runs are production mode too.
 //
-// "Loopback" needs every host signal the request carries to be loopback: the request URL
-// host and the `Host` header (never `x-forwarded-host`). On a self-hosted `next start`
-// the URL host is the address the server is bound to, not what the client asked for, so
-// the `Host` header has to agree. Only loopback names count: private-network addresses do
-// not, because a client can send any `Host` value.
+// The real controls are `VERCEL_ENV`, the opt-in and `NODE_ENV`. The loopback exception is a
+// convenience for local production-mode runs (for example
+// `scripts/verify-history-family-ui.mjs`, which sets `HISTORY_QA_PREVIEW_ENABLED=1` and uses
+// `127.0.0.1`). It is NOT a security control on a server others can reach: loopback names
+// arrive in a client-supplied `Host` header too. No CI workflow runs `next start`.
+//
+// - The opt-in is refused when any host signal is a production hostname (the canonical
+//   or legacy production host, or any `*.vercel.app` name), so a stray opt-in in the
+//   Production environment cannot reopen the routes.
+// - Host signals are the request URL host and the `Host` header, never `x-forwarded-host`. A
+//   missing or unparsable `Host` header counts as non-loopback. On a self-hosted
+//   `next start` the URL host is the bind address, so the header has to agree.
+// - Environment values are read through literal `process.env.NAME` expressions
+//   (`readDevGuardEnv`) because Next inlines only the literal `process.env.NODE_ENV`
+//   expression; an aliased `process.env` object would depend on the runtime populating it.
 //
 // Layers, outermost first:
 // 1. `src/middleware.ts` answers 404 for every dev-only path before any page or handler
 //    runs (see `isDevOnlyPath`). It is the only guard that covers every page.
 // 2. Route handlers (a layout does not wrap them) return `devRouteUnavailableResponse(request)`
 //    as their first statement.
-// 3. Pages without a check of their own call `assertDevPageAvailable()`
-//    (`src/lib/dev-route-guard-page.ts`) first. `src/app/dev/layout.tsx` repeats it, but a
-//    layout does not stop its page from running, so it is not a guard on its own.
+// 3. Pages without a check of their own, and every page that reads with the service-role
+//    client, call `assertDevPageAvailable()` (`src/lib/dev-route-guard-page.ts`) first.
+//    `src/app/dev/layout.tsx` repeats it, but a layout does not stop its page from running,
+//    so it is not a guard on its own.
 
-type EnvSource = Record<string, string | undefined>;
+import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
+
+type EnvSource = Readonly<Record<string, string | undefined>>;
 
 const NON_PRODUCTION_PLATFORM_SIGNALS = new Set(["preview", "development"]);
+const LOCAL_NODE_ENVS = new Set(["development", "test"]);
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const LEGACY_PRODUCTION_HOSTNAME = "fawxzzy-fitness-local.vercel.app";
+const HOST_HEADER_PATTERN = /^(\[[0-9a-f:]+\]|[a-z0-9.-]+)(:\d{1,5})?$/;
 
-export function isProductionDeployment(env: EnvSource = process.env): boolean {
+function canonicalProductionHostname() {
+  try {
+    return new URL(FITNESS_CANONICAL_ORIGIN).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+// Literal reads only: see the header comment.
+export function readDevGuardEnv(): EnvSource {
+  return {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    HISTORY_QA_PREVIEW_ENABLED: process.env.HISTORY_QA_PREVIEW_ENABLED,
+  };
+}
+
+function normalizeHostname(hostname: string | null | undefined): string {
+  const lowered = (hostname ?? "").trim().toLowerCase();
+  return lowered.endsWith(".") ? lowered.slice(0, -1) : lowered;
+}
+
+export function isProductionDeployment(env: EnvSource = readDevGuardEnv()): boolean {
   return env.VERCEL_ENV === "production";
 }
 
 export function isLoopbackHostname(hostname: string | null | undefined): boolean {
-  if (!hostname) {
+  return LOOPBACK_HOSTNAMES.has(normalizeHostname(hostname));
+}
+
+export function isProductionHostname(hostname: string | null | undefined): boolean {
+  const normalized = normalizeHostname(hostname);
+  if (!normalized) {
     return false;
   }
 
-  return LOOPBACK_HOSTNAMES.has(hostname.trim().toLowerCase());
+  return (
+    normalized === canonicalProductionHostname()
+    || normalized === LEGACY_PRODUCTION_HOSTNAME
+    || normalized.endsWith(".vercel.app")
+  );
 }
 
-// "127.0.0.1:3000" -> "127.0.0.1", "[::1]:3000" -> "[::1]", "example.com" -> "example.com".
+// "127.0.0.1:3000" -> "127.0.0.1", "[::1]:3000" -> "[::1]", "LocalHost" -> "localhost".
+// Anything that is not a host with an optional numeric port is unparsable (null).
 export function hostnameFromHostHeader(host: string | null | undefined): string | null {
-  const trimmed = host?.trim().toLowerCase();
-  if (!trimmed) {
-    return null;
-  }
-
-  if (trimmed.startsWith("[")) {
-    const end = trimmed.indexOf("]");
-    return end === -1 ? null : trimmed.slice(0, end + 1);
-  }
-
-  return trimmed.split(":")[0] || null;
+  const match = HOST_HEADER_PATTERN.exec((host ?? "").trim().toLowerCase());
+  return match ? match[1] : null;
 }
 
-// Hostnames a request presents: its URL host, plus the `Host` header when present.
+// Hostnames a request presents: its URL host and its `Host` header. A missing or
+// unparsable header contributes "" (never loopback), so the layers agree with the page guard.
 export function hostnamesOf(request: {
   url: string;
-  headers?: { get(name: string): string | null };
+  headers: { get(name: string): string | null };
 }): string[] {
   let urlHostname = "";
   try {
@@ -72,13 +110,12 @@ export function hostnamesOf(request: {
     urlHostname = "";
   }
 
-  const hostHeaderName = hostnameFromHostHeader(request.headers?.get("host"));
-  return hostHeaderName ? [urlHostname, hostHeaderName] : [urlHostname];
+  return [urlHostname, hostnameFromHostHeader(request.headers.get("host")) ?? ""];
 }
 
 export function isDevRouteWithdrawn({
   hostnames = [],
-  env = process.env,
+  env = readDevGuardEnv(),
 }: {
   hostnames?: ReadonlyArray<string | null | undefined>;
   env?: EnvSource;
@@ -91,22 +128,24 @@ export function isDevRouteWithdrawn({
     return false;
   }
 
-  // The platform signal is missing or unrecognised: fail closed on a production-mode server.
-  if (env.NODE_ENV !== "production") {
+  // The platform signal is missing or unrecognised. Only an explicit local NODE_ENV is exempt.
+  if (env.NODE_ENV !== undefined && LOCAL_NODE_ENVS.has(env.NODE_ENV)) {
     return false;
   }
 
-  if (env.HISTORY_QA_PREVIEW_ENABLED === "1") {
+  const names = hostnames.map(normalizeHostname);
+
+  if (env.HISTORY_QA_PREVIEW_ENABLED === "1" && !names.some(isProductionHostname)) {
     return false;
   }
 
-  // Local only when the request presents at least one host and every one is loopback.
-  return !(hostnames.length > 0 && hostnames.every((hostname) => isLoopbackHostname(hostname)));
+  // Local convenience: at least one host presented and every one is loopback.
+  return !(names.length > 0 && names.every(isLoopbackHostname));
 }
 
 export function devRouteUnavailableResponse(
-  request: { url: string; headers?: { get(name: string): string | null } },
-  env: EnvSource = process.env,
+  request: { url: string; headers: { get(name: string): string | null } },
+  env: EnvSource = readDevGuardEnv(),
 ): Response | null {
   if (!isDevRouteWithdrawn({ hostnames: hostnamesOf(request), env })) {
     return null;
@@ -118,10 +157,45 @@ export function devRouteUnavailableResponse(
   );
 }
 
+// Path segments as the router will see them: percent-decoded per segment (a decoded `%2F`
+// splits further), lower-cased, with empty and `.` segments dropped and `..` resolved.
+function routerSegments(pathname: string): string[] {
+  const segments: string[] = [];
+
+  for (const raw of pathname.split("/")) {
+    let decoded = raw;
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch {
+      decoded = raw;
+    }
+
+    for (const part of decoded.toLowerCase().split("/")) {
+      if (part === "" || part === ".") {
+        continue;
+      }
+
+      if (part === "..") {
+        segments.pop();
+        continue;
+      }
+
+      segments.push(part);
+    }
+  }
+
+  return segments;
+}
+
 // Paths withdrawn by this guard: the whole /dev tree, /api/dev, and the ecosystem debug endpoint.
-const DEV_ONLY_PATH_PREFIXES = ["/dev", "/api/dev", "/api/ecosystem/fitness/debug"] as const;
+const DEV_ONLY_PATH_PREFIXES: ReadonlyArray<readonly string[]> = [
+  ["dev"],
+  ["api", "dev"],
+  ["api", "ecosystem", "fitness", "debug"],
+];
 
 export function isDevOnlyPath(pathname: string): boolean {
-  const normalized = pathname.replace(/\/+$/, "");
-  return DEV_ONLY_PATH_PREFIXES.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`));
+  const segments = routerSegments(pathname);
+
+  return DEV_ONLY_PATH_PREFIXES.some((prefix) => prefix.every((part, index) => segments[index] === part));
 }

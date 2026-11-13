@@ -14,6 +14,8 @@ import {
   isDevRouteWithdrawn,
   isLoopbackHostname,
   isProductionDeployment,
+  isProductionHostname,
+  readDevGuardEnv,
 } from "./dev-route-guard.ts";
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -69,8 +71,16 @@ function hostnamesFor(hostname: string | null | undefined) {
   return hostname == null ? [] : [hostname];
 }
 
+// A request whose Host header matches its URL, as a real server request does.
+function nextRequest(url: string, headers: Record<string, string> = {}) {
+  return new NextRequest(url, { headers: { host: new URL(url).host, ...headers } });
+}
+
+// Production hostname (the canonical origin host) and a host that is not one.
 const EXTERNAL_HOST = "fitness.fawxzzy.com";
+const OTHER_HOST = "qa.example.test";
 const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]", "::1", "LOCALHOST"];
+const isNotFound = (error: unknown) => (error as { digest?: string }).digest === "NEXT_NOT_FOUND";
 
 test("a production platform signal withdraws dev routes whatever else is set", () => {
   assert.equal(isProductionDeployment({ VERCEL_ENV: "production" }), true);
@@ -100,29 +110,55 @@ test("without a platform signal a production-mode server fails closed unless it 
     const env = { VERCEL_ENV, NODE_ENV: "production" };
 
     // Withdrawn: external, private-network and unknown hosts without the opt-in.
-    for (const hostname of [EXTERNAL_HOST, "192.168.1.20", "10.0.0.2", "172.16.0.9", null, undefined, ""]) {
+    for (const hostname of [EXTERNAL_HOST, OTHER_HOST, "192.168.1.20", "10.0.0.2", "172.16.0.9", null, undefined, ""]) {
       assert.equal(isDevRouteWithdrawn({ hostnames: hostnamesFor(hostname), env }), true, `${VERCEL_ENV} ${hostname}`);
     }
 
-    // Loopback is reachable.
+    // Loopback is reachable (a local-run convenience).
     for (const hostname of LOOPBACK_HOSTS) {
       assert.equal(isDevRouteWithdrawn({ hostnames: hostnamesFor(hostname), env }), false, `${VERCEL_ENV} ${hostname}`);
     }
 
-    // The opt-in admits any host, but only the exact value "1".
-    assert.equal(isDevRouteWithdrawn({ hostnames: [EXTERNAL_HOST], env: { ...env, HISTORY_QA_PREVIEW_ENABLED: "1" } }), false);
+    // The opt-in admits a non-production host, but only the exact value "1".
+    assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { ...env, HISTORY_QA_PREVIEW_ENABLED: "1" } }), false);
     for (const optIn of ["0", "true", "", " 1"]) {
-      assert.equal(isDevRouteWithdrawn({ hostnames: [EXTERNAL_HOST], env: { ...env, HISTORY_QA_PREVIEW_ENABLED: optIn } }), true, optIn);
+      assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { ...env, HISTORY_QA_PREVIEW_ENABLED: optIn } }), true, optIn);
     }
-  }
-
-  // `next dev` and tests are not production mode.
-  for (const NODE_ENV of ["development", "test", undefined]) {
-    assert.equal(isDevRouteWithdrawn({ hostnames: [EXTERNAL_HOST], env: { NODE_ENV } }), false, String(NODE_ENV));
   }
 });
 
-test("host helpers accept only loopback names and parse Host header values", () => {
+test("only an explicit development or test NODE_ENV is exempt; every other value fails closed", () => {
+  for (const NODE_ENV of ["development", "test"]) {
+    assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV } }), false, NODE_ENV);
+  }
+
+  for (const NODE_ENV of [undefined, "", "production", "Production", "PRODUCTION", "staging", "prod", "Development", "dev", " test"]) {
+    assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV } }), true, String(NODE_ENV));
+    assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV, VERCEL_ENV: "staging" } }), true, `staging ${NODE_ENV}`);
+    // Loopback and the opt-in (off production hostnames) still admit a local run.
+    assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1"], env: { NODE_ENV } }), false, `loopback ${NODE_ENV}`);
+    assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV, HISTORY_QA_PREVIEW_ENABLED: "1" } }), false, `opt-in ${NODE_ENV}`);
+  }
+});
+
+test("the opt-in is refused when any host signal is a production hostname", () => {
+  const env = { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" };
+
+  for (const hostname of [EXTERNAL_HOST, "FITNESS.fawxzzy.com", `${EXTERNAL_HOST}.`, "fawxzzy-fitness-local.vercel.app", "fawxzzy-fitness-abc123-fawxzzy.vercel.app", "anything.vercel.app"]) {
+    assert.equal(isProductionHostname(hostname), true, hostname);
+    assert.equal(isDevRouteWithdrawn({ hostnames: [hostname], env }), true, hostname);
+    // Either signal is enough: a loopback bind address with a production Host header.
+    assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1", hostname], env }), true, `both ${hostname}`);
+    assert.equal(isDevRouteWithdrawn({ hostnames: [hostname, "127.0.0.1"], env }), true, `both ${hostname}`);
+  }
+
+  for (const hostname of [OTHER_HOST, "localhost", "127.0.0.1", "192.168.1.20", "vercel.app.example.test", "", null, undefined]) {
+    assert.equal(isProductionHostname(hostname), false, String(hostname));
+  }
+  assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST, "127.0.0.1"], env }), false);
+});
+
+test("host helpers accept only loopback names and parse Host header values strictly", () => {
   for (const hostname of LOOPBACK_HOSTS) {
     assert.equal(isLoopbackHostname(hostname), true, hostname);
   }
@@ -132,48 +168,84 @@ test("host helpers accept only loopback names and parse Host header values", () 
 
   assert.equal(hostnameFromHostHeader("127.0.0.1:3000"), "127.0.0.1");
   assert.equal(hostnameFromHostHeader("[::1]:3000"), "[::1]");
+  assert.equal(hostnameFromHostHeader("[::1]"), "[::1]");
   assert.equal(hostnameFromHostHeader("LocalHost"), "localhost");
+  assert.equal(hostnameFromHostHeader("LOCALHOST:8080"), "localhost");
   assert.equal(hostnameFromHostHeader(`${EXTERNAL_HOST}:443`), EXTERNAL_HOST);
-  assert.equal(hostnameFromHostHeader(""), null);
-  assert.equal(hostnameFromHostHeader(null), null);
-  assert.equal(hostnameFromHostHeader("[::1"), null);
+  assert.equal(hostnameFromHostHeader("  localhost:3000  "), "localhost");
+
+  // Present but unparsable, or missing: no hostname.
+  for (const host of ["", "   ", null, undefined, "[::1", "localhost:", "localhost:abc", "localhost:123456", "local host", "localhost/evil", "localhost:3000/evil", "a,b", "user@localhost", "localhost:3000:4000", "[::1]x", "[zz]:3000", "http://localhost"]) {
+    assert.equal(hostnameFromHostHeader(host), null, String(host));
+  }
 });
 
-test("loopback needs every host signal the request carries to agree", () => {
+test("loopback needs every host signal to agree, and a missing or unparsable Host counts as non-loopback", () => {
   const env = { NODE_ENV: "production" };
 
-  assert.deepEqual(hostnamesOf({ url: "http://127.0.0.1:3000/dev" }), ["127.0.0.1"]);
+  assert.deepEqual(hostnamesOf(new Request("http://127.0.0.1:3000/dev", { headers: { host: "127.0.0.1:3000" } })), ["127.0.0.1", "127.0.0.1"]);
   assert.deepEqual(hostnamesOf(new Request("http://127.0.0.1:3000/dev", { headers: { host: "[::1]:3000" } })), ["127.0.0.1", "[::1]"]);
-  assert.deepEqual(hostnamesOf({ url: "not a url" }), [""]);
+  // No Host header: the second signal is "", never loopback.
+  assert.deepEqual(hostnamesOf(new Request("http://127.0.0.1:3000/dev")), ["127.0.0.1", ""]);
+  // A Host header that is present but unparsable also contributes "".
+  assert.deepEqual(hostnamesOf(new Request("http://127.0.0.1:3000/dev", { headers: { host: "localhost:abc" } })), ["127.0.0.1", ""]);
+  assert.deepEqual(hostnamesOf({ url: "not a url", headers: new Headers({ host: "localhost" }) }), ["", "localhost"]);
 
-  // Both the URL host and the Host header are loopback.
   assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1", "localhost"], env }), false);
+  assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1", ""], env }), true);
+  assert.equal(isDevRouteWithdrawn({ hostnames: ["", "localhost"], env }), true);
   // A self-hosted server's URL host is its bind address, so a non-loopback Host header decides.
-  assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1", EXTERNAL_HOST], env }), true);
-  assert.equal(isDevRouteWithdrawn({ hostnames: [EXTERNAL_HOST, "localhost"], env }), true);
-  // Nothing presented, or an unparsable URL, is not local.
+  assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1", OTHER_HOST], env }), true);
+  assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST, "localhost"], env }), true);
+  // Nothing presented is not local.
   assert.equal(isDevRouteWithdrawn({ hostnames: [], env }), true);
   assert.equal(isDevRouteWithdrawn({ hostnames: [""], env }), true);
 });
 
 test("the handler response is an uncached 404 that carries no route detail and ignores forwarded hosts", async () => {
   const production = { VERCEL_ENV: "production" };
-  const response = devRouteUnavailableResponse(new Request(`https://${EXTERNAL_HOST}/dev`), production);
+  const response = devRouteUnavailableResponse(new Request(`https://${EXTERNAL_HOST}/dev`, { headers: { host: EXTERNAL_HOST } }), production);
 
   assert.ok(response);
   assert.equal(response.status, 404);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), { ok: false, error: "Not found." });
 
-  assert.equal(devRouteUnavailableResponse(new Request("http://localhost:3000/dev"), { NODE_ENV: "production" }), null);
+  const local = new Request("http://localhost:3000/dev", { headers: { host: "localhost:3000" } });
+  assert.equal(devRouteUnavailableResponse(local, { NODE_ENV: "production" }), null);
 
-  // A forwarded-host header never makes an external request look local.
-  const withForwardedHost = new Request(`https://${EXTERNAL_HOST}/dev`, { headers: { "x-forwarded-host": "localhost", host: "localhost" } });
+  // A forwarded-host header never makes a non-loopback request look local.
+  const withForwardedHost = new Request(`https://${OTHER_HOST}/dev`, { headers: { "x-forwarded-host": "localhost", host: OTHER_HOST } });
   assert.ok(devRouteUnavailableResponse(withForwardedHost, { NODE_ENV: "production" }));
 
-  // A loopback bind address with a public Host header is still withdrawn.
-  const proxied = new Request("http://127.0.0.1:3000/dev", { headers: { host: EXTERNAL_HOST, "x-forwarded-host": "localhost" } });
+  // A loopback bind address with a different Host header is still withdrawn.
+  const proxied = new Request("http://127.0.0.1:3000/dev", { headers: { host: OTHER_HOST, "x-forwarded-host": "localhost" } });
   assert.ok(devRouteUnavailableResponse(proxied, { NODE_ENV: "production" }));
+
+  // A missing or unparsable Host header is withdrawn too, even on a loopback URL.
+  assert.ok(devRouteUnavailableResponse(new Request("http://127.0.0.1:3000/dev"), { NODE_ENV: "production" }));
+  assert.ok(devRouteUnavailableResponse(new Request("http://127.0.0.1:3000/dev", { headers: { host: "localhost:abc" } }), { NODE_ENV: "production" }));
+});
+
+test("environment values are read through literal process.env expressions", () => {
+  const guardSource = read("src/lib/dev-route-guard.ts");
+  const pageGuardSource = read("src/lib/dev-route-guard-page.ts");
+  const middlewareSource = read("src/middleware.ts");
+
+  // Next inlines only the literal `process.env.NODE_ENV` expression, so no layer may alias the object.
+  for (const source of [guardSource, pageGuardSource]) {
+    assert.doesNotMatch(source, /=\s*process\.env\s*[,;)]/);
+    assert.doesNotMatch(source, /\bprocess\.env\s*\)/);
+  }
+  assert.match(guardSource, /NODE_ENV: process\.env\.NODE_ENV,/);
+  assert.match(guardSource, /VERCEL_ENV: process\.env\.VERCEL_ENV,/);
+  assert.match(guardSource, /HISTORY_QA_PREVIEW_ENABLED: process\.env\.HISTORY_QA_PREVIEW_ENABLED,/);
+  assert.match(middlewareSource, /NODE_ENV: process\.env\.NODE_ENV,/);
+  assert.match(middlewareSource, /VERCEL_ENV: process\.env\.VERCEL_ENV,/);
+  assert.match(middlewareSource, /HISTORY_QA_PREVIEW_ENABLED: process\.env\.HISTORY_QA_PREVIEW_ENABLED,/);
+
+  const snapshot = readDevGuardEnv();
+  assert.deepEqual(Object.keys(snapshot).sort(), ["HISTORY_QA_PREVIEW_ENABLED", "NODE_ENV", "VERCEL_ENV"]);
 });
 
 test("the dev layout repeats the shared guard and does not claim to stop its page", () => {
@@ -202,18 +274,52 @@ test("every dev page has a production check, and the unguarded pages call the sh
   }
 });
 
-test("the shared page guard raises not-found only when the guard withdraws the route", () => {
-  const isNotFound = (error: unknown) => (error as { digest?: string }).digest === "NEXT_NOT_FOUND";
+test("any dev page or handler that reads with the service-role client calls the shared guard first", () => {
+  const sourceFiles = [
+    ...listFiles("src/app/dev"),
+    ...listFiles("src/app/api/dev"),
+    "src/app/api/ecosystem/fitness/debug/route.ts",
+  ].filter((file) => /\.(?:ts|tsx)$/.test(file) && !/\.test\./.test(file));
+  const adminReaders = sourceFiles.filter((file) => /\bsupabaseAdmin\b|@\/lib\/supabase\/admin/.test(read(file)));
 
+  // The three History live pages and the dev history API route read with the service-role client.
+  assert.ok(adminReaders.length >= 4, adminReaders.join(", "));
+
+  for (const file of adminReaders) {
+    const source = read(file);
+
+    if (/\/page\.tsx$/.test(file)) {
+      assert.match(source, /from "@\/lib\/dev-route-guard-page"/, file);
+      assert.match(source, /export default (?:async )?function \w+\([\s\S]*?\) \{\s*assertDevPageAvailable\(\);/, `${file} must call the shared page guard first`);
+      // A page-local copy of a spoofable gate must not come back.
+      assert.doesNotMatch(source, /isLocalRequest|x-forwarded-host/, `${file} keeps its own host gate`);
+    } else if (/\/route\.ts$/.test(file)) {
+      assert.match(source, /const unavailable = devRouteUnavailableResponse\(request\);/, `${file} must call the shared handler guard`);
+    } else {
+      assert.fail(`${file} imports the service-role client but is neither a dev page nor a route handler`);
+    }
+  }
+});
+
+test("the shared page guard raises not-found only when the guard withdraws the route", () => {
   assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { VERCEL_ENV: "production" }), isNotFound);
   assert.throws(() => assertDevPageAvailable("localhost:3000", { VERCEL_ENV: "production" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production" }), isNotFound);
+  assert.throws(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "production" }), isNotFound);
   assert.throws(() => assertDevPageAvailable(null, { NODE_ENV: "production" }), isNotFound);
+  assert.throws(() => assertDevPageAvailable("localhost:abc", { NODE_ENV: "production" }), isNotFound);
+  // The opt-in does not reopen a production hostname.
+  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
+  assert.throws(() => assertDevPageAvailable("abc.vercel.app", { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
+  // NODE_ENV values that are not an explicit local mode fail closed.
+  assert.throws(() => assertDevPageAvailable(OTHER_HOST, {}), isNotFound);
+  assert.throws(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "Production" }), isNotFound);
 
   assert.doesNotThrow(() => assertDevPageAvailable("127.0.0.1:3000", { NODE_ENV: "production" }));
-  assert.doesNotThrow(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }));
+  assert.doesNotThrow(() => assertDevPageAvailable("LOCALHOST:3000", { NODE_ENV: "production" }));
+  assert.doesNotThrow(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }));
   assert.doesNotThrow(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", VERCEL_ENV: "preview" }));
-  assert.doesNotThrow(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "development" }));
+  assert.doesNotThrow(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "development" }));
+  assert.doesNotThrow(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "test" }));
 });
 
 test("every dev route handler returns the guard response before doing any work", () => {
@@ -242,7 +348,9 @@ test("every dev route handler returns the guard response before doing any work",
 test("dev route handlers answer 404 before any work when the guard withdraws the route", async () => {
   const cases: Array<{ label: string; env: Record<string, string | undefined>; host: string }> = [
     { label: "production deployment", env: { VERCEL_ENV: "production", NODE_ENV: "production" }, host: "localhost:3000" },
-    { label: "production-mode server without a platform signal", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, host: EXTERNAL_HOST },
+    { label: "production-mode server without a platform signal", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, host: OTHER_HOST },
+    { label: "unknown NODE_ENV without a platform signal", env: { VERCEL_ENV: undefined, NODE_ENV: "Production", HISTORY_QA_PREVIEW_ENABLED: undefined }, host: OTHER_HOST },
+    { label: "opt-in on a production hostname", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }, host: EXTERNAL_HOST },
   ];
 
   for (const { label, env, host } of cases) {
@@ -256,6 +364,7 @@ test("dev route handlers answer 404 before any work when the guard withdraws the
           const handler = routeModule[name] as (request: Request) => Promise<Response> | Response;
           const request = new Request(`http://${host}/dev?access_token=a&refresh_token=b&userId=u`, {
             method: name,
+            headers: { host },
             ...(name === "GET" ? {} : { body: "{}" }),
           });
           const response = await handler(request);
@@ -266,6 +375,20 @@ test("dev route handlers answer 404 before any work when the guard withdraws the
       }
     });
   }
+});
+
+test("dev route handlers treat a missing Host header as withdrawn, like the page guard", async () => {
+  await withEnv({ VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, async () => {
+    for (const file of guardedHandlerFiles) {
+      const routeModule = (await import(pathToFileURL(path.join(repoRoot, file)).href)) as Record<string, unknown>;
+      const handler = routeModule.GET as ((request: Request) => Promise<Response> | Response) | undefined;
+      if (!handler) continue;
+
+      // Loopback URL, no Host header.
+      const response = await handler(new Request("http://127.0.0.1:3000/dev?access_token=a&refresh_token=b&userId=u"));
+      assert.equal(response.status, 404, file);
+    }
+  });
 });
 
 test("dev route handlers still reach their own checks on loopback, with the opt-in, or off the production path", async () => {
@@ -294,23 +417,41 @@ test("dev route handlers still reach their own checks on loopback, with the opt-
   }
 });
 
-test("dev-only paths cover the dev tree, the dev API and the ecosystem debug endpoint", () => {
+test("dev-only paths cover the dev tree, the dev API and the ecosystem debug endpoint, however they are written", () => {
   for (const pathname of [
     "/dev",
     "/dev/",
+    "/dev//",
     "/dev/env",
     "/dev/auth/bootstrap",
     "/dev/history-sessions-live/",
+    "//dev/env",
+    "/./dev/env",
+    "/x/../dev/env",
+    "/DEV/env",
+    "/%64ev/env",
+    "/dev%2Fenv",
+    "/dev/%2e%2e/dev/env",
     "/api/dev/history-exercises-live",
+    "/api//dev/history-exercises-live",
+    "/api/%64ev/history-exercises-live",
     "/api/ecosystem/fitness/debug",
     "/api/ecosystem/fitness/debug/",
+    "/api/ecosystem/fitness/debug//",
+    "/api/ecosystem/%66itness/debug",
   ]) {
     assert.equal(isDevOnlyPath(pathname), true, pathname);
   }
 
-  for (const pathname of ["/", "/today", "/devices", "/developer", "/api/devices", "/api/ecosystem/fitness/pilot-shadow", "/history/dev"]) {
+  for (const pathname of ["/", "", "/today", "/devices", "/developer", "/dev-tools", "/api/devices", "/api/ecosystem/fitness/pilot-shadow", "/api/ecosystem/fitness", "/history/dev", "/api/history/dev", "/%zz"]) {
     assert.equal(isDevOnlyPath(pathname), false, pathname);
   }
+});
+
+test("the dev-only path check has no regular-expression trim", () => {
+  const source = read("src/lib/dev-route-guard.ts");
+
+  assert.doesNotMatch(source, /replace\(\/\\\/\+\$\/|\\\/\+\$/);
 });
 
 const DEV_PATHS = [
@@ -335,48 +476,69 @@ async function assertGuardResponse(request: NextRequest, label: string) {
 }
 
 test("middleware answers dev-only paths with a real 404 on a production deployment before any page runs", async () => {
-  await withEnv({ VERCEL_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }, async () => {
+  await withEnv({ VERCEL_ENV: "production", NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }, async () => {
     for (const pathname of DEV_PATHS) {
-      await assertGuardResponse(new NextRequest(`https://${EXTERNAL_HOST}${pathname}`), pathname);
+      await assertGuardResponse(nextRequest(`https://${EXTERNAL_HOST}${pathname}`), pathname);
       // Even a local-looking host and the opt-in do not reopen a production deployment.
-      await assertGuardResponse(new NextRequest(`http://localhost:3000${pathname}`), `localhost ${pathname}`);
+      await assertGuardResponse(nextRequest(`http://localhost:3000${pathname}`), `localhost ${pathname}`);
     }
   });
 });
 
-test("middleware fails closed for dev-only paths on a production-mode server without a platform signal", async () => {
+test("middleware fails closed for dev-only paths on a server with no platform signal", async () => {
   await withEnv({ VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, async () => {
     for (const pathname of DEV_PATHS) {
-      await assertGuardResponse(new NextRequest(`https://${EXTERNAL_HOST}${pathname}`), pathname);
-      await assertGuardResponse(new NextRequest(`http://192.168.1.20:3000${pathname}`), `lan ${pathname}`);
-      // `next start` reports its bind address as the URL host; the Host header still decides.
+      await assertGuardResponse(nextRequest(`https://${EXTERNAL_HOST}${pathname}`), pathname);
+      await assertGuardResponse(nextRequest(`http://192.168.1.20:3000${pathname}`), `lan ${pathname}`);
+      // A forwarded-host header never makes a non-loopback request look local.
       await assertGuardResponse(
-        new NextRequest(`http://127.0.0.1:3000${pathname}`, { headers: { host: EXTERNAL_HOST } }),
-        `bind address ${pathname}`,
-      );
-      // A forwarded-host header never makes an external request look local.
-      await assertGuardResponse(
-        new NextRequest(`https://${EXTERNAL_HOST}${pathname}`, { headers: { "x-forwarded-host": "localhost" } }),
+        nextRequest(`https://${OTHER_HOST}${pathname}`, { "x-forwarded-host": "localhost" }),
         `forwarded ${pathname}`,
       );
+      // `next start` reports its bind address as the URL host; the Host header still decides.
+      await assertGuardResponse(nextRequest(`http://127.0.0.1:3000${pathname}`, { host: OTHER_HOST }), `bind address ${pathname}`);
+      // A missing or unparsable Host header is withdrawn too, even on a loopback URL.
+      await assertGuardResponse(new NextRequest(`http://127.0.0.1:3000${pathname}`), `no host ${pathname}`);
+      await assertGuardResponse(nextRequest(`http://127.0.0.1:3000${pathname}`, { host: "localhost:abc" }), `bad host ${pathname}`);
+    }
+  });
+
+  // NODE_ENV values that are not an explicit local mode fail closed.
+  for (const NODE_ENV of [undefined, "", "Production", "staging"]) {
+    await withEnv({ VERCEL_ENV: undefined, NODE_ENV, HISTORY_QA_PREVIEW_ENABLED: undefined }, async () => {
+      await assertGuardResponse(nextRequest(`https://${OTHER_HOST}/dev/env`), `NODE_ENV ${NODE_ENV}`);
+    });
+  }
+});
+
+test("middleware refuses the opt-in on production hostnames", async () => {
+  await withEnv({ VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }, async () => {
+    for (const host of [EXTERNAL_HOST, "fawxzzy-fitness-local.vercel.app", "fawxzzy-fitness-abc123-fawxzzy.vercel.app"]) {
+      for (const pathname of DEV_PATHS) {
+        await assertGuardResponse(nextRequest(`https://${host}${pathname}`), `${host} ${pathname}`);
+        // A loopback URL host does not help when the Host header is a production hostname.
+        await assertGuardResponse(nextRequest(`http://127.0.0.1:3000${pathname}`, { host }), `bind ${host} ${pathname}`);
+      }
     }
   });
 });
 
 test("middleware leaves dev-only paths reachable on loopback, with the opt-in, and on preview", async () => {
+  const noOptIn = { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined };
   const reachable: Array<{ label: string; env: Record<string, string | undefined>; url: (pathname: string) => string }> = [
-    { label: "loopback name", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, url: (p) => `http://localhost:3000${p}` },
-    { label: "loopback v4", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, url: (p) => `http://127.0.0.1:3000${p}` },
-    { label: "loopback v6", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, url: (p) => `http://[::1]:3000${p}` },
-    { label: "opt-in", env: { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
-    { label: "preview", env: { VERCEL_ENV: "preview", NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
-    { label: "development mode", env: { VERCEL_ENV: undefined, NODE_ENV: "development", HISTORY_QA_PREVIEW_ENABLED: undefined }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
+    { label: "loopback name", env: noOptIn, url: (p) => `http://localhost:3000${p}` },
+    { label: "loopback v4", env: noOptIn, url: (p) => `http://127.0.0.1:3000${p}` },
+    { label: "loopback v6", env: noOptIn, url: (p) => `http://[::1]:3000${p}` },
+    { label: "opt-in", env: { ...noOptIn, HISTORY_QA_PREVIEW_ENABLED: "1" }, url: (p) => `https://${OTHER_HOST}${p}` },
+    { label: "preview", env: { ...noOptIn, VERCEL_ENV: "preview" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
+    { label: "development mode", env: { ...noOptIn, NODE_ENV: "development" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
+    { label: "test mode", env: { ...noOptIn, NODE_ENV: "test" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
   ];
 
   for (const { label, env, url } of reachable) {
     await withEnv(env, async () => {
       for (const pathname of DEV_PATHS) {
-        const response = await middleware(new NextRequest(url(pathname)));
+        const response = await middleware(nextRequest(url(pathname)));
 
         assert.notEqual(response.status, 404, `${label} ${pathname}`);
       }
@@ -388,17 +550,20 @@ test("middleware leaves every non-dev path untouched whatever the guard decides"
   const environments: Array<Record<string, string | undefined>> = [
     { VERCEL_ENV: "production", NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined },
     { VERCEL_ENV: undefined, NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined },
+    { VERCEL_ENV: undefined, NODE_ENV: undefined, HISTORY_QA_PREVIEW_ENABLED: undefined },
     { VERCEL_ENV: "preview", NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: undefined },
   ];
 
   for (const env of environments) {
     await withEnv(env, async () => {
       for (const pathname of NON_DEV_PATHS) {
-        const response = await middleware(new NextRequest(`https://${EXTERNAL_HOST}${pathname}`));
-        const body = response.headers.get("content-type")?.includes("json") ? await response.clone().text() : "";
+        for (const request of [nextRequest(`https://${EXTERNAL_HOST}${pathname}`), new NextRequest(`https://${EXTERNAL_HOST}${pathname}`)]) {
+          const response = await middleware(request);
+          const body = response.headers.get("content-type")?.includes("json") ? await response.clone().text() : "";
 
-        assert.notEqual(response.status, 404, `${JSON.stringify(env)} ${pathname}`);
-        assert.doesNotMatch(body, /"error":"Not found\."/, `${JSON.stringify(env)} ${pathname}`);
+          assert.notEqual(response.status, 404, `${JSON.stringify(env)} ${pathname}`);
+          assert.doesNotMatch(body, /"error":"Not found\."/, `${JSON.stringify(env)} ${pathname}`);
+        }
       }
     });
   }
