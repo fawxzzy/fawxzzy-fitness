@@ -63,7 +63,7 @@ Fitness maintains a bounded local debug store for:
 
 Receipts are first-class and keep `sourceOutboundId` so outbound-to-receipt traceability is inspectable in-app.
 
-Dev inspection surface (preview and local runs only; answers 404 on production deployments and on production-mode servers that cannot show they are local):
+Dev inspection surface (preview and local runs only; answers 404 on production deployments and, when the platform environment is unknown, on anything that is not an explicit development or test run, a loopback request, or the `HISTORY_QA_PREVIEW_ENABLED=1` opt-in on a non-production host; the loopback exception is a convenience for local runs, not a security control):
 - `GET /api/ecosystem/fitness/debug`
 - `POST /api/ecosystem/fitness/debug` with commands:
   - `refresh-live-state`
