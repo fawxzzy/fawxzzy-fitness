@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,11 @@ function getRequestOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const unavailable = devRouteUnavailableResponse();
+  if (unavailable) {
+    return unavailable;
+  }
+
   if (process.env.NODE_ENV === "production" && !isLocalRequest(request)) {
     return deny(request);
   }
