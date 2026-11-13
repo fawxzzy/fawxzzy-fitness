@@ -1,47 +1,8 @@
 import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { CuratedGenerationStatus } from "../types.ts";
 import type { CuratedWorkoutPlan } from "../engine.ts";
+import { getCuratedHandoffPresentation, type CuratedHandoffFailure } from "../handoff.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
-
-function getStatusCopy(status: CuratedGenerationStatus) {
-  if (status === "queued") {
-    return {
-      title: "Building your plan",
-      body: "Building from your saved setup.",
-      tone: "warning" as const,
-    };
-  }
-
-  if (status === "ready") {
-    return {
-      title: "Your plan is ready to review",
-      body: "Review the days below, then open the editable draft.",
-      tone: "accent" as const,
-    };
-  }
-
-  if (status === "failed") {
-    return {
-      title: "Plan generation failed",
-      body: "Your setup is saved. Return and try again.",
-      tone: "danger" as const,
-    };
-  }
-
-  if (status === "not-implemented") {
-    return {
-      title: "Generation is not implemented yet",
-      body: "Your setup is saved for a later retry.",
-      tone: "accent" as const,
-    };
-  }
-
-  return {
-    title: "Intake saved locally",
-    body: "Preparing the editable draft.",
-    tone: "default" as const,
-  };
-}
 
 function formatExerciseTarget(exercise: CuratedWorkoutPlan["days"][number]["exercises"][number]) {
   if (exercise.targetDurationSeconds) {
@@ -53,13 +14,18 @@ function formatExerciseTarget(exercise: CuratedWorkoutPlan["days"][number]["exer
 export function GenerationHandoffStep({
   generationStatus,
   plan,
-  error,
+  failure,
+  notice,
 }: {
   generationStatus: CuratedGenerationStatus;
   plan: CuratedWorkoutPlan | null;
-  error: string | null;
+  /** Why generation did not produce a routine. A plan is never rendered while this is set. */
+  failure: CuratedHandoffFailure | null;
+  /** Recoverable problem from the last create attempt; the reviewed routine stays visible. */
+  notice: string | null;
 }) {
-  const copy = getStatusCopy(generationStatus);
+  const copy = getCuratedHandoffPresentation({ status: generationStatus, failure });
+  const visiblePlan = failure ? null : plan;
 
   return (
     <div className="space-y-3">
@@ -67,23 +33,23 @@ export function GenerationHandoffStep({
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">{copy.title}</p>
           <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
-            {generationStatus === "ready" ? "Ready" : generationStatus === "failed" ? "Failed" : "Working"}
+            {copy.badge}
           </span>
         </div>
         <p className="mt-1 text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">{copy.body}</p>
       </CuratedInfoCard>
 
-      {plan ? (
+      {visiblePlan ? (
         <div className="space-y-3">
           <CuratedInfoCard compact>
             <SignatureInlineList
               separator="pipe"
-              items={plan.rationale}
+              items={visiblePlan.rationale}
               className="text-[10px] font-medium leading-5 text-[rgb(var(--text-secondary)/0.92)]"
             />
           </CuratedInfoCard>
 
-          {plan.days.map((day) => (
+          {visiblePlan.days.map((day) => (
             <CuratedInfoCard key={day.name} className="space-y-2.5">
               <p className="border-b border-[rgb(var(--accent)/0.35)] pb-1 text-sm font-semibold text-[rgb(var(--accent)/0.96)]">
                 {day.name}
@@ -102,9 +68,15 @@ export function GenerationHandoffStep({
         </div>
       ) : null}
 
-      {error ? (
+      {failure && failure.code !== "safety-clearance-required" ? (
         <CuratedInfoCard compact tone="danger">
-          <p className="text-xs leading-5 text-[rgb(var(--danger-rgb))]">{error}</p>
+          <p className="text-xs leading-5 text-[rgb(var(--danger-rgb))]">{failure.message}</p>
+        </CuratedInfoCard>
+      ) : null}
+
+      {notice ? (
+        <CuratedInfoCard compact tone="warning">
+          <p role="status" className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{notice}</p>
         </CuratedInfoCard>
       ) : null}
     </div>
