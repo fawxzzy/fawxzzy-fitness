@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, type FormEvent, useState, useTransition } from "react";
 import { changePasswordAction, type PasswordUpdateState } from "@/app/settings/actions";
+import { SettingsCard } from "@/components/settings/SettingsCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -66,70 +67,67 @@ export function AccountPasswordSection({ email }: { email: string }) {
     <form
       id={PASSWORD_FORM_ID}
       onSubmit={handleSubmit}
-      className="space-y-3 pt-2"
-      aria-labelledby="account-password-heading"
+      className="space-y-3"
+      aria-label="Change password"
       data-testid="account-password-form"
     >
-      <div className="relative -mx-5 overflow-hidden rounded-[var(--radius-lg)] border border-transparent bg-transparent shadow-none">
-        <div className="relative space-y-3 p-4 sm:p-5">
-          <p id="account-password-heading" className={cn(appTokens.settingsSectionTitle, "text-center")}>Change password</p>
-          {/* Lets password managers file the new password under the right account. */}
-          <input type="text" name="username" autoComplete="username" value={email} readOnly tabIndex={-1} aria-hidden="true" className="sr-only" />
-          <div className={appTokens.settingsFieldStack}>
-            <LabeledEditorField label="Current password">
-              <PasswordInput
-                id="account-current-password"
-                name="currentPassword"
-                autoComplete="current-password"
-                required
-                value={currentPassword}
-                onChange={edit(setCurrentPassword)}
-                className={PASSWORD_FIELD_CLASS_NAME}
-              />
-            </LabeledEditorField>
-          </div>
-          <div className={appTokens.settingsFieldStack}>
-            <LabeledEditorField label="New password">
-              <PasswordInput
-                id="account-new-password"
-                name="newPassword"
-                autoComplete="new-password"
-                minLength={NEW_PASSWORD_MINIMUM}
-                required
-                value={newPassword}
-                onChange={edit(setNewPassword)}
-                className={PASSWORD_FIELD_CLASS_NAME}
-              />
-            </LabeledEditorField>
-          </div>
-          <div className={appTokens.settingsFieldStack}>
-            <LabeledEditorField label="Confirm new password">
-              <PasswordInput
-                id="account-confirm-password"
-                name="confirmPassword"
-                autoComplete="new-password"
-                minLength={NEW_PASSWORD_MINIMUM}
-                required
-                value={confirmPassword}
-                onChange={edit(setConfirmPassword)}
-                className={PASSWORD_FIELD_CLASS_NAME}
-              />
-            </LabeledEditorField>
-          </div>
-          <div className={appTokens.settingsFieldStack} aria-live="polite">
-            {showMismatch ? (
-              <p className={cn(appTokens.settingsBodyText, appTokens.settingsStatusError)}>{CHANGE_PASSWORD_COPY.confirmation_mismatch}</p>
-            ) : result.message ? (
-              <p className={cn(appTokens.settingsBodyText, messageTone)}>{result.message}</p>
-            ) : (
-              <p className={cn(appTokens.settingsBodyText, appTokens.settingsStatusMuted)}>{NEW_PASSWORD_REQUIREMENT}</p>
-            )}
-          </div>
-          <AppButton type="submit" variant="primary" fullWidth loading={pending} disabled={!input.ok}>
-            Update password
-          </AppButton>
+      <SettingsCard title="Change password" headingLevel={2}>
+        {/* Lets password managers file the new password under the right account. */}
+        <input type="text" name="username" autoComplete="username" value={email} readOnly tabIndex={-1} aria-hidden="true" className="sr-only" />
+        <div className={appTokens.settingsFieldStack}>
+          <LabeledEditorField label="Current password">
+            <PasswordInput
+              id="account-current-password"
+              name="currentPassword"
+              autoComplete="current-password"
+              required
+              value={currentPassword}
+              onChange={edit(setCurrentPassword)}
+              className={PASSWORD_FIELD_CLASS_NAME}
+            />
+          </LabeledEditorField>
         </div>
-      </div>
+        <div className={appTokens.settingsFieldStack}>
+          <LabeledEditorField label="New password">
+            <PasswordInput
+              id="account-new-password"
+              name="newPassword"
+              autoComplete="new-password"
+              minLength={NEW_PASSWORD_MINIMUM}
+              required
+              value={newPassword}
+              onChange={edit(setNewPassword)}
+              className={PASSWORD_FIELD_CLASS_NAME}
+            />
+          </LabeledEditorField>
+        </div>
+        <div className={appTokens.settingsFieldStack}>
+          <LabeledEditorField label="Confirm new password">
+            <PasswordInput
+              id="account-confirm-password"
+              name="confirmPassword"
+              autoComplete="new-password"
+              minLength={NEW_PASSWORD_MINIMUM}
+              required
+              value={confirmPassword}
+              onChange={edit(setConfirmPassword)}
+              className={PASSWORD_FIELD_CLASS_NAME}
+            />
+          </LabeledEditorField>
+        </div>
+        <div className={appTokens.settingsFieldStack} aria-live="polite">
+          {showMismatch ? (
+            <p className={cn(appTokens.settingsBodyText, appTokens.settingsStatusError)}>{CHANGE_PASSWORD_COPY.confirmation_mismatch}</p>
+          ) : result.message ? (
+            <p className={cn(appTokens.settingsBodyText, messageTone)}>{result.message}</p>
+          ) : (
+            <p className={cn(appTokens.settingsBodyText, appTokens.settingsStatusMuted)}>{NEW_PASSWORD_REQUIREMENT}</p>
+          )}
+        </div>
+        <AppButton type="submit" variant="primary" fullWidth loading={pending} disabled={!input.ok}>
+          Update password
+        </AppButton>
+      </SettingsCard>
     </form>
   );
 }
