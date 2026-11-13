@@ -149,13 +149,15 @@ test("buildResolvedProAccessSnapshot keeps free users blocked when paid launch i
 });
 
 test("buildResolvedProAccessSnapshot reflects scheduled subscription cancellation while access remains active", () => {
+  // Relative to now: a fixed calendar date goes stale and silently flips this case to Free.
+  const scheduledEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const entitlement: UserEntitlementRow = {
     id: "entitlement-sub-1",
     user_id: "user-1",
     entitlement_key: "pro",
     status: "active",
     granted_at: "2026-07-01T01:00:00.000Z",
-    expires_at: "2026-08-01T01:00:00.000Z",
+    expires_at: scheduledEnd,
     source_subscription_id: "sub_123",
     granted_via_purchase_id: "purchase-sub-1",
     created_at: "2026-07-01T01:00:00.000Z",
@@ -178,12 +180,12 @@ test("buildResolvedProAccessSnapshot reflects scheduled subscription cancellatio
       updated_at: "2026-07-01T01:00:00.000Z",
     } as BillingPurchaseRow,
     customerPortalAvailable: true,
-    cancellationScheduledFor: "2026-08-01T01:00:00.000Z",
+    cancellationScheduledFor: scheduledEnd,
   });
 
   assert.equal(snapshot.accessState, "pro");
   assert.equal(snapshot.accessSource, "subscription");
-  assert.equal(snapshot.cancellationScheduledFor, "2026-08-01T01:00:00.000Z");
+  assert.equal(snapshot.cancellationScheduledFor, scheduledEnd);
   assert.match(snapshot.supportNote, /keeps Pro access until the scheduled subscription end date/i);
 });
 
