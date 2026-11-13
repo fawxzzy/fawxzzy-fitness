@@ -1,5 +1,18 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Review hold on the curated stack: fail closed, enforce at the action layer, stay idempotent
+
+- Type: Product behavior (source) + server-action hardening
+- WHAT changed: The curated safety gate now requires a positive, well-typed answer (`warningSymptoms` non-empty string list, `safetyAcknowledgment === true`, `under18` answered); the server also requires `isCuratedOnboardingReadyForHandoff`, and a member under 18 without a guardian "yes" is blocked with referral-only copy. Both server actions enforce `isCuratedOnboardingEnabled()`, rethrow redirect errors, return fixed copy instead of raw exception or database text, roll back the exact routine row (a failed rollback is reported, not ignored) and adopt an identical routine created by an earlier attempt instead of duplicating it. `createRoutineAction` returns the routine id on partial failure. The plan id hashes the reviewed output so unrelated inputs cannot cause a false "plan changed". On a blocked screen Build manually is primary and Edit setup secondary; the browser guards double submit.
+- WHY it changed: An independent review found the gate returned "clear" for a missing, empty or wrong-typed safety answer, and that "off" was enforced only by the page, not the actions.
+- Rule: A safety gate passes only on an explicit, well-typed answer. Missing means unanswered, never clear.
+- Rule: A feature flag is enforced at every server action, not only on the page that links to it; pin it with a source-contract test that fails when an action reaches auth, the database or the generator first.
+- Pattern: a mutation that cannot be made atomic without a schema change is made idempotent by recognising its own identical result (same name, schedule, exercises, recent) and by reporting the id needed to clean up a partial write.
+- Failure Mode: mapping `catch` to a generic "unavailable" also swallows `NEXT_REDIRECT`; always rethrow redirect errors. Returning `error.message` to the browser leaks database text.
+- Decision: no database change; replay detection is read-only and bounded to 15 minutes. Two simultaneous requests from different tabs can still race (needs a unique key, a schema change).
+- Evidence: `src/features/curated-onboarding/engine.ts`, `api-contract.ts`, `src/app/curated-onboarding/actions.ts`, `replay.ts`, `actions.contract.test.ts`, `engine.safety.test.ts`, `api-contract.safety.test.ts`.
+- Status: Source only; the curated onboarding flag stays off by default and nothing is deployed.
+
 ## 2026-11-12 - Make the live curated generator trustworthy before any pipeline cutover
 
 - Type: Product behavior (source) + CI coverage
@@ -1356,3 +1369,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `scripts/process-fitness-followups-exact.test.mjs` covers startup with and without the loader; `src/lib/exercise-stats.test.ts` covers strict read, delete, and upsert failures. Live settlement remains unproven.
 - Verification: The existing QA bootstrap source-contract test now accepts both LF and CRLF so the Fitness integrity suite can run on Windows as well as CI Linux.
 - CI Rule: Keep both PR and main-push path filters in the focused Fitness integrity workflow aligned with every enumerated runner and stats test plus its source dependencies; the runner test checks this watch contract.
+
+## 2026-11-12 - Mount the consistency heatmap as a whole-history view (FF-RET-003)
+
+- WHAT changed: History now mounts the 16-week consistency heatmap right after Session Streak (`data-history-retention-surface="heatmap"`). It is derived in memory from the completed sessions History already loads, on the same local-day timezone as the streak; intensity is the number of completed sessions per local day (a dot for one, the count for two or more). The compact view is a collapsed History disclosure and the detailed view is a section, like the Calendar. The grid fits the card width instead of scrolling, with 10-11px cues so 16 weeks stay readable at 320px.
+- WHY it changed: The heatmap lib and surface existed on main but nothing imported them, while `scripts/verify-history-family-ui.mjs` already expected the surface in the History stack. Mounting it needs no new query, state or database change.
+- Rule: A whole-history surface renders only while nothing narrows History (no search text, tag, current-routine or current-cycle scope, selected day or month). Otherwise its empty and quiet-stretch copy would describe a partial row set as the user's history. The rule is `shouldShowHistoryConsistencyHeatmap`, and the heatmap is fed every row in scope, never the search-filtered rows.
+- Pattern: Day buckets come only from `getWeeklyProgressDayKey(startedAt, historyTimezone)`; day keys are formatted with a fixed locale and `timeZone: "UTC"` so they are never shifted a second time.
+- Failure Mode: Colour-only intensity, 8px count digits and 3px dots are unreadable on a phone, and a label that says "darker" for a brighter ramp misleads screen-reader users. Keep cue text at least 10px, dots at least 5px, white cues above 4.5:1 on every tone, and say "brighter" for more sessions.
+- Evidence: `src/lib/history-consistency-heatmap.ts`, `src/components/history/ConsistencyHeatmapSurface.tsx`, `src/app/history/HistorySessionsClient.tsx`, and their tests (`src/lib/history-consistency-heatmap.test.ts`, `src/components/history/ConsistencyHeatmapSurface.test.tsx`), which are enumerated in the `ci.yml` contract step.
+- Status: Source only; merge, deploy and a real-device check remain separate.
