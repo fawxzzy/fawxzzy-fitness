@@ -6,4 +6,5 @@ export { DragHandle, DragGripGlyph, CardIconButton, CardInfoButton, CardReorderH
 export { CardActionRow, CardActionFrame, getCardActionButtonClassName, type CardActionDefinition, type CardActionIntent } from "@/components/ui/card-system/CardActionRow";
 export { StatBlock } from "@/components/ui/card-system/StatBlock";
 export { CardEmptyState } from "@/components/ui/card-system/CardEmptyState";
+export { CardNotice, type CardNoticeTone } from "@/components/ui/card-system/CardNotice";
 export { cardTokens, type CardTone } from "@/components/ui/card-system/cardTokens";

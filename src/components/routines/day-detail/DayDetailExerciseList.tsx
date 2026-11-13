@@ -3,11 +3,15 @@
 import type { ReactNode } from "react";
 import { ExerciseRowCard } from "@/components/workout/ExerciseRowCard";
 import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
+import {
+  formatExerciseProgressionLabel,
+  normalizeExerciseTargetSummary,
+  splitExerciseTargetValues,
+} from "@/components/workout/exerciseRowCardValues";
 import { CardInfoButton, cardTokens, type CardHeaderInteraction } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { isStretchHubExercise } from "@/lib/stretch-library";
-import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 export type DayDetailExerciseListItem = {
@@ -48,33 +52,6 @@ type Props = {
   className?: string;
 };
 
-function normalizeEditDaySummary(summary: string | null | undefined) {
-  if (!summary) {
-    return null;
-  }
-
-  const normalized = normalizeDecoratedText(summary)
-    .replace(/^goal\s*:\s*/i, "")
-    .trim();
-
-  if (!normalized || normalized.toLowerCase() === "goal missing") {
-    return null;
-  }
-
-  return normalized;
-}
-
-function splitDecoratedValues(value: string | null | undefined) {
-  if (!value) {
-    return [];
-  }
-
-  return normalizeDecoratedText(value)
-    .split(/\s+[•|·]\s+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
 /**
  * Planned-exercise list on the day editor, on the shared exercise card (ExerciseRowCard).
  * - editable + interactive: header toggles the editor panel (aria-expanded, panel id and test ids unchanged).
@@ -113,7 +90,7 @@ export function DayDetailExerciseList({
         }).slice(0, mode === "editable" ? 2 : 3);
         // Order cue for reordering: the position is the first meta fact ("Order 2"), text, not colour.
         const metaItems = showOrderBadges ? [`Order ${item.orderNumber}`, ...factItems] : factItems;
-        const summary = isStretchHub ? null : normalizeEditDaySummary(item.summary);
+        const summary = isStretchHub ? null : normalizeExerciseTargetSummary(item.summary);
         const interaction: CardHeaderInteraction = !interactive
           ? { kind: "none" }
           : mode === "editable"
@@ -152,8 +129,8 @@ export function DayDetailExerciseList({
                 image_howto_path: item.image_howto_path,
               }}
               metaItems={metaItems}
-              targetValues={splitDecoratedValues(summary)}
-              progressionLabel={item.progressionStateLabel?.trim() ? normalizeDecoratedText(item.progressionStateLabel).replace(/\s+[•|]\s+/g, " · ") : null}
+              targetValues={splitExerciseTargetValues(summary)}
+              progressionLabel={formatExerciseProgressionLabel(item.progressionStateLabel)}
               showMedia={policy.showMedia}
               tone={isActive ? "current" : "neutral"}
               interaction={interaction}
