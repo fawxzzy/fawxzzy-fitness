@@ -168,8 +168,8 @@ test("the handler response is an uncached 404 that carries no route detail and i
   assert.equal(devRouteUnavailableResponse(new Request("http://localhost:3000/dev"), { NODE_ENV: "production" }), null);
 
   // A forwarded-host header never makes an external request look local.
-  const spoofed = new Request(`https://${EXTERNAL_HOST}/dev`, { headers: { "x-forwarded-host": "localhost", host: "localhost" } });
-  assert.ok(devRouteUnavailableResponse(spoofed, { NODE_ENV: "production" }));
+  const withForwardedHost = new Request(`https://${EXTERNAL_HOST}/dev`, { headers: { "x-forwarded-host": "localhost", host: "localhost" } });
+  assert.ok(devRouteUnavailableResponse(withForwardedHost, { NODE_ENV: "production" }));
 
   // A loopback bind address with a public Host header is still withdrawn.
   const proxied = new Request("http://127.0.0.1:3000/dev", { headers: { host: EXTERNAL_HOST, "x-forwarded-host": "localhost" } });
