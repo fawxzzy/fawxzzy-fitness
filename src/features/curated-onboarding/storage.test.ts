@@ -40,6 +40,7 @@ test("curated onboarding storage loads a valid saved lifecycle state", () => {
         daysPerWeek: 4,
         sessionLengthMinutes: 45,
         equipment: ["bodyweight"],
+        avoidedEquipment: [],
         preferredStyle: "full-body",
         cardioPreference: "balanced",
         exerciseLikes: [],

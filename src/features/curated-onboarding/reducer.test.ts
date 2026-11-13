@@ -93,3 +93,55 @@ test("curatedOnboardingReducer resolves deterministic generation with a plan id"
   assert.equal(resolvedState.lifecycle.planId, "curated-12345678");
   assert.equal(resolvedState.message, null);
 });
+
+test("curatedOnboardingReducer reopens a failed or blocked intake on the review page without losing answers", () => {
+  const failedState = createCuratedOnboardingState({
+    draft: createCuratedOnboardingDraft({
+      stepId: "generation-handoff",
+      data: {
+        intakeResponses: { name: "Member", trainingDaysPerWeek: "4" },
+        equipment: ["bodyweight"],
+        exerciseLikes: [],
+        exerciseDislikes: [],
+        targetAreas: [],
+      },
+    }),
+    lifecycle: {
+      intakeStatus: "completed",
+      generationStatus: "failed",
+      planId: "curated-12345678",
+      completedAt: "2026-01-04T00:00:00.000Z",
+    },
+    message: "Previous failure",
+  });
+
+  const reopened = curatedOnboardingReducer(failedState, { type: "reopen-intake", at: "2026-01-05T00:00:00.000Z" });
+
+  assert.equal(reopened.draft.stepId, "review");
+  assert.equal(reopened.draft.updatedAt, "2026-01-05T00:00:00.000Z");
+  assert.deepEqual(reopened.draft.data, failedState.draft.data);
+  assert.deepEqual(reopened.lifecycle, {
+    intakeStatus: "draft",
+    generationStatus: "idle",
+    planId: null,
+    completedAt: null,
+  });
+  assert.equal(reopened.message, null);
+
+  // Submitting again queues a fresh generation instead of reusing the failed one.
+  const resubmitted = curatedOnboardingReducer(reopened, { type: "complete-intake", at: "2026-01-06T00:00:00.000Z" });
+  assert.equal(resubmitted.lifecycle.generationStatus, "queued");
+  assert.equal(resubmitted.draft.stepId, "generation-handoff");
+});
+
+test("curatedOnboardingReducer retries generation in place", () => {
+  const failedState = createCuratedOnboardingState({
+    draft: createCuratedOnboardingDraft({ stepId: "generation-handoff" }),
+    lifecycle: { intakeStatus: "completed", generationStatus: "failed", planId: null, completedAt: "2026-01-04T00:00:00.000Z" },
+  });
+
+  const retried = curatedOnboardingReducer(failedState, { type: "generation-requested" });
+  assert.equal(retried.lifecycle.generationStatus, "queued");
+  assert.equal(retried.lifecycle.intakeStatus, "completed");
+  assert.equal(retried.draft.stepId, "generation-handoff");
+});

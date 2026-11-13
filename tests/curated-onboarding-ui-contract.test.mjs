@@ -89,7 +89,7 @@ test("curated onboarding has an auth-free non-production route for actual-shell 
 
   const shell = readComponent("CuratedOnboardingShell.tsx");
   assert.match(shell, /previewOnly \|\| !hasHydrated/);
-  assert.match(shell, /if \(previewOnly\) \{\s+return;\s+\}/);
+  assert.match(shell, /if \(previewOnly \|\| createInFlightRef\.current\) \{\s+return;\s+\}/);
   assert.match(shell, /disabled=\{previewOnly \|\| !generatedPlan/);
 });
 
@@ -105,4 +105,53 @@ test("the live shell renders the parity questionnaire rather than the legacy six
   assert.match(shell, /QuestionnaireStep/);
   assert.match(shell, /getCuratedIntakeSection/);
   assert.doesNotMatch(shell, /<GoalsStep|<ExperienceStep|<ScheduleStep|<EquipmentStep|<ConstraintsStep|<PreferencesStep/);
+});
+
+test("curated handoff never dead-ends: failures offer edit-setup or retry plus manual routine creation", () => {
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+  const handoff = readComponent("GenerationHandoffStep.tsx");
+  const handoffModel = readFileSync(new URL("../src/features/curated-onboarding/handoff.ts", import.meta.url), "utf8");
+
+  assert.match(shell, /type: "reopen-intake"/);
+  assert.match(shell, /type: "generation-requested"/);
+  assert.match(shell, /CURATED_MANUAL_ROUTINE_HREF/);
+  assert.match(shell, /BottomDockLink/);
+  assert.match(shell, /Edit setup/);
+  assert.match(shell, /Try again/);
+  assert.match(shell, /Build manually/);
+  assert.match(handoffModel, /\/routines\/new\?mode=blank/);
+  // The reviewed plan id travels with the create request so the saved routine always matches the reviewed one.
+  assert.match(shell, /generatedPlan\?\.planId \?\? null/);
+  assert.match(shell, /result\.code === "plan-changed"/);
+  // A routine is never rendered while generation is failed or blocked.
+  assert.match(handoff, /const visiblePlan = failure \? null : plan/);
+  assert.doesNotMatch(shell, /Plan unavailable|generationError/);
+});
+
+test("the retired six-step onboarding components stay deleted", () => {
+  for (const name of ["GoalsStep", "ExperienceStep", "EquipmentStep", "ScheduleStep", "PreferencesStep", "ConstraintsStep", "CuratedIntroStep"]) {
+    assert.throws(() => readComponent(`${name}.tsx`), { code: "ENOENT" }, name);
+  }
+});
+
+test("curated handoff shows every recommendation reason to the member", () => {
+  const handoff = readComponent("GenerationHandoffStep.tsx");
+
+  assert.match(handoff, /visiblePlan\.adjustments/);
+  assert.match(handoff, /Why this routine changed/);
+  assert.match(handoff, /adjustment\.reason/);
+  assert.match(handoff, /data-curated-adjustments/);
+});
+
+test("curated handoff guards double submit, keeps blocked primary on Build manually, and never shows raw errors", () => {
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+
+  assert.match(shell, /createInFlightRef = useRef\(false\)/);
+  assert.match(shell, /createdRoutineRef = useRef/);
+  assert.match(shell, /previewOnly \|\| createInFlightRef\.current/);
+  assert.match(shell, /createInFlightRef\.current = false/);
+  assert.match(shell, /getCuratedHandoffActions\(failure\)/);
+  assert.match(shell, /handoffActions\.primary === "build-manually"/);
+  assert.match(shell, /CURATED_LOST_RESPONSE_MESSAGE/);
+  assert.doesNotMatch(shell, /error\.message|instanceof Error/);
 });

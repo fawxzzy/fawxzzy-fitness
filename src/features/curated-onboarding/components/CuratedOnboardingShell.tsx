@@ -9,7 +9,7 @@ import {
   BottomActionSingle,
   BottomActionSplit,
 } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
 import { ROUTINE_CARD_DELETE_TEXT_CLASS_NAME } from "@/components/routines/routineCardChrome";
@@ -48,6 +48,16 @@ import {
   saveCuratedOnboardingState,
 } from "../storage.ts";
 import { getCuratedStepDefinition } from "../step-registry.ts";
+import {
+  CURATED_CREATE_FAILED_MESSAGE,
+  CURATED_LOST_RESPONSE_MESSAGE,
+  CURATED_UNAVAILABLE_MESSAGE,
+} from "../copy.ts";
+import {
+  CURATED_MANUAL_ROUTINE_HREF,
+  getCuratedHandoffActions,
+  type CuratedHandoffFailure,
+} from "../handoff.ts";
 import type { CuratedWorkoutPlan } from "../engine.ts";
 import type {
   CuratedIntakeResponse,
@@ -113,12 +123,15 @@ export function CuratedOnboardingShell({
   const [completionSource, setCompletionSource] = useState<CompletionSource>("fresh");
   const [didResumeDraft, setDidResumeDraft] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<CuratedWorkoutPlan | null>(null);
-  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<CuratedHandoffFailure | null>(null);
+  const [createNotice, setCreateNotice] = useState<string | null>(null);
   const [isCreatingDraft, startCreatingDraft] = useTransition();
   const journeyTrackedRef = useRef(false);
   const completionTrackedRef = useRef(false);
   const abandonmentTrackedRef = useRef(false);
   const generationRequestedRef = useRef(false);
+  const createInFlightRef = useRef(false);
+  const createdRoutineRef = useRef<{ routineId: string; routineName: string } | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestStateRef = useRef(state);
   const latestCompletionSourceRef = useRef<CompletionSource>(completionSource);
@@ -224,21 +237,23 @@ export function CuratedOnboardingShell({
     }
 
     generationRequestedRef.current = true;
-    setGenerationError(null);
+    setFailure(null);
+    setCreateNotice(null);
     void generateCuratedWorkoutPlanAction(state.draft.data)
       .then((result) => {
         if (!result.ok) {
-          throw new Error(result.error);
+          setFailure({ code: result.code, message: result.error });
+          dispatch({ type: "generation-resolved", status: "failed" });
+          return;
         }
         setGeneratedPlan(result.plan);
         dispatch({ type: "generation-resolved", status: "ready", planId: result.plan.planId });
       })
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : "The curated plan could not be generated.";
-        setGenerationError(message);
-        dispatch({ type: "generation-resolved", status: "failed", message });
+      .catch(() => {
+        setFailure({ code: "unavailable", message: CURATED_UNAVAILABLE_MESSAGE });
+        dispatch({ type: "generation-resolved", status: "failed" });
       });
-  }, [hasHydrated, previewOnly, state.draft.data, state.draft.stepId, state.lifecycle.intakeStatus, userId]);
+  }, [hasHydrated, previewOnly, state.draft.data, state.draft.stepId, state.lifecycle.generationStatus, state.lifecycle.intakeStatus, userId]);
 
   useEffect(() => {
     if (!hasHydrated || typeof window === "undefined") {
@@ -318,7 +333,8 @@ export function CuratedOnboardingShell({
     abandonmentTrackedRef.current = false;
     generationRequestedRef.current = false;
     setGeneratedPlan(null);
-    setGenerationError(null);
+    setFailure(null);
+    setCreateNotice(null);
     setCompletionSource("fresh");
     setDidResumeDraft(false);
     setSaveState("idle");
@@ -342,28 +358,68 @@ export function CuratedOnboardingShell({
     dispatch({ type: "go-next", at });
   }
 
+  function handleRetryGeneration() {
+    generationRequestedRef.current = false;
+    setFailure(null);
+    setCreateNotice(null);
+    dispatch({ type: "generation-requested" });
+  }
+
+  function handleEditSetup() {
+    generationRequestedRef.current = false;
+    setGeneratedPlan(null);
+    setFailure(null);
+    setCreateNotice(null);
+    dispatch({ type: "reopen-intake", at: nowIso() });
+  }
+
+  function openCreatedRoutine(created: { routineId: string; routineName: string }) {
+    writeRoutineDraftSession(created.routineId, created.routineName);
+    router.push("/routines/new");
+  }
+
   function handleCreateDraft() {
-    if (previewOnly) {
+    // One create per click: a double tap, or a tap while navigation is pending, never starts a second request.
+    if (previewOnly || createInFlightRef.current) {
+      return;
+    }
+    if (createdRoutineRef.current) {
+      openCreatedRoutine(createdRoutineRef.current);
       return;
     }
 
+    createInFlightRef.current = true;
     startCreatingDraft(async () => {
-      setGenerationError(null);
+      setCreateNotice(null);
       try {
         const result = await createCuratedRoutineDraftAction(
           state.draft.data,
           Intl.DateTimeFormat().resolvedOptions().timeZone,
+          generatedPlan?.planId ?? null,
         );
         if (!result.ok) {
-          setGenerationError(result.error);
+          if (result.code === "plan-changed" && result.plan) {
+            // Recent history changed what fits: show the updated routine and let the member confirm it.
+            setGeneratedPlan(result.plan);
+            dispatch({ type: "generation-resolved", status: "ready", planId: result.plan.planId });
+            setCreateNotice(result.error);
+            return;
+          }
+          if (result.code && result.code !== "unavailable") {
+            setFailure({ code: result.code, message: result.error });
+            dispatch({ type: "generation-resolved", status: "failed" });
+            return;
+          }
+          setCreateNotice(result.error || CURATED_CREATE_FAILED_MESSAGE);
           return;
         }
-        writeRoutineDraftSession(result.routineId, result.routineName);
-        router.push("/routines/new");
-      } catch (error) {
-        setGenerationError(
-          error instanceof Error ? error.message : "Could not create the editable routine draft.",
-        );
+        createdRoutineRef.current = { routineId: result.routineId, routineName: result.routineName };
+        openCreatedRoutine(createdRoutineRef.current);
+      } catch {
+        // The response may have been lost after the server created the routine; a retry reuses it.
+        setCreateNotice(CURATED_LOST_RESPONSE_MESSAGE);
+      } finally {
+        createInFlightRef.current = false;
       }
     });
   }
@@ -396,7 +452,8 @@ export function CuratedOnboardingShell({
         <GenerationHandoffStep
           generationStatus={state.lifecycle.generationStatus}
           plan={generatedPlan}
-          error={generationError}
+          failure={failure}
+          notice={createNotice}
         />
       );
     }
@@ -411,21 +468,55 @@ export function CuratedOnboardingShell({
   const isGenerationStep = state.draft.stepId === "generation-handoff";
   const generationIsLoading = isGenerationStep
     && !previewOnly
-    && !generationError
+    && !failure
     && (!generatedPlan || isCreatingDraft);
+  const manualRoutineLink = (
+    <BottomDockLink href={CURATED_MANUAL_ROUTINE_HREF} intent="toggleInactive">
+      Build manually
+    </BottomDockLink>
+  );
+  const createDraftButton = (
+    <BottomDockButton
+      type="button"
+      intent="positive"
+      disabled={previewOnly || !generatedPlan || state.lifecycle.generationStatus !== "ready"}
+      loading={generationIsLoading}
+      loadingLabel={isCreatingDraft ? "Creating editable draft" : "Building routine"}
+      onClick={handleCreateDraft}
+    >
+      Create editable draft
+    </BottomDockButton>
+  );
+  const handoffActions = getCuratedHandoffActions(failure);
+  const editSetupButton = (intent: "positive" | "toggleInactive") => (
+    <BottomDockButton type="button" intent={intent} onClick={handleEditSetup}>
+      Edit setup
+    </BottomDockButton>
+  );
+  const primaryManualLink = (
+    <BottomDockLink href={CURATED_MANUAL_ROUTINE_HREF} intent="positive">
+      Build manually
+    </BottomDockLink>
+  );
   const bottomActions = isGenerationStep ? (
-    <BottomActionSingle>
-      <BottomDockButton
-        type="button"
-        intent="positive"
-        disabled={previewOnly || !generatedPlan || state.lifecycle.generationStatus !== "ready"}
-        loading={generationIsLoading}
-        loadingLabel={isCreatingDraft ? "Creating editable draft" : "Building routine"}
-        onClick={handleCreateDraft}
-      >
-        {generationError ? "Plan unavailable" : "Create editable draft"}
-      </BottomDockButton>
-    </BottomActionSingle>
+    failure ? (
+      handoffActions.primary === "build-manually" ? (
+        <BottomActionSplit secondary={editSetupButton("toggleInactive")} primary={primaryManualLink} />
+      ) : (
+        <BottomActionSplit
+          secondary={manualRoutineLink}
+          primary={handoffActions.primary === "try-again" ? (
+            <BottomDockButton type="button" intent="positive" onClick={handleRetryGeneration}>
+              Try again
+            </BottomDockButton>
+          ) : editSetupButton("positive")}
+        />
+      )
+    ) : createNotice ? (
+      <BottomActionSplit secondary={manualRoutineLink} primary={createDraftButton} />
+    ) : (
+      <BottomActionSingle>{createDraftButton}</BottomActionSingle>
+    )
   ) : showBack ? (
     <BottomActionSplit
       secondary={(
@@ -536,7 +627,7 @@ export function CuratedOnboardingShell({
             </section>
 
             {state.message ? (
-              <CuratedInfoCard compact tone={state.lifecycle.generationStatus === "failed" ? "danger" : "default"}>
+              <CuratedInfoCard compact>
                 <p className="text-xs text-[rgb(var(--text-secondary)/0.94)]">{state.message}</p>
               </CuratedInfoCard>
             ) : null}

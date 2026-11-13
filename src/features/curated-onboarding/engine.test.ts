@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildCuratedRoutineSchedule, deriveCuratedExerciseTarget, formatCuratedExerciseTarget, generateAdaptiveCuratedWorkoutPlan, generateCuratedWorkoutPlan } from "./engine.ts";
+import { clearSafetyResponses } from "./test-fixtures.ts";
 import type { CuratedOnboardingData } from "./types.ts";
 
 function intake(overrides: Partial<CuratedOnboardingData> = {}): CuratedOnboardingData {
   return {
-    intakeResponses: {},
+    intakeResponses: clearSafetyResponses(),
     trainingGoal: "get-stronger",
     experience: "intermediate",
     daysPerWeek: 4,
@@ -74,7 +75,7 @@ test("curated engine supports the full one-to-seven day intake range", () => {
 test("curated engine rejects incomplete intake", () => {
   assert.throws(
     () => generateCuratedWorkoutPlan(intake({ equipment: [] })),
-    /Complete goal, experience, equipment, schedule, and session length/,
+    /Complete goal, experience, equipment, schedule, session length/,
   );
 });
 
@@ -149,7 +150,7 @@ test("curated engine rejects a schedule containing an empty filtered workout day
       equipment: ["barbell"],
       limitations: "Avoid Barbell Bench Press, Overhead Press, Barbell Row, and Plank.",
     })),
-    /No safe exercises remain for Upper A\. Adjust the selected equipment or constraints/i,
+    /No exercises remain for Upper A\. Adjust your equipment or limitations/i,
   );
 });
 
@@ -179,7 +180,7 @@ test("curated engine fails safely when every equipment-compatible candidate is e
       equipment: ["bodyweight"],
       exerciseDislikes: ["Plank"],
     })),
-    /No safe core exercise matches/i,
+    /No core exercise fits your equipment and limits/i,
   );
 });
 
