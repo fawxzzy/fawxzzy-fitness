@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-12
+
+### WHAT
+- Curated workout engine (FF-ENGINE-001): reported exercise warning symptoms now stop automatic routine generation with a closed `blocked` outcome and professional-clearance copy; the questionnaire already promised this and the live engine ignored it.
+- The curated generation boundary is one typed contract (`api-contract.ts`): the server rebuilds every engine input from the saved `intakeResponses` (client-derived fields are ignored), returns a closed `ready | blocked | failed | plan-changed` outcome, and refuses to create a routine whose regenerated plan differs from the one the member reviewed.
+- "Equipment you do NOT want to use" is now honored (barbells, dumbbells, machines, bands). Plan style now selects a split where a standard split exists for the day count (push/pull/legs at 3 days, upper/lower at 2 days) and never claims a style it did not apply.
+- A workout day never repeats an exercise and never has fewer than three lifts; generation fails closed instead of producing a one-lift day. The rationale text and plan id no longer depend on the order equipment was selected.
+- Added a full-matrix determinism and catalog-consistency test and put the curated questionnaire, reducer, storage, selector, action, UI-contract and entry-gate suites into hosted CI (previously only the engine, normalizer and catalog suites ran).
+
+### WHY
+- A safety promise in the UI that the generator ignored, free-text answers that changed nothing, duplicate exercises inside one day and a preview that could differ from the saved routine are the failure modes that make a generated routine untrustworthy. The generator stays curated, bounded and deterministic; the unwired planner pipeline under `planning/` is unchanged and still source-only.
+
 ## Unreleased - 2026-07-16
 
 ### WHAT
