@@ -23,6 +23,7 @@ import {
   TodayRouteScaffold,
 } from "@/components/today/TodayScreenFamily";
 import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
+import { CardNotice } from "@/components/ui/card-system";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { ActionResult } from "@/lib/action-result";
@@ -1355,7 +1356,6 @@ export default async function TodayPage({
           <TodayFloatingHeaderRail>
             <TodayOverviewHeader
               title="No active routine"
-              subtitle="Select a routine to plan your session."
             />
           </TodayFloatingHeaderRail>
         ) : undefined}
@@ -1497,7 +1497,7 @@ export default async function TodayPage({
 
       <TodayOfflineBridge snapshot={todaySnapshot} />
 
-      {todayGlobalError ? <p className="rounded-[var(--radius-md)] border border-[rgb(var(--danger-rgb)/0.18)] bg-[rgb(var(--danger-rgb)/0.08)] px-3 py-2 text-sm text-[rgb(var(--danger-rgb))]">{todayGlobalError}</p> : null}
+      {todayGlobalError ? <CardNotice tone="danger">{todayGlobalError}</CardNotice> : null}
     </TodayRouteScaffold>
   );
 }

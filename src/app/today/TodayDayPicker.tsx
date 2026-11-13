@@ -1,10 +1,12 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useMemo, useState, useTransition, type CSSProperties } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { ExerciseInfoIconButton } from "@/components/ExerciseInfoIconButton";
+import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
+import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
 import { TodayOverviewHeader, TodayOverviewScaffold, TodayRoutineSwitchHeader } from "@/components/today/TodayScreenFamily";
 import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
@@ -18,13 +20,11 @@ import {
 import { useHasBottomActions, usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
-import { appTokens } from "@/components/ui/app/tokens";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { CardActionRow, CardEmptyState, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
-import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
-import { PlannedExerciseSummaryRow } from "@/components/workout/PlannedExerciseSummaryRow";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
 import { buildCurrentRoutineInfoRailItems, buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
@@ -91,10 +91,6 @@ type TodayDay = {
   exercises: TodayExercise[];
 };
 
-const TODAY_CARD_INFO_OVERLAY_CLASS_NAME = "inset-0 !left-0 !right-0 !top-0 !bottom-0 !block !translate-y-0 pointer-events-none";
-const TODAY_CARD_INFO_BUTTON_CLASS_NAME = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
-const TODAY_CARD_TITLE_CONTAINER_CLASS_NAME = "pr-[2.45rem] pb-[1.9rem]";
-
 function getTodayProgressionActionIntent(item: Pick<ProgressionReviewDisplayItem, "type">): BottomActionIntent {
   return item.type === "deload" ? "danger" : "positive";
 }
@@ -138,7 +134,6 @@ export function TodayDayPicker({
   startDate,
   floatingHeaderSlotId,
   switchFloatingHeaderSlotId,
-  exerciseDensity = "compact",
   progressionReviewItems = [],
   progressionStatusItems = [],
   progressionRoutineId,
@@ -156,7 +151,6 @@ export function TodayDayPicker({
   startDate: string | null;
   floatingHeaderSlotId?: string;
   switchFloatingHeaderSlotId?: string;
-  exerciseDensity?: "compact" | "detailed";
   progressionReviewItems?: ProgressionReviewDisplayItem[];
   progressionStatusItems?: ProgressionStatusSurfaceItem[];
   progressionRoutineId?: string | null;
@@ -527,9 +521,6 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
-  const selectedDaySummaryToneClassName = daySummaryTone === "blocking"
-    ? "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
-    : "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]";
   const selectedDaySplitSummary = useMemo(() => (
     selectedDay
       ? getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)
@@ -571,13 +562,6 @@ export function TodayDayPicker({
       })),
     });
   }, [completedDayIndexSet, currentDayIndex, days, inSessionDayIndex]);
-  const selectedDayStateCard = useMemo(() => {
-    if (!selectedDay || mode.dayPickerOpen) {
-      return null;
-    }
-
-    return null;
-  }, [mode.dayPickerOpen, selectedDay]);
   // Deliberate rest-day card for the closed-picker, selected-rest-day case.
   // Reuses the same shared rest-day treatment as the Routine Overview day
   // card (RoutineOverviewDayCard) instead of leaving the body empty (the
@@ -588,7 +572,7 @@ export function TodayDayPicker({
       return null;
     }
 
-    return <RestDayCard />;
+    return <RestDayCard headingLevel={2} />;
   }, [mode.dayPickerOpen, mode.restDay, selectedDay]);
   const noScheduledDayNotice = useMemo(() => {
     if (mode.dayPickerOpen || !noScheduledDayMessage?.trim()) {
@@ -596,7 +580,7 @@ export function TodayDayPicker({
     }
 
     return (
-      <DayDetailStateCard
+      <TodayDayStateCard
         tone="neutral"
         title="No scheduled workout today."
         body={noScheduledDayMessage}
@@ -604,23 +588,40 @@ export function TodayDayPicker({
     );
   }, [mode.dayPickerOpen, noScheduledDayMessage]);
   const selectedDaySummaryNode = useMemo(() => {
-    if (selectedDayStateCard) {
-      return selectedDayStateCard;
-    }
-
     if (!mode.summaryVisible || !daySummary || !daySummaryTone) {
       return null;
     }
 
     return (
-      <div className={cn(appTokens.detailStateCard, selectedDaySummaryToneClassName)}>
-        <p className={cn(appTokens.detailBodyText, "font-medium")}>
-          {daySummary}
-        </p>
-      </div>
+      <TodayDayStateCard
+        tone={daySummaryTone}
+        title={daySummaryTone === "blocking" ? "Edit this day first" : "Some exercises will be skipped"}
+        body={daySummary}
+      />
     );
-  }, [daySummary, daySummaryTone, mode.summaryVisible, selectedDayStateCard, selectedDaySummaryToneClassName]);
-  const shouldCenterSelectedDayState = Boolean(!mode.dayPickerOpen && selectedDayStateCard && !hasSelectedDayRows);
+  }, [daySummary, daySummaryTone, mode.summaryVisible]);
+  // Empty training day (no exercises, nothing invalid): say so and offer the way out. The page was blank
+  // apart from the header and Switch Day (C1 finding 3).
+  const emptyTrainingDayCard = useMemo(() => {
+    if (mode.dayPickerOpen || !mode.emptyTrainingDay || !selectedDay || noScheduledDayNotice) {
+      return null;
+    }
+
+    return (
+      <CardEmptyState
+        title="No exercises planned"
+        body="Add exercises to this day to start a workout from Today."
+        action={progressionRoutineId ? (
+          <Link
+            href={getRoutineDayEditHref(progressionRoutineId, selectedDay.id, "/today")}
+            className={getAppButtonClassName({ variant: "secondary", size: "sm", fullWidth: true })}
+          >
+            Add exercises
+          </Link>
+        ) : undefined}
+      />
+    );
+  }, [mode.dayPickerOpen, mode.emptyTrainingDay, noScheduledDayNotice, progressionRoutineId, selectedDay]);
 
   const headerNode = selectedDay && !mode.dayPickerOpen
     ? (
@@ -777,20 +778,12 @@ export function TodayDayPicker({
                   </DayList>
                 ) : null}
 
-                {selectedDayRestCard ? (
-                  <div className={shouldCenterSelectedDayState ? appTokens.todaySummaryCenteredShell : undefined}>
-                    {selectedDayRestCard}
-                  </div>
-                ) : selectedDaySummaryNode ? (
-                  <div className={shouldCenterSelectedDayState ? appTokens.todaySummaryCenteredShell : undefined}>
-                    {selectedDaySummaryNode}
-                  </div>
-                ) : null}
+                {selectedDayRestCard ?? selectedDaySummaryNode}
 
-                {noScheduledDayNotice ? noScheduledDayNotice : null}
+                {noScheduledDayNotice ?? emptyTrainingDayCard}
 
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
-                  <ul className="flex flex-col gap-[0.375rem]">
+                  <ul className={cardTokens.list}>
                     {selectedDay.exercises.map((exercise) => {
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
@@ -809,91 +802,68 @@ export function TodayDayPicker({
                         : null;
                       const cardActionIntent = cardReadyItem ? getTodayProgressionActionIntent(cardReadyItem) : "positive";
                       const cardActionArrowClassName = cardReadyItem ? getTodayProgressionActionArrowClassName(cardReadyItem) : "text-[rgb(var(--accent-divider-rgb)/0.95)]";
-                      const infoButton = (
-                        <ExerciseInfoIconButton
-                          exerciseId={exercise.exerciseId}
-                          exerciseName={exercise.name}
-                          className={TODAY_CARD_INFO_BUTTON_CLASS_NAME}
-                        />
-                      );
                       return (
-                        <li key={exercise.id}>
-                          <PlannedExerciseSummaryRow
+                        <li key={exercise.id} className="min-w-0">
+                          <TodayExerciseCard
                             exercise={exercise}
-                            density={exerciseDensity}
                             surface="today"
-                            rowContentClassName="pl-3 pr-[2.45rem]"
-                            rightIcon={null}
-                            progressFill={cardProgressFill.fill}
-                            state="default"
-                            titleContainerClassName={TODAY_CARD_TITLE_CONTAINER_CLASS_NAME}
-                            overlayActions={infoButton}
-                            overlayActionsClassName={TODAY_CARD_INFO_OVERLAY_CLASS_NAME}
-                            shellClassName={cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
-                            shellStyle={cardProgressionAction ? ({
-                              "--exercise-card-progress-fill-bottom-right-radius": "0px",
-                            } as CSSProperties) : undefined}
-                          />
-                          {cardProgressionAction ? (
-                            <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-1">
-                              <button
-                                type="button"
-                                disabled={cardActionPending}
-                                data-action-chrome-intent={cardAppliedPin ? "neutral" : cardActionIntent}
-                                data-bottom-action-intent={cardAppliedPin ? "toggleInactive" : cardActionIntent}
-                                onClick={() => {
-                                  if (cardActionPending) {
-                                    return;
-                                  }
-                                  if (cardAppliedPin) {
-                                    revertProgressionItemFromTodayCard(cardAppliedPin);
-                                    return;
-                                  }
-                                  if (cardReadyItem && canShowCardAction) {
-                                    openTodayCardPromotion(cardReadyItem);
-                                  }
-                                }}
-                                className={cn(
-                                  ACTION_CHROME_CONTROL_CLASS_NAME,
-                                  getAttachedCardActionButtonClassName({
-                                    intent: cardAppliedPin ? "toggleInactive" : cardActionIntent,
-                                    className: cardReadyItem?.type === "deload"
-                                      ? "focus-visible:ring-[rgb(var(--danger-rgb)/0.24)]"
-                                      : "focus-visible:ring-[rgb(var(--accent)/0.24)]",
-                                  }),
-                                  cardActionPending ? "opacity-80" : undefined,
-                                )}
-                              >
-                                <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-2">
-                                  {cardAppliedPin
-                                    ? cardActionPending ? "Reverting..." : "Revert"
-                                    : cardActionPending ? "Applying..." : (
-                                      <>
-                                        <span>{cardReadyItem?.actionLabel ?? "Apply update"}</span>
-                                        {cardPromoteTargetPair ? (
+                            progress={cardProgressFill.fill ? {
+                              label: `Progression: ${cardProgressFill.fill.label}`,
+                              percent: cardProgressFill.fill.percent,
+                              tone: cardProgressFill.state === "ready" ? "complete" : "default",
+                            } : null}
+                            footer={cardProgressionAction ? (
+                              <CardActionRow
+                                label={`Progression update for ${exercise.name}`}
+                                actions={[{
+                                  key: "progression",
+                                  intent: cardAppliedPin ? "neutral" : cardActionIntent === "danger" ? "danger" : "primary",
+                                  disabled: cardActionPending,
+                                  onPress: () => {
+                                    if (cardActionPending) {
+                                      return;
+                                    }
+                                    if (cardAppliedPin) {
+                                      revertProgressionItemFromTodayCard(cardAppliedPin);
+                                      return;
+                                    }
+                                    if (cardReadyItem && canShowCardAction) {
+                                      openTodayCardPromotion(cardReadyItem);
+                                    }
+                                  },
+                                  label: (
+                                    <span className="inline-flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
+                                      {cardAppliedPin
+                                        ? cardActionPending ? "Reverting..." : "Revert"
+                                        : cardActionPending ? "Applying..." : (
                                           <>
-                                            <SignatureMiniPipe />
-                                            <AccentDotSeparatedText
-                                              text={cardPromoteTargetPair.current}
-                                              className="min-w-0 gap-x-1.5 gap-y-0"
-                                              itemClassName="text-[rgb(var(--text-secondary)/0.96)]"
-                                            />
-                                            <span className={cn("inline-flex min-w-4 items-center justify-center text-[12px] font-bold", cardActionArrowClassName)}>
-                                              {"\u2192"}
-                                            </span>
-                                            <AccentDotSeparatedText
-                                              text={cardPromoteTargetPair.proposed}
-                                              className="min-w-0 gap-x-1.5 gap-y-0"
-                                              itemClassName="text-[rgb(var(--text-secondary)/0.96)]"
-                                            />
+                                            <span>{cardReadyItem?.actionLabel ?? "Apply update"}</span>
+                                            {cardPromoteTargetPair ? (
+                                              <>
+                                                <SignatureMiniPipe />
+                                                <AccentDotSeparatedText
+                                                  text={cardPromoteTargetPair.current}
+                                                  className="min-w-0 gap-x-1.5 gap-y-0"
+                                                  itemClassName="text-[rgb(var(--text-secondary)/0.96)]"
+                                                />
+                                                <span className={cn("inline-flex min-w-4 items-center justify-center text-[12px] font-bold", cardActionArrowClassName)}>
+                                                  {"→"}
+                                                </span>
+                                                <AccentDotSeparatedText
+                                                  text={cardPromoteTargetPair.proposed}
+                                                  className="min-w-0 gap-x-1.5 gap-y-0"
+                                                  itemClassName="text-[rgb(var(--text-secondary)/0.96)]"
+                                                />
+                                              </>
+                                            ) : null}
                                           </>
-                                        ) : null}
-                                      </>
-                                    )}
-                                </span>
-                              </button>
-                            </AttachedCardActionStripFrame>
-                          ) : null}
+                                        )}
+                                    </span>
+                                  ),
+                                }]}
+                              />
+                            ) : undefined}
+                          />
                         </li>
                       );
                     })}

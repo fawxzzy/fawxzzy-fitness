@@ -2182,7 +2182,6 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       ? 4
       : 2;
   const selectedDay = mockTodayDays.find((day) => day.dayIndex === selectedDayIndex) ?? mockTodayDays[1];
-  const exerciseDensity = scenario.id === "today-detailed" ? "detailed" : "compact";
   const progressionReviewItems = scenario.id === "today-progression-linked"
     ? mockTodayLinkedProgressionReviewItems
     : scenario.id === "today-progression-status"
@@ -2246,7 +2245,6 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
                     },
                   ]}
                   emptyMessage="No runnable exercises planned for this day."
-                  density={exerciseDensity}
                 />
               </SharedSectionShell>
             </ScreenScaffold>
@@ -2285,7 +2283,6 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             routineName={PREVIEW_ROUTINE_NAME}
             startDate="2025-03-10"
             floatingHeaderSlotId="today-floating-header-slot"
-            exerciseDensity={exerciseDensity}
             progressionRoutineId="routine-1"
             progressionReviewItems={progressionReviewItems}
             progressionStatusItems={progressionStatusItems}
