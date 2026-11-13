@@ -56,6 +56,7 @@ test("standard and limitations fixtures satisfy every required page and derive e
     daysPerWeek: 1,
     sessionLengthMinutes: 30,
     equipment: ["full-gym", "dumbbells"],
+    avoidedEquipment: [],
     preferredStyle: "full-body",
     cardioPreference: "balanced",
     limitations: "",
@@ -293,4 +294,27 @@ test("both simulated intake paths advance page by page and omit irrelevant revie
     }
     assert.equal(review.every((section) => section.complete), true);
   }
+});
+
+test("the free-text avoided-equipment answer maps onto the closed equipment vocabulary", () => {
+  const base = createCuratedParityFixture("limitations");
+  const derive = (equipmentAvoid: string) => deriveCuratedEngineData({ ...base, equipmentAvoid }).avoidedEquipment;
+
+  assert.deepEqual(derive(""), []);
+  assert.deepEqual(derive("N.A."), []);
+  assert.deepEqual(derive("I do not like machines or cables"), ["machines"]);
+  assert.deepEqual(derive("No barbells, no dumbbells"), ["barbell", "dumbbells"]);
+  assert.deepEqual(derive("Resistance bands hurt my wrists"), ["bands"]);
+  assert.deepEqual(derive("free weights"), ["barbell", "dumbbells"]);
+  // Bodyweight is never avoidable and unrecognized text is ignored instead of guessed at.
+  assert.deepEqual(derive("calisthenics and the sauna"), []);
+});
+
+test("avoided equipment is rebuilt from responses and cleared when the answer is cleared", () => {
+  const responses = { ...createCuratedParityFixture("limitations"), equipmentAvoid: "machines" };
+  const withAvoid = deriveCuratedEngineData(responses);
+  assert.deepEqual(withAvoid.avoidedEquipment, ["machines"]);
+
+  const cleared = deriveCuratedEngineData({ ...responses, equipmentAvoid: "" }, withAvoid);
+  assert.deepEqual(cleared.avoidedEquipment, []);
 });
