@@ -58,7 +58,7 @@ import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifel
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import { formatExerciseTimerClock } from "@/lib/exercise-timer";
-import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
+import { buildRecoveryTimingInsight, buildSessionRecoverySummary } from "@/lib/recovery-timing";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -72,6 +72,7 @@ type AuditSet = {
   calories: number | null;
   weight_unit: "lbs" | "kg" | null;
   logged_at?: string | null;
+  is_warmup?: boolean | null;
 };
 
 type EditableSet = {
@@ -1115,15 +1116,35 @@ export function LogAuditClient({
 
   const focusedDetailedSections = useMemo(() => {
     if (!expandedExercise) {
-      return buildRecapOnlyHistorySessionDetailSections(
+      const recapSections = buildRecapOnlyHistorySessionDetailSections(
         focusedSessionSummary,
         focusedSessionSummary.prExerciseNames ?? [],
         focusedRecapItemMeta,
       );
+      // FF-SESSION-005: session-level observed rest, derived from set timestamps only (separate from the exercise timer).
+      const recoverySummary = buildSessionRecoverySummary(
+        displayExercises.map((exercise) => (editableSets[exercise.id] ?? []).map((set) => set.source)),
+      );
+      return recoverySummary
+        ? [
+            ...recapSections,
+            {
+              title: "Rest",
+              items: [{
+                id: "session-observed-rest",
+                primary: "Typical rest",
+                value: recoverySummary.label,
+                meta: recoverySummary.detail,
+                layout: "single-column",
+              }],
+              layout: "inline",
+            } satisfies HistorySessionDetailSection,
+          ]
+        : recapSections;
     }
 
     return [];
-  }, [expandedExercise, focusedRecapItemMeta, focusedSessionSummary]);
+  }, [displayExercises, editableSets, expandedExercise, focusedRecapItemMeta, focusedSessionSummary]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
   const focusedExerciseDisplayNotes = expandedExercise

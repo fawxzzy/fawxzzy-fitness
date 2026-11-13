@@ -33,6 +33,7 @@ import { applyProgressionReviewCandidateAction } from "@/app/progression-review/
 import { loadProgressionReviewItems } from "@/lib/progression-review-loader";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import { shouldApplyAutomaticSessionPromotion } from "@/lib/session-auto-progression";
+import { resolveSetLoggedAt } from "@/lib/set-logged-at";
 import {
   applyExerciseTimerCommand,
   finalizeRunningExerciseTimer,
@@ -375,6 +376,8 @@ export async function addSetAction(payload: {
   notes: string | null;
   weightUnit: "lbs" | "kg";
   clientLogId?: string;
+  /** When the member logged the set, for a set replayed from the offline queue. Validated; see resolveSetLoggedAt. */
+  loggedAt?: string;
 }) : Promise<ActionResult<{ set: SetRow }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -444,7 +447,9 @@ export async function addSetAction(payload: {
   // A unique DB constraint plus retry-on-conflict prevents duplicate indexes when offline
   // actions reconnect and flush concurrently for the same session exercise.
   const MAX_SET_INDEX_RETRIES = 5;
-  const loggedAt = new Date().toISOString();
+  // Stamp with the member's tap time when an offline replay supplies a plausible one, so observed rest
+  // (src/lib/recovery-timing.ts) is not erased by a whole queue landing within milliseconds.
+  const loggedAt = resolveSetLoggedAt(payload.loggedAt, new Date().toISOString());
 
   for (let attempt = 0; attempt < MAX_SET_INDEX_RETRIES; attempt += 1) {
     const { data: latestSet, error: latestSetError } = await supabase
@@ -531,6 +536,8 @@ export async function syncQueuedSetLogsAction(payload: {
     clientLogId: string;
     sessionId: string;
     sessionExerciseId: string;
+    /** Queue item creation time (the member's tap), an ISO string. */
+    createdAt?: string;
     payload: {
       weight: number;
       reps: number;
@@ -559,6 +566,7 @@ export async function syncQueuedSetLogsAction(payload: {
         notes: item.payload.notes,
         weightUnit: item.payload.weightUnit,
         clientLogId: item.clientLogId,
+        loggedAt: item.createdAt,
       });
 
       return {

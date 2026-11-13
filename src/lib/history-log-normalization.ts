@@ -12,6 +12,10 @@ export type HistoryAuditSet = {
   distance_unit: FitnessDistanceUnit | null;
   calories: number | null;
   weight_unit: "lbs" | "kg" | null;
+  /** When the set was logged; the only input to observed rest (src/lib/recovery-timing.ts). */
+  logged_at?: string | null;
+  /** Warm-up sets are left out of observed rest. */
+  is_warmup?: boolean | null;
 };
 
 export type HistoryAuditExercise = {
@@ -93,6 +97,8 @@ export function normalizeHistoryAuditSet(set: IncomingHistoryAuditSet, index: nu
     distance_unit: set.distance_unit ?? set.distanceUnit ?? null,
     calories: set.calories ?? null,
     weight_unit: set.weight_unit ?? set.weightUnit ?? null,
+    logged_at: set.logged_at ?? null,
+    is_warmup: set.is_warmup ?? null,
   };
 }
 

@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-13 (FF-SESSION-005)
+
+### WHAT
+- Observed rest (FF-SESSION-005): a set replayed from the offline queue is stamped with the member's tap time instead of the server's replay time, so rest between offline-logged sets is real. Optimistic and restored queued sets carry `logged_at`. History detail now receives the set `logged_at` (the normalizer used to drop it, so the existing per-exercise label never showed there) and shows a session-level "Typical rest" (median of each exercise's own observed rest, two or more exercises) with a one-sentence explanation. Contract: `docs/recovery-timing-contract.md`.
+
+### WHY
+- Replay-time stamps collapsed a queue of sets into one instant, hiding or falsifying observed rest for members who log with poor signal. No database change.
+
 ## Unreleased - 2026-11-12
 
 ### WHAT

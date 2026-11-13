@@ -1395,6 +1395,7 @@ export function SessionExerciseFocus({
                   isQuickLogPending: true,
                 }));
                 const clientLogId = createStableSetId();
+                const loggedAtIso = new Date().toISOString();
                 try {
                   const quickLogPayload = quickLogAction.payload;
 
@@ -1418,6 +1419,7 @@ export function SessionExerciseFocus({
                       notes: quickLogPayload.notes,
                       rpe: null,
                       weight_unit: quickLogPayload.weightUnit,
+                      logged_at: loggedAtIso,
                       pending: true,
                     };
                     const next = sortSetsByIndex(mergeByStableSetId(previous, [optimisticSet]));
@@ -1454,6 +1456,7 @@ export function SessionExerciseFocus({
                       sessionId,
                       sessionExerciseId: exercise.id,
                       clientLogId,
+                      createdAt: loggedAtIso,
                       payload: toOfflineSetPayload(quickLogPayload),
                     }),
                   });

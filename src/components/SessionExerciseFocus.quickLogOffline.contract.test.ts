@@ -21,7 +21,10 @@ test("collapsed-row quick log goes through the offline set-log queue route, not 
 test("quick log reuses the expanded logger's dedupe key (the optimistic set's clientLogId)", () => {
   assert.match(focusSource, /const clientLogId = createStableSetId\(\);/);
   assert.match(focusSource, /clientLogId,\r?\n\s+\}\),\r?\n\s+enqueue:/);
-  assert.match(focusSource, /sessionExerciseId: exercise\.id,\r?\n\s+clientLogId,\r?\n\s+payload: toOfflineSetPayload/);
+  assert.match(focusSource, /sessionExerciseId: exercise\.id,\r?\n\s+clientLogId,\r?\n\s+createdAt: loggedAtIso,\r?\n\s+payload: toOfflineSetPayload/);
+  // FF-SESSION-005: the queued set keeps the tap time even when the request only failed after a delay.
+  assert.match(focusSource, /const loggedAtIso = new Date\(\)\.toISOString\(\);/);
+  assert.match(focusSource, /logged_at: loggedAtIso,/);
 });
 
 test("a session-level set-log worker covers the state where every row is collapsed", () => {
