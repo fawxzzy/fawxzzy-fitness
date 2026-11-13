@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SetLoggerCard,
   type SessionLoggerDraftState,
@@ -9,17 +9,25 @@ import {
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
-import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
-import { resolveScreenContract } from "@/components/ui/app/screenContract";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
-import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import { SessionExerciseBlock } from "@/components/session/SessionExerciseBlock";
 import {
-  buildExerciseCardMetadataItems,
-  ExerciseCardMetadataLine,
-  ExerciseCardProgressionStateInline,
-  ExerciseCardStandardTitle,
-} from "@/components/workout/ExerciseCardStandardTitle";
-import { cardMediaToneClassNames } from "@/components/cardSemanticTones";
+  SessionExerciseRowCard,
+  SessionHiddenRowCard,
+  SessionQuickLogRow,
+  SessionRowActionButton,
+  SessionRowNote,
+  type SessionStatusChip,
+} from "@/components/session/SessionRowCards";
+import { resolveScreenContract } from "@/components/ui/app/screenContract";
+import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
+import { buildTodayExerciseLoggedProgress } from "@/app/today/TodayExerciseRows";
+import type { ExerciseRowCardProgress } from "@/components/workout/ExerciseRowCard";
+import {
+  formatExerciseProgressionLabel,
+  normalizeExerciseTargetSummary,
+  splitExerciseTargetValues,
+} from "@/components/workout/exerciseRowCardValues";
+import type { CardTone } from "@/components/ui/card-system";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
@@ -37,7 +45,7 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
-import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import {
   areSessionLoggerDraftStatesEqual,
   buildSessionProgressionFeedbackSummaryLabel,
@@ -70,7 +78,6 @@ import { useSessionSetLogSync } from "@/components/session/useSessionSetLogSync"
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
 import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
-import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -109,14 +116,6 @@ type SessionExerciseLocalCacheEntry = {
 };
 
 const sessionExerciseLocalStateCache = new Map<string, SessionExerciseLocalCacheEntry>();
-
-const COMPACT_SESSION_ROW_SHELL_CLASS_NAME = "overflow-hidden rounded-none rounded-r-[var(--card-radius)] rounded-bl-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.28)] bg-[rgb(var(--surface-1-rgb)/0.06)] shadow-[0_0_0_1px_rgb(var(--accent-divider-rgb)/0.06)]";
-const CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME = "!right-[0.58rem] !top-[0.58rem] !bottom-auto !translate-y-0";
-const CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME = "inset-0 !left-0 !right-0 !top-0 !bottom-0 !block !translate-y-0 pointer-events-none";
-const CURRENT_SESSION_CARD_INFO_BUTTON_CLASS_NAME = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
-const CURRENT_SESSION_CARD_FOOTER_INFO_BUTTON_CLASS_NAME = "inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.3)] bg-[rgb(var(--bg-app)/0.46)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.56)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
-const CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME = "!pr-[2.75rem] sm:!pr-[3.3rem] pb-[1.9rem]";
-const CURRENT_SESSION_CARD_CORNER_META_CLASS_NAME = "!right-[1.82rem] !top-[0.71rem]";
 
 type SyncQueuedSetLogsAction = (payload: {
   items: Array<{
@@ -1036,21 +1035,7 @@ export function SessionExerciseFocus({
             note: savedFeedback.note,
             effortValue: savedFeedback.effort,
           });
-          const hasCollapsedSupplement = Boolean(recoveryTimingInsight) || shouldShowFeedbackPrompt || Boolean(savedFeedbackLabel);
-          const titleMeta = progressState.goalSetTarget !== null
-            ? (
-              <span className={isCompletedRow ? "text-[rgb(var(--success-rgb)/0.98)]" : undefined}>
-                {progressState.loggedSetCount} / {progressState.goalSetTarget}
-              </span>
-            )
-            : undefined;
-          const sessionProgressFill = progressState.goalSetTarget !== null
-            ? {
-                percent: Math.max(0, Math.min(100, Math.round((progressState.loggedSetCount / progressState.goalSetTarget) * 100))),
-                state: progressState.isGoalCompleted ? "ready" : "partial",
-                label: `${Math.min(progressState.loggedSetCount, progressState.goalSetTarget)}/${progressState.goalSetTarget} sets`,
-              } satisfies ProgressionProgressFill
-            : null;
+          const rowProgress: ExerciseRowCardProgress | null = buildTodayExerciseLoggedProgress(progressState, false);
           const draftState = draftStateBySessionExerciseId[exercise.id] ?? null;
           const quickLogAction = resolveSessionQuickLogAction({
             draftPayload: draftState?.quickLogPayload ?? null,
@@ -1075,165 +1060,25 @@ export function SessionExerciseFocus({
             progressionFormState: exercise.progressionFormState ?? null,
             copilotFeedbackSignal,
           });
-          const sessionTitle = (
-            <ExerciseCardStandardTitle
-              name={exercise.name}
-              metadata={<ExerciseCardMetadataLine items={headerMetaItems} />}
-              rightContent={exerciseSummary ?? undefined}
-              rightSubcontent={isStretchHub ? undefined : <ExerciseCardProgressionStateInline label={progressionStateLabel} />}
-              columnLayout="compact"
-            />
-          );
-          const cardInfoButton = (
-            <button
-              type="button"
-              aria-label={`Open exercise info for ${exercise.name}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                setExerciseInfoExerciseId(exercise.exerciseId);
-              }}
-              className={CURRENT_SESSION_CARD_INFO_BUTTON_CLASS_NAME}
-            >
-              <span aria-hidden="true">i</span>
-            </button>
-          );
-          const cardFooterInfoButton = (
-            <button
-              type="button"
-              aria-label={`Open exercise info for ${exercise.name}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                setExerciseInfoExerciseId(exercise.exerciseId);
-              }}
-              className={CURRENT_SESSION_CARD_FOOTER_INFO_BUTTON_CLASS_NAME}
-            >
-              <span aria-hidden="true">i</span>
-            </button>
-          );
+          const exerciseVisual = {
+            name: exercise.name,
+            slug: exercise.slug,
+            image_path: exercise.image_path,
+            image_icon_path: exercise.image_icon_path,
+            image_howto_path: exercise.image_howto_path,
+          };
+          const rowStatus: SessionStatusChip = rowViewModel.isSkipped
+            ? "skipped"
+            : isCompletedRow
+              ? "done"
+              : exercise.routineDayExerciseId === null
+                ? "added"
+                : null;
+          const rowCardTone: CardTone = isExpanded && semanticTone !== "completed" ? "current" : semanticTone;
+          const rowTargetValues = isStretchHub ? [] : splitExerciseTargetValues(normalizeExerciseTargetSummary(exerciseSummary));
+          const rowProgressionLabel = isStretchHub ? null : formatExerciseProgressionLabel(progressionStateLabel);
 
-          const cardShellStyle: CSSProperties & {
-            "--exercise-card-progress-fill-top-right-radius": string;
-            "--exercise-card-progress-fill-bottom-right-radius": string;
-          } = isExpanded
-            ? {
-                borderTopRightRadius: "var(--card-radius)",
-                borderBottomRightRadius: "0px",
-                "--exercise-card-progress-fill-top-right-radius": "var(--card-radius)",
-                "--exercise-card-progress-fill-bottom-right-radius": "0px",
-              }
-            : {
-                borderTopRightRadius: "var(--card-radius)",
-                borderBottomRightRadius: "0px",
-                "--exercise-card-progress-fill-top-right-radius": "var(--card-radius)",
-                "--exercise-card-progress-fill-bottom-right-radius": "0px",
-              };
-          const compactProgressFillPercent = sessionProgressFill && sessionProgressFill.percent > 0
-            ? Math.max(0, Math.min(100, sessionProgressFill.percent))
-            : null;
-          const compactProgressFillStyle = compactProgressFillPercent !== null
-            ? ({
-                width: `${compactProgressFillPercent}%`,
-              } satisfies CSSProperties)
-            : null;
-          const isCompactProgressFillComplete = compactProgressFillPercent !== null && compactProgressFillPercent >= 100;
-
-          const disclosureCard = (
-            <ExerciseDisclosureCard
-              scope="session-exercise"
-              itemId={exercise.id}
-              expanded={isExpanded}
-              keepPanelMounted={false}
-              onToggle={() => toggleExercise(exercise.id)}
-              exercise={exercise}
-              title={sessionTitle}
-              summary={undefined}
-              summaryLabel=""
-              density="compact"
-              state={rowState.cardState === "completed" ? "completed" : (isExpanded ? "selected" : rowState.cardState)}
-              semanticTone={semanticTone}
-              trailingClassName={appTokens.metaText}
-              badgeText={rowViewModel.isSkipped ? undefined : (titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined))}
-              showLeadingVisual={surfacePolicy.showMedia}
-              subtitleTone="plain"
-              subtitleClassName={isCompletedRow ? "!text-[rgb(var(--success-rgb)/0.98)]" : undefined}
-              className={isExpanded ? "flex flex-col overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
-              shellClassName={[
-                isExpanded
-                  ? "!border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
-                  : "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]",
-                rowState.cardState === "completed"
-                  ? "!border-0 bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.76),rgb(var(--surface-2-rgb)/0.99))] ring-0"
-                  : undefined,
-              ].filter(Boolean).join(" ")}
-              shellStyle={cardShellStyle}
-              cardClassName={
-                !isExpanded
-                  ? "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
-                  : "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
-              }
-              contentClassName="pl-3 pr-[2.45rem]"
-              titleContainerClassName={CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME}
-              panelClassName={isExpanded ? "flex flex-col" : undefined}
-              mediaClassName={cardMediaToneClassNames.completed}
-              mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
-              rightIconMode="overlay"
-              rightRailClassName={CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME}
-              cornerMeta={titleMeta}
-              cornerMetaClassName={CURRENT_SESSION_CARD_CORNER_META_CLASS_NAME}
-              overlayActions={recoveryTimingInsight ? undefined : cardInfoButton}
-              overlayActionsClassName={CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME}
-              showAccentRail
-              hideEmptySummary
-              contentVerticalAlign="top"
-              progressFill={sessionProgressFill}
-              collapsedCardFooter={recoveryTimingInsight ? (
-                <div className="-mt-px flex min-h-9 items-center justify-between gap-3 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))] pl-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <p className="shrink-0 text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
-                      {recoveryTimingInsight.label}
-                    </p>
-                    {savedFeedbackLabel ? (
-                      <>
-                        <SignatureMiniPipe className="h-[0.8em] w-[0.35rem]" barClassName="w-[2px]" />
-                        <p className="whitespace-nowrap text-[11px] font-semibold text-[rgb(var(--text-muted)/0.9)]">
-                          {savedFeedbackLabel}
-                        </p>
-                      </>
-                    ) : null}
-                  </div>
-                  <div className="flex shrink-0 self-stretch items-center px-2.5">
-                    {cardFooterInfoButton}
-                  </div>
-                </div>
-              ) : null}
-              collapsedContent={(
-                <>
-                  {shouldShowFeedbackPrompt && updateSessionExerciseCopilotFeedbackAction ? (
-                    <SessionExerciseFeedbackPrompt
-                      sessionId={sessionId}
-                      sessionExerciseId={exercise.id}
-                      initialFeedback={savedFeedback}
-                      updateFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
-                      onSaved={(feedback) => {
-                        const cachedState = sessionExerciseLocalStateCache.get(sessionId);
-                        if (cachedState) {
-                          sessionExerciseLocalStateCache.set(sessionId, {
-                            ...cachedState,
-                            savedFeedbackByExerciseId: {
-                              ...cachedState.savedFeedbackByExerciseId,
-                              [exercise.id]: feedback,
-                            },
-                          });
-                        }
-                        setAnsweredFeedbackExerciseIds((current) => new Set([...current, exercise.id]));
-                        setSavedFeedbackByExerciseId((current) => ({ ...current, [exercise.id]: feedback }));
-                        patchRowState(exercise.id, (current) => ({ ...current, showWhenCompleted: false }));
-                      }}
-                    />
-                  ) : null}
-                </>
-              )}
-            >
+          const sessionPanel = (
               <>
                 <SetLoggerCard
                   userId={userId}
@@ -1348,39 +1193,64 @@ export function SessionExerciseFocus({
                   />
                 ) : null}
               </>
-            </ExerciseDisclosureCard>
           );
 
-          const quickActionStrip = !isExpanded ? (
-            <AttachedQuickActionStrip
-              gridClassName={(exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount > 0
-                ? "grid-cols-[74px_80px_minmax(0,1fr)]"
-                : "grid-cols-[74px_minmax(0,1fr)]"}
-              logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}
-              rowContract={{
-                label: quickLogAction.ok ? quickLogAction.label : rowState.quickLogLabel,
-                skipLabel: rowState.skipActionLabel,
-                quickLogActionClassName: rowState.quickLogActionClassName,
-                skipActionClassName: rowState.skipActionClassName,
-                skipActionIntent: rowState.skipActionIntent,
-                actionRowClassName: rowState.actionRowClassName,
-                isQuickLogDisabled: rowState.isQuickLogDisabled,
-                isSkipDisabled: rowState.isSkipDisabled,
-                quickLogDisabledMessage: rowState.quickLogDisabledMessage,
-                isSkipPending: rowViewModel.isSkipPending,
-                isQuickLogPending: rowViewModel.isQuickLogPending,
-              }}
-              onSkip={() => {
-                void handleSkipToggle(
-                  exercise.id,
-                  baseRowViewModel.isSkipped,
-                  effectiveIsHidden,
-                  progressState.isGoalCompleted,
-                  rowViewModel.isQuickLogPending,
-                  rowViewModel.isSkipPending,
-                  setCount,
-                );
-              }}
+          const collapsedFooter = (
+            <>
+                  {shouldShowFeedbackPrompt && updateSessionExerciseCopilotFeedbackAction ? (
+                    <SessionExerciseFeedbackPrompt
+                      sessionId={sessionId}
+                      sessionExerciseId={exercise.id}
+                      initialFeedback={savedFeedback}
+                      updateFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
+                      onSaved={(feedback) => {
+                        const cachedState = sessionExerciseLocalStateCache.get(sessionId);
+                        if (cachedState) {
+                          sessionExerciseLocalStateCache.set(sessionId, {
+                            ...cachedState,
+                            savedFeedbackByExerciseId: {
+                              ...cachedState.savedFeedbackByExerciseId,
+                              [exercise.id]: feedback,
+                            },
+                          });
+                        }
+                        setAnsweredFeedbackExerciseIds((current) => new Set([...current, exercise.id]));
+                        setSavedFeedbackByExerciseId((current) => ({ ...current, [exercise.id]: feedback }));
+                        patchRowState(exercise.id, (current) => ({ ...current, showWhenCompleted: false }));
+                      }}
+                    />
+                  ) : null}
+              {recoveryTimingInsight || savedFeedbackLabel ? (
+                <SessionRowNote>
+                  {recoveryTimingInsight ? <>{recoveryTimingInsight.label}</> : null}
+                  {recoveryTimingInsight && savedFeedbackLabel ? " \u00b7 " : null}
+                  {savedFeedbackLabel}
+                </SessionRowNote>
+              ) : null}
+              <SessionQuickLogRow
+                exerciseName={exercise.name}
+                logAllCount={Math.max(0, (exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0) - setCount)}
+                rowContract={{
+                  label: quickLogAction.ok ? quickLogAction.label : rowState.quickLogLabel,
+                  skipLabel: rowState.skipActionLabel,
+                  skipActionIntent: rowState.skipActionIntent,
+                  isQuickLogDisabled: rowState.isQuickLogDisabled,
+                  isSkipDisabled: rowState.isSkipDisabled,
+                  quickLogDisabledMessage: rowState.quickLogDisabledMessage,
+                  isSkipPending: rowViewModel.isSkipPending,
+                  isQuickLogPending: rowViewModel.isQuickLogPending,
+                }}
+                onSkip={() => {
+                  void handleSkipToggle(
+                    exercise.id,
+                    baseRowViewModel.isSkipped,
+                    effectiveIsHidden,
+                    progressState.isGoalCompleted,
+                    rowViewModel.isQuickLogPending,
+                    rowViewModel.isSkipPending,
+                    setCount,
+                  );
+                }}
               onPress={async () => {
                 if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
                   return;
@@ -1524,8 +1394,10 @@ export function SessionExerciseFocus({
                   }));
                 }
               }}
-            />
-          ) : null;
+              />
+            </>
+          );
+
 
           return (
             <li
@@ -1537,79 +1409,55 @@ export function SessionExerciseFocus({
                   ? "max-h-0 scale-[0.98] overflow-hidden opacity-0"
                   : isExpanded
                     ? "max-h-[240rem] scale-100 overflow-visible opacity-100"
-                    : hasCollapsedSupplement
-                      ? "max-h-[48rem] scale-100 overflow-visible opacity-100"
-                      : "max-h-72 scale-100 overflow-hidden opacity-100",
+                    : "max-h-[48rem] scale-100 overflow-visible opacity-100",
               ].join(" ")}
             >
               <SessionExerciseBlock>
-                <div className="w-full">
-                  {shouldRenderCompactSkippedRow ? (
-                    <div className={cn("relative", COMPACT_SESSION_ROW_SHELL_CLASS_NAME, "bg-[rgb(var(--surface-1-rgb)/0.86)]")}>
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute bottom-px left-px top-px z-[2] w-[4px] rounded-r-full bg-[rgb(var(--accent-divider-rgb)/0.96)]"
+                {shouldRenderCompactSkippedRow ? (
+                  <SessionHiddenRowCard
+                    exercise={exerciseVisual}
+                    status={baseRowViewModel.isSkipped ? "skipped" : "done"}
+                    progress={rowProgress}
+                    action={(
+                      <SessionRowActionButton
+                        intent={rowState.skipActionIntent === "toggleActive" ? "toggle" : "neutral"}
+                        intentAttr={rowState.skipActionIntent}
+                        label={rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}
+                        ariaLabel={`${rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}: ${exercise.name}`}
+                        inactive={rowViewModel.isSkipPending}
+                        onPress={() => {
+                          void handleSkipToggle(
+                            exercise.id,
+                            baseRowViewModel.isSkipped,
+                            effectiveIsHidden,
+                            progressState.isGoalCompleted,
+                            rowViewModel.isQuickLogPending,
+                            rowViewModel.isSkipPending,
+                            setCount,
+                          );
+                        }}
                       />
-                      {compactProgressFillStyle ? (
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            "pointer-events-none absolute bottom-0 left-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))]",
-                            isCompactProgressFillComplete
-                              ? "right-0 rounded-br-[var(--card-radius)] rounded-tr-[var(--card-radius)] shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.20)]"
-                              : "rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
-                          )}
-                          style={compactProgressFillStyle}
-                        >
-                          {isCompactProgressFillComplete && !baseRowViewModel.isSkipped ? (
-                            <span className="exercise-card-progress-glint" />
-                          ) : null}
-                        </span>
-                      ) : null}
-                      <div className="relative z-[1] flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
-                        <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
-                          {exercise.name}
-                        </p>
-                        <button
-                          type="button"
-                          disabled={rowViewModel.isSkipPending}
-                          onClick={() => {
-                            void handleSkipToggle(
-                              exercise.id,
-                              baseRowViewModel.isSkipped,
-                              effectiveIsHidden,
-                              progressState.isGoalCompleted,
-                              rowViewModel.isQuickLogPending,
-                              rowViewModel.isSkipPending,
-                              setCount,
-                            );
-                          }}
-                          data-bottom-action-intent={rowState.skipActionIntent}
-                          className={cn(
-                            getBottomActionButtonClassName({
-                              intent: rowState.skipActionIntent,
-                              fullWidth: false,
-                              className: "!min-h-0 h-auto rounded-[999px] px-3 py-1.5 text-[11px] uppercase tracking-[0.14em]",
-                            }),
-                            "shrink-0",
-                            rowViewModel.isSkipPending ? "shadow-none" : undefined,
-                          )}
-                        >
-                          {rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}
-                        </button>
-                      </div>
-                    </div>
-                  ) : isExpanded ? (
-                    <SessionExerciseCard>
-                      {disclosureCard}
-                    </SessionExerciseCard>
-                  ) : (
-                    <div className={COMPACT_SESSION_ROW_SHELL_CLASS_NAME}>
-                      {disclosureCard}
-                      {quickActionStrip}
-                    </div>
-                  )}
-                </div>
+                    )}
+                  />
+                ) : (
+                  <SessionExerciseRowCard
+                    itemId={exercise.id}
+                    exercise={exerciseVisual}
+                    expanded={isExpanded}
+                    onToggle={() => toggleExercise(exercise.id)}
+                    metaItems={headerMetaItems}
+                    targetValues={rowTargetValues}
+                    progressionLabel={rowProgressionLabel}
+                    progress={rowProgress}
+                    status={rowStatus}
+                    tone={rowCardTone}
+                    showMedia={surfacePolicy.showMedia}
+                    infoLabel={`Open exercise info for ${exercise.name}`}
+                    onOpenInfo={() => setExerciseInfoExerciseId(exercise.exerciseId)}
+                    panel={sessionPanel}
+                    footer={collapsedFooter}
+                  />
+                )}
               </SessionExerciseBlock>
             </li>
           );

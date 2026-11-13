@@ -101,16 +101,19 @@ export function SessionExerciseFeedbackPrompt({
 
   return (
     <div
+      role="group"
+      aria-label="Exercise feedback"
+      data-session-feedback-prompt="true"
       className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.24)] px-3 pb-3 pt-2.5"
       onClick={(event) => event.stopPropagation()}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.88)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.95)]">
           Feedback
         </p>
-        {isSaving ? <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.72)]">Saving</span> : null}
+        {isSaving ? <span role="status" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.95)]">Saving</span> : null}
       </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {SESSION_COPILOT_FEEDBACK_SIGNALS.map((value) => (
           <ChipButton
             key={value}
@@ -120,7 +123,7 @@ export function SessionExerciseFeedbackPrompt({
             aria-pressed={signal === value}
             onClick={() => setSignal((current) => current === value ? null : value)}
             className={cn(
-              "shrink-0 px-2.5 py-1 text-[9px] font-semibold tracking-[0.12em]",
+              "min-h-11 shrink-0 px-3 py-1 text-[11px] font-semibold tracking-[0.1em]",
               signal === value
                 ? "!border-[rgb(var(--accent)/0.96)] !bg-[rgb(var(--accent)/0.3)] !text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent)/0.7)] shadow-[0_0_14px_rgb(var(--accent)/0.28)]"
                 : undefined,
@@ -130,7 +133,7 @@ export function SessionExerciseFeedbackPrompt({
           </ChipButton>
         ))}
       </div>
-      <div className="mt-1.5 flex items-center gap-1.5">
+      <div role="group" aria-label="Effort, 1 to 10" className="mt-1.5 grid grid-cols-5 gap-1.5">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
           <ChipButton
             key={value}
@@ -141,7 +144,7 @@ export function SessionExerciseFeedbackPrompt({
             aria-label={`Effort ${value} out of 10`}
             onClick={() => setEffort((current) => current === value ? null : value)}
             className={cn(
-              "inline-flex h-6 w-6 shrink-0 items-center justify-center px-0 py-0 text-[10px] font-semibold tracking-normal",
+              "inline-flex min-h-11 w-full min-w-11 items-center justify-center px-0 py-0 text-[13px] font-semibold tracking-normal tabular-nums",
               effort === value
                 ? "!border-[rgb(var(--accent)/0.96)] !bg-[rgb(var(--accent)/0.3)] !text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent)/0.7)] shadow-[0_0_14px_rgb(var(--accent)/0.28)]"
                 : undefined,
@@ -157,7 +160,8 @@ export function SessionExerciseFeedbackPrompt({
         maxLength={SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}
         onChange={(event) => setNote(event.currentTarget.value)}
         placeholder="Optional note"
-        className="mt-2 h-7 w-full border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.28)] bg-transparent px-0 text-[12px] text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-muted)/0.56)] focus:border-[rgb(var(--accent)/0.42)]"
+        aria-label="Feedback note (optional)"
+        className="mt-2 h-11 w-full border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.28)] bg-transparent px-0 text-sm text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-muted)/0.8)] focus:border-[rgb(var(--accent)/0.42)]"
       />
     </div>
   );

@@ -86,6 +86,7 @@ export function ExerciseRowCard({
   panelProps,
   footer,
   stickyHeader = false,
+  allowOverflow = false,
   className,
 }: {
   exercise: ExerciseRowCardVisual;
@@ -111,6 +112,8 @@ export function ExerciseRowCard({
   footer?: ReactNode;
   /** Keep the header pinned while the panel is open (day editor). */
   stickyHeader?: boolean;
+  /** Let panel content escape the rounded clip (session set logger popovers). Implied by `stickyHeader` while open. */
+  allowOverflow?: boolean;
   className?: string;
 }) {
   const details = targetValues.length > 0 || progressionLabel || progress ? (
@@ -148,7 +151,7 @@ export function ExerciseRowCard({
   return (
     <CardSurface
       tone={tone}
-      allowOverflow={stickyHeader && interaction.kind === "toggle" && interaction.expanded}
+      allowOverflow={allowOverflow || (stickyHeader && interaction.kind === "toggle" && interaction.expanded)}
       className={className}
       data-exercise-row-card="true"
     >

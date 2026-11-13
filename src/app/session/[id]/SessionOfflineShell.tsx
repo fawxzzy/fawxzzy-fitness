@@ -7,9 +7,7 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SubtitleText } from "@/components/ui/text-roles";
-import { PlannedExerciseSummaryRow } from "@/components/workout/PlannedExerciseSummaryRow";
-import { deriveLoggedSetCountProgressFill } from "@/lib/exercise-card-progress-fill";
-import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { readSessionCache, type SessionCacheSnapshot } from "@/lib/offline/session-cache";
 
 export function SessionOfflineShell({
@@ -52,33 +50,11 @@ export function SessionOfflineShell({
       <ContentRail className="space-y-3">
         {cachedSnapshot ? (
           <>
-            <ul className="flex flex-col gap-[0.375rem]">
-              {cachedSnapshot.exercises.map((exercise) => {
-                const progressState = deriveSessionExerciseProgressState({
-                  loggedSetCount: exercise.loggedSetCount ?? 0,
-                  isSkipped: exercise.isSkipped === true,
-                  targetSetsMin: exercise.targetSetsMin,
-                  targetSetsMax: exercise.targetSetsMax,
-                  surface: "summary",
-                });
-
-                return (
-                  <li key={exercise.id}>
-                    <PlannedExerciseSummaryRow
-                      exercise={exercise}
-                      density="compact"
-                      surface="current-session"
-                      state={progressState.cardState}
-                      semanticTone={progressState.cardState === "completed" ? "completed" : undefined}
-                      progressFill={deriveLoggedSetCountProgressFill({
-                        loggedSetCount: progressState.loggedSetCount,
-                        goalSetTarget: progressState.goalSetTarget,
-                      })}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
+            <TodayExerciseRows
+              exercises={cachedSnapshot.exercises.map((exercise) => ({ ...exercise, exerciseId: exercise.exerciseId ?? exercise.id }))}
+              emptyMessage="No exercises in this session."
+              surface="current-session"
+            />
           </>
         ) : (
           <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">

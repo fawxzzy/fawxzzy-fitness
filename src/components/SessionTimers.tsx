@@ -1770,7 +1770,7 @@ export function SetLoggerCard({
             isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
           )}
         >
-          <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-1.5 text-[10px] leading-tight">
+          <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-1.5 text-[11px] leading-tight">
             <span>{liveLogButtonPrefix}</span>
             {liveSummaryItems.length > 0 ? (
               <>
@@ -1778,7 +1778,7 @@ export function SetLoggerCard({
                 <SignatureInlineList
                   items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
                   separator="pipe"
-                  className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
+                  className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[11px] font-medium tracking-normal"
                   itemClassName="whitespace-nowrap"
                 />
               </>
@@ -2128,7 +2128,7 @@ export function SetLoggerCard({
                       getBottomActionButtonClassName({
                         intent: "danger",
                         fullWidth: false,
-                        className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
+                        className: "!h-11 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
                       }),
                       "shrink-0 self-center",
                       isDeletePending ? "opacity-75" : undefined,

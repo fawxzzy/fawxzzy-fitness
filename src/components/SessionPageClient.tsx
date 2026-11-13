@@ -5,6 +5,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+import { buildSessionFinishedFacts, SessionFinishedCard } from "@/components/session/SessionRowCards";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -338,15 +339,7 @@ export function SessionPageClient({
           <ActionFeedbackToasts />
 
           {isSessionCompleted ? (
-            <div
-              role="status"
-              className="rounded-[var(--card-radius)] border border-[rgb(var(--success-rgb)/0.24)] bg-[rgb(var(--success-rgb)/0.08)] px-4 py-6 text-center"
-            >
-              <p className="text-base font-bold text-[rgb(var(--success-rgb)/0.98)]">Workout saved</p>
-              <p className="mt-1 text-sm font-medium text-[rgb(var(--text-muted)/0.92)]">
-                Continue to return to your workout overview.
-              </p>
-            </div>
+            <SessionFinishedCard facts={buildSessionFinishedFacts({ exercises, durationSeconds })} />
           ) : hasExercises ? (
             <SessionExerciseFocus
               userId={userId}
