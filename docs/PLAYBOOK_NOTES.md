@@ -60,6 +60,18 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: apply package first (separate approval), app merge second. No runtime fallback to direct inserts.
 - Evidence: `src/lib/session-start-activation.ts` and test, `src/lib/session-start-atomicity.test.ts`, `supabase/master-fitness/*`; local PostgreSQL 17 proof (apply, rerun, 8-client concurrency, unique-violation handler, duplicate guard, rollback).
 - Status: source only; nothing applied to any provider.
+
+## 2026-11-12 - Bucket Exercise info sessions by the History local day
+
+- Type: Day-boundary correctness (source) + Coverage
+- WHAT changed: Exercise info (`src/lib/exercise-info.ts`) derived every day key with `value.slice(0, 10)` of the UTC ISO string and formatted day labels with `formatDateShort` in the server runtime zone (UTC on Vercel). It now uses `getExerciseInfoDayKey` (`src/lib/exercise-info-day-key.ts`), which delegates to History's `getWeeklyProgressDayKey`, with the zone from `resolveHistoryTimeZone` (active routine zone, then profile zone, then America/New_York) carried on the scope context as `historyTimeZone`. Labels are formatted from the day key as a UTC calendar date, so PR history, chart points, day groups, cycle options, progress entries, last-performed labels and cardio PR dates agree with History. The client history range label no longer pushes a day key through the browser zone. History's progression-activity buckets (weekly progress and scope summary) now receive the History zone too; they defaulted to UTC.
+- WHY it changed: A session after 19:00 US Eastern (EST) is the next day in UTC, so Exercise info said "Nov 13" for sessions History shows as "Nov 12" (live UX sift 2026-11-12, finding 2). PR #208 fixed History's bucketing but Exercise info kept its own UTC rule.
+- Rule: One local-day rule per product. Any surface that shows the day of a session or event derives it from the shared History day-key function and zone resolver, and a calendar date is formatted from its key, never re-read as an instant.
+- Failure Mode: Slicing an ISO timestamp, or formatting it in the server runtime zone, is right only while the user's evening is still the same UTC day; it silently moves evening sessions to the next day, and fixing one surface leaves its siblings wrong.
+- Decision: The zone is the History zone for every session-day question in Exercise info, including the planned-skipped comparison; routine zones still drive "today" and cycle windows. Synthetic planned-skipped rows keep their routine-calendar day key and are never re-bucketed. Not changed here, tracked as follow-ups: Settings export date range (UTC day boundaries and a UTC default for "today") and the ecosystem snapshot telemetry (`activeStreakDays`, `consecutiveMisses`), which bucket by UTC day and change an outbound contract.
+- Evidence: `src/lib/exercise-info-day-key.ts`, `src/lib/exercise-info-day-key.test.ts` (23:30 Eastern, DST start and end, parity with History for every 90 minutes across a year in five zones), `src/lib/progression-summary-activity.test.ts`, `src/lib/exercise-info.ts`.
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
+
 ## 2026-10-16 - Keep event-free login autofill submittable
 
 - Type: Authentication UI continuity + Coverage
