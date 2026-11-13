@@ -71,12 +71,12 @@ function getDayBackgroundColor(args: {
   }
 }
 
-/** Visually hidden suffix, so the button name reads `12 2 sessions` and still contains what is printed on the cell. */
-function formatDayStatus(day: { sessionCount: number; isSkipped: boolean }) {
+/** Accessible name for a day button: the printed day first, then what the cell means (`12, 2 sessions`). */
+function formatDayLabel(day: { dayNumber: number; sessionCount: number; isSkipped: boolean }) {
   if (day.sessionCount > 0) {
-    return `${day.sessionCount === 1 ? "1 session" : `${day.sessionCount} sessions`}`;
+    return `${day.dayNumber}, ${day.sessionCount === 1 ? "1 session" : `${day.sessionCount} sessions`}`;
   }
-  return day.isSkipped ? "planned workout skipped" : null;
+  return day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined;
 }
 
 const MONTH_NAV_BUTTON_CLASS_NAME = cardTokens.iconControl;
@@ -94,10 +94,12 @@ function CalendarContent({
   calendarView: HistoryCalendarView;
   onSelectDayKey: (dayKey: string | null) => void;
 }) {
-  // `months` is newest first, so index 0 is the latest month and a higher index is older.
-  const [requestedIndex, setRequestedIndex] = useState(0);
-  const lastIndex = Math.max(0, calendarView.months.length - 1);
-  const monthIndex = Math.min(requestedIndex, lastIndex);
+  // The shown month is held by its key, not by a position: `months` is newest first, so a newer month arriving
+  // (a new session in a later month) would shift every index and silently switch the view. No key (or a key that
+  // left the list) shows the newest month.
+  const [shownMonthKey, setShownMonthKey] = useState<string | null>(null);
+  const foundIndex = shownMonthKey ? calendarView.months.findIndex((candidate) => candidate.monthKey === shownMonthKey) : -1;
+  const monthIndex = foundIndex >= 0 ? foundIndex : 0;
   const month = calendarView.months[monthIndex];
   const olderMonth = calendarView.months[monthIndex + 1];
   const newerMonth = calendarView.months[monthIndex - 1];
@@ -113,7 +115,7 @@ function CalendarContent({
           type="button"
           aria-label={olderMonth ? `Show ${olderMonth.monthLabel}` : "Show older month"}
           aria-disabled={!olderMonth}
-          onClick={() => olderMonth && setRequestedIndex(monthIndex + 1)}
+          onClick={() => olderMonth && setShownMonthKey(olderMonth.monthKey)}
           data-calendar-nav="older"
           className={MONTH_NAV_BUTTON_CLASS_NAME}
         >
@@ -129,21 +131,21 @@ function CalendarContent({
           type="button"
           aria-label={newerMonth ? `Show ${newerMonth.monthLabel}` : "Show newer month"}
           aria-disabled={!newerMonth}
-          onClick={() => newerMonth && setRequestedIndex(monthIndex - 1)}
+          onClick={() => newerMonth && setShownMonthKey(newerMonth.monthKey)}
           data-calendar-nav="newer"
           className={MONTH_NAV_BUTTON_CLASS_NAME}
         >
           <ChevronRightIcon className="h-5 w-5" />
         </button>
       </div>
-      <div className="grid gap-0.5">
-        <div aria-hidden="true" className="grid grid-cols-7 gap-0.5 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.95)]">
+      <div className="grid gap-px">
+        <div aria-hidden="true" className="grid grid-cols-7 gap-px text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.95)]">
           {["M", "T", "W", "T", "F", "S", "S"].map((label, index) => (
             <span key={`${month.monthKey}-weekday-${index}`}>{label}</span>
           ))}
         </div>
         {month.weeks.map((week, weekIndex) => (
-          <div key={`${month.monthKey}-week-${weekIndex}`} className="grid grid-cols-7 gap-0.5">
+          <div key={`${month.monthKey}-week-${weekIndex}`} className="grid grid-cols-7 gap-px">
             {week.map((day) => {
               if (!day.inMonth) {
                 return <span key={day.dayKey} aria-hidden="true" data-calendar-day-filler="true" className="block h-11" />;
@@ -154,6 +156,7 @@ function CalendarContent({
                   key={day.dayKey}
                   type="button"
                   aria-pressed={day.isSelected}
+                  aria-label={formatDayLabel(day)}
                   data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
                   disabled={day.sessionCount === 0}
                   onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
@@ -167,7 +170,6 @@ function CalendarContent({
                   <span className="mt-0.5 h-[11px] text-[11px] font-semibold leading-none">
                     {day.sessionCount > 0 ? day.sessionCount : ""}
                   </span>
-                  {formatDayStatus(day) ? <span className="sr-only"> {formatDayStatus(day)}</span> : null}
                 </button>
               );
             })}
@@ -205,7 +207,7 @@ export function HistoryCalendarSurface({
 
   if (viewMode === "compact") {
     return (
-      <HistoryDisclosureCard title="Calendar" tone="logged" panelClassName="px-2 pb-3 pt-3">
+      <HistoryDisclosureCard title="Calendar" tone="logged" panelClassName="px-1 pb-3 pt-3">
         {content}
       </HistoryDisclosureCard>
     );

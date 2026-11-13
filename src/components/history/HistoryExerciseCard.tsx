@@ -184,6 +184,7 @@ export function HistoryExerciseCard({
         showLeadingVisual={showMedia}
         onPress={onPress}
         dataSurface="history-browser"
+        density={density}
         body={hasBody ? (
           <div className="grid gap-4">
             <MiniExerciseTrendPreview trend={trendPreview} />

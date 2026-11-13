@@ -437,6 +437,24 @@ async function captureOnce(config) {
       await applyCookies(context, config.cookies);
     }
 
+    if (config.standalone === true) {
+      // Protected routes redirect a normal browser tab to /install; this makes the page report the installed-app
+      // display mode (what the home-screen app reports) so the protected shell renders.
+      await context.addInitScript(() => {
+        const originalMatchMedia = window.matchMedia.bind(window);
+        Object.defineProperty(window.navigator, "standalone", { configurable: true, get: () => true });
+        window.matchMedia = (query) => (query === "(display-mode: standalone)"
+          ? new Proxy(originalMatchMedia(query), {
+              get(target, property) {
+                if (property === "matches") return true;
+                const value = Reflect.get(target, property, target);
+                return typeof value === "function" ? value.bind(target) : value;
+              },
+            })
+          : originalMatchMedia(query));
+      });
+    }
+
     const navigationTimeoutMs = Number(config.navigationTimeoutMs ?? DEFAULT_TIMEOUT_MS);
     const navigationRetryCount = Number(config.navigationRetryCount ?? 3);
     const navigationRetryDelayMs = Number(config.navigationRetryDelayMs ?? 1200);

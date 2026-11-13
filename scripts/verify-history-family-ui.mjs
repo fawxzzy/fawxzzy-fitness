@@ -14,6 +14,9 @@ const STACK_ROOT = path.resolve(REPO_ROOT, "..", "..");
 const QA_UI_PASS_SCRIPT = path.resolve(REPO_ROOT, "scripts", "qa-ui-pass.mjs");
 const OUTPUT_DIR = path.resolve(STACK_ROOT, "tmp", "history-family-ui-pass");
 const HISTORY_DETAIL_SESSION_ID = "history-preview-session-2";
+// `/history` needs a signed-in user even in the preview lane; point this at `/dev/history-overview` (static preview data, no
+// user) to run the sessions capture without one.
+const SESSIONS_ROUTE = process.env.HISTORY_QA_SESSIONS_ROUTE ?? "/history";
 const BASE_URL = (process.env.HISTORY_QA_BASE_URL ?? process.env.QA_BASE_URL ?? "http://127.0.0.1:3100").replace(/\/+$/, "");
 
 process.env.HISTORY_QA_PREVIEW_ENABLED ??= "1";
@@ -151,7 +154,7 @@ function buildFirstCardHeightMatchesStoredExpression(cardSelector, storageKey) {
 
 async function writeCaptureConfig(directoryPath, name, captureConfig) {
   const filePath = path.join(directoryPath, `${name}.capture.json`);
-  await fs.writeFile(filePath, `${JSON.stringify(captureConfig, null, 2)}\n`, "utf8");
+  await fs.writeFile(filePath, `${JSON.stringify({ standalone: true, ...captureConfig }, null, 2)}\n`, "utf8");
 }
 
 async function main() {
@@ -166,7 +169,7 @@ async function main() {
       deviceScaleFactor: 1,
       initialWaitMs: 1200,
       actions: [
-        { type: "navigate", url: `${BASE_URL}/history` },
+        { type: "navigate", url: `${BASE_URL}${SESSIONS_ROUTE}` },
         { type: "waitForSelector", selector: `a[href='/history/${HISTORY_DETAIL_SESSION_ID}?returnTab=sessions']`, timeoutMs: 10000 },
         { type: "waitForSelector", selector: "input[placeholder^='Search ']", timeoutMs: 10000 },
         { type: "waitForSelector", selector: "[data-history-retention-surface='calendar']", timeoutMs: 10000 },

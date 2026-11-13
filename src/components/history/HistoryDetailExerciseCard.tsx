@@ -72,6 +72,7 @@ export function HistoryDetailExerciseCard({
   headingLevel = 2,
   body,
   dataSurface = "history-detail",
+  density = "compact",
   className,
 }: {
   exercise: HistoryExerciseVisual;
@@ -94,6 +95,8 @@ export function HistoryDetailExerciseCard({
   /** Content under the header inside the surface (browser detailed view). */
   body?: ReactNode;
   dataSurface?: string;
+  /** `data-history-density` marker (the History QA script and tests key on it). */
+  density?: "compact" | "detailed";
   className?: string;
 }) {
   const visibleMeta = metaItems.filter(Boolean);
@@ -107,6 +110,7 @@ export function HistoryDetailExerciseCard({
       className={className}
       data-history-card="detail-exercise"
       data-history-surface={dataSurface}
+      data-history-density={density}
       data-history-expanded={expanded ? "true" : "false"}
     >
       <CardHeader

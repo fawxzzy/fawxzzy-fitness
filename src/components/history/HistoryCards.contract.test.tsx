@@ -279,8 +279,15 @@ test("calendar: one month at a time, 44px day cells, a labelled pager and a live
   assert.match(html, /<button[^>]*aria-disabled="true"[^>]*data-calendar-nav="newer"/);
   assert.doesNotMatch(html, /data-calendar-nav="[a-z]+"[^>]*disabled=""|disabled=""[^>]*data-calendar-nav/);
   assert.match(html, /data-calendar-day-state="training"/);
-  assert.match(html, /<span class="sr-only"> 1 session<\/span>/);
-  assert.doesNotMatch(html, /aria-label="\d+,/);
+  // The name starts with the printed day and says what the cell means; days with nothing to say keep their printed name.
+  assert.match(html, /aria-label="\d+, 1 session"/);
+  assert.match(html, /aria-label="22, planned workout skipped"/);
+  assert.doesNotMatch(html, /sr-only/);
+  // The shown month is held by key, so a newer month arriving does not switch the view.
+  const calendarSource = read("HistoryCalendarSurface.tsx");
+  assert.match(calendarSource, /shownMonthKey/);
+  assert.match(calendarSource, /months\.findIndex\(\(candidate\) => candidate\.monthKey === shownMonthKey\)/);
+  assert.doesNotMatch(calendarSource, /requestedIndex/);
   assert.match(html, /data-calendar-day-filler="true"/);
   assert.match(html, /flex h-11 min-w-0 flex-col/);
   assert.doesNotMatch(html, /aspect-square|min-h-\[2\.2rem\]|min-w-\[17\.5rem\]/);

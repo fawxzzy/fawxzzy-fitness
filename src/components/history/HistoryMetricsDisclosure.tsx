@@ -8,7 +8,7 @@ import type { MetricDatum } from "@/components/ui/MetricItem";
 
 export type HistoryDisclosureTone = Extract<CardTone, "current" | "logged">;
 
-export function normalizeHistoryCompactSummaryItems(items: Array<string | null | undefined>) {
+function normalizeHistoryCompactSummaryItems(items: Array<string | null | undefined>) {
   return [...new Set(items.map((item) => item?.trim()).filter((item): item is string => Boolean(item)))];
 }
 
