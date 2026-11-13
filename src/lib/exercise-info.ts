@@ -29,7 +29,9 @@ import {
   selectSessionBestRow,
   selectStrengthPrRowIds,
 } from "@/lib/exercise-strength-pr-summaries";
-import { formatDateShort, formatWeight } from "@/lib/formatting";
+import { formatWeight } from "@/lib/formatting";
+import { formatExerciseInfoDayKeyLabel, formatExerciseInfoDayLabel, getExerciseInfoDayKey } from "@/lib/exercise-info-day-key";
+import { resolveHistoryTimeZone } from "@/lib/timezones";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import {
   buildProgressionHistorySessions,
@@ -322,6 +324,8 @@ type ExerciseInfoScopeContext = {
   activeRoutineTitle: string | null;
   currentCycleWindow: CurrentCycleWindow | null;
   profileTimeZone: string;
+  /** The zone History buckets sessions into local days with (resolveHistoryTimeZone): every day key and day label here uses it. */
+  historyTimeZone: string;
 };
 
 type ExerciseInfoRoutineMeta = {
@@ -550,6 +554,7 @@ function resolveCardioPresentationKind(measurementType: string | null | undefine
 function buildTimedHoldPerformanceMetrics(args: {
   lastSummary: string | null;
   lastPerformedAt: string | null;
+  timeZone: string;
   bestDurationSeconds?: number | null;
   rows: Array<{
     performedAt: string;
@@ -579,7 +584,7 @@ function buildTimedHoldPerformanceMetrics(args: {
     metrics.push({
       label: "Last",
       value: args.lastSummary,
-      timeframe: args.lastPerformedAt ? formatDateShort(args.lastPerformedAt) : null,
+      timeframe: args.lastPerformedAt ? formatExerciseInfoDayLabel(args.lastPerformedAt, args.timeZone) : null,
     });
   }
 
@@ -945,6 +950,7 @@ async function loadExerciseAnalyticsScopeContext(userId: string, client?: Fitnes
       activeRoutineTitle: null,
       currentCycleWindow: null,
       profileTimeZone,
+      historyTimeZone: resolveHistoryTimeZone({ profileTimeZone }),
     };
   }
 
@@ -971,6 +977,11 @@ async function loadExerciseAnalyticsScopeContext(userId: string, client?: Fitnes
       profileTimeZone: routineTimeZone,
     }),
     profileTimeZone,
+    // Same rule as History: the active routine's device-derived zone outranks the server-captured profile zone.
+    historyTimeZone: resolveHistoryTimeZone({
+      activeRoutineTimeZone: typeof routineData?.timezone === "string" ? routineData.timezone : null,
+      profileTimeZone,
+    }),
   };
 }
 
@@ -1002,6 +1013,7 @@ async function resolveExerciseInfoScopeContext(
       activeRoutineTitle: null,
       currentCycleWindow: null,
       profileTimeZone: baseContext.profileTimeZone,
+      historyTimeZone: baseContext.historyTimeZone,
     };
   }
 
@@ -1032,6 +1044,7 @@ async function resolveExerciseInfoScopeContext(
         })
       : null,
     profileTimeZone: baseContext.profileTimeZone,
+    historyTimeZone: baseContext.historyTimeZone,
   };
 }
 
@@ -1277,7 +1290,7 @@ async function loadPlannedSkippedHistoryDays(args: {
 
     for (const row of args.rows) {
       if (!row.routineId) continue;
-      const dayKey = getHistoryDayKey(row.performedAt);
+      const dayKey = getHistoryDayKey(row.performedAt, args.scopeContext.historyTimeZone);
       if (!dayKey) continue;
       const anyKeys = anyRowDayKeysByRoutine.get(row.routineId) ?? new Set<string>();
       anyKeys.add(dayKey);
@@ -1292,7 +1305,7 @@ async function loadPlannedSkippedHistoryDays(args: {
     for (const event of args.progressionEvents) {
       const routineId = typeof event.routine_id === "string" ? event.routine_id.trim() : "";
       if (!routineId) continue;
-      const dayKey = getHistoryDayKey(event.created_at);
+      const dayKey = getHistoryDayKey(event.created_at, args.scopeContext.historyTimeZone);
       if (!dayKey) continue;
       const signalKeys = signalDayKeysByRoutine.get(routineId) ?? new Set<string>();
       signalKeys.add(dayKey);
@@ -1435,6 +1448,7 @@ function buildRoutineCycleOptions(args: {
   routine: ExerciseInfoRoutineMeta;
   rows: NormalizedSet[];
   progressionEvents: ProgressionEventRow[];
+  historyTimeZone: string;
 }) {
   if (!args.routine.startDate || !args.routine.cycleLengthDays || args.routine.cycleLengthDays <= 0) {
     return [] as ExerciseInfoCycleFilterOption[];
@@ -1443,10 +1457,10 @@ function buildRoutineCycleOptions(args: {
   const dayKeys = [
     ...args.rows
       .filter((row) => row.routineId === args.routine.id)
-      .map((row) => getHistoryDayKey(row.performedAt)),
+      .map((row) => getHistoryDayKey(row.performedAt, args.historyTimeZone)),
     ...args.progressionEvents
       .filter((event) => event.routine_id === args.routine.id)
-      .map((event) => getHistoryDayKey(event.created_at)),
+      .map((event) => getHistoryDayKey(event.created_at, args.historyTimeZone)),
   ].filter((dayKey): dayKey is string => /^\d{4}-\d{2}-\d{2}$/.test(dayKey));
 
   const cycleOptionsByStartDate = new Map<string, ExerciseInfoCycleFilterOption>();
@@ -1477,6 +1491,7 @@ async function buildExerciseInfoFilterOptions(args: {
   progressionEvents: ProgressionEventRow[];
   activeRoutineId: string | null;
   profileTimeZone: string;
+  historyTimeZone: string;
   client?: FitnessSupabaseClient;
 }) {
   const routineIds = Array.from(new Set([
@@ -1501,6 +1516,7 @@ async function buildExerciseInfoFilterOptions(args: {
         routine,
         rows: args.rows,
         progressionEvents: args.progressionEvents,
+        historyTimeZone: args.historyTimeZone,
       }),
     })),
   } satisfies ExerciseInfoFilterOptions;
@@ -1593,17 +1609,17 @@ function resolveExerciseProgressEntryDisplayKind(args: {
   return "session-summary" as const;
 }
 
-function buildProgressEntries<T extends {
+export function buildProgressEntries<T extends {
   sessionId: string;
   performedAt: string;
   summary: string | null;
   setCount: number;
   setSummaries: string[];
-}>(performances: T[]) {
+}>(performances: T[], timeZone: string) {
   return performances.map((performance) => ({
     sessionId: performance.sessionId,
     performedAt: performance.performedAt,
-    label: formatDateShort(performance.performedAt),
+    label: formatExerciseInfoDayLabel(performance.performedAt, timeZone),
     value: summarizeRecentPerformanceValues(performance.summary ?? null, performance.setSummaries),
     context: `${performance.setCount} ${performance.setCount === 1 ? "set" : "sets"}`,
     summary: performance.summary ?? null,
@@ -1616,12 +1632,8 @@ function buildProgressEntries<T extends {
   }));
 }
 
-function getHistoryDayKey(value: string | null | undefined) {
-  return typeof value === "string" && value.length >= 10 ? value.slice(0, 10) : "";
-}
-
-function getHistoryDayLabel(value: string | null | undefined) {
-  return value ? formatDateShort(value) : "Unknown";
+function getHistoryDayKey(value: string | null | undefined, timeZone: string) {
+  return getExerciseInfoDayKey(value, timeZone);
 }
 
 function uniqueSignals(values: Array<DetailSectionSignalTone | null | undefined>) {
@@ -1772,7 +1784,7 @@ function resolveHistoryPointMetricValuePart(point: {
   )) ?? null;
 }
 
-function buildExerciseHistoryModel(args: {
+export function buildExerciseHistoryModel(args: {
   rows: NormalizedSet[];
   graphMetricKey: HistoryGraphMetricKey;
   bestSummary?: string | null;
@@ -1780,6 +1792,7 @@ function buildExerciseHistoryModel(args: {
   prDayLabels?: Set<string>;
   progressionEvents: ProgressionEventRow[];
   plannedSkippedDays?: PlannedSkippedHistoryDay[];
+  timeZone: string;
 }): {
   graphMetricKey: HistoryGraphMetricKey;
   historyGroups: ExerciseHistoryDayGroup[];
@@ -1799,7 +1812,7 @@ function buildExerciseHistoryModel(args: {
   const eventPoints: ExerciseHistoryPoint[] = [];
 
   for (const event of args.progressionEvents) {
-    const dayKey = getHistoryDayKey(event.created_at);
+    const dayKey = getHistoryDayKey(event.created_at, args.timeZone);
     if (!dayKey) continue;
     dayEvents.set(dayKey, [...(dayEvents.get(dayKey) ?? []), event]);
     const signal = getProgressionSignalForEventType(event.event_type);
@@ -1817,7 +1830,7 @@ function buildExerciseHistoryModel(args: {
       type: "progression-event",
       performedAt: event.created_at,
       dayKey,
-      label: getHistoryDayLabel(event.created_at),
+      label: formatExerciseInfoDayKeyLabel(dayKey),
       summary: "Progression change",
       meta: event.source_session_id ? `Session ${event.source_session_id}` : null,
       numericValue: null,
@@ -1831,8 +1844,9 @@ function buildExerciseHistoryModel(args: {
   const rowPoints: ExerciseHistoryPoint[] = [];
 
   for (const row of sortedRows) {
-    const dayKey = getHistoryDayKey(row.performedAt);
+    const dayKey = getHistoryDayKey(row.performedAt, args.timeZone);
     if (!dayKey) continue;
+    const dayLabel = formatExerciseInfoDayKeyLabel(dayKey);
 
     const rowId = `${row.sessionId}-${row.setIndex}`;
     const pointId = `set-${rowId}`;
@@ -1848,7 +1862,7 @@ function buildExerciseHistoryModel(args: {
     });
     const normalizedPrimary = normalizeExerciseInfoMetricComparisonValue(primary);
     const rowSignals = uniqueSignals([
-      args.prRowIds?.has(rowId) || args.prDayLabels?.has(getHistoryDayLabel(row.performedAt)) ? "pr" : null,
+      args.prRowIds?.has(rowId) || args.prDayLabels?.has(dayLabel) ? "pr" : null,
     ]);
     const tagLabels = uniqueTags([
       latestRowId === rowId ? "LAST" : null,
@@ -1861,7 +1875,7 @@ function buildExerciseHistoryModel(args: {
       sessionId: row.sessionId,
       performedAt: row.performedAt,
       dayKey,
-      dayLabel: getHistoryDayLabel(row.performedAt),
+      dayLabel,
       setIndex: row.setIndex,
       primary,
       meta: displaySetLabel,
@@ -1881,7 +1895,7 @@ function buildExerciseHistoryModel(args: {
         type: "set",
         performedAt: row.performedAt,
         dayKey,
-        label: getHistoryDayLabel(row.performedAt),
+        label: dayLabel,
         summary: primary,
         meta: displaySetLabel,
         numericValue,
@@ -1906,7 +1920,7 @@ function buildExerciseHistoryModel(args: {
     groupsByDay.set(dayKey, {
       id: `history-day-${dayKey}`,
       dayKey,
-      label: getHistoryDayLabel(row.performedAt),
+      label: dayLabel,
       performedAt: row.performedAt,
       ...(row.routineTitle ? { routineTitles: [row.routineTitle] } : {}),
       signals: daySignals.get(dayKey),
@@ -1931,7 +1945,7 @@ function buildExerciseHistoryModel(args: {
     groupsByDay.set(plannedDay.dayKey, {
       id: `history-day-skipped-${plannedDay.routineId}-${plannedDay.dayKey}`,
       dayKey: plannedDay.dayKey,
-      label: getHistoryDayLabel(plannedDay.performedAt),
+      label: formatExerciseInfoDayKeyLabel(plannedDay.dayKey),
       performedAt: plannedDay.performedAt,
       routineTitles: [plannedDay.routineTitle],
       tagLabels: ["SKIPPED"],
@@ -1949,7 +1963,7 @@ function buildExerciseHistoryModel(args: {
     groupsByDay.set(dayKey, {
       id: `history-day-${dayKey}`,
       dayKey,
-      label: getHistoryDayLabel(performedAt),
+      label: formatExerciseInfoDayKeyLabel(dayKey),
       performedAt,
       signals,
       tagLabels: dayTagLabels.get(dayKey),
@@ -2015,11 +2029,11 @@ function buildExerciseHistoryModel(args: {
   };
 }
 
-function buildStrengthPrReviewItems(rows: NormalizedSet[]) {
+export function buildStrengthPrReviewItems(rows: NormalizedSet[], timeZone: string) {
   return buildStrengthPrReviewEvents(rows).map((event) =>
     event.kind === "weight"
-      ? `Weight PR | ${formatWeightReps(event.weight, event.reps, event.weightUnit) ?? formatWeight(event.weight, event.weightUnit) ?? `${Math.round(event.weight)}`} | ${formatDateShort(event.performedAt)}`
-      : `Rep PR | ${event.reps} reps | ${formatDateShort(event.performedAt)}`,
+      ? `Weight PR | ${formatWeightReps(event.weight, event.reps, event.weightUnit) ?? formatWeight(event.weight, event.weightUnit) ?? `${Math.round(event.weight)}`} | ${formatExerciseInfoDayLabel(event.performedAt, timeZone)}`
+      : `Rep PR | ${event.reps} reps | ${formatExerciseInfoDayLabel(event.performedAt, timeZone)}`,
   );
 }
 
@@ -2115,6 +2129,7 @@ export function buildCardioProgressDelta(
 function buildQuickMetrics(args: {
   kind: ExerciseStatsKind;
   lastPerformedAt: string | null;
+  timeZone: string;
   lastSummary: string | null;
   bestSummary: string | null;
   prCount: number;
@@ -2124,7 +2139,7 @@ function buildQuickMetrics(args: {
   return [
     {
       label: "Last",
-      value: args.lastSummary ?? (args.lastPerformedAt ? formatDateShort(args.lastPerformedAt) : "Not yet"),
+      value: args.lastSummary ?? (args.lastPerformedAt ? formatExerciseInfoDayLabel(args.lastPerformedAt, args.timeZone) : "Not yet"),
     },
     {
       label: "Best",
@@ -2195,6 +2210,7 @@ function buildCardioPerformanceMetrics(args: {
   family: ExerciseAnalyticsFamily;
   lastSummary: string | null;
   lastPerformedAt: string | null;
+  timeZone: string;
   bestDurationSeconds?: number | null;
   bestDistance?: number | null;
   bestDistanceUnit?: "mi" | "km" | "m" | "steps" | null;
@@ -2212,6 +2228,7 @@ function buildCardioPerformanceMetrics(args: {
     return buildTimedHoldPerformanceMetrics({
       lastSummary: args.lastSummary,
       lastPerformedAt: args.lastPerformedAt,
+      timeZone: args.timeZone,
       bestDurationSeconds: args.bestDurationSeconds,
       rows: args.rows,
     });
@@ -2485,6 +2502,7 @@ export async function getExerciseInfoStats(
       progressionEvents: allProgressionEvents,
       activeRoutineId: scopeContext.activeRoutineId,
       profileTimeZone: scopeContext.profileTimeZone,
+      historyTimeZone: scopeContext.historyTimeZone,
       client,
     });
     const progressionSummary = buildExerciseProgressionLifelineSummary(activeProgressionEvents);
@@ -2561,7 +2579,7 @@ export async function getExerciseInfoStats(
       const exerciseSummary = exerciseSummaryById.get(canonicalExerciseId);
       const prCounts = exerciseSummary?.counts ?? { reps: 0, weight: 0, total: 0 };
       const prLabel = formatPrBreakdown(prCounts);
-      const prReviewItems = buildStrengthPrReviewItems(activeRows);
+      const prReviewItems = buildStrengthPrReviewItems(activeRows, scopeContext.historyTimeZone);
 
       const {
         totalReps,
@@ -2631,6 +2649,7 @@ export async function getExerciseInfoStats(
       const quickMetrics = buildQuickMetrics({
         kind,
         lastPerformedAt,
+        timeZone: scopeContext.historyTimeZone,
         lastSummary,
         bestSummary: bestSetSummary,
         prCount: prCounts.total,
@@ -2652,6 +2671,7 @@ export async function getExerciseInfoStats(
         prRowIds: selectStrengthPrRowIds(activeRows),
         progressionEvents: activeProgressionEvents,
         plannedSkippedDays,
+        timeZone: scopeContext.historyTimeZone,
       });
       const historyTrendMetric = buildHistoryPointComparisonMetric({ points: historyModel.historyPoints });
       const progressMetrics = [
@@ -2693,7 +2713,7 @@ export async function getExerciseInfoStats(
           metrics: progressMetrics,
           reviewSections,
           graphMetricKey: historyModel.graphMetricKey,
-          performances: buildProgressEntries(performances),
+          performances: buildProgressEntries(performances, scopeContext.historyTimeZone),
           historyGroups: historyModel.historyGroups,
           historyPoints: historyModel.historyPoints,
         },
@@ -2806,6 +2826,7 @@ export async function getExerciseInfoStats(
       family,
       lastSummary,
       lastPerformedAt,
+      timeZone: scopeContext.historyTimeZone,
       bestDurationSeconds,
       bestDistance,
       bestDistanceUnit: distanceUnitForPace,
@@ -2839,10 +2860,12 @@ export async function getExerciseInfoStats(
     const prReviewItems = buildCardioPrReviewItems({
       family,
       sessionAggregates: activeSessionAggregates,
+      timeZone: scopeContext.historyTimeZone,
     });
     const quickMetrics = buildQuickMetrics({
       kind,
       lastPerformedAt,
+      timeZone: scopeContext.historyTimeZone,
       lastSummary,
       bestSummary: bestSetSummary,
       prCount: prReviewItems.length,
@@ -2872,6 +2895,7 @@ export async function getExerciseInfoStats(
       prDayLabels: buildPrDayLabels(prReviewItems),
       progressionEvents: activeProgressionEvents,
       plannedSkippedDays,
+      timeZone: scopeContext.historyTimeZone,
     });
     const historyTrendMetric = buildHistoryPointComparisonMetric({ points: historyModel.historyPoints });
     const progressMetrics = [
@@ -2925,7 +2949,7 @@ export async function getExerciseInfoStats(
         metrics: progressMetrics,
         reviewSections,
         graphMetricKey: historyModel.graphMetricKey,
-        performances: buildProgressEntries(performances),
+        performances: buildProgressEntries(performances, scopeContext.historyTimeZone),
         historyGroups: historyModel.historyGroups,
         historyPoints: historyModel.historyPoints,
       },
