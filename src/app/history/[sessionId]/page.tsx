@@ -493,6 +493,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
           calories: set.calories,
           weight_unit: set.weight_unit,
           logged_at: set.logged_at ?? null,
+          is_warmup: set.is_warmup ?? null,
         })),
       });
     }));

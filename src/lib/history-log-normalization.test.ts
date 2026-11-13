@@ -44,6 +44,7 @@ test("normalizes standard exercise payload", () => {
       calories: null,
       weight_unit: null,
       logged_at: null,
+      is_warmup: null,
     }],
   });
 });
@@ -88,6 +89,7 @@ test("normalizes alias-based payload drift and media aliases", () => {
     calories: null,
     weight_unit: null,
     logged_at: null,
+    is_warmup: null,
   });
 });
 
@@ -254,4 +256,20 @@ test("keeps the set logged_at instant so History can derive observed rest", () =
   });
 
   assert.deepEqual(result[0]?.sets.map((set) => set.logged_at), ["2026-11-13T12:00:00.000Z", null]);
+});
+
+test("keeps is_warmup so History observed rest can leave warm-ups out", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [{
+      id: "se-1",
+      exercise_id: "ex-1",
+      sets: [
+        { id: "set-1", set_index: 0, reps: 8, weight: 45, is_warmup: true },
+        { id: "set-2", set_index: 1, reps: 8, weight: 135, is_warmup: false },
+        { id: "set-3", set_index: 2, reps: 8, weight: 135 },
+      ],
+    }],
+  });
+
+  assert.deepEqual(result[0]?.sets.map((set) => set.is_warmup), [true, false, null]);
 });

@@ -98,3 +98,20 @@ test("recovery clock formats minutes and padded seconds", () => {
   assert.equal(formatRecoveryClock(65), "1:05");
   assert.equal(formatRecoveryClock(-4), "0:00");
 });
+
+test("session recovery summary ignores warm-up rows: their gaps never count", () => {
+  const base = Date.parse("2026-07-13T01:00:00Z");
+  const at = (seconds: number, is_warmup = false) => ({ logged_at: new Date(base + seconds * 1000).toISOString(), is_warmup });
+  // Working gaps are 60 s; the warm-up sits 10 min away from the first working set (a 600 s gap if it counted).
+  const withWarmup = [at(-600, true), at(0), at(60), at(120)];
+  const withoutWarmup = [at(0), at(60), at(120)];
+  assert.deepEqual(buildRecoveryTimingInsight(withWarmup), buildRecoveryTimingInsight(withoutWarmup));
+  assert.equal(buildRecoveryTimingInsight(withWarmup)?.observedIntervalSeconds, 60);
+
+  const summary = buildSessionRecoverySummary([withWarmup, [at(-300, true), at(0), at(90), at(180)]]);
+  assert.equal(summary?.observedIntervalSeconds, 75);
+  assert.equal(summary?.sampleCount, 4);
+
+  // A session whose only extra rows are warm-ups has no usable rest: nothing is shown.
+  assert.equal(buildSessionRecoverySummary([[at(0, true), at(60, true), at(120, true)], withoutWarmup]), null);
+});

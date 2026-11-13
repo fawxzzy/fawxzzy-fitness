@@ -72,6 +72,7 @@ type AuditSet = {
   calories: number | null;
   weight_unit: "lbs" | "kg" | null;
   logged_at?: string | null;
+  is_warmup?: boolean | null;
 };
 
 type EditableSet = {

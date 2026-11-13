@@ -1,5 +1,6 @@
 import { buildSetQueueDedupeKey, isQueueItemPendingSync } from "@/lib/offline/set-log-reconciliation";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { resolveSetLoggedAt } from "@/lib/set-logged-at";
 
 export const SET_LOG_QUEUE_SCHEMA_VERSION = 4;
 
@@ -136,6 +137,8 @@ export async function enqueueSetLog(input: {
   sessionExerciseId: string;
   clientLogId: string;
   payload: OfflineSetPayload;
+  /** When the member tapped, if the caller knows it (a request-failed set is queued after the request gave up). Validated; defaults to now. */
+  createdAt?: string;
 }): Promise<SetLogQueueItem | null> {
   if (!canUseIndexedDb()) {
     return null;
@@ -150,7 +153,7 @@ export async function enqueueSetLog(input: {
     sessionId: input.sessionId,
     sessionExerciseId: input.sessionExerciseId,
     payload: input.payload,
-    createdAt: now,
+    createdAt: resolveSetLoggedAt(input.createdAt, now),
     retryCount: 0,
     status: "queued",
   };

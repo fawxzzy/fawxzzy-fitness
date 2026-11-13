@@ -1231,6 +1231,7 @@ export function SetLoggerCard({
     setError(null);
 
     const clientLogId = createStableSetId();
+    const loggedAtIso = new Date().toISOString();
     const failureNote = resolvedIsFailure ? FAILURE_NOTE_SENTINEL : null;
     const nextSetIndex = latestSetsRef.current.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
     const optimisticSet: DisplaySet = {
@@ -1250,7 +1251,7 @@ export function SetLoggerCard({
       notes: failureNote,
       rpe: null,
       weight_unit: selectedWeightUnit,
-      logged_at: new Date().toISOString(),
+      logged_at: loggedAtIso,
       pending: true,
     };
 
@@ -1286,6 +1287,7 @@ export function SetLoggerCard({
         sessionId,
         sessionExerciseId,
         clientLogId,
+        createdAt: loggedAtIso,
         payload: {
           weight: parsedWeight,
           reps: parsedReps,
@@ -1348,6 +1350,7 @@ export function SetLoggerCard({
           sessionId,
           sessionExerciseId,
           clientLogId,
+          createdAt: loggedAtIso,
           payload: {
             weight: parsedWeight,
             reps: parsedReps,
@@ -1408,6 +1411,7 @@ export function SetLoggerCard({
         sessionId,
         sessionExerciseId,
         clientLogId,
+        createdAt: loggedAtIso,
         payload: {
           weight: parsedWeight,
           reps: parsedReps,

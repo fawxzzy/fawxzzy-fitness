@@ -13,8 +13,19 @@ export const SET_LOGGED_AT_MAX_FUTURE_SKEW_MS = 2 * 60 * 1000;
 /** A queued set older than this is stamped at replay time instead (stale queue, wrong clock). */
 export const SET_LOGGED_AT_MAX_AGE_MS = 72 * 60 * 60 * 1000;
 
+/**
+ * Strict ISO-8601 date-time with an explicit zone (`Z` or a numeric offset), as `Date#toISOString` writes it.
+ * `Date.parse` alone also accepts zone-less and free-form strings whose meaning depends on the server's zone.
+ */
+const STRICT_ISO_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+const MAX_CANDIDATE_LENGTH = 40;
+
 export function resolveSetLoggedAt(candidate: unknown, nowIso: string): string {
-  if (typeof candidate !== "string" || candidate.trim().length === 0) {
+  if (
+    typeof candidate !== "string"
+    || candidate.length > MAX_CANDIDATE_LENGTH
+    || !STRICT_ISO_WITH_ZONE.test(candidate)
+  ) {
     return nowIso;
   }
 

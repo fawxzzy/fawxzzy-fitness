@@ -1456,6 +1456,7 @@ export function SessionExerciseFocus({
                       sessionId,
                       sessionExerciseId: exercise.id,
                       clientLogId,
+                      createdAt: loggedAtIso,
                       payload: toOfflineSetPayload(quickLogPayload),
                     }),
                   });
