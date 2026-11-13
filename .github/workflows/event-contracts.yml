@@ -23,6 +23,9 @@ on:
       - "truth-pack/fitness/**"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   contract-check:
     name: Event Contract Check
