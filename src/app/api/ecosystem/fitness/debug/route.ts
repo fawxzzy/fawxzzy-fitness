@@ -13,8 +13,8 @@ import { fitnessStateSnapshotFixtures } from "@/lib/ecosystem/fixtures/state-sna
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const unavailable = devRouteUnavailableResponse();
+export async function GET(request: Request) {
+  const unavailable = devRouteUnavailableResponse(request);
   if (unavailable) {
     return unavailable;
   }
@@ -29,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const unavailable = devRouteUnavailableResponse();
+  const unavailable = devRouteUnavailableResponse(request);
   if (unavailable) {
     return unavailable;
   }

@@ -17,7 +17,7 @@ import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
 import { buildRequestScopedUrl } from "@/lib/request-origin";
-import { isDevOnlyPath, isProductionDeployment } from "@/lib/dev-route-guard";
+import { hostnamesOf, isDevOnlyPath, isDevRouteWithdrawn } from "@/lib/dev-route-guard";
 import {
   isDocumentNavigation,
   shouldAnswerDetailRouteWithNotFound,
@@ -273,8 +273,9 @@ export function buildDevRouteUnavailableResponse() {
 }
 
 export async function middleware(request: NextRequest) {
-  // Dev fixtures and diagnostics never run on a production deployment.
-  if (isProductionDeployment() && isDevOnlyPath(request.nextUrl.pathname)) {
+  // Dev fixtures and diagnostics never run on a production deployment, or on a production-mode
+  // server that cannot prove it is local (see src/lib/dev-route-guard.ts).
+  if (isDevOnlyPath(request.nextUrl.pathname) && isDevRouteWithdrawn({ hostnames: hostnamesOf(request) })) {
     return buildDevRouteUnavailableResponse();
   }
 

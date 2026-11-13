@@ -1,4 +1,5 @@
 import { listFeatureFlagDiagnostics } from "@/lib/feature-flags";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ function FlagRow({
 }
 
 export default function DevFlagsPage() {
+  assertDevPageAvailable();
+
   const flags = listFeatureFlagDiagnostics();
 
   return (
