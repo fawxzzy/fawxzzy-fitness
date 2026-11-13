@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Dev-only gallery of the History cards (docs/design-system/CARD-SYSTEM.md section 7.3): session, exercise and
+ * Dev-only gallery of the History cards (docs/design-system/CARD-SYSTEM.md section 7.4): session, exercise and
  * detail-exercise cards, the summary disclosure cards and the calendar pager, on static preview data with a fixed
  * clock. No Supabase client, no session. Availability is the shared dev-route guard (middleware answers 404 for
  * every dev path on production hosts before this page runs; the first statement repeats it).

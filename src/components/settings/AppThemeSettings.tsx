@@ -5,7 +5,8 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
+import { SettingsCard } from "@/components/settings/SettingsCard";
+import { CardHeader, CardStatusChip, CardChips, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
 import { appTokens } from "@/components/ui/app/tokens";
 import { mergeAppBootPreferences } from "@/lib/app-boot-preferences";
 import {
@@ -100,47 +101,6 @@ const THEME_COLOR_GROUPS = [
   fields: ReadonlyArray<{ key: keyof AppThemeSettings; label: string }>;
 }>;
 
-const THEME_PANEL_SHELL_CLASSNAME =
-  "-mx-5 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.14)] shadow-[0_20px_44px_rgba(0,0,0,0.16)] supports-[backdrop-filter]:bg-[rgb(var(--surface-1-rgb)/0.08)]";
-
-function ThemeHeroTray({ children }: { children: React.ReactNode }) {
-  return (
-    <div className={cn(THEME_PANEL_SHELL_CLASSNAME, "space-y-3 p-4 sm:p-5")}>
-      <div className="space-y-3">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ThemeSectionDivider({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex items-center justify-center py-1.5", className)}>
-      <MetricAccentBar variant="thin" className="w-3/4 opacity-85" />
-    </div>
-  );
-}
-
-function ThemePanelSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={cn(THEME_PANEL_SHELL_CLASSNAME, "space-y-3 p-4 sm:p-5")}>
-      <div className="space-y-1 text-center">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary)/0.96)]">{title}</h3>
-        {description ? <p className={appTokens.settingsBodyText}>{description}</p> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function ThemeColorField({
   label,
   value,
@@ -160,7 +120,7 @@ function ThemeColorField({
     <div className={cn(appTokens.settingsFieldStack, "w-[9rem] max-w-full shrink-0")}>
       <LabeledEditorField label={label} className="w-[9rem] max-w-full">
         <div className="space-y-2 px-3 py-2.5">
-          <span className="flex h-10 w-full items-center justify-center overflow-hidden rounded-[calc(var(--radius-md)-4px)]">
+          <span className="flex h-11 w-full items-center justify-center overflow-hidden rounded-[calc(var(--radius-md)-4px)]">
             <input
               aria-label={label}
               type="color"
@@ -207,7 +167,7 @@ function ThemeColorField({
             }}
             className={cn(
               labeledEditorFieldControlClassName,
-              "h-10 px-2.5 py-2 text-center font-mono text-[11px] uppercase tracking-[0.08em]",
+              "h-11 px-2.5 py-2 text-center font-mono text-[11px] uppercase tracking-[0.08em]",
             )}
           />
         </div>
@@ -269,39 +229,30 @@ function ThemeRangeField({
   );
 }
 
-function ThemeSlotButton({
-  label,
-  active,
+function ThemeChoiceCard({
+  title,
+  meta,
+  selected,
   empty = false,
-  onClick,
+  onSelect,
 }: {
-  label: string;
-  active: boolean;
+  title: string;
+  meta: string;
+  selected: boolean;
+  /** The "new custom theme" entry: dashed outline, nothing saved yet. */
   empty?: boolean;
-  onClick: () => void;
+  onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex min-h-[3.15rem] w-fit max-w-full min-w-0 items-center justify-center rounded-[var(--radius-md)] border px-[10px] py-2.5 text-center transition-[border-color,background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
-        active
-          ? "border-[rgb(var(--accent-divider-rgb))] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.2),rgb(var(--accent-divider-rgb)/0.08))] text-[rgb(var(--accent-divider-rgb))] shadow-[inset_0_0_0_1px_rgb(var(--accent-divider-rgb)/0.5),0_0_0_1px_rgb(var(--accent-divider-rgb)/0.2),0_0_18px_rgb(var(--accent-divider-rgb)/0.18)]"
-          : empty
-            ? "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.28)] text-[rgb(var(--text-muted)/0.88)] hover:border-[rgb(var(--border-strong)/0.28)]"
-            : "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.28)] text-[rgb(var(--text-primary)/0.96)] hover:border-[rgb(var(--border-strong)/0.28)]",
-      )}
-    >
-      <span
-        className={cn(
-          "block max-w-full overflow-hidden text-clip whitespace-nowrap text-[0.64rem] font-semibold uppercase tracking-[0.02em]",
-          active && "text-[rgb(var(--accent-divider-rgb))]",
-        )}
-      >
-        {label}
-      </span>
-    </button>
+    <CardSurface tone={selected ? "current" : "neutral"} empty={empty} data-theme-choice={empty ? "new" : "saved"}>
+      <CardHeader
+        title={title}
+        meta={<CardMeta items={[meta]} />}
+        headingLevel={3}
+        chips={selected ? <CardChips><CardStatusChip status="selected" /></CardChips> : undefined}
+        interaction={{ kind: "select", selected, onSelect }}
+      />
+    </CardSurface>
   );
 }
 
@@ -393,6 +344,9 @@ export function AppThemeSettings({
     && hasActiveThemeChange
     && (isCustomThemeSlotSelected || nextAvailableThemeSlotId !== null);
   const canSaveAnyChange = canSaveTheme;
+  const newThemeSlotId: CustomAppThemeSlotId | null = isCustomThemeSlotSelected && !selectedSavedTheme
+    ? selectedThemeId as CustomAppThemeSlotId
+    : nextAvailableThemeSlotId;
 
   const selectPresetTheme = (preset: AppThemePreset) => {
     setSelectedThemeId(preset);
@@ -488,7 +442,7 @@ export function AppThemeSettings({
   };
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="space-y-3">
       {isCustomThemeSlotSelected ? (
         <PublishBottomActions>
           <BottomActionSplit
@@ -517,92 +471,108 @@ export function AppThemeSettings({
         </PublishBottomActions>
       ) : null}
 
-      <ThemeHeroTray>
-        <div className="space-y-3">
-          {showThemeNameField ? (
-            <div className={appTokens.settingsFieldStack}>
-              <LabeledEditorField
-                label="Theme name"
-                className="w-full"
-              >
-                <input
-                  aria-label="Theme name"
-                  type="text"
-                  value={themeName}
-                  maxLength={APP_THEME_NAME_MAX_LENGTH}
-                  placeholder={isThemeNameFocused && themeName.length === 0 ? "" : "Theme name"}
-                  onFocus={() => setIsThemeNameFocused(true)}
-                  onBlur={() => setIsThemeNameFocused(false)}
-                  onChange={(event) => {
-                    setSaveMessage(null);
-                    setThemeName(sanitizeAppThemeName(event.target.value));
-                  }}
-                  className={cn(
-                    labeledEditorFieldControlClassName,
-                    "h-14 px-[10px] py-3 text-center",
-                  )}
+      <ul className={cardTokens.list} aria-label="Themes">
+        {APP_THEME_USER_VISIBLE_PRESET_IDS.map((presetId) => (
+          <li key={presetId}>
+            <ThemeChoiceCard
+              title={getAppThemePresetLabel(presetId)}
+              meta="Built-in theme"
+              selected={selectedThemeId === presetId}
+              onSelect={() => selectPresetTheme(presetId)}
+            />
+          </li>
+        ))}
+        {APP_THEME_CUSTOM_SLOT_IDS.map((slotId) => {
+          const savedTheme = savedThemes.find((entry) => entry.id === slotId);
+          if (savedTheme) {
+            return (
+              <li key={slotId}>
+                <ThemeChoiceCard
+                  title={savedTheme.name}
+                  meta="Custom theme"
+                  selected={selectedThemeId === slotId}
+                  onSelect={() => selectSavedTheme(savedTheme)}
                 />
-              </LabeledEditorField>
-            </div>
-          ) : null}
-          <div className={appTokens.settingsFieldStack}>
-            <div className="flex flex-wrap justify-center gap-2">
-              {APP_THEME_USER_VISIBLE_PRESET_IDS.map((presetId) => (
-                <ThemeSlotButton
-                  key={presetId}
-                  label={getAppThemePresetLabel(presetId)}
-                  active={selectedThemeId === presetId}
-                  onClick={() => selectPresetTheme(presetId)}
-                />
-              ))}
-              {APP_THEME_CUSTOM_SLOT_IDS.map((slotId, index) => {
-                const savedTheme = savedThemes.find((entry) => entry.id === slotId);
-                return (
-                  <ThemeSlotButton
-                    key={slotId}
-                    label={savedTheme?.name ?? `Slot ${index + 1}`}
-                    active={selectedThemeId === slotId}
-                    empty={!savedTheme}
-                    onClick={() => savedTheme ? selectSavedTheme(savedTheme) : selectEmptySlot(slotId)}
-                  />
-                );
-              })}
-            </div>
-          </div>
+              </li>
+            );
+          }
 
-          {saveMessage ? (
-            <p className={saveMessage.tone === "success" ? appTokens.settingsStatusSuccess : appTokens.settingsStatusError}>
-              {saveMessage.text}
-            </p>
-          ) : null}
-        </div>
-      </ThemeHeroTray>
+          // One "new theme" entry stands in for the empty slots: the empty slot that is selected right now (for
+          // example the one just deleted), otherwise the first free slot. Slot numbers are never shown.
+          if (slotId !== newThemeSlotId) {
+            return null;
+          }
+
+          return (
+            <li key={slotId}>
+              <ThemeChoiceCard
+                title="New custom theme"
+                meta="Pick colors and shape, name it, then save"
+                selected={selectedThemeId === slotId}
+                empty
+                onSelect={() => selectEmptySlot(slotId)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+
+      {saveMessage ? (
+        <p
+          role={saveMessage.tone === "success" ? "status" : "alert"}
+          className={saveMessage.tone === "success" ? appTokens.settingsStatusSuccess : appTokens.settingsStatusError}
+        >
+          {saveMessage.text}
+        </p>
+      ) : null}
 
       {showThemeEditor ? (
         <>
-          <ThemeSectionDivider />
+          {showThemeNameField ? (
+            <SettingsCard title="Name your theme">
+              <div className={appTokens.settingsFieldStack}>
+                <LabeledEditorField
+                  label="Theme name"
+                  className="w-full"
+                >
+                  <input
+                    aria-label="Theme name"
+                    type="text"
+                    value={themeName}
+                    maxLength={APP_THEME_NAME_MAX_LENGTH}
+                    placeholder={isThemeNameFocused && themeName.length === 0 ? "" : "Theme name"}
+                    onFocus={() => setIsThemeNameFocused(true)}
+                    onBlur={() => setIsThemeNameFocused(false)}
+                    onChange={(event) => {
+                      setSaveMessage(null);
+                      setThemeName(sanitizeAppThemeName(event.target.value));
+                    }}
+                    className={cn(
+                      labeledEditorFieldControlClassName,
+                      "h-14 px-[10px] py-3 text-center",
+                    )}
+                  />
+                </LabeledEditorField>
+              </div>
+            </SettingsCard>
+          ) : null}
 
           {THEME_COLOR_GROUPS.map((group) => (
-            <div key={group.title} className="space-y-4">
-              <ThemePanelSection title={group.title}>
-                <div className="flex flex-wrap justify-center gap-2.5">
-                  {group.fields.map((field) => (
-                    <ThemeColorField
-                      key={field.key}
-                      label={field.label}
-                      value={theme[field.key] as string}
-                      onChange={(nextValue) => updateColor(field.key, nextValue)}
-                    />
-                  ))}
-                </div>
-              </ThemePanelSection>
-              <ThemeSectionDivider />
-            </div>
+            <SettingsCard key={group.title} title={group.title}>
+              <div className="flex flex-wrap justify-center gap-2.5">
+                {group.fields.map((field) => (
+                  <ThemeColorField
+                    key={field.key}
+                    label={field.label}
+                    value={theme[field.key] as string}
+                    onChange={(nextValue) => updateColor(field.key, nextValue)}
+                  />
+                ))}
+              </div>
+            </SettingsCard>
           ))}
 
-          <ThemePanelSection
-            title="Shape"
-          >
+          <SettingsCard title="Shape">
             <div className="flex flex-wrap justify-center gap-3">
               <ThemeRangeField
                 label="Button Radius"
@@ -625,7 +595,7 @@ export function AppThemeSettings({
                 }))}
               />
             </div>
-          </ThemePanelSection>
+          </SettingsCard>
         </>
       ) : null}
     </div>

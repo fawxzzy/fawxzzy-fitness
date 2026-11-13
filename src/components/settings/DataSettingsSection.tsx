@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { updateQaLlelVisibilityAction } from "@/app/settings/actions";
-import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
-import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
+import { SettingsCard } from "@/components/settings/SettingsCard";
+import { CardMeta, StatBlock } from "@/components/ui/card-system";
 import { useToast } from "@/components/ui/ToastProvider";
-import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { buildAccountStorageSnapshot } from "@/lib/account-storage-model";
@@ -66,7 +65,7 @@ type ExportPreview = {
   };
 };
 
-const FILE_TYPE_OPTIONS: Array<{ value: ExportFileType; label: string; disabled?: boolean }> = [
+const FILE_TYPE_OPTIONS: Array<{ value: ExportFileType; label: string }> = [
   { value: "xlsx", label: "Excel (.xlsx)" },
   { value: "csv", label: "CSV" },
   { value: "json", label: "JSON" },
@@ -91,6 +90,56 @@ function getExportFormatNote(fileType: ExportFileType) {
     default:
       return "CSV exports one clean table per section instead of one wide log filled with blanks.";
   }
+}
+
+const DATE_INPUT_CLASS_NAME =
+  "block h-12 w-full rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.16)] px-3 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)] outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]";
+
+/** Radio group drawn as tiles. The native radios stay in the DOM (visually hidden), so keyboard and screen readers get a real group. */
+function OptionTiles<T extends string>({
+  legend,
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  legend: string;
+  name: string;
+  options: Array<{ value: T; label: string }>;
+  value: T;
+  onChange: (next: T) => void;
+}) {
+  return (
+    <fieldset className="m-0 min-w-0 border-0 p-0">
+      <legend className={cn(appTokens.settingsFieldLabel, "mb-2 p-0")}>{legend}</legend>
+      <div className="grid grid-cols-3 gap-2">
+        {options.map((option) => {
+          const active = option.value === value;
+          return (
+            <label
+              key={option.value}
+              className={cn(
+                "flex min-h-12 items-center justify-center rounded-[var(--radius-md)] border px-2 py-3 text-center text-sm font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[rgb(var(--accent)/0.5)]",
+                active
+                  ? "border-[rgb(var(--accent-divider-rgb)/0.44)] bg-[rgb(var(--accent-divider-rgb)/0.1)] text-[rgb(var(--text-primary)/0.96)]"
+                  : "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.16)] text-[rgb(var(--text-secondary)/0.95)]",
+              )}
+            >
+              <span>{option.label}</span>
+              <input
+                type="radio"
+                name={name}
+                value={option.value}
+                checked={active}
+                onChange={() => onChange(option.value)}
+                className="sr-only"
+              />
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
 }
 
 export function DataSettingsSection({
@@ -134,7 +183,7 @@ export function DataSettingsSection({
       metrics: section.metrics.map((item) => ({
         label: item.label,
         value: item.value,
-      }) satisfies MetricDatum),
+      })),
     })) ?? []
   ), [storageSnapshot]);
   const storageNoteItems = useMemo(() => {
@@ -142,18 +191,20 @@ export function DataSettingsSection({
       return [] as string[];
     }
 
+    const progression = `Progression: ${exportPreview.progressionSummary.promotionCount} promotions across ${exportPreview.progressionSummary.distinctExerciseCount} exercises.`;
+
     if (exportPreview.scope === "history") {
       return [
-        "History counts match visible History rules, while stored totals can include hidden QA/LLEL rows and in-progress sessions.",
-        `Progression lane: ${exportPreview.progressionSummary.promotionCount} promotions across ${exportPreview.progressionSummary.distinctExerciseCount} exercises.`,
-        "Progression entries are stored separately and do not always map 1:1 to a visible session.",
+        "History counts match what History shows. Stored totals can also include hidden test data and sessions still in progress.",
+        progression,
+        "Progression changes are stored separately, so they do not always match one visible session.",
         `Total stored history records: ${storageSnapshot.totalRecordCount}.`,
       ];
     }
 
     if (exportPreview.scope === "routines") {
       return [
-        "Routine metrics reflect your saved routine builds only.",
+        "Routine counts reflect your saved routines only.",
         "Templates are not included yet and will join this scope when they exist.",
         `Total stored routine records: ${storageSnapshot.totalRecordCount}.`,
       ];
@@ -161,9 +212,9 @@ export function DataSettingsSection({
 
     return [
       "This snapshot combines visible history with stored routine totals.",
-      `Progression lane: ${exportPreview.progressionSummary.promotionCount} promotions across ${exportPreview.progressionSummary.distinctExerciseCount} exercises.`,
-      "Stored totals can still include hidden QA/LLEL rows, in-progress sessions, and progression entries that do not map 1:1 to a visible session.",
-      `Total stored records across both lanes: ${storageSnapshot.totalRecordCount}.`,
+      progression,
+      "Stored totals can also include hidden test data, sessions still in progress, and progression changes that do not match one visible session.",
+      `Total stored records across history and routines: ${storageSnapshot.totalRecordCount}.`,
     ];
   }, [exportPreview, storageSnapshot]);
 
@@ -225,7 +276,7 @@ export function DataSettingsSection({
       }
 
       setSavedQaVisible(nextQaVisible);
-      toast.success(nextQaVisible ? "QA/LLEL data shown." : "QA/LLEL data hidden.", { id: "qa-visibility-saved" });
+      toast.success(nextQaVisible ? "QA data shown." : "QA data hidden.", { id: "qa-visibility-saved" });
     });
   };
 
@@ -269,7 +320,7 @@ export function DataSettingsSection({
   };
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="space-y-3">
       <PublishBottomActions>
         {canAccessQaLlelUi ? (
           <BottomActionSplit
@@ -312,91 +363,63 @@ export function DataSettingsSection({
         )}
       </PublishBottomActions>
 
-      <div className="space-y-3 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.22)] p-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.03)] sm:p-5">
-        <div
-          className={cn(
-            "relative overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--success-rgb)/0.2)] bg-transparent",
-            cardShellToneClassNames.logged,
-          )}
-        >
-          <div className="px-5 pb-2 pt-4">
-            <div className="space-y-1 text-center">
-              <p className="text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
-                Stored Snapshot
-              </p>
-              <p className="text-[0.72rem] leading-5 text-[rgb(var(--text-muted)/0.82)]">
-                {exportPreview ? `${exportPreview.scopeLabel} scope | ${storageSnapshot?.historyRangeLabel ?? exportPreview.dateRange.label}` : "Scope-aware stored snapshot"}
-              </p>
-            </div>
-            <MetricAccentBar variant="compact" className="mt-3" />
-          </div>
-
-          <div className="space-y-4 px-4 pb-4 pt-2 sm:px-5 sm:pb-5">
-            {isLoadingExportPreview ? (
-              <p className="text-center text-sm text-[rgb(var(--text-secondary)/0.88)]">Loading stored snapshot...</p>
-            ) : exportPreviewError ? (
-              <p className="text-center text-sm text-[rgb(var(--danger-text-rgb)/0.96)]">{exportPreviewError}</p>
-            ) : storageSnapshot ? (
-              <>
-                <div className="space-y-4">
-                  {storageSections.map((section, index) => (
-                    <div key={section.title} className="space-y-2">
-                      {storageSections.length > 1 ? (
-                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-                          {section.title}
-                        </p>
-                      ) : null}
-                      <SurfaceMetricGrid
-                        items={section.metrics}
-                        itemClassName="min-h-[3.45rem]"
-                        accentBarVariant="compact"
-                      />
-                      {storageSections.length > 1 && index < storageSections.length - 1 ? (
-                        <MetricAccentBar variant="thin" className="mt-1" />
-                      ) : null}
-                    </div>
+      <SettingsCard
+        title="Stored snapshot"
+        tone="logged"
+        meta={(
+          <CardMeta
+            items={[
+              exportPreview
+                ? `${exportPreview.scopeLabel} scope`
+                : "Scope-aware stored snapshot",
+              exportPreview ? (storageSnapshot?.historyRangeLabel ?? exportPreview.dateRange.label) : "",
+            ]}
+          />
+        )}
+      >
+        {isLoadingExportPreview ? (
+          <p className="m-0 text-sm text-[rgb(var(--text-secondary)/0.95)]" role="status">Loading stored snapshot...</p>
+        ) : exportPreviewError ? (
+          <p className="m-0 text-sm text-[rgb(var(--danger-text-rgb)/0.96)]" role="alert">{exportPreviewError}</p>
+        ) : storageSnapshot ? (
+          <>
+            {storageSections.map((section) => (
+              <div key={section.title} className="space-y-2">
+                {storageSections.length > 1 ? (
+                  <h4 className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.98)]">
+                    {section.title}
+                  </h4>
+                ) : null}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+                  {section.metrics.map((metric) => (
+                    <StatBlock key={metric.label} label={metric.label} values={[metric.value]} />
                   ))}
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-                    Scope
-                  </p>
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
-                    <span className="inline-flex items-center gap-2">
-                      <SignatureDot />
-                      <span>Current snapshot follows the selected <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview?.scopeLabel ?? "selected"}</span> export scope.</span>
-                    </span>
-                    <span className="inline-flex items-center gap-2">
-                      <SignatureDot />
-                      <span>Snapshot range: <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{storageSnapshot.historyRangeLabel}</span>.</span>
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-                    Notes
-                  </p>
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
-                    {storageNoteItems.map((entry, index) => (
-                      <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                        <SignatureDot />
-                        <span>{entry}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </div>
+              </div>
+            ))}
+            <ul className="m-0 grid list-disc gap-1.5 pl-5 text-xs leading-snug text-[rgb(var(--text-secondary)/0.95)]">
+              <li>
+                Current snapshot follows the selected{" "}
+                <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview?.scopeLabel ?? "selected"}</span>{" "}
+                export scope.
+              </li>
+              <li>
+                Snapshot range:{" "}
+                <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{storageSnapshot.historyRangeLabel}</span>.
+              </li>
+              {storageNoteItems.map((entry) => (
+                <li key={entry}>{entry}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </SettingsCard>
 
-        <LabeledEditorField
-          label="Name"
-          className="mx-auto w-full max-w-[22rem] border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none"
-          labelClassName="mx-auto text-center"
-        >
+      <SettingsCard title="Export">
+        <LabeledEditorField label="Name" className="w-full">
           <input
             type="text"
+            aria-label="Export name"
             value={exportName}
             onChange={(event) => setExportName(sanitizeExportNameInput(event.currentTarget.value))}
             placeholder="fitness-export"
@@ -408,141 +431,62 @@ export function DataSettingsSection({
         </LabeledEditorField>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-2">
-            <span className={cn(appTokens.settingsFieldLabel, "text-center")}>From</span>
+          <label className="block space-y-2">
+            <span className={appTokens.settingsFieldLabel}>From</span>
             <input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.currentTarget.value)}
-              className="h-12 w-full rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] px-3 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)] outline-none focus:border-[rgb(var(--accent-divider-rgb)/0.4)]"
+              className={DATE_INPUT_CLASS_NAME}
             />
           </label>
-          <label className="space-y-2">
-            <span className={cn(appTokens.settingsFieldLabel, "text-center")}>To</span>
+          <label className="block space-y-2">
+            <span className={appTokens.settingsFieldLabel}>To</span>
             <input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.currentTarget.value)}
-              className="h-12 w-full rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] px-3 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)] outline-none focus:border-[rgb(var(--accent-divider-rgb)/0.4)]"
+              className={DATE_INPUT_CLASS_NAME}
             />
           </label>
         </div>
 
-        <div className="space-y-2">
-          <p className={cn(appTokens.settingsFieldLabel, "text-center")}>Type</p>
-          <div className="grid grid-cols-3 gap-2">
-            {FILE_TYPE_OPTIONS.map((option) => {
-              const active = option.value === exportType;
-              return (
-                <label
-                  key={option.value}
-                  className={cn(
-                    "flex min-h-[3.25rem] items-center justify-center rounded-[0.95rem] border px-2 py-3 text-center text-sm font-semibold",
-                    active
-                      ? "border-[rgb(var(--accent-divider-rgb)/0.44)] bg-[rgb(var(--accent-divider-rgb)/0.1)] text-[rgb(var(--text-primary)/0.96)]"
-                      : "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] text-[rgb(var(--text-secondary)/0.9)]",
-                    option.disabled && "opacity-60",
-                  )}
-                >
-                  <span>{option.label}</span>
-                  <input
-                    type="radio"
-                    name="export-file-type"
-                    value={option.value}
-                    checked={active}
-                    disabled={Boolean(option.disabled)}
-                    onChange={() => {
-                      if (!option.disabled) {
-                        setExportType(option.value);
-                      }
-                    }}
-                    className="sr-only"
-                  />
-                </label>
-              );
-            })}
-          </div>
-        </div>
+        <OptionTiles legend="Type" name="export-file-type" options={FILE_TYPE_OPTIONS} value={exportType} onChange={setExportType} />
+        <OptionTiles legend="Scope" name="export-scope" options={SCOPE_OPTIONS} value={exportScope} onChange={setExportScope} />
+      </SettingsCard>
 
-        <div className="space-y-2">
-          <p className={cn(appTokens.settingsFieldLabel, "text-center")}>Scope</p>
-          <div className="grid grid-cols-3 gap-2">
-            {SCOPE_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className={cn(
-                  "flex min-h-[3.25rem] items-center justify-center rounded-[0.95rem] border px-2 py-3 text-center text-sm font-semibold",
-                  option.value === exportScope
-                    ? "border-[rgb(var(--accent-divider-rgb)/0.44)] bg-[rgb(var(--accent-divider-rgb)/0.1)] text-[rgb(var(--text-primary)/0.96)]"
-                    : "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] text-[rgb(var(--text-secondary)/0.9)]",
-                )}
-              >
-                <span>{option.label}</span>
-                <input
-                  type="radio"
-                  name="export-scope"
-                  value={option.value}
-                  checked={option.value === exportScope}
-                  onChange={() => setExportScope(option.value)}
-                  className="sr-only"
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-3 rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] p-4">
-          <div className="space-y-1 text-center">
-            <p className="text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">Export preview</p>
-            <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">{getExportFormatNote(exportType)}</p>
-          </div>
-
-          {isLoadingExportPreview ? (
-            <p className="text-center text-sm text-[rgb(var(--text-secondary)/0.88)]">Loading preview...</p>
-          ) : exportPreviewError ? (
-            <p className="text-center text-sm text-[rgb(var(--danger-text-rgb)/0.96)]">{exportPreviewError}</p>
-          ) : exportPreview ? (
-            <div className="space-y-3">
-              <div className="grid gap-2 text-center text-xs text-[rgb(var(--text-secondary)/0.88)] sm:grid-cols-3">
-                <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
-                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Scope</span>
-                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.scopeLabel}</span>
-                </div>
-                <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
-                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Date range</span>
-                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.dateRange.label}</span>
-                </div>
-                <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
-                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Includes</span>
-                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.tables.length} sections</span>
-                </div>
-              </div>
-
-              <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-3">
-                <p className="text-center text-xs leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-                  <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.scopeSummaryLabel}</span>
-                  {" "}
-                  {exportPreview.includesProgressionEvents ? "Progression events are included in this scope." : "Progression events are not part of this scope."}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                {exportPreview.tables.map((table) => (
-                  <div
-                    key={table.name}
-                    className="flex items-center justify-between rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2"
-                  >
-                    <span className="text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{table.name}</span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
-                      {table.rowCount} {table.rowCount === 1 ? "row" : "rows"}
-                    </span>
-                  </div>
-                ))}
-              </div>
+      <SettingsCard title="Export preview" meta={<CardMeta items={[getExportFormatNote(exportType)]} />}>
+        {isLoadingExportPreview ? (
+          <p className="m-0 text-sm text-[rgb(var(--text-secondary)/0.95)]" role="status">Loading preview...</p>
+        ) : exportPreviewError ? (
+          <p className="m-0 text-sm text-[rgb(var(--danger-text-rgb)/0.96)]" role="alert">{exportPreviewError}</p>
+        ) : exportPreview ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatBlock label="Scope" values={[exportPreview.scopeLabel]} />
+              <StatBlock label="Date range" values={[exportPreview.dateRange.label]} />
+              <StatBlock label="Includes" values={[`${exportPreview.tables.length} sections`]} />
             </div>
-          ) : null}
-        </div>
-      </div>
+
+            <p className="m-0 text-xs leading-snug text-[rgb(var(--text-secondary)/0.95)]">
+              <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.scopeSummaryLabel}</span>
+              {" "}
+              {exportPreview.includesProgressionEvents ? "Progression events are included in this scope." : "Progression events are not part of this scope."}
+            </p>
+
+            <ul className="m-0 grid list-none gap-0 divide-y divide-[rgb(var(--border-strong)/0.14)] p-0">
+              {exportPreview.tables.map((table) => (
+                <li key={table.name} className="flex items-center justify-between gap-3 py-2">
+                  <span className="min-w-0 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)] [overflow-wrap:anywhere]">{table.name}</span>
+                  <span className="shrink-0 text-xs font-semibold text-[rgb(var(--text-secondary)/0.95)]">
+                    {table.rowCount} {table.rowCount === 1 ? "row" : "rows"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </SettingsCard>
     </div>
   );
 }

@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { SettingsCard } from "@/components/settings/SettingsCard";
+import { CardMeta } from "@/components/ui/card-system";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToast } from "@/components/ui/ToastProvider";
 import { cn } from "@/lib/cn";
 import { FITNESS_DISCORD_INVITE_URL } from "@/lib/legal-documents";
@@ -138,46 +139,43 @@ export function DiscordAccessSettings() {
         />
       </PublishBottomActions>
 
-      <div className="space-y-4 pt-2">
-        <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-2 text-center">
+      <div className="space-y-3">
+        <SettingsCard
+          title="Join the Discord"
+          meta={<CardMeta items={["Community, support, beta notes and launch updates"]} />}
+        >
           <a
             href={FITNESS_DISCORD_INVITE_URL}
             target="_blank"
             rel="noreferrer"
-            className="group inline-flex w-full flex-col items-center rounded-[calc(var(--radius-lg)-0.18rem)] bg-[rgb(var(--surface-2-rgb)/0.12)] px-4 py-3 transition hover:bg-[rgb(var(--surface-2-rgb)/0.18)]"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-md)] border border-[rgb(var(--accent)/0.4)] px-4 text-sm font-semibold text-[rgb(var(--accent)/0.98)] transition-colors hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]"
           >
-            <span className="text-sm font-semibold text-[rgb(var(--accent)/0.96)] transition group-hover:text-[rgb(var(--text-primary)/0.98)]">
-              Join Fawxzzy Fitness Discord
-            </span>
-            <MetricAccentBar variant="thin" className="mt-1 w-full max-w-[12rem] opacity-85" />
-            <span className="mt-1 text-[11px] leading-4 text-[rgb(var(--text-secondary)/0.78)]">
-              Community, support, beta notes, and launch updates.
-            </span>
+            Join Fawxzzy Fitness Discord
           </a>
-        </div>
+        </SettingsCard>
 
-        <div className="mx-auto max-w-[22rem]">
-          <input
-            type="text"
-            value={token ?? ""}
-            readOnly
-            aria-label="Discord verification token"
-            className={cn(
-              labeledEditorFieldControlClassName,
-              "h-12 px-4 py-3 text-center font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none placeholder:text-[rgb(var(--text-muted)/0.58)] focus-visible:!border-0 focus-visible:!ring-0",
-            )}
-          />
-        </div>
-
-        <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-1.5 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
-            {expiryLabel ? `Generate One-Time Key | ${expiryLabel}` : "Generate One-Time Key"}
-          </p>
-          <MetricAccentBar variant="thin" className="w-full opacity-85" />
-          {errorMessage ? (
-            <p className="text-xs leading-5 text-[rgb(var(--danger-rgb)/0.92)]">{errorMessage}</p>
-          ) : null}
-        </div>
+        <SettingsCard
+          title="One-time key"
+          meta={<CardMeta items={[expiryLabel ? `Expires ${expiryLabel}` : "Use Generate to create a key"]} />}
+        >
+          <LabeledEditorField label="Verification token" className="w-full">
+            <input
+              type="text"
+              value={token ?? ""}
+              readOnly
+              aria-label="Discord verification token"
+              className={cn(
+                labeledEditorFieldControlClassName,
+                "h-12 px-4 py-3 text-center font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none placeholder:text-[rgb(var(--text-muted)/0.58)] focus-visible:!border-0 focus-visible:!ring-0",
+              )}
+            />
+          </LabeledEditorField>
+          <div aria-live="polite">
+            {errorMessage ? (
+              <p role="alert" className="m-0 text-xs leading-5 text-[rgb(var(--danger-text-rgb)/0.96)]">{errorMessage}</p>
+            ) : null}
+          </div>
+        </SettingsCard>
       </div>
     </>
   );
