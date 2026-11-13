@@ -136,8 +136,8 @@ const SUPPLEMENTAL_CARDS = [
     title: "Complete Self-Service Account Tools",
     priority: "P2",
     dependsOn: [],
-    description: "Finish the self-service account lifecycle: recovering a forgotten sign-in, downloading your own data, and removing your account.",
-    acceptanceCriteria: ["Forgotten-sign-in recovery is verified end to end.", "People can export their own data.", "People can request account removal with a clear confirmation step."],
+    description: "Finish the self-service account lifecycle: recovering a forgotten sign-in, changing your sign-in details, downloading your own data, and removing your account. Progress: changing sign-in details is merged and live, and saving a reset sign-in was fixed and is live, but neither has been exercised live yet. Recovery is not verified end to end. Data download and account removal are still planned. Not checked on a real phone.",
+    acceptanceCriteria: ["Forgotten-sign-in recovery is verified end to end (not yet verified).", "Changing sign-in details and saving a reset sign-in are exercised live (not yet done).", "People can export their own data.", "People can request account removal with a clear confirmation step."],
   },
   {
     cardId: "FF-AUTH-001",
@@ -152,8 +152,8 @@ const SUPPLEMENTAL_CARDS = [
     title: "Finish Account Site Setup for the Fitness App",
     priority: "P1",
     dependsOn: ["FF-AUTH-001"],
-    description: "Complete the shared account site that Fitness relies on for sign-in, sign-out, forgotten-sign-in recovery and returning people to the app, so the account side is finished before more Fitness work builds on it. Progress: the sign-in, sign-up and reset forms now list in plain language what is missing or wrong; this is live on the account site and has not been checked on a real phone.",
-    acceptanceCriteria: ["Sign-up, sign-in, sign-out and forgotten-sign-in recovery all work from the account site and return people to the Fitness app.", "The account site and the app always agree on who is signed in.", "Every account screen Fitness links to is complete and checked in the installed phone app."],
+    description: "Complete the shared account site that Fitness relies on for sign-in, sign-out, forgotten-sign-in recovery and returning people to the app, so the account side is finished before more Fitness work builds on it. Done and live as of 2026-11-13: starting sign-up from the account site, clearer sign-up feedback messages, one global sign-out that also signs people out of the app, and saving a changed username or contact address. Checked live only in headless Chromium with a standing test account (sign-in, account site handoff, sign-out then redirect to sign-in); not checked on a real phone. Still open: the recovery link needs an owner setup step on the account side and a live check, and a real-phone pass is pending.",
+    acceptanceCriteria: ["Sign-up, sign-in, sign-out and forgotten-sign-in recovery all work from the account site and return people to the Fitness app.", "The account site and the app always agree on who is signed in.", "Every account screen Fitness links to is complete and checked in the installed phone app (real-phone pass not yet done)."],
   },
 
   {
@@ -161,8 +161,8 @@ const SUPPLEMENTAL_CARDS = [
     title: "Send Branded Account Messages for Fitness and Mazer",
     priority: "P1",
     dependsOn: ["FF-AUTH-001"],
-    description: "Account messages such as forgotten-sign-in recovery now come from one no-reply Fawxzzy sender with a per-app look (Fitness green, Mazer cyan). Checked live on 2026-11-10 with a throwaway account: the message arrived, its link opened the new sign-in form, a new sign-in was saved and sign-in worked. Not verified: sign-up and change-of-address messages, and other mail clients. The hourly send allowance was raised from 2 to 30 on 2026-11-11 (confirmed by reload); the delivery service's free tier allows 100 messages a day.",
-    acceptanceCriteria: ["Account messages arrive from one branded sender with the app's own look (Fitness green, Mazer cyan).", "Forgotten-sign-in recovery works end to end: the message arrives, its link opens the new sign-in form, a new sign-in is saved and works (checked live 2026-11-10).", "Sign-up and change-of-address messages are checked and other mail clients are reviewed (not yet verified).", "Daily and hourly send allowances are watched as use grows."],
+    description: "Account messages such as forgotten-sign-in recovery now come from one no-reply Fawxzzy sender with a per-app look (Fitness green, Mazer cyan). Checked live on 2026-11-10 with a throwaway account: the message arrived, its link opened the new sign-in form, a new sign-in was saved and sign-in worked. Sign-up confirmation messages do not exist while sign-up confirmation is off, so none are sent or need checking; the remaining work is the reset and recovery message path. Not verified: change-of-address messages and other mail clients. The hourly send allowance was raised from 2 to 30 on 2026-11-11 (confirmed by reload); the delivery service's free tier allows 100 messages a day.",
+    acceptanceCriteria: ["Account messages arrive from one branded sender with the app's own look (Fitness green, Mazer cyan).", "Forgotten-sign-in recovery works end to end: the message arrives, its link opens the new sign-in form, a new sign-in is saved and works (checked live 2026-11-10).", "The reset and recovery message path is finished: change-of-address messages are checked and other mail clients are reviewed (not yet verified). Sign-up confirmation messages are not needed while confirmation is off.", "Daily and hourly send allowances are watched as use grows."],
   },
   {
     cardId: "FF-RELIABILITY-002",
@@ -187,6 +187,30 @@ const SUPPLEMENTAL_CARDS = [
     dependsOn: [],
     description: "Pages for items that do not exist or are unavailable should respond with a real not-found status along with the friendly not-found screen.",
     acceptanceCriteria: ["Missing or unavailable pages respond with a not-found status, not a success status.", "The friendly not-found screen still renders.", "Existing pages are unaffected."],
+  },
+  {
+    cardId: "FF-DESIGN-001",
+    title: "Consistent cards across the app",
+    priority: "P2",
+    dependsOn: [],
+    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. The Today screens are merged but not yet live. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
+    acceptanceCriteria: ["Routines screens use the shared cards (merged and live).", "Today screens use the shared cards (merged, not yet live).", "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).", "The result is checked in the installed phone app (not yet done)."],
+  },
+  {
+    cardId: "FF-PLATFORM-001",
+    title: "Move to a supported framework version",
+    priority: "P2",
+    dependsOn: ["FF-QA-004"],
+    description: "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned.",
+    acceptanceCriteria: ["The app runs on a supported framework version.", "The framework upgrade is tested before release and rolled out without breaking sign-in or workouts.", "Everyday flows are checked live after the upgrade."],
+  },
+  {
+    cardId: "FF-QA-004",
+    title: "Cover the app with real interaction tests",
+    priority: "P2",
+    dependsOn: [],
+    description: "Add a library for testing what people see and tap, sort out 13 stale tests that are currently left out of the all-tests job, and wire the QA scripts so they run together.",
+    acceptanceCriteria: ["A screen-level test library is added and used for key flows.", "The 13 stale tests are fixed or retired and included in the all-tests job.", "QA scripts run together from one command."],
   },
 ];
 
