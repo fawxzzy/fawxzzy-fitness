@@ -1459,3 +1459,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A layout `notFound()` alone does not stop its page from rendering in Next 14.2.5: the page's server code still runs and its output is in the response. A guard on `NODE_ENV` breaks production-mode verification runs; a guard on a request header depends on the platform setting that header.
 - Evidence: `src/lib/dev-route-guard.test.ts` (wired through `npm run test:supabase-schema-binding`) calls the middleware, the layout and every dev handler under production and non-production environments. A `next start` run with `VERCEL_ENV=production` answered the fixture pages, the dev handlers and the debug endpoint with 404.
 - Status: Source only; merge, deploy and a check on the live host remain separate.
+
+## 2026-11-12 - Remove the retired legacy migration routes and the tag-triggered deploy workflow
+
+- WHAT changed: Deleted `/api/migration/export`, `/api/migration/import` and `/api/migration/parity`, the Settings "Legacy & Migration" section (`LegacyMigrationSettings`, the `legacy` section key and deep link, and the props that only fed it), `src/lib/migration/` (snapshot bridge, contract and tests), and `.github/workflows/deploy-prod-on-tag.yml`. `scripts/migration/parity-report.mjs` stays as an offline operator script. `docs/ops/fitness-legacy-migration-plan.md` now records the retirement.
+- WHY it changed: The legacy database is retired, the Settings section was already disabled and export only returned 410, so nothing called the import or parity routes. The tag workflow deployed to production on any `v*` tag without a CI dependency, an exact commit or a held alias, which contradicts the approval gate in `AGENTS.md`.
+- Rule: A retired feature is deleted, not parked behind a disabled flag. Recovery lives in git history and in one-off owner-run scripts, not in a signed-in web route. Production deploys run only through the approval-gated release chain.
+- Failure Mode: A hidden UI with live server routes behind it keeps the surface reachable. A workflow that can deploy on a tag push bypasses the release approval.
+- Evidence: `src/lib/supabase/schema-binding.contract.test.mjs` asserts the routes, the bridge and the Settings component stay removed and that no workflow runs a production deploy; `src/components/settings/SettingsAccordionClient.contract.test.ts` asserts Settings carries no legacy section.
+- Status: Source only; merge and deploy remain separate.

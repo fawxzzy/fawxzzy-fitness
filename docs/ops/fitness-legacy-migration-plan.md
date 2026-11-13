@@ -1,6 +1,21 @@
 # Fitness Legacy Migration Plan
 
-## Current disposition — 2026-10-14
+## Current disposition — 2026-11-12 (supersedes the 2026-10-14 notes below)
+
+The Fitness legacy migration surface is retired and removed from the app:
+
+- `POST /api/migration/export`, `POST /api/migration/import` and `POST /api/migration/parity` no longer exist.
+- The Settings "Legacy & Migration" section, its `legacy` deep link, and `LegacyMigrationSettings` are gone.
+- The snapshot importer, parity helper and snapshot contract under `src/lib/migration/` (and their tests) are gone. Nothing in the app reads or writes `fitness-legacy-v1` snapshots.
+- The tag-triggered production deploy workflow was removed with them; production deploys stay approval-gated (see `AGENTS.md`).
+
+Decision: the legacy database is retired, no user-facing flow needs the import, and a signed-in web route is the wrong shape for a one-off recovery job. If a retained snapshot ever has to be recovered, run it as an owner-operated script against an explicit target, starting from the importer in git history (`src/lib/migration/fitness-legacy-bridge.ts` as it stood at the first parent of the PR #218 merge commit, which removed it; `git log --diff-filter=D -- src/lib/migration/fitness-legacy-bridge.ts` finds that commit), and review how it maps identifiers before running it.
+
+`scripts/migration/parity-report.mjs` (`npm run migration:parity`) is a separate offline operator script and is unchanged.
+
+The sections below are historical. They describe the retired design and are kept for context only.
+
+## Superseded disposition — 2026-10-14
 
 The legacy database has been retired. `POST /api/migration/export` returns
 `410 FITNESS_LEGACY_EXPORT_RETIRED` without reading credentials or contacting a
@@ -22,17 +37,6 @@ selected deployment no longer reads them.
 Rule: retiring a remote migration transport must preserve the offline snapshot
 contract and its recovery tests. The historical plan below records the original
 migration design; its live export and old-project setup instructions are obsolete.
-
-### Verification
-
-Run the focused retirement and offline recovery cases with:
-
-```sh
-node --import ./scripts/register-test-aliases.mjs --test src/lib/migration/fitness-legacy-bridge.test.ts src/lib/migration/fitness-legacy-retirement.contract.test.mjs src/lib/supabase/schema-binding.contract.test.mjs src/components/settings/SettingsAccordionClient.contract.test.ts
-```
-
-Then run `npm run typecheck` and `npm run verify`. These local checks do not
-perform a live import or change provider configuration.
 
 ## Historical migration plan (April 2026)
 
@@ -76,7 +80,7 @@ As of 2026-04-16, the linked replacement project is `lpswxoyfniocuhljgzbc`.
 
 ## Canonical Snapshot Contract
 
-The canonical payload lives in [fitness-legacy-contract.ts](../../src/lib/migration/fitness-legacy-contract.ts) and is the only supported exporter/importer contract.
+The canonical payload lived in `src/lib/migration/fitness-legacy-contract.ts` (removed 2026-11-12; recoverable from git history) and was the only supported exporter/importer contract.
 
 Canonical tables:
 

@@ -2937,8 +2937,6 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
             <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : scenario.fixture === "achievements" ? "achievements" : null}>
               <div className="pointer-events-none">
                 <SettingsAccordionClient
-                  email="dev-regression@example.com"
-                  legacyBridgeConfigured={false}
                   userKind="human"
                   userNumber={null}
                   canAccessQaVisibilitySetting={false}
