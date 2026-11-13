@@ -134,6 +134,15 @@ test("the retired six-step onboarding components stay deleted", () => {
   }
 });
 
+test("curated handoff shows every recommendation reason to the member", () => {
+  const handoff = readComponent("GenerationHandoffStep.tsx");
+
+  assert.match(handoff, /visiblePlan\.adjustments/);
+  assert.match(handoff, /Why this routine changed/);
+  assert.match(handoff, /adjustment\.reason/);
+  assert.match(handoff, /data-curated-adjustments/);
+});
+
 test("curated handoff guards double submit, keeps blocked primary on Build manually, and never shows raw errors", () => {
   const shell = readComponent("CuratedOnboardingShell.tsx");
 
