@@ -33,7 +33,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/app/reduced-motion.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/login/page.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/auth/signupFeedback.test.ts tests/signup-failure-copy-action.test.mjs
-          node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/update-user.test.ts tests/account-update-actions.test.mjs tests/password-mutation-actions.test.mjs
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/update-user.test.ts tests/account-update-actions.test.mjs tests/password-mutation-actions.test.mjs src/lib/recovery-session.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/error/auth-session-preservation.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/middleware.test.ts src/lib/detail-route-guard.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/timezones.test.ts src/lib/history-local-day-boundary.test.ts src/lib/history-sessions-page-loader.test.ts

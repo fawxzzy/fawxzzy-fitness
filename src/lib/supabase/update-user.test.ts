@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createClient } from "@supabase/supabase-js";
-import { updateUserWithAccessToken } from "./update-user.ts";
+import { decodeJwtClaims, updateUserWithAccessToken } from "./update-user.ts";
 
 const URL_BASE = "https://synthetic.supabase.test";
 const ANON = "anon-synthetic";
@@ -140,4 +140,21 @@ test("a non-JSON failure body, a network failure and a timeout all end in a gene
   clearTimeout(keepAlive);
   assert.deepEqual(result, { ok: false, reason: "failed", code: null, status: null });
   assert.ok(Date.now() - started < 2_000);
+});
+
+test("an undecodable or already-expired token fails fast with no request", async () => {
+  const expired = `${b64url({ alg: "HS256" })}.${b64url({ sub: "u", exp: Math.floor(Date.now() / 1000) - 5 })}.sig`;
+  for (const [token, code] of [["not-a-jwt", "undecodable_access_token"], ["a.b.c", "undecodable_access_token"], [expired, "expired_access_token"]] as const) {
+    const { requests, fetchImpl } = recorder();
+    const result = await updateUserWithAccessToken({ password: "synthetic passphrase" }, deps(fetchImpl, token));
+    assert.deepEqual(result, { ok: false, reason: "session_expired", code, status: null });
+    assert.equal(requests.length, 0);
+  }
+});
+
+test("decodeJwtClaims reads the payload without verifying and rejects anything that is not a three-part object token", () => {
+  assert.equal(decodeJwtClaims(ACCESS)?.sub, "synthetic-user");
+  for (const bad of [null, undefined, "", "a.b", "a.b.c.d", `x.${b64url([1, 2])}.y`, `x.${b64url("str")}.y`]) {
+    assert.equal(decodeJwtClaims(bad), null, String(bad));
+  }
 });

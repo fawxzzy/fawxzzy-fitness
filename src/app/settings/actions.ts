@@ -15,7 +15,7 @@ import {
 import { QA_LLEL_VISIBILITY_COOKIE } from "@/lib/qa-data-visibility";
 import { getRequestAccessToken, supabaseServer } from "@/lib/supabase/server";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
-import { updateUserWithAccessToken, type UserUpdateFailureReason } from "@/lib/supabase/update-user";
+import { decodeJwtClaims, updateUserWithAccessToken, type UserUpdateFailureReason } from "@/lib/supabase/update-user";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 
 export type EmailUpdateState = {
@@ -100,6 +100,15 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
     display_name: nextUsername || null,
   };
 
+  // The token written with must belong to the member requireUser() just resolved. DEPENDENCY: on /account and
+  // /settings the middleware refreshes the access cookie and forwards it to this action, so the token is fresh; if it
+  // is not, the write is refused as session_expired rather than refreshed here (a refresh could not persist the
+  // rotated refresh token).
+  const accessToken = getRequestAccessToken();
+  if (decodeJwtClaims(accessToken)?.sub !== user.id) {
+    return { status: "error", message: ACCOUNT_UPDATE_ERROR_COPY.session_expired ?? ACCOUNT_UPDATE_FAILED_COPY };
+  }
+
   // `auth.updateUser` fails on the request-bound server client (no stored session), so the write goes through the
   // access token directly; the refresh token is never touched.
   const result = await updateUserWithAccessToken(
@@ -107,7 +116,7 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
       email: emailChanged ? nextEmail : undefined,
       data: usernameChanged ? nextMetadata : undefined,
     },
-    { supabaseUrl: SUPABASE_URL(), anonKey: SUPABASE_ANON_KEY(), accessToken: getRequestAccessToken() },
+    { supabaseUrl: SUPABASE_URL(), anonKey: SUPABASE_ANON_KEY(), accessToken },
   );
 
   if (!result.ok) {

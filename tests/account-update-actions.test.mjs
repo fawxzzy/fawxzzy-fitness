@@ -33,10 +33,12 @@ function load(file, dependencies, globals = {}) {
 
 const usernamePolicy = load("src/lib/username-policy.ts", {});
 const passwordPolicy = load("src/lib/password-policy.ts", {});
-const ACCESS_TOKEN = "synthetic-request-access-token";
+const b64urlJson = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+const makeToken = (overrides = {}) => `${b64urlJson({ alg: "HS256", typ: "JWT" })}.${b64urlJson({ sub: "synthetic-user", aud: "authenticated", exp: Math.floor(Date.now() / 1000) + 3600, ...overrides })}.sig`;
+const ACCESS_TOKEN = makeToken();
 const MEMBER = { id: "synthetic-user", email: "member@example.test", user_metadata: { username: "member", display_name: "member", theme: "dark" } };
 
-function fixture({ failure = null, throwOnFetch = false } = {}) {
+function fixture({ failure = null, throwOnFetch = false, token = ACCESS_TOKEN } = {}) {
   const requests = [];
   const logs = [];
   const revalidated = [];
@@ -49,7 +51,7 @@ function fixture({ failure = null, throwOnFetch = false } = {}) {
     }
     return new Response(JSON.stringify({ id: MEMBER.id }), { status: 200, headers: { "content-type": "application/json" } });
   };
-  const updateUserModule = load("src/lib/supabase/update-user.ts", {}, { fetch: stubFetch, AbortSignal });
+  const updateUserModule = load("src/lib/supabase/update-user.ts", {}, { fetch: stubFetch, AbortSignal, atob });
   const actions = load("src/app/settings/actions.ts", {
     "next/cache": { revalidatePath: (target) => revalidated.push(target) },
     "next/headers": { cookies: unexpected },
@@ -61,7 +63,7 @@ function fixture({ failure = null, throwOnFetch = false } = {}) {
     "@/lib/supabase/schema": { createFitnessSupabaseClient: unexpected },
     "@/lib/qa-data-visibility": { QA_LLEL_VISIBILITY_COOKIE: "synthetic" },
     // Neither request-bound client may be used for the write.
-    "@/lib/supabase/server": { supabaseServer: unexpected, supabaseServerWithSession: unexpected, getRequestAccessToken: () => ACCESS_TOKEN },
+    "@/lib/supabase/server": { supabaseServer: unexpected, supabaseServerWithSession: unexpected, getRequestAccessToken: () => token },
     "@/lib/supabase/update-user": updateUserModule,
     "@/lib/username-policy": usernamePolicy,
   }, { console: { error: (...args) => logs.push(args) } });
@@ -155,4 +157,16 @@ test("a network failure shows the generic copy and logs no provider text", async
   assert.equal(result.status, "error");
   assert.equal(result.message, "We could not update your account details. Check them and try again.");
   assert.ok(!JSON.stringify(f.logs).includes("fetch failed"));
+});
+
+test("the token written with must belong to the signed-in member: another member's token, or no usable token, writes nothing", async () => {
+  const sessionEnded = "Your session ended. Sign in again, then try once more.";
+  for (const token of [makeToken({ sub: "someone-else" }), makeToken({ sub: undefined }), makeToken({ exp: Math.floor(Date.now() / 1000) - 5 }), "not-a-jwt", "", null]) {
+    const f = fixture({ token });
+    const result = await f.save({ username: "newname" });
+    assert.equal(result.status, "error");
+    assert.equal(result.message, sessionEnded);
+    assert.equal(f.requests.length, 0);
+    assert.equal(f.revalidated.length, 0);
+  }
 });

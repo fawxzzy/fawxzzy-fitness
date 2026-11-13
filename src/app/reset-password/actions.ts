@@ -3,7 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
-import { getRequestAccessToken, supabaseServerWithSession } from "@/lib/supabase/server";
+import { evaluateRecoverySessionToken } from "@/lib/recovery-session";
+import { getRequestAccessToken } from "@/lib/supabase/server";
 import { updateUserWithAccessToken, type UserUpdateFailureReason } from "@/lib/supabase/update-user";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
@@ -11,6 +12,9 @@ import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
+
+// Shown when the cookie session is a normal sign-in rather than a recovery link: no write happens.
+const NOT_RECOVERY_SESSION_ERROR = "To change your password while signed in, use Account > Change password.";
 
 const RESET_UPDATE_ERROR_COPY: Record<UserUpdateFailureReason, string> = {
   session_expired: RECOVERY_SESSION_ERROR,
@@ -67,13 +71,15 @@ export async function updatePassword(newPassword: string) {
     return { ok: false as const, error: NEW_PASSWORD_REQUIREMENT };
   }
 
-  const supabase = await supabaseServerWithSession();
-  const { data: userData } = await supabase.auth.getUser();
-
-  if (!userData.user) {
+  // One token for the whole step: it is checked for proof of a recovery session here and then used, unchanged, for the
+  // write (the provider verifies its signature and session on that same request). This path never refreshes or
+  // rotates anything: /reset-password is a public authless path, so middleware does not refresh the cookie either.
+  const accessToken = getRequestAccessToken();
+  const recovery = evaluateRecoverySessionToken(accessToken);
+  if (!recovery.ok) {
     return {
       ok: false as const,
-      error: RECOVERY_SESSION_ERROR,
+      error: recovery.reason === "not_recovery" ? NOT_RECOVERY_SESSION_ERROR : RECOVERY_SESSION_ERROR,
     };
   }
 
@@ -81,7 +87,7 @@ export async function updatePassword(newPassword: string) {
   // token directly. The refresh token is never touched; fixed copy only, never the provider's text.
   const result = await updateUserWithAccessToken(
     { password: newPassword },
-    { supabaseUrl: SUPABASE_URL(), anonKey: SUPABASE_ANON_KEY(), accessToken: getRequestAccessToken() },
+    { supabaseUrl: SUPABASE_URL(), anonKey: SUPABASE_ANON_KEY(), accessToken },
   );
 
   if (result.ok) {

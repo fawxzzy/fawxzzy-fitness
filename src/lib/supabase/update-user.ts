@@ -8,7 +8,9 @@
 //
 // It deliberately never touches the refresh token: `setSession` would refresh a token with under ~90 s left and rotate
 // the member's real refresh token without any way to write the new cookie. An expired or revoked access token simply
-// returns `session_expired`; the middleware keeps the request's access token fresh on authenticated routes.
+// returns `session_expired`. DEPENDENCY: authenticated routes (/account, /settings) rely on the middleware to keep the
+// request's access token fresh (it refreshes within 60 s of expiry and forwards the new cookie to the action);
+// /reset-password is a public authless path, so there the token is the recovery session as issued by the email link.
 //
 // The provider's message is never returned; callers map `reason` to fixed copy.
 
@@ -44,6 +46,21 @@ const AUTH_API_VERSION = "2024-01-01";
 const USERNAME_TAKEN_MACHINE_CODE = "ACCOUNT_USERNAME_TAKEN";
 const RATE_LIMIT_CODES = new Set(["over_request_rate_limit", "over_email_send_rate_limit", "over_sms_send_rate_limit"]);
 const SESSION_CODES = new Set(["bad_jwt", "no_authorization", "session_not_found", "session_expired", "user_not_found", "invalid_jwt"]);
+
+/** Claims of a JWT access token WITHOUT verifying it (the provider verifies the token on the write). */
+export function decodeJwtClaims(token: string | null | undefined): Record<string, unknown> | null {
+  if (typeof token !== "string") return null;
+  const parts = token.trim().split(".");
+  if (parts.length !== 3 || !parts[1]) return null;
+  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const padded = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
+  try {
+    const payload: unknown = JSON.parse(atob(padded));
+    return typeof payload === "object" && payload !== null && !Array.isArray(payload) ? (payload as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
@@ -83,6 +100,14 @@ export async function updateUserWithAccessToken(
   const accessToken = typeof deps.accessToken === "string" ? deps.accessToken.trim() : "";
   if (!accessToken) {
     return { ok: false, reason: "session_expired", code: "no_access_token", status: null };
+  }
+  // An undecodable or already-expired token cannot succeed: fail fast without a request.
+  const claims = decodeJwtClaims(accessToken);
+  if (!claims) {
+    return { ok: false, reason: "session_expired", code: "undecodable_access_token", status: null };
+  }
+  if (typeof claims.exp === "number" && claims.exp <= Math.floor(Date.now() / 1000)) {
+    return { ok: false, reason: "session_expired", code: "expired_access_token", status: null };
   }
 
   const body: UserUpdateAttributes = {};
