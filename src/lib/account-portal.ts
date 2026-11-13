@@ -1,3 +1,5 @@
+import { isSafeAppPath } from "@/lib/navigation-return";
+
 const ACCOUNT_PORTAL_ORIGIN = "https://account.fawxzzy.com";
 const FITNESS_APP_ORIGIN = "https://fitness.fawxzzy.com";
 const FITNESS_CONTEXT = "fitness";
@@ -28,9 +30,14 @@ export function resolveFitnessHandoffReturnPath(returnTo: string | null | undefi
 export function getFitnessAccountPortalUrl(
   pathname: "/account" | "/login" = "/account",
   returnTo?: string,
+  options?: { intent?: "signup" },
 ) {
   const url = new URL(pathname, ACCOUNT_PORTAL_ORIGIN);
   url.searchParams.set("app", FITNESS_CONTEXT);
+  if (options?.intent) {
+    // `set` keeps exactly one `intent` key; the portal opens Create Account only for one exact `signup` value.
+    url.searchParams.set("intent", options.intent);
+  }
   if (returnTo) {
     url.searchParams.set("returnTo", new URL(returnTo, FITNESS_APP_ORIGIN).href);
   }
@@ -39,4 +46,19 @@ export function getFitnessAccountPortalUrl(
 
 export function getFitnessLoginPortalUrl(returnTo?: string | null) {
   return getFitnessAccountPortalUrl("/login", resolveFitnessHandoffReturnPath(returnTo));
+}
+
+// The ONE portal sign-up surface for browser tabs (the installed app keeps its own in-scope sign-up screen).
+export function getFitnessSignupPortalUrl(returnTo?: string | null) {
+  return getFitnessAccountPortalUrl("/login", resolveFitnessHandoffReturnPath(returnTo), { intent: "signup" });
+}
+
+/**
+ * The portal sign-up URL for the address the person opened (`window.location.search`). Only `returnTo` is read, and
+ * only as a same-origin path that then passes the handoff allowlist; every other key (an `error`, a token, a foreign
+ * `intent` or `app`) is ignored and never forwarded.
+ */
+export function getFitnessSignupPortalUrlForSearch(search: string) {
+  const returnTo = new URLSearchParams(search).get("returnTo");
+  return getFitnessSignupPortalUrl(isSafeAppPath(returnTo) ? returnTo : null);
 }
