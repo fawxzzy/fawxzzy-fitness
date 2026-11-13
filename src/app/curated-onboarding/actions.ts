@@ -2,8 +2,12 @@
 
 import { createRoutineAction } from "@/app/routines/actions";
 import {
+  compileCuratedWorkoutGeneration,
+  toCuratedGenerationFailure,
+  type CuratedGenerationFailureCode,
+} from "@/features/curated-onboarding/api-contract";
+import {
   buildCuratedRoutineSchedule,
-  generateAdaptiveCuratedWorkoutPlan,
   deriveCuratedExerciseTarget,
   type CuratedHistorySignals,
   type CuratedWorkoutPlan,
@@ -21,9 +25,19 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { isValidIanaTimeZone, normalizeRoutineTimezone } from "@/lib/timezones";
 import { activateProfileRoutineId } from "@/app/curated-onboarding/activate-profile-routine";
 
+export type CuratedGenerationActionFailure = {
+  ok: false;
+  error: string;
+  code: CuratedGenerationFailureCode;
+};
+
+export type GenerateCuratedWorkoutPlanResult =
+  | { ok: true; plan: CuratedWorkoutPlan }
+  | CuratedGenerationActionFailure;
+
 export type CreateCuratedRoutineDraftResult =
   | { ok: true; routineId: string; routineName: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: CuratedGenerationFailureCode; plan?: CuratedWorkoutPlan };
 
 function toCatalogSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -90,27 +104,44 @@ async function loadCuratedHistorySignals(args: {
 
 export async function generateCuratedWorkoutPlanAction(
   onboarding: CuratedOnboardingData,
-): Promise<{ ok: true; plan: CuratedWorkoutPlan } | { ok: false; error: string }> {
+): Promise<GenerateCuratedWorkoutPlanResult> {
   try {
     const user = await requireUser();
     const profile = await ensureProfile(user.id);
     const supabase = supabaseServer();
     const signals = await loadCuratedHistorySignals({ userId: user.id, activeRoutineId: profile.active_routine_id, supabase });
-    return { ok: true, plan: generateAdaptiveCuratedWorkoutPlan(onboarding, signals) };
+    const outcome = compileCuratedWorkoutGeneration({ onboarding, signals });
+    if (outcome.status === "ready") {
+      return { ok: true, plan: outcome.plan };
+    }
+    return { ok: false, ...toCuratedGenerationFailure(outcome) };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "The curated plan could not be generated." };
+    return {
+      ok: false,
+      code: "unavailable",
+      error: error instanceof Error ? error.message : "The curated routine could not be generated.",
+    };
   }
 }
 
 export async function createCuratedRoutineDraftAction(
   onboarding: CuratedOnboardingData,
   deviceTimeZone?: string | null,
+  expectedPlanId?: string | null,
 ): Promise<CreateCuratedRoutineDraftResult> {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
   const signals = await loadCuratedHistorySignals({ userId: user.id, activeRoutineId: profile.active_routine_id, supabase });
-  const plan = generateAdaptiveCuratedWorkoutPlan(onboarding, signals);
+  const outcome = compileCuratedWorkoutGeneration({ onboarding, signals, expectedPlanId });
+  if (outcome.status !== "ready") {
+    return {
+      ok: false,
+      ...toCuratedGenerationFailure(outcome),
+      ...(outcome.status === "plan-changed" ? { plan: outcome.plan } : {}),
+    };
+  }
+  const plan = outcome.plan;
   // The client's device zone is the user's real zone; profile.timezone was historically the server zone (UTC),
   // so it is only the fallback when the client did not send one.
   const timezone = normalizeRoutineTimezone(isValidIanaTimeZone(deviceTimeZone) ? deviceTimeZone : profile.timezone);
