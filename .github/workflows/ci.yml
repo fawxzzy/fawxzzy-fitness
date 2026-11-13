@@ -58,6 +58,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/normalize.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts
           node --test scripts/seed-feedback-monetization-roadmap.test.mjs
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/api-auth.test.ts src/lib/billing/pro-access-diagnostics.test.ts
           npm run test:project-board-owner-export
           npm run project-board:owner-export:check
           npm run test:card-system

@@ -7,6 +7,7 @@ import {
   isMissingBillingSchemaError,
   type ProAccessSnapshot,
 } from "@/lib/billing/pro-access-snapshot";
+import { logProAccessLoadFailure } from "@/lib/billing/pro-access-diagnostics";
 import { getStripeServerClient } from "@/lib/billing/stripe-server";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { BillingCustomerRow, BillingPurchaseRow, UserEntitlementRow } from "@/types/db";
@@ -87,6 +88,7 @@ export async function loadProAccessSnapshot(userId: string): Promise<ProAccessSn
       return buildFallbackProAccessSnapshot("schema", billingConfig);
     }
 
+    logProAccessLoadFailure("entitlements", entitlementResponse.error);
     return {
       ...buildFallbackProAccessSnapshot("setup", billingConfig),
       supportNote: "Pro access status could not be loaded right now.",
@@ -108,6 +110,7 @@ export async function loadProAccessSnapshot(userId: string): Promise<ProAccessSn
       return buildFallbackProAccessSnapshot("schema", billingConfig);
     }
 
+    logProAccessLoadFailure("purchases", purchaseResponse.error);
     return {
       ...buildFallbackProAccessSnapshot("setup", billingConfig),
       supportNote: "Purchase history could not be loaded right now.",
@@ -125,6 +128,7 @@ export async function loadProAccessSnapshot(userId: string): Promise<ProAccessSn
       return buildFallbackProAccessSnapshot("schema", billingConfig);
     }
 
+    logProAccessLoadFailure("customer", customerResponse.error);
     return {
       ...buildFallbackProAccessSnapshot("setup", billingConfig),
       supportNote: "Billing customer state could not be loaded right now.",
