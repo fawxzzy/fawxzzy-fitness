@@ -21,7 +21,7 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
-import { buildHistoryConsistencyHeatmap } from "@/lib/history-consistency-heatmap";
+import { buildHistoryConsistencyHeatmap, shouldShowHistoryConsistencyHeatmap } from "@/lib/history-consistency-heatmap";
 import { buildHistoryMonthlyProgress } from "@/lib/history-monthly-progress";
 import {
   buildHistoryWorkoutStreak,
@@ -862,12 +862,13 @@ export function HistorySessionsClient({
     skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
   }), [queryFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone]);
 
-  // Same local-day timezone and same session rows as the streak, so the heatmap can never disagree with it.
+  // Whole-history view: every completed session in scope (never the search/tag-filtered rows), on the same
+  // local-day timezone as the streak. It is only shown while no filter is active, so these rows are all of them.
   const consistencyHeatmap = useMemo(() => buildHistoryConsistencyHeatmap({
-    sessions: queryFilteredSessions,
+    sessions: scopedSessions,
     timezone: scopedWeeklyProgress.timezone,
     now: calendarNow,
-  }), [calendarNow, queryFilteredSessions, scopedWeeklyProgress.timezone]);
+  }), [calendarNow, scopedSessions, scopedWeeklyProgress.timezone]);
 
   const filteredSessions = useMemo(() => {
     if (!effectiveSelectedDayKey) {
@@ -910,10 +911,13 @@ export function HistorySessionsClient({
     hasSpecificTimelineFilter,
     visibleSessionCount: filteredSessions.length,
   });
-  // A 16-week map is a whole-history view: hide it while a day, month or cycle filter narrows the timeline, and while
-  // a search/tag filter matches nothing. A user with no sessions at all still gets the (motivating) empty map.
-  const showConsistencyHeatmap = !hasSpecificTimelineFilter
-    && (queryFilteredSessions.length > 0 || scopedSessions.length === 0);
+  const showConsistencyHeatmap = shouldShowHistoryConsistencyHeatmap({
+    query,
+    selectedTagCount: selectedTags.length,
+    analyticsScope: normalizedFilterState.analyticsScope,
+    selectedDayKey: effectiveSelectedDayKey,
+    selectedMonthKey,
+  });
   const hasStructuredFilters = selectedTags.length > 0
     || normalizedFilterState.analyticsScope !== "all_time"
     || Boolean(effectiveSelectedDayKey)

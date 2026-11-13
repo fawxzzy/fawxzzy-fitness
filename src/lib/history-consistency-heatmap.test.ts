@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SessionSummary } from "../app/history/session-summary.ts";
-import { buildHistoryConsistencyHeatmap, describeHistoryConsistencyHeatmap } from "./history-consistency-heatmap.ts";
+import {
+  buildHistoryConsistencyHeatmap,
+  describeHistoryConsistencyHeatmap,
+  shouldShowHistoryConsistencyHeatmap,
+} from "./history-consistency-heatmap.ts";
 
 function session(id: string, startedAt: string): SessionSummary {
   return {
@@ -242,4 +246,39 @@ test("consistency heatmap keeps a month label in the second-to-last column but n
   // May 1 2026 sits in the week of Apr 27 (the last column when "now" is Apr 30): no room for a label.
   const last = buildHistoryConsistencyHeatmap({ sessions: [], timezone: "America/New_York", now: "2026-05-02T15:00:00.000Z", weekCount: 16 });
   assert.ok(last.monthMarkers.every((marker) => marker.weekIndex <= 14));
+});
+
+const NO_FILTERS = {
+  query: "",
+  selectedTagCount: 0,
+  analyticsScope: "all_time",
+  selectedDayKey: null,
+  selectedMonthKey: null,
+} as const;
+
+test("heatmap is shown only for the whole-history view: no search, tag, scope, day or month filter", () => {
+  assert.equal(shouldShowHistoryConsistencyHeatmap(NO_FILTERS), true);
+  // Whitespace is not a search.
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, query: "   " }), true);
+});
+
+test("heatmap is hidden whenever any filter narrows History, so it never describes a partial row set", () => {
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, query: "push" }), false);
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, query: " push " }), false);
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, selectedTagCount: 1 }), false);
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, analyticsScope: "current_routine" }), false);
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, analyticsScope: "current_cycle" }), false);
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, selectedDayKey: "2026-11-10" }), false);
+  assert.equal(shouldShowHistoryConsistencyHeatmap({ ...NO_FILTERS, selectedMonthKey: "2026-11" }), false);
+  assert.equal(
+    shouldShowHistoryConsistencyHeatmap({ query: "a", selectedTagCount: 2, analyticsScope: "current_cycle", selectedDayKey: "2026-11-10", selectedMonthKey: "2026-11" }),
+    false,
+  );
+});
+
+test("an unfiltered History with no sessions still shows the motivating empty map", () => {
+  // The visibility rule has no session-count input: a new user with no filters sees the empty map.
+  assert.equal(shouldShowHistoryConsistencyHeatmap(NO_FILTERS), true);
+  const copy = describeHistoryConsistencyHeatmap(buildHistoryConsistencyHeatmap({ sessions: [], timezone: "America/New_York", now: "2026-11-12T15:00:00.000Z" }));
+  assert.match(copy.emptyMessage ?? "", /first workout/);
 });

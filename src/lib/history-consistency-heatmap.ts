@@ -132,6 +132,31 @@ export function buildHistoryConsistencyHeatmap({
   };
 }
 
+/**
+ * The heatmap is a whole-history view, so it is shown only when nothing narrows the History list. Any search text,
+ * tag, non-all-time scope (current routine / current cycle) or selected day or month hides it: a narrowed row set
+ * would otherwise be described as "your" consistency ("A quiet stretch", "Finish your first workout") when it is not.
+ */
+export function shouldShowHistoryConsistencyHeatmap({
+  query,
+  selectedTagCount,
+  analyticsScope,
+  selectedDayKey,
+  selectedMonthKey,
+}: {
+  query: string;
+  selectedTagCount: number;
+  analyticsScope: string;
+  selectedDayKey: string | null;
+  selectedMonthKey: string | null;
+}) {
+  return query.trim().length === 0
+    && selectedTagCount === 0
+    && analyticsScope === "all_time"
+    && !selectedDayKey
+    && !selectedMonthKey;
+}
+
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
