@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { readFileSync } from "node:fs";
+import test, { mock } from "node:test";
 
 import { buildHistoryScopeSummary } from "./history-scope-summary.ts";
 import { loadHistoryTimeZone } from "./history-time-zone.ts";
@@ -38,7 +39,7 @@ test("exercise progression lifeline buckets an evening Eastern event on its loca
   assert.deepEqual(easternActivity?.bars.map((bar) => bar.id), ["2026-11-12"]);
 
   // Without a zone the analytics default (UTC) applies, so the zone is what moves the bucket.
-  const utcDefault = buildExerciseProgressionLifelineSummary([buildEvent()]);
+  const utcDefault = buildExerciseProgressionLifelineSummary([buildEvent()], { timeZone: null });
   assert.deepEqual(utcDefault?.activityDays?.map((day) => day.id), ["2026-11-13"]);
   assert.deepEqual(
     utcDefault?.chartSections?.find((section) => section.id === "progression-activity")?.bars.map((bar) => bar.id),
@@ -85,6 +86,9 @@ test("history scope summary passes its zone to the weekly progression activity b
 type FakeTables = {
   profile?: { timezone?: string | null; active_routine_id?: string | null } | null;
   routine?: { timezone?: string | null } | null;
+  profileError?: { code?: string; message?: string } | null;
+  routineError?: { code?: string; message?: string } | null;
+  throwOn?: "profiles" | "routines";
 };
 
 function createFakeSupabase(tables: FakeTables) {
@@ -95,7 +99,15 @@ function createFakeSupabase(tables: FakeTables) {
       const builder = {
         select: () => builder,
         eq: () => builder,
-        maybeSingle: async () => ({ data: table === "profiles" ? (tables.profile ?? null) : (tables.routine ?? null) }),
+        maybeSingle: async () => {
+          if (tables.throwOn === table) {
+            throw new Error("network down");
+          }
+          return {
+            data: table === "profiles" ? (tables.profile ?? null) : (tables.routine ?? null),
+            error: table === "profiles" ? (tables.profileError ?? null) : (tables.routineError ?? null),
+          };
+        },
       };
       return builder;
     },
@@ -127,4 +139,70 @@ test("loadHistoryTimeZone follows History's rule: active routine zone, then prof
   // Nothing known: the History default.
   const nothing = createFakeSupabase({ profile: null });
   assert.equal(await loadHistoryTimeZone({ supabase: nothing.client, userId: "user-1" }), "America/New_York");
+});
+
+test("loadHistoryTimeZone logs a failed lookup (source and error code only) instead of silently falling back", async () => {
+  const warn = mock.method(console, "warn", () => undefined);
+  try {
+    // The profile query errors: logged by code, never by message; the History default applies.
+    const profileError = createFakeSupabase({ profile: null, profileError: { code: "42501", message: "permission denied for table profiles (secret detail)" } });
+    assert.equal(await loadHistoryTimeZone({ supabase: profileError.client, userId: "user-1" }), "America/New_York");
+    assert.equal(warn.mock.callCount(), 1);
+    assert.deepEqual(warn.mock.calls[0]?.arguments, ["[history-time-zone] lookup failed, falling back", { source: "profiles", code: "42501" }]);
+
+    // The routine query errors: logged, and the profile zone still applies.
+    warn.mock.resetCalls();
+    const routineError = createFakeSupabase({
+      profile: { timezone: "Asia/Tokyo", active_routine_id: "routine-1" },
+      routine: null,
+      routineError: { code: "PGRST116", message: "details" },
+    });
+    assert.equal(await loadHistoryTimeZone({ supabase: routineError.client, userId: "user-1" }), "Asia/Tokyo");
+    assert.deepEqual(warn.mock.calls[0]?.arguments, ["[history-time-zone] lookup failed, falling back", { source: "routines", code: "PGRST116" }]);
+
+    // A thrown query never rejects the caller: logged by error name, default zone.
+    warn.mock.resetCalls();
+    const thrown = createFakeSupabase({ throwOn: "profiles" });
+    assert.equal(await loadHistoryTimeZone({ supabase: thrown.client, userId: "user-1" }), "America/New_York");
+    assert.deepEqual(warn.mock.calls[0]?.arguments, ["[history-time-zone] lookup failed, falling back", { source: "exception", code: "Error" }]);
+    for (const call of warn.mock.calls) {
+      assert.doesNotMatch(JSON.stringify(call.arguments), /secret detail|network down|user-1/);
+    }
+
+    // A healthy lookup logs nothing.
+    warn.mock.resetCalls();
+    const healthy = createFakeSupabase({ profile: { timezone: "UTC", active_routine_id: null } });
+    await loadHistoryTimeZone({ supabase: healthy.client, userId: "user-1" });
+    assert.equal(warn.mock.callCount(), 0);
+  } finally {
+    warn.mock.restore();
+  }
+});
+
+test("the lifeline summary requires an explicit timeZone: omitting it does not compile", () => {
+  // @ts-expect-error timeZone is a required option; this line must keep failing to type-check without it.
+  const omitted = (): unknown => buildExerciseProgressionLifelineSummary([buildEvent()], {});
+  void omitted;
+
+  // The explicit UTC choice still compiles and behaves as the analytics default.
+  assert.deepEqual(
+    buildExerciseProgressionLifelineSummary([buildEvent()], { timeZone: null })?.activityDays?.map((day) => day.id),
+    ["2026-11-13"],
+  );
+});
+
+test("contract: every user-facing caller passes a zone, and the exercises page resolves the scope once", () => {
+  const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+  const exerciseInfo = read("./exercise-info.ts");
+  const browser = read("./exercises-browser.ts");
+  const detailPage = read("../app/history/[sessionId]/page.tsx");
+
+  assert.match(exerciseInfo, /buildExerciseProgressionLifelineSummary\(activeProgressionEvents, \{ timeZone: scopeContext\.historyTimeZone \}\)/);
+  assert.match(browser, /\{ timeZone: historyTimeZone \}\),/);
+  assert.match(detailPage, /timeZone: historyTimeZone,/);
+
+  // The browser neither blocks on a sequential zone lookup nor repeats the scope lookup the page already runs.
+  assert.doesNotMatch(browser, /await loadHistoryTimeZone\(/);
+  assert.match(browser, /const historyTimeZone = await historyTimeZonePromise;/);
+  assert.match(browser, /historyTimeZone: scopeContextPromise\.then\(\(resolved\) => resolved\.historyTimeZone\)/);
 });
