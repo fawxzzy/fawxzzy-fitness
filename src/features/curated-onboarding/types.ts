@@ -65,6 +65,8 @@ export interface CuratedOnboardingData {
   daysPerWeek?: number | null;
   sessionLengthMinutes?: number | null;
   equipment: EquipmentAccess[];
+  /** Equipment the member asked not to use, derived from the free-text `equipmentAvoid` answer. */
+  avoidedEquipment?: EquipmentAccess[];
   preferredStyle?: PreferredStyle | null;
   cardioPreference?: CardioPreference | null;
   limitations?: string;

@@ -9,9 +9,12 @@ Normalizer: `curated-planning-normalizer.v1`
 
 ## Boundary
 
-The current production path passes `CuratedOnboardingData` from
-`src/app/curated-onboarding/actions.ts` directly to the generator in
-`src/features/curated-onboarding/engine.ts`. This package does not change that
+The current production path sends the raw intake through
+`src/features/curated-onboarding/api-contract.ts` (which rebuilds every engine
+input from `intakeResponses`, enforces the `warningSymptoms` safety gate and
+returns a closed `ready | blocked | failed | plan-changed` outcome) to the
+generator in `src/features/curated-onboarding/engine.ts`, called from
+`src/app/curated-onboarding/actions.ts`. This package does not change that
 path. It adds a pure normalization boundary and a reviewed exercise-catalog
 boundary for a later coverage compiler and planner.
 

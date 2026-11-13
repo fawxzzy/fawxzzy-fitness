@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-12
+
+### WHAT
+- Curated workout engine (FF-ENGINE-001): the safety gate fails closed. Generation proceeds only when `warningSymptoms` is a non-empty string list that is exactly "none", `safetyAcknowledgment` is true and `under18` is answered; a missing, empty or wrong-typed answer returns `incomplete-intake`, any reported symptom (including "none" plus a symptom) returns a closed `blocked` outcome with professional-clearance copy, and a member under 18 without a guardian "yes" is blocked with referral-only copy (same rule as `planning/normalize.ts`). The server also requires every required intake answer (`isCuratedOnboardingReadyForHandoff`) before the generator runs, and both server actions enforce `isCuratedOnboardingEnabled()` themselves.
+- Curated handoff robustness: raw exception and database text no longer reaches the member (fixed copy, details logged server-side), redirects from `requireUser` are rethrown, `createRoutineAction` reports the routine id on partial failure so the exact row is rolled back and a failed rollback is reported, and a retry after a lost response adopts the identical routine a previous attempt created instead of making a second one.
+- Curated handoff (FF-ONBOARD-001): a blocked, failed or unavailable generation no longer dead-ends. Failed: Edit setup (answers kept) with Build manually secondary; transient server error: Try again; blocked (symptoms, under-18 without guardian permission, feature off): Build manually is primary and Edit setup secondary. Double submit is guarded in the browser and a retry after a lost response is reused on the server. The reviewed plan id travels with the create request. The retired six-step components (GoalsStep, ExperienceStep, EquipmentStep, ScheduleStep, PreferencesStep, ConstraintsStep, CuratedIntroStep) are deleted; the shell renders the 60-question `QuestionnaireStep`. Handoff-step and step-registry copy says "routine", not "plan".
+- The plan id now hashes the reviewed OUTPUT (name, schedule, exercises, targets), so inputs that do not change the routine never cause a false "plan changed". Member-facing generator copy uses routine language and human equipment names.
+- The curated generation boundary is one typed contract (`api-contract.ts`): the server rebuilds every engine input from the saved `intakeResponses` (client-derived fields are ignored), returns a closed `ready | blocked | failed | plan-changed` outcome, and refuses to create a routine whose regenerated plan differs from the one the member reviewed.
+- "Equipment you do NOT want to use" is now honored (barbells, dumbbells, machines, bands). Plan style now selects a split where a standard split exists for the day count (push/pull/legs at 3 days, upper/lower at 2 days) and never claims a style it did not apply.
+- A workout day never repeats an exercise and never has fewer than three lifts; generation fails closed instead of producing a one-lift day. The rationale text and plan id no longer depend on the order equipment was selected.
+- Added a full-matrix determinism and catalog-consistency test and put the curated questionnaire, reducer, storage, selector, action, UI-contract and entry-gate suites into hosted CI (previously only the engine, normalizer and catalog suites ran).
+
+- Curated engine beyond V1 (FF-ENGINE-002): every difference from the first-choice routine (the routine built from the member's own limitations and dislikes on the same split) is a structured, visible adjustment (`plan.adjustments`) naming the exercise, the replacement or omission, the day and the cause: session feedback marked too hard, fatigue, form breakdown or pain, avoided equipment, a reduced schedule, or a day-level cascade. A fuzz property test (4000 random intakes and feedback sets) fails if any exercise appears in or disappears from a day without an entry naming it. Lifts marked as pain or a form breakdown are always replaced or omitted (the three-lift floor still applies, below it generation fails closed); only "too hard" or "bad day" lifts may stay when nothing else fits, with an explicit reason. The handoff page lists the reasons under "Why this routine changed", and the rationale states the 28-day completion the routine was based on.
+
+### WHY
+- A safety promise in the UI that the generator ignored, free-text answers that changed nothing, duplicate exercises inside one day and a preview that could differ from the saved routine are the failure modes that make a generated routine untrustworthy. The generator stays curated, bounded and deterministic; the unwired planner pipeline under `planning/` is unchanged and still source-only.
+
 ## Unreleased - 2026-07-16
 
 ### WHAT
@@ -12,12 +29,14 @@ All notable changes to this project are documented in this file.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
+- Exercise info (PR history, chart axis, day groups, cycle options, last-performed labels, cardio PR dates) now buckets sessions into the user's local day with History's day-key function and zone (`resolveHistoryTimeZone`) instead of slicing the UTC date, so a session after 19:00 US Eastern shows the same day in both places. History's progression-activity buckets receive that zone too.
 
 ### WHY
 - A set tapped offline from a collapsed row was lost while the same tap from an expanded row was kept. Two offline paths for one action broke the FF-PWA-002 rule that a connection drop never discards a logged set.
 - Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
 - Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
+- Exercise info dated evening sessions with the next UTC day ("Nov 13") while History showed the local day ("Nov 12"): two day rules for one session.
 
 ## 1.0.1 - 2026-06-24
 

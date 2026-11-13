@@ -1,10 +1,12 @@
-import { formatDateShort } from "@/lib/formatting";
+import { formatExerciseInfoDayLabel } from "@/lib/exercise-info-day-key";
 import type { ExerciseAnalyticsFamily } from "@/lib/exercise-analytics-family";
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { getDisplayPace } from "@/lib/cardio-best";
 
 export function buildCardioPrReviewItems(args: {
   family: ExerciseAnalyticsFamily;
+  /** Zone the PR dates are shown in: the History zone (resolveHistoryTimeZone), so a PR lands on the day History shows. */
+  timeZone: string;
   sessionAggregates: Array<{
     performedAt: string | null;
     durationSeconds: number;
@@ -39,7 +41,7 @@ export function buildCardioPrReviewItems(args: {
     const distanceLabel = formatDistance(distance, row.distanceUnit);
     const caloriesLabel = formatCalories(calories) ?? (calories > 0 ? `${Math.round(calories)} cal` : null);
     const stepsLabel = row.distanceUnit === "steps" ? formatDistance(distance, "steps") : null;
-    const formattedDate = formatDateShort(performedAt);
+    const formattedDate = formatExerciseInfoDayLabel(performedAt, args.timeZone);
 
     if ((args.family === "cardio-distance" || args.family === "cardio-endurance") && pace?.paceSecondsPerUnit && paceLabel && pace.paceSecondsPerUnit < bestPaceSeconds) {
       bestPaceSeconds = pace.paceSecondsPerUnit;
