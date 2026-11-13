@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Dev-only gallery of the in-session cards (docs/design-system/CARD-SYSTEM.md section 7.3): every state of the session
+ * Dev-only gallery of the in-session cards (docs/design-system/CARD-SYSTEM.md section 7.4): every state of the session
  * exercise row, the hidden row, the quick-log strip, the feedback prompt, the finished card and the offline rows.
  * Static fixture data only (no Supabase client, no session). Availability is the shared dev-route guard: middleware
  * answers 404 for `/dev/*` on production hosts before this page runs; the first statement below repeats it.

@@ -6,6 +6,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SignOutButton } from "@/components/SignOutButton";
+import { SettingsCard } from "@/components/settings/SettingsCard";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -83,52 +84,50 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
         />
       </PublishBottomActions>
 
-      <form id={ACCOUNT_SETTINGS_FORM_ID} onSubmit={submitEmailUpdate} className="space-y-3 pt-2">
-        <div className="relative -mx-5 overflow-hidden rounded-[var(--radius-lg)] border border-transparent bg-transparent shadow-none">
-          <div className="relative space-y-3 p-4 sm:p-5">
-            <div className={appTokens.settingsTwoColumnGrid}>
-              <div className={appTokens.settingsFieldStack}>
-                <LabeledEditorField label="Username">
-                  <Input
-                    id="settings-username"
-                    name="username"
-                    type="text"
-                    value={usernameValue}
-                    onChange={(event) => setUsernameValue(event.target.value)}
-                    autoComplete="username"
-                    minLength={2}
-                    maxLength={15}
-                    placeholder="Set a username"
-                    className={cn(
-                      labeledEditorFieldControlClassName,
-                      "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-                    )}
-                  />
-                </LabeledEditorField>
-              </div>
-              <div className={appTokens.settingsFieldStack}>
-                <LabeledEditorField label="Email">
-                  <Input
-                    id="settings-email"
-                    name="email"
-                    type="email"
-                    value={emailValue}
-                    onChange={(event) => setEmailValue(event.target.value)}
-                    autoComplete="email"
-                    required
-                    className={cn(
-                      labeledEditorFieldControlClassName,
-                      "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-                    )}
-                  />
-                </LabeledEditorField>
-              </div>
+      <form id={ACCOUNT_SETTINGS_FORM_ID} onSubmit={submitEmailUpdate} className="space-y-3">
+        <SettingsCard title="Account details" headingLevel={2}>
+          <div className={appTokens.settingsTwoColumnGrid}>
+            <div className={appTokens.settingsFieldStack}>
+              <LabeledEditorField label="Username">
+                <Input
+                  id="settings-username"
+                  name="username"
+                  type="text"
+                  value={usernameValue}
+                  onChange={(event) => setUsernameValue(event.target.value)}
+                  autoComplete="username"
+                  minLength={2}
+                  maxLength={15}
+                  placeholder="Set a username"
+                  className={cn(
+                    labeledEditorFieldControlClassName,
+                    "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  )}
+                />
+              </LabeledEditorField>
             </div>
             <div className={appTokens.settingsFieldStack}>
-              {emailState.message ? <p className={cn(appTokens.settingsBodyText, emailMessageTone)}>{emailState.message}</p> : null}
+              <LabeledEditorField label="Email">
+                <Input
+                  id="settings-email"
+                  name="email"
+                  type="email"
+                  value={emailValue}
+                  onChange={(event) => setEmailValue(event.target.value)}
+                  autoComplete="email"
+                  required
+                  className={cn(
+                    labeledEditorFieldControlClassName,
+                    "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  )}
+                />
+              </LabeledEditorField>
             </div>
           </div>
-        </div>
+          <div className={appTokens.settingsFieldStack} aria-live="polite">
+            {emailState.message ? <p className={cn(appTokens.settingsBodyText, emailMessageTone)}>{emailState.message}</p> : null}
+          </div>
+        </SettingsCard>
       </form>
     </>
   );

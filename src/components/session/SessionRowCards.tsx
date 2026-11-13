@@ -23,7 +23,7 @@ import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { cn } from "@/lib/cn";
 
 /**
- * Current-session cards (docs/design-system/CARD-SYSTEM.md section 7.3). Presentation only: every handler,
+ * Current-session cards (docs/design-system/CARD-SYSTEM.md section 7.4). Presentation only: every handler,
  * data attribute and test id the session screen pins is passed in by `SessionExerciseFocus`; nothing here logs a
  * set, queues, syncs or reads the clock.
  */

@@ -4,7 +4,6 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { AccountPasswordSection } from "@/components/settings/AccountPasswordSection";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { SettingsHeaderIdentity } from "@/components/settings/SettingsHeaderIdentity";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -49,13 +48,10 @@ export function AccountScreen({
         )}
       >
         <ContentRail className={appTokens.settingsContentRail}>
-          <SurfaceCard
-            className="!border-transparent !bg-transparent !shadow-none !backdrop-blur-0"
-            data-testid="account-screen"
-          >
+          <div className="space-y-3" data-testid="account-screen">
             <AccountSettingsForm email={email} username={username} />
             <AccountPasswordSection email={email} />
-          </SurfaceCard>
+          </div>
         </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>

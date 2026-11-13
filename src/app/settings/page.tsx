@@ -2,13 +2,12 @@ import { AppNav } from "@/components/AppNav";
 import { cookies } from "next/headers";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { SettingsAccordionClient } from "@/components/settings/SettingsAccordionClient";
+import { SettingsSectionsClient } from "@/components/settings/SettingsSectionsClient";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
 import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { appTokens } from "@/components/ui/app/tokens";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { getAccountWorkoutExportSuggestedDateRange } from "@/lib/account-workout-export";
 import { requireUser } from "@/lib/auth";
 import { buildHistoryAchievements } from "@/lib/history-achievements";
@@ -157,8 +156,8 @@ export default async function SettingsPage({
           floatingHeader={<SettingsFloatingHeader email={user.email ?? ""} username={username} />}
         >
           <ContentRail className={appTokens.settingsContentRail}>
-            <SurfaceCard className="!border-transparent !bg-transparent !shadow-none !backdrop-blur-0">
-              <SettingsAccordionClient
+            <div className="space-y-3">
+              <SettingsSectionsClient
                 userKind={profile.user_kind}
                 userNumber={profile.user_number}
                 canAccessQaVisibilitySetting={canAccessQaVisibilitySetting}
@@ -169,7 +168,7 @@ export default async function SettingsPage({
                 billingNotice={billingNotice}
                 achievements={achievements}
               />
-            </SurfaceCard>
+            </div>
           </ContentRail>
         </ScrollScreenWithBottomActions>
       </SettingsScreenStateProvider>
