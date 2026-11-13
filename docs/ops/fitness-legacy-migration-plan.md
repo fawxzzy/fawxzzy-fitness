@@ -9,7 +9,7 @@ The Fitness legacy migration surface is retired and removed from the app:
 - The snapshot importer, parity helper and snapshot contract under `src/lib/migration/` (and their tests) are gone. Nothing in the app reads or writes `fitness-legacy-v1` snapshots.
 - The tag-triggered production deploy workflow was removed with them; production deploys stay approval-gated (see `AGENTS.md`).
 
-Decision: the legacy database is retired, no user-facing flow needs the import, and a signed-in web route is the wrong shape for a one-off recovery job. If a retained snapshot ever has to be recovered, run it as an owner-operated script against an explicit target, starting from the importer in git history (last present at commit `f31b7ae3`, `src/lib/migration/fitness-legacy-bridge.ts`), and review how it maps identifiers before running it.
+Decision: the legacy database is retired, no user-facing flow needs the import, and a signed-in web route is the wrong shape for a one-off recovery job. If a retained snapshot ever has to be recovered, run it as an owner-operated script against an explicit target, starting from the importer in git history (`src/lib/migration/fitness-legacy-bridge.ts` as it stood at the first parent of the PR #218 merge commit, which removed it; `git log --diff-filter=D -- src/lib/migration/fitness-legacy-bridge.ts` finds that commit), and review how it maps identifiers before running it.
 
 `scripts/migration/parity-report.mjs` (`npm run migration:parity`) is a separate offline operator script and is unchanged.
 
