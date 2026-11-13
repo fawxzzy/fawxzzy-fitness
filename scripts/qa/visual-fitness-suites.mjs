@@ -48,14 +48,14 @@ export const VISUAL_FITNESS_SUITES = {
     interaction: {
       type: "open-settings-panel",
       triggerLabel: "App Theme",
-      selectThemeSlotLabel: "Slot 1",
+      selectThemeSlotLabel: "New custom theme",
       expectedText: [
         "Default theme",
         "Text",
         "Surfaces & Borders",
         "Actions & Selection",
         "Progress & Feedback",
-        "Slot 1",
+        "New custom theme",
       ],
     },
   },
