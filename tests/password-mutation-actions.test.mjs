@@ -305,6 +305,8 @@ function changeFixture({ user = { id: "synthetic-user", email: "member@example.t
     "@/lib/qa-data-visibility": { QA_LLEL_VISIBILITY_COOKIE: "synthetic" },
     // The request-bound clients must never be used: updateUser on them has no stored session.
     "@/lib/supabase/server": { supabaseServer: unexpected, supabaseServerWithSession: unexpected },
+    // Used by the account-details save in the same module, never by change password.
+    "@/lib/supabase/update-user": { updateUserWithAccessToken: unexpected },
     "@/lib/supabase/schema": {
       createFitnessSupabaseClient: (url, key, options) => {
         clientOptions.push(options);

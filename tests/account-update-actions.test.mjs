@@ -32,6 +32,7 @@ function load(file, dependencies, globals = {}) {
 }
 
 const usernamePolicy = load("src/lib/username-policy.ts", {});
+const passwordPolicy = load("src/lib/password-policy.ts", {});
 const ACCESS_TOKEN = "synthetic-request-access-token";
 const MEMBER = { id: "synthetic-user", email: "member@example.test", user_metadata: { username: "member", display_name: "member", theme: "dark" } };
 
@@ -54,6 +55,10 @@ function fixture({ failure = null, throwOnFetch = false } = {}) {
     "next/headers": { cookies: unexpected },
     "@/lib/auth": { requireUser: async () => MEMBER },
     "@/lib/env": { SUPABASE_URL: () => "https://synthetic.supabase.test", SUPABASE_ANON_KEY: () => "anon-synthetic" },
+    // Imported by the change-password action in the same module; never used by the account-details save.
+    "@/lib/login-failure-floor": { enforceLoginFailureFloor: unexpected },
+    "@/lib/password-policy": passwordPolicy,
+    "@/lib/supabase/schema": { createFitnessSupabaseClient: unexpected },
     "@/lib/qa-data-visibility": { QA_LLEL_VISIBILITY_COOKIE: "synthetic" },
     // Neither request-bound client may be used for the write.
     "@/lib/supabase/server": { supabaseServer: unexpected, supabaseServerWithSession: unexpected, getRequestAccessToken: () => ACCESS_TOKEN },
