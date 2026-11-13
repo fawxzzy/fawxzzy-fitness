@@ -43,6 +43,7 @@ test("normalizes standard exercise payload", () => {
       distance_unit: null,
       calories: null,
       weight_unit: null,
+      logged_at: null,
     }],
   });
 });
@@ -86,6 +87,7 @@ test("normalizes alias-based payload drift and media aliases", () => {
     distance_unit: "mi",
     calories: null,
     weight_unit: null,
+    logged_at: null,
   });
 });
 
@@ -237,4 +239,19 @@ test("retains all exercises when metadata is missing and sets are empty", () => 
   assert.equal(result.length, input.length);
   assert.equal(result[2].exercise_name, "Exercise");
   assert.deepEqual(result.map((exercise) => exercise.sets), [[], [], []]);
+});
+
+test("keeps the set logged_at instant so History can derive observed rest", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [{
+      id: "se-1",
+      exercise_id: "ex-1",
+      sets: [
+        { id: "set-1", set_index: 0, reps: 8, weight: 135, logged_at: "2026-11-13T12:00:00.000Z" },
+        { id: "set-2", set_index: 1, reps: 8, weight: 135 },
+      ],
+    }],
+  });
+
+  assert.deepEqual(result[0]?.sets.map((set) => set.logged_at), ["2026-11-13T12:00:00.000Z", null]);
 });
