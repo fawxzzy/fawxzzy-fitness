@@ -1,6 +1,7 @@
 import type {
   CuratedOnboardingData,
   EquipmentAccess,
+  PreferredStyle,
   TrainingGoal,
 } from "./types.ts";
 
@@ -43,6 +44,90 @@ export type CuratedHistorySignals = {
   fatiguedExerciseSlugs: string[];
   availableEquipment?: EquipmentAccess[];
 };
+
+/**
+ * Closed outcome of one generation attempt. The generator never returns a partial or placeholder routine:
+ * it is either `ready`, `blocked` (a safety or permission answer needs a person first), or `failed` (the
+ * intake cannot be turned into a routine). Callers branch on `status`/`reason`, never on message text.
+ */
+export type CuratedBlockedReason = "safety-clearance-required" | "guardian-permission-required";
+
+export type CuratedPlanResult =
+  | { status: "ready"; plan: CuratedWorkoutPlan }
+  | { status: "blocked"; reason: CuratedBlockedReason; message: string; symptoms: string[] }
+  | { status: "failed"; reason: "incomplete-intake" | "no-safe-plan"; message: string };
+
+export const CURATED_SAFETY_CLEARANCE_MESSAGE =
+  "You reported symptoms during exercise, so a routine cannot be built for you automatically. Check with a qualified professional before starting or changing exercise. You can still build your own routine.";
+
+export const CURATED_GUARDIAN_PERMISSION_MESSAGE =
+  "A routine can only be built for someone under 18 with a parent or guardian's permission. Ask a parent or guardian to help with your setup, or build your own routine.";
+
+export const CURATED_INTAKE_INCOMPLETE_MESSAGE =
+  "Complete goal, experience, equipment, schedule, session length, and the safety questions before generating a routine.";
+
+export class CuratedPlanBlockedError extends Error {
+  readonly reason: CuratedBlockedReason;
+  readonly symptoms: string[];
+
+  constructor(reason: CuratedBlockedReason, symptoms: string[] = []) {
+    super(reason === "guardian-permission-required" ? CURATED_GUARDIAN_PERMISSION_MESSAGE : CURATED_SAFETY_CLEARANCE_MESSAGE);
+    this.name = "CuratedPlanBlockedError";
+    this.reason = reason;
+    this.symptoms = symptoms;
+  }
+}
+
+export class CuratedIntakeIncompleteError extends Error {
+  constructor(message: string = CURATED_INTAKE_INCOMPLETE_MESSAGE) {
+    super(message);
+    this.name = "CuratedIntakeIncompleteError";
+  }
+}
+
+/** Thrown only for the closed "this intake has no workable routine" cases; its message is member-facing. */
+export class CuratedNoSafePlanError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CuratedNoSafePlanError";
+  }
+}
+
+export const CURATED_GENERATION_FALLBACK_MESSAGE =
+  "The routine could not be generated from your setup. Edit your setup or build a routine manually.";
+
+export type CuratedSafetyGate =
+  | { status: "clear" }
+  | { status: "unanswered"; missing: Array<"under18" | "warningSymptoms" | "safetyAcknowledgment"> }
+  | { status: "guardian-permission-required" }
+  | { status: "clearance-required"; symptoms: string[] };
+
+/**
+ * Fail-closed safety gate over the raw intake. Generation proceeds only when the member answered the
+ * safety questions: `warningSymptoms` must be a non-empty string list, `safetyAcknowledgment` must be
+ * `true`, and `under18` must be answered. Missing, empty or wrong-typed answers are `unanswered`, never
+ * `clear`. A member under 18 needs a "yes" guardian permission. Any symptom other than "none" (including
+ * "none" together with a symptom) requires clearance from a professional.
+ */
+export function evaluateCuratedSafetyGate(data: CuratedOnboardingData): CuratedSafetyGate {
+  const responses = data.intakeResponses ?? {};
+  const raw = responses.warningSymptoms;
+  const missing: Array<"under18" | "warningSymptoms" | "safetyAcknowledgment"> = [];
+  const symptomList = Array.isArray(raw) && raw.length > 0 && raw.every((value) => typeof value === "string")
+    ? (raw as string[])
+    : null;
+  if (!symptomList) missing.push("warningSymptoms");
+  if (responses.safetyAcknowledgment !== true) missing.push("safetyAcknowledgment");
+  if (responses.under18 !== "yes" && responses.under18 !== "no") missing.push("under18");
+  if (missing.length > 0) return { status: "unanswered", missing };
+
+  if (responses.under18 === "yes" && responses.guardianPermission !== "yes") {
+    return { status: "guardian-permission-required" };
+  }
+
+  const symptoms = [...new Set((symptomList ?? []).filter((value) => value !== "none"))].sort();
+  return symptoms.length > 0 ? { status: "clearance-required", symptoms } : { status: "clear" };
+}
 
 type MovementRole =
   | "squat"
@@ -116,7 +201,9 @@ const CANDIDATES: Record<MovementRole, ExerciseCandidate[]> = {
   ],
 };
 
-const SPLITS: Record<number, Array<{ name: string; roles: MovementRole[] }>> = {
+type SplitDay = { name: string; roles: MovementRole[] };
+
+const SPLITS: Record<number, SplitDay[]> = {
   1: [
     { name: "Full Body", roles: ["squat", "horizontal-push", "vertical-pull", "hinge", "core", "cardio"] },
   ],
@@ -160,6 +247,53 @@ const SPLITS: Record<number, Array<{ name: string; roles: MovementRole[] }>> = {
     { name: "Conditioning + Core", roles: ["cardio", "core", "lunge", "horizontal-pull"] },
   ],
 };
+
+/**
+ * A stated plan style replaces the day-count default only where a standard split exists for that exact
+ * day count. Everywhere else the requested days per week decides the split and the style is not claimed.
+ */
+const STYLE_SPLITS: Partial<Record<PreferredStyle, Record<number, { reason: string; days: SplitDay[] }>>> = {
+  "push-pull-legs": {
+    3: {
+      reason: "A push/pull/legs split matches your preferred style.",
+      days: [
+        { name: "Push", roles: ["horizontal-push", "vertical-push", "core", "cardio"] },
+        { name: "Pull", roles: ["vertical-pull", "horizontal-pull", "hinge", "core"] },
+        { name: "Legs", roles: ["squat", "hinge", "lunge", "core", "cardio"] },
+      ],
+    },
+  },
+  "upper-lower": {
+    2: {
+      reason: "An upper/lower split matches your preferred style.",
+      days: [
+        { name: "Upper", roles: ["horizontal-push", "vertical-pull", "vertical-push", "horizontal-pull", "core"] },
+        { name: "Lower", roles: ["squat", "hinge", "lunge", "core", "cardio"] },
+      ],
+    },
+  },
+};
+
+const EQUIPMENT_LABELS: Record<EquipmentAccess, string> = {
+  "full-gym": "a full gym",
+  barbell: "a barbell",
+  dumbbells: "dumbbells",
+  machines: "machines",
+  bands: "resistance bands",
+  bodyweight: "bodyweight",
+};
+
+const GOAL_LABELS: Record<TrainingGoal, string> = {
+  "build-muscle": "building muscle",
+  "get-leaner": "getting leaner",
+  "get-stronger": "getting stronger",
+  "general-fitness": "general fitness",
+};
+
+function joinWithAnd(values: string[]) {
+  if (values.length <= 1) return values.join("");
+  return `${values.slice(0, -1).join(", ")} and ${values[values.length - 1]}`;
+}
 
 function normalizeConstraint(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -211,6 +345,8 @@ function buildIntakeConstraintExclusions(data: CuratedOnboardingData) {
   const limitationTokens = new Set(constraintTokens(data.limitations ?? ""));
   const excluded = new Set<string>();
   const limitationExcluded = new Set<string>();
+  const equipmentExcluded = new Set<string>();
+  const avoidedEquipment = new Set<EquipmentAccess>(data.avoidedEquipment ?? []);
   const limitationRoles = new Set(
     LIMITATION_ROLE_CONSTRAINTS
       .filter(({ phrases }) => phrases.some((phrase) => limitationText.includes(phrase)))
@@ -236,10 +372,15 @@ function buildIntakeConstraintExclusions(data: CuratedOnboardingData) {
       if (explicitlyDisliked || namedInLimitations || roleLimited) {
         excluded.add(candidate.slug);
       }
+      // "full-gym" only says the exercise exists in a gym; the avoided equipment is what the lift needs.
+      const needed = candidate.equipment.filter((value) => value !== "full-gym");
+      if (avoidedEquipment.size > 0 && needed.length > 0 && needed.every((value) => avoidedEquipment.has(value))) {
+        equipmentExcluded.add(candidate.slug);
+      }
     }
   }
 
-  return { excluded, limitationExcluded };
+  return { excluded, limitationExcluded, equipmentExcluded };
 }
 
 type PreferenceProfile = {
@@ -285,15 +426,20 @@ function rankRolesByTargetAreas(roles: MovementRole[], preferences: PreferencePr
     .map(({ role }) => role);
 }
 
+function isEquipmentCompatible(candidate: ExerciseCandidate, equipment: EquipmentAccess[]) {
+  return candidate.equipment.some((value) => equipment.includes(value));
+}
+
 function chooseExercise(
   role: MovementRole,
   equipment: EquipmentAccess[],
   excludedSlugs: Set<string>,
-  limitationExcludedSlugs: Set<string>,
+  omittableSlugs: Set<string>,
   preferences: PreferenceProfile,
+  usedSlugs: Set<string>,
 ) {
-  const available = CANDIDATES[role].filter((candidate) => candidate.equipment.some((value) => equipment.includes(value)));
-  const selected = available
+  const available = CANDIDATES[role].filter((candidate) => isEquipmentCompatible(candidate, equipment));
+  const ranked = available
     .map((candidate, index) => ({
       candidate,
       index,
@@ -301,15 +447,16 @@ function chooseExercise(
     }))
     .filter(({ candidate }) => !excludedSlugs.has(candidate.slug))
     .sort((left, right) => right.score - left.score || left.index - right.index)
-    .at(0)?.candidate;
-  if (selected) {
-    return selected;
+    .map(({ candidate }) => candidate);
+  if (ranked.length > 0) {
+    // One exercise never appears twice in the same day; a role whose only safe lift is already used is skipped.
+    return ranked.find((candidate) => !usedSlugs.has(candidate.slug)) ?? null;
   }
   if (available.length > 0) {
-    if (available.some((candidate) => limitationExcludedSlugs.has(candidate.slug))) {
+    if (available.some((candidate) => omittableSlugs.has(candidate.slug))) {
       return null;
     }
-    throw new Error(`No safe ${role.replace(/-/g, " ")} exercise matches the selected equipment and constraints.`);
+    throw new CuratedNoSafePlanError(`No ${role.replace(/-/g, " ")} exercise fits your equipment and limits.`);
   }
   return null;
 }
@@ -353,6 +500,9 @@ function hashPlan(value: string) {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
+/** A workout day with fewer lifts than this is not a workout; generation fails closed instead. */
+const MIN_EXERCISES_PER_DAY = 3;
+
 function validateIntake(data: CuratedOnboardingData) {
   return Boolean(
     data.trainingGoal
@@ -368,8 +518,19 @@ function generateCuratedWorkoutPlanWithSignals(
   data: CuratedOnboardingData,
   signals: CuratedHistorySignals | null,
 ): CuratedWorkoutPlan {
+  const safetyGate = evaluateCuratedSafetyGate(data);
+  if (safetyGate.status === "unanswered") {
+    throw new CuratedIntakeIncompleteError();
+  }
+  if (safetyGate.status === "guardian-permission-required") {
+    throw new CuratedPlanBlockedError("guardian-permission-required");
+  }
+  if (safetyGate.status === "clearance-required") {
+    throw new CuratedPlanBlockedError("safety-clearance-required", safetyGate.symptoms);
+  }
+
   if (!validateIntake(data)) {
-    throw new Error("Complete goal, experience, equipment, schedule, and session length before generating a plan.");
+    throw new CuratedIntakeIncompleteError();
   }
 
   const goal = data.trainingGoal as TrainingGoal;
@@ -387,27 +548,51 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(signals?.fatiguedExerciseSlugs ?? []),
   ]);
   const intakeConstraints = buildIntakeConstraintExclusions(data);
-  const excludedSlugs = new Set([...adaptiveExcludedSlugs, ...intakeConstraints.excluded]);
+  const excludedSlugs = new Set([
+    ...adaptiveExcludedSlugs,
+    ...intakeConstraints.excluded,
+    ...intakeConstraints.equipmentExcluded,
+  ]);
+  // A role whose every compatible lift was removed by a stated limitation or by equipment the member asked to
+  // avoid is left out of the day. A role emptied only by dislikes or adaptive signals still fails closed.
+  const omittableSlugs = new Set([
+    ...intakeConstraints.limitationExcluded,
+    ...intakeConstraints.equipmentExcluded,
+  ]);
+  const compatibleSlugs = new Set(
+    Object.values(CANDIDATES)
+      .flat()
+      .filter((candidate) => isEquipmentCompatible(candidate, equipment))
+      .map((candidate) => candidate.slug),
+  );
+  const avoidedEquipmentExclusionCount = [...intakeConstraints.equipmentExcluded]
+    .filter((slug) => compatibleSlugs.has(slug) && !intakeConstraints.excluded.has(slug))
+    .length;
   const preferences = buildPreferenceProfile(data);
   const exerciseLimit = sessionLengthMinutes <= 30 ? 4 : sessionLengthMinutes <= 45 ? 5 : sessionLengthMinutes <= 60 ? 6 : 7;
   const baseSets = data.experience === "beginner" ? 3 : goal === "get-stronger" ? 4 : 3;
-  const split = SPLITS[daysPerWeek];
-  const days = split.map((day) => ({
-    name: day.name,
-    exercises: rankRolesByTargetAreas(day.roles, preferences)
-      .map((role) => ({
+  const styleSplit = data.preferredStyle ? STYLE_SPLITS[data.preferredStyle]?.[daysPerWeek] : undefined;
+  const split = styleSplit?.days ?? SPLITS[daysPerWeek];
+  const days = split.map((day) => {
+    const usedSlugs = new Set<string>();
+    const selections: Array<{ role: MovementRole; exercise: ExerciseCandidate }> = [];
+    for (const role of rankRolesByTargetAreas(day.roles, preferences)) {
+      const exercise = chooseExercise(
         role,
-        exercise: chooseExercise(
-          role,
-          equipment,
-          excludedSlugs,
-          intakeConstraints.limitationExcluded,
-          preferences,
-        ),
-      }))
-      .filter((selection): selection is { role: MovementRole; exercise: ExerciseCandidate } => Boolean(selection.exercise))
-      .slice(0, exerciseLimit)
-      .map(({ role, exercise }, index) => {
+        equipment,
+        excludedSlugs,
+        omittableSlugs,
+        preferences,
+        usedSlugs,
+      );
+      if (!exercise) continue;
+      usedSlugs.add(exercise.slug);
+      selections.push({ role, exercise });
+    }
+
+    return {
+      name: day.name,
+      exercises: selections.slice(0, exerciseLimit).map(({ role, exercise }, index) => {
         const range = getTargetRange(goal, role);
         return {
           ...exercise,
@@ -418,11 +603,18 @@ function generateCuratedWorkoutPlanWithSignals(
           progressionPlaybookId: "double_progression" as const,
         };
       }),
-  }));
+    };
+  });
   const emptyDay = days.find((day) => day.exercises.length === 0);
   if (emptyDay) {
-    throw new Error(
-      `No safe exercises remain for ${emptyDay.name}. Adjust the selected equipment or constraints before generating the plan.`,
+    throw new CuratedNoSafePlanError(
+      `No exercises remain for ${emptyDay.name}. Adjust your equipment or limitations, then generate the routine again.`,
+    );
+  }
+  const thinDay = days.find((day) => day.exercises.length < MIN_EXERCISES_PER_DAY);
+  if (thinDay) {
+    throw new CuratedNoSafePlanError(
+      `Too few exercises remain for ${thinDay.name} (${thinDay.exercises.length} of ${MIN_EXERCISES_PER_DAY} needed). Adjust your equipment or limitations, then generate the routine again.`,
     );
   }
   const nameByGoal: Record<TrainingGoal, string> = {
@@ -431,24 +623,24 @@ function generateCuratedWorkoutPlanWithSignals(
     "get-stronger": "Atlas Strength",
     "general-fitness": "Atlas Fitness",
   };
-  const stableInput = JSON.stringify({
-    goal,
-    experience: data.experience,
+  const sortedEquipment = [...equipment].sort();
+  // The plan id identifies the OUTPUT the member reviews and saves (name, schedule, exercises, targets), so an
+  // input that does not change the routine never produces a different id or a false "plan changed".
+  const planDigest = JSON.stringify({
+    name: nameByGoal[goal],
     daysPerWeek,
     sessionLengthMinutes,
-    equipment: [...equipment].sort(),
-    preferredStyle: data.preferredStyle ?? null,
-    cardioPreference: data.cardioPreference ?? null,
-    limitations: normalizeConstraint(data.limitations ?? ""),
-    exerciseDislikes: data.exerciseDislikes.map(normalizeConstraint).filter(Boolean).sort(),
-    exerciseLikes: data.exerciseLikes.map(normalizeConstraint).filter(Boolean).sort(),
-    targetAreas: data.targetAreas.map(normalizeConstraint).filter(Boolean).sort(),
-    adaptiveSignals: signals ? {
-      completionRate: signals.completionRate,
-      missedWorkoutCount: signals.missedWorkoutCount,
-      failedExerciseSlugs: [...signals.failedExerciseSlugs].sort(),
-      fatiguedExerciseSlugs: [...signals.fatiguedExerciseSlugs].sort(),
-    } : null,
+    days: days.map((day) => [
+      day.name,
+      day.exercises.map((exercise) => [
+        exercise.slug,
+        exercise.measurementType,
+        exercise.targetSets,
+        exercise.targetRepsMin,
+        exercise.targetRepsMax,
+        exercise.targetDurationSeconds ?? null,
+      ]),
+    ]),
   });
 
   const adaptiveRationale = [
@@ -461,19 +653,25 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(intakeConstraints.excluded.size > 0
       ? [`Your stated limitations or exercise exclusions removed ${intakeConstraints.excluded.size} exercise choice${intakeConstraints.excluded.size === 1 ? "" : "s"}.`]
       : []),
+    ...(avoidedEquipmentExclusionCount > 0
+      ? [`Equipment you asked to avoid removed ${avoidedEquipmentExclusionCount} exercise choice${avoidedEquipmentExclusionCount === 1 ? "" : "s"}.`]
+      : []),
+    ...(styleSplit
+      ? [styleSplit.reason]
+      : []),
     ...(preferences.exerciseLikes.length > 0 || preferences.targetTokens.size > 0
-      ? ["Your preferred exercises and target areas shape the order of safe, equipment-compatible choices."]
+      ? ["Your preferred exercises and target areas shape the order of equipment-compatible choices."]
       : []),
   ];
 
   return {
     version: 1,
-    planId: `curated-${hashPlan(stableInput)}`,
+    planId: `curated-${hashPlan(planDigest)}`,
     name: nameByGoal[goal],
     rationale: [
-      `${daysPerWeek} training days sized for ${sessionLengthMinutes}-minute sessions.`,
-      `Exercise choices are limited to ${equipment.join(", ")}.`,
-      `${data.experience} ${goal.replace(/-/g, " ")} targets use double progression.`,
+      `${daysPerWeek} workout days sized for ${sessionLengthMinutes}-minute sessions.`,
+      `Exercises are chosen from ${joinWithAnd(sortedEquipment.map((value) => EQUIPMENT_LABELS[value]))}.`,
+      `Sets and reps are set for ${GOAL_LABELS[goal]} at the ${data.experience} level, and every exercise uses double progression.`,
       ...adaptiveRationale,
     ],
     daysPerWeek,
@@ -492,6 +690,36 @@ export function generateAdaptiveCuratedWorkoutPlan(
   signals: CuratedHistorySignals,
 ): CuratedWorkoutPlan {
   return generateCuratedWorkoutPlanWithSignals(data, signals);
+}
+
+/**
+ * Non-throwing entry point for callers that must show the user a closed outcome. Same generator, same
+ * determinism; blocked and failed outcomes carry a stable `reason` code plus user-safe copy.
+ */
+export function resolveCuratedWorkoutPlan(
+  data: CuratedOnboardingData,
+  signals: CuratedHistorySignals | null = null,
+): CuratedPlanResult {
+  try {
+    return { status: "ready", plan: generateCuratedWorkoutPlanWithSignals(data, signals) };
+  } catch (error) {
+    if (error instanceof CuratedPlanBlockedError) {
+      return {
+        status: "blocked",
+        reason: error.reason,
+        message: error.message,
+        symptoms: error.symptoms,
+      };
+    }
+    if (error instanceof CuratedIntakeIncompleteError) {
+      return { status: "failed", reason: "incomplete-intake", message: error.message };
+    }
+    if (error instanceof CuratedNoSafePlanError) {
+      return { status: "failed", reason: "no-safe-plan", message: error.message };
+    }
+    // Anything else is a bug, not a member problem: never show raw exception text.
+    return { status: "failed", reason: "no-safe-plan", message: CURATED_GENERATION_FALLBACK_MESSAGE };
+  }
 }
 
 export function buildCuratedRoutineSchedule(plan: CuratedWorkoutPlan): CuratedRoutineScheduleDay[] {

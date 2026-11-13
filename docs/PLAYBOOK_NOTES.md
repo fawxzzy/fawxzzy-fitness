@@ -1,5 +1,31 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Review hold on the curated stack: fail closed, enforce at the action layer, stay idempotent
+
+- Type: Product behavior (source) + server-action hardening
+- WHAT changed: The curated safety gate now requires a positive, well-typed answer (`warningSymptoms` non-empty string list, `safetyAcknowledgment === true`, `under18` answered); the server also requires `isCuratedOnboardingReadyForHandoff`, and a member under 18 without a guardian "yes" is blocked with referral-only copy. Both server actions enforce `isCuratedOnboardingEnabled()`, rethrow redirect errors, return fixed copy instead of raw exception or database text, roll back the exact routine row (a failed rollback is reported, not ignored) and adopt an identical routine created by an earlier attempt instead of duplicating it. `createRoutineAction` returns the routine id on partial failure. The plan id hashes the reviewed output so unrelated inputs cannot cause a false "plan changed". On a blocked screen Build manually is primary and Edit setup secondary; the browser guards double submit.
+- WHY it changed: An independent review found the gate returned "clear" for a missing, empty or wrong-typed safety answer, and that "off" was enforced only by the page, not the actions.
+- Rule: A safety gate passes only on an explicit, well-typed answer. Missing means unanswered, never clear.
+- Rule: A feature flag is enforced at every server action, not only on the page that links to it; pin it with a source-contract test that fails when an action reaches auth, the database or the generator first.
+- Pattern: a mutation that cannot be made atomic without a schema change is made idempotent by recognising its own identical result (same name, schedule, exercises, recent) and by reporting the id needed to clean up a partial write.
+- Failure Mode: mapping `catch` to a generic "unavailable" also swallows `NEXT_REDIRECT`; always rethrow redirect errors. Returning `error.message` to the browser leaks database text.
+- Decision: no database change; replay detection is read-only and bounded to 15 minutes. Two simultaneous requests from different tabs can still race (needs a unique key, a schema change).
+- Evidence: `src/features/curated-onboarding/engine.ts`, `api-contract.ts`, `src/app/curated-onboarding/actions.ts`, `replay.ts`, `actions.contract.test.ts`, `engine.safety.test.ts`, `api-contract.safety.test.ts`.
+- Status: Source only; the curated onboarding flag stays off by default and nothing is deployed.
+
+## 2026-11-12 - Make the live curated generator trustworthy before any pipeline cutover
+
+- Type: Product behavior (source) + CI coverage
+- WHAT changed: The live curated generator (`engine.ts`) now sits behind one typed contract (`api-contract.ts`): the server rebuilds engine input from `intakeResponses`, fails closed on the questionnaire's safety answers (missing, empty or wrong-typed `warningSymptoms`, a missing acknowledgment or age answer, an under-18 member without guardian permission), blocks on reported symptoms, honors avoided equipment, applies a stated plan style only where a standard split exists, never repeats a lift inside a day, requires three lifts per day, and refuses to create a routine whose regenerated plan id differs from the reviewed one. A full-matrix test proves determinism and that every exercise exists in the canonical catalog; the curated questionnaire, reducer, storage, selector, action, UI-contract and entry-gate suites now run in hosted CI.
+- WHY it changed: The UI promised a safety response the generator ignored, free-text answers changed nothing, and most curated tests never ran in CI.
+- Rule: A user-facing promise in a form must have a test that fails when the consumer stops honoring it. Client-derived fields are never trusted; the server derives engine input from the raw answers.
+- Pattern: untrusted payload -> parse + re-derive -> pure resolver -> closed outcome union -> action maps to `{ ok, code }`. Fail closed with a stable reason code; never return a partial or placeholder routine.
+- Failure Mode: A safety gate that treats "answer absent" as "clear" fails open exactly when the client is wrong or hostile. Gate on a positive, well-typed answer, at the server boundary and again in the generator.
+- Failure Mode: Two engines in one tree. The 25k-line `planning/**` pipeline is source-only and unwired; improving only the live generator or only the pipeline silently diverges them. Cutover needs the planner migration applied (database approval) and a privileged server client, so it is a separate governed packet.
+- Decision: The live path stays `engine.ts` for V1; the pipeline is not wired by this change.
+- Evidence: `src/features/curated-onboarding/api-contract.ts`, `engine.ts`, `engine.safety.test.ts`, `engine.matrix.test.ts`, `api-contract.test.ts`, `.github/workflows/ci.yml`.
+- Status: Source only; the curated onboarding flag remains off by default and nothing is deployed.
+
 ## 2026-11-06 - Restack session-start atomicity activation onto main and retarget the master apply package to the `fitness` schema
 
 - Type: Activation (source) + provider apply package (not applied)
