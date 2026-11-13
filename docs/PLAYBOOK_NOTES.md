@@ -1,5 +1,18 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Review hold on the curated stack: fail closed, enforce at the action layer, stay idempotent
+
+- Type: Product behavior (source) + server-action hardening
+- WHAT changed: The curated safety gate now requires a positive, well-typed answer (`warningSymptoms` non-empty string list, `safetyAcknowledgment === true`, `under18` answered); the server also requires `isCuratedOnboardingReadyForHandoff`, and a member under 18 without a guardian "yes" is blocked with referral-only copy. Both server actions enforce `isCuratedOnboardingEnabled()`, rethrow redirect errors, return fixed copy instead of raw exception or database text, roll back the exact routine row (a failed rollback is reported, not ignored) and adopt an identical routine created by an earlier attempt instead of duplicating it. `createRoutineAction` returns the routine id on partial failure. The plan id hashes the reviewed output so unrelated inputs cannot cause a false "plan changed". On a blocked screen Build manually is primary and Edit setup secondary; the browser guards double submit.
+- WHY it changed: An independent review found the gate returned "clear" for a missing, empty or wrong-typed safety answer, and that "off" was enforced only by the page, not the actions.
+- Rule: A safety gate passes only on an explicit, well-typed answer. Missing means unanswered, never clear.
+- Rule: A feature flag is enforced at every server action, not only on the page that links to it; pin it with a source-contract test that fails when an action reaches auth, the database or the generator first.
+- Pattern: a mutation that cannot be made atomic without a schema change is made idempotent by recognising its own identical result (same name, schedule, exercises, recent) and by reporting the id needed to clean up a partial write.
+- Failure Mode: mapping `catch` to a generic "unavailable" also swallows `NEXT_REDIRECT`; always rethrow redirect errors. Returning `error.message` to the browser leaks database text.
+- Decision: no database change; replay detection is read-only and bounded to 15 minutes. Two simultaneous requests from different tabs can still race (needs a unique key, a schema change).
+- Evidence: `src/features/curated-onboarding/engine.ts`, `api-contract.ts`, `src/app/curated-onboarding/actions.ts`, `replay.ts`, `actions.contract.test.ts`, `engine.safety.test.ts`, `api-contract.safety.test.ts`.
+- Status: Source only; the curated onboarding flag stays off by default and nothing is deployed.
+
 ## 2026-11-12 - Make the live curated generator trustworthy before any pipeline cutover
 
 - Type: Product behavior (source) + CI coverage
