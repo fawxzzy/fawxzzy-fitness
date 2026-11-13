@@ -1,5 +1,17 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Carry sign-up feedback as allow-listed codes, and keep the recovery redirect on the flow that can read it
+
+- Type: Authentication feedback + Enumeration hygiene + Recovery contract
+- WHAT changed: `signup()` redirects with an allow-listed code (`password_too_short`, `username_invalid`, `email_invalid`, `username_taken`, `rate_limited`, `signup_failed`) and `/signup?info=check_email`; the screen owns the copy (`src/components/auth/signupFeedback.ts`). The identity provider's raw message is never forwarded, and `/signup` plus the global toast bridge render nothing for a value that is not an allow-listed code. Both password-reset callers build `redirectTo` through `buildFitnessRecoveryRedirectUrl` (`<origin>/reset-password?recovery=1`).
+- WHY: Forwarding `error.message` made an "already registered" provider message an account-existence oracle, and rendering any `?error=` text let a crafted link put attacker-chosen words in a toast on this origin.
+- Rule: A route that shows feedback from a redirect carries a code from a fixed table, never display text; unknown codes render nothing.
+- Rule: Pick a reset email's `redirectTo` by the flow that requested it. A reset requested from a server `supabase-js` client uses the implicit flow, so the link returns with tokens in the URL fragment and must land on a page that reads the fragment (Fitness `/reset-password?recovery=1`). The account portal's reset page accepts only a PKCE `code` started by its own browser and rejects any fragment, so it cannot serve a Fitness-initiated reset.
+- Failure Mode: Aiming a Fitness-initiated reset at the portal recovery URL because that URL is allow-listed and proven for portal-initiated resets: the link lands on "Recovery link invalid." Residual: with email confirmation off, sign-up still differs by outcome (session vs failure) for an existing address; closing that needs email confirmation or CAPTCHA (provider settings).
+- Decision: Fitness keeps its own recovery page; the exact URL `https://fitness.fawxzzy.com/reset-password?recovery=1` still has to be on the Supabase Auth redirect allow-list (provider setting, not changed here).
+- Evidence: `src/components/auth/signupFeedback.ts` and test, `tests/signup-failure-copy-action.test.mjs`, `src/lib/password-reset-request.ts` and test.
+- Status: Source-only; no provider setting, deployment or live account touched.
+
 ## 2026-11-06 - Restack session-start atomicity activation onto main and retarget the master apply package to the `fitness` schema
 
 - Type: Activation (source) + provider apply package (not applied)
