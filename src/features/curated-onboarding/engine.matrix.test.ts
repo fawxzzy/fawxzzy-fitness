@@ -14,6 +14,7 @@ import type {
   PreferredStyle,
   TrainingGoal,
 } from "./types.ts";
+import { clearSafetyResponses } from "./test-fixtures.ts";
 
 type CatalogExercise = { name: string; measurement_type: string };
 
@@ -40,7 +41,7 @@ const EQUIPMENT_SETS: EquipmentAccess[][] = [
 
 function intake(overrides: Partial<CuratedOnboardingData>): CuratedOnboardingData {
   return {
-    intakeResponses: {},
+    intakeResponses: clearSafetyResponses(),
     trainingGoal: "build-muscle",
     experience: "intermediate",
     daysPerWeek: 3,

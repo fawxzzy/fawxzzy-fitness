@@ -1933,7 +1933,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
     .select("id, day_index")
     .order("day_index", { ascending: true });
 
-  if (daysError) return { ok: false, error: daysError.message };
+  if (daysError) return { ok: false, error: daysError.message, routineId: routine.id };
 
   if (previewDays.length > 0 && insertedDays && insertedDays.length > 0) {
     for (const day of insertedDays) {
@@ -1953,7 +1953,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
         .eq("user_id", user.id);
 
       if (previewUpdateError) {
-        return { ok: false, error: previewUpdateError.message };
+        return { ok: false, error: previewUpdateError.message, routineId: routine.id };
       }
     }
   }
@@ -1965,7 +1965,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
     })
     .eq("id", user.id);
 
-  if (profileError && !isMissingProfilePreferenceColumnError(profileError)) return { ok: false, error: profileError.message };
+  if (profileError && !isMissingProfilePreferenceColumnError(profileError)) return { ok: false, error: profileError.message, routineId: routine.id };
 
   revalidateRoutinesViews();
   revalidatePath(getRoutineHomePath(routine.id));

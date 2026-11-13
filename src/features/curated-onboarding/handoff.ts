@@ -26,6 +26,26 @@ export function isCuratedHandoffRetryable(failure: CuratedHandoffFailure | null)
   return failure?.code === "unavailable";
 }
 
+/**
+ * A blocked outcome means the member should not get an automatic routine at all (a symptom needs a professional,
+ * or a guardian must be involved). The primary action there is to build a routine themselves; editing the setup
+ * is secondary because changing an answer is not the way past a safety or permission stop.
+ */
+export function isCuratedHandoffBlocked(failure: CuratedHandoffFailure | null) {
+  return failure?.code === "safety-clearance-required" || failure?.code === "guardian-permission-required" || failure?.code === "feature-disabled";
+}
+
+export type CuratedHandoffActions = {
+  primary: "build-manually" | "edit-setup" | "try-again";
+  secondary: "build-manually" | "edit-setup";
+};
+
+export function getCuratedHandoffActions(failure: CuratedHandoffFailure | null): CuratedHandoffActions {
+  if (isCuratedHandoffBlocked(failure)) return { primary: "build-manually", secondary: "edit-setup" };
+  if (isCuratedHandoffRetryable(failure)) return { primary: "try-again", secondary: "build-manually" };
+  return { primary: "edit-setup", secondary: "build-manually" };
+}
+
 export function getCuratedHandoffPresentation(args: {
   status: CuratedGenerationStatus;
   failure: CuratedHandoffFailure | null;
@@ -36,6 +56,24 @@ export function getCuratedHandoffPresentation(args: {
     return {
       title: "Check with a professional first",
       body: "You reported symptoms during exercise, so a routine cannot be built for you automatically. Check with a qualified professional before starting or changing exercise. You can still build your own routine.",
+      tone: "warning",
+      badge: "Blocked",
+    };
+  }
+
+  if (failure?.code === "guardian-permission-required") {
+    return {
+      title: "A parent or guardian needs to help first",
+      body: "A routine can only be built for someone under 18 with a parent or guardian's permission. Ask a parent or guardian to help with your setup, or build your own routine.",
+      tone: "warning",
+      badge: "Blocked",
+    };
+  }
+
+  if (failure?.code === "feature-disabled") {
+    return {
+      title: "Guided setup is not available",
+      body: "Guided routine setup is not available right now. You can build a routine manually.",
       tone: "warning",
       badge: "Blocked",
     };
