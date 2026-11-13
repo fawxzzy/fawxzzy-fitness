@@ -1,7 +1,12 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect";
 import { createRoutineAction } from "@/app/routines/actions";
 import {
+  CURATED_CREATE_FAILED_MESSAGE,
+  CURATED_CREATE_PARTIAL_MESSAGE,
+  CURATED_DISABLED_MESSAGE,
+  CURATED_UNAVAILABLE_MESSAGE,
   compileCuratedWorkoutGeneration,
   toCuratedGenerationFailure,
   type CuratedGenerationFailureCode,
@@ -10,10 +15,13 @@ import {
   buildCuratedRoutineSchedule,
   deriveCuratedExerciseTarget,
   type CuratedHistorySignals,
+  type CuratedRoutineScheduleDay,
   type CuratedWorkoutPlan,
 } from "@/features/curated-onboarding/engine";
 import type { CuratedOnboardingData } from "@/features/curated-onboarding/types";
 import { requireUser } from "@/lib/auth";
+import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
+import { ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE } from "@/lib/pro-tier-limits";
 import { ensureProfile } from "@/lib/profile";
 import {
   appendProgressionPlaybookFormData,
@@ -24,6 +32,12 @@ import { getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isValidIanaTimeZone, normalizeRoutineTimezone } from "@/lib/timezones";
 import { activateProfileRoutineId } from "@/app/curated-onboarding/activate-profile-routine";
+import {
+  CURATED_REPLAY_WINDOW_MS,
+  doesRoutineMatchCuratedPlan,
+  type ExistingCuratedRoutineDay,
+  type ExistingCuratedRoutineExercise,
+} from "@/app/curated-onboarding/replay";
 
 export type CuratedGenerationActionFailure = {
   ok: false;
@@ -102,9 +116,83 @@ async function loadCuratedHistorySignals(args: {
   };
 }
 
+type SupabaseClient = ReturnType<typeof supabaseServer>;
+
+function logCuratedFailure(stage: string, error: unknown) {
+  // Server log only. Raw exception and database text never reaches the member.
+  console.error(`[curated-onboarding] ${stage}`, error instanceof Error ? `${error.name}: ${error.message}` : typeof error);
+}
+
+async function deleteCuratedRoutine(supabase: SupabaseClient, userId: string, routineId: string) {
+  const { error } = await supabase.from("routines").delete().eq("id", routineId).eq("user_id", userId);
+  if (error) {
+    logCuratedFailure(`rollback of routine ${routineId} failed`, new Error(error.message));
+    return false;
+  }
+  return true;
+}
+
+async function findReplayableCuratedRoutineId(args: {
+  supabase: SupabaseClient;
+  userId: string;
+  routineName: string;
+  schedule: CuratedRoutineScheduleDay[];
+}) {
+  const since = new Date(Date.now() - CURATED_REPLAY_WINDOW_MS).toISOString();
+  const { data: candidates, error } = await args.supabase
+    .from("routines")
+    .select("id")
+    .eq("user_id", args.userId)
+    .eq("name", args.routineName)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(3);
+  if (error || !candidates || candidates.length === 0) {
+    return null;
+  }
+
+  for (const candidate of candidates as Array<{ id: string }>) {
+    const { data: dayRows, error: dayError } = await args.supabase
+      .from("routine_days")
+      .select("id, day_index, name, is_rest")
+      .eq("routine_id", candidate.id)
+      .eq("user_id", args.userId);
+    if (dayError || !dayRows) continue;
+    const days = dayRows as ExistingCuratedRoutineDay[];
+    const { data: exerciseRows, error: exerciseError } = days.length > 0
+      ? await args.supabase
+        .from("routine_day_exercises")
+        .select("routine_day_id, position, exercise:exercises(name)")
+        .in("routine_day_id", days.map((day) => day.id))
+        .eq("user_id", args.userId)
+      : { data: [], error: null };
+    if (exerciseError || !exerciseRows) continue;
+
+    const exercises: ExistingCuratedRoutineExercise[] = (exerciseRows as Array<{
+      routine_day_id: string;
+      position: number;
+      exercise?: { name?: string | null } | Array<{ name?: string | null }> | null;
+    }>).map((row) => {
+      const exercise = Array.isArray(row.exercise) ? row.exercise[0] : row.exercise;
+      return { routine_day_id: row.routine_day_id, position: row.position, exercise_name: exercise?.name ?? null };
+    });
+
+    if (doesRoutineMatchCuratedPlan({ schedule: args.schedule, days, exercises })) {
+      return candidate.id;
+    }
+  }
+
+  return null;
+}
+
 export async function generateCuratedWorkoutPlanAction(
   onboarding: CuratedOnboardingData,
 ): Promise<GenerateCuratedWorkoutPlanResult> {
+  // "Off" is enforced here, not only on the page: a direct action call must not generate while the flag is off.
+  if (!isCuratedOnboardingEnabled()) {
+    return { ok: false, code: "feature-disabled", error: CURATED_DISABLED_MESSAGE };
+  }
+
   try {
     const user = await requireUser();
     const profile = await ensureProfile(user.id);
@@ -116,11 +204,12 @@ export async function generateCuratedWorkoutPlanAction(
     }
     return { ok: false, ...toCuratedGenerationFailure(outcome) };
   } catch (error) {
-    return {
-      ok: false,
-      code: "unavailable",
-      error: error instanceof Error ? error.message : "The curated routine could not be generated.",
-    };
+    // requireUser signals an unauthenticated request by throwing a redirect; that must reach Next, not the member.
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    logCuratedFailure("generation failed", error);
+    return { ok: false, code: "unavailable", error: CURATED_UNAVAILABLE_MESSAGE };
   }
 }
 
@@ -129,11 +218,48 @@ export async function createCuratedRoutineDraftAction(
   deviceTimeZone?: string | null,
   expectedPlanId?: string | null,
 ): Promise<CreateCuratedRoutineDraftResult> {
+  if (!isCuratedOnboardingEnabled()) {
+    return { ok: false, code: "feature-disabled", error: CURATED_DISABLED_MESSAGE };
+  }
+
+  const created: { userId: string | null; routineId: string | null; supabase: SupabaseClient | null } = {
+    userId: null,
+    routineId: null,
+    supabase: null,
+  };
+
+  try {
+    return await createCuratedRoutineDraft({ onboarding, deviceTimeZone, expectedPlanId, created });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    logCuratedFailure("create failed", error);
+    const cleanedUp = created.routineId && created.userId && created.supabase
+      ? await deleteCuratedRoutine(created.supabase, created.userId, created.routineId)
+      : true;
+    return { ok: false, error: cleanedUp ? CURATED_CREATE_FAILED_MESSAGE : CURATED_CREATE_PARTIAL_MESSAGE };
+  }
+}
+
+async function createCuratedRoutineDraft(args: {
+  onboarding: CuratedOnboardingData;
+  deviceTimeZone?: string | null;
+  expectedPlanId?: string | null;
+  created: { userId: string | null; routineId: string | null; supabase: SupabaseClient | null };
+}): Promise<CreateCuratedRoutineDraftResult> {
+  const { created } = args;
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
+  created.userId = user.id;
+  created.supabase = supabase;
   const signals = await loadCuratedHistorySignals({ userId: user.id, activeRoutineId: profile.active_routine_id, supabase });
-  const outcome = compileCuratedWorkoutGeneration({ onboarding, signals, expectedPlanId });
+  const outcome = compileCuratedWorkoutGeneration({
+    onboarding: args.onboarding,
+    signals,
+    expectedPlanId: args.expectedPlanId,
+  });
   if (outcome.status !== "ready") {
     return {
       ok: false,
@@ -142,21 +268,57 @@ export async function createCuratedRoutineDraftAction(
     };
   }
   const plan = outcome.plan;
-  // The client's device zone is the user's real zone; profile.timezone was historically the server zone (UTC),
-  // so it is only the fallback when the client did not send one.
-  const timezone = normalizeRoutineTimezone(isValidIanaTimeZone(deviceTimeZone) ? deviceTimeZone : profile.timezone);
-  const progressionState = createProgressionPlaybookFormState({ playbookId: plan.progressionPlaybookId });
-  const progressionConfig = buildProgressionPlaybookConfigFromFormState(progressionState);
+  const routineName = plan.name.slice(0, 15);
   const schedule = buildCuratedRoutineSchedule(plan);
-  const formData = new FormData();
-  let routineId: string | null = null;
 
-  async function rollbackCreatedRoutine() {
-    if (!routineId) return;
-    await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+  async function activateRoutine(routineId: string) {
+    return await activateProfileRoutineId({
+      executeProfileActivation: async ({ userId, routineId: nextRoutineId }) =>
+        await supabase
+          .from("profiles")
+          .update({ active_routine_id: nextRoutineId })
+          .eq("id", userId)
+          .select("id")
+          .single(),
+      userId: user.id,
+      routineId,
+    });
   }
 
-  formData.set("name", plan.name.slice(0, 15));
+  async function abort(message: string): Promise<CreateCuratedRoutineDraftResult> {
+    if (created.routineId) {
+      const cleanedUp = await deleteCuratedRoutine(supabase, user.id, created.routineId);
+      if (!cleanedUp) {
+        return { ok: false, error: CURATED_CREATE_PARTIAL_MESSAGE };
+      }
+    }
+    return { ok: false, error: message };
+  }
+
+  // A retry after a lost response (or a double tap) adopts the identical routine the first attempt created.
+  const replayableRoutineId = await findReplayableCuratedRoutineId({
+    supabase,
+    userId: user.id,
+    routineName,
+    schedule,
+  });
+  if (replayableRoutineId) {
+    const replayActivation = await activateRoutine(replayableRoutineId);
+    if (!replayActivation.ok) {
+      logCuratedFailure("replay activation failed", new Error(replayActivation.error));
+      return { ok: false, error: CURATED_CREATE_FAILED_MESSAGE };
+    }
+    return { ok: true, routineId: replayableRoutineId, routineName };
+  }
+
+  // The client's device zone is the user's real zone; profile.timezone was historically the server zone (UTC),
+  // so it is only the fallback when the client did not send one.
+  const timezone = normalizeRoutineTimezone(isValidIanaTimeZone(args.deviceTimeZone) ? args.deviceTimeZone : profile.timezone);
+  const progressionState = createProgressionPlaybookFormState({ playbookId: plan.progressionPlaybookId });
+  const progressionConfig = buildProgressionPlaybookConfigFromFormState(progressionState);
+  const formData = new FormData();
+
+  formData.set("name", routineName);
   formData.set("cycleLengthDays", String(schedule.length));
   formData.set("scheduleMode", "weekday_anchored");
   formData.set("startDate", getTodayDateInTimeZone(timezone));
@@ -168,14 +330,21 @@ export async function createCuratedRoutineDraftAction(
   appendProgressionPlaybookFormData(formData, progressionState);
 
   const createResult = await createRoutineAction(formData);
+  // createRoutineAction reports the routine id even when a later step fails, so the exact row can be removed.
+  if (createResult.routineId) {
+    created.routineId = createResult.routineId;
+  }
   if (!createResult.ok) {
-    return { ok: false, error: createResult.error };
+    logCuratedFailure("createRoutineAction failed", new Error(createResult.error));
+    return await abort(
+      createResult.error === ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE ? createResult.error : CURATED_CREATE_FAILED_MESSAGE,
+    );
   }
   if (!createResult.routineId) {
-    return { ok: false, error: "Could not create the curated routine draft." };
+    return { ok: false, error: CURATED_CREATE_FAILED_MESSAGE };
   }
 
-  routineId = createResult.routineId;
+  const routineId = createResult.routineId;
   const exerciseNames = [...new Set(plan.days.flatMap((day) => day.exercises.map((exercise) => exercise.name)))];
   const { data: exerciseRows, error: exerciseError } = await supabase
     .from("exercises")
@@ -184,15 +353,15 @@ export async function createCuratedRoutineDraftAction(
     .in("name", exerciseNames);
 
   if (exerciseError) {
-    await rollbackCreatedRoutine();
-    return { ok: false, error: exerciseError.message };
+    logCuratedFailure("exercise lookup failed", new Error(exerciseError.message));
+    return await abort(CURATED_CREATE_FAILED_MESSAGE);
   }
 
   const exerciseByName = new Map((exerciseRows ?? []).map((exercise) => [exercise.name, exercise]));
   const missingExerciseNames = exerciseNames.filter((name) => !exerciseByName.has(name));
   if (missingExerciseNames.length > 0) {
-    await rollbackCreatedRoutine();
-    return { ok: false, error: `Curated exercise catalog is missing: ${missingExerciseNames.join(", ")}.` };
+    logCuratedFailure("exercise catalog is missing curated exercises", new Error(missingExerciseNames.join(", ")));
+    return await abort(CURATED_CREATE_FAILED_MESSAGE);
   }
 
   const createdDayByIndex = new Map((createResult.createdDays ?? []).map((day) => [day.dayIndex, day]));
@@ -204,8 +373,7 @@ export async function createCuratedRoutineDraftAction(
 
     const createdDay = createdDayByIndex.get(scheduleDay.dayIndex);
     if (!createdDay) {
-      await rollbackCreatedRoutine();
-      return { ok: false, error: "Curated routine day creation was incomplete." };
+      return await abort(CURATED_CREATE_FAILED_MESSAGE);
     }
 
     const { error: dayUpdateError } = await supabase
@@ -215,8 +383,8 @@ export async function createCuratedRoutineDraftAction(
       .eq("routine_id", routineId)
       .eq("user_id", user.id);
     if (dayUpdateError) {
-      await rollbackCreatedRoutine();
-      return { ok: false, error: dayUpdateError.message };
+      logCuratedFailure("day update failed", new Error(dayUpdateError.message));
+      return await abort(CURATED_CREATE_FAILED_MESSAGE);
     }
 
     const exercisePayload = day.exercises.map((exercise, position) => {
@@ -248,26 +416,16 @@ export async function createCuratedRoutineDraftAction(
       insertError = fallback.error;
     }
     if (insertError) {
-      await rollbackCreatedRoutine();
-      return { ok: false, error: insertError.message };
+      logCuratedFailure("exercise insert failed", new Error(insertError.message));
+      return await abort(CURATED_CREATE_FAILED_MESSAGE);
     }
   }
 
-  const activeRoutineResult = await activateProfileRoutineId({
-    executeProfileActivation: async ({ userId, routineId }) =>
-      await supabase
-        .from("profiles")
-        .update({ active_routine_id: routineId })
-        .eq("id", userId)
-        .select("id")
-        .single(),
-    userId: user.id,
-    routineId,
-  });
+  const activeRoutineResult = await activateRoutine(routineId);
   if (!activeRoutineResult.ok) {
-    await rollbackCreatedRoutine();
-    return { ok: false, error: activeRoutineResult.error };
+    logCuratedFailure("activation failed", new Error(activeRoutineResult.error));
+    return await abort(CURATED_CREATE_FAILED_MESSAGE);
   }
 
-  return { ok: true, routineId, routineName: plan.name.slice(0, 15) };
+  return { ok: true, routineId, routineName };
 }

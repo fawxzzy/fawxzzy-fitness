@@ -47,39 +47,85 @@ export type CuratedHistorySignals = {
 
 /**
  * Closed outcome of one generation attempt. The generator never returns a partial or placeholder routine:
- * it is either `ready`, `blocked` (a safety answer needs a professional first), or `failed` (the intake
- * cannot be turned into a safe routine). Callers branch on `status`, never on message text.
+ * it is either `ready`, `blocked` (a safety or permission answer needs a person first), or `failed` (the
+ * intake cannot be turned into a routine). Callers branch on `status`/`reason`, never on message text.
  */
+export type CuratedBlockedReason = "safety-clearance-required" | "guardian-permission-required";
+
 export type CuratedPlanResult =
   | { status: "ready"; plan: CuratedWorkoutPlan }
-  | { status: "blocked"; reason: "safety-clearance-required"; message: string; symptoms: string[] }
+  | { status: "blocked"; reason: CuratedBlockedReason; message: string; symptoms: string[] }
   | { status: "failed"; reason: "incomplete-intake" | "no-safe-plan"; message: string };
 
 export const CURATED_SAFETY_CLEARANCE_MESSAGE =
   "You reported symptoms during exercise, so a routine cannot be built for you automatically. Check with a qualified professional before starting or changing exercise. You can still build your own routine.";
 
+export const CURATED_GUARDIAN_PERMISSION_MESSAGE =
+  "A routine can only be built for someone under 18 with a parent or guardian's permission. Ask a parent or guardian to help with your setup, or build your own routine.";
+
+export const CURATED_INTAKE_INCOMPLETE_MESSAGE =
+  "Complete goal, experience, equipment, schedule, session length, and the safety questions before generating a routine.";
+
 export class CuratedPlanBlockedError extends Error {
-  readonly reason = "safety-clearance-required" as const;
+  readonly reason: CuratedBlockedReason;
   readonly symptoms: string[];
 
-  constructor(symptoms: string[]) {
-    super(CURATED_SAFETY_CLEARANCE_MESSAGE);
+  constructor(reason: CuratedBlockedReason, symptoms: string[] = []) {
+    super(reason === "guardian-permission-required" ? CURATED_GUARDIAN_PERMISSION_MESSAGE : CURATED_SAFETY_CLEARANCE_MESSAGE);
     this.name = "CuratedPlanBlockedError";
+    this.reason = reason;
     this.symptoms = symptoms;
   }
 }
 
-/**
- * Reads the `warningSymptoms` safety answer from the raw intake. Any symptom other than "none" requires
- * clearance. A contradictory answer ("none" plus a symptom) fails closed. A missing answer is treated as
- * absent rather than as a symptom, because the questionnaire marks the question required before handoff.
- */
-export function evaluateCuratedSafetyGate(data: CuratedOnboardingData):
+export class CuratedIntakeIncompleteError extends Error {
+  constructor(message: string = CURATED_INTAKE_INCOMPLETE_MESSAGE) {
+    super(message);
+    this.name = "CuratedIntakeIncompleteError";
+  }
+}
+
+/** Thrown only for the closed "this intake has no workable routine" cases; its message is member-facing. */
+export class CuratedNoSafePlanError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CuratedNoSafePlanError";
+  }
+}
+
+export const CURATED_GENERATION_FALLBACK_MESSAGE =
+  "The routine could not be generated from your setup. Edit your setup or build a routine manually.";
+
+export type CuratedSafetyGate =
   | { status: "clear" }
-  | { status: "clearance-required"; symptoms: string[] } {
-  const raw = data.intakeResponses?.warningSymptoms;
-  const selected = Array.isArray(raw) ? raw.filter((value): value is string => typeof value === "string") : [];
-  const symptoms = [...new Set(selected.filter((value) => value !== "none"))].sort();
+  | { status: "unanswered"; missing: Array<"under18" | "warningSymptoms" | "safetyAcknowledgment"> }
+  | { status: "guardian-permission-required" }
+  | { status: "clearance-required"; symptoms: string[] };
+
+/**
+ * Fail-closed safety gate over the raw intake. Generation proceeds only when the member answered the
+ * safety questions: `warningSymptoms` must be a non-empty string list, `safetyAcknowledgment` must be
+ * `true`, and `under18` must be answered. Missing, empty or wrong-typed answers are `unanswered`, never
+ * `clear`. A member under 18 needs a "yes" guardian permission. Any symptom other than "none" (including
+ * "none" together with a symptom) requires clearance from a professional.
+ */
+export function evaluateCuratedSafetyGate(data: CuratedOnboardingData): CuratedSafetyGate {
+  const responses = data.intakeResponses ?? {};
+  const raw = responses.warningSymptoms;
+  const missing: Array<"under18" | "warningSymptoms" | "safetyAcknowledgment"> = [];
+  const symptomList = Array.isArray(raw) && raw.length > 0 && raw.every((value) => typeof value === "string")
+    ? (raw as string[])
+    : null;
+  if (!symptomList) missing.push("warningSymptoms");
+  if (responses.safetyAcknowledgment !== true) missing.push("safetyAcknowledgment");
+  if (responses.under18 !== "yes" && responses.under18 !== "no") missing.push("under18");
+  if (missing.length > 0) return { status: "unanswered", missing };
+
+  if (responses.under18 === "yes" && responses.guardianPermission !== "yes") {
+    return { status: "guardian-permission-required" };
+  }
+
+  const symptoms = [...new Set((symptomList ?? []).filter((value) => value !== "none"))].sort();
   return symptoms.length > 0 ? { status: "clearance-required", symptoms } : { status: "clear" };
 }
 
@@ -206,10 +252,10 @@ const SPLITS: Record<number, SplitDay[]> = {
  * A stated plan style replaces the day-count default only where a standard split exists for that exact
  * day count. Everywhere else the requested days per week decides the split and the style is not claimed.
  */
-const STYLE_SPLITS: Partial<Record<PreferredStyle, Record<number, { label: string; days: SplitDay[] }>>> = {
+const STYLE_SPLITS: Partial<Record<PreferredStyle, Record<number, { reason: string; days: SplitDay[] }>>> = {
   "push-pull-legs": {
     3: {
-      label: "push, pull, legs",
+      reason: "A push/pull/legs split matches your preferred style.",
       days: [
         { name: "Push", roles: ["horizontal-push", "vertical-push", "core", "cardio"] },
         { name: "Pull", roles: ["vertical-pull", "horizontal-pull", "hinge", "core"] },
@@ -219,7 +265,7 @@ const STYLE_SPLITS: Partial<Record<PreferredStyle, Record<number, { label: strin
   },
   "upper-lower": {
     2: {
-      label: "upper, lower",
+      reason: "An upper/lower split matches your preferred style.",
       days: [
         { name: "Upper", roles: ["horizontal-push", "vertical-pull", "vertical-push", "horizontal-pull", "core"] },
         { name: "Lower", roles: ["squat", "hinge", "lunge", "core", "cardio"] },
@@ -227,6 +273,27 @@ const STYLE_SPLITS: Partial<Record<PreferredStyle, Record<number, { label: strin
     },
   },
 };
+
+const EQUIPMENT_LABELS: Record<EquipmentAccess, string> = {
+  "full-gym": "a full gym",
+  barbell: "a barbell",
+  dumbbells: "dumbbells",
+  machines: "machines",
+  bands: "resistance bands",
+  bodyweight: "bodyweight",
+};
+
+const GOAL_LABELS: Record<TrainingGoal, string> = {
+  "build-muscle": "building muscle",
+  "get-leaner": "getting leaner",
+  "get-stronger": "getting stronger",
+  "general-fitness": "general fitness",
+};
+
+function joinWithAnd(values: string[]) {
+  if (values.length <= 1) return values.join("");
+  return `${values.slice(0, -1).join(", ")} and ${values[values.length - 1]}`;
+}
 
 function normalizeConstraint(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -389,7 +456,7 @@ function chooseExercise(
     if (available.some((candidate) => omittableSlugs.has(candidate.slug))) {
       return null;
     }
-    throw new Error(`No safe ${role.replace(/-/g, " ")} exercise matches the selected equipment and constraints.`);
+    throw new CuratedNoSafePlanError(`No ${role.replace(/-/g, " ")} exercise fits your equipment and limits.`);
   }
   return null;
 }
@@ -452,12 +519,18 @@ function generateCuratedWorkoutPlanWithSignals(
   signals: CuratedHistorySignals | null,
 ): CuratedWorkoutPlan {
   const safetyGate = evaluateCuratedSafetyGate(data);
+  if (safetyGate.status === "unanswered") {
+    throw new CuratedIntakeIncompleteError();
+  }
+  if (safetyGate.status === "guardian-permission-required") {
+    throw new CuratedPlanBlockedError("guardian-permission-required");
+  }
   if (safetyGate.status === "clearance-required") {
-    throw new CuratedPlanBlockedError(safetyGate.symptoms);
+    throw new CuratedPlanBlockedError("safety-clearance-required", safetyGate.symptoms);
   }
 
   if (!validateIntake(data)) {
-    throw new Error("Complete goal, experience, equipment, schedule, and session length before generating a plan.");
+    throw new CuratedIntakeIncompleteError();
   }
 
   const goal = data.trainingGoal as TrainingGoal;
@@ -534,14 +607,14 @@ function generateCuratedWorkoutPlanWithSignals(
   });
   const emptyDay = days.find((day) => day.exercises.length === 0);
   if (emptyDay) {
-    throw new Error(
-      `No safe exercises remain for ${emptyDay.name}. Adjust the selected equipment or constraints before generating the plan.`,
+    throw new CuratedNoSafePlanError(
+      `No exercises remain for ${emptyDay.name}. Adjust your equipment or limitations, then generate the routine again.`,
     );
   }
   const thinDay = days.find((day) => day.exercises.length < MIN_EXERCISES_PER_DAY);
   if (thinDay) {
-    throw new Error(
-      `Too few safe exercises remain for ${thinDay.name} (${thinDay.exercises.length} of ${MIN_EXERCISES_PER_DAY} needed). Adjust the selected equipment or constraints before generating the plan.`,
+    throw new CuratedNoSafePlanError(
+      `Too few exercises remain for ${thinDay.name} (${thinDay.exercises.length} of ${MIN_EXERCISES_PER_DAY} needed). Adjust your equipment or limitations, then generate the routine again.`,
     );
   }
   const nameByGoal: Record<TrainingGoal, string> = {
@@ -551,26 +624,23 @@ function generateCuratedWorkoutPlanWithSignals(
     "general-fitness": "Atlas Fitness",
   };
   const sortedEquipment = [...equipment].sort();
-  const avoidedEquipment = [...new Set(data.avoidedEquipment ?? [])].sort();
-  const stableInput = JSON.stringify({
-    goal,
-    experience: data.experience,
+  // The plan id identifies the OUTPUT the member reviews and saves (name, schedule, exercises, targets), so an
+  // input that does not change the routine never produces a different id or a false "plan changed".
+  const planDigest = JSON.stringify({
+    name: nameByGoal[goal],
     daysPerWeek,
     sessionLengthMinutes,
-    equipment: sortedEquipment,
-    preferredStyle: data.preferredStyle ?? null,
-    cardioPreference: data.cardioPreference ?? null,
-    limitations: normalizeConstraint(data.limitations ?? ""),
-    exerciseDislikes: data.exerciseDislikes.map(normalizeConstraint).filter(Boolean).sort(),
-    exerciseLikes: data.exerciseLikes.map(normalizeConstraint).filter(Boolean).sort(),
-    targetAreas: data.targetAreas.map(normalizeConstraint).filter(Boolean).sort(),
-    adaptiveSignals: signals ? {
-      completionRate: signals.completionRate,
-      missedWorkoutCount: signals.missedWorkoutCount,
-      failedExerciseSlugs: [...signals.failedExerciseSlugs].sort(),
-      fatiguedExerciseSlugs: [...signals.fatiguedExerciseSlugs].sort(),
-    } : null,
-    ...(avoidedEquipment.length > 0 ? { avoidedEquipment } : {}),
+    days: days.map((day) => [
+      day.name,
+      day.exercises.map((exercise) => [
+        exercise.slug,
+        exercise.measurementType,
+        exercise.targetSets,
+        exercise.targetRepsMin,
+        exercise.targetRepsMax,
+        exercise.targetDurationSeconds ?? null,
+      ]),
+    ]),
   });
 
   const adaptiveRationale = [
@@ -587,21 +657,21 @@ function generateCuratedWorkoutPlanWithSignals(
       ? [`Equipment you asked to avoid removed ${avoidedEquipmentExclusionCount} exercise choice${avoidedEquipmentExclusionCount === 1 ? "" : "s"}.`]
       : []),
     ...(styleSplit
-      ? [`A ${styleSplit.label} split matches your plan style.`]
+      ? [styleSplit.reason]
       : []),
     ...(preferences.exerciseLikes.length > 0 || preferences.targetTokens.size > 0
-      ? ["Your preferred exercises and target areas shape the order of safe, equipment-compatible choices."]
+      ? ["Your preferred exercises and target areas shape the order of equipment-compatible choices."]
       : []),
   ];
 
   return {
     version: 1,
-    planId: `curated-${hashPlan(stableInput)}`,
+    planId: `curated-${hashPlan(planDigest)}`,
     name: nameByGoal[goal],
     rationale: [
-      `${daysPerWeek} training days sized for ${sessionLengthMinutes}-minute sessions.`,
-      `Exercise choices are limited to ${sortedEquipment.join(", ")}.`,
-      `${data.experience} ${goal.replace(/-/g, " ")} targets use double progression.`,
+      `${daysPerWeek} workout days sized for ${sessionLengthMinutes}-minute sessions.`,
+      `Exercises are chosen from ${joinWithAnd(sortedEquipment.map((value) => EQUIPMENT_LABELS[value]))}.`,
+      `Sets and reps are set for ${GOAL_LABELS[goal]} at the ${data.experience} level, and every exercise uses double progression.`,
       ...adaptiveRationale,
     ],
     daysPerWeek,
@@ -641,12 +711,14 @@ export function resolveCuratedWorkoutPlan(
         symptoms: error.symptoms,
       };
     }
-    const message = error instanceof Error ? error.message : "The curated routine could not be generated.";
-    return {
-      status: "failed",
-      reason: message.startsWith("Complete goal") ? "incomplete-intake" : "no-safe-plan",
-      message,
-    };
+    if (error instanceof CuratedIntakeIncompleteError) {
+      return { status: "failed", reason: "incomplete-intake", message: error.message };
+    }
+    if (error instanceof CuratedNoSafePlanError) {
+      return { status: "failed", reason: "no-safe-plan", message: error.message };
+    }
+    // Anything else is a bug, not a member problem: never show raw exception text.
+    return { status: "failed", reason: "no-safe-plan", message: CURATED_GENERATION_FALLBACK_MESSAGE };
   }
 }
 
