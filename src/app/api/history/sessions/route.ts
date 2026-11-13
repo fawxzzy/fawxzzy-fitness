@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { resolveApiUser } from "@/lib/api-auth";
 import {
   loadHistorySessionsScopePayloadForUser,
 } from "@/lib/history-sessions-page-loader";
@@ -11,6 +11,13 @@ import { supabaseServer } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  // Outside the try block: a missing session is a 401, not a 500 with the text "NEXT_REDIRECT".
+  const auth = await resolveApiUser();
+  if (!auth.ok) {
+    return auth.response;
+  }
+  const { user } = auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const requestedScope = searchParams.get("scope");
@@ -19,7 +26,6 @@ export async function GET(request: Request) {
       routineId: searchParams.get("routineId"),
       cycleStartDate: searchParams.get("cycleStartDate"),
     });
-    const user = await requireUser();
     const payload = await loadHistorySessionsScopePayloadForUser({
       supabase: supabaseServer(),
       userId: user.id,
