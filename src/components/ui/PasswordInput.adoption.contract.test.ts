@@ -6,7 +6,6 @@ const adoptionFiles = [
   "../..//app/login/LoginScreen.tsx",
   "../auth/SignupForm.tsx",
   "../../app/reset-password/ResetPasswordForm.tsx",
-  "../settings/LegacyMigrationSettings.tsx",
 ];
 
 test("shared PasswordInput is adopted across auth and account password fields", () => {

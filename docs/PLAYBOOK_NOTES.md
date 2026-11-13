@@ -84,6 +84,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/lib/exercise-info-day-key.ts`, `src/lib/exercise-info-day-key.test.ts` (23:30 Eastern, DST start and end, parity with History for every 90 minutes across a year in five zones), `src/lib/progression-summary-activity.test.ts`, `src/lib/exercise-info.ts`.
 - Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
 
+## 2026-11-13 - Finish the local-day rule for progression activity (lifeline summaries and the two History zone edits)
+
+- Type: Day-boundary correctness (source) + Coverage
+- WHAT changed: `buildExerciseProgressionLifelineSummary` (`src/lib/progression-lifeline-summary.ts`) gained a `timeZone` option and passes it to its activity-day bucketing and its chart sections; Exercise info, the History exercises browser (`exercises-browser.ts`, zone on its scope context) and the History session detail page (new `loadHistoryTimeZone`, `src/lib/history-time-zone.ts`) now pass the History zone from `resolveHistoryTimeZone`. A new test drives `buildWeeklyProgressSummary` and `buildHistoryScopeSummary` so the zone edits in `history-weekly-progress.ts` and `history-scope-summary.ts` are pinned (reverting them now fails CI).
+- WHY it changed: The #220 review found the same UTC default in the per-exercise progression summaries, and that reverting the two one-line zone edits in History still passed CI because nothing asserted them through the builders.
+- Rule: A zone option that defaults to UTC is a latent day-boundary bug: every caller that buckets user events by day passes the History zone, and the builder that forwards it is tested through its public entry point, not only the leaf.
+- Failure Mode: Fixing the leaf function and the callers one at a time leaves siblings on the default; an untested pass-through can be deleted without any test noticing.
+- Decision: The zone for server pages that hold no routine row is loaded by one helper (`loadHistoryTimeZone`: active routine zone, then profile zone, then default) instead of re-deriving it per page. Defaults are left as they are (UTC) so callers that have no zone keep their behaviour; the contract is that every user-facing caller passes one.
+- Evidence: `src/lib/progression-activity-zone.test.ts` (lifeline summary, weekly progress summary, scope summary, helper; the two History tests fail with the edits reverted).
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
+
 ## 2026-10-16 - Keep event-free login autofill submittable
 
 - Type: Authentication UI continuity + Coverage
@@ -1436,6 +1447,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A layout `notFound()` alone does not stop its page from rendering in Next 14.2.5: the page's server code still runs and its output is in the response. A guard on `NODE_ENV` breaks production-mode verification runs; a guard on a request header depends on the platform setting that header.
 - Evidence: `src/lib/dev-route-guard.test.ts` (wired through `npm run test:supabase-schema-binding`) calls the middleware, the layout and every dev handler under production and non-production environments. A `next start` run with `VERCEL_ENV=production` answered the fixture pages, the dev handlers and the debug endpoint with 404.
 - Status: Source only; merge, deploy and a check on the live host remain separate.
+
+## 2026-11-12 - Remove the retired legacy migration routes and the tag-triggered deploy workflow
+
+- WHAT changed: Deleted `/api/migration/export`, `/api/migration/import` and `/api/migration/parity`, the Settings "Legacy & Migration" section (`LegacyMigrationSettings`, the `legacy` section key and deep link, and the props that only fed it), `src/lib/migration/` (snapshot bridge, contract and tests), and `.github/workflows/deploy-prod-on-tag.yml`. `scripts/migration/parity-report.mjs` stays as an offline operator script. `docs/ops/fitness-legacy-migration-plan.md` now records the retirement.
+- WHY it changed: The legacy database is retired, the Settings section was already disabled and export only returned 410, so nothing called the import or parity routes. The tag workflow deployed to production on any `v*` tag without a CI dependency, an exact commit or a held alias, which contradicts the approval gate in `AGENTS.md`.
+- Rule: A retired feature is deleted, not parked behind a disabled flag. Recovery lives in git history and in one-off owner-run scripts, not in a signed-in web route. Production deploys run only through the approval-gated release chain.
+- Failure Mode: A hidden UI with live server routes behind it keeps the surface reachable. A workflow that can deploy on a tag push bypasses the release approval.
+- Evidence: `src/lib/supabase/schema-binding.contract.test.mjs` asserts the routes, the bridge and the Settings component stay removed and that no workflow runs a production deploy; `src/components/settings/SettingsAccordionClient.contract.test.ts` asserts Settings carries no legacy section.
+- Status: Source only; merge and deploy remain separate.
 
 ## 2026-11-13 - Make the dev-route guard fail closed
 
