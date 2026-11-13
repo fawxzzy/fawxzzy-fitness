@@ -13,8 +13,9 @@ import {
   type ChangePasswordProblem,
 } from "@/lib/password-policy";
 import { QA_LLEL_VISIBILITY_COOKIE } from "@/lib/qa-data-visibility";
-import { supabaseServer, supabaseServerWithSession } from "@/lib/supabase/server";
+import { getRequestAccessToken, supabaseServer } from "@/lib/supabase/server";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
+import { decodeJwtClaims, updateUserWithAccessToken, type UserUpdateFailureReason } from "@/lib/supabase/update-user";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 
 export type EmailUpdateState = {
@@ -31,6 +32,14 @@ export type PasswordUpdateState = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE =
   "Unit preferences require the latest profile migration. Run migrations and try again.";
+// Fixed copy for a failed account-details update. The provider's message is never shown: for an email change it would
+// say whether another account already uses that address.
+const ACCOUNT_UPDATE_ERROR_COPY: Partial<Record<UserUpdateFailureReason, string>> = {
+  session_expired: "Your session ended. Sign in again, then try once more.",
+  rate_limited: "Too many attempts. Please wait a few minutes and try again.",
+  username_taken: "That username is taken. Pick another one.",
+};
+const ACCOUNT_UPDATE_FAILED_COPY = "We could not update your account details. Check them and try again.";
 const PROFILE_QA_VISIBILITY_COLUMN_MISSING_MESSAGE =
   "QA visibility settings require the latest profile migration. Run migrations and try again.";
 
@@ -58,7 +67,6 @@ function toMetadataRecord(value: unknown) {
 
 export async function updateAccountEmailAction(formData: FormData): Promise<EmailUpdateState> {
   const user = await requireUser();
-  const supabase = await supabaseServerWithSession();
   const nextEmail = String(formData.get("email") ?? "").trim().toLowerCase();
   const nextUsername = String(formData.get("username") ?? "").trim();
   const currentMetadata = toMetadataRecord(user.user_metadata);
@@ -92,13 +100,29 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
     display_name: nextUsername || null,
   };
 
-  const { error } = await supabase.auth.updateUser({
-    email: emailChanged ? nextEmail : undefined,
-    data: usernameChanged ? nextMetadata : undefined,
-  });
+  // The token written with must belong to the member requireUser() just resolved. DEPENDENCY: on /account and
+  // /settings the middleware refreshes the access cookie and forwards it to this action, so the token is fresh; if it
+  // is not, the write is refused as session_expired rather than refreshed here (a refresh could not persist the
+  // rotated refresh token).
+  const accessToken = getRequestAccessToken();
+  if (decodeJwtClaims(accessToken)?.sub !== user.id) {
+    return { status: "error", message: ACCOUNT_UPDATE_ERROR_COPY.session_expired ?? ACCOUNT_UPDATE_FAILED_COPY };
+  }
 
-  if (error) {
-    return { status: "error", message: error.message || "Unable to update email right now." };
+  // `auth.updateUser` fails on the request-bound server client (no stored session), so the write goes through the
+  // access token directly; the refresh token is never touched.
+  const result = await updateUserWithAccessToken(
+    {
+      email: emailChanged ? nextEmail : undefined,
+      data: usernameChanged ? nextMetadata : undefined,
+    },
+    { supabaseUrl: SUPABASE_URL(), anonKey: SUPABASE_ANON_KEY(), accessToken },
+  );
+
+  if (!result.ok) {
+    // Machine code and status only: no message, no address.
+    console.error("Account update failed", { code: result.code, status: result.status });
+    return { status: "error", message: ACCOUNT_UPDATE_ERROR_COPY[result.reason] ?? ACCOUNT_UPDATE_FAILED_COPY };
   }
 
   revalidatePath("/settings");
