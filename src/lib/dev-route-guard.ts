@@ -34,10 +34,9 @@
 //
 // Layers, outermost first:
 // 1. `src/middleware.ts` answers 404 for every dev-only path before any page or handler runs
-//    (see `isDevOnlyPath`). Middleware is not sufficient on its own: Next 14.2.5 is affected by
-//    the `x-middleware-subrequest` bypass class (CVE-2025-29927), so a request can skip it. The
-//    handler and page guards below are required defence in depth. The Next patch upgrade is
-//    tracked separately (lane K2).
+//    (see `isDevOnlyPath`). Middleware is not sufficient on its own: the `x-middleware-subrequest`
+//    bypass class (CVE-2025-29927) let a request skip it on Next 14.2.5; it is patched in the
+//    pinned Next 14.2.35, but the handler and page guards below stay as defence in depth.
 // 2. Route handlers (a layout does not wrap them) return `devRouteUnavailableResponse(request)`
 //    (or the service-role variant) as their first statement.
 // 3. Pages without a check of their own call `assertDevPageAvailable()`, and service-role pages
