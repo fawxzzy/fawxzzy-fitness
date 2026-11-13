@@ -30,6 +30,7 @@ All notable changes to this project are documented in this file.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
 - Exercise info (PR history, chart axis, day groups, cycle options, last-performed labels, cardio PR dates) now buckets sessions into the user's local day with History's day-key function and zone (`resolveHistoryTimeZone`) instead of slicing the UTC date, so a session after 19:00 US Eastern shows the same day in both places. History's progression-activity buckets receive that zone too, and so do the per-exercise progression lifeline summaries (exercise info, History exercises, session detail), whose activity days and chart bars were still bucketed by UTC day.
 - Added one shared production guard for dev-only routes (`src/lib/dev-route-guard.ts`): `src/middleware.ts` answers 404 for `/dev/*`, `/api/dev/*` and `/api/ecosystem/fitness/debug` before any page runs when `VERCEL_ENV` is `production`, and `src/app/dev/layout.tsx` plus every dev route handler repeat the check. Preview deployments, local development and `next start` verification runs are unchanged. Removed the unused root `middleware.ts`; the compiled middleware is `src/middleware.ts`.
+- Removed the retired legacy migration routes (`/api/migration/export`, `/api/migration/import`, `/api/migration/parity`), the Settings legacy migration section, the snapshot importer under `src/lib/migration/`, and the tag-triggered production deploy workflow. Production deploys remain approval-gated.
 
 ### WHY
 - Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
@@ -37,6 +38,7 @@ All notable changes to this project are documented in this file.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
 - Exercise info dated evening sessions with the next UTC day ("Nov 13") while History showed the local day ("Nov 12"): two day rules for one session.
 - Dev fixtures and diagnostics are for preview and local use. Keying the guard on the deployment environment (not `NODE_ENV`) withdraws them from production without breaking production-mode verification runs on localhost, and one guard now sits in front of the existing per-page checks, some of which relied on request headers.
+- The legacy database is retired and no member-facing flow used the snapshot import, so the unused server surface was removed rather than kept dormant.
 
 ## 1.0.1 - 2026-06-24
 
