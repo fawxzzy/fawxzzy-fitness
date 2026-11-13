@@ -30,6 +30,7 @@ All notable changes to this project are documented in this file.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
 - Exercise info (PR history, chart axis, day groups, cycle options, last-performed labels, cardio PR dates) now buckets sessions into the user's local day with History's day-key function and zone (`resolveHistoryTimeZone`) instead of slicing the UTC date, so a session after 19:00 US Eastern shows the same day in both places. History's progression-activity buckets receive that zone too.
+- Added one shared production guard for dev-only routes (`src/lib/dev-route-guard.ts`): `src/middleware.ts` answers 404 for `/dev/*`, `/api/dev/*` and `/api/ecosystem/fitness/debug` before any page runs when `VERCEL_ENV` is `production`, and `src/app/dev/layout.tsx` plus every dev route handler repeat the check. Preview deployments, local development and `next start` verification runs are unchanged. Removed the unused root `middleware.ts`; the compiled middleware is `src/middleware.ts`.
 
 ### WHY
 - A set tapped offline from a collapsed row was lost while the same tap from an expanded row was kept. Two offline paths for one action broke the FF-PWA-002 rule that a connection drop never discards a logged set.
@@ -37,6 +38,7 @@ All notable changes to this project are documented in this file.
 - Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
 - Exercise info dated evening sessions with the next UTC day ("Nov 13") while History showed the local day ("Nov 12"): two day rules for one session.
+- Dev fixtures and diagnostics are for preview and local use. Keying the guard on the deployment environment (not `NODE_ENV`) withdraws them from production without breaking production-mode verification runs on localhost, and one guard now sits in front of the existing per-page checks, some of which relied on request headers.
 
 ## 1.0.1 - 2026-06-24
 
