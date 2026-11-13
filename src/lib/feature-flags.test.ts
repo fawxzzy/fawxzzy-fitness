@@ -57,3 +57,14 @@ test("feature flag diagnostics expose value source without secrets", () => {
 test("unknown feature flag names are safe", () => {
   assert.equal(resolveFeatureFlagByName("not_a_flag"), null);
 });
+
+test("curated onboarding stays off by default and is enabled only by an explicit env value", () => {
+  const missing = resolveFeatureFlag("curatedOnboarding", {});
+  const invalid = resolveFeatureFlag("curatedOnboarding", { NEXT_PUBLIC_ENABLE_CURATED_ONBOARDING: "maybe" });
+
+  assert.equal(missing.value, false);
+  assert.equal(missing.source, "default");
+  assert.equal(invalid.value, false);
+  assert.equal(isFeatureEnabled("curatedOnboarding", { NEXT_PUBLIC_ENABLE_CURATED_ONBOARDING: "1" }), true);
+  assert.equal(isFeatureEnabled("curatedOnboarding", { NEXT_PUBLIC_ENABLE_CURATED_ONBOARDING: "off" }), false);
+});

@@ -12,6 +12,56 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/components/auth/signupFeedback.ts` and test, `tests/signup-failure-copy-action.test.mjs`, `src/lib/password-reset-request.ts` and test.
 - Status: Source-only; no provider setting, deployment or live account touched.
 
+## 2026-11-12 - "Every difference is explained" needs a property test, and pain is never retained
+
+- Type: Product behavior (source) + property test
+- WHAT changed: Curated plan adjustments are computed by diffing each final day against its first-choice day (limitations and dislikes only, same split), so a cascade (de-duplication, the exercise limit, an omitted role) is named by a `day-adjusted` entry instead of going unexplained. Session feedback is split: pain and form-breakdown lifts are always replaced or omitted (with a reason; the three-lift floor still protects the day), while only too-hard or bad-day lifts may stay, with a reason, when nothing else fits. A seeded fuzz test over 4000 random intakes and feedback sets asserts every added or removed exercise is named by an adjustment, and that no pain or form lift survives; a mutation check (disabling the cascade entries) makes it fail.
+- WHY it changed: A review fuzz found about 2% of intakes with a day-level difference and no reason entry, and pain-flagged lifts could be retained.
+- Rule: A claim of the form "every X is explained" is pinned by a property test that fails when the explanation is removed.
+- Rule: Safety-relevant feedback (pain, form) is an exclusion, not a preference; only effort feedback may be softened.
+- Failure Mode: explaining only the role-level decision hides the knock-on changes it causes inside a day.
+- Decision: the first-choice routine is the explanation baseline; schedule reduction is reported separately and the split is held constant for the diff.
+- Evidence: `src/features/curated-onboarding/engine.ts`, `engine.adjustments.test.ts`, `src/app/curated-onboarding/actions.ts` (signal split).
+- Status: Source only; real feedback data and the browser rendering are not verified.
+
+## 2026-11-12 - A failed generation must never dead-end a setup
+
+- Type: Product behavior (source)
+- WHAT changed: The curated handoff page now has a recovery path for every non-ready outcome: failed uses Edit setup (every answer kept; `reopen-intake` returns to Review as a draft) with Build manually; a transient server error uses Try again; a blocked outcome (symptoms, under-18 without guardian permission, feature off) makes Build manually primary and Edit setup secondary. The reviewed plan id travels with the create request, the browser guards double submit with an in-flight ref and a created flag, and fixed copy replaces raw error text. The six retired six-step components were deleted.
+- WHY it changed: A blocked or failed generation previously offered a disabled button and "Start over", which wipes all 60 answers.
+- Rule: Every terminal state of a multi-step intake offers a way forward that preserves the member's answers, plus the manual path the product already has.
+- Pattern: pure presentation/recovery model (`handoff.ts`) that the component only renders, so the rules are unit-testable without React.
+- Failure Mode: a retry button on a failure that is a property of the saved answers only repeats the failure; only transient errors are retryable.
+- Decision: keep the 60-question intake; edit-in-place beats restart.
+- Evidence: `src/features/curated-onboarding/handoff.ts`, `handoff.test.ts`, `handoff.actions.test.ts`, `reducer.ts` (`reopen-intake`), `CuratedOnboardingShell.tsx`, `tests/curated-onboarding-ui-contract.test.mjs`.
+- Status: Source only; no browser or device check of the handoff page; the flag stays off by default.
+
+## 2026-11-12 - Review hold on the curated stack: fail closed, enforce at the action layer, stay idempotent
+
+- Type: Product behavior (source) + server-action hardening
+- WHAT changed: The curated safety gate now requires a positive, well-typed answer (`warningSymptoms` non-empty string list, `safetyAcknowledgment === true`, `under18` answered); the server also requires `isCuratedOnboardingReadyForHandoff`, and a member under 18 without a guardian "yes" is blocked with referral-only copy. Both server actions enforce `isCuratedOnboardingEnabled()`, rethrow redirect errors, return fixed copy instead of raw exception or database text, roll back the exact routine row (a failed rollback is reported, not ignored) and adopt an identical routine created by an earlier attempt instead of duplicating it. `createRoutineAction` returns the routine id on partial failure. The plan id hashes the reviewed output so unrelated inputs cannot cause a false "plan changed". On a blocked screen Build manually is primary and Edit setup secondary; the browser guards double submit.
+- WHY it changed: An independent review found the gate returned "clear" for a missing, empty or wrong-typed safety answer, and that "off" was enforced only by the page, not the actions.
+- Rule: A safety gate passes only on an explicit, well-typed answer. Missing means unanswered, never clear.
+- Rule: A feature flag is enforced at every server action, not only on the page that links to it; pin it with a source-contract test that fails when an action reaches auth, the database or the generator first.
+- Pattern: a mutation that cannot be made atomic without a schema change is made idempotent by recognising its own identical result (same name, schedule, exercises, recent) and by reporting the id needed to clean up a partial write.
+- Failure Mode: mapping `catch` to a generic "unavailable" also swallows `NEXT_REDIRECT`; always rethrow redirect errors. Returning `error.message` to the browser leaks database text.
+- Decision: no database change; replay detection is read-only and bounded to 15 minutes. Two simultaneous requests from different tabs can still race (needs a unique key, a schema change).
+- Evidence: `src/features/curated-onboarding/engine.ts`, `api-contract.ts`, `src/app/curated-onboarding/actions.ts`, `replay.ts`, `actions.contract.test.ts`, `engine.safety.test.ts`, `api-contract.safety.test.ts`.
+- Status: Source only; the curated onboarding flag stays off by default and nothing is deployed.
+
+## 2026-11-12 - Make the live curated generator trustworthy before any pipeline cutover
+
+- Type: Product behavior (source) + CI coverage
+- WHAT changed: The live curated generator (`engine.ts`) now sits behind one typed contract (`api-contract.ts`): the server rebuilds engine input from `intakeResponses`, fails closed on the questionnaire's safety answers (missing, empty or wrong-typed `warningSymptoms`, a missing acknowledgment or age answer, an under-18 member without guardian permission), blocks on reported symptoms, honors avoided equipment, applies a stated plan style only where a standard split exists, never repeats a lift inside a day, requires three lifts per day, and refuses to create a routine whose regenerated plan id differs from the reviewed one. A full-matrix test proves determinism and that every exercise exists in the canonical catalog; the curated questionnaire, reducer, storage, selector, action, UI-contract and entry-gate suites now run in hosted CI.
+- WHY it changed: The UI promised a safety response the generator ignored, free-text answers changed nothing, and most curated tests never ran in CI.
+- Rule: A user-facing promise in a form must have a test that fails when the consumer stops honoring it. Client-derived fields are never trusted; the server derives engine input from the raw answers.
+- Pattern: untrusted payload -> parse + re-derive -> pure resolver -> closed outcome union -> action maps to `{ ok, code }`. Fail closed with a stable reason code; never return a partial or placeholder routine.
+- Failure Mode: A safety gate that treats "answer absent" as "clear" fails open exactly when the client is wrong or hostile. Gate on a positive, well-typed answer, at the server boundary and again in the generator.
+- Failure Mode: Two engines in one tree. The 25k-line `planning/**` pipeline is source-only and unwired; improving only the live generator or only the pipeline silently diverges them. Cutover needs the planner migration applied (database approval) and a privileged server client, so it is a separate governed packet.
+- Decision: The live path stays `engine.ts` for V1; the pipeline is not wired by this change.
+- Evidence: `src/features/curated-onboarding/api-contract.ts`, `engine.ts`, `engine.safety.test.ts`, `engine.matrix.test.ts`, `api-contract.test.ts`, `.github/workflows/ci.yml`.
+- Status: Source only; the curated onboarding flag remains off by default and nothing is deployed.
+
 ## 2026-11-06 - Restack session-start atomicity activation onto main and retarget the master apply package to the `fitness` schema
 
 - Type: Activation (source) + provider apply package (not applied)
@@ -22,6 +72,18 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: apply package first (separate approval), app merge second. No runtime fallback to direct inserts.
 - Evidence: `src/lib/session-start-activation.ts` and test, `src/lib/session-start-atomicity.test.ts`, `supabase/master-fitness/*`; local PostgreSQL 17 proof (apply, rerun, 8-client concurrency, unique-violation handler, duplicate guard, rollback).
 - Status: source only; nothing applied to any provider.
+
+## 2026-11-12 - Bucket Exercise info sessions by the History local day
+
+- Type: Day-boundary correctness (source) + Coverage
+- WHAT changed: Exercise info (`src/lib/exercise-info.ts`) derived every day key with `value.slice(0, 10)` of the UTC ISO string and formatted day labels with `formatDateShort` in the server runtime zone (UTC on Vercel). It now uses `getExerciseInfoDayKey` (`src/lib/exercise-info-day-key.ts`), which delegates to History's `getWeeklyProgressDayKey`, with the zone from `resolveHistoryTimeZone` (active routine zone, then profile zone, then America/New_York) carried on the scope context as `historyTimeZone`. Labels are formatted from the day key as a UTC calendar date, so PR history, chart points, day groups, cycle options, progress entries, last-performed labels and cardio PR dates agree with History. The client history range label no longer pushes a day key through the browser zone. History's progression-activity buckets (weekly progress and scope summary) now receive the History zone too; they defaulted to UTC.
+- WHY it changed: A session after 19:00 US Eastern (EST) is the next day in UTC, so Exercise info said "Nov 13" for sessions History shows as "Nov 12" (live UX sift 2026-11-12, finding 2). PR #208 fixed History's bucketing but Exercise info kept its own UTC rule.
+- Rule: One local-day rule per product. Any surface that shows the day of a session or event derives it from the shared History day-key function and zone resolver, and a calendar date is formatted from its key, never re-read as an instant.
+- Failure Mode: Slicing an ISO timestamp, or formatting it in the server runtime zone, is right only while the user's evening is still the same UTC day; it silently moves evening sessions to the next day, and fixing one surface leaves its siblings wrong.
+- Decision: The zone is the History zone for every session-day question in Exercise info, including the planned-skipped comparison; routine zones still drive "today" and cycle windows. Synthetic planned-skipped rows keep their routine-calendar day key and are never re-bucketed. Not changed here, tracked as follow-ups: Settings export date range (UTC day boundaries and a UTC default for "today") and the ecosystem snapshot telemetry (`activeStreakDays`, `consecutiveMisses`), which bucket by UTC day and change an outbound contract.
+- Evidence: `src/lib/exercise-info-day-key.ts`, `src/lib/exercise-info-day-key.test.ts` (23:30 Eastern, DST start and end, parity with History for every 90 minutes across a year in five zones), `src/lib/progression-summary-activity.test.ts`, `src/lib/exercise-info.ts`.
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
+
 ## 2026-10-16 - Keep event-free login autofill submittable
 
 - Type: Authentication UI continuity + Coverage
@@ -295,6 +357,8 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: shared selector-derived progression state + section completion indicators + deterministic malformed-response filtering + explicit review-safe advancement checks.
 - Evidence: `src/app/curated-onboarding/page.tsx`, `src/app/dev/curated-onboarding/page.tsx`, `src/app/routines/CreateRoutineClient.tsx`, `src/app/routines/CreateRoutineRouteHeader.contract.test.ts`, `src/app/routines/RoutinesPageClient.contract.test.ts`, `src/app/routines/RoutinesPageClient.tsx`, `src/app/routines/page.tsx`, `src/features/curated-onboarding/components/ConstraintsStep.tsx`, `src/features/curated-onboarding/components/CuratedIntroStep.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingPrimitives.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingProgress.tsx`, `src/features/curated-onboarding/components/CuratedOnboardingShell.tsx`, `src/features/curated-onboarding/components/EquipmentStep.tsx`, `src/features/curated-onboarding/components/ExperienceStep.tsx`, `src/features/curated-onboarding/components/GenerationHandoffStep.tsx`, `src/features/curated-onboarding/components/GoalsStep.tsx`, `src/features/curated-onboarding/components/PreferencesStep.tsx`, `src/features/curated-onboarding/components/QuestionnaireStep.tsx`, `src/features/curated-onboarding/components/ReviewStep.tsx`, `src/features/curated-onboarding/components/ScheduleStep.tsx`, `src/features/curated-onboarding/constants.ts`, `src/features/curated-onboarding/engine.test.ts`, `src/features/curated-onboarding/engine.ts`, `src/features/curated-onboarding/fixtures.ts`, `src/features/curated-onboarding/questionnaire.test.ts`, `src/features/curated-onboarding/questionnaire.ts`, `src/features/curated-onboarding/schema.ts`, `src/features/curated-onboarding/selectors.test.ts`, `src/features/curated-onboarding/selectors.ts`, `src/features/curated-onboarding/step-registry.ts`, `src/features/curated-onboarding/storage.test.ts`, `src/features/curated-onboarding/storage.ts`, `src/features/curated-onboarding/types.ts`, `tailwind.config.ts`, `tests/curated-onboarding-ui-contract.test.mjs`, `docs/CHANGELOG.md`
 - Status: Proposed
+- Update 2026-11-12: `GoalsStep`, `ExperienceStep`, `EquipmentStep`, `ScheduleStep`, `PreferencesStep`, `ConstraintsStep` and `CuratedIntroStep` listed in the evidence above were removed (no importer; the shell renders `QuestionnaireStep`); a UI contract test pins them deleted.
+
 ## 2026-07-14 - Explicit deployment classification must outrank the CI execution context
 - Type: Guardrail
 - WHAT changed: Atlas health contracts now classify explicit Vercel production and preview values before the inherited CI execution signal.
