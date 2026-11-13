@@ -28,12 +28,14 @@ All notable changes to this project are documented in this file.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
+- Exercise info (PR history, chart axis, day groups, cycle options, last-performed labels, cardio PR dates) now buckets sessions into the user's local day with History's day-key function and zone (`resolveHistoryTimeZone`) instead of slicing the UTC date, so a session after 19:00 US Eastern shows the same day in both places. History's progression-activity buckets receive that zone too.
 - Removed the retired legacy migration routes (`/api/migration/export`, `/api/migration/import`, `/api/migration/parity`), the Settings legacy migration section, the snapshot importer under `src/lib/migration/`, and the tag-triggered production deploy workflow. Production deploys remain approval-gated.
 
 ### WHY
 - Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
 - Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
+- Exercise info dated evening sessions with the next UTC day ("Nov 13") while History showed the local day ("Nov 12"): two day rules for one session.
 - The legacy database is retired and no member-facing flow used the snapshot import, so the unused server surface was removed rather than kept dormant.
 
 ## 1.0.1 - 2026-06-24
