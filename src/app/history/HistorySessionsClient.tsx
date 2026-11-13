@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
+import { ConsistencyHeatmapSurface } from "@/components/history/ConsistencyHeatmapSurface";
 import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
 import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
 import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
@@ -20,6 +21,7 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
+import { buildHistoryConsistencyHeatmap, shouldShowHistoryConsistencyHeatmap } from "@/lib/history-consistency-heatmap";
 import { buildHistoryMonthlyProgress } from "@/lib/history-monthly-progress";
 import {
   buildHistoryWorkoutStreak,
@@ -860,6 +862,14 @@ export function HistorySessionsClient({
     skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
   }), [queryFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone]);
 
+  // Whole-history view: every completed session in scope (never the search/tag-filtered rows), on the same
+  // local-day timezone as the streak. It is only shown while no filter is active, so these rows are all of them.
+  const consistencyHeatmap = useMemo(() => buildHistoryConsistencyHeatmap({
+    sessions: scopedSessions,
+    timezone: scopedWeeklyProgress.timezone,
+    now: calendarNow,
+  }), [calendarNow, scopedSessions, scopedWeeklyProgress.timezone]);
+
   const filteredSessions = useMemo(() => {
     if (!effectiveSelectedDayKey) {
       return monthFilteredSessions;
@@ -900,6 +910,13 @@ export function HistorySessionsClient({
   const showWorkoutStreak = shouldShowHistoryWorkoutStreak({
     hasSpecificTimelineFilter,
     visibleSessionCount: filteredSessions.length,
+  });
+  const showConsistencyHeatmap = shouldShowHistoryConsistencyHeatmap({
+    query,
+    selectedTagCount: selectedTags.length,
+    analyticsScope: normalizedFilterState.analyticsScope,
+    selectedDayKey: effectiveSelectedDayKey,
+    selectedMonthKey,
   });
   const hasStructuredFilters = selectedTags.length > 0
     || normalizedFilterState.analyticsScope !== "all_time"
@@ -954,6 +971,11 @@ export function HistorySessionsClient({
       {showWorkoutStreak ? (
         <div data-history-retention-surface="streak">
           <WorkoutStreakSurface summary={displayedWorkoutStreak} viewMode={viewMode} />
+        </div>
+      ) : null}
+      {showConsistencyHeatmap ? (
+        <div data-history-retention-surface="heatmap">
+          <ConsistencyHeatmapSurface heatmap={consistencyHeatmap} viewMode={viewMode} />
         </div>
       ) : null}
       {!effectiveSelectedDayKey && !selectedMonthKey ? (
