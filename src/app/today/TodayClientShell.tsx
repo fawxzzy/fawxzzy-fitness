@@ -7,8 +7,7 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { SubtitleText } from "@/components/ui/text-roles";
+import { CardEmptyState, CardNotice } from "@/components/ui/card-system";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
@@ -121,9 +120,9 @@ export function TodayClientShell({
     return (
       <TodayOverviewContent>
         <TodayOverviewScaffold>
-          <EmptyState
-            title="No routine selected"
-            body="Choose a routine to see today's plan."
+          <CardEmptyState
+            title="Choose a routine"
+            body="Pick the routine you want to follow, then today's plan shows here."
             action={(
               <Link href="/routines" className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>
                 Go to Routines
@@ -159,9 +158,7 @@ export function TodayClientShell({
               label="Resume Workout"
             />
           ) : display.staleAt ? null : (
-            <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">
-              Start session requires a live connection.
-            </SubtitleText>
+            <CardNotice>Start session requires a live connection.</CardNotice>
           )}
         </div>
       </TodayOverviewScaffold>
