@@ -717,7 +717,7 @@ export function RoutineHomeClient({
                     setIsAddDayMenuOpen(false);
                     setIsDuplicateSourceListOpen(false);
                   }}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.58)] text-[rgb(var(--text-secondary)/0.88)] transition hover:text-[rgb(var(--text-primary)/0.96)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.58)] text-[rgb(var(--text-secondary)/0.88)] transition hover:text-[rgb(var(--text-primary)/0.96)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
                 >
                   <ChevronRightIcon className="h-4 w-4 rotate-180" />
                 </button>
