@@ -134,8 +134,8 @@ const EditRoutineAutosaveForm = nextDynamic(
 const SessionPageClient = nextDynamic(() => import("@/components/SessionPageClient").then((mod) => mod.SessionPageClient), {
   ssr: true,
 });
-const SettingsAccordionClient = nextDynamic(
-  () => import("@/components/settings/SettingsAccordionClient").then((mod) => mod.SettingsAccordionClient),
+const SettingsSectionsClient = nextDynamic(
+  () => import("@/components/settings/SettingsSectionsClient").then((mod) => mod.SettingsSectionsClient),
   { ssr: true },
 );
 const SettingsHeaderIdentity = nextDynamic(
@@ -2930,10 +2930,10 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
         )}
       >
         <ContentRail className={appTokens.settingsContentRail}>
-          <SurfaceCard>
+          <div className="space-y-3">
             <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : scenario.fixture === "achievements" ? "achievements" : null}>
               <div className="pointer-events-none">
-                <SettingsAccordionClient
+                <SettingsSectionsClient
                   userKind="human"
                   userNumber={null}
                   canAccessQaVisibilitySetting={false}
@@ -2965,7 +2965,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                 />
               </div>
             </SettingsScreenStateProvider>
-          </SurfaceCard>
+          </div>
         </ContentRail>
 
         <div className="pointer-events-none">

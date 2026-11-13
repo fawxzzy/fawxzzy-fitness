@@ -4,7 +4,7 @@ import test from "node:test";
 
 const pageSource = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 const screenSource = readFileSync(new URL("../../components/account/AccountScreen.tsx", import.meta.url), "utf8");
-const settingsSource = readFileSync(new URL("../../components/settings/SettingsAccordionClient.tsx", import.meta.url), "utf8");
+const settingsSource = readFileSync(new URL("../../components/settings/SettingsSectionsClient.tsx", import.meta.url), "utf8");
 const signOutSource = readFileSync(new URL("../../components/SignOutButton.tsx", import.meta.url), "utf8");
 const appNavSource = readFileSync(new URL("../../components/AppNav.tsx", import.meta.url), "utf8");
 

@@ -119,7 +119,7 @@ const AREA_FILE_HINTS = [
     match: /account|settings/i,
     files: [
       "src/app/settings/page.tsx",
-      "src/components/settings/SettingsAccordionClient.tsx",
+      "src/components/settings/SettingsSectionsClient.tsx",
       "src/components/settings/DiscordAccessSettings.tsx",
     ],
     docs: [],
