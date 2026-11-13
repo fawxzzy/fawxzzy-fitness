@@ -34,3 +34,20 @@ test("a session-level set-log worker covers the state where every row is collaps
   assert.match(syncHookSource, /engine\.start\(\)/);
   assert.match(syncHookSource, /engine\.stop\(\)/);
 });
+
+test("cold start restores queued sets into collapsed rows, independent of which engine owns the replay", () => {
+  assert.match(focusSource, /seedQueuedSetsIntoSnapshots\(current, queued, serverSetsFor\)/);
+  assert.match(focusSource, /applySyncedItemToSnapshotMap\(current, item, serverSetId, userId, serverSetsFor\)/);
+  // The one-time read is keyed on the user only: it must not wait for `enabled` (an expanded row owns the engine).
+  assert.match(syncHookSource, /void readPendingSetLogs\(userId\)\s*\.then\(\(queued\) => \{[\s\S]*?\}, \[userId\]\);/);
+});
+
+test("the set-log replay engine is bounded, caught and stoppable", () => {
+  const engineSource = readFileSync(new URL("../lib/offline/sync-engine.ts", import.meta.url), "utf8");
+
+  assert.match(engineSource, /try \{\s*const response = await syncSetLogsAction\(/);
+  assert.match(engineSource, /let stopped = false;/);
+  assert.match(engineSource, /if \(stopped \|\| timer !== null/);
+  assert.match(engineSource, /const inFlightItemIds = new Set<string>\(\);/);
+  assert.match(engineSource, /isSetLogQueueItemParked\(/);
+});

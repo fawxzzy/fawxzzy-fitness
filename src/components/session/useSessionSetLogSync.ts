@@ -17,6 +17,10 @@ type SyncSetLogsAction = Parameters<typeof createSetLogSyncEngine>[0]["syncSetLo
  *
  * The queue itself is shared and idempotent (`clientLogId` dedupe on both the device and the server), so a set
  * is replayed exactly once whichever worker gets to it.
+ *
+ * Cold start: on mount (whichever worker owns the replay) the pending queue is read once and handed to
+ * `onQueuedSetsRead`, so sets queued before an app kill or a reopened session page are restored into rows that
+ * are collapsed. Without this the only restore path was the expanded logger card.
  */
 export function useSessionSetLogSync({
   userId,
@@ -40,6 +44,24 @@ export function useSessionSetLogSync({
     onItemSyncedRef.current = onItemSynced;
     onQueuedSetsReadRef.current = onQueuedSetsRead;
   }, [onItemSynced, onQueuedSetsRead]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void readPendingSetLogs(userId)
+      .then((queued) => {
+        if (!isCancelled) {
+          onQueuedSetsReadRef.current(queued);
+        }
+      })
+      .catch(() => {
+        // Keep the session list usable when offline storage is unavailable.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!enabled) {
@@ -89,6 +111,13 @@ export function useSessionSetLogSync({
       },
       onQueueUpdate: () => {
         void readQueue(true);
+      },
+      onTerminalFailure: () => {
+        // The set stays saved on this device (parked in the queue); the status toast above already told the user.
+        toast.error("Could not sync a saved set. It stays saved on this device.");
+      },
+      onUnexpectedError: () => {
+        // Offline storage failed mid-replay; the item stays pending and is retried on a later tick.
       },
     });
 

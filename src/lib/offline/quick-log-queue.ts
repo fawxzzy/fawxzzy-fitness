@@ -1,7 +1,7 @@
 import type { ActionResult } from "@/lib/action-result";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { OfflineSetPayload, SetLogQueueItem, SetLogQueueStatus } from "@/lib/offline/set-log-queue";
-import { resolveStableSetId } from "@/lib/offline/set-log-reconciliation";
+import { resolveStableSetId, toRestorableQueueSet } from "@/lib/offline/set-log-reconciliation";
 import type { SetRow } from "@/types/db";
 
 /**
@@ -118,6 +118,42 @@ function isSetForClientLogId(set: QueueAwareSnapshotSet, clientLogId: string) {
   return (set.stableId ?? resolveStableSetId(set)) === clientLogId;
 }
 
+/** A set whose `id` differs from its client log id already has a server identity: a queue read can no longer be about it. */
+function isServerConfirmedSet(set: QueueAwareSnapshotSet) {
+  return set.id !== (set.stableId ?? resolveStableSetId(set));
+}
+
+/** Builds a row-snapshot set from a queue item, with the fields the expanded logger writes when it restores a queued set. */
+function buildSnapshotSetFromQueueItem(
+  item: SetLogQueueItem,
+  setIndex: number,
+  overrides: Partial<QueueAwareSnapshotSet>,
+): QueueAwareSnapshotSet {
+  return {
+    id: item.clientLogId,
+    client_log_id: item.clientLogId,
+    stableId: item.clientLogId,
+    session_exercise_id: item.sessionExerciseId,
+    user_id: "queued",
+    set_index: setIndex,
+    weight: item.payload.weight,
+    reps: item.payload.reps,
+    is_warmup: item.payload.isWarmup,
+    notes: item.payload.notes,
+    duration_seconds: item.payload.durationSeconds,
+    distance: item.payload.distance,
+    distance_unit: item.payload.distanceUnit,
+    calories: item.payload.calories,
+    rpe: item.payload.rpe,
+    weight_unit: item.payload.weightUnit,
+    ...overrides,
+  };
+}
+
+function nextSetIndex(sets: QueueAwareSnapshotSet[]) {
+  return sets.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
+}
+
 /** Marks the optimistic set for `clientLogId` as saved locally in the queue (same fields the expanded logger writes). */
 export function markSnapshotSetQueued<T extends QueueAwareSnapshotSet>(sets: T[], clientLogId: string, queueItemId: string | null | undefined): T[] {
   if (!sets.some((set) => isSetForClientLogId(set, clientLogId))) {
@@ -162,20 +198,71 @@ export function markSnapshotSetSynced<T extends QueueAwareSnapshotSet>(
   ));
 }
 
-/** Applies a replayed queue item to the per-exercise snapshot map; returns the same map when nothing matched. */
+/**
+ * Applies a replayed queue item to the per-exercise snapshot map. When no set in the row matches (the page was
+ * reopened after the set was queued and nothing restored it), the synced set is added from the queue payload so
+ * the row count is right. `baseSetsFor` supplies the server sets of an exercise that has no snapshot yet; an
+ * exercise unknown to the session leaves the map untouched.
+ */
 export function applySyncedItemToSnapshotMap<T extends QueueAwareSnapshotSet>(
   snapshots: Record<string, T[]>,
-  item: Pick<SetLogQueueItem, "sessionExerciseId" | "clientLogId">,
+  item: SetLogQueueItem,
   serverSetId: string | undefined,
   userId: string,
+  baseSetsFor?: (sessionExerciseId: string) => T[] | undefined,
 ): Record<string, T[]> {
-  const previous = snapshots[item.sessionExerciseId];
+  const previous = snapshots[item.sessionExerciseId] ?? baseSetsFor?.(item.sessionExerciseId);
   if (!previous) {
     return snapshots;
   }
 
-  const next = markSnapshotSetSynced(previous, { clientLogId: item.clientLogId, serverSetId }, userId);
-  return next === previous ? snapshots : { ...snapshots, [item.sessionExerciseId]: next };
+  if (!previous.some((set) => isSetForClientLogId(set, item.clientLogId))) {
+    const added = buildSnapshotSetFromQueueItem(item, nextSetIndex(previous), {
+      id: serverSetId ?? item.clientLogId,
+      user_id: userId,
+      pending: false,
+    }) as T;
+    return { ...snapshots, [item.sessionExerciseId]: [...previous, added] };
+  }
+
+  return { ...snapshots, [item.sessionExerciseId]: markSnapshotSetSynced(previous, { clientLogId: item.clientLogId, serverSetId }, userId) };
+}
+
+/**
+ * Cold start: the queue survives an app kill or a reopened session page, but the only code that restored queued
+ * sets into a row is the expanded logger card, so a collapsed row showed N-1 sets and a stale "Log set N" (an
+ * invitation to log it again under a new client log id). Seeds every pending queued set that the row does not
+ * already hold, matched by client log id so it is idempotent and never duplicates a set the server returned.
+ * Items for exercises outside this session are ignored.
+ */
+export function seedQueuedSetsIntoSnapshots<T extends QueueAwareSnapshotSet>(
+  snapshots: Record<string, T[]>,
+  queued: SetLogQueueItem[],
+  baseSetsFor: (sessionExerciseId: string) => T[] | undefined,
+): Record<string, T[]> {
+  let next: Record<string, T[]> | null = null;
+
+  for (const item of queued) {
+    const restorable = toRestorableQueueSet(item);
+    if (!restorable) {
+      continue;
+    }
+
+    const current = (next ?? snapshots)[item.sessionExerciseId] ?? baseSetsFor(item.sessionExerciseId);
+    if (!current || current.some((set) => isSetForClientLogId(set, item.clientLogId))) {
+      continue;
+    }
+
+    const restored = buildSnapshotSetFromQueueItem(item, nextSetIndex(current), {
+      pending: true,
+      queueItemId: item.id,
+      queueStatus: item.status,
+    }) as T;
+    next = next ?? { ...snapshots };
+    next[item.sessionExerciseId] = [...current, restored];
+  }
+
+  return next ?? snapshots;
 }
 
 /**
@@ -190,6 +277,10 @@ export function reconcileSnapshotQueueStatuses<T extends QueueAwareSnapshotSet>(
   const next = sets.map((set) => {
     const match = queuedByClientLogId.get(set.stableId ?? resolveStableSetId(set));
     if (match) {
+      // A set with a server identity was replayed after this queue read started; the read is stale for it.
+      if (isServerConfirmedSet(set)) {
+        return set;
+      }
       if (set.queueItemId === match.id && set.pending === true && set.queueStatus === match.status) {
         return set;
       }

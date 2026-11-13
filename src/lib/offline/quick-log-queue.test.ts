@@ -13,6 +13,7 @@ import {
   QUICK_LOG_REQUEST_FAILED_QUEUED_MESSAGE,
   reconcileSnapshotMapQueueStatuses,
   reconcileSnapshotQueueStatuses,
+  seedQueuedSetsIntoSnapshots,
   shouldRunSessionSetLogSync,
   submitQuickLogSet,
   toOfflineSetPayload,
@@ -303,23 +304,94 @@ test("markSnapshotSetSynced swaps in the server identity and clears the queue fl
   assert.equal(keepsId?.id, "log-1");
 });
 
-test("applySyncedItemToSnapshotMap touches only the item's exercise and keeps the map identity when nothing matches", () => {
+test("applySyncedItemToSnapshotMap touches only the item's exercise and refreshes a matching set", () => {
   const queued = buildSet({ queueItemId: "queue-1", queueStatus: "queued", user_id: "queued" });
   const snapshots = { "exercise-1": [queued], "exercise-2": [buildSet({ session_exercise_id: "exercise-2", stableId: "log-2", client_log_id: "log-2", id: "log-2" })] };
 
-  const next = applySyncedItemToSnapshotMap(snapshots, { sessionExerciseId: "exercise-1", clientLogId: "log-1" }, "server-set-1", "user-1");
+  const next = applySyncedItemToSnapshotMap(snapshots, buildQueueItem(), "server-set-1", "user-1");
 
   assert.equal(next["exercise-1"]?.[0]?.id, "server-set-1");
+  assert.equal(next["exercise-1"]?.length, 1);
   assert.equal(next["exercise-2"], snapshots["exercise-2"]);
   assert.equal(
-    applySyncedItemToSnapshotMap(snapshots, { sessionExerciseId: "exercise-9", clientLogId: "log-1" }, "x", "user-1"),
+    applySyncedItemToSnapshotMap(snapshots, buildQueueItem({ sessionExerciseId: "exercise-9" }), "x", "user-1"),
     snapshots,
-  );
-  assert.equal(
-    applySyncedItemToSnapshotMap(snapshots, { sessionExerciseId: "exercise-1", clientLogId: "nope" }, "x", "user-1"),
-    snapshots,
+    "an exercise outside the session is ignored",
   );
 });
+
+test("applySyncedItemToSnapshotMap adds the synced set when the row never held it (cold start)", () => {
+  const serverSet = buildSet({ id: "server-0", client_log_id: "log-0", stableId: "log-0", set_index: 0, pending: false });
+  const snapshots = { "exercise-1": [serverSet] };
+
+  const next = applySyncedItemToSnapshotMap(snapshots, buildQueueItem({ clientLogId: "log-1" }), "server-set-1", "user-1");
+
+  assert.equal(next["exercise-1"]?.length, 2);
+  const added = next["exercise-1"]?.[1];
+  assert.equal(added?.id, "server-set-1");
+  assert.equal(added?.client_log_id, "log-1");
+  assert.equal(added?.set_index, 1);
+  assert.equal(added?.pending, false);
+  assert.equal(added?.user_id, "user-1");
+  assert.equal(added?.weight, 135);
+  assert.equal(added?.reps, 5);
+
+  // Falls back to the server sets for an exercise that has no snapshot yet.
+  const fromBase = applySyncedItemToSnapshotMap({}, buildQueueItem({ clientLogId: "log-1" }), "server-set-1", "user-1", () => [serverSet]);
+  assert.equal(fromBase["exercise-1"]?.length, 2);
+});
+
+test("seedQueuedSetsIntoSnapshots restores queued sets into collapsed rows after a cold start", () => {
+  // The session page reopened: the server returned 2 sets, the queue still holds the 3rd.
+  const serverSets = [
+    buildSet({ id: "server-0", client_log_id: "log-0", stableId: "log-0", set_index: 0, pending: false }),
+    buildSet({ id: "server-1", client_log_id: "log-1b", stableId: "log-1b", set_index: 1, pending: false }),
+  ];
+  const queued = [
+    buildQueueItem({ id: "queue-3", clientLogId: "log-3", status: "queued" }),
+    buildQueueItem({ id: "queue-4", clientLogId: "log-4", status: "failed", retryCount: 2, createdAt: "2026-11-12T23:31:00.000Z" }),
+  ];
+  const snapshots = { "exercise-1": serverSets };
+
+  const next = seedQueuedSetsIntoSnapshots(snapshots, queued, () => undefined);
+
+  assert.equal(next["exercise-1"]?.length, 4, "the row now counts the queued sets");
+  const restored = next["exercise-1"]?.slice(2);
+  assert.deepEqual(restored?.map((set) => set.set_index), [2, 3]);
+  assert.deepEqual(restored?.map((set) => set.client_log_id), ["log-3", "log-4"]);
+  assert.deepEqual(restored?.map((set) => set.queueStatus), ["queued", "failed"]);
+  assert.deepEqual(restored?.map((set) => set.pending), [true, true]);
+  assert.deepEqual(restored?.map((set) => set.queueItemId), ["queue-3", "queue-4"]);
+  assert.equal(restored?.[0]?.user_id, "queued");
+  assert.equal(restored?.[0]?.weight, 135);
+
+  // Idempotent: seeding again, or after the queue read repeats, does not duplicate.
+  assert.equal(seedQueuedSetsIntoSnapshots(next, queued, () => undefined), next);
+});
+
+test("seedQueuedSetsIntoSnapshots never duplicates a set the server already returned, skips foreign and settled items", () => {
+  const serverSets = [buildSet({ id: "server-0", client_log_id: "log-0", stableId: "log-0", set_index: 0, pending: false })];
+  const snapshots = { "exercise-1": serverSets };
+
+  const unchanged = seedQueuedSetsIntoSnapshots(
+    snapshots,
+    [
+      // The queue item whose set already came back from the server (replayed, queue entry not yet removed).
+      buildQueueItem({ id: "queue-0", clientLogId: "log-0" }),
+      // An item for an exercise that is not in this session.
+      buildQueueItem({ id: "queue-x", clientLogId: "log-x", sessionExerciseId: "exercise-other" }),
+      // A settled item is not pending sync.
+      buildQueueItem({ id: "queue-s", clientLogId: "log-s", status: "synced", syncedAt: "2026-11-12T23:40:00.000Z" }),
+    ],
+    () => undefined,
+  );
+  assert.equal(unchanged, snapshots);
+
+  // An exercise with no snapshot yet is seeded from its server sets.
+  const fromBase = seedQueuedSetsIntoSnapshots({}, [buildQueueItem({ clientLogId: "log-3" })], () => serverSets);
+  assert.equal(fromBase["exercise-1"]?.length, 2);
+  assert.equal(fromBase["exercise-1"]?.[1]?.client_log_id, "log-3");
+}); 
 
 test("reconcileSnapshotQueueStatuses follows queue status, releases replayed sets, and spares in-flight online sets", () => {
   const stillQueued = buildSet({ id: "log-1", stableId: "log-1", client_log_id: "log-1", queueStatus: "queued", queueItemId: "queue-1" });
@@ -344,6 +416,13 @@ test("reconcileSnapshotQueueStatuses follows queue status, releases replayed set
   assert.equal(
     reconcileSnapshotQueueStatuses(unchanged, [buildQueueItem({ id: "queue-1", clientLogId: "log-1", status: "queued" })]),
     unchanged,
+  );
+
+  // A queue read that started before replay finished lists the item; the replayed set (server id) is left alone.
+  const replayed = buildSet({ id: "server-5", client_log_id: "log-5", stableId: "log-5", pending: false, user_id: "user-1" });
+  assert.equal(
+    reconcileSnapshotQueueStatuses([replayed], [buildQueueItem({ id: "queue-5", clientLogId: "log-5", status: "syncing" })])[0],
+    replayed,
   );
 });
 

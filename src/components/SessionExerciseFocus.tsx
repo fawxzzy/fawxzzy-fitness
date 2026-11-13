@@ -61,6 +61,7 @@ import {
   markSnapshotSetQueued,
   QUICK_LOG_FAILED_MESSAGE,
   reconcileSnapshotMapQueueStatuses,
+  seedQueuedSetsIntoSnapshots,
   shouldRunSessionSetLogSync,
   submitQuickLogSet,
   toOfflineSetPayload,
@@ -610,6 +611,7 @@ export function SessionExerciseFocus({
 
   // A collapsed row's quick log queues the set offline while no SetLoggerCard (and so no set-log sync engine)
   // is mounted; this session-level worker replays the queue then. See useSessionSetLogSync.
+  const serverSetsFor = (sessionExerciseId: string) => exercises.find((exercise) => exercise.id === sessionExerciseId)?.initialSets;
   useSessionSetLogSync({
     userId,
     enabled: shouldRunSessionSetLogSync({
@@ -618,10 +620,12 @@ export function SessionExerciseFocus({
     }),
     syncSetLogsAction: syncQueuedSetLogsAction,
     onItemSynced: ({ item, serverSetId }) => {
-      setSetSnapshotsBySessionExerciseId((current) => applySyncedItemToSnapshotMap(current, item, serverSetId, userId));
+      setSetSnapshotsBySessionExerciseId((current) => applySyncedItemToSnapshotMap(current, item, serverSetId, userId, serverSetsFor));
     },
     onQueuedSetsRead: (queued) => {
-      setSetSnapshotsBySessionExerciseId((current) => reconcileSnapshotMapQueueStatuses(current, queued));
+      setSetSnapshotsBySessionExerciseId((current) => (
+        reconcileSnapshotMapQueueStatuses(seedQueuedSetsIntoSnapshots(current, queued, serverSetsFor), queued)
+      ));
     },
   });
 
