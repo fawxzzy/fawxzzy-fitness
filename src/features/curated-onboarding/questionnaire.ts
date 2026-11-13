@@ -828,6 +828,22 @@ function deriveEquipment(responses: CuratedIntakeResponses): EquipmentAccess[] {
   return Array.from(selected);
 }
 
+/**
+ * Maps the free-text "equipment you do NOT want to use" answer onto the closed equipment vocabulary.
+ * Bodyweight is never avoidable. Unrecognized text is ignored rather than guessed at.
+ */
+export function deriveAvoidedEquipment(responses: CuratedIntakeResponses): EquipmentAccess[] {
+  const text = getStringResponse(responses, "equipmentAvoid").toLowerCase();
+  if (!text.trim()) return [];
+
+  const avoided = new Set<EquipmentAccess>();
+  if (/\b(?:barbells?|squat racks?|power racks?|free weights?)\b/.test(text)) avoided.add("barbell");
+  if (/\b(?:dumbbells?|kettlebells?|free weights?)\b/.test(text)) avoided.add("dumbbells");
+  if (/\b(?:machines?|cables?|smith|treadmills?|stationary bikes?|exercise bikes?|bikes?|cardio equipment)\b/.test(text)) avoided.add("machines");
+  if (/\b(?:resistance bands?|mini bands?|loop bands?|bands?)\b/.test(text)) avoided.add("bands");
+  return [...avoided].sort();
+}
+
 function derivePreferredStyle(responses: CuratedIntakeResponses): PreferredStyle {
   const style = getStringResponse(responses, "planStyle");
   if (style === "muscle-focused") return "push-pull-legs";
@@ -909,6 +925,9 @@ export function deriveCuratedEngineData(
     equipment: getArrayResponse(responses, "availableEquipment").length > 0 || getArrayResponse(responses, "trainingLocations").length > 0
       ? deriveEquipment(responses)
       : [...(fallback?.equipment ?? [])],
+    avoidedEquipment: Object.prototype.hasOwnProperty.call(responses, "equipmentAvoid")
+      ? deriveAvoidedEquipment(responses)
+      : [...(fallback?.avoidedEquipment ?? [])],
     preferredStyle: getStringResponse(responses, "planStyle") ? derivePreferredStyle(responses) : fallback?.preferredStyle ?? null,
     cardioPreference: getStringResponse(responses, "planStyle") ? deriveCardioPreference(responses) : fallback?.cardioPreference ?? null,
     limitations,

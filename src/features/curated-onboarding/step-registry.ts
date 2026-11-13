@@ -49,7 +49,7 @@ export const CURATED_STEP_REGISTRY: CuratedStepDefinition[] = [
     id: "preferences",
     eyebrow: "Preferences",
     title: "Exercise Preferences",
-    body: "Capture what you enjoy, avoid, want to improve, and how the plan should feel.",
+    body: "Capture what you enjoy, avoid, want to improve, and how the routine should feel.",
     nextLabel: "Next",
   },
   {
@@ -63,14 +63,14 @@ export const CURATED_STEP_REGISTRY: CuratedStepDefinition[] = [
     id: "nutrition",
     eyebrow: "Nutrition",
     title: "Nutrition Basics",
-    body: "Capture current habits and the nutrition support that should accompany the plan.",
+    body: "Capture current habits and the nutrition support that should accompany the routine.",
     nextLabel: "Next",
   },
   {
     id: "delivery",
     eyebrow: "Delivery",
     title: "Accountability + Delivery",
-    body: "Set plan detail, delivery, follow-up, feedback, and final acknowledgments.",
+    body: "Set routine detail, delivery, follow-up, feedback, and final acknowledgments.",
     nextLabel: "Review",
   },
   {
@@ -78,13 +78,13 @@ export const CURATED_STEP_REGISTRY: CuratedStepDefinition[] = [
     eyebrow: "Review",
     title: "Review the saved intake",
     body: "Confirm every answer before the curated engine builds an editable routine draft.",
-    nextLabel: "Generate plan",
+    nextLabel: "Generate routine",
   },
   {
     id: "generation-handoff",
-    eyebrow: "Generated Plan",
+    eyebrow: "Generated Routine",
     title: "Review your curated routine",
-    body: "Review the deterministic plan, then open it as a normal editable routine draft before publishing.",
+    body: "Review the generated routine, then open it as a normal editable routine draft before publishing.",
     nextLabel: "Create editable draft",
   },
 ];

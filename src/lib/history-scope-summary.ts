@@ -407,6 +407,7 @@ function buildHistoryProgressionSummary(args: {
       routineTitleById: args.routineTitleById,
       granularity: "week",
       limit: 6,
+      timeZone: args.timezone,
     }),
     topProgressedExerciseNames,
     topDeloadExerciseNames,
