@@ -1,5 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Route the collapsed-row quick log through the offline set-log queue
+
+- Type: Offline durability (source) + Coverage
+- WHAT changed: The Current Session collapsed-row quick log (`SessionExerciseFocus.tsx`) previously called `addSetAction` directly and, on any failure, rolled the optimistic set back with "Could not quick log set." It now calls `submitQuickLogSet` (`src/lib/offline/quick-log-queue.ts`): offline up front, or a request that throws, writes the set to the existing IndexedDB set-log queue (`enqueueSetLog`, deduped by the optimistic set's `clientLogId`, same payload shape as the expanded logger) and keeps the optimistic set marked queued, with the expanded logger's toast copy. A new session-level worker (`useSessionSetLogSync`) runs the existing `createSetLogSyncEngine` while no `SetLoggerCard` is mounted, so a set queued from a collapsed row (or left queued by a row that was just collapsed) replays after reconnect, and reads the queue once on mount to restore queued sets into collapsed rows (`seedQueuedSetsIntoSnapshots`; the synced set is added when no row held it). Review hardening of `sync-engine.ts`: the replay call is wrapped (a throw is a failure with backoff, no hot loop), retries are bounded (`SET_LOG_MAX_RETRY_ATTEMPTS`, then the item is parked as `failed`: kept, skipped by periodic ticks, and re-armed on engine start or `online` with a fresh bounded burst, retryCount reset to 0, unless the refusal was "session no longer live", which keeps its count and gets one attempt), the replay has a 25 s timeout so a hung fetch cannot hold the in-flight guard, a non-numeric stored retryCount no longer throws in the backoff math, `stop()` is final (an in-flight tick no longer reschedules), an in-tab in-flight guard keeps two engines from replaying one item, and every successful replay is broadcast (`subscribeToSetLogSynced`) so a collapsed row takes the server identity even when another row's card engine ran the replay. The ordinary expanded logger now toasts a parked set instead of failing silently.
+- WHY it changed: One user action had two offline routes and the collapsed one lost data (live UX sift 2026-11-12, finding 1). The only replay worker lived inside the expanded logger card, which is unmounted while collapsed, so queueing alone would have left the set waiting for an unrelated row to be expanded.
+- Rule: One mutation, one offline route. Every UI entry point for the same write must share the queue, the idempotency key and the replay worker.
+- Failure Mode: A second entry point that treats a thrown request as failure drops the write on the one path nobody reproduced offline; a replay worker owned by a component that can unmount silently stops replaying; routing more writes into a queue whose replay call is not wrapped turns "request threw" into a hot retry loop; a restore path that lives in one component leaves every other view of the same state stale after a cold start.
+- Decision: Only "offline up front" and "the request threw" queue. A resolved `{ ok: false }` is an explicit server refusal (validation, auth, completed session) and is rolled back with the server message, never queued, because the set-log engine retries forever. The expanded logger still queues on a resolved `{ ok: false }`; that difference is left for a follow-up rather than widened here. The session worker is on only when no logger card is mounted (`shouldRunSessionSetLogSync`), so exactly one engine replays the queue.
+- Evidence: `src/lib/offline/quick-log-queue.ts` and test, `src/components/session/useSessionSetLogSync.ts`, `src/components/SessionExerciseFocus.tsx`, `src/components/SessionExerciseFocus.quickLogOffline.contract.test.ts`; headless Chromium against the mobile-regression fixture route at 320x568, 390x844 and 430x932 (offline tap queues, reconnect replays with every row collapsed).
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
+
 ## 2026-11-12 - Carry sign-up feedback as allow-listed codes, and keep the recovery redirect on the flow that can read it
 
 - Type: Authentication feedback + Enumeration hygiene + Recovery contract
@@ -11,6 +22,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Decision: Fitness keeps its own recovery page; the exact URL `https://fitness.fawxzzy.com/reset-password?recovery=1` still has to be on the Supabase Auth redirect allow-list (provider setting, not changed here).
 - Evidence: `src/components/auth/signupFeedback.ts` and test, `tests/signup-failure-copy-action.test.mjs`, `src/lib/password-reset-request.ts` and test.
 - Status: Source-only; no provider setting, deployment or live account touched.
+
 
 ## 2026-11-12 - "Every difference is explained" needs a property test, and pain is never retained
 

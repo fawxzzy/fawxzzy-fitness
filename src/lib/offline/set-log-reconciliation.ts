@@ -1,5 +1,6 @@
 import type { SetRow } from "@/types/db";
 import type { SetLogQueueItem, SetLogQueueStatus } from "@/lib/offline/set-log-queue";
+import { LIVE_SESSION_EXERCISE_ERROR, LIVE_SESSION_MUTATION_ERROR } from "@/lib/session-live-mutation";
 
 export type StableSetLike = {
   id: string;
@@ -53,6 +54,26 @@ export function buildSetQueueDedupeKey(clientLogId: string) {
 
 export function isQueueItemPendingSync(item: Pick<SetLogQueueItem, "status" | "syncedAt">) {
   return item.status === "queued" || item.status === "failed" || (item.status === "syncing" && !item.syncedAt);
+}
+
+/**
+ * Bounded replay for the set-log queue. A set is user data, so it is never deleted by a failed replay: after
+ * `SET_LOG_MAX_RETRY_ATTEMPTS` failed attempts (about three minutes of backoff), or at once when the server says
+ * the session is no longer live, the item is PARKED: it stays in the queue as `failed` and the replay worker skips
+ * it on its periodic ticks. When the worker restarts or the device comes back online a non-terminal parked item
+ * is re-armed with a fresh bounded burst (retryCount reset to 0), so an `online` event that fires before the radio
+ * works does not strand it; a terminal one (session no longer live) keeps its count and gets one attempt. A
+ * parked item is the terminal failed state the UI and the sync badge can show.
+ */
+export const SET_LOG_MAX_RETRY_ATTEMPTS = 8;
+export const SET_LOG_TRANSPORT_ERROR = "Could not reach server.";
+
+export function isTerminalSetLogSyncError(error?: string | null) {
+  return error === LIVE_SESSION_MUTATION_ERROR || error === LIVE_SESSION_EXERCISE_ERROR;
+}
+
+export function isSetLogQueueItemParked(item: Pick<SetLogQueueItem, "status" | "retryCount" | "lastError">) {
+  return item.status === "failed" && (item.retryCount >= SET_LOG_MAX_RETRY_ATTEMPTS || isTerminalSetLogSyncError(item.lastError));
 }
 
 export function toRestorableQueueSet(item: SetLogQueueItem): RestorableQueueSet | null {
