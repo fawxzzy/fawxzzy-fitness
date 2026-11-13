@@ -419,9 +419,15 @@ export function RoutineHomeClient({
       return;
     }
 
-    const heading = getRoutineDayHeading({ name: moved.title ?? moved.name, dayIndex: moved.dayIndex, startDate: routineStartDate });
+    const heading = getRoutineDayHeading({
+      name: moved.title ?? moved.name,
+      dayIndex: moved.dayIndex,
+      startDate: routineStartDate,
+      isRest: moved.isRest,
+    });
     setReorderAnnouncement(formatReorderAnnouncement({
-      name: heading.customTitle ?? "Day",
+      // The heading the day showed before the move: its custom title, else "Day N" / "Rest".
+      name: heading.title,
       position: position + 1,
       total: order.length,
     }));
@@ -839,6 +845,7 @@ export function RoutineHomeClient({
             const result = await reorderRoutineDaysAction(formData);
             if (!result.ok) {
               toast.error(result.error ?? "Could not reorder days.");
+              setReorderAnnouncement("Could not reorder days; order restored");
               setOrderedDays(days);
               orderedDaysRef.current = days;
               setActiveDragId(null);

@@ -270,6 +270,9 @@ test("reorder wiring: day list and edit-day list announce moves, describe the ha
   assert.match(edit, /aria-disabled=\{isReorderSaving \|\| undefined\}/);
   assert.match(edit, /if \(reorderSavingRef\.current \|\| workoutPlanDecisionOpen\) return;/);
   assert.match(edit, /finally \{\s*setReorderSaving\(false\);/);
+  assert.match(edit, /setReorderAnnouncement\("Could not reorder exercises; order restored"\)/);
+  assert.match(home, /setReorderAnnouncement\("Could not reorder days; order restored"\)/);
+  assert.match(home, /name: heading\.title/);
 });
 
 test("the Today day picker keeps list semantics: each picker card is an li inside the ul", () => {

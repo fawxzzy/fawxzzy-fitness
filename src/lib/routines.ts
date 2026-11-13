@@ -533,6 +533,20 @@ export function getRoutineDayEditableName(args: {
   return isRoutineDayDisplayPlaceholderName({ ...args, name: trimmedName }) ? "" : trimmedName;
 }
 
+/**
+ * Name the day-settings autosave submits. The name field shows `getRoutineDayEditableName` (a placeholder such as
+ * a stale "7" reads as empty), but a toggle (Rest, Optional, direction) must not rewrite the stored name: unless the
+ * user changed the field, the stored value goes back unchanged. Without this the server's empty-name fallback
+ * (`String(day_index)`) would persist the position number over a stored "7", "Tue" or "300".
+ */
+export function resolveRoutineDaySettingsSubmitName(args: {
+  storedName: string | null | undefined;
+  displayName: string;
+  draftName: string;
+}) {
+  return args.draftName === args.displayName ? (args.storedName ?? "") : args.draftName;
+}
+
 export function hasCustomRoutineDayTitle(args: {
   name: string | null | undefined;
   dayIndex: number;

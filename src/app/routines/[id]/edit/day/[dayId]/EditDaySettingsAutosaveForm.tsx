@@ -17,7 +17,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
-import { getRoutineDayEditableName } from "@/lib/routines";
+import { getRoutineDayEditableName, resolveRoutineDaySettingsSubmitName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { publishEditDayAdjustmentDirection, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
 import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
@@ -221,7 +221,11 @@ export function EditDaySettingsAutosaveForm({
     const formData = new FormData(form);
     const snapshot = JSON.stringify(nextSnapshot);
 
-    formData.set("name", nextSnapshot.name);
+    formData.set("name", resolveRoutineDaySettingsSubmitName({
+      storedName: name,
+      displayName: initialEditableName,
+      draftName: nextSnapshot.name,
+    }));
     if (nextSnapshot.isRest) {
       formData.set("isRest", "on");
     } else {
@@ -270,7 +274,9 @@ export function EditDaySettingsAutosaveForm({
     });
   }, [
     activeWorkoutPlanId,
+    initialEditableName,
     isDayAdjustmentVisible,
+    name,
     openWorkoutPlanDecision,
     shouldGateTemplateEditDecision,
     shouldSyncWorkoutPlanOnSave,

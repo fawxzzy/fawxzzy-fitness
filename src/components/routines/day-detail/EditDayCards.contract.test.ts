@@ -27,6 +27,13 @@ test("edit-day exercise list renders ExerciseRowCard with a 44px DragHandle (poi
   assert.doesNotMatch(list, /ExerciseDisclosureCard|StandardExerciseRow|SHARED_PLANNED_CARD|MetricAccentBar/);
 });
 
+test("day settings autosave submits the stored day name unless the name field was edited (a toggle must not persist the position number)", () => {
+  const form = readFileSync(here("../../../app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx"), "utf8");
+
+  assert.match(form, /formData\.set\("name", resolveRoutineDaySettingsSubmitName\(\{\s*storedName: name,\s*displayName: initialEditableName,\s*draftName: nextSnapshot\.name,\s*\}\)\)/);
+  assert.doesNotMatch(form, /formData\.set\("name", nextSnapshot\.name\)/);
+});
+
 test("exercise card trailing controls are stacked 44px targets and the sticky header keeps working when expanded", () => {
   const card = readFileSync(here("../../workout/ExerciseRowCard.tsx"), "utf8");
 

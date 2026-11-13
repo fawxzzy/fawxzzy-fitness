@@ -1140,6 +1140,7 @@ export function EditableRoutineDayExerciseList({
       const result = await reorderAction(formData);
       if (!result.ok) {
         toast.error(result.error || "Could not reorder exercises.");
+        setReorderAnnouncement("Could not reorder exercises; order restored");
         setItems(exercises);
         return;
       }

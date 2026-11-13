@@ -11,6 +11,7 @@ import {
   getRoutineDayResolvedWeekdayLabel,
   isRoutineDayDefaultName,
   isRoutineDayDisplayPlaceholderName,
+  resolveRoutineDaySettingsSubmitName,
   isRoutineDayGeneratedPlaceholderName,
   resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
@@ -335,4 +336,17 @@ test("getRoutineDayHeading: rest days read Rest, an unresolved weekday is omitte
     getRoutineDayHeading({ name: "Rest", dayIndex: 4, startDate: null, weekdayLabel: "Thu", isRest: true }).metaParts,
     ["Day 4", "Thu"],
   );
+});
+
+test("day settings autosave sends the stored name back unchanged unless the user edited the name field", () => {
+  for (const stored of ["7", "Tue", "300", "Day 9", "Wed | Forge", "Push"]) {
+    const displayName = getRoutineDayEditableName({ name: stored, dayIndex: 6, startDate: "2026-04-27" });
+    // untouched field (a Rest/Optional toggle): the stored value, never the empty display or String(day_index)
+    assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: stored, displayName, draftName: displayName }), stored);
+    // edited field: the new text
+    assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: stored, displayName, draftName: "Heavy" }), "Heavy");
+  }
+  // a user who clears the field on purpose (display was "Push") sends the empty name
+  assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: "Push", displayName: "Push", draftName: "" }), "");
+  assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: null, displayName: "", draftName: "" }), "");
 });
