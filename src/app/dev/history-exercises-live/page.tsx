@@ -1,4 +1,4 @@
-import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
+import { assertDevServiceRolePageAvailable } from "@/lib/dev-route-guard-page";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -45,7 +45,7 @@ export default async function DevHistoryExercisesLivePage({
     accessToken?: string;
   };
 }) {
-  assertDevPageAvailable();
+  assertDevServiceRolePageAvailable();
 
   const userId = searchParams?.userId?.trim() ?? "";
   const initialViewMode = searchParams?.view === "detailed" ? "detailed" : "compact";

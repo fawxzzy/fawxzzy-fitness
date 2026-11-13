@@ -5,13 +5,15 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { NextRequest } from "next/server.js";
 import { middleware } from "@/middleware";
-import { assertDevPageAvailable } from "./dev-route-guard-page.ts";
+import { assertDevPageAvailable, assertDevServiceRolePageAvailable } from "./dev-route-guard-page.ts";
 import {
   devRouteUnavailableResponse,
+  devServiceRoleRouteUnavailableResponse,
   hostnameFromHostHeader,
   hostnamesOf,
   isDevOnlyPath,
   isDevRouteWithdrawn,
+  isDevServiceRoleRouteWithdrawn,
   isLoopbackHostname,
   isProductionDeployment,
   isProductionHostname,
@@ -48,6 +50,8 @@ const pagesWithSharedGuard = [
   "src/app/dev/stretch-card-pass/page.tsx",
   "src/app/dev/stretch-info-preview/page.tsx",
   "src/app/dev/stretch-session-preview/page.tsx",
+  "src/app/dev/curated-onboarding/page.tsx",
+  "src/app/dev/mobile-regression/page.tsx",
 ];
 
 async function withEnv<T>(env: Record<string, string | undefined>, run: () => Promise<T>) {
@@ -263,7 +267,7 @@ test("every dev page has a production check, and the unguarded pages call the sh
   assert.ok(pages.length >= 20, String(pages.length));
 
   for (const file of pages) {
-    assert.match(read(file), /assertDevPageAvailable\(\)|process\.env\.NODE_ENV === "production"/, `${file} has no production check`);
+    assert.match(read(file), /assertDev(?:ServiceRole)?PageAvailable\(\)|process\.env\.NODE_ENV === "production"/, `${file} has no production check`);
   }
 
   for (const file of pagesWithSharedGuard) {
@@ -274,31 +278,117 @@ test("every dev page has a production check, and the unguarded pages call the sh
   }
 });
 
-test("any dev page or handler that reads with the service-role client calls the shared guard first", () => {
+const ADMIN_PATTERN = /\bsupabaseAdmin\b|@\/lib\/supabase\/admin/;
+
+// Resolve the module specifiers a source file imports to repository paths (src only).
+function importedSourceFiles(relativeFile: string): string[] {
+  const source = read(relativeFile);
+  const specifiers = [...source.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map((match) => match[1]);
+  const resolved: string[] = [];
+
+  for (const specifier of specifiers) {
+    const base = specifier.startsWith("@/")
+      ? path.posix.join("src", specifier.slice(2))
+      : specifier.startsWith(".")
+        ? path.posix.join(path.posix.dirname(relativeFile), specifier)
+        : null;
+    if (!base) continue;
+
+    for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) {
+      try {
+        if (statSync(path.join(repoRoot, candidate)).isFile()) {
+          resolved.push(candidate);
+          break;
+        }
+      } catch {
+        // not this candidate
+      }
+    }
+  }
+
+  return resolved;
+}
+
+test("any dev page or handler that reads with the service-role client, directly or through an import, calls the strict shared guard first", () => {
   const sourceFiles = [
     ...listFiles("src/app/dev"),
     ...listFiles("src/app/api/dev"),
     "src/app/api/ecosystem/fitness/debug/route.ts",
   ].filter((file) => /\.(?:ts|tsx)$/.test(file) && !/\.test\./.test(file));
-  const adminReaders = sourceFiles.filter((file) => /\bsupabaseAdmin\b|@\/lib\/supabase\/admin/.test(read(file)));
+  const direct = sourceFiles.filter((file) => ADMIN_PATTERN.test(read(file)));
+  // One level of indirection: a dev file importing a module that itself imports the admin client.
+  const indirect = sourceFiles.filter(
+    (file) => !direct.includes(file) && importedSourceFiles(file).some((imported) => ADMIN_PATTERN.test(read(imported))),
+  );
 
-  // The three History live pages and the dev history API route read with the service-role client.
-  assert.ok(adminReaders.length >= 4, adminReaders.join(", "));
+  // The five service-role dev pages and the dev history API route read with the admin client.
+  assert.ok(direct.length >= 6, direct.join(", "));
 
-  for (const file of adminReaders) {
+  for (const file of [...direct, ...indirect]) {
     const source = read(file);
 
     if (/\/page\.tsx$/.test(file)) {
       assert.match(source, /from "@\/lib\/dev-route-guard-page"/, file);
-      assert.match(source, /export default (?:async )?function \w+\([\s\S]*?\) \{\s*assertDevPageAvailable\(\);/, `${file} must call the shared page guard first`);
+      assert.match(
+        source,
+        /export default (?:async )?function \w+\([\s\S]*?\) \{\s*assertDevServiceRolePageAvailable\(\);/,
+        `${file} must call the strict service-role page guard first`,
+      );
       // A page-local copy of a spoofable gate must not come back.
       assert.doesNotMatch(source, /isLocalRequest|x-forwarded-host/, `${file} keeps its own host gate`);
     } else if (/\/route\.ts$/.test(file)) {
-      assert.match(source, /const unavailable = devRouteUnavailableResponse\(request\);/, `${file} must call the shared handler guard`);
+      assert.match(source, /const unavailable = devServiceRoleRouteUnavailableResponse\(request\);/, `${file} must call the strict service-role handler guard`);
     } else {
-      assert.fail(`${file} imports the service-role client but is neither a dev page nor a route handler`);
+      assert.fail(`${file} reaches the service-role client but is neither a dev page nor a route handler`);
     }
   }
+});
+
+test("the strict service-role rule keeps previews and the opt-in away from admin-client reads", () => {
+  const productionMode = { NODE_ENV: "production" };
+
+  // Platform preview: general dev routes stay open, service-role routes need loopback.
+  assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { ...productionMode, VERCEL_ENV: "preview" } }), false);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [OTHER_HOST], env: { ...productionMode, VERCEL_ENV: "preview" } }), true);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: ["abc.vercel.app", "abc.vercel.app"], env: { ...productionMode, VERCEL_ENV: "preview" } }), true);
+  // The opt-in does not admit them either.
+  assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { ...productionMode, HISTORY_QA_PREVIEW_ENABLED: "1" } }), false);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [OTHER_HOST], env: { ...productionMode, HISTORY_QA_PREVIEW_ENABLED: "1" } }), true);
+  // Loopback in production mode, and explicit development or test runs, are admitted.
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: ["127.0.0.1", "localhost"], env: productionMode }), false);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: ["localhost"], env: { ...productionMode, VERCEL_ENV: "preview" } }), false);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV: "development" } }), false);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV: "test", VERCEL_ENV: "preview" } }), false);
+  // Anything the general rule withdraws stays withdrawn; unknown NODE_ENV needs loopback.
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: ["localhost"], env: { VERCEL_ENV: "production", NODE_ENV: "development" } }), true);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV: "Production", VERCEL_ENV: "preview" } }), true);
+  assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [], env: productionMode }), true);
+
+  const preview = { VERCEL_ENV: "preview", NODE_ENV: "production" };
+  assert.ok(devServiceRoleRouteUnavailableResponse(new Request(`https://${OTHER_HOST}/x`, { headers: { host: OTHER_HOST } }), preview));
+  assert.equal(devServiceRoleRouteUnavailableResponse(new Request("http://localhost:3000/x", { headers: { host: "localhost:3000" } }), preview), null);
+
+  assert.throws(() => assertDevServiceRolePageAvailable(OTHER_HOST, preview), isNotFound);
+  assert.throws(() => assertDevServiceRolePageAvailable(OTHER_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
+  assert.doesNotThrow(() => assertDevServiceRolePageAvailable(null, { NODE_ENV: "development" }));
+  assert.doesNotThrow(() => assertDevServiceRolePageAvailable("localhost:3000", preview));
+  assert.doesNotThrow(() => assertDevServiceRolePageAvailable(OTHER_HOST, { NODE_ENV: "development" }));
+});
+
+test("a production hostname is never exempt through a development or test NODE_ENV", () => {
+  for (const NODE_ENV of ["development", "test"]) {
+    for (const hostname of [EXTERNAL_HOST, "fawxzzy-fitness-local.vercel.app", "abc.vercel.app"]) {
+      assert.equal(isDevRouteWithdrawn({ hostnames: [hostname], env: { NODE_ENV } }), true, `${NODE_ENV} ${hostname}`);
+      assert.equal(isDevRouteWithdrawn({ hostnames: ["127.0.0.1", hostname], env: { NODE_ENV } }), true, `${NODE_ENV} bind ${hostname}`);
+      assert.equal(isDevServiceRoleRouteWithdrawn({ hostnames: [hostname], env: { NODE_ENV } }), true, `service ${NODE_ENV} ${hostname}`);
+    }
+    assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV } }), false, NODE_ENV);
+  }
+
+  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "development" }), isNotFound);
+  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "test" }), isNotFound);
+  // A platform preview signal still wins over the hostname.
+  assert.equal(isDevRouteWithdrawn({ hostnames: ["abc.vercel.app"], env: { NODE_ENV: "development", VERCEL_ENV: "preview" } }), false);
 });
 
 test("the shared page guard raises not-found only when the guard withdraws the route", () => {
@@ -338,7 +428,7 @@ test("every dev route handler returns the guard response before doing any work",
       const body = source.slice(handler.index + handler[0].length);
       assert.match(
         body,
-        /^\s*const unavailable = devRouteUnavailableResponse\(request\);\s*if \(unavailable\) \{?\s*return unavailable;/,
+        /^\s*const unavailable = (?:devRouteUnavailableResponse|devServiceRoleRouteUnavailableResponse)\(request\);\s*if \(unavailable\) \{?\s*return unavailable;/,
         `${file} ${handler[1]} must start with the dev route guard`,
       );
     }
@@ -531,8 +621,8 @@ test("middleware leaves dev-only paths reachable on loopback, with the opt-in, a
     { label: "loopback v6", env: noOptIn, url: (p) => `http://[::1]:3000${p}` },
     { label: "opt-in", env: { ...noOptIn, HISTORY_QA_PREVIEW_ENABLED: "1" }, url: (p) => `https://${OTHER_HOST}${p}` },
     { label: "preview", env: { ...noOptIn, VERCEL_ENV: "preview" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
-    { label: "development mode", env: { ...noOptIn, NODE_ENV: "development" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
-    { label: "test mode", env: { ...noOptIn, NODE_ENV: "test" }, url: (p) => `https://${EXTERNAL_HOST}${p}` },
+    { label: "development mode", env: { ...noOptIn, NODE_ENV: "development" }, url: (p) => `https://${OTHER_HOST}${p}` },
+    { label: "test mode", env: { ...noOptIn, NODE_ENV: "test" }, url: (p) => `https://${OTHER_HOST}${p}` },
   ];
 
   for (const { label, env, url } of reachable) {

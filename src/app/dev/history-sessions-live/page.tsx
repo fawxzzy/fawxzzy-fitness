@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
+import { assertDevServiceRolePageAvailable } from "@/lib/dev-route-guard-page";
 import { HistorySessionsClient } from "@/app/history/HistorySessionsClient";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -49,7 +49,7 @@ export default async function DevHistorySessionsLivePage({
     capture?: string;
   };
 }) {
-  assertDevPageAvailable();
+  assertDevServiceRolePageAvailable();
 
   const userId = searchParams?.userId?.trim() ?? "";
   const accessToken = searchParams?.accessToken?.trim() ?? "";

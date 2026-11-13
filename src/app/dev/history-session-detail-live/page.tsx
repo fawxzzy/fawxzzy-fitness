@@ -1,4 +1,4 @@
-import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
+import { assertDevServiceRolePageAvailable } from "@/lib/dev-route-guard-page";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { BottomActionsProvider } from "@/components/layout/bottom-actions";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -53,7 +53,7 @@ export default async function DevHistorySessionDetailLivePage({
     expandExerciseId?: string;
   };
 }) {
-  assertDevPageAvailable();
+  assertDevServiceRolePageAvailable();
 
   const sessionId = searchParams?.sessionId?.trim() ?? "";
   const userId = searchParams?.userId?.trim() ?? "";

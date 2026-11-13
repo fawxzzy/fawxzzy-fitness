@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { LiveExerciseInfoPreview } from "@/app/dev/exercise-info-live/LiveExerciseInfoPreview";
 import { getExerciseInfoPayload, type ExerciseInfoPayload } from "@/lib/exercise-info";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
+import { assertDevServiceRolePageAvailable } from "@/lib/dev-route-guard-page";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function DevExerciseInfoLivePage({
     userId?: string;
   };
 }) {
-  assertDevPageAvailable();
+  assertDevServiceRolePageAvailable();
 
   if (process.env.NODE_ENV === "production") {
     return <ErrorState message="Not found." />;

@@ -27,15 +27,23 @@
 //   (`readDevGuardEnv`) because Next inlines only the literal `process.env.NODE_ENV`
 //   expression; an aliased `process.env` object would depend on the runtime populating it.
 //
+// Service-role pages and handlers (those that read with the admin client from a client-supplied
+// user id) use the stricter `isDevServiceRoleRouteWithdrawn`: on anything but an explicit
+// development or test run they also require a loopback request, so neither a preview
+// deployment nor the opt-in makes them reachable.
+//
 // Layers, outermost first:
-// 1. `src/middleware.ts` answers 404 for every dev-only path before any page or handler
-//    runs (see `isDevOnlyPath`). It is the only guard that covers every page.
+// 1. `src/middleware.ts` answers 404 for every dev-only path before any page or handler runs
+//    (see `isDevOnlyPath`). Middleware is not sufficient on its own: Next 14.2.5 is affected by
+//    the `x-middleware-subrequest` bypass class (CVE-2025-29927), so a request can skip it. The
+//    handler and page guards below are required defence in depth. The Next patch upgrade is
+//    tracked separately (lane K2).
 // 2. Route handlers (a layout does not wrap them) return `devRouteUnavailableResponse(request)`
-//    as their first statement.
-// 3. Pages without a check of their own, and every page that reads with the service-role
-//    client, call `assertDevPageAvailable()` (`src/lib/dev-route-guard-page.ts`) first.
-//    `src/app/dev/layout.tsx` repeats it, but a layout does not stop its page from running,
-//    so it is not a guard on its own.
+//    (or the service-role variant) as their first statement.
+// 3. Pages without a check of their own call `assertDevPageAvailable()`, and service-role pages
+//    call `assertDevServiceRolePageAvailable()` (`src/lib/dev-route-guard-page.ts`), first.
+//    `src/app/dev/layout.tsx` repeats the first, but a layout does not stop its page from
+//    running, so it is not a guard on its own.
 
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
 
@@ -128,12 +136,13 @@ export function isDevRouteWithdrawn({
     return false;
   }
 
-  // The platform signal is missing or unrecognised. Only an explicit local NODE_ENV is exempt.
-  if (env.NODE_ENV !== undefined && LOCAL_NODE_ENVS.has(env.NODE_ENV)) {
+  const names = hostnames.map(normalizeHostname);
+
+  // The platform signal is missing or unrecognised. Only an explicit local NODE_ENV is exempt,
+  // and never for a request that names a production hostname.
+  if (env.NODE_ENV !== undefined && LOCAL_NODE_ENVS.has(env.NODE_ENV) && !names.some(isProductionHostname)) {
     return false;
   }
-
-  const names = hostnames.map(normalizeHostname);
 
   if (env.HISTORY_QA_PREVIEW_ENABLED === "1" && !names.some(isProductionHostname)) {
     return false;
@@ -143,11 +152,45 @@ export function isDevRouteWithdrawn({
   return !(names.length > 0 && names.every(isLoopbackHostname));
 }
 
+// Stricter rule for pages and handlers that read with the service-role client from a
+// client-supplied user id. Withdrawn whenever the general rule withdraws, and otherwise unless
+// this is an explicit development or test run (never on a production hostname) or a loopback
+// request. A preview platform signal or the opt-in does not admit them.
+export function isDevServiceRoleRouteWithdrawn({
+  hostnames = [],
+  env = readDevGuardEnv(),
+}: {
+  hostnames?: ReadonlyArray<string | null | undefined>;
+  env?: EnvSource;
+} = {}): boolean {
+  if (isDevRouteWithdrawn({ hostnames, env })) {
+    return true;
+  }
+
+  const names = hostnames.map(normalizeHostname);
+  if (env.NODE_ENV !== undefined && LOCAL_NODE_ENVS.has(env.NODE_ENV) && !names.some(isProductionHostname)) {
+    return false;
+  }
+
+  return !(names.length > 0 && names.every(isLoopbackHostname));
+}
+
 export function devRouteUnavailableResponse(
   request: { url: string; headers: { get(name: string): string | null } },
   env: EnvSource = readDevGuardEnv(),
 ): Response | null {
-  if (!isDevRouteWithdrawn({ hostnames: hostnamesOf(request), env })) {
+  return withdrawnResponse(isDevRouteWithdrawn({ hostnames: hostnamesOf(request), env }));
+}
+
+export function devServiceRoleRouteUnavailableResponse(
+  request: { url: string; headers: { get(name: string): string | null } },
+  env: EnvSource = readDevGuardEnv(),
+): Response | null {
+  return withdrawnResponse(isDevServiceRoleRouteWithdrawn({ hostnames: hostnamesOf(request), env }));
+}
+
+function withdrawnResponse(withdrawn: boolean): Response | null {
+  if (!withdrawn) {
     return null;
   }
 

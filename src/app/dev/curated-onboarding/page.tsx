@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 import { CuratedOnboardingShell } from "@/features/curated-onboarding/components/CuratedOnboardingShell";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default function DevCuratedOnboardingPage() {
+  assertDevPageAvailable();
+
   const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";
   if (process.env.NODE_ENV === "production" && !isReviewPreviewEnabled) {
     notFound();
