@@ -31,6 +31,10 @@ function load(file, dependencies = {}) {
 }
 
 const policy = load("src/lib/password-policy.ts");
+const signupFeedback = load("src/components/auth/signupFeedback.ts", {
+  "@/lib/password-policy": policy,
+  "@/lib/username-policy": { USERNAME_VALIDATION_MESSAGE: "Invalid username" },
+});
 
 function fixture({ signedIn = true, updateError = null } = {}) {
   const calls = { clients: 0, users: 0, signup: [], update: [], login: [], cookies: 0 };
@@ -58,6 +62,7 @@ function fixture({ signedIn = true, updateError = null } = {}) {
     "@/lib/password-reset-request": { requestResetForIdentifier: unexpected },
     "@/lib/supabase/schema": { createFitnessSupabaseClient: unexpected },
     "@/lib/password-policy": policy,
+    "@/components/auth/signupFeedback": signupFeedback,
   };
   return {
     calls,
@@ -85,7 +90,7 @@ for (const [label, value] of [["empty", ""], ["six characters", "x".repeat(6)], 
   test(`signup and reset form reject ${label} before creating an Auth client`, async () => {
     const { auth, reset, calls } = fixture();
     const message = encodeURIComponent(policy.NEW_PASSWORD_REQUIREMENT);
-    await redirected(auth.signup(form(value)), `/signup?error=${message}`);
+    await redirected(auth.signup(form(value)), "/signup?error=password_too_short");
     await redirected(reset.updatePasswordAction(form(value)), `/reset-password?error=${message}`);
     assert.equal(calls.clients, 0);
     assert.equal(calls.cookies, 0);
@@ -106,7 +111,7 @@ test("direct password update rejects short and non-string inputs without coercio
 for (const [label, value] of [["exact minimum", "x".repeat(10)], ["spaces", "  passphrase  "], ["decomposed Unicode", "e\u0301".repeat(10)], ["64 characters", "x".repeat(64)], ["128 characters", "x".repeat(128)], ["long passphrase", "x".repeat(1024)]]) {
   test(`signup and reset preserve ${label} exactly at the SDK boundary`, async () => {
     const { auth, reset, calls } = fixture();
-    await redirected(auth.signup(form(value)), `/signup?info=${encodeURIComponent("Check your email to confirm your account.")}`);
+    await redirected(auth.signup(form(value)), "/signup?info=check_email");
     await redirected(reset.updatePasswordAction(form(value)), "/today");
     assert.equal(calls.signup.length, 1);
     assert.equal(calls.update.length, 1);
@@ -159,10 +164,10 @@ test("signup retains username validation and metadata", async () => {
   const { auth, calls } = fixture();
   const data = form("synthetic passphrase");
   data.set("username", "invalid");
-  await redirected(auth.signup(data), "/signup?error=Invalid%20username");
+  await redirected(auth.signup(data), "/signup?error=username_invalid");
   assert.equal(calls.clients, 0);
   data.set("username", "synthetic-user");
-  await redirected(auth.signup(data), `/signup?info=${encodeURIComponent("Check your email to confirm your account.")}`);
+  await redirected(auth.signup(data), "/signup?info=check_email");
   assert.equal(calls.signup[0].options.data.username, "synthetic-user");
 });
 
