@@ -695,6 +695,7 @@ export function buildWeeklyProgressSummary({
       ),
       granularity: "day",
       limit: 7,
+      timeZone: safeTimezone,
     }),
     topProgressedExerciseNames: progressionTopProgressedExerciseNames,
     topDeloadExerciseNames: progressionTopDeloadExerciseNames,
