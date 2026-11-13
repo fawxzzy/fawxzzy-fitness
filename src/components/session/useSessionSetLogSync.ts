@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { readPendingSetLogs, type SetLogQueueItem } from "@/lib/offline/set-log-queue";
-import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
+import { createSetLogSyncEngine, subscribeToSetLogSynced } from "@/lib/offline/sync-engine";
 
 type SyncSetLogsAction = Parameters<typeof createSetLogSyncEngine>[0]["syncSetLogsAction"];
 
@@ -44,6 +44,13 @@ export function useSessionSetLogSync({
     onItemSyncedRef.current = onItemSynced;
     onQueuedSetsReadRef.current = onQueuedSetsRead;
   }, [onItemSynced, onQueuedSetsRead]);
+
+  // Whichever engine replays a set (this worker, or the card engine of another row), take its server identity
+  // into the row snapshots, so a collapsed row never keeps id = clientLogId / user_id = "queued" for a set that
+  // is already on the server (a later delete or edit would send the client id and fail with "Set not found").
+  useEffect(() => subscribeToSetLogSynced((payload) => {
+    onItemSyncedRef.current(payload);
+  }), []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -105,7 +112,7 @@ export function useSessionSetLogSync({
       userId,
       syncSetLogsAction,
       onItemSynced: (payload) => {
-        onItemSyncedRef.current(payload);
+        // The snapshot update arrives through subscribeToSetLogSynced (it covers every engine, including this one).
         delete lastStatusByClientLogIdRef.current[payload.item.clientLogId];
         toast.success("Saved set synced.");
       },

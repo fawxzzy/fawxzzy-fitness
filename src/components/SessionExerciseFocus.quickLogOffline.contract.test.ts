@@ -45,9 +45,27 @@ test("cold start restores queued sets into collapsed rows, independent of which 
 test("the set-log replay engine is bounded, caught and stoppable", () => {
   const engineSource = readFileSync(new URL("../lib/offline/sync-engine.ts", import.meta.url), "utf8");
 
-  assert.match(engineSource, /try \{\s*const response = await syncSetLogsAction\(/);
+  assert.match(engineSource, /try \{\s*const response = await replayWithTimeout\(/);
   assert.match(engineSource, /let stopped = false;/);
   assert.match(engineSource, /if \(stopped \|\| timer !== null/);
   assert.match(engineSource, /const inFlightItemIds = new Set<string>\(\);/);
   assert.match(engineSource, /isSetLogQueueItemParked\(/);
+  assert.match(engineSource, /Promise\.race\(\[syncSetLogsAction\(payload\), timeout\]\)/);
+  assert.match(engineSource, /Number\.isFinite\(queuedItem\.retryCount\)/);
+  assert.match(engineSource, /retryCount: 0, nextRetryAt: undefined/);
+});
+
+test("a parked set is never silent: both the card engine and the session worker report it", () => {
+  const timersSource = readFileSync(new URL("./SessionTimers.tsx", import.meta.url), "utf8");
+
+  for (const source of [timersSource, syncHookSource]) {
+    assert.match(source, /onTerminalFailure: \(\) => \{/);
+    assert.match(source, /Could not sync a saved set\. It stays saved on this device\./);
+    assert.match(source, /onUnexpectedError: \(\) => \{/);
+  }
+});
+
+test("a collapsed row takes the server identity of a set replayed by another row's card engine", () => {
+  // The session worker listens to every replay in the tab, not only to the ones its own engine ran.
+  assert.match(syncHookSource, /subscribeToSetLogSynced\(\(payload\) => \{\s*onItemSyncedRef\.current\(payload\);/);
 });
