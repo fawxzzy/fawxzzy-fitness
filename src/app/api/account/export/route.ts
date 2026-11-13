@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { resolveApiUser } from "@/lib/api-auth";
 import {
   buildAccountWorkoutExportFilename,
   buildAccountWorkoutExportPayload,
@@ -25,6 +25,13 @@ function isValidScope(value: unknown): value is AccountWorkoutExportScope {
 }
 
 export async function POST(request: Request) {
+  // Authenticate first and outside any try block: a missing session is a 401, not a 400 with the text "NEXT_REDIRECT".
+  const auth = await resolveApiUser();
+  if (!auth.ok) {
+    return auth.response;
+  }
+  const { user } = auth;
+
   let payload: {
     fileType?: unknown;
     exportName?: unknown;
@@ -48,7 +55,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await requireUser();
     const options: AccountWorkoutExportOptions = {
       fileType: payload.fileType,
       exportName: typeof payload.exportName === "string" ? payload.exportName : null,
