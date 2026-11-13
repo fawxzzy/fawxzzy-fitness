@@ -49,6 +49,24 @@ export function GenerationHandoffStep({
             />
           </CuratedInfoCard>
 
+          {visiblePlan.adjustments.length > 0 ? (
+            <CuratedInfoCard compact tone="accent" data-curated-adjustments="true">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
+                Why this routine changed
+              </p>
+              <ul className="mt-1.5 space-y-1.5">
+                {visiblePlan.adjustments.map((adjustment, index) => (
+                  <li
+                    key={`${adjustment.kind}-${index}`}
+                    className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]"
+                  >
+                    {adjustment.reason}
+                  </li>
+                ))}
+              </ul>
+            </CuratedInfoCard>
+          ) : null}
+
           {visiblePlan.days.map((day) => (
             <CuratedInfoCard key={day.name} className="space-y-2.5">
               <p className="border-b border-[rgb(var(--accent)/0.35)] pb-1 text-sm font-semibold text-[rgb(var(--accent)/0.96)]">

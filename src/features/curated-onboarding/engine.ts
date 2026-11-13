@@ -21,11 +21,28 @@ export type CuratedPlanDay = {
   exercises: CuratedPlanExercise[];
 };
 
+/**
+ * One visible, rule-based reason the routine differs from the first-choice routine for this intake. Every
+ * entry names the exercise or schedule it changed and why; nothing is adjusted silently.
+ */
+export type CuratedPlanAdjustment =
+  | { kind: "schedule-reduced"; requestedDays: number; days: number; reason: string }
+  | {
+      kind: "exercise-swapped";
+      dayName: string;
+      from: string;
+      to: string;
+      cause: "failed-target" | "fatigue" | "avoided-equipment";
+      reason: string;
+    }
+  | { kind: "exercise-kept"; dayName: string; exercise: string; reason: string };
+
 export type CuratedWorkoutPlan = {
   version: 1;
   planId: string;
   name: string;
   rationale: string[];
+  adjustments: CuratedPlanAdjustment[];
   daysPerWeek: number;
   sessionLengthMinutes: number;
   progressionPlaybookId: "double_progression";
@@ -363,13 +380,11 @@ function isEquipmentCompatible(candidate: ExerciseCandidate, equipment: Equipmen
   return candidate.equipment.some((value) => equipment.includes(value));
 }
 
-function chooseExercise(
+function rankRoleCandidates(
   role: MovementRole,
   equipment: EquipmentAccess[],
   excludedSlugs: Set<string>,
-  omittableSlugs: Set<string>,
   preferences: PreferenceProfile,
-  usedSlugs: Set<string>,
 ) {
   const available = CANDIDATES[role].filter((candidate) => isEquipmentCompatible(candidate, equipment));
   const ranked = available
@@ -381,17 +396,50 @@ function chooseExercise(
     .filter(({ candidate }) => !excludedSlugs.has(candidate.slug))
     .sort((left, right) => right.score - left.score || left.index - right.index)
     .map(({ candidate }) => candidate);
+  return { available, ranked };
+}
+
+/**
+ * First choice for the role using only the member's own dislikes and stated limitations. It is the reference
+ * point for explaining a swap and never throws.
+ */
+function chooseBaselineExercise(
+  role: MovementRole,
+  equipment: EquipmentAccess[],
+  excludedSlugs: Set<string>,
+  preferences: PreferenceProfile,
+  usedSlugs: Set<string>,
+) {
+  return rankRoleCandidates(role, equipment, excludedSlugs, preferences)
+    .ranked.find((candidate) => !usedSlugs.has(candidate.slug)) ?? null;
+}
+
+function chooseExercise(
+  role: MovementRole,
+  equipment: EquipmentAccess[],
+  hardExcludedSlugs: Set<string>,
+  softExcludedSlugs: Set<string>,
+  omittableSlugs: Set<string>,
+  preferences: PreferenceProfile,
+  usedSlugs: Set<string>,
+): { exercise: ExerciseCandidate | null; keptDespiteSignal: boolean } {
+  const { available, ranked } = rankRoleCandidates(role, equipment, hardExcludedSlugs, preferences);
   if (ranked.length > 0) {
     // One exercise never appears twice in the same day; a role whose only safe lift is already used is skipped.
-    return ranked.find((candidate) => !usedSlugs.has(candidate.slug)) ?? null;
+    const unflagged = ranked.filter((candidate) => !softExcludedSlugs.has(candidate.slug));
+    if (unflagged.length > 0) {
+      return { exercise: unflagged.find((candidate) => !usedSlugs.has(candidate.slug)) ?? null, keptDespiteSignal: false };
+    }
+    // History flagged every safe lift for this role. Keep the first choice and say so, instead of failing.
+    return { exercise: ranked.find((candidate) => !usedSlugs.has(candidate.slug)) ?? null, keptDespiteSignal: true };
   }
   if (available.length > 0) {
     if (available.some((candidate) => omittableSlugs.has(candidate.slug))) {
-      return null;
+      return { exercise: null, keptDespiteSignal: false };
     }
     throw new Error(`No safe ${role.replace(/-/g, " ")} exercise matches the selected equipment and constraints.`);
   }
-  return null;
+  return { exercise: null, keptDespiteSignal: false };
 }
 
 export function deriveCuratedExerciseTarget(exercise: CuratedPlanExercise) {
@@ -475,11 +523,12 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(signals?.fatiguedExerciseSlugs ?? []),
   ]);
   const intakeConstraints = buildIntakeConstraintExclusions(data);
-  const excludedSlugs = new Set([
-    ...adaptiveExcludedSlugs,
+  const hardExcludedSlugs = new Set([
     ...intakeConstraints.excluded,
     ...intakeConstraints.equipmentExcluded,
   ]);
+  const failedSlugs = new Set(signals?.failedExerciseSlugs ?? []);
+  const fatiguedSlugs = new Set(signals?.fatiguedExerciseSlugs ?? []);
   // A role whose every compatible lift was removed by a stated limitation or by equipment the member asked to
   // avoid is left out of the day. A role emptied only by dislikes or adaptive signals still fails closed.
   const omittableSlugs = new Set([
@@ -502,24 +551,74 @@ function generateCuratedWorkoutPlanWithSignals(
   const split = styleSplit?.days ?? SPLITS[daysPerWeek];
   const days = split.map((day) => {
     const usedSlugs = new Set<string>();
-    const selections: Array<{ role: MovementRole; exercise: ExerciseCandidate }> = [];
+    const baselineUsedSlugs = new Set<string>();
+    const selections: Array<{
+      role: MovementRole;
+      exercise: ExerciseCandidate;
+      adjustment: CuratedPlanAdjustment | null;
+    }> = [];
     for (const role of rankRolesByTargetAreas(day.roles, preferences)) {
-      const exercise = chooseExercise(
+      const choice = chooseExercise(
         role,
         equipment,
-        excludedSlugs,
+        hardExcludedSlugs,
+        adaptiveExcludedSlugs,
         omittableSlugs,
         preferences,
         usedSlugs,
       );
+      const baseline = chooseBaselineExercise(role, equipment, intakeConstraints.excluded, preferences, baselineUsedSlugs);
+      if (baseline) baselineUsedSlugs.add(baseline.slug);
+      const exercise = choice.exercise;
       if (!exercise) continue;
       usedSlugs.add(exercise.slug);
-      selections.push({ role, exercise });
+
+      let adjustment: CuratedPlanAdjustment | null = null;
+      if (baseline && baseline.slug !== exercise.slug) {
+        if (failedSlugs.has(baseline.slug)) {
+          adjustment = {
+            kind: "exercise-swapped",
+            dayName: day.name,
+            from: baseline.name,
+            to: exercise.name,
+            cause: "failed-target",
+            reason: `Recent session feedback marked ${baseline.name} as too hard, a form breakdown or pain, so ${exercise.name} replaces it on ${day.name}.`,
+          };
+        } else if (fatiguedSlugs.has(baseline.slug)) {
+          adjustment = {
+            kind: "exercise-swapped",
+            dayName: day.name,
+            from: baseline.name,
+            to: exercise.name,
+            cause: "fatigue",
+            reason: `Recent session feedback marked ${baseline.name} as too hard or a bad day, so ${exercise.name} replaces it on ${day.name}.`,
+          };
+        } else if (intakeConstraints.equipmentExcluded.has(baseline.slug)) {
+          adjustment = {
+            kind: "exercise-swapped",
+            dayName: day.name,
+            from: baseline.name,
+            to: exercise.name,
+            cause: "avoided-equipment",
+            reason: `You asked to avoid the equipment ${baseline.name} needs, so ${exercise.name} replaces it on ${day.name}.`,
+          };
+        }
+      } else if (choice.keptDespiteSignal) {
+        adjustment = {
+          kind: "exercise-kept",
+          dayName: day.name,
+          exercise: exercise.name,
+          reason: `Recent feedback flagged ${exercise.name}, but no safe alternative fits your equipment, so it stays on ${day.name}. Edit it after creating the routine if it is still a problem.`,
+        };
+      }
+      selections.push({ role, exercise, adjustment });
     }
 
+    const kept = selections.slice(0, exerciseLimit);
     return {
       name: day.name,
-      exercises: selections.slice(0, exerciseLimit).map(({ role, exercise }, index) => {
+      adjustments: kept.flatMap(({ adjustment }) => (adjustment ? [adjustment] : [])),
+      exercises: kept.map(({ role, exercise }, index) => {
         const range = getTargetRange(goal, role);
         return {
           ...exercise,
@@ -573,12 +672,25 @@ function generateCuratedWorkoutPlanWithSignals(
     ...(avoidedEquipment.length > 0 ? { avoidedEquipment } : {}),
   });
 
-  const adaptiveRationale = [
+  const scheduleReason = `Recent completion supports ${daysPerWeek} days instead of the requested ${requestedDaysPerWeek}; the draft stays editable.`;
+  const adjustments: CuratedPlanAdjustment[] = [
     ...(shouldReduceSchedule
-      ? [`Recent completion supports ${daysPerWeek} days instead of the requested ${requestedDaysPerWeek}; the draft stays editable.`]
+      ? [{ kind: "schedule-reduced" as const, requestedDays: requestedDaysPerWeek, days: daysPerWeek, reason: scheduleReason }]
       : []),
-    ...(adaptiveExcludedSlugs.size > 0
-      ? [`Recent failed-target or fatigue signals replaced ${adaptiveExcludedSlugs.size} exercise choice${adaptiveExcludedSlugs.size === 1 ? "" : "s"} where an equipment-compatible alternative existed.`]
+    ...days.flatMap((day) => day.adjustments),
+  ];
+  const historyReplacedCount = new Set(
+    adjustments.flatMap((adjustment) => (
+      adjustment.kind === "exercise-swapped" && adjustment.cause !== "avoided-equipment" ? [adjustment.from] : []
+    )),
+  ).size;
+  const adaptiveRationale = [
+    ...(signals && signals.completionRate !== null
+      ? [`Based on your last 28 days: ${Math.round(signals.completionRate * 100)}% of planned workouts completed.`]
+      : []),
+    ...(shouldReduceSchedule ? [scheduleReason] : []),
+    ...(historyReplacedCount > 0
+      ? [`Recent failed-target or fatigue signals replaced ${historyReplacedCount} exercise choice${historyReplacedCount === 1 ? "" : "s"} where an equipment-compatible alternative existed.`]
       : []),
     ...(intakeConstraints.excluded.size > 0
       ? [`Your stated limitations or exercise exclusions removed ${intakeConstraints.excluded.size} exercise choice${intakeConstraints.excluded.size === 1 ? "" : "s"}.`]
@@ -604,10 +716,11 @@ function generateCuratedWorkoutPlanWithSignals(
       `${data.experience} ${goal.replace(/-/g, " ")} targets use double progression.`,
       ...adaptiveRationale,
     ],
+    adjustments,
     daysPerWeek,
     sessionLengthMinutes,
     progressionPlaybookId: "double_progression",
-    days,
+    days: days.map(({ name, exercises }) => ({ name, exercises })),
   };
 }
 

@@ -133,3 +133,12 @@ test("the retired six-step onboarding components stay deleted", () => {
     assert.throws(() => readComponent(`${name}.tsx`), { code: "ENOENT" }, name);
   }
 });
+
+test("curated handoff shows every recommendation reason to the member", () => {
+  const handoff = readComponent("GenerationHandoffStep.tsx");
+
+  assert.match(handoff, /visiblePlan\.adjustments/);
+  assert.match(handoff, /Why this routine changed/);
+  assert.match(handoff, /adjustment\.reason/);
+  assert.match(handoff, /data-curated-adjustments/);
+});
