@@ -1086,6 +1086,7 @@ export function SetLoggerCard({
               notes: item.payload.notes,
               rpe: null,
               weight_unit: item.payload.weightUnit,
+              logged_at: item.createdAt,
               pending: true,
               queueStatus: item.status,
             }));
@@ -1249,6 +1250,7 @@ export function SetLoggerCard({
       notes: failureNote,
       rpe: null,
       weight_unit: selectedWeightUnit,
+      logged_at: new Date().toISOString(),
       pending: true,
     };
 

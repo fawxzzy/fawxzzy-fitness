@@ -146,6 +146,8 @@ function buildSnapshotSetFromQueueItem(
     calories: item.payload.calories,
     rpe: item.payload.rpe,
     weight_unit: item.payload.weightUnit,
+    // The member's tap time, so observed rest (recovery-timing.ts) still works for a set that is not on the server yet.
+    logged_at: item.createdAt,
     ...overrides,
   };
 }

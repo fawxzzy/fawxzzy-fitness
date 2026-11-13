@@ -364,6 +364,8 @@ test("seedQueuedSetsIntoSnapshots restores queued sets into collapsed rows after
   assert.deepEqual(restored?.map((set) => set.queueItemId), ["queue-3", "queue-4"]);
   assert.equal(restored?.[0]?.user_id, "queued");
   assert.equal(restored?.[0]?.weight, 135);
+  // The member's tap time travels with the set so observed rest still works before the set is on the server.
+  assert.deepEqual(restored?.map((set) => set.logged_at), ["2026-11-12T23:30:00.000Z", "2026-11-12T23:31:00.000Z"]);
 
   // Idempotent: seeding again, or after the queue read repeats, does not duplicate.
   assert.equal(seedQueuedSetsIntoSnapshots(next, queued, () => undefined), next);
