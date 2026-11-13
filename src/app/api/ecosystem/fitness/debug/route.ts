@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
 import { requireUser } from "@/lib/auth";
 import { fitnessIntegrationClient, type FitnessInboundReceipt } from "@/lib/ecosystem/fitness-integration-client";
 import {
@@ -13,6 +14,11 @@ import { fitnessStateSnapshotFixtures } from "@/lib/ecosystem/fixtures/state-sna
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const unavailable = devRouteUnavailableResponse();
+  if (unavailable) {
+    return unavailable;
+  }
+
   const user = await requireUser();
   const debugState = fitnessIntegrationClient.getDebugState(user.id);
 
@@ -23,6 +29,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const unavailable = devRouteUnavailableResponse();
+  if (unavailable) {
+    return unavailable;
+  }
+
   const user = await requireUser();
   const body = await request.json().catch(() => ({}));
 
