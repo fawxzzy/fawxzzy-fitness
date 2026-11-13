@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { enforceLoginFailureFloor } from "@/lib/login-failure-floor";
 import {
   CHANGE_PASSWORD_COPY,
   CHANGE_PASSWORD_SUCCESS_MESSAGE,
@@ -136,11 +137,14 @@ export async function changePasswordAction(formData: FormData): Promise<Password
     return passwordUpdateFailure(input.problem);
   }
 
+  // The account is always the signed-in session's own: never an `email` (or any other) form field.
   const email = user.email?.trim();
   if (!email) {
     return passwordUpdateFailure("update_failed");
   }
 
+  const startedAt = Date.now();
+  // Throwaway client: it holds only the session the verification below creates, never the member's own session.
   const { auth } = createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -150,7 +154,15 @@ export async function changePasswordAction(formData: FormData): Promise<Password
     if (verified.error || !verified.data.session) {
       // Machine code and status only: no message, no address.
       console.error("Change-password verification failed", { code: verified.error?.code ?? null, status: verified.error?.status ?? null });
+      // Same latency floor as sign-in, so a session holder gets no free fast guessing beyond normal sign-in.
+      await enforceLoginFailureFloor(startedAt);
       return passwordUpdateFailure(classifyChangePasswordProviderError("verify", verified.error));
+    }
+
+    if (verified.data.user?.id !== user.id) {
+      // The password proved a different account than the signed-in one: write nothing.
+      console.error("Change-password verification matched a different account");
+      return passwordUpdateFailure("update_failed");
     }
 
     const updated = await auth.updateUser({ password: input.next });
@@ -164,8 +176,16 @@ export async function changePasswordAction(formData: FormData): Promise<Password
     console.error("Change-password request failed", { name: error instanceof Error ? error.name : null });
     return passwordUpdateFailure("update_failed");
   } finally {
-    // Revoke only the throwaway verification session; failures here never change the outcome.
-    await auth.signOut({ scope: "local" }).catch(() => undefined);
+    // Revoke only the throwaway verification session. A failed revoke never changes the outcome, but it is logged
+    // (machine code and status only) so a leftover session is visible.
+    try {
+      const revoked = await auth.signOut({ scope: "local" });
+      if (revoked.error) {
+        console.error("Change-password session revoke failed", { code: revoked.error.code ?? null, status: revoked.error.status ?? null });
+      }
+    } catch (error) {
+      console.error("Change-password session revoke failed", { name: error instanceof Error ? error.name : null });
+    }
   }
 }
 

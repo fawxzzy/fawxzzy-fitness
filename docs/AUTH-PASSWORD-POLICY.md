@@ -25,7 +25,10 @@ the same ten-character rule, requires the current password, and requires the new
 differ from it. The current password is verified by signing in on a throwaway client, and that
 fresh session performs the write: `auth.updateUser` needs a session held by the client, and the
 request-bound server client only forwards a bearer header, so `updateUser` on it fails with
-"Auth session missing" without sending a request. The throwaway session is revoked with
+"Auth session missing" without sending a request. The account that is verified is always the signed-in
+session's own email (never a form field), a verification that proves a different account writes nothing, and
+a failed verification waits on the same latency floor as sign-in (`enforceLoginFailureFloor`) so a session
+holder gets no free fast guessing. The throwaway session is revoked with
 `scope: "local"`, so the member's own session and other devices are not touched. Other sessions
 are not signed out on a password change; that is a separate decision because sessions are shared
 with the account portal and Mazer. Every outcome is a fixed message keyed by a code; provider

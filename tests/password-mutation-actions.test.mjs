@@ -219,6 +219,9 @@ function providerError(status, errorCode, msg) {
 function changeFixture({ user = { id: "synthetic-user", email: "member@example.test", user_metadata: {} }, tokenResponse, userResponse, logoutResponse, throwOnFetch = false } = {}) {
   const requests = [];
   const logs = [];
+  const floorCalls = [];
+  const clientOptions = [];
+  let floorDone = 0;
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
   const stubFetch = async (url, init) => {
     const target = new URL(String(url));
@@ -230,7 +233,7 @@ function changeFixture({ user = { id: "synthetic-user", email: "member@example.t
       bearer: (headers.get("authorization") ?? "").replace(/^Bearer /, ""),
       body: init?.body ? JSON.parse(init.body) : null,
     });
-    if (throwOnFetch) throw new TypeError("fetch failed");
+    if (throwOnFetch === true || (typeof throwOnFetch === "string" && target.pathname.endsWith(throwOnFetch))) throw new TypeError("fetch failed");
     if (target.pathname.endsWith("/token")) {
       return tokenResponse ?? json({ access_token: FRESH_JWT, refresh_token: "fresh-refresh", token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: user.id, email: user.email } });
     }
@@ -244,17 +247,24 @@ function changeFixture({ user = { id: "synthetic-user", email: "member@example.t
     "next/headers": { cookies: unexpected },
     "@/lib/auth": { requireUser: async () => { required += 1; return user; } },
     "@/lib/env": { SUPABASE_URL: () => CHANGE_URL, SUPABASE_ANON_KEY: () => "anon-synthetic" },
+    // The shared sign-in latency floor; the stub records when it was entered and when its wait finished.
+    "@/lib/login-failure-floor": {
+      enforceLoginFailureFloor: async (startedAt) => { floorCalls.push(startedAt); await Promise.resolve(); floorDone += 1; return 0; },
+    },
     "@/lib/password-policy": policy,
     "@/lib/qa-data-visibility": { QA_LLEL_VISIBILITY_COOKIE: "synthetic" },
     // The request-bound clients must never be used: updateUser on them has no stored session.
     "@/lib/supabase/server": { supabaseServer: unexpected, supabaseServerWithSession: unexpected },
     "@/lib/supabase/schema": {
-      createFitnessSupabaseClient: (url, key, options) => createClient(url, key, { ...options, global: { ...(options?.global ?? {}), fetch: stubFetch } }),
+      createFitnessSupabaseClient: (url, key, options) => {
+        clientOptions.push(options);
+        return createClient(url, key, { ...options, global: { ...(options?.global ?? {}), fetch: stubFetch } });
+      },
     },
     "@/lib/username-policy": { isUsernameIdentifier: () => true, USERNAME_VALIDATION_MESSAGE: "Invalid username" },
   }, logs);
   return {
-    requests, logs, required: () => required,
+    requests, logs, floorCalls, clientOptions, floorDone: () => floorDone, required: () => required,
     run(fields = {}) {
       const data = new FormData();
       const values = { currentPassword: CURRENT_PASSWORD, newPassword: NEW_PASSWORD, confirmPassword: NEW_PASSWORD, ...fields };
@@ -356,4 +366,93 @@ test("an account without an email cannot verify a password and fails safely", as
   assert.equal(result.status, "error");
   assert.equal(result.message, copy.update_failed);
   assert.equal(f.requests.length, 0);
+});
+
+test("the verification always uses the signed-in session's email, never a posted email or username field", async () => {
+  const f = changeFixture();
+  const result = await f.run({ email: "attacker@example.test", username: "attacker", userEmail: "attacker@example.test" });
+  assert.equal(result.status, "success");
+  const signIn = f.requests.find((r) => r.path.endsWith("/token"));
+  assert.equal(signIn.body.email, "member@example.test");
+  assert.ok(!JSON.stringify(f.requests).includes("attacker"));
+
+  // Surrounding whitespace on the session email is trimmed; a hostile field still cannot replace it.
+  const padded = changeFixture({ user: { id: "synthetic-user", email: "  member@example.test  ", user_metadata: {} } });
+  await padded.run({ email: "attacker@example.test" });
+  assert.equal(padded.requests.find((r) => r.path.endsWith("/token")).body.email, "member@example.test");
+});
+
+test("a verification that proves a different account writes nothing and still revokes its session", async () => {
+  const otherAccount = new Response(JSON.stringify({ access_token: FRESH_JWT, refresh_token: "fresh-refresh", token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: "someone-else", email: "member@example.test" } }), { status: 200, headers: { "content-type": "application/json" } });
+  const f = changeFixture({ tokenResponse: otherAccount });
+  const result = await f.run();
+  assert.equal(result.status, "error");
+  assert.equal(result.message, copy.update_failed);
+  assert.equal(JSON.stringify(f.requests.map((r) => `${r.method} ${r.path}${r.query}`)), JSON.stringify([
+    "POST /auth/v1/token?grant_type=password",
+    "POST /auth/v1/logout?scope=local",
+  ]));
+  assert.equal(JSON.stringify(f.logs), JSON.stringify([["Change-password verification matched a different account"]]));
+  assert.equal(f.floorCalls.length, 0);
+});
+
+test("a failed current-password verification waits on the sign-in latency floor before it answers", async () => {
+  const cases = [
+    ["wrong password", { tokenResponse: providerError(400, "invalid_credentials", "Invalid login credentials") }],
+    ["rate limited", { tokenResponse: providerError(429, "over_request_rate_limit", "rate limit") }],
+    ["provider outage", { tokenResponse: providerError(503, undefined, "down") }],
+    ["network failure", { throwOnFetch: true }],
+  ];
+  for (const [label, options] of cases) {
+    const f = changeFixture(options);
+    const before = Date.now();
+    const result = await f.run();
+    assert.equal(result.status, "error", label);
+    assert.equal(f.floorCalls.length, 1, label);
+    assert.equal(f.floorDone(), 1, `${label}: the floor wait finished before the answer`);
+    assert.ok(typeof f.floorCalls[0] === "number" && f.floorCalls[0] >= before - 1 && f.floorCalls[0] <= Date.now(), `${label}: measured from the start of the attempt`);
+  }
+});
+
+test("the latency floor is not applied to success, local validation, or a failed write", async () => {
+  const success = changeFixture();
+  await success.run();
+  assert.equal(success.floorCalls.length, 0);
+
+  const invalid = changeFixture();
+  await invalid.run({ newPassword: "short", confirmPassword: "short" });
+  assert.equal(invalid.floorCalls.length, 0);
+
+  const failedWrite = changeFixture({ userResponse: providerError(500, "unexpected_failure", "x") });
+  await failedWrite.run();
+  assert.equal(failedWrite.floorCalls.length, 0);
+});
+
+test("the throwaway client is pinned: no persisted session, no auto refresh, no ambient credentials", async () => {
+  const f = changeFixture();
+  await f.run();
+  assert.equal(f.clientOptions.length, 1);
+  const [options] = f.clientOptions;
+  assert.equal(options.auth.persistSession, false);
+  assert.equal(options.auth.autoRefreshToken, false);
+  assert.equal(JSON.stringify(Object.keys(options.auth).sort()), JSON.stringify(["autoRefreshToken", "persistSession"]));
+  // Not bound to the member's cookie session: no global Authorization header is supplied.
+  assert.ok(options.global === undefined || !JSON.stringify(options.global).toLowerCase().includes("authorization"));
+});
+
+test("a failed session revoke is logged by machine code and status only, and never changes the outcome", async () => {
+  const failedRevoke = changeFixture({ logoutResponse: providerError(500, "unexpected_failure", "secret provider text") });
+  const result = await failedRevoke.run();
+  assert.equal(result.status, "success");
+  assert.equal(failedRevoke.logs.length, 1);
+  assert.equal(failedRevoke.logs[0][0], "Change-password session revoke failed");
+  assert.equal(failedRevoke.logs[0][1].status, 500);
+  assert.ok(!JSON.stringify(failedRevoke.logs).includes("secret provider text"));
+  assert.ok(!JSON.stringify(failedRevoke.logs).includes("member@example.test"));
+
+  const thrown = changeFixture({ throwOnFetch: "/logout" });
+  const outcome = await thrown.run();
+  assert.equal(outcome.status, "success");
+  assert.ok(thrown.logs.some((entry) => entry[0] === "Change-password session revoke failed"));
+  assert.ok(!JSON.stringify(thrown.logs).includes("fetch failed"));
 });
