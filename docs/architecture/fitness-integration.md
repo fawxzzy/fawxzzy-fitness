@@ -63,7 +63,7 @@ Fitness maintains a bounded local debug store for:
 
 Receipts are first-class and keep `sourceOutboundId` so outbound-to-receipt traceability is inspectable in-app.
 
-Dev inspection surface:
+Dev inspection surface (preview and local runs only; a production deployment answers 404):
 - `GET /api/ecosystem/fitness/debug`
 - `POST /api/ecosystem/fitness/debug` with commands:
   - `refresh-live-state`

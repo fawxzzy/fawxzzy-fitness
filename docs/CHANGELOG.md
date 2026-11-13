@@ -11,11 +11,13 @@ All notable changes to this project are documented in this file.
 - Replaced the legacy six-page curated routine questionnaire with the canonical 60-question intake across nine populated sections plus a dedicated Review page.
 - Added signed-in identity prefill, question-local required validation, app-native multi-select and acknowledgment controls, editable review disclosures, and local draft migration from versions 1 and 2.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
+- Added one shared production guard for dev-only routes (`src/lib/dev-route-guard.ts`): `src/middleware.ts` answers 404 for `/dev/*`, `/api/dev/*` and `/api/ecosystem/fitness/debug` before any page runs when `VERCEL_ENV` is `production`, and `src/app/dev/layout.tsx` plus every dev route handler repeat the check. Preview deployments, local development and `next start` verification runs are unchanged. Removed the unused root `middleware.ts`; the compiled middleware is `src/middleware.ts`.
 
 ### WHY
 - Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
 - Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.
+- Dev fixtures and diagnostics are for preview and local use. Keying the guard on the deployment environment (not `NODE_ENV`) withdraws them from production without breaking production-mode verification runs on localhost, and one guard now sits in front of the existing per-page checks, some of which relied on request headers.
 
 ## 1.0.1 - 2026-06-24
 
