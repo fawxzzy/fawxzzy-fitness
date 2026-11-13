@@ -1,11 +1,11 @@
 {
   "contract_version": "atlas.project-board.owner-export.v1",
-  "export_id": "pbe_fitness_owner_registry_99e9974c37a4",
+  "export_id": "pbe_fitness_owner_registry_ed281cc5b697",
   "project_id": "fitness",
   "board_id": "fitness:project-feedback:fitness-active",
   "owner": "fitness",
   "adapter_id": "fitness-owner-registry-v1",
-  "source_revision": "sha256:99e9974c37a46b4fd204a060ab35d1e24c0ccec2f54c7b4b076f275467ca088f",
+  "source_revision": "sha256:ed281cc5b697ee092c6a9ff8b9742fbc72743c3281d4495bf1d006615ce0b7fb",
   "generated_at": "2026-11-13T17:40:00.000Z",
   "sources": [
     {
@@ -37,7 +37,7 @@
       "kind": "generated",
       "repository": "fawxzzy-fitness",
       "path": "repos/fawxzzy-fitness/scripts/export-project-board-owner.mjs",
-      "revision": "sha256:b7db7b1e4060b8c8342c2ca6256ec81ac1e69ad764e7c833f900e582c7356528",
+      "revision": "sha256:e275b81c8831806cf4836347af47b4bed6e9de8701ecd3be8b8919ede89fd9d5",
       "observed_at": "2026-11-13T17:40:00.000Z"
     }
   ],
@@ -496,7 +496,7 @@
         "project_id": "fitness",
         "board_id": "fitness:project-feedback:fitness-active",
         "title": "Consistent cards across the app",
-        "description": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. Open for review: the Today screens. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
+        "description": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. The Today screens are merged but not yet live. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
         "card_type": "feature",
         "lifecycle": "review",
         "priority": "medium",
@@ -518,11 +518,11 @@
         "source_updated_at": "2026-11-13T17:40:00.000Z"
       },
       "content": {
-        "summary": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. Open for review: the Today screens. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
-        "objective": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. Open for review: the Today screens. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
+        "summary": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. The Today screens are merged but not yet live. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
+        "objective": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. The Today screens are merged but not yet live. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
         "acceptance_criteria": [
           "Routines screens use the shared cards (merged and live).",
-          "Today screens use the shared cards (open for review, not yet merged).",
+          "Today screens use the shared cards (merged, not yet live).",
           "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).",
           "The result is checked in the installed phone app (not yet done)."
         ],

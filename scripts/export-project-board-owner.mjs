@@ -193,8 +193,8 @@ const SUPPLEMENTAL_CARDS = [
     title: "Consistent cards across the app",
     priority: "P2",
     dependsOn: [],
-    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. Open for review: the Today screens. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
-    acceptanceCriteria: ["Routines screens use the shared cards (merged and live).", "Today screens use the shared cards (open for review, not yet merged).", "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).", "The result is checked in the installed phone app (not yet done)."],
+    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system and the Routines screens are merged and live. The Today screens are merged but not yet live. Still to move over: History, Session, Settings and the routine editor. Not checked on a real phone.",
+    acceptanceCriteria: ["Routines screens use the shared cards (merged and live).", "Today screens use the shared cards (merged, not yet live).", "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).", "The result is checked in the installed phone app (not yet done)."],
   },
   {
     cardId: "FF-PLATFORM-001",
