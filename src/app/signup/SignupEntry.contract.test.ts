@@ -11,10 +11,12 @@ test("signup entry sends browser tabs to the one portal sign-up surface and keep
   assert.match(source, /getInstallContext\(\)\.isStandalone \|\| isLocalManualSignup/);
   assert.match(source, /params\.get\("manual"\) === "1" && isTrustedLocalDevHost\(window\.location\.hostname\)/);
   assert.match(source, /state\.mode === "browser"/);
-  assert.match(source, /<AccountPortalRedirect href=\{getFitnessSignupPortalUrl\(state\.returnTo\)\} \/>/);
+  assert.match(source, /<AccountPortalRedirect href=\{state\.portalHref\} \/>/);
+  assert.match(source, /portalHref: getFitnessSignupPortalUrlForSearch\(window\.location\.search\)/);
   assert.match(source, /return <>\{children\}<\/>/);
-  // Return targets only ever pass through the same-origin path check, then the portal handoff allowlist.
-  assert.match(source, /isSafeAppPath\(returnTo\) \? returnTo : undefined/);
+  // Return targets are narrowed in getFitnessSignupPortalUrlForSearch (behaviour-tested in account-portal.test.ts).
+  // No source-origin session cleanup on departure (same as the /login redirect): the broker handoff replaces the
+  // Fitness cookies on a completed sign-in, and clearing would sign a member out for opening Create account.
   assert.doesNotMatch(source, /clearBrowserSupabaseSession|session-sync|accessToken|refreshToken/);
   assert.match(redirectSource, /window\.location\.replace\(href\)/);
 });
