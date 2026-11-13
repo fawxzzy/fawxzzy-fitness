@@ -73,6 +73,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/lib/session-start-activation.ts` and test, `src/lib/session-start-atomicity.test.ts`, `supabase/master-fitness/*`; local PostgreSQL 17 proof (apply, rerun, 8-client concurrency, unique-violation handler, duplicate guard, rollback).
 - Status: source only; nothing applied to any provider.
 
+## 2026-11-12 - Send browser sign-up to the one portal surface, keep installed sign-up in scope
+
+- Type: Account entry routing + Installed PWA scope
+- WHAT changed: Browser (non-installed) `/signup` now redirects to `https://account.fawxzzy.com/login?app=fitness&intent=signup&returnTo=<fitness url>` (`getFitnessSignupPortalUrl`, exactly one `intent` key with the value `signup`); the installed app keeps its own sign-up screen. The split lives in a route layout (`src/app/signup/layout.tsx` + `SignupEntry.tsx`), mirroring `LoginEntry`, with the same `?manual=1` local-review escape hatch.
+- WHY: Two sign-up surfaces (Fitness `/signup`, reachable from any browser, and the portal) meant two sets of copy, errors and enumeration behaviour. Sign-in already sends browser tabs to the portal; sign-up now does the same, while an installed app must not leave its manifest scope.
+- Rule: A product screen reachable from both a browser tab and the installed app delegates to the shared account portal only in the browser; the installed app keeps the in-scope screen (2026-09-13 rule). Add a portal intent as a single query key with an exact value, and let older portal builds ignore it so the product can ship first.
+- Failure Mode: Detecting the installed app on the server (it cannot) or redirecting every `/signup` hit would send installed users out of the app; forwarding a free-form `returnTo` would widen the portal return allowlist.
+- Decision: No Fitness-origin session cleanup before leaving for the portal (same as `AccountPortalRedirect` for `/login`, pinned by test). The earlier "clean the source-origin session first" rule is superseded because the broker handoff now replaces the Fitness cookies on a completed sign-in, and an unconditional clear would sign the member out merely for opening Create account.
+- Evidence: `src/lib/account-portal.ts` and test, `src/app/signup/SignupEntry.tsx`, `src/app/signup/layout.tsx`, `src/app/signup/SignupEntry.contract.test.ts`; the portal side is FawxzzyWeb PR #134.
+- Status: Source only; the portal change and any deploy are separate.
+
 ## 2026-11-12 - Bucket Exercise info sessions by the History local day
 
 - Type: Day-boundary correctness (source) + Coverage
@@ -1358,6 +1369,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Redirecting before source-origin cleanup can rehydrate a stale session; accepting a caller-defined absolute return URL can create an open redirect or leak token material.
 - Evidence: `src/app/login/AccountPortalRedirect.tsx`, `src/app/login/page.tsx`, `src/app/login/page.contract.test.ts`, `src/lib/account-portal.ts`, `src/lib/account-portal.test.ts`.
 - Status: Source-proven locally; review, merge, deployment, and production remain separate lifecycle boundaries.
+- Superseded 2026-11-12 (cleanup rule only): the account-portal broker handoff is live, and browser tabs now reach the portal from `/login` and `/signup` without clearing the Fitness-origin session. Departure does not transmit the session, and the handoff replaces the Fitness cookies with whichever account signs in, so the stale-account rehydration this rule guarded against cannot follow a completed sign-in or sign-up. Clearing on departure would sign a member out of Fitness for tapping Create account, and the entry below records that an unconditional session clear races a successful login. The trusted-local fallback and the allowlisted canonical-origin `returnTo` still apply.
 
 ## 2026-08-27 - Keep normal Fitness credential login on the Fitness origin until a broker exists
 
@@ -1439,6 +1451,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `scripts/process-fitness-followups-exact.test.mjs` covers startup with and without the loader; `src/lib/exercise-stats.test.ts` covers strict read, delete, and upsert failures. Live settlement remains unproven.
 - Verification: The existing QA bootstrap source-contract test now accepts both LF and CRLF so the Fitness integrity suite can run on Windows as well as CI Linux.
 - CI Rule: Keep both PR and main-push path filters in the focused Fitness integrity workflow aligned with every enumerated runner and stats test plus its source dependencies; the runner test checks this watch contract.
+
+## 2026-11-12 - Change the password on a client that holds its session, and prove the current password first
+
+- Type: Account security + Supabase client contract
+- WHAT changed: Settings > Account has Change password. `changePasswordAction` verifies the current password with `signInWithPassword` on a throwaway `persistSession: false` client, performs `updateUser({ password })` on that same client, then signs that session out with `scope: "local"`. Shared policy and fixed-copy codes live in `src/lib/password-policy.ts`.
+- WHY: `supabaseServerWithSession()` returns a client that only forwards the access token as a bearer header. `auth.updateUser` reads the session from the client's own storage, so on that client it returns `AuthSessionMissingError` ("Auth session missing!") without sending a request (since 595642d8 replaced `setSession` with the recovery layer). A current-password check also stops a borrowed session from changing the password, and the fresh sign-in satisfies the optional "secure password change" recency rule without a provider setting.
+- Rule: Calls that need a stored session (`updateUser`, `signOut`) belong on a client that was given one (`signInWithPassword` or `setSession`); `getUser()` is the only auth call the bearer-header client supports. Test such calls through the real auth client with a stub fetch, not a hand-written stub of `updateUser`.
+- Failure Mode: A unit test that stubs `updateUser` passes while the real client fails before any request. Signing out the verification client with the default global scope would revoke every session of the member, including the one in use.
+- Decision: Other sessions are not revoked on a password change (shared with the portal and Mazer); revisit as its own card.
+- Evidence: `src/app/settings/actions.ts`, `src/lib/password-policy.ts`, `src/components/settings/AccountPasswordSection.tsx`, `tests/password-mutation-actions.test.mjs`, `src/lib/password-policy.test.ts`, `src/app/account/accountSurface.contract.test.ts`.
+- Status: Source and offline tests only; no provider setting, deployment or live account touched. The other `updateUser` call sites (`updateAccountEmailAction`, the reset save step) share the same defect and are not changed here.
 
 ## 2026-11-12 - Mount the consistency heatmap as a whole-history view (FF-RET-003)
 
