@@ -6,6 +6,7 @@ import { signup } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
+import { SIGNUP_ROUTE_ERROR_TOAST_ID, SIGNUP_ROUTE_INFO_TOAST_ID } from "@/components/auth/signupFeedback";
 import { AUTH_PLAIN_CARD_CHROME_CLASS_NAME, AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME, AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields, AuthLegalRow } from "@/components/auth/AuthShell";
 import { AUTH_ACCOUNT_INPUT_CLASS_NAME, AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME, AuthAccountField } from "@/components/auth/AuthAccountField";
 import { FitContentInput } from "@/components/ui/FitContentInput";
@@ -39,8 +40,9 @@ export function SignupForm({
   const [password, setPassword] = useState("");
   const canCreate = isUsernameIdentifier(username) && EMAIL_PATTERN.test(email.trim().toLowerCase()) && isValidNewPassword(password);
 
-  useToastMessageEffect("error", error, { id: "signup-route-error" });
-  useToastMessageEffect("success", info, { id: "signup-route-info" });
+  // `error` / `info` arrive already resolved from an allow-listed code by the /signup page.
+  useToastMessageEffect("error", error, { id: SIGNUP_ROUTE_ERROR_TOAST_ID });
+  useToastMessageEffect("success", info, { id: SIGNUP_ROUTE_INFO_TOAST_ID });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
