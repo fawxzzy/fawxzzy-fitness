@@ -89,7 +89,7 @@ test("curated onboarding has an auth-free non-production route for actual-shell 
 
   const shell = readComponent("CuratedOnboardingShell.tsx");
   assert.match(shell, /previewOnly \|\| !hasHydrated/);
-  assert.match(shell, /if \(previewOnly\) \{\s+return;\s+\}/);
+  assert.match(shell, /if \(previewOnly \|\| createInFlightRef\.current\) \{\s+return;\s+\}/);
   assert.match(shell, /disabled=\{previewOnly \|\| !generatedPlan/);
 });
 
@@ -132,4 +132,17 @@ test("the retired six-step onboarding components stay deleted", () => {
   for (const name of ["GoalsStep", "ExperienceStep", "EquipmentStep", "ScheduleStep", "PreferencesStep", "ConstraintsStep", "CuratedIntroStep"]) {
     assert.throws(() => readComponent(`${name}.tsx`), { code: "ENOENT" }, name);
   }
+});
+
+test("curated handoff guards double submit, keeps blocked primary on Build manually, and never shows raw errors", () => {
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+
+  assert.match(shell, /createInFlightRef = useRef\(false\)/);
+  assert.match(shell, /createdRoutineRef = useRef/);
+  assert.match(shell, /previewOnly \|\| createInFlightRef\.current/);
+  assert.match(shell, /createInFlightRef\.current = false/);
+  assert.match(shell, /getCuratedHandoffActions\(failure\)/);
+  assert.match(shell, /handoffActions\.primary === "build-manually"/);
+  assert.match(shell, /CURATED_LOST_RESPONSE_MESSAGE/);
+  assert.doesNotMatch(shell, /error\.message|instanceof Error/);
 });

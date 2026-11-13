@@ -49,8 +49,13 @@ import {
 } from "../storage.ts";
 import { getCuratedStepDefinition } from "../step-registry.ts";
 import {
+  CURATED_CREATE_FAILED_MESSAGE,
+  CURATED_LOST_RESPONSE_MESSAGE,
+  CURATED_UNAVAILABLE_MESSAGE,
+} from "../copy.ts";
+import {
   CURATED_MANUAL_ROUTINE_HREF,
-  isCuratedHandoffRetryable,
+  getCuratedHandoffActions,
   type CuratedHandoffFailure,
 } from "../handoff.ts";
 import type { CuratedWorkoutPlan } from "../engine.ts";
@@ -125,6 +130,8 @@ export function CuratedOnboardingShell({
   const completionTrackedRef = useRef(false);
   const abandonmentTrackedRef = useRef(false);
   const generationRequestedRef = useRef(false);
+  const createInFlightRef = useRef(false);
+  const createdRoutineRef = useRef<{ routineId: string; routineName: string } | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestStateRef = useRef(state);
   const latestCompletionSourceRef = useRef<CompletionSource>(completionSource);
@@ -242,11 +249,8 @@ export function CuratedOnboardingShell({
         setGeneratedPlan(result.plan);
         dispatch({ type: "generation-resolved", status: "ready", planId: result.plan.planId });
       })
-      .catch((error) => {
-        setFailure({
-          code: "unavailable",
-          message: error instanceof Error ? error.message : "The curated routine could not be generated.",
-        });
+      .catch(() => {
+        setFailure({ code: "unavailable", message: CURATED_UNAVAILABLE_MESSAGE });
         dispatch({ type: "generation-resolved", status: "failed" });
       });
   }, [hasHydrated, previewOnly, state.draft.data, state.draft.stepId, state.lifecycle.generationStatus, state.lifecycle.intakeStatus, userId]);
@@ -369,11 +373,22 @@ export function CuratedOnboardingShell({
     dispatch({ type: "reopen-intake", at: nowIso() });
   }
 
+  function openCreatedRoutine(created: { routineId: string; routineName: string }) {
+    writeRoutineDraftSession(created.routineId, created.routineName);
+    router.push("/routines/new");
+  }
+
   function handleCreateDraft() {
-    if (previewOnly) {
+    // One create per click: a double tap, or a tap while navigation is pending, never starts a second request.
+    if (previewOnly || createInFlightRef.current) {
+      return;
+    }
+    if (createdRoutineRef.current) {
+      openCreatedRoutine(createdRoutineRef.current);
       return;
     }
 
+    createInFlightRef.current = true;
     startCreatingDraft(async () => {
       setCreateNotice(null);
       try {
@@ -395,15 +410,16 @@ export function CuratedOnboardingShell({
             dispatch({ type: "generation-resolved", status: "failed" });
             return;
           }
-          setCreateNotice(result.error);
+          setCreateNotice(result.error || CURATED_CREATE_FAILED_MESSAGE);
           return;
         }
-        writeRoutineDraftSession(result.routineId, result.routineName);
-        router.push("/routines/new");
-      } catch (error) {
-        setCreateNotice(
-          error instanceof Error ? error.message : "Could not create the editable routine draft.",
-        );
+        createdRoutineRef.current = { routineId: result.routineId, routineName: result.routineName };
+        openCreatedRoutine(createdRoutineRef.current);
+      } catch {
+        // The response may have been lost after the server created the routine; a retry reuses it.
+        setCreateNotice(CURATED_LOST_RESPONSE_MESSAGE);
+      } finally {
+        createInFlightRef.current = false;
       }
     });
   }
@@ -471,21 +487,31 @@ export function CuratedOnboardingShell({
       Create editable draft
     </BottomDockButton>
   );
-  const retryable = isCuratedHandoffRetryable(failure);
+  const handoffActions = getCuratedHandoffActions(failure);
+  const editSetupButton = (intent: "positive" | "toggleInactive") => (
+    <BottomDockButton type="button" intent={intent} onClick={handleEditSetup}>
+      Edit setup
+    </BottomDockButton>
+  );
+  const primaryManualLink = (
+    <BottomDockLink href={CURATED_MANUAL_ROUTINE_HREF} intent="positive">
+      Build manually
+    </BottomDockLink>
+  );
   const bottomActions = isGenerationStep ? (
     failure ? (
-      <BottomActionSplit
-        secondary={manualRoutineLink}
-        primary={(
-          <BottomDockButton
-            type="button"
-            intent="positive"
-            onClick={retryable ? handleRetryGeneration : handleEditSetup}
-          >
-            {retryable ? "Try again" : "Edit setup"}
-          </BottomDockButton>
-        )}
-      />
+      handoffActions.primary === "build-manually" ? (
+        <BottomActionSplit secondary={editSetupButton("toggleInactive")} primary={primaryManualLink} />
+      ) : (
+        <BottomActionSplit
+          secondary={manualRoutineLink}
+          primary={handoffActions.primary === "try-again" ? (
+            <BottomDockButton type="button" intent="positive" onClick={handleRetryGeneration}>
+              Try again
+            </BottomDockButton>
+          ) : editSetupButton("positive")}
+        />
+      )
     ) : createNotice ? (
       <BottomActionSplit secondary={manualRoutineLink} primary={createDraftButton} />
     ) : (

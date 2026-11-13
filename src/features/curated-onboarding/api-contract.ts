@@ -11,6 +11,13 @@ import {
   removeHiddenCuratedResponses,
 } from "./questionnaire.ts";
 import { isCuratedOnboardingReadyForHandoff } from "./selectors.ts";
+import {
+  CURATED_CREATE_FAILED_MESSAGE,
+  CURATED_CREATE_PARTIAL_MESSAGE,
+  CURATED_DISABLED_MESSAGE,
+  CURATED_PLAN_CHANGED_MESSAGE,
+  CURATED_UNAVAILABLE_MESSAGE,
+} from "./copy.ts";
 import type { CuratedIntakeResponse, CuratedIntakeResponses, CuratedOnboardingData } from "./types.ts";
 
 /**
@@ -24,6 +31,14 @@ import type { CuratedIntakeResponse, CuratedIntakeResponses, CuratedOnboardingDa
  * - The outcome is a closed union. A generation attempt is `ready`, `blocked`, `failed`, or `plan-changed`.
  *   A fabricated or partial routine is not an outcome.
  */
+export {
+  CURATED_CREATE_FAILED_MESSAGE,
+  CURATED_CREATE_PARTIAL_MESSAGE,
+  CURATED_DISABLED_MESSAGE,
+  CURATED_PLAN_CHANGED_MESSAGE,
+  CURATED_UNAVAILABLE_MESSAGE,
+};
+
 export const CURATED_GENERATION_CONTRACT_VERSION = 1 as const;
 
 export interface CuratedWorkoutGenerationRequest {
@@ -49,18 +64,6 @@ export type CuratedGenerationFailureCode =
   | "invalid-request"
   | "plan-changed"
   | "unavailable";
-
-export const CURATED_DISABLED_MESSAGE = "Guided routine setup is not available right now. You can build a routine manually.";
-export const CURATED_UNAVAILABLE_MESSAGE =
-  "The routine could not be generated right now. Try again, or build a routine manually.";
-export const CURATED_CREATE_FAILED_MESSAGE =
-  "Your routine could not be created. Nothing was saved. Try again, or build a routine manually.";
-
-export const CURATED_CREATE_PARTIAL_MESSAGE =
-  "Your routine was only partly created. Open Routines to check it, then try again or build a routine manually.";
-
-export const CURATED_PLAN_CHANGED_MESSAGE =
-  "Your recent workouts changed what fits. Review the updated routine before creating it.";
 
 const MAX_RESPONSE_TEXT_LENGTH = 4000;
 const MAX_RESPONSE_LIST_LENGTH = 60;
