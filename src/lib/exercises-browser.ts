@@ -1566,17 +1566,19 @@ export async function getExercisesWithStatsForExplicitUser(userId: string, clien
   return getExercisesWithStats(userId, client);
 }
 
+// The caller authenticates (the JSON route uses resolveApiUser before its try block); requireUser throws
+// Next's redirect error, which must not be raised from inside a route handler's try/catch.
 export async function getExerciseBrowserRowsForUserFilter(
+  userId: string,
   filterState?: Partial<ExerciseInfoFilterState> | null,
 ): Promise<ExerciseBrowserRow[]> {
-  const user = await requireUser();
   const normalizedFilterState = normalizeExerciseInfoFilterState(filterState);
   const scopeContext = await resolveExerciseBrowserScopedContext({
-    userId: user.id,
+    userId,
     filterState: normalizedFilterState,
   });
 
-  return getExercisesWithStats(user.id, undefined, {
+  return getExercisesWithStats(userId, undefined, {
     analyticsScope: normalizedFilterState.analyticsScope,
     scopeContext,
   });
