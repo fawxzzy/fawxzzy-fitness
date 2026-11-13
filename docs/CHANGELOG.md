@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Unreleased - 2026-07-16
 
 ### WHAT
+- Collapsed-row quick log on the Current Session list now follows the same offline route as the expanded set logger: offline up front, or a request that throws, keeps the optimistic set and writes it to the on-device set-log queue (deduped by its client log id) instead of rolling it back with "Could not quick log set.". A session-level worker replays the queue after reconnect while every row is collapsed; a resolved server refusal is still rolled back with the server message and never queued.
 - Advanced the Playbook runtime and clean-environment CI fallback to the source-bound v0.54.1 release tarball, with the independently verified SHA-256 `6fb915baaa0837c70a942c60caaf110ba56abee6dd722de8a686b4757e768ba1`. The upstream npm publish attempts failed for missing registry authentication; the GitHub release tarball is the verified acquisition path.
 - Rebound the active Playbook runtime fallback from the retired `ZachariahRedfield` GitHub release to the source-bound `fawxzzy/playbook` v0.54.0 fallback asset, pinned its exact SHA-256 before install, and added default-acquisition, mismatch, and local-artifact evidence regressions.
 - Kept the branded metadata base without inheriting a homepage canonical across every application route.
@@ -13,6 +14,7 @@ All notable changes to this project are documented in this file.
 - Extended deterministic routine generation to support the full one-to-seven-day range and added Standard and Limitations completion-path regression coverage.
 
 ### WHY
+- A set tapped offline from a collapsed row was lost while the same tap from an expanded row was kept. Two offline paths for one action broke the FF-PWA-002 rule that a connection drop never discards a logged set.
 - Clean-environment verification must remain reproducible after the legacy GitHub account retirement without relying on deleted repository coordinates, mutable URL trust, or unverifiable package provenance.
 - Curated setup must collect the same planning and safety context as the validated source form without sending members through a separate product experience.
 - A versioned local draft and explicit derivation layer preserve unfinished work while keeping routine generation deterministic and independent from the questionnaire presentation.

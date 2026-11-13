@@ -1,5 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - Route the collapsed-row quick log through the offline set-log queue
+
+- Type: Offline durability (source) + Coverage
+- WHAT changed: The Current Session collapsed-row quick log (`SessionExerciseFocus.tsx`) previously called `addSetAction` directly and, on any failure, rolled the optimistic set back with "Could not quick log set." It now calls `submitQuickLogSet` (`src/lib/offline/quick-log-queue.ts`): offline up front, or a request that throws, writes the set to the existing IndexedDB set-log queue (`enqueueSetLog`, deduped by the optimistic set's `clientLogId`, same payload shape as the expanded logger) and keeps the optimistic set marked queued, with the expanded logger's toast copy. A new session-level worker (`useSessionSetLogSync`) runs the existing `createSetLogSyncEngine` while no `SetLoggerCard` is mounted, so a set queued from a collapsed row (or left queued by a row that was just collapsed) replays after reconnect.
+- WHY it changed: One user action had two offline routes and the collapsed one lost data (live UX sift 2026-11-12, finding 1). The only replay worker lived inside the expanded logger card, which is unmounted while collapsed, so queueing alone would have left the set waiting for an unrelated row to be expanded.
+- Rule: One mutation, one offline route. Every UI entry point for the same write must share the queue, the idempotency key and the replay worker.
+- Failure Mode: A second entry point that treats a thrown request as failure drops the write on the one path nobody reproduced offline; a replay worker owned by a component that can unmount silently stops replaying.
+- Decision: Only "offline up front" and "the request threw" queue. A resolved `{ ok: false }` is an explicit server refusal (validation, auth, completed session) and is rolled back with the server message, never queued, because the set-log engine retries forever. The expanded logger still queues on a resolved `{ ok: false }`; that difference is left for a follow-up rather than widened here. The session worker is on only when no logger card is mounted (`shouldRunSessionSetLogSync`), so exactly one engine replays the queue.
+- Evidence: `src/lib/offline/quick-log-queue.ts` and test, `src/components/session/useSessionSetLogSync.ts`, `src/components/SessionExerciseFocus.tsx`, `src/components/SessionExerciseFocus.quickLogOffline.contract.test.ts`; headless Chromium against the mobile-regression fixture route at 320x568, 390x844 and 430x932 (offline tap queues, reconnect replays with every row collapsed).
+- Status: Source only; nothing deployed, no provider effect, not checked on a real phone.
 ## 2026-11-06 - Restack session-start atomicity activation onto main and retarget the master apply package to the `fitness` schema
 
 - Type: Activation (source) + provider apply package (not applied)
