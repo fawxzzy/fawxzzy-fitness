@@ -1341,3 +1341,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `scripts/process-fitness-followups-exact.test.mjs` covers startup with and without the loader; `src/lib/exercise-stats.test.ts` covers strict read, delete, and upsert failures. Live settlement remains unproven.
 - Verification: The existing QA bootstrap source-contract test now accepts both LF and CRLF so the Fitness integrity suite can run on Windows as well as CI Linux.
 - CI Rule: Keep both PR and main-push path filters in the focused Fitness integrity workflow aligned with every enumerated runner and stats test plus its source dependencies; the runner test checks this watch contract.
+
+## 2026-11-12 - Change the password on a client that holds its session, and prove the current password first
+
+- Type: Account security + Supabase client contract
+- WHAT changed: Settings > Account has Change password. `changePasswordAction` verifies the current password with `signInWithPassword` on a throwaway `persistSession: false` client, performs `updateUser({ password })` on that same client, then signs that session out with `scope: "local"`. Shared policy and fixed-copy codes live in `src/lib/password-policy.ts`.
+- WHY: `supabaseServerWithSession()` returns a client that only forwards the access token as a bearer header. `auth.updateUser` reads the session from the client's own storage, so on that client it returns `AuthSessionMissingError` ("Auth session missing!") without sending a request (since 595642d8 replaced `setSession` with the recovery layer). A current-password check also stops a borrowed session from changing the password, and the fresh sign-in satisfies the optional "secure password change" recency rule without a provider setting.
+- Rule: Calls that need a stored session (`updateUser`, `signOut`) belong on a client that was given one (`signInWithPassword` or `setSession`); `getUser()` is the only auth call the bearer-header client supports. Test such calls through the real auth client with a stub fetch, not a hand-written stub of `updateUser`.
+- Failure Mode: A unit test that stubs `updateUser` passes while the real client fails before any request. Signing out the verification client with the default global scope would revoke every session of the member, including the one in use.
+- Decision: Other sessions are not revoked on a password change (shared with the portal and Mazer); revisit as its own card.
+- Evidence: `src/app/settings/actions.ts`, `src/lib/password-policy.ts`, `src/components/settings/AccountPasswordSection.tsx`, `tests/password-mutation-actions.test.mjs`, `src/lib/password-policy.test.ts`, `src/app/account/accountSurface.contract.test.ts`.
+- Status: Source and offline tests only; no provider setting, deployment or live account touched. The other `updateUser` call sites (`updateAccountEmailAction`, the reset save step) share the same defect and are not changed here.

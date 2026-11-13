@@ -3,14 +3,28 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import {
+  CHANGE_PASSWORD_COPY,
+  CHANGE_PASSWORD_SUCCESS_MESSAGE,
+  classifyChangePasswordProviderError,
+  validateChangePasswordInput,
+  type ChangePasswordProblem,
+} from "@/lib/password-policy";
 import { QA_LLEL_VISIBILITY_COOKIE } from "@/lib/qa-data-visibility";
 import { supabaseServer, supabaseServerWithSession } from "@/lib/supabase/server";
+import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 import { isUsernameIdentifier, USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 
 export type EmailUpdateState = {
   status: "idle" | "success" | "error";
   message?: string;
   updatedDisplayName?: string;
+};
+
+export type PasswordUpdateState = {
+  status: "idle" | "success" | "error";
+  message?: string;
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,6 +109,64 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
       : "Username updated.",
     updatedDisplayName: nextUsername,
   };
+}
+
+function passwordUpdateFailure(problem: ChangePasswordProblem): PasswordUpdateState {
+  return { status: "error", message: CHANGE_PASSWORD_COPY[problem] };
+}
+
+/**
+ * Change the signed-in member's password (FF-ACCOUNT-003).
+ *
+ * The current password is verified first by signing in on a throwaway client, so a borrowed or stolen session alone
+ * cannot change the password. That fresh session then performs the update: `auth.updateUser` needs a session held by
+ * the client (the request-bound client only forwards a bearer header, so `updateUser` on it fails with "Auth session
+ * missing"), and a fresh sign-in also satisfies the provider's optional "secure password change" recency rule without
+ * any provider setting. The throwaway session is revoked (`scope: "local"`, so the member's own session and their
+ * other devices are untouched).
+ */
+export async function changePasswordAction(formData: FormData): Promise<PasswordUpdateState> {
+  const user = await requireUser();
+  const input = validateChangePasswordInput({
+    current: formData.get("currentPassword"),
+    next: formData.get("newPassword"),
+    confirmation: formData.get("confirmPassword"),
+  });
+  if (!input.ok) {
+    return passwordUpdateFailure(input.problem);
+  }
+
+  const email = user.email?.trim();
+  if (!email) {
+    return passwordUpdateFailure("update_failed");
+  }
+
+  const { auth } = createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  try {
+    const verified = await auth.signInWithPassword({ email, password: input.current });
+    if (verified.error || !verified.data.session) {
+      // Machine code and status only: no message, no address.
+      console.error("Change-password verification failed", { code: verified.error?.code ?? null, status: verified.error?.status ?? null });
+      return passwordUpdateFailure(classifyChangePasswordProviderError("verify", verified.error));
+    }
+
+    const updated = await auth.updateUser({ password: input.next });
+    if (updated.error) {
+      console.error("Change-password update failed", { code: updated.error.code ?? null, status: updated.error.status ?? null });
+      return passwordUpdateFailure(classifyChangePasswordProviderError("update", updated.error));
+    }
+
+    return { status: "success", message: CHANGE_PASSWORD_SUCCESS_MESSAGE };
+  } catch (error) {
+    console.error("Change-password request failed", { name: error instanceof Error ? error.name : null });
+    return passwordUpdateFailure("update_failed");
+  } finally {
+    // Revoke only the throwaway verification session; failures here never change the outcome.
+    await auth.signOut({ scope: "local" }).catch(() => undefined);
+  }
 }
 
 export async function updateUnitPreferencesAction(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
