@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -22,6 +23,8 @@ export default async function DevMobileRegressionPage({
     fixture?: string;
   };
 }) {
+  assertDevPageAvailable();
+
   const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";
   if (process.env.NODE_ENV === "production" && !isReviewPreviewEnabled) {
     notFound();

@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { assertDevServiceRolePageAvailable } from "@/lib/dev-route-guard-page";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -9,12 +9,6 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 export const dynamic = "force-dynamic";
-
-function isLocalRequest() {
-  const host = (headers().get("x-forwarded-host") ?? headers().get("host") ?? "").trim().toLowerCase();
-  const hostname = host.split(":")[0] ?? "";
-  return hostname === "127.0.0.1" || hostname === "localhost";
-}
 
 function buildAccessTokenClient(accessToken: string) {
   return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
@@ -51,9 +45,7 @@ export default async function DevHistoryExercisesLivePage({
     accessToken?: string;
   };
 }) {
-  if (process.env.NODE_ENV === "production" && !isLocalRequest()) {
-    return <ErrorState message="Not found." />;
-  }
+  assertDevServiceRolePageAvailable();
 
   const userId = searchParams?.userId?.trim() ?? "";
   const initialViewMode = searchParams?.view === "detailed" ? "detailed" : "compact";

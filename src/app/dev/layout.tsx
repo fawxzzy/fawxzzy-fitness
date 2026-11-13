@@ -1,17 +1,16 @@
 import type { ReactNode } from "react";
-import { notFound } from "next/navigation";
-import { isProductionDeployment } from "@/lib/dev-route-guard";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
-// Every /dev/* page is a fixture or diagnostic surface. Withdraw the whole tree from
-// production deployments here; route handlers under /dev guard themselves because a
-// layout does not wrap them. Evaluated per request so a promoted build never carries a
+// Renders the 404 UI for the /dev tree when the shared guard withdraws it. A layout does
+// not stop the page under it from running (Next renders them in parallel), so this is not
+// a code guard: the middleware covers every /dev path, and each page without a check of its
+// own calls `assertDevPageAvailable()` itself. Route handlers are not wrapped by a layout
+// and guard themselves. Evaluated per request so a promoted build never carries a
 // prerendered fixture into production.
 export const dynamic = "force-dynamic";
 
 export default function DevLayout({ children }: { children: ReactNode }) {
-  if (isProductionDeployment()) {
-    notFound();
-  }
+  assertDevPageAvailable();
 
   return children;
 }

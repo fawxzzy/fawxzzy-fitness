@@ -1,8 +1,11 @@
 import { AppShell } from "@/components/ui/app/AppShell";
 import { BottomActionsProvider } from "@/components/layout/bottom-actions";
 import { StretchSessionPreview } from "@/app/dev/stretch-hub/StretchSessionPreview";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export default function DevStretchSessionPreviewPage() {
+  assertDevPageAvailable();
+
   return (
     <BottomActionsProvider>
       <AppShell topNavMode="none" ambientPreset="logSet">

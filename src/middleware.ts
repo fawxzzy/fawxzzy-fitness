@@ -17,7 +17,7 @@ import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
 import { buildRequestScopedUrl } from "@/lib/request-origin";
-import { isDevOnlyPath, isProductionDeployment } from "@/lib/dev-route-guard";
+import { hostnamesOf, isDevOnlyPath, isDevRouteWithdrawn } from "@/lib/dev-route-guard";
 import {
   isDocumentNavigation,
   shouldAnswerDetailRouteWithNotFound,
@@ -273,9 +273,18 @@ export function buildDevRouteUnavailableResponse() {
 }
 
 export async function middleware(request: NextRequest) {
-  // Dev fixtures and diagnostics never run on a production deployment.
-  if (isProductionDeployment() && isDevOnlyPath(request.nextUrl.pathname)) {
-    return buildDevRouteUnavailableResponse();
+  // Dev fixtures and diagnostics never run on a production deployment, or on a server that
+  // cannot show it is a local run (see src/lib/dev-route-guard.ts). The environment snapshot uses
+  // literal reads: Next inlines only the literal `process.env.NODE_ENV` expression.
+  if (isDevOnlyPath(request.nextUrl.pathname)) {
+    const devGuardEnv = {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      HISTORY_QA_PREVIEW_ENABLED: process.env.HISTORY_QA_PREVIEW_ENABLED,
+    };
+    if (isDevRouteWithdrawn({ hostnames: hostnamesOf(request), env: devGuardEnv })) {
+      return buildDevRouteUnavailableResponse();
+    }
   }
 
   if (shouldRedirectLegacyFitnessNavigation(request)) {
