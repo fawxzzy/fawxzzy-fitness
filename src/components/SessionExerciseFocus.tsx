@@ -55,6 +55,17 @@ import {
   scheduleSkipToggleRetryIfCurrent,
 } from "@/lib/offline/skip-toggle-queue";
 import { createSkipToggleSyncEngine } from "@/lib/offline/skip-toggle-sync-engine";
+import { enqueueSetLog } from "@/lib/offline/set-log-queue";
+import {
+  applySyncedItemToSnapshotMap,
+  markSnapshotSetQueued,
+  QUICK_LOG_FAILED_MESSAGE,
+  reconcileSnapshotMapQueueStatuses,
+  shouldRunSessionSetLogSync,
+  submitQuickLogSet,
+  toOfflineSetPayload,
+} from "@/lib/offline/quick-log-queue";
+import { useSessionSetLogSync } from "@/components/session/useSessionSetLogSync";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
 import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
@@ -596,6 +607,23 @@ export function SessionExerciseFocus({
     engine.start();
     return () => engine.stop();
   }, [patchRowState, toast, toggleSkipAction, userId]);
+
+  // A collapsed row's quick log queues the set offline while no SetLoggerCard (and so no set-log sync engine)
+  // is mounted; this session-level worker replays the queue then. See useSessionSetLogSync.
+  useSessionSetLogSync({
+    userId,
+    enabled: shouldRunSessionSetLogSync({
+      selectedExerciseId,
+      exerciseIds: exercises.map((exercise) => exercise.id),
+    }),
+    syncSetLogsAction: syncQueuedSetLogsAction,
+    onItemSynced: ({ item, serverSetId }) => {
+      setSetSnapshotsBySessionExerciseId((current) => applySyncedItemToSnapshotMap(current, item, serverSetId, userId));
+    },
+    onQueuedSetsRead: (queued) => {
+      setSetSnapshotsBySessionExerciseId((current) => reconcileSnapshotMapQueueStatuses(current, queued));
+    },
+  });
 
   useEffect(() => {
     setRowClientStateBySessionExerciseId((current) => {
@@ -1398,29 +1426,51 @@ export function SessionExerciseFocus({
                     };
                   });
 
-                  const result = await addSetAction({
-                    sessionId,
-                    sessionExerciseId: exercise.id,
-                    weight: quickLogPayload.weight,
-                    reps: quickLogPayload.reps,
-                    durationSeconds: quickLogPayload.durationSeconds,
-                    distance: quickLogPayload.distance,
-                    distanceUnit: quickLogPayload.distanceUnit,
-                    calories: quickLogPayload.calories,
-                    isWarmup: quickLogPayload.isWarmup,
-                    notes: quickLogPayload.notes,
-                    weightUnit: quickLogPayload.weightUnit,
-                    clientLogId,
+                  // Same route as the expanded logger: offline up front or a thrown request queues the set
+                  // locally (IndexedDB set-log queue, deduped by clientLogId) instead of dropping it.
+                  // A resolved { ok: false } is an explicit server refusal and is rolled back, never queued.
+                  const outcome = await submitQuickLogSet({
+                    isOffline: typeof navigator !== "undefined" && navigator.onLine === false,
+                    addSet: () => addSetAction({
+                      sessionId,
+                      sessionExerciseId: exercise.id,
+                      weight: quickLogPayload.weight,
+                      reps: quickLogPayload.reps,
+                      durationSeconds: quickLogPayload.durationSeconds,
+                      distance: quickLogPayload.distance,
+                      distanceUnit: quickLogPayload.distanceUnit,
+                      calories: quickLogPayload.calories,
+                      isWarmup: quickLogPayload.isWarmup,
+                      notes: quickLogPayload.notes,
+                      weightUnit: quickLogPayload.weightUnit,
+                      clientLogId,
+                    }),
+                    enqueue: () => enqueueSetLog({
+                      userId,
+                      sessionId,
+                      sessionExerciseId: exercise.id,
+                      clientLogId,
+                      payload: toOfflineSetPayload(quickLogPayload),
+                    }),
                   });
 
-                  toastActionResult(toast, result, {
-                    success: "Set logged.",
-                    error: "Could not quick log set.",
-                  });
-
-                  if (result.ok) {
-                    if (result.data?.set) {
-                      const savedSet = toSeedSet(result.data.set);
+                  if (outcome.kind === "queued") {
+                    setSetSnapshotsBySessionExerciseId((current) => {
+                      const previous = current[exercise.id] ?? exercise.initialSets;
+                      const next = markSnapshotSetQueued(previous, clientLogId, outcome.queueItem.id);
+                      if (areSetListsEquivalent(previous, next)) {
+                        return current;
+                      }
+                      return {
+                        ...current,
+                        [exercise.id]: next,
+                      };
+                    });
+                    toast.success(outcome.message);
+                  } else if (outcome.kind === "saved") {
+                    toast.success("Set logged.");
+                    if (outcome.result.data?.set) {
+                      const savedSet = toSeedSet(outcome.result.data.set);
                       setSetSnapshotsBySessionExerciseId((current) => {
                         const previous = current[exercise.id] ?? exercise.initialSets;
                         const next = sortSetsByIndex(mergeByStableSetId(previous, [savedSet]));
@@ -1434,6 +1484,7 @@ export function SessionExerciseFocus({
                       });
                     }
                   } else {
+                    toast.error(outcome.message);
                     setSetSnapshotsBySessionExerciseId((current) => {
                       const previous = current[exercise.id] ?? exercise.initialSets;
                       const next = removeSeedSetByStableId(previous, clientLogId);
@@ -1458,7 +1509,7 @@ export function SessionExerciseFocus({
                         [exercise.id]: next,
                       };
                     });
-                  toast.error("Could not quick log set.");
+                  toast.error(QUICK_LOG_FAILED_MESSAGE);
                 } finally {
                   patchRowState(exercise.id, (current) => ({
                     ...current,
