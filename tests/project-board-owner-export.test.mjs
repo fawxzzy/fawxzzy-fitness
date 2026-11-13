@@ -53,12 +53,12 @@ test("exports the exact stable active and planned Fitness owner set", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
   assert.equal(output.contract_version, "atlas.project-board.owner-export.v1");
   assert.equal(output.project_id, "fitness");
-  // 39 original registry items + 6 board-safe real-work cards added 2026-11-06 + FF-ACCOUNT-004 added 2026-11-09 + FF-AUTH-002 and FF-RELIABILITY-002 added 2026-11-11 + FF-DESIGN-001, FF-PLATFORM-001 and FF-QA-004 added 2026-11-13 + FF-RELIABILITY-003 and FF-TODAY-004 added 2026-11-13 (second release) = 53 source items.
+  // 39 original registry items + 6 board-safe real-work cards added 2026-11-06 + FF-ACCOUNT-004 added 2026-11-09 + FF-AUTH-002 and FF-RELIABILITY-002 added 2026-11-11 + FF-DESIGN-001, FF-PLATFORM-001 and FF-QA-004 added 2026-11-13 + FF-RELIABILITY-003 and FF-TODAY-004 added 2026-11-13 (second release) + FF-DESIGN-002 added 2026-11-13 (third release) = 54 source items.
   // 31 exported = 24 accepted public/held-out snapshot ids + the 6 new cards; 15 older fixed items stay excluded.
-  assert.equal(output.extensions.source_work_item_count, 53);
-  assert.equal(output.cards.length, 38);
+  assert.equal(output.extensions.source_work_item_count, 54);
+  assert.equal(output.cards.length, 39);
   assert.deepEqual(output.cards.map((card) => card.record.card_id), [...output.cards.map((card) => card.record.card_id)].sort());
-  assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 38);
+  assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 39);
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-GAM-002"));
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-ROUTINE-001"));
   assert.deepEqual(output.cards, acceptedSnapshot.cards);
@@ -128,6 +128,8 @@ test("board-safe real-work cards are public with screened wording and the accept
     // 2026-11-13: ACCOUNT-004 is in progress (sign-up entry, sign-out, save fixes live; recovery link and real-phone pass open); new cards DESIGN-001 (review), PLATFORM-001 and QA-004 (planning).
     ["FF-ACCOUNT-004", "in-progress"], ["FF-DESIGN-001", "review"], ["FF-PLATFORM-001", "planning"], ["FF-QA-004", "planning"],
     // Second 2026-11-13 release: RELIABILITY-003 is live but not replay-checked on a phone (review); TODAY-004 is planned.
+    // Third 2026-11-13 release: DESIGN-001 stays in review (more screens live, still no real-phone check); DESIGN-002 is planned.
+    ["FF-DESIGN-002", "planning"],
     ["FF-RELIABILITY-003", "review"], ["FF-TODAY-004", "planning"],
   ]);
   const screen = /\b(passwords?|secrets?|credentials?|tokens?|cookies?|jwt|security|vulnerabilit\w*|incident|exploit\w*|leak\w*|premium|paid|payments?|billing|subscriptions?|monetiz\w*|throttl\w*|rate[ -]limit\w*|session id|e-?mail)\b|https?:\/\/|[\w-]+\.(?:json|mjs|ts|tsx|sql|md)\b/i;
@@ -210,7 +212,7 @@ test("applies the 2026-11-09 live-verification status refresh", () => {
   assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-SESSION-005").record.lifecycle, "in-progress");
   const lifecycles = {};
   for (const card of output.cards) lifecycles[card.record.lifecycle] = (lifecycles[card.record.lifecycle] ?? 0) + 1;
-  assert.deepEqual(lifecycles, { completed: 16, "in-progress": 2, planning: 9, review: 11 });
+  assert.deepEqual(lifecycles, { completed: 16, "in-progress": 2, planning: 10, review: 11 });
 });
 
 test("public cards contain stable product facts and no private/provider fields", () => {
@@ -284,8 +286,8 @@ test("supports bounded source-backed growth without changing the accepted snapsh
   f.add("FF-TEST-001", "private");
   f.add("FF-TEST-002", "public");
   const output = f.build();
-  assert.equal(output.extensions.source_work_item_count, 55);
-  assert.equal(output.extensions.exported_card_count, 40);
+  assert.equal(output.extensions.source_work_item_count, 56);
+  assert.equal(output.extensions.exported_card_count, 41);
   assert.equal(output.extensions.excluded_completed_card_count, 15);
   assert.deepEqual(output.cards.filter((card) => !card.record.card_id.startsWith("FF-TEST-")), acceptedSnapshot.cards);
   const added = output.cards.find((card) => card.record.card_id === "FF-TEST-002");
@@ -330,7 +332,7 @@ test("accepts acyclic dependencies with a shared prerequisite", async (t) => {
   const f = await fixture(t, definitions);
   definitions.forEach(({ cardId }) => f.add(cardId, "private"));
   const output = f.build();
-  assert.equal(output.cards.length, 41);
+  assert.equal(output.cards.length, 42);
   assert.deepEqual(output.cards.find((card) => card.record.card_id === "FF-TEST-003").record.dependencies, ["FF-TEST-001", "FF-TEST-002"]);
 });
 
@@ -369,7 +371,7 @@ test("derives completed exclusions when a synthetic new card is already fixed", 
   const f = await fixture(t, [syntheticCard()]);
   f.add("FF-TEST-001", "private", "fixed");
   const output = f.build();
-  assert.equal(output.extensions.source_work_item_count, 54);
+  assert.equal(output.extensions.source_work_item_count, 55);
   assert.equal(output.extensions.excluded_completed_card_count, 16);
   assert.deepEqual(output.cards, acceptedSnapshot.cards);
 });

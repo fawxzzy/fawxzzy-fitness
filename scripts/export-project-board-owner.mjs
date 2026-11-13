@@ -193,8 +193,8 @@ const SUPPLEMENTAL_CARDS = [
     title: "Consistent cards across the app",
     priority: "P2",
     dependsOn: [],
-    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system, the Routines screens and the Today screen are merged and live (checked only in headless Chromium and dev fixtures, not on a real phone). Still to move over: History, Session, Settings and the routine editor.",
-    acceptanceCriteria: ["Routines screens use the shared cards (merged and live).", "Today screens use the shared cards (merged and live; checked only in headless Chromium and dev fixtures).", "History, Session, Settings and the routine editor are moved to the shared cards (not yet done).", "The result is checked in the installed phone app (not yet done)."],
+    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system is merged and live on the Routines, Today, Settings, Session and History screens. Checked only in headless Chromium, on development fixtures and in a signed-in render sweep of those screens (no overflow, no console errors, no controls under 32px), not on a real phone. Still to do: the routine editor and routine creation, heatmap labels under 11px, the History filter toggle and the logger plus and minus steppers at 44px, and retiring the old exercise card once nothing uses it.",
+    acceptanceCriteria: ["Routines, Today, Settings, Session and History screens use the shared cards (merged and live).", "Those screens pass a signed-in render sweep with no page overflow and no console errors (headless Chromium only).", "Heatmap labels are at least 11px, and the History filter toggle and logger steppers are 44px (not yet done).", "The routine editor and routine creation use the shared cards (not yet done).", "The old exercise card and row are retired once no screen uses them (not yet done).", "The result is checked in the installed phone app (not yet done)."],
   },
   {
     cardId: "FF-PLATFORM-001",
@@ -227,6 +227,14 @@ const SUPPLEMENTAL_CARDS = [
     dependsOn: [],
     description: "Today rows no longer show 'Goal missing' for an exercise without a target. Add a quiet 'No target set' cue so the gap stays visible without nagging. The day editor still shows the missing target.",
     acceptanceCriteria: ["An exercise without a target shows a quiet 'No target set' cue on Today.", "Today rows do not show 'Goal missing'.", "The day editor keeps showing the missing target."],
+  },
+  {
+    cardId: "FF-DESIGN-002",
+    title: "Finish the remaining screens on the shared card style",
+    priority: "P3",
+    dependsOn: ["FF-DESIGN-001"],
+    description: "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens.",
+    acceptanceCriteria: ["The routine editor, routine creation, exercise picker, progression editor and stretch panel use the shared cards.", "No text on these screens is below the app minimum size, and no control is under 32px.", "The screens are checked in a signed-in render sweep and on a real phone."],
   },
 ];
 
