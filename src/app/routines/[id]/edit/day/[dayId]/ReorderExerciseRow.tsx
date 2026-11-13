@@ -1,16 +1,9 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { appTokens } from "@/components/ui/app/tokens";
-import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
-import { cn } from "@/lib/cn";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { DragHandle } from "@/components/ui/card-system";
+import { ExerciseRowCard } from "@/components/workout/ExerciseRowCard";
+import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
+import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
-
-const reorderHandleSelectionChromeStyle = {
-  borderColor: "rgb(var(--selection-rgb) / 0.3)",
-  color: "rgb(var(--text-primary) / 0.96)",
-  background: "linear-gradient(180deg, rgb(var(--selection-rgb) / 0.05), rgb(var(--surface-1-rgb) / 0.3))",
-  boxShadow: "inset 0 0 0 1px rgb(var(--selection-rgb) / 0.16), 0 0 0 1px rgb(var(--selection-rgb) / 0.05), 0 0 16px rgb(var(--selection-rgb) / 0.12), 0 12px 24px rgba(0, 0, 0, 0.16)",
-} as CSSProperties;
 
 type Props = {
   exerciseId: string;
@@ -37,24 +30,21 @@ type Props = {
   onHandlePointerCancel: () => void;
 };
 
+/**
+ * Reorder presentation of a planned exercise: the same ExerciseRowCard as the day editor, with the drag handle
+ * as its trailing control and the card toned `current` while it is being dragged.
+ */
 export function ReorderExerciseRow({
   exerciseId,
   exerciseName,
   metadata,
-  measurementType,
   primary_muscle,
   equipment,
   movement_pattern,
-  isCardio,
-  kind,
-  type,
-  tags,
-  categories,
   slug,
   image_path,
   image_icon_path,
   image_howto_path,
-  orderNumber,
   isDragging,
   onHandlePointerDown,
   onHandlePointerMove,
@@ -62,38 +52,35 @@ export function ReorderExerciseRow({
   onHandlePointerCancel,
 }: Props) {
   const policy = resolveWorkoutCardSurfacePolicy("reorder", "compact");
+  const targetValues = normalizeDecoratedText(metadata)
+    .replace(/^goal\s*:\s*/i, "")
+    .split(/\s+[\u2022|\u00B7]\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 
   return (
     <div data-exercise-row-id={exerciseId}>
-      <StandardExerciseRow
+      <ExerciseRowCard
         exercise={{ name: exerciseName, slug, image_path, image_icon_path, image_howto_path }}
-        summary={metadata}
-        summaryLabel="Goal"
-        subtitleTone="plain"
-        variant="reorder"
-        state={isDragging ? "selected" : "default"}
-        badgeText={undefined}
-        bodyClassName={appTokens.routineEditorReorderBody}
-        className={cn(appTokens.routineEditorReorderBase, isDragging ? appTokens.routineEditorReorderDragging : undefined)}
-        trailingStackClassName={appTokens.routineEditorReorderTrailingStack}
-        showLeadingVisual={policy.showMedia}
-        rightIcon={(
-          <button
-            type="button"
-            aria-label={`Reorder ${exerciseName}`}
-            title="Drag to reorder"
-            className={cn(
-              appTokens.routineEditorReorderHandle,
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
-            )}
-            style={reorderHandleSelectionChromeStyle}
+        metaItems={buildExerciseCardMetadataItems({
+          primaryMuscle: primary_muscle,
+          movementPattern: movement_pattern,
+          equipment,
+        }).slice(0, 2)}
+        targetLabel="Goal"
+        targetValues={targetValues}
+        showMedia={policy.showMedia}
+        tone={isDragging ? "current" : "neutral"}
+        interaction={{ kind: "none" }}
+        trailing={(
+          <DragHandle
+            label={`Reorder ${exerciseName}`}
+            active={isDragging}
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
             onPointerCancel={onHandlePointerCancel}
-          >
-            <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
-          </button>
+          />
         )}
       />
     </div>

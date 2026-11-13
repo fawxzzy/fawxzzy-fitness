@@ -32,7 +32,7 @@ export function RoutineDayKindCycleAction({
       data-bottom-action-intent={nextDayKind === "required" ? "toggleActive" : "toggleInactive"}
       onClick={onCycle}
       disabled={disabled}
-      aria-label={`Change ${dayName} from ${getRoutineDayKindLabel(dayKind)} to ${getRoutineDayKindLabel(nextDayKind)}`}
+      aria-label={`Set ${getRoutineDayKindLabel(nextDayKind)}: ${dayName} is currently ${getRoutineDayKindLabel(dayKind)}`}
       className={className}
     >
       <span className={cn("bottom-action__label", isPending ? "opacity-65" : undefined)}>

@@ -1,45 +1,28 @@
 import { Fragment, type ReactNode } from "react";
-import { AppBadge } from "@/components/ui/app/AppBadge";
-import { ExerciseCard } from "@/components/ExerciseCard";
-import { DayCard, resolveDayCardState } from "@/components/day-list/DayList";
 import { REST_DAY_CARD_COPY } from "@/features/day-state/restDayCardCopy";
-import { SignatureDot, SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { StateChevron } from "@/components/ui/StateChevron";
 import {
-  ExerciseCardMetadataLine,
-  ExerciseCardStandardTitle,
-  ExerciseCardProgressionStateInline,
-} from "@/components/workout/ExerciseCardStandardTitle";
+  CardChip,
+  CardChips,
+  CardHeader,
+  CardMeta,
+  CardStatusChip,
+  CardSurface,
+  type CardHeadingLevel,
+} from "@/components/ui/card-system";
+import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 import { cn } from "@/lib/cn";
-import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
+import { formatRoutineDayStableDisplayName, getRoutineDayHeading, getRoutineDayWeekdayLabel } from "@/lib/routines";
 import {
   formatRoutineDayExerciseCountLabel,
 } from "@/lib/routine-day-card-summary";
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[3.6rem] !pt-[0.2rem] !pb-[0.45rem]";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !pt-[0.6rem] !pb-0";
-export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 !space-y-0 !pt-[0.32rem] !pb-[1rem]";
-export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
 export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
-export const ROUTINE_TRAINING_DAY_CARD_CLASS_NAME = "[&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-divider-rgb)/0.96)]";
-export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
-export const ROUTINE_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
-export const ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[-0.22rem] !top-1/2 !bottom-auto !min-w-0 !-translate-y-1/2";
-export const ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[0.28rem] !bottom-[0.28rem] !top-auto !min-w-0 !translate-y-0";
-export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-auto w-auto items-center justify-center bg-transparent shadow-none backdrop-blur-0";
-export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
-export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
-export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] ${ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME}`;
-export const ROUTINE_DAY_RECAP_SCROLL_CLASS_NAME = "pl-0.5 pr-[1.95rem] pb-0.5 sm:pr-[2.25rem]";
-export const ROUTINE_DAY_RECAP_CONTENT_CLASS_NAME = "flex w-max min-w-full items-stretch gap-2 pr-[1.8rem] sm:gap-2.5 sm:pr-0";
-export const ROUTINE_DAY_RECAP_ITEM_CLASS_NAME = "flex min-h-[4.9rem] w-[calc(100vw-5.7rem)] min-w-[calc(100vw-5.7rem)] max-w-[calc(100vw-5.7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5";
-const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.02rem] z-[7] flex items-center justify-center";
-const ROUTINE_DAY_CARD_REORDER_TOP_CENTER_SLOT_CLASS_NAME = "pointer-events-none absolute left-1/2 top-[0.22rem] z-[7] flex -translate-x-1/2 items-center justify-center";
+export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] px-[0.6875rem] py-[0.3125rem]`;
 
 export type RoutineDayCardSummary = {
   total?: number;
@@ -50,50 +33,35 @@ export type RoutineDayCardSummary = {
 };
 
 /**
- * Standalone (non-list) rest-day card. Reuses the same visual language as
- * RoutineOverviewDayCard's rest-day treatment (yellow accent, "Rest" badge,
- * REST_DAY_CARD_COPY body) but renders a bare ExerciseCard instead of a
- * DayCard, so it can be dropped inside an existing <li>/<ul> (e.g. Today's
- * exercise-row list) without producing invalid nested list markup.
+ * Standalone (non-list) rest-day card, rendered on the shared card surface in the `attention` tone. The title
+ * ("Rest") and the shared REST_DAY_CARD_COPY body carry the meaning, so it never relies on colour; pass `badgeText` for an extra chip.
+ * It can be dropped inside an existing <li>/<ul> (the Today exercise-row list).
  *
- * Purely presentational: no onPress, no exercise-editing affordances, and no
- * server calls, so rendering it can never create or mutate a workout.
+ * Purely presentational: no onPress, no exercise-editing affordances, and no server calls,
+ * so rendering it can never create or mutate a workout.
  */
 export function RestDayCard({
   title = "Rest",
   subtitle = REST_DAY_CARD_COPY,
-  badgeText = "Rest",
+  badgeText,
+  headingLevel = 3,
   className,
-  bodyClassName,
-  contentClassName,
-  titleClassName,
-  subtitleClassName,
 }: {
   title?: ReactNode;
   subtitle?: ReactNode;
   badgeText?: string;
+  headingLevel?: CardHeadingLevel;
   className?: string;
-  bodyClassName?: string;
-  contentClassName?: string;
-  titleClassName?: string;
-  subtitleClassName?: string;
 }) {
   return (
-    <ExerciseCard
-      title={title}
-      subtitle={subtitle}
-      subtitleTone="plain"
-      state="empty"
-      badgeText={badgeText}
-      rightIcon={null}
-      variant="list"
-      contentVerticalAlign="top"
-      className={cn(ROUTINE_REST_DAY_CARD_CLASS_NAME, className)}
-      bodyClassName={cn(ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME, bodyClassName)}
-      contentClassName={cn(ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME, contentClassName)}
-      titleClassName={cn(ROUTINE_DAY_CARD_TITLE_CLASS_NAME, "leading-none", titleClassName)}
-      subtitleClassName={cn(ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME, subtitleClassName)}
-    />
+    <CardSurface tone="attention" className={className} data-rest-day-card="true">
+      <CardHeader
+        headingLevel={headingLevel}
+        title={title}
+        chips={badgeText ? <CardChips><CardChip tone="attention">{badgeText}</CardChip></CardChips> : undefined}
+      />
+      <p className="m-0 px-4 pb-3 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">{subtitle}</p>
+    </CardSurface>
   );
 }
 
@@ -168,111 +136,6 @@ export function buildRoutineSplitParts(summary: RoutineDayCardSummary) {
   return parts;
 }
 
-function resolveRoutineDaySubtitleTagParts(day: RoutineDayCardPresentationItem) {
-  if (day.isRest) {
-    return [day.exerciseSummary?.trim() || "No exercises"];
-  }
-
-  const statusPart = day.isOptional ? ["Optional"] : [];
-
-  if (day.splitSummary) {
-    const parts = buildRoutineSplitParts(day.splitSummary);
-    return parts.length > 0
-      ? [...statusPart, ...parts]
-      : [...statusPart, formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
-  }
-
-  return statusPart;
-}
-
-function renderRoutineDaySubtitleTagRail(
-  parts: string[],
-  {
-    measureOnly = false,
-  }: {
-    measureOnly?: boolean;
-  } = {},
-) {
-  const tagRow = (
-    <>
-      {parts.map((part) => (
-        <AppBadge key={part} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
-          {renderRoutineMetricTagLabel(part)}
-        </AppBadge>
-      ))}
-    </>
-  );
-
-  if (measureOnly) {
-    return (
-      <div className="inline-flex w-max max-w-full items-center justify-center gap-1.5">
-        {tagRow}
-      </div>
-    );
-  }
-
-  return (
-    <HorizontalScrollHint
-      className="-mx-1"
-      scrollClassName="px-1 pb-0.5"
-      contentClassName={ROUTINE_SURFACE_TAG_ROW_CLASS_NAME}
-      showEdgeFades={false}
-    >
-      {tagRow}
-    </HorizontalScrollHint>
-  );
-}
-
-export function renderRoutineMetricTagLabel(value: string) {
-  const normalizedValue = value.trim();
-  const match = normalizedValue.match(/^(\d+(?:[.,]\d+)?)(\s+.*)?$/);
-  if (!match) {
-    return normalizedValue;
-  }
-
-  const [, count, suffix = ""] = match;
-  const trimmedSuffix = suffix.trim();
-
-  return (
-    <>
-      <span className="text-[rgb(var(--text-primary))]">{count}</span>
-      {trimmedSuffix ? <span className="ml-1">{trimmedSuffix}</span> : null}
-    </>
-  );
-}
-
-function renderRoutineRecapProgressionState(value: string) {
-  const parts = value
-    .split(/\s+\u2022\s+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return (
-    <span className="inline-flex items-center justify-end gap-x-1.5 gap-y-0 whitespace-nowrap text-[8.75px] font-semibold uppercase tracking-[0.12em]">
-      {parts.map((part, index) => (
-        <Fragment key={`${part}-${index}`}>
-          {index > 0 ? <SignatureDot className="h-[4px] w-[4px]" /> : null}
-          <span
-            className={cn(
-              part === "AUTO"
-                ? "text-[rgb(var(--accent-strong)/0.98)]"
-                : part === "MANUAL"
-                  ? "text-[rgb(var(--accent-yellow-on)/0.96)]"
-                  : "text-[rgb(var(--accent-divider-rgb)/0.96)]",
-            )}
-          >
-            {part}
-          </span>
-        </Fragment>
-      ))}
-    </span>
-  );
-}
-
 export function RoutineDayCardTitle({
   routineName,
   name,
@@ -322,280 +185,188 @@ export function RoutineDayCardTitle({
   );
 }
 
-export function renderRoutineDaySubtitle(day: RoutineDayCardPresentationItem): ReactNode {
-  const tagParts = resolveRoutineDaySubtitleTagParts(day);
-  if (tagParts.length > 0) {
-    return renderRoutineDaySubtitleTagRail(tagParts);
-  }
-
-  return renderSignatureParts(splitRoutineSummaryParts(day.exerciseSummary)) ?? day.exerciseSummary ?? "No exercises yet";
-}
-
-export function resolveRoutineDayTagLabel(day: RoutineDayCardTagState) {
-  if (day.isInSession) {
-    return "IN SESSION";
-  }
-
-  if (day.isCompleted) {
-    return "DONE";
-  }
-
-  if (day.isSkipped) {
-    return "SKIPPED";
-  }
-
-  if (day.isToday) {
-    return "TODAY";
-  }
-
-  return undefined;
-}
-
-export function renderRoutineTag(label: string | undefined) {
-  const normalizedLabel = label?.trim().toUpperCase();
-  if (!normalizedLabel) {
-    return undefined;
-  }
-
-  if (normalizedLabel === "DONE") {
-    return (
-      <span
-        title="Done"
-        aria-label="Done"
-        className="inline-flex items-center justify-end text-[15px] font-semibold leading-none text-[rgb(var(--accent-divider-rgb)/0.98)]"
-      >
-        {"\u2713"}
-      </span>
-    );
-  }
-
-  if (normalizedLabel === "SKIPPED") {
-    return (
-      <span
-        title="Skipped"
-        aria-label="Skipped"
-        className="inline-flex items-center justify-end text-[15px] font-semibold leading-none text-[rgb(var(--danger-rgb)/0.98)]"
-      >
-        {"\u2298"}
-      </span>
-    );
-  }
-
-  const colorClassName = normalizedLabel === "REST DAY" || normalizedLabel === "SKIPPED"
-    ? "text-[rgb(var(--accent-yellow-on))]"
-    : normalizedLabel === "TODAY"
-      || normalizedLabel === "CURRENT"
-      || normalizedLabel === "SELECTED"
-      || normalizedLabel === "IN SESSION"
-      || normalizedLabel === "COMPLETED"
-      || normalizedLabel === "DONE"
-      ? "text-[rgb(var(--accent-divider-rgb)/0.96)]"
-      : "text-[rgb(var(--text-secondary)/0.92)]";
-
-  return <SignatureMetaTag className={cn(ROUTINE_TAG_CLASS_NAME, colorClassName)}>{normalizedLabel}</SignatureMetaTag>;
-}
-
-export function renderRoutineDayRightRail(label: string | undefined) {
-  const tag = renderRoutineTag(label);
-
-  return (
-    <span className="inline-flex items-center gap-3">
-      {tag ? <span className="inline-flex min-w-[5.75rem] justify-end">{tag}</span> : null}
-      <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
-    </span>
-  );
-}
-
-export function RoutineDayCardRecapPreview(
-  day: RoutineOverviewDayCardItem,
-  options?: {
-    scrollClassName?: string;
-    contentClassName?: string;
-    itemClassName?: string;
-  },
-) {
+function resolveRoutineDayMetaParts(day: RoutineDayCardPresentationItem) {
   if (day.isRest) {
-    return null;
+    return [];
   }
 
-  if (!day.recapExercises?.length) {
-    return null;
+  if (day.splitSummary) {
+    const parts = buildRoutineSplitParts(day.splitSummary);
+    return parts.length > 0
+      ? parts
+      : [formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
   }
 
-  const subtitleTagParts = resolveRoutineDaySubtitleTagParts(day);
+  const summaryParts = splitRoutineSummaryParts(day.exerciseSummary);
+  return summaryParts.length > 0 ? summaryParts : ["No exercises yet"];
+}
+
+/**
+ * Compact vertical exercise recap for a day: name and target per row, muscle/pattern/equipment and the
+ * progression state as quiet meta. No horizontal rail, so no exercise name is ever clipped mid-word.
+ */
+export function RoutineDayRecapList({
+  exercises,
+  maxVisible,
+  className,
+}: {
+  exercises: NonNullable<RoutineOverviewDayCardItem["recapExercises"]>;
+  maxVisible?: number;
+  className?: string;
+}) {
+  const visible = typeof maxVisible === "number" ? exercises.slice(0, maxVisible) : exercises;
+  const hiddenCount = exercises.length - visible.length;
 
   return (
-    <div className="grid gap-1 px-0.5 pt-0.5">
-      {subtitleTagParts.length > 0 ? (
-        <div className="flex justify-center px-1">
-          <div className="grid w-fit max-w-full gap-0.5">
-            <div aria-hidden="true" className="h-0 overflow-hidden">
-              {renderRoutineDaySubtitleTagRail(subtitleTagParts, { measureOnly: true })}
+    <ul
+      aria-label="Exercises"
+      data-routine-day-recap="true"
+      className={cn("m-0 grid list-none gap-2 border-t border-[rgb(var(--border-strong)/0.14)] p-0 px-4 pb-3 pt-3", className)}
+    >
+      {visible.map((exercise, index) => {
+        const metaItems = (exercise.signatureLabel ?? "")
+          .split(/\s+\|\s+/)
+          .map((value) => value.trim())
+          .filter(Boolean);
+        const progressionLabel = exercise.progressionStateLabel?.trim();
+
+        return (
+          <li key={`${exercise.id}-${index}`} className="grid min-w-0 gap-0.5">
+            <div className="flex min-w-0 items-baseline justify-between gap-3">
+              <span className="min-w-0 text-sm font-semibold leading-snug text-[rgb(var(--text-primary))] [overflow-wrap:anywhere]">
+                {exercise.name}
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-[rgb(var(--text-secondary)/0.95)]">
+                {exercise.targetLabel?.trim() || "Goal missing"}
+              </span>
             </div>
-            <MetricAccentBar variant="thin" className="w-full opacity-80" />
-          </div>
-        </div>
-      ) : (
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      )}
-      <HorizontalScrollHint
-        className="-mx-0.5"
-        scrollClassName={cn(ROUTINE_DAY_RECAP_SCROLL_CLASS_NAME, options?.scrollClassName)}
-        contentClassName={cn(ROUTINE_DAY_RECAP_CONTENT_CLASS_NAME, options?.contentClassName)}
-      >
-        {day.recapExercises.map((exercise, index) => (
-          <div
-            key={`routine-day-recap-${exercise.id}-${index}`}
-            className={cn(ROUTINE_DAY_RECAP_ITEM_CLASS_NAME, options?.itemClassName)}
-          >
-            <ExerciseCardStandardTitle
-              name={exercise.name}
-              metadata={exercise.signatureLabel ? (
-                <ExerciseCardMetadataLine
-                  items={exercise.signatureLabel.split(/\s+\|\s+/).map((value) => value.trim()).filter(Boolean)}
-                  className="max-w-full text-[8.7px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)] sm:text-[9.5px]"
-                />
-              ) : (
-                <span className="max-w-full whitespace-normal break-words text-[9px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)] [text-wrap:pretty] sm:text-[9.5px]">
-                  Exercise configured
-                </span>
-              )}
-              rightTitle={<span className="text-[0.76rem] leading-[1.1] sm:text-[0.82rem]">Target</span>}
-              rightContent={exercise.targetLabel?.trim() || "Goal missing"}
-              rightSubcontent={exercise.progressionStateLabel?.trim()
-                ? <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} className="text-[8.35px]" />
-                : undefined}
-              columnLayout="compact"
-              hideRightTitleOnMobile
-              className="gap-x-[0.45rem] gap-y-0.5 sm:gap-x-[0.55rem]"
-              nameClassName="max-w-full whitespace-normal break-words [text-wrap:balance] text-[0.8rem] leading-[1.02] sm:text-[0.91rem] sm:leading-[1.14]"
-              rightColumnClassName="w-fit max-w-full"
-              rightContentClassName="gap-1 text-[8.55px] leading-[1.03] sm:text-[8.95px]"
-            />
-            <MetricAccentBar variant="thin" className="mt-2 w-full opacity-75" />
-          </div>
-        ))}
-      </HorizontalScrollHint>
-    </div>
+            <CardMeta items={[...metaItems, progressionLabel ? normalizeDecoratedText(progressionLabel).replace(/\s+[\u2022|]\s+/g, " \u00B7 ") : null]} flush />
+          </li>
+        );
+      })}
+      {hiddenCount > 0 ? (
+        <li className="text-xs font-medium text-[rgb(var(--text-muted)/0.98)]">+{hiddenCount} more {hiddenCount === 1 ? "exercise" : "exercises"}</li>
+      ) : null}
+    </ul>
   );
 }
 
+/**
+ * Day card (routine detail, Today day picker, workout-plan list).
+ *
+ *   Title  [chips: TODAY / DONE / REST / OPTIONAL ...]               [handle] [chevron]
+ *   Day 2 - Tue - 3 strength - 1 cardio
+ *   (expanded) exercise recap, then the action row (footer)
+ *
+ * Day-label rule (src/lib/routines.ts getRoutineDayHeading): headline is the custom title or "Day N"; when a
+ * custom title takes the headline, "Day N" moves to the meta line; the weekday is always meta. Position and
+ * weekday are derived from the day position, never from the stored name.
+ *
+ * interaction="toggle" expands the card (aria-expanded) and shows the recap; interaction="press" runs onPress
+ * (Today picker selects a day, workout-plan list opens it). Drag handle and extra controls trail the header.
+ */
 export function RoutineOverviewDayCard({
   day,
   startDate,
   onPress,
+  interaction,
   isSelected = false,
   showSelectedTag = false,
   isExpanded = false,
+  controlsId,
   reorderHandle,
-  headerLayout = "standard",
-  rightRailClassName,
+  trailing,
+  footer,
+  showRecap,
+  recapMaxVisible,
+  showPosition = true,
   allowWeekdayFallback = true,
-  wrapper,
+  headingLevel = 2,
+  asListItem = false,
+  className,
 }: {
   day: RoutineOverviewDayCardItem;
   startDate?: string | null;
   onPress?: () => void;
+  /** "toggle" = header expands the card; "press" = header runs onPress. Defaults to "press" when onPress is set. */
+  interaction?: "toggle" | "press";
   isSelected?: boolean;
   showSelectedTag?: boolean;
   isExpanded?: boolean;
+  controlsId?: string;
+  /** Drag handle (DragHandle) rendered as the first trailing control. */
   reorderHandle?: ReactNode;
-  headerLayout?: "standard" | "cornered";
-  rightRailClassName?: string;
+  /** Extra trailing controls, for example a "more" button. */
+  trailing?: ReactNode;
+  /** Rendered inside the surface after the recap, for the action row. */
+  footer?: ReactNode;
+  /** Force the exercise recap on or off. Defaults to "shown while expanded". */
+  showRecap?: boolean;
+  recapMaxVisible?: number;
+  /** Show "Day N" in the meta line when a custom title replaces it. Off for lists whose day index belongs to another routine. */
+  showPosition?: boolean;
   allowWeekdayFallback?: boolean;
-  wrapper?: (child: ReactNode) => ReactNode;
+  headingLevel?: CardHeadingLevel;
+  /** Wrap the card in an `<li>` for callers that render it directly inside a `<ul>` (the Today day picker). */
+  asListItem?: boolean;
+  className?: string;
 }) {
-  const selectedTag = showSelectedTag ? renderRoutineTag("SELECTED") : null;
-  const chevron = (
-    <StateChevron
-      expanded={Boolean(isExpanded)}
-      className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
-      expandedClassName="text-[rgb(var(--accent)/0.92)]"
-      collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
-    />
-  );
+  const heading = getRoutineDayHeading({
+    name: day.name ?? day.title ?? null,
+    dayIndex: day.dayIndex,
+    startDate,
+    weekdayLabel: day.occurrenceWeekday?.trim() || (allowWeekdayFallback ? getRoutineDayWeekdayLabel(day.dayIndex, startDate, "short") : null),
+    isRest: day.isRest,
+  });
+  const metaItems = [
+    ...(showPosition ? heading.metaParts : heading.weekday ? [heading.weekday] : []),
+    ...resolveRoutineDayMetaParts(day),
+  ];
+  const chips: ReactNode[] = [];
+  if (day.isInSession) chips.push(<CardStatusChip key="in-session" status="inSession" />);
+  if (day.isCompleted) chips.push(<CardStatusChip key="done" status="done" />);
+  if (day.isSkipped) chips.push(<CardStatusChip key="skipped" status="skipped" />);
+  if (day.isToday) chips.push(<CardStatusChip key="today" status="today" />);
+  if (day.isRest) chips.push(<CardStatusChip key="rest" status="rest" />);
+  else if (day.isOptional) chips.push(<CardStatusChip key="optional" status="optional" />);
+  if (showSelectedTag) chips.push(<CardStatusChip key="selected" status="selected" />);
+
+  const resolvedInteraction = interaction ?? (onPress ? "press" : undefined);
+  const tone = day.isRest
+    ? "attention"
+    : day.isInSession
+      ? "logged"
+      : isSelected || day.isToday
+        ? "current"
+        : "neutral";
+  const recapVisible = (showRecap ?? isExpanded) && !day.isRest && Boolean(day.recapExercises?.length);
 
   const card = (
-    <div className="relative min-w-0">
-      {reorderHandle && !isExpanded ? (
-        <div className={headerLayout === "cornered" ? ROUTINE_DAY_CARD_REORDER_TOP_CENTER_SLOT_CLASS_NAME : ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME}>
-          <div className="pointer-events-auto">
-            {reorderHandle}
-          </div>
+    <CardSurface tone={tone} className={className} data-routine-day-card={day.dayIndex}>
+      <CardHeader
+        headingLevel={headingLevel}
+        title={heading.title}
+        meta={<CardMeta items={metaItems} />}
+        chips={chips.length > 0 ? <CardChips>{chips}</CardChips> : undefined}
+        interaction={
+          resolvedInteraction === "toggle" && onPress
+            ? { kind: "toggle", expanded: isExpanded, onToggle: onPress, controlsId }
+            : resolvedInteraction === "press" && onPress
+              ? { kind: "press", onPress }
+              : { kind: "none" }
+        }
+        trailing={reorderHandle || trailing ? <>{trailing}{reorderHandle}</> : undefined}
+      />
+      {recapVisible && day.recapExercises ? (
+        <div id={controlsId}>
+          <RoutineDayRecapList exercises={day.recapExercises} maxVisible={recapMaxVisible} />
         </div>
+      ) : controlsId ? (
+        <span id={controlsId} hidden />
       ) : null}
-      <DayCard
-        title={headerLayout === "cornered" ? (
-          <span className="flex w-full justify-start pr-20 text-left">
-            <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start gap-1 text-left">
-              <RoutineDayCardTitle
-                name={day.isRest ? "Rest" : (day.title ?? day.name ?? null)}
-                dayIndex={day.dayIndex}
-                startDate={startDate}
-                weekdayLabel={day.isRest ? null : day.occurrenceWeekday}
-                allowWeekdayFallback={!day.isRest && allowWeekdayFallback}
-                dayNameClassName="text-[rgb(var(--accent)/0.98)]"
-                className="justify-start text-left"
-              />
-              <MetricAccentBar variant="thin" className="w-full self-stretch opacity-90" />
-            </span>
-          </span>
-        ) : (
-          <span className="flex w-full justify-center text-center">
-            <span className="inline-flex min-w-0 max-w-full flex-col items-center gap-1 text-center">
-              <RoutineDayCardTitle
-                name={day.title ?? day.name ?? null}
-                dayIndex={day.dayIndex}
-                startDate={startDate}
-                weekdayLabel={day.occurrenceWeekday}
-                allowWeekdayFallback={allowWeekdayFallback}
-                className="justify-center text-center"
-              />
-              <MetricAccentBar variant="thin" className="w-full max-w-full self-stretch" />
-            </span>
-          </span>
-        )}
-        subtitle={headerLayout === "cornered" && day.isRest ? undefined : renderRoutineDaySubtitle(day)}
-        subtitleTone="plain"
-        rightIcon={(
-          <span className={cn("inline-flex items-center justify-center", selectedTag ? "gap-1.5" : undefined)}>
-            {selectedTag}
-            {chevron}
-          </span>
-        )}
-        state={resolveDayCardState({
-          isToday: day.isToday,
-          isSelected,
-          isRest: day.isRest,
-          isCompleted: false,
-          isInSession: day.isInSession,
-        })}
-        className={cn(
-          day.isRest ? ROUTINE_REST_DAY_CARD_CLASS_NAME : ROUTINE_TRAINING_DAY_CARD_CLASS_NAME,
-          isExpanded ? "rounded-b-none ![border-bottom-left-radius:0px] ![border-bottom-right-radius:0px]" : undefined,
-        )}
-        bodyClassName={day.isRest ? ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME : ROUTINE_DAY_CARD_BODY_CLASS_NAME}
-        contentClassName={cn(
-          day.isRest ? ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINE_DAY_CARD_CONTENT_CLASS_NAME,
-          headerLayout === "cornered" ? "!pt-[0.32rem]" : undefined,
-        )}
-        titleClassName={cn(
-          day.isRest ? ROUTINE_DAY_CARD_TITLE_CLASS_NAME : ROUTINE_DAY_CARD_TITLE_CLASS_NAME,
-          headerLayout === "cornered" ? "!items-start !pr-20 text-left" : undefined,
-          headerLayout === "cornered" && reorderHandle && !day.isRest ? "min-h-[2.55rem]" : undefined,
-          day.isRest ? "leading-none" : undefined,
-        )}
-        subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
-        contentVerticalAlign={day.isRest ? "top" : undefined}
-        rightIconMode="overlay"
-        rightRailClassName={rightRailClassName ?? (day.isRest ? ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME : ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME)}
-        trailingStackClassName={ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME}
-        onPress={onPress}
-      >
-        {RoutineDayCardRecapPreview(day)}
-      </DayCard>
-    </div>
+      {footer}
+    </CardSurface>
   );
 
-  return wrapper ? wrapper(card) : card;
+  return asListItem ? <li className="min-w-0">{card}</li> : card;
 }

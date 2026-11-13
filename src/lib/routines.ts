@@ -428,6 +428,40 @@ export function formatRoutineOccurrenceDateLabel(dateString: string) {
   }).format(new Date(timestamp));
 }
 
+const ROUTINE_DAY_WEEKDAY_NAMES = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+const ROUTINE_DAY_WEEKDAY_NAME_PATTERN = ROUTINE_DAY_WEEKDAY_NAMES
+  .flatMap((name) => [name, name.slice(0, 3)])
+  .join("|");
+
+/**
+ * Card-system day-label rule.
+ *
+ * A stored day name is a *generated placeholder* (not a user title) when it is a bare number ("7"),
+ * "Day 7", or any weekday name ("Tue"/"Tuesday"). Seeds store `name = String(index + 1)`, so after a
+ * reorder the stored number no longer equals the day's position; comparing against the current position
+ * made a reordered default-named day look like a custom title ("7 Tue"). Position and weekday are always
+ * derived from `dayIndex`/`startDate`, never from the stored name, so any placeholder is ignored here.
+ * No stored data changes.
+ */
+export function isRoutineDayGeneratedPlaceholderName(name: string | null | undefined) {
+  const trimmedName = name?.trim() ?? "";
+  if (trimmedName.length === 0) {
+    return true;
+  }
+
+  return /^\d+$/.test(trimmedName)
+    || /^day\s*\d+$/i.test(trimmedName)
+    || new RegExp(`^(?:${ROUTINE_DAY_WEEKDAY_NAME_PATTERN})$`, "i").test(trimmedName);
+}
+
 export function isRoutineDayDefaultName(args: {
   name: string | null | undefined;
   dayIndex: number;
@@ -448,6 +482,19 @@ export function isRoutineDayDefaultName(args: {
     || normalizedName === shortWeekday;
 }
 
+/**
+ * Render-side placeholder test: the position-matching default (`isRoutineDayDefaultName`) or any generated
+ * placeholder pattern at any position. Display and the editable-name field only; the server duplicate path
+ * keeps the narrower `isRoutineDayDefaultName` so persisted names do not change.
+ */
+export function isRoutineDayDisplayPlaceholderName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  return isRoutineDayDefaultName(args) || isRoutineDayGeneratedPlaceholderName(args.name);
+}
+
 function stripRoutineDayWeekdayPrefix(args: {
   name: string | null | undefined;
   dayIndex: number;
@@ -458,6 +505,8 @@ function stripRoutineDayWeekdayPrefix(args: {
     return "";
   }
 
+  // Only the day's own weekday is derived data (older names stored "Tue | Forge" at a Tuesday position).
+  // A different weekday prefix may be a user title ("Sat | Long run"), so it is left alone.
   const weekdayLabels = [
     getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "short"),
     getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "long"),
@@ -481,7 +530,21 @@ export function getRoutineDayEditableName(args: {
   startDate: string | null | undefined;
 }) {
   const trimmedName = stripRoutineDayWeekdayPrefix(args);
-  return isRoutineDayDefaultName({ ...args, name: trimmedName }) ? "" : trimmedName;
+  return isRoutineDayDisplayPlaceholderName({ ...args, name: trimmedName }) ? "" : trimmedName;
+}
+
+/**
+ * Name the day-settings autosave submits. The name field shows `getRoutineDayEditableName` (a placeholder such as
+ * a stale "7" reads as empty), but a toggle (Rest, Optional, direction) must not rewrite the stored name: unless the
+ * user changed the field, the stored value goes back unchanged. Without this the server's empty-name fallback
+ * (`String(day_index)`) would persist the position number over a stored "7", "Tue" or "300".
+ */
+export function resolveRoutineDaySettingsSubmitName(args: {
+  storedName: string | null | undefined;
+  displayName: string;
+  draftName: string;
+}) {
+  return args.draftName === args.displayName ? (args.storedName ?? "") : args.draftName;
 }
 
 export function hasCustomRoutineDayTitle(args: {
@@ -512,6 +575,47 @@ export function formatRoutineDayStableDisplayName(args: {
   startDate: string | null | undefined;
 }) {
   return getRoutineDayEditableName(args) || `Day ${args.dayIndex}`;
+}
+
+export type RoutineDayHeading = {
+  /** Position-derived label, always "Day N". Never read from the stored name. */
+  positionLabel: string;
+  /** User-authored title, or null when the stored name is a generated placeholder. */
+  customTitle: string | null;
+  /** Headline: the custom title when present, otherwise the position label. */
+  title: string;
+  /** Weekday label derived from the day's position, or null when it cannot be resolved. */
+  weekday: string | null;
+  /** Secondary meta parts in display order: position label (only when a custom title replaced it) then weekday. */
+  metaParts: string[];
+};
+
+/**
+ * Single day-label rule for every card surface (routine detail, Today picker, chooser).
+ * Headline = custom title or "Day N"; "Day N" stays visible as meta when a custom title takes the headline,
+ * and the weekday is always meta. Rest days with no custom title read "Rest" in the headline.
+ */
+export function getRoutineDayHeading(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+  weekdayLabel?: string | null;
+  isRest?: boolean;
+}): RoutineDayHeading {
+  const positionLabel = `Day ${args.dayIndex}`;
+  const editableName = getRoutineDayEditableName(args);
+  const customTitle = editableName.length > 0 ? editableName : null;
+  const resolvedWeekday = args.weekdayLabel?.trim() || null;
+  const weekday = resolvedWeekday && resolvedWeekday.toLowerCase() !== positionLabel.toLowerCase()
+    ? resolvedWeekday
+    : null;
+  const title = customTitle ?? (args.isRest ? "Rest" : positionLabel);
+  const metaParts = [
+    title === positionLabel ? null : positionLabel,
+    weekday,
+  ].filter((part): part is string => Boolean(part));
+
+  return { positionLabel, customTitle, title, weekday, metaParts };
 }
 
 export function formatRoutineDayOccurrenceDisplayName(args: {

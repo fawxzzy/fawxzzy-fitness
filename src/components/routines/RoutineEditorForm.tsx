@@ -185,6 +185,8 @@ const routineEditorCycleInputClassName = cn(
 );
 const routineEditorCycleLengthInputClassName = cn(routineEditorCycleInputClassName, "px-12");
 const routineEditorCycleFieldWidthClassName = "w-[9.75rem]";
+// A native date value ("11/12/2026") plus the picker icon and the field padding needs more room than the number steppers.
+const routineEditorCycleDateFieldWidthClassName = "w-[11.5rem]";
 const routineEditorCycleFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 const routineEditorCycleFieldLegendClassName = "ml-auto mr-3 whitespace-nowrap px-1 py-0 text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-[rgb(var(--accent)/0.94)]";
 const routineEditorCompactExpandingControlWidthClassName = "w-full max-w-[9rem]";
@@ -729,7 +731,7 @@ export function RoutineEditorCycleAnchorField({
 }) {
   return (
     <label
-      className={cn("block", routineEditorCycleFieldWidthClassName)}
+      className={cn("block", routineEditorCycleDateFieldWidthClassName)}
       {...routineEditorInfoHandlers({
         title: "Weekday Anchor",
         summary: "Calendar date that places Slot 1 inside the current anchored week.",

@@ -7,7 +7,12 @@ import {
   formatRoutineDayStableDisplayName,
   getRoutineCycleOccurrence,
   getRoutineDayEditableName,
+  getRoutineDayHeading,
   getRoutineDayResolvedWeekdayLabel,
+  isRoutineDayDefaultName,
+  isRoutineDayDisplayPlaceholderName,
+  resolveRoutineDaySettingsSubmitName,
+  isRoutineDayGeneratedPlaceholderName,
   resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
 } from "./routines.ts";
@@ -263,4 +268,85 @@ test("resolveRoutineScheduleForToday accepts ISO timestamp start dates from pers
   } finally {
     globalThis.Date = RealDate;
   }
+});
+
+test("a reordered default-named day reads as its position, not as a custom title (\"7 Tue\" regression)", () => {
+  // Seeds store name = String(index + 1). After day 7 is dragged to position 6 the stored name is still "7".
+  const args = { name: "7", dayIndex: 6, startDate: "2026-04-27" };
+
+  // The position-matching predicate (used by the server duplicate action) is unchanged and says "custom";
+  // only the render-side predicate treats the stale number as a placeholder.
+  assert.equal(isRoutineDayDefaultName(args), false);
+  assert.equal(isRoutineDayDisplayPlaceholderName(args), true);
+  assert.equal(getRoutineDayEditableName(args), "");
+  assert.equal(formatRoutineDayStableDisplayName(args), "Day 6");
+});
+
+test("generated placeholder names are bare numbers, Day N and weekday names; anything else is a user title", () => {
+  for (const placeholder of ["", "  ", "7", "07", "Day 7", "day7", "Tue", "tuesday", "SUNDAY"]) {
+    assert.equal(isRoutineDayGeneratedPlaceholderName(placeholder), true, `expected placeholder: ${JSON.stringify(placeholder)}`);
+  }
+  for (const title of ["Push", "Lower A", "Rest", "Day 7 Heavy", "5K Run", "Tue Forge", "Tues"]) {
+    assert.equal(isRoutineDayGeneratedPlaceholderName(title), false, `expected user title: ${JSON.stringify(title)}`);
+  }
+  assert.equal(isRoutineDayGeneratedPlaceholderName(null), true);
+  assert.equal(isRoutineDayGeneratedPlaceholderName(undefined), true);
+});
+
+test("only the day's own weekday prefix is stripped from custom titles; another weekday prefix is a user title", () => {
+  // dayIndex 3 from a Monday start is Wednesday.
+  assert.equal(getRoutineDayEditableName({ name: "Wed | Forge", dayIndex: 3, startDate: "2026-04-27" }), "Forge");
+  assert.equal(getRoutineDayEditableName({ name: "Mon | Forge", dayIndex: 3, startDate: "2026-04-27" }), "Mon | Forge");
+  assert.equal(getRoutineDayEditableName({ name: "Sat | Long run", dayIndex: 1, startDate: "2026-04-27" }), "Sat | Long run");
+});
+
+test("getRoutineDayHeading: default-named day headlines with Day N and keeps the weekday as meta", () => {
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "3", dayIndex: 6, startDate: "2026-04-27", weekdayLabel: "Sat" }),
+    {
+      positionLabel: "Day 6",
+      customTitle: null,
+      title: "Day 6",
+      weekday: "Sat",
+      metaParts: ["Sat"],
+    },
+  );
+});
+
+test("getRoutineDayHeading: a custom title takes the headline and Day N moves to meta", () => {
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "Push", dayIndex: 2, startDate: "2026-04-27", weekdayLabel: "Tue" }),
+    {
+      positionLabel: "Day 2",
+      customTitle: "Push",
+      title: "Push",
+      weekday: "Tue",
+      metaParts: ["Day 2", "Tue"],
+    },
+  );
+});
+
+test("getRoutineDayHeading: rest days read Rest, an unresolved weekday is omitted, and the position label is never duplicated as a weekday", () => {
+  assert.equal(getRoutineDayHeading({ name: "4", dayIndex: 4, startDate: null, isRest: true }).title, "Rest");
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "4", dayIndex: 4, startDate: null, weekdayLabel: "Day 4" }).metaParts,
+    [],
+  );
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "Rest", dayIndex: 4, startDate: null, weekdayLabel: "Thu", isRest: true }).metaParts,
+    ["Day 4", "Thu"],
+  );
+});
+
+test("day settings autosave sends the stored name back unchanged unless the user edited the name field", () => {
+  for (const stored of ["7", "Tue", "300", "Day 9", "Wed | Forge", "Push"]) {
+    const displayName = getRoutineDayEditableName({ name: stored, dayIndex: 6, startDate: "2026-04-27" });
+    // untouched field (a Rest/Optional toggle): the stored value, never the empty display or String(day_index)
+    assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: stored, displayName, draftName: displayName }), stored);
+    // edited field: the new text
+    assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: stored, displayName, draftName: "Heavy" }), "Heavy");
+  }
+  // a user who clears the field on purpose (display was "Push") sends the empty name
+  assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: "Push", displayName: "Push", draftName: "" }), "");
+  assert.equal(resolveRoutineDaySettingsSubmitName({ storedName: null, displayName: "", draftName: "" }), "");
 });

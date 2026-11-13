@@ -766,6 +766,7 @@ export function TodayDayPicker({
                           startDate={startDate}
                           isSelected={isSelected}
                           showSelectedTag={isSelected}
+                          asListItem
                           onPress={() => {
                             setSelectedDayIndex(day.dayIndex);
                             setIsPickerOpen(false);

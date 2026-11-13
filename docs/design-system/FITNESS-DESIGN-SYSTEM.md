@@ -20,3 +20,8 @@ Migration intent:
 - This pack is the foundation layer only.
 - It is meant to stabilize the header, card, tag/badge, and section layout primitives before any broad visual refactor.
 - Existing behavior should remain intact while the app switches to the frozen contract surface.
+
+Card system:
+
+- Routine, day and exercise cards (and, as they migrate, Today, History, Settings, Session and onboarding cards) follow `docs/design-system/CARD-SYSTEM.md`: one surface, one header, one control set, one status vocabulary, with tests in `npm run test:card-system`.
+- The card system consumes the token pack above through theme variables and `src/components/cardSemanticTones.ts`; it does not add primitive ids to the frozen primitive pack.

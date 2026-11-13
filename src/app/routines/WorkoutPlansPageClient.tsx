@@ -5,15 +5,10 @@ import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import { DayList } from "@/components/day-list/DayList";
 import { RoutineOverviewDayCard } from "@/components/day-list/RoutineDayCardPresentation";
-import { RoutinesPageScaffold, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
-import {
-  ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME,
-  ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
-} from "@/components/routines/routineCardChrome";
+import { RoutinesCardList, RoutinesListItem, RoutinesPageScaffold, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
+import { CardActionRow, CardEmptyState, CardIconButton, closeCardActionsOnEscape } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
@@ -37,6 +32,7 @@ export function WorkoutPlansPageClient({
   const router = useRouter();
   const toast = useToast();
   const [planPendingDelete, setPlanPendingDelete] = useState<WorkoutPlanLibraryCardItem | null>(null);
+  const [expandedActionsPlanId, setExpandedActionsPlanId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const actionsNode = useMemo(() => (
@@ -73,7 +69,7 @@ export function WorkoutPlansPageClient({
     <RoutinesPageScaffold>
       <SharedDayListSection>
         {workoutPlans.length === 0 ? (
-          <EmptyState
+          <CardEmptyState
             title="No workout plans yet"
             body={newWorkoutPlanHref
               ? "Create a workout plan without drilling into a routine first."
@@ -97,53 +93,69 @@ export function WorkoutPlansPageClient({
             )}
           />
         ) : (
-          <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
+          <RoutinesCardList>
             {workoutPlans.map((plan) => {
               const planHref = plan.href ?? null;
               const planTitle = plan.title?.trim() || "Workout Plan";
+              const actionsOpen = expandedActionsPlanId === plan.id;
+              const actionsId = `workout-plan-actions-${plan.id}`;
+              const closeActions = () => setExpandedActionsPlanId(null);
 
               return (
-                <RoutineOverviewDayCard
-                  key={plan.id}
-                  day={{
-                    dayIndex: plan.dayIndex,
-                    title: planTitle,
-                    occurrenceWeekday: null,
-                    isRest: plan.isRest,
-                    splitSummary: plan.splitSummary,
-                    recapExercises: plan.recapExercises,
-                    isToday: false,
-                    isCompleted: false,
-                    isSkipped: false,
-                    isInSession: false,
-                  }}
-                  allowWeekdayFallback={false}
-                  headerLayout="cornered"
-                  onPress={planHref ? () => router.push(planHref) : undefined}
-                  wrapper={(card) => (
-                    <div className="relative min-w-0">
-                      <div className={ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME}>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            setPlanPendingDelete(plan);
-                          }}
-                          disabled={isPending}
-                          aria-label={`Delete ${planTitle}`}
-                          className={`${ROUTINE_CARD_DELETE_TEXT_CLASS_NAME} pointer-events-auto${isPending ? " opacity-75" : ""}`}
-                        >
-                          <span className="bottom-action__label">Delete</span>
-                        </button>
+                <RoutinesListItem key={plan.id}>
+                  <div onKeyDown={(event) => closeCardActionsOnEscape(event, actionsOpen, closeActions)}>
+                  <RoutineOverviewDayCard
+                    day={{
+                      dayIndex: plan.dayIndex,
+                      title: planTitle,
+                      occurrenceWeekday: null,
+                      isRest: plan.isRest,
+                      splitSummary: plan.splitSummary,
+                      recapExercises: plan.recapExercises,
+                      isToday: false,
+                      isCompleted: false,
+                      isSkipped: false,
+                      isInSession: false,
+                    }}
+                    allowWeekdayFallback={false}
+                    showPosition={false}
+                    showRecap
+                    recapMaxVisible={3}
+                    headingLevel={2}
+                    onPress={planHref ? () => router.push(planHref) : undefined}
+                    trailing={(
+                      <CardIconButton
+                        label={`Actions for ${planTitle}`}
+                        aria-expanded={actionsOpen}
+                        aria-controls={actionsId}
+                        onClick={() => setExpandedActionsPlanId((current) => current === plan.id ? null : plan.id)}
+                      >
+                        <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5">
+                          {[4.5, 10, 15.5].map((cx) => <circle key={cx} cx={cx} cy="10" r="1.6" fill="currentColor" />)}
+                        </svg>
+                      </CardIconButton>
+                    )}
+                    footer={actionsOpen ? (
+                      <div id={actionsId}>
+                        <CardActionRow
+                          label={`Actions for ${planTitle}`}
+                          actions={[{
+                            key: "delete",
+                            label: "Delete",
+                            ariaLabel: `Delete ${planTitle}`,
+                            intent: "danger",
+                            disabled: isPending,
+                            onPress: () => setPlanPendingDelete(plan),
+                          }]}
+                        />
                       </div>
-                      {card}
-                    </div>
-                  )}
-                />
+                    ) : <span id={actionsId} hidden />}
+                  />
+                  </div>
+                </RoutinesListItem>
               );
             })}
-          </DayList>
+          </RoutinesCardList>
         )}
       </SharedDayListSection>
 
