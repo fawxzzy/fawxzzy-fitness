@@ -51,6 +51,14 @@ function createSupabaseServerClient(accessToken?: string | null) {
   });
 }
 
+/**
+ * The access token this request carries (cookie, or the trusted local-dev header). For calls that must not touch
+ * the refresh token: it is never rotated here, so nothing has to be written back to a cookie.
+ */
+export function getRequestAccessToken() {
+  return getRequestAuthTokens().accessToken;
+}
+
 export function supabaseServer() {
   const { accessToken } = getRequestAuthTokens();
   return createSupabaseServerClient(accessToken);

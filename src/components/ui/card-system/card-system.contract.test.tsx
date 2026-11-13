@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { isDevOnlyPath, isProductionDeployment } from "../../../lib/dev-route-guard.ts";
+import { isDevOnlyPath } from "../../../lib/dev-route-guard.ts";
 import {
   CardActionRow,
   CardChip,
@@ -192,11 +192,10 @@ test("the card-system dev gallery is covered by the shared dev-route guard and h
   const gallery = readFileSync(new URL("../../../app/dev/card-system/CardSystemGallery.tsx", import.meta.url), "utf8");
   const layout = readFileSync(new URL("../../../app/dev/layout.tsx", import.meta.url), "utf8");
 
-  // Withdrawn from production by the layout (isProductionDeployment) and by middleware (isDevOnlyPath("/dev/...")).
-  assert.match(layout, /isProductionDeployment\(\)/);
-  assert.match(layout, /notFound\(\)/);
+  // Withdrawn from production by middleware (isDevOnlyPath) and by the page's own first statement; the layout repeats it.
   assert.equal(isDevOnlyPath("/dev/card-system"), true);
-  assert.equal(isProductionDeployment({ VERCEL_ENV: "production" }), true);
+  assert.match(layout, /assertDevPageAvailable\(\)/);
+  assert.match(page, /export default function DevCardSystemPage\(\) \{\s*assertDevPageAvailable\(\);/);
   for (const source of [page, gallery]) {
     assert.doesNotMatch(source, /supabaseAdmin|createSupabase|service[-_ ]role|process\.env/i);
   }

@@ -2,8 +2,11 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { BottomActionsProvider } from "@/components/layout/bottom-actions";
 import { StretchCardPassSurface } from "@/app/dev/stretch-hub/StretchCardPassSurface";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export default function DevStretchCardPassPage() {
+  assertDevPageAvailable();
+
   return (
     <BottomActionsProvider>
       <AppShell topNavMode="none" ambientPreset="logSet">

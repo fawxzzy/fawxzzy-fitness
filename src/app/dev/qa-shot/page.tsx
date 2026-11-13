@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import Link from "next/link";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,8 @@ export default async function QaShotPage({
     file?: string;
   };
 }) {
+  assertDevPageAvailable();
+
   const files = await listShots();
   const requestedFile = typeof searchParams?.file === "string" ? searchParams.file : null;
   const activeFile = requestedFile && files.includes(requestedFile)

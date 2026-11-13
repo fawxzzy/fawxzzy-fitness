@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { assertDevServiceRolePageAvailable } from "@/lib/dev-route-guard-page";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { BottomActionsProvider } from "@/components/layout/bottom-actions";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -13,12 +13,6 @@ import { HistoryLogPageClient } from "@/app/history/[sessionId]/HistoryLogPageCl
 import { buildSessionSummary } from "@/app/history/session-summary";
 
 export const dynamic = "force-dynamic";
-
-function isLocalRequest() {
-  const host = (headers().get("x-forwarded-host") ?? headers().get("host") ?? "").trim().toLowerCase();
-  const hostname = host.split(":")[0] ?? "";
-  return hostname === "127.0.0.1" || hostname === "localhost";
-}
 
 function buildAccessTokenClient(accessToken: string) {
   return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
@@ -59,9 +53,7 @@ export default async function DevHistorySessionDetailLivePage({
     expandExerciseId?: string;
   };
 }) {
-  if (process.env.NODE_ENV === "production" && !isLocalRequest()) {
-    return <ErrorState message="Not found." />;
-  }
+  assertDevServiceRolePageAvailable();
 
   const sessionId = searchParams?.sessionId?.trim() ?? "";
   const userId = searchParams?.userId?.trim() ?? "";

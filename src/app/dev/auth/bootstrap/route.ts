@@ -23,7 +23,7 @@ function getRequestOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const unavailable = devRouteUnavailableResponse();
+  const unavailable = devRouteUnavailableResponse(request);
   if (unavailable) {
     return unavailable;
   }

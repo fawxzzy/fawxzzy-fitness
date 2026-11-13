@@ -1,4 +1,5 @@
 import { getSupabaseTargetDiagnostic } from "@/lib/dev-supabase-target";
+import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ function EnvRow({ label, value, tone }: { label: string; value: string; tone?: "
 }
 
 export default function DevEnvPage() {
+  assertDevPageAvailable();
+
   const supabase = getSupabaseTargetDiagnostic();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "not set";
 
