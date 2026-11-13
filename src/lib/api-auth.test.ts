@@ -44,6 +44,7 @@ test("JSON API routes authenticate with resolveApiUser before their try block", 
     "src/app/api/history/sessions/route.ts",
     "src/app/api/account/export/route.ts",
     "src/app/api/account/export/preview/route.ts",
+    "src/app/api/history/exercises/route.ts",
   ];
 
   for (const route of routes) {
@@ -54,4 +55,17 @@ test("JSON API routes authenticate with resolveApiUser before their try block", 
     assert.ok(authIndex > -1, `${route} must call resolveApiUser`);
     assert.ok(authIndex < tryIndex, `${route} must authenticate before its first try block`);
   }
+});
+
+test("the scoped exercise browser loader used by a JSON route does not authenticate inside the route's try block", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync("src/lib/exercises-browser.ts", "utf8");
+  const start = source.indexOf("export async function getExerciseBrowserRowsForUserFilter(");
+  assert.ok(start > -1);
+  const body = source.slice(start);
+  const end = body.indexOf("\nexport ", 10);
+  const loader = end > -1 ? body.slice(0, end) : body;
+
+  assert.doesNotMatch(loader, /requireUser\(/u, "the loader takes the user id from its caller");
+  assert.match(loader, /userId: string/u);
 });
