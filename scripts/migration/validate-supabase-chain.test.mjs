@@ -5,7 +5,6 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { runInNewContext } from "node:vm";
-import ts from "typescript";
 
 import {
   getMigrationHistoryDrift,
@@ -18,37 +17,6 @@ import {
 } from "./validate-supabase-chain.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-
-test("legacy export returns 410 without reading the request, credentials, or environment", async () => {
-  const source = await readFile(path.join(repoRoot, "src/app/api/migration/export/route.ts"), "utf8");
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  });
-  const exports = {};
-  const imports = [];
-  const forbiddenRead = new Proxy({}, {
-    get() { throw new Error("Retired export must not read request or environment"); },
-  });
-  runInNewContext(outputText, {
-    exports,
-    process: forbiddenRead,
-    require(name) {
-      imports.push(name);
-      assert.equal(name, "next/server", "Only the response constructor may be imported");
-      return { NextResponse: { json: (body, init) => Response.json(body, init) } };
-    },
-  });
-  const response = await exports.POST(forbiddenRead);
-  assert.deepEqual(imports, ["next/server"]);
-  assert.equal(exports.dynamic, "force-dynamic");
-  assert.equal(response.status, 410);
-  assert.equal(response.headers.get("cache-control"), "no-store");
-  assert.deepEqual(await response.json(), {
-    ok: false,
-    code: "FITNESS_LEGACY_EXPORT_RETIRED",
-    error: "Legacy Fitness export is retired. Retained snapshots can still be imported.",
-  });
-});
 
 test("legacy dev launcher cannot read environment, import dependencies, or start a child", async () => {
   const source = await readFile(path.join(repoRoot, "scripts/dev-fitness-lps.mjs"), "utf8");

@@ -4,10 +4,7 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SettingsAccordionClient } from "@/components/settings/SettingsAccordionClient";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
-import {
-  SETTINGS_LEGACY_MIGRATION_ENABLED,
-  SettingsScreenStateProvider,
-} from "@/components/settings/SettingsScreenState";
+import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -37,7 +34,6 @@ function resolveSettingsSection(value: string | string[] | undefined) {
     || section === "achievements"
     || section === "pro"
     || section === "data"
-    || (SETTINGS_LEGACY_MIGRATION_ENABLED && section === "legacy")
     || section === "discord"
     || section === "theme"
     ? section
@@ -79,8 +75,6 @@ export default async function SettingsPage({
       : "";
   const normalizedEmail = (user.email ?? "").trim().toLowerCase();
   const zacEmail = optionalEnv("FITNESS_ZAC_EMAIL")?.trim().toLowerCase() ?? null;
-  // Remote export is retired; retained snapshots use the offline import API.
-  const legacyBridgeConfigured = false;
   const canAccessQaVisibilitySetting =
     profile.user_number === 0
     || (Boolean(zacEmail) && normalizedEmail === zacEmail)
@@ -165,8 +159,6 @@ export default async function SettingsPage({
           <ContentRail className={appTokens.settingsContentRail}>
             <SurfaceCard className="!border-transparent !bg-transparent !shadow-none !backdrop-blur-0">
               <SettingsAccordionClient
-                email={user.email ?? ""}
-                legacyBridgeConfigured={legacyBridgeConfigured}
                 userKind={profile.user_kind}
                 userNumber={profile.user_number}
                 canAccessQaVisibilitySetting={canAccessQaVisibilitySetting}

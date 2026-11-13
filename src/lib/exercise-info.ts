@@ -2505,7 +2505,7 @@ export async function getExerciseInfoStats(
       historyTimeZone: scopeContext.historyTimeZone,
       client,
     });
-    const progressionSummary = buildExerciseProgressionLifelineSummary(activeProgressionEvents);
+    const progressionSummary = buildExerciseProgressionLifelineSummary(activeProgressionEvents, { timeZone: scopeContext.historyTimeZone });
     if (!normalizedRows.length && !statsLookup.row) return null;
 
     const sortedRows = [...normalizedRows].sort((a, b) => {

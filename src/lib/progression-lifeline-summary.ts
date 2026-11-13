@@ -396,6 +396,7 @@ function buildProgressionActivityDays(args: {
   events: ProgressionEventRow[];
   exerciseNameById?: Map<string, string>;
   routineTitleById?: Map<string, string>;
+  timeZone?: string | null;
 }): ExerciseProgressionActivityDay[] {
   const eventsByDayKey = new Map<string, ProgressionEventRow[]>();
 
@@ -403,6 +404,7 @@ function buildProgressionActivityDays(args: {
     const dayKey = getProgressionEventBucketKey({
       createdAt: event.created_at,
       granularity: "day",
+      timeZone: args.timeZone,
     });
     if (!dayKey) {
       continue;
@@ -573,6 +575,8 @@ export function buildExerciseProgressionLifelineSummary(
   options?: {
     exerciseNameById?: Map<string, string>;
     routineTitleById?: Map<string, string>;
+    /** Zone the events are bucketed into local days with: pass the History zone (resolveHistoryTimeZone). Omitted keeps the analytics default (UTC). */
+    timeZone?: string | null;
   },
 ): ExerciseProgressionLifelineSummary | null {
   const ordered = sortEventsAscending(events);
@@ -596,11 +600,13 @@ export function buildExerciseProgressionLifelineSummary(
   const chartSections = buildProgressionSummaryChartSections({
     events: ordered,
     activityGranularity: "day",
+    timeZone: options?.timeZone,
   }).filter((section) => section.id !== "progression-hotspots");
   const activityDays = buildProgressionActivityDays({
     events: ordered,
     exerciseNameById: options?.exerciseNameById,
     routineTitleById: options?.routineTitleById,
+    timeZone: options?.timeZone,
   });
   const lifelineItems = [
     latestChangeSummary ? `Latest: ${latestChangeSummary}` : null,

@@ -45,7 +45,7 @@ jobs:
           node --test scripts/migration/member-identity-authority.contract.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/app/manifest.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/routines/RoutineEditorForm.contract.test.ts
-          node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-info-day-key.test.ts src/lib/progression-summary-activity.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-info-day-key.test.ts src/lib/progression-summary-activity.test.ts src/lib/progression-activity-zone.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/FilterToggleButton.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/app/AppHeader.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/engine.test.ts src/features/curated-onboarding/engine.safety.test.ts src/features/curated-onboarding/engine.adjustments.test.ts src/features/curated-onboarding/engine.matrix.test.ts src/features/curated-onboarding/api-contract.test.ts src/features/curated-onboarding/api-contract.safety.test.ts
