@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { ActionResult } from "@/lib/action-result";
-import { createSetLogSyncEngine, type SetLogQueueOps } from "./sync-engine.ts";
+import { createSetLogSyncEngine, subscribeToSetLogSynced, type SetLogQueueOps } from "./sync-engine.ts";
 import {
   isSetLogQueueItemParked,
   SET_LOG_MAX_RETRY_ATTEMPTS,
   SET_LOG_TRANSPORT_ERROR,
 } from "./set-log-reconciliation.ts";
 import type { SetLogQueueItem } from "./set-log-queue.ts";
+import { applySyncedItemToSnapshotMap, type QueueAwareSnapshotSet } from "./quick-log-queue.ts";
 
 const LIVE_SESSION_MUTATION_ERROR = "Can only edit the current active session.";
 
@@ -220,10 +221,14 @@ test("retries are bounded: the last failed attempt parks the item (kept, never d
   assert.equal(queue.store.size, 1, "a parked set stays in the queue");
 });
 
-test("a parked item gets exactly one new attempt when the worker starts or the device comes back online", async () => {
+async function settle() {
+  await new Promise((resolve) => setTimeout(resolve, 25));
+}
+
+test("a parked item is re-armed on engine start with a fresh bounded burst (retryCount reset), not stranded", async () => {
   const fakeWindow = installFakeWindow();
   try {
-    const queue = createFakeQueue([buildItem({ status: "failed", retryCount: SET_LOG_MAX_RETRY_ATTEMPTS })]);
+    const queue = createFakeQueue([buildItem({ status: "failed", retryCount: SET_LOG_MAX_RETRY_ATTEMPTS, lastError: "Could not reach server." })]);
     let calls = 0;
     const terminal: string[] = [];
     const engine = createSetLogSyncEngine({
@@ -241,29 +246,205 @@ test("a parked item gets exactly one new attempt when the worker starts or the d
     const [startTimer] = [...fakeWindow.timers.values()];
     fakeWindow.timers.clear();
     startTimer!.callback();
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    assert.equal(calls, 1, "start re-arms the parked item once");
-    assert.equal(queue.store.get("queue-1")?.retryCount, SET_LOG_MAX_RETRY_ATTEMPTS + 1);
+    await settle();
 
-    // The follow-up periodic tick does not retry it again.
-    const [periodic] = [...fakeWindow.timers.values()];
-    assert.equal(periodic?.delay, 2000);
+    assert.equal(calls, 1, "start re-arms the parked item");
+    const rearmed = queue.store.get("queue-1");
+    assert.equal(rearmed?.retryCount, 1, "the count restarted from 0, it did not continue at 9");
+    assert.equal(rearmed !== undefined && isSetLogQueueItemParked(rearmed), false, "it is an ordinary backing-off item again");
+    assert.ok(rearmed?.nextRetryAt && new Date(rearmed.nextRetryAt).getTime() > Date.now());
+
+    // It keeps retrying on the normal backoff instead of waiting for the next start/online: make it due and tick.
+    queue.store.set("queue-1", { ...rearmed!, nextRetryAt: new Date(Date.now() - 1000).toISOString() });
     fakeWindow.timers.clear();
-    periodic!.callback();
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    assert.equal(calls, 1);
-
-    // Coming back online re-arms it once more.
-    for (const listener of fakeWindow.listeners.get("online") ?? []) {
-      listener();
-    }
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await engine.tick();
     assert.equal(calls, 2);
-    assert.deepEqual(terminal, [], "an already parked item is not reported again");
+    assert.equal(queue.store.get("queue-1")?.retryCount, 2);
+    assert.deepEqual(terminal, [], "not parked again yet");
     engine.stop();
   } finally {
     fakeWindow.restore();
   }
+});
+
+test("an online event that fires before the radio works re-arms a parked item for a new burst, then it parks again", async () => {
+  const fakeWindow = installFakeWindow();
+  try {
+    const queue = createFakeQueue([buildItem({ status: "failed", retryCount: SET_LOG_MAX_RETRY_ATTEMPTS, lastError: "Sync failed" })]);
+    let calls = 0;
+    const terminal: string[] = [];
+    const engine = createSetLogSyncEngine({
+      userId: "user-1",
+      syncSetLogsAction: async () => {
+        calls += 1;
+        throw new TypeError("Failed to fetch");
+      },
+      queue: queue.ops,
+      onTerminalFailure: ({ item }) => terminal.push(item.id),
+    });
+
+    // Periodic ticks leave a parked item alone.
+    await engine.tick();
+    assert.equal(calls, 0);
+
+    engine.start();
+    fakeWindow.timers.clear();
+    for (const listener of fakeWindow.listeners.get("online") ?? []) {
+      listener();
+    }
+    await settle();
+    assert.equal(calls, 1, "online re-arms it");
+    assert.equal(queue.store.get("queue-1")?.retryCount, 1);
+
+    // Run the burst to the end: every attempt fails, the item parks again after the cap and is reported once.
+    for (let attempt = 2; attempt <= SET_LOG_MAX_RETRY_ATTEMPTS; attempt += 1) {
+      queue.store.set("queue-1", { ...queue.store.get("queue-1")!, nextRetryAt: new Date(Date.now() - 1000).toISOString() });
+      await engine.tick();
+    }
+    assert.equal(calls, SET_LOG_MAX_RETRY_ATTEMPTS);
+    const parkedAgain = queue.store.get("queue-1");
+    assert.equal(parkedAgain !== undefined && isSetLogQueueItemParked(parkedAgain), true);
+    assert.deepEqual(terminal, ["queue-1"]);
+    engine.stop();
+  } finally {
+    fakeWindow.restore();
+  }
+});
+
+test("a terminal parked item (session no longer live) keeps its count and gets one attempt per start or online, never a fresh burst", async () => {
+  const fakeWindow = installFakeWindow();
+  try {
+    const queue = createFakeQueue([buildItem({ status: "failed", retryCount: 1, lastError: LIVE_SESSION_MUTATION_ERROR })]);
+    let calls = 0;
+    const engine = createSetLogSyncEngine({
+      userId: "user-1",
+      syncSetLogsAction: async ({ items }) => {
+        calls += 1;
+        return { ok: true, data: { results: [{ queueItemId: items[0]!.id, ok: false, error: LIVE_SESSION_MUTATION_ERROR }] } };
+      },
+      queue: queue.ops,
+    });
+
+    engine.start();
+    const [startTimer] = [...fakeWindow.timers.values()];
+    fakeWindow.timers.clear();
+    startTimer!.callback();
+    await settle();
+    assert.equal(calls, 1);
+    assert.equal(queue.store.get("queue-1")?.retryCount, 2, "the count was not reset");
+
+    // Periodic ticks skip it.
+    await engine.tick();
+    assert.equal(calls, 1);
+
+    // Online gives it one more attempt, still without a reset.
+    for (const listener of fakeWindow.listeners.get("online") ?? []) {
+      listener();
+    }
+    await settle();
+    assert.equal(calls, 2);
+    assert.equal(queue.store.get("queue-1")?.retryCount, 3);
+    engine.stop();
+  } finally {
+    fakeWindow.restore();
+  }
+});
+
+test("a hung replay times out as a thrown replay and releases the in-flight guard", async () => {
+  const queue = createFakeQueue([buildItem()]);
+  let calls = 0;
+  const engine = createSetLogSyncEngine({
+    userId: "user-1",
+    syncSetLogsAction: () => {
+      calls += 1;
+      return new Promise<never>(() => {
+        // never settles: a hung fetch
+      });
+    },
+    queue: queue.ops,
+    replayTimeoutMs: 30,
+  });
+
+  const startedAt = Date.now();
+  await engine.tick();
+
+  assert.ok(Date.now() - startedAt < 2000, "the tick returned instead of hanging with the item");
+  assert.equal(calls, 1);
+  const failed = queue.store.get("queue-1");
+  assert.equal(failed?.status, "failed");
+  assert.equal(failed?.retryCount, 1);
+  assert.equal(failed?.lastError, SET_LOG_TRANSPORT_ERROR);
+
+  // The guard was released: another engine can replay the (now due) item right away.
+  queue.store.set("queue-1", { ...failed!, nextRetryAt: new Date(Date.now() - 1000).toISOString() });
+  const other = createSetLogSyncEngine({
+    userId: "user-1",
+    syncSetLogsAction: async ({ items }) => okResult(items),
+    queue: queue.ops,
+  });
+  await other.tick();
+  assert.equal(queue.store.size, 0);
+});
+
+test("a non-numeric stored retryCount is treated as 0 instead of throwing in the backoff math", async () => {
+  const queue = createFakeQueue([buildItem({ retryCount: Number.NaN })]);
+  const unexpected: unknown[] = [];
+  const engine = createSetLogSyncEngine({
+    userId: "user-1",
+    syncSetLogsAction: async () => {
+      throw new TypeError("Failed to fetch");
+    },
+    queue: queue.ops,
+    onUnexpectedError: (error) => unexpected.push(error),
+  });
+
+  await engine.tick();
+
+  const failed = queue.store.get("queue-1");
+  assert.deepEqual(unexpected, [], "no RangeError from an invalid backoff date");
+  assert.equal(failed?.retryCount, 1);
+  assert.ok(failed?.nextRetryAt && Number.isFinite(new Date(failed.nextRetryAt).getTime()));
+
+  // The next tick honours the backoff instead of hot-looping.
+  let calls = 0;
+  const second = createSetLogSyncEngine({
+    userId: "user-1",
+    syncSetLogsAction: async ({ items }) => {
+      calls += 1;
+      return okResult(items);
+    },
+    queue: queue.ops,
+  });
+  await second.tick();
+  assert.equal(calls, 0);
+});
+
+test("every successful replay is broadcast to subscribers, whichever engine ran it; a throwing listener changes nothing", async () => {
+  const queue = createFakeQueue([buildItem()]);
+  const heard: Array<{ clientLogId: string; serverSetId?: string }> = [];
+  const unsubscribeBad = subscribeToSetLogSynced(() => {
+    throw new Error("listener bug");
+  });
+  const unsubscribe = subscribeToSetLogSynced(({ item, serverSetId }) => heard.push({ clientLogId: item.clientLogId, serverSetId }));
+  const ownCallback: string[] = [];
+  const engine = createSetLogSyncEngine({
+    userId: "user-1",
+    syncSetLogsAction: async ({ items }) => okResult(items),
+    queue: queue.ops,
+    onItemSynced: ({ item }) => ownCallback.push(item.clientLogId),
+  });
+
+  await engine.tick();
+
+  assert.deepEqual(heard, [{ clientLogId: "log-1", serverSetId: "server-queue-1" }]);
+  assert.deepEqual(ownCallback, ["log-1"]);
+  assert.equal(queue.store.size, 0, "the throwing listener did not affect the bookkeeping");
+
+  unsubscribe();
+  unsubscribeBad();
+  queue.store.set("queue-2", buildItem({ id: "queue-2", clientLogId: "log-2" }));
+  await engine.tick();
+  assert.equal(heard.length, 1, "unsubscribed listeners hear nothing");
 });
 
 test("a server refusal because the session is no longer live parks the item at once", async () => {
@@ -378,4 +559,53 @@ test("two engines never replay the same item at once (card engine / session engi
   await tickA;
   assert.equal(queue.store.size, 0);
   assert.equal(calls, 1);
+});
+
+test("a collapsed row's snapshot takes the server identity when another row's engine replays its set", async () => {
+  // Row B (exercise-2) is collapsed and still marks its set queued; the card engine of the expanded row A replays it.
+  const queuedSet: QueueAwareSnapshotSet = {
+    id: "log-2",
+    client_log_id: "log-2",
+    stableId: "log-2",
+    session_exercise_id: "exercise-2",
+    user_id: "queued",
+    set_index: 0,
+    weight: 135,
+    reps: 5,
+    is_warmup: false,
+    notes: null,
+    duration_seconds: null,
+    distance: null,
+    distance_unit: null,
+    calories: null,
+    rpe: null,
+    weight_unit: "lbs",
+    pending: true,
+    queueItemId: "queue-2",
+    queueStatus: "queued",
+  };
+  let snapshots: Record<string, QueueAwareSnapshotSet[]> = { "exercise-1": [], "exercise-2": [queuedSet] };
+  const unsubscribe = subscribeToSetLogSynced(({ item, serverSetId }) => {
+    snapshots = applySyncedItemToSnapshotMap(snapshots, item, serverSetId, "user-1");
+  });
+
+  try {
+    const queue = createFakeQueue([buildItem({ id: "queue-2", clientLogId: "log-2", sessionExerciseId: "exercise-2" })]);
+    const cardEngineOfRowA = createSetLogSyncEngine({
+      userId: "user-1",
+      syncSetLogsAction: async ({ items }) => okResult(items),
+      queue: queue.ops,
+    });
+
+    await cardEngineOfRowA.tick();
+
+    const replayed = snapshots["exercise-2"]?.[0];
+    assert.equal(replayed?.id, "server-queue-2", "the delete/edit path will send the server id, not the client id");
+    assert.equal(replayed?.user_id, "user-1");
+    assert.equal(replayed?.pending, false);
+    assert.equal(replayed?.queueStatus, undefined);
+    assert.equal(snapshots["exercise-2"]?.length, 1, "no duplicate set was added");
+  } finally {
+    unsubscribe();
+  }
 });

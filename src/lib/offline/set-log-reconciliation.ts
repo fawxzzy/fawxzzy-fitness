@@ -59,9 +59,11 @@ export function isQueueItemPendingSync(item: Pick<SetLogQueueItem, "status" | "s
 /**
  * Bounded replay for the set-log queue. A set is user data, so it is never deleted by a failed replay: after
  * `SET_LOG_MAX_RETRY_ATTEMPTS` failed attempts (about three minutes of backoff), or at once when the server says
- * the session is no longer live, the item is PARKED: it stays in the queue as `failed`, the replay worker skips it
- * on its periodic ticks, and it gets exactly one new attempt when the worker restarts or the device comes back
- * online. A parked item is the terminal failed state the UI and the sync badge can show.
+ * the session is no longer live, the item is PARKED: it stays in the queue as `failed` and the replay worker skips
+ * it on its periodic ticks. When the worker restarts or the device comes back online a non-terminal parked item
+ * is re-armed with a fresh bounded burst (retryCount reset to 0), so an `online` event that fires before the radio
+ * works does not strand it; a terminal one (session no longer live) keeps its count and gets one attempt. A
+ * parked item is the terminal failed state the UI and the sync badge can show.
  */
 export const SET_LOG_MAX_RETRY_ATTEMPTS = 8;
 export const SET_LOG_TRANSPORT_ERROR = "Could not reach server.";
