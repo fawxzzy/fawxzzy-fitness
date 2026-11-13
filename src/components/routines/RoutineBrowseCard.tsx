@@ -12,6 +12,7 @@ import {
   CardSurface,
   type CardActionDefinition,
   type CardHeadingLevel,
+  closeCardActionsOnEscape,
 } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
@@ -141,6 +142,7 @@ export function RoutineBrowseCard({
       tone={routine.isActive ? "current" : "neutral"}
       className={className}
       data-routine-card={routine.id}
+      onKeyDown={hasActions && onActionsToggle ? (event) => closeCardActionsOnEscape(event, actionsOpen, onActionsToggle) : undefined}
     >
       <CardHeader
         headingLevel={headingLevel}

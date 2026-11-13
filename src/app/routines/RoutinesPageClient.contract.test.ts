@@ -19,8 +19,10 @@ test("RoutinesPageClient renders routine cards on the card system: actions behin
 
   assert.match(source, /<RoutineBrowseCard/);
   assert.match(source, /onActionsToggle=/);
-  assert.match(source, /key: "delete"/);
-  assert.match(source, /key: "set-active"/);
+  assert.match(source, /buildRoutineCardActions\(\{/);
+  const builder = readFileSync(new URL("../../components/routines/routineCardActions.ts", import.meta.url), "utf8");
+  assert.match(builder, /key: "delete"/);
+  assert.match(builder, /key: "set-active"/);
   assert.match(source, /<CardEmptyState/);
   assert.doesNotMatch(source, /routine-card-delete|ROUTINE_CARD_DELETE|AttachedCardActionStripFrame|INACTIVE_ROUTINE_CARD_CLASS_NAME/);
 });

@@ -35,10 +35,6 @@ export function getCardActionButtonClassName({
   });
 }
 
-export function getCardActionBottomIntent(intent: CardActionIntent) {
-  return intentToBottomActionIntent[intent];
-}
-
 /**
  * Action strip frame. It renders INSIDE the card surface as its last child (divider on top), so the surface keeps
  * its theme radius and clips the strip; nothing has to square off the card's bottom corners.

@@ -7,7 +7,7 @@ import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDock
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { RoutineOverviewDayCard } from "@/components/day-list/RoutineDayCardPresentation";
 import { RoutinesCardList, RoutinesListItem, RoutinesPageScaffold, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
-import { CardActionRow, CardEmptyState, CardIconButton } from "@/components/ui/card-system";
+import { CardActionRow, CardEmptyState, CardIconButton, closeCardActionsOnEscape } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -98,9 +98,12 @@ export function WorkoutPlansPageClient({
               const planHref = plan.href ?? null;
               const planTitle = plan.title?.trim() || "Workout Plan";
               const actionsOpen = expandedActionsPlanId === plan.id;
+              const actionsId = `workout-plan-actions-${plan.id}`;
+              const closeActions = () => setExpandedActionsPlanId(null);
 
               return (
                 <RoutinesListItem key={plan.id}>
+                  <div onKeyDown={(event) => closeCardActionsOnEscape(event, actionsOpen, closeActions)}>
                   <RoutineOverviewDayCard
                     day={{
                       dayIndex: plan.dayIndex,
@@ -124,6 +127,7 @@ export function WorkoutPlansPageClient({
                       <CardIconButton
                         label={`Actions for ${planTitle}`}
                         aria-expanded={actionsOpen}
+                        aria-controls={actionsId}
                         onClick={() => setExpandedActionsPlanId((current) => current === plan.id ? null : plan.id)}
                       >
                         <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5">
@@ -132,19 +136,22 @@ export function WorkoutPlansPageClient({
                       </CardIconButton>
                     )}
                     footer={actionsOpen ? (
-                      <CardActionRow
-                        label={`Actions for ${planTitle}`}
-                        actions={[{
-                          key: "delete",
-                          label: "Delete",
-                          ariaLabel: `Delete ${planTitle}`,
-                          intent: "danger",
-                          disabled: isPending,
-                          onPress: () => setPlanPendingDelete(plan),
-                        }]}
-                      />
-                    ) : undefined}
+                      <div id={actionsId}>
+                        <CardActionRow
+                          label={`Actions for ${planTitle}`}
+                          actions={[{
+                            key: "delete",
+                            label: "Delete",
+                            ariaLabel: `Delete ${planTitle}`,
+                            intent: "danger",
+                            disabled: isPending,
+                            onPress: () => setPlanPendingDelete(plan),
+                          }]}
+                        />
+                      </div>
+                    ) : <span id={actionsId} hidden />}
                   />
+                  </div>
                 </RoutinesListItem>
               );
             })}

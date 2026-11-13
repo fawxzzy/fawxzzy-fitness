@@ -86,6 +86,7 @@ export function DayDetailExerciseList({
   items,
   mode,
   activeItemId = null,
+  showOrderBadges = mode === "editable",
   onSelectItem,
   onInfoItem,
   renderOverlayActions,
@@ -105,11 +106,13 @@ export function DayDetailExerciseList({
         const isActive = activeItemId === item.id;
         const isStretchHub = isStretchHubExercise(item);
         const contract = buildExerciseDisclosureContract({ itemId: item.id, scope: "day-detail" });
-        const metaItems = buildExerciseCardMetadataItems({
+        const factItems = buildExerciseCardMetadataItems({
           primaryMuscle: item.primary_muscle,
           movementPattern: item.movement_pattern,
           equipment: item.equipment,
         }).slice(0, mode === "editable" ? 2 : 3);
+        // Order cue for reordering: the position is the first meta fact ("Order 2"), text, not colour.
+        const metaItems = showOrderBadges ? [`Order ${item.orderNumber}`, ...factItems] : factItems;
         const summary = isStretchHub ? null : normalizeEditDaySummary(item.summary);
         const interaction: CardHeaderInteraction = !interactive
           ? { kind: "none" }
@@ -118,7 +121,7 @@ export function DayDetailExerciseList({
               kind: "toggle",
               expanded: isActive,
               onToggle: () => onSelectItem?.(item),
-              controlsId: contract.panelId,
+              controlsId: isActive ? contract.panelId : undefined,
               buttonProps: { "data-testid": contract.buttonTestId },
             }
             : { kind: "press", onPress: () => onSelectItem?.(item) };

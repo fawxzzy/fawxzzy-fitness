@@ -29,8 +29,11 @@ import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal
 import {
   CardActionFrame,
   CardEmptyState,
+  CardLiveRegion,
+  CardReorderHint,
   DragHandle,
   cardTokens,
+  formatReorderAnnouncement,
   getCardActionButtonClassName,
 } from "@/components/ui/card-system";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -107,6 +110,8 @@ type DragState = {
   pointerId: number;
 };
 
+const REORDER_HINT_ID = "routine-day-reorder-hint";
+
 export function RoutineHomeClient({
   routineId,
   routineStartDate,
@@ -168,6 +173,7 @@ export function RoutineHomeClient({
   const [dayKindOverrideByDayId, setDayKindOverrideByDayId] = useState<Record<string, RoutineDayKind>>({});
   const [restTogglePendingDayId, setRestTogglePendingDayId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
   const initialAvailableWorkoutPlanSources = (_workoutPlanSources ?? []).filter(
     (source) => !source.isRest && routineDayHasWorkoutPlanContent(source),
   );
@@ -406,16 +412,35 @@ export function RoutineHomeClient({
     });
   }, [moveDayWithinList]);
 
+  const announceDayMove = useCallback((dayId: string, order: RoutineHomeDayCardItem[]) => {
+    const position = order.findIndex((day) => day.id === dayId);
+    const moved = order[position];
+    if (!moved) {
+      return;
+    }
+
+    const heading = getRoutineDayHeading({ name: moved.title ?? moved.name, dayIndex: moved.dayIndex, startDate: routineStartDate });
+    setReorderAnnouncement(formatReorderAnnouncement({
+      name: heading.customTitle ?? "Day",
+      position: position + 1,
+      total: order.length,
+    }));
+  }, [routineStartDate]);
+
   const finishReorder = useCallback(() => {
+    const draggedId = dragStateRef.current?.id ?? null;
     setActiveDragId(null);
     dragStateRef.current = null;
 
     const latestOrderedIds = orderedDaysRef.current.map((day) => day.id);
     const initialOrderedIds = days.map((day) => day.id);
     if (latestOrderedIds.join(",") !== initialOrderedIds.join(",")) {
+      if (draggedId) {
+        announceDayMove(draggedId, orderedDaysRef.current);
+      }
       requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
     }
-  }, [days]);
+  }, [announceDayMove, days]);
 
   const handleMoveDayByStep = useCallback((dayId: string, direction: -1 | 1) => {
     if (isReorderPending) {
@@ -432,11 +457,12 @@ export function RoutineHomeClient({
     orderedDaysRef.current = next;
     setOrderedDays(next);
     setExpandedDayId(null);
+    announceDayMove(dayId, next);
     requestAnimationFrame(() => {
       reorderFormRef.current?.requestSubmit();
       document.querySelector<HTMLElement>(`[data-routine-day-id="${dayId}"] [data-card-drag-handle="true"]`)?.focus();
     });
-  }, [isReorderPending, moveDayWithinList]);
+  }, [announceDayMove, isReorderPending, moveDayWithinList]);
 
   const handleReorderHandlePointerDown = useCallback((dayId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
     if (isReorderPending) {
@@ -576,6 +602,8 @@ export function RoutineHomeClient({
 
   return (
     <RoutinesPageScaffold>
+      <CardReorderHint id={REORDER_HINT_ID} noun="day" />
+      <CardLiveRegion message={reorderAnnouncement} />
       <SharedDayListSection>
         <div className={ROUTINE_CONTENT_GAP_CLASS_NAME}>
           {displayDays.length > 0 ? (
@@ -608,7 +636,8 @@ export function RoutineHomeClient({
                         <DragHandle
                           label={`Reorder ${dayLabel}`}
                           active={activeDragId === day.id}
-                          disabled={isReorderPending}
+                          aria-disabled={isReorderPending || undefined}
+                          aria-describedby={REORDER_HINT_ID}
                           onMove={(direction) => handleMoveDayByStep(day.id, direction)}
                           onPointerDown={(event) => handleReorderHandlePointerDown(day.id, event)}
                           onPointerMove={handleReorderHandlePointerMove}

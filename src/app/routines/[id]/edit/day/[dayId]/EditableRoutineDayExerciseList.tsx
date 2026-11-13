@@ -21,7 +21,7 @@ import {
   GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
 } from "@/components/ui/GlowSwitch";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { DragHandle } from "@/components/ui/card-system";
+import { CardLiveRegion, CardReorderHint, DragHandle, formatReorderAnnouncement } from "@/components/ui/card-system";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -141,6 +141,8 @@ type Props = {
   requiresWorkoutPlanEditDecision?: boolean;
   existingWorkoutPlanNames?: Array<string | null | undefined>;
 };
+
+const EDIT_DAY_REORDER_HINT_ID = "edit-day-reorder-hint-text";
 
 type DragState = {
   id: string;
@@ -359,6 +361,14 @@ export function EditableRoutineDayExerciseList({
   const router = useRouter();
   const [, startAutosaveTransition] = useTransition();
   const reorderFormRef = useRef<HTMLFormElement | null>(null);
+  // One reorder save at a time: a held ArrowDown would otherwise queue concurrent submits and a stale refresh.
+  const reorderSavingRef = useRef(false);
+  const [isReorderSaving, setIsReorderSaving] = useState(false);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  const setReorderSaving = (next: boolean) => {
+    reorderSavingRef.current = next;
+    setIsReorderSaving(next);
+  };
   const dragStateRef = useRef<DragState | null>(null);
   const [items, setItems] = useState(exercises);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -453,9 +463,18 @@ export function EditableRoutineDayExerciseList({
     [items],
   );
 
-  const persistOrder = (nextItems: EditableRoutineDayExerciseItem[]) => {
+  const persistOrder = (nextItems: EditableRoutineDayExerciseItem[], movedId?: string) => {
     itemsRef.current = nextItems;
     setItems(nextItems);
+    setReorderSaving(true);
+    const movedIndex = movedId ? nextItems.findIndex((item) => item.id === movedId) : -1;
+    if (movedId && movedIndex >= 0) {
+      setReorderAnnouncement(formatReorderAnnouncement({
+        name: nextItems[movedIndex].name,
+        position: movedIndex + 1,
+        total: nextItems.length,
+      }));
+    }
     requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
   };
 
@@ -493,16 +512,21 @@ export function EditableRoutineDayExerciseList({
   };
 
   const finishReorder = () => {
+    const draggedId = dragStateRef.current?.id ?? null;
     setActiveDragId(null);
     dragStateRef.current = null;
     const latestItems = itemsRef.current;
     const latestOrder = latestItems.map((exercise) => exercise.id);
     if (latestOrder.join(",") !== initialOrder.join(",")) {
-      persistOrder(latestItems);
+      persistOrder(latestItems, draggedId ?? undefined);
     }
   };
 
   const handleHandlePointerDown = (exerciseId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (reorderSavingRef.current) {
+      return;
+    }
+
     dragStateRef.current = {
       id: exerciseId,
       pointerId: event.pointerId,
@@ -999,6 +1023,7 @@ export function EditableRoutineDayExerciseList({
 
     const pendingDecision = pendingWorkoutPlanDecisionSubmitRef.current;
     if (!pendingDecision) {
+      setReorderSaving(false);
       setWorkoutPlanDecisionOpen(false);
       return;
     }
@@ -1111,13 +1136,17 @@ export function EditableRoutineDayExerciseList({
     if (shouldSyncWorkoutPlanOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanId)) {
       formData.set("workoutPlanTemplateSyncMode", "sync");
     }
-    const result = await reorderAction(formData);
-    if (!result.ok) {
-      toast.error(result.error || "Could not reorder exercises.");
-      setItems(exercises);
-      return;
+    try {
+      const result = await reorderAction(formData);
+      if (!result.ok) {
+        toast.error(result.error || "Could not reorder exercises.");
+        setItems(exercises);
+        return;
+      }
+      toast.success("Exercise order updated.");
+    } finally {
+      setReorderSaving(false);
     }
-    toast.success("Exercise order updated.");
   }, [
     activeWorkoutPlanId,
     exercises,
@@ -1227,10 +1256,11 @@ export function EditableRoutineDayExerciseList({
 
   const moveItemByStep = (exerciseId: string, direction: -1 | 1) => {
     const currentItems = itemsRef.current;
+    if (reorderSavingRef.current || workoutPlanDecisionOpen) return;
     const fromIndex = currentItems.findIndex((item) => item.id === exerciseId);
     const nextItems = moveItemWithinList(currentItems, fromIndex, fromIndex + direction);
     if (nextItems === currentItems) return;
-    persistOrder(nextItems);
+    persistOrder(nextItems, exerciseId);
     requestAnimationFrame(() => {
       document
         .querySelector<HTMLElement>(`[data-exercise-row-id="${exerciseId}"] [data-card-drag-handle="true"]`)
@@ -1242,6 +1272,8 @@ export function EditableRoutineDayExerciseList({
     <DragHandle
       label={`Reorder ${exerciseName}`}
       active={activeDragId === exerciseId}
+      aria-disabled={isReorderSaving || undefined}
+      aria-describedby={EDIT_DAY_REORDER_HINT_ID}
       onMove={(direction) => moveItemByStep(exerciseId, direction)}
       onPointerDown={(event) => handleHandlePointerDown(exerciseId, event)}
       onPointerMove={handleHandlePointerMove}
@@ -1317,6 +1349,9 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="routineDayId" value={routineDayId} />
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
+
+      <CardReorderHint id={EDIT_DAY_REORDER_HINT_ID} noun="exercise" />
+      <CardLiveRegion message={reorderAnnouncement} />
 
       {modeViewModel.sections.exerciseListVisible ? (
         <DayDetailExerciseList
@@ -1595,6 +1630,7 @@ export function EditableRoutineDayExerciseList({
         )}
         onCancel={() => {
           pendingWorkoutPlanDecisionSubmitRef.current = null;
+          setReorderSaving(false);
           setWorkoutPlanDecisionOpen(false);
           setWorkoutPlanDecisionStep("choice");
           setWorkoutPlanDecisionError(null);

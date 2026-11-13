@@ -105,7 +105,7 @@ Evidence is source or screenshots; counts are floors.
 | eyebrow label | 11px / 600 / uppercase / 0.12em | `StatBlock` label |
 | chip | `Chip` (`AppBadge`) with `px-2.5 py-1`, 11px uppercase | the shared badge tokens |
 | padding | header 6px / 10px / 12px; body 16px | `px-4 pb-3` for body, divider `border-t` |
-| tap target | `min-h-11 min-w-11` | `CARD_TAP_TARGET_CLASS_NAME` |
+| tap target | `min-h-11 min-w-11` | in `cardTokens.iconControl` and the action buttons |
 | gap between cards | 8px (`gap-2`) | `cardTokens.list` |
 | motion | chevron rotation 150ms, `motion-reduce:transition-none` | no transform animation on press beyond the glass press state |
 
@@ -160,9 +160,9 @@ Single rule, implemented in `src/lib/routines.ts`:
 
 - A stored day name is a generated placeholder when it is a bare number (`7`), `Day 7`, or any weekday name (`Tue`, `Tuesday`). Placeholders are ignored: position and weekday are derived from `dayIndex` and the routine start date, never from the stored name. Seeds store `name = String(index + 1)`, so after a reorder the stored number no longer equals the position; previously that made the day look custom (`7 Tue`).
 - Headline = custom title, otherwise `Day N` (`Rest` for an unnamed rest day). When a custom title leads, `Day N` moves to the meta line. The weekday is always meta.
-- A stale weekday prefix in a legacy name (`Mon | Forge` at a Wednesday position) is stripped from the editable name.
-- No stored data changes. A user title that is itself a placeholder pattern (`Day 7`, `Tue`, `7`) reads as default; that is intentional.
-- API: `getRoutineDayHeading`, `isRoutineDayGeneratedPlaceholderName`, `isRoutineDayDefaultName` (extended), `getRoutineDayEditableName` (strips any weekday prefix).
+- Only the day's own weekday prefix in a legacy name (`Wed | Forge` at a Wednesday position) is stripped from the editable name. Another weekday prefix (`Sat | Long run` at a Monday position) is a user title and is kept.
+- No stored data changes and no server behaviour change. The broader placeholder test is render-side only (`isRoutineDayDisplayPlaceholderName`, used by `getRoutineDayEditableName`). The server duplicate-day path (`resolveDuplicatedRoutineDayName`) keeps the original position-matching predicate `isRoutineDayDefaultName`, so what a duplicate persists is unchanged: a stored `7` at position 6 is copied as `7`, not renumbered. A user title that is itself a placeholder pattern (`Day 7`, `Tue`, `7`) reads as default on screen; that is intentional.
+- API: `getRoutineDayHeading`, `isRoutineDayGeneratedPlaceholderName`, `isRoutineDayDisplayPlaceholderName`, `isRoutineDayDefaultName` (unchanged), `getRoutineDayEditableName` (strips the day's own weekday prefix).
 
 ### 4.5 Copy
 
@@ -231,9 +231,15 @@ Canonical terms (AGENT.md): routine, day, workout, session, exercise, set. Card 
 - Routine list shows a week strip for the active routine instead of scrolling day tiles; inactive routines still show none.
 - Drag handles are 44px and keyboard operable; reorder actions, payloads and endpoints are unchanged.
 - Copy: day / session terminology on the cards listed in 4.5.
+- Today is touched, and was in scope only through shared pieces: the Today day picker (`TodayDayPicker`) renders `RoutineOverviewDayCard` (each card wrapped in an `li` through `asListItem`, so the `DayList` `ul` keeps list semantics; it no longer goes through `DayCard`), and Today renders the shared `RestDayCard` (`TodayDayPicker`, `TodayExerciseRows`). The picker card gets the new anatomy, chips and 44px targets; picking a day, the selected state and `onPress` are unchanged. The rest of Today (exercise rows, empty states) is not migrated.
+- Day editor: the `ORDER n` badge on exercise cards became a text meta fact (`Order n`, the first meta item), so the order cue survives the chip-for-status-only rule (D7).
+- Set Active on a routine card has the accessible name `Set Active: <routine>` (the visible text leads the name, WCAG 2.5.3); while saving it reads `Saving: <routine>`.
+- Reorder (days and exercises): the handle stays focusable while a save runs (`aria-disabled`, not `disabled`), arrow keys are ignored during a save (one save at a time on the day editor, as on the day list), a polite live region announces `<name> moved to position N of M`, and the handle is described by the arrow-key hint (`aria-describedby`).
+- Escape closes an open "Actions for X" row and returns focus to its control (routine and workout-plan cards).
+- "N training days" is normalized from older cached strings ("N workout plans"); the cached count and a freshly computed one can differ until the routines cache refreshes.
 
 ## 8. Tests
 
-- `npm run test:card-system` (12 files, wired into `CI` after the board export check): primitive anatomy, ARIA, tap targets, no sub-11px text, no sideways scroll, no hard-coded radius, dev route blocked in production, routine / day / chooser / rest-day cards, edit-day wiring, day-label rule, card copy.
-- Existing contract tests updated deliberately in the same PR: `RoutineBrowseCard`, `WorkoutPlanChooserSourceCard`, `RestDayCard` (now `RoutineDayCard`), `RoutineHomeSurface`, `RoutinesPageClient`. Their old assertions pinned class strings that no longer exist.
+- `npm run test:card-system` (13 files, wired into `CI` after the board export check): primitive anatomy, ARIA, tap targets, no sub-11px text, no sideways scroll, no hard-coded radius, dev route blocked in production, routine / day / chooser / rest-day cards, edit-day wiring, day-label rule, card copy, action wiring (`routineCardActions.test.ts`: Delete asks for confirmation with the routine, Set Active hands over the routine id, labels are contained in accessible names), reorder accessibility wiring, the Today picker `li` wrapping, and the pinned server duplicate-day behaviour (`routine-day-creation.test.ts`). There is no DOM test library in the repo, so the delete-confirm and set-active flows are covered by the pure action builder plus source-level wiring assertions and a headless click pass on the dev fixture, not by simulated clicks in a unit test.
+- Existing contract tests updated deliberately in the same PR: `RoutineBrowseCard`, `WorkoutPlanChooserSourceCard`, `RestDayCard` (now `RoutineDayCard`), `RoutineHomeSurface`, `RoutinesPageClient`. `test:rest-day-cards` now points at `RoutineDayCard.contract.test.tsx` (the deleted `RestDayCard.contract.test.ts` was still in that script). Their old assertions pinned class strings that no longer exist.
 - Known pre-existing failure, not touched: `src/app/routines/CreateWorkoutPlanFlow.contract.test.ts` asserts strings that are not in `CreateRoutineDayClient.tsx` at `origin/main`; it was never wired into a workflow.

@@ -40,6 +40,11 @@ export function DragHandle({ label, active = false, onMove, onKeyDown, className
       return;
     }
 
+    // aria-disabled (not `disabled`) keeps the focused handle in the tab order and focused while a reorder saves.
+    if (props["aria-disabled"] === true || props["aria-disabled"] === "true") {
+      return;
+    }
+
     if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       event.preventDefault();
       onMove(event.key === "ArrowUp" ? -1 : 1);
@@ -60,6 +65,46 @@ export function DragHandle({ label, active = false, onMove, onKeyDown, className
       <DragGripGlyph />
     </button>
   );
+}
+
+/** Spoken once per handle through `aria-describedby`: the arrow-key alternative to dragging. */
+export function CardReorderHint({ id, noun }: { id: string; noun: "day" | "exercise" }) {
+  return (
+    <span id={id} className="sr-only">
+      {`Drag to reorder, or press Arrow Up or Arrow Down to move this ${noun} one position.`}
+    </span>
+  );
+}
+
+/**
+ * Polite live region for reorder results ("Push moved to position 2 of 5"). Always mounted so the first
+ * announcement is read; pass an empty message when there is nothing to say.
+ */
+export function CardLiveRegion({ message }: { message: string }) {
+  return (
+    <p role="status" aria-live="polite" aria-atomic="true" data-card-live-region="true" className="sr-only">
+      {message}
+    </p>
+  );
+}
+
+export function formatReorderAnnouncement(args: { name: string; position: number; total: number }) {
+  return `${args.name} moved to position ${args.position} of ${args.total}`;
+}
+
+/**
+ * Escape closes an open card action row and returns focus to the control that opened it (the "Actions for X"
+ * icon button inside the card). Attach to the card wrapper's `onKeyDown`.
+ */
+export function closeCardActionsOnEscape(event: KeyboardEvent<HTMLElement>, open: boolean, onClose: () => void) {
+  if (!open || event.key !== "Escape" || event.defaultPrevented) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  onClose();
+  event.currentTarget.querySelector<HTMLElement>("[data-card-icon-button][aria-expanded]")?.focus();
 }
 
 /** Standalone icon control with a 44px hit area (info, more, close). Always pass an accessible `label`. */

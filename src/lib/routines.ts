@@ -479,8 +479,20 @@ export function isRoutineDayDefaultName(args: {
   return normalizedName === String(args.dayIndex)
     || normalizedName === `day ${args.dayIndex}`
     || normalizedName === longWeekday
-    || normalizedName === shortWeekday
-    || isRoutineDayGeneratedPlaceholderName(trimmedName);
+    || normalizedName === shortWeekday;
+}
+
+/**
+ * Render-side placeholder test: the position-matching default (`isRoutineDayDefaultName`) or any generated
+ * placeholder pattern at any position. Display and the editable-name field only; the server duplicate path
+ * keeps the narrower `isRoutineDayDefaultName` so persisted names do not change.
+ */
+export function isRoutineDayDisplayPlaceholderName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  return isRoutineDayDefaultName(args) || isRoutineDayGeneratedPlaceholderName(args.name);
 }
 
 function stripRoutineDayWeekdayPrefix(args: {
@@ -493,12 +505,11 @@ function stripRoutineDayWeekdayPrefix(args: {
     return "";
   }
 
-  // Any weekday prefix is derived data (older names stored "Tue | Forge"); a prefix that no longer
-  // matches the day's current weekday after a reorder is just as stale as one that does.
+  // Only the day's own weekday is derived data (older names stored "Tue | Forge" at a Tuesday position).
+  // A different weekday prefix may be a user title ("Sat | Long run"), so it is left alone.
   const weekdayLabels = [
     getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "short"),
     getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "long"),
-    ...ROUTINE_DAY_WEEKDAY_NAMES.flatMap((name) => [name, name.slice(0, 3)]),
   ];
 
   for (const weekdayLabel of weekdayLabels) {
@@ -519,7 +530,7 @@ export function getRoutineDayEditableName(args: {
   startDate: string | null | undefined;
 }) {
   const trimmedName = stripRoutineDayWeekdayPrefix(args);
-  return isRoutineDayDefaultName({ ...args, name: trimmedName }) ? "" : trimmedName;
+  return isRoutineDayDisplayPlaceholderName({ ...args, name: trimmedName }) ? "" : trimmedName;
 }
 
 export function hasCustomRoutineDayTitle(args: {

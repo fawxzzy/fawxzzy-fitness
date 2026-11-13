@@ -11,7 +11,7 @@ test("edit-day exercise list renders ExerciseRowCard with a 44px DragHandle (poi
   assert.match(editable, /<DragHandle/);
   assert.match(editable, /onMove=\{\(direction\) => moveItemByStep\(exerciseId, direction\)\}/);
   assert.match(editable, /onPointerDown=\{\(event\) => handleHandlePointerDown\(exerciseId, event\)\}/);
-  assert.match(editable, /persistOrder\(nextItems\)/);
+  assert.match(editable, /persistOrder\(nextItems, exerciseId\)/);
   assert.doesNotMatch(editable, /ReorderHandleGlyph|CARD_REORDER_HANDLE_CLASS_NAME/);
 
   assert.match(list, /<ExerciseRowCard/);
@@ -19,6 +19,11 @@ test("edit-day exercise list renders ExerciseRowCard with a 44px DragHandle (poi
   assert.match(list, /buttonProps: \{ "data-testid": contract\.buttonTestId \}/);
   assert.match(list, /panelProps=\{\{ id: contract\.panelId, "data-testid": contract\.panelTestId \}\}/);
   assert.match(list, /<CardInfoButton/);
+  // The order cue ("Order 2") is the first meta fact in the editor, text rather than colour.
+  assert.match(list, /showOrderBadges = mode === "editable"/);
+  assert.match(list, /`Order \$\{item\.orderNumber\}`/);
+  // aria-controls only points at a panel that is rendered (expanded).
+  assert.match(list, /controlsId: isActive \? contract\.panelId : undefined/);
   assert.doesNotMatch(list, /ExerciseDisclosureCard|StandardExerciseRow|SHARED_PLANNED_CARD|MetricAccentBar/);
 });
 

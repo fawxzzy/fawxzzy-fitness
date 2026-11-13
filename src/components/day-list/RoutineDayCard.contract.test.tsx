@@ -88,3 +88,19 @@ test("day card source has no sideways rail, accent underline or corner delete", 
 
   assert.doesNotMatch(cardBody, /HorizontalScrollHint|MetricAccentBar|routine-card-delete|SignatureMiniPipe/);
 });
+
+test("day card: asListItem wraps the card in an li so a ul parent keeps valid list markup (Today picker)", () => {
+  const item = day({ dayIndex: 2, name: "Push", occurrenceWeekday: "Tue" });
+  const html = renderToStaticMarkup(
+    <ul>
+      <RoutineOverviewDayCard day={item} startDate={START_DATE} asListItem />
+      <RoutineOverviewDayCard day={day({ dayIndex: 3, name: "Pull" })} startDate={START_DATE} asListItem />
+    </ul>,
+  );
+
+  assert.equal((html.match(/<li[ >]/g) ?? []).length, 2);
+  assert.match(html, /^<ul><li[^>]*><div[^>]*data-routine-day-card="2"/);
+  assert.doesNotMatch(html, /<ul><div/);
+  // Without the wrapper the card is a plain surface (callers that already provide an li).
+  assert.doesNotMatch(renderDay(item), /^<li/);
+});

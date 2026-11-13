@@ -22,8 +22,7 @@ export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !pt-[0.6rem] !pb-0";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
 export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
-export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
-export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] ${ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME}`;
+export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] px-[0.6875rem] py-[0.3125rem]`;
 
 export type RoutineDayCardSummary = {
   total?: number;
@@ -283,6 +282,7 @@ export function RoutineOverviewDayCard({
   showPosition = true,
   allowWeekdayFallback = true,
   headingLevel = 2,
+  asListItem = false,
   className,
 }: {
   day: RoutineOverviewDayCardItem;
@@ -307,6 +307,8 @@ export function RoutineOverviewDayCard({
   showPosition?: boolean;
   allowWeekdayFallback?: boolean;
   headingLevel?: CardHeadingLevel;
+  /** Wrap the card in an `<li>` for callers that render it directly inside a `<ul>` (the Today day picker). */
+  asListItem?: boolean;
   className?: string;
 }) {
   const heading = getRoutineDayHeading({
@@ -339,7 +341,7 @@ export function RoutineOverviewDayCard({
         : "neutral";
   const recapVisible = (showRecap ?? isExpanded) && !day.isRest && Boolean(day.recapExercises?.length);
 
-  return (
+  const card = (
     <CardSurface tone={tone} className={className} data-routine-day-card={day.dayIndex}>
       <CardHeader
         headingLevel={headingLevel}
@@ -365,4 +367,6 @@ export function RoutineOverviewDayCard({
       {footer}
     </CardSurface>
   );
+
+  return asListItem ? <li className="min-w-0">{card}</li> : card;
 }

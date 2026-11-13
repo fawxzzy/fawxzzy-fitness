@@ -94,9 +94,25 @@ test("shouldApplyRoutineDayCreationOverrides only flags explicit blank or duplic
   }), true);
 });
 
-test("resolveDuplicatedRoutineDayName treats a stale placeholder from a reordered day as default", () => {
+test("resolveDuplicatedRoutineDayName keeps the position-matching rule that decides what the duplicate action persists", () => {
+  // A stored "7" at position 6 is NOT remapped on the server: only a name equal to its own position or weekday is.
   assert.equal(resolveDuplicatedRoutineDayName({
     sourceDayName: "7",
+    sourceDayIndex: 6,
+    sourceRoutineStartDate: "2026-06-15",
+    destinationDayIndex: 4,
+  }), "7");
+  for (const sourceDayName of ["3", "Tue", "Day 9"]) {
+    assert.equal(resolveDuplicatedRoutineDayName({
+      sourceDayName,
+      sourceDayIndex: 6,
+      sourceRoutineStartDate: "2026-06-15",
+      destinationDayIndex: 4,
+    }), sourceDayName);
+  }
+  // Own-position placeholders still remap.
+  assert.equal(resolveDuplicatedRoutineDayName({
+    sourceDayName: "Day 6",
     sourceDayIndex: 6,
     sourceRoutineStartDate: "2026-06-15",
     destinationDayIndex: 4,

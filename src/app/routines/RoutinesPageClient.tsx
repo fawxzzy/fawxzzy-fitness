@@ -7,7 +7,8 @@ import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDock
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import { CreateRoutineClient } from "@/app/routines/CreateRoutineClient";
-import { CardEmptyState, type CardActionDefinition } from "@/components/ui/card-system";
+import { CardEmptyState } from "@/components/ui/card-system";
+import { buildRoutineCardActions } from "@/components/routines/routineCardActions";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -137,44 +138,32 @@ export function RoutinesPageClient({
             {[...activeRoutines, ...inactiveRoutines].map((routine, index) => {
               const routineHref = routine.href;
               const actionsOpen = expandedActionsRoutineId === routine.id;
-              const actions: CardActionDefinition[] = [
-                {
-                  key: "delete",
-                  label: "Delete",
-                  ariaLabel: `Delete ${routine.name}`,
-                  intent: "danger",
-                  disabled: isPending || !deleteRoutineAction,
-                  onPress: () => setRoutinePendingDelete(routine),
+              const actions = buildRoutineCardActions({
+                routine,
+                isPending,
+                canDelete: Boolean(deleteRoutineAction),
+                canSetActive: Boolean(setActiveRoutineAction),
+                onRequestDelete: () => setRoutinePendingDelete(routine),
+                onSetActive: (routineId) => {
+                  if (!setActiveRoutineAction) {
+                    return;
+                  }
+
+                  startTransition(async () => {
+                    const formData = new FormData();
+                    formData.set("routineId", routineId);
+                    const result = await setActiveRoutineAction(formData);
+                    if (!result.ok) {
+                      toast.error(result.error ?? "Could not set active routine.");
+                      return;
+                    }
+
+                    setExpandedActionsRoutineId(null);
+                    toast.success("Routine is now active");
+                    router.refresh();
+                  });
                 },
-                ...(routine.isActive
-                  ? []
-                  : [{
-                    key: "set-active",
-                    label: isPending ? "Saving..." : "Set Active",
-                    ariaLabel: `Set ${routine.name} active`,
-                    intent: "toggle" as const,
-                    disabled: isPending || !setActiveRoutineAction,
-                    onPress: () => {
-                      if (!setActiveRoutineAction) {
-                        return;
-                      }
-
-                      startTransition(async () => {
-                        const formData = new FormData();
-                        formData.set("routineId", routine.id);
-                        const result = await setActiveRoutineAction(formData);
-                        if (!result.ok) {
-                          toast.error(result.error ?? "Could not set active routine.");
-                          return;
-                        }
-
-                        setExpandedActionsRoutineId(null);
-                        toast.success("Routine is now active");
-                        router.refresh();
-                      });
-                    },
-                  }]),
-              ];
+              });
 
               return (
                 <RoutinesListItem key={routine.id}>

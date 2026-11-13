@@ -10,6 +10,7 @@ import {
   getRoutineDayHeading,
   getRoutineDayResolvedWeekdayLabel,
   isRoutineDayDefaultName,
+  isRoutineDayDisplayPlaceholderName,
   isRoutineDayGeneratedPlaceholderName,
   resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
@@ -272,7 +273,10 @@ test("a reordered default-named day reads as its position, not as a custom title
   // Seeds store name = String(index + 1). After day 7 is dragged to position 6 the stored name is still "7".
   const args = { name: "7", dayIndex: 6, startDate: "2026-04-27" };
 
-  assert.equal(isRoutineDayDefaultName(args), true);
+  // The position-matching predicate (used by the server duplicate action) is unchanged and says "custom";
+  // only the render-side predicate treats the stale number as a placeholder.
+  assert.equal(isRoutineDayDefaultName(args), false);
+  assert.equal(isRoutineDayDisplayPlaceholderName(args), true);
   assert.equal(getRoutineDayEditableName(args), "");
   assert.equal(formatRoutineDayStableDisplayName(args), "Day 6");
 });
@@ -288,11 +292,11 @@ test("generated placeholder names are bare numbers, Day N and weekday names; any
   assert.equal(isRoutineDayGeneratedPlaceholderName(undefined), true);
 });
 
-test("a stale weekday prefix from an earlier position or start date is stripped from custom titles", () => {
-  assert.equal(
-    getRoutineDayEditableName({ name: "Mon | Forge", dayIndex: 3, startDate: "2026-04-27" }),
-    "Forge",
-  );
+test("only the day's own weekday prefix is stripped from custom titles; another weekday prefix is a user title", () => {
+  // dayIndex 3 from a Monday start is Wednesday.
+  assert.equal(getRoutineDayEditableName({ name: "Wed | Forge", dayIndex: 3, startDate: "2026-04-27" }), "Forge");
+  assert.equal(getRoutineDayEditableName({ name: "Mon | Forge", dayIndex: 3, startDate: "2026-04-27" }), "Mon | Forge");
+  assert.equal(getRoutineDayEditableName({ name: "Sat | Long run", dayIndex: 1, startDate: "2026-04-27" }), "Sat | Long run");
 });
 
 test("getRoutineDayHeading: default-named day headlines with Day N and keeps the weekday as meta", () => {

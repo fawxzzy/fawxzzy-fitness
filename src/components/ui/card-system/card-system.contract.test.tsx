@@ -9,6 +9,10 @@ import {
   CardEmptyState,
   CardHeader,
   CardInfoButton,
+  CardLiveRegion,
+  CardReorderHint,
+  closeCardActionsOnEscape,
+  formatReorderAnnouncement,
   CardMeta,
   CardStatusChip,
   CardSurface,
@@ -201,4 +205,76 @@ test("the card-system dev gallery is covered by the shared dev-route guard and h
   }
   assert.doesNotMatch(page, /HISTORY_QA_PREVIEW_ENABLED/);
   assert.match(page, /robots:[\s\S]*index: false/);
+});
+
+type KeyEventLike = { key: string; defaultPrevented: boolean; preventDefault: () => void; stopPropagation: () => void };
+
+function keyEvent(key: string) {
+  const event: KeyEventLike = { key, defaultPrevented: false, preventDefault() { event.defaultPrevented = true; }, stopPropagation() {} };
+  return event;
+}
+
+test("DragHandle: Arrow keys request a one-step move, and aria-disabled (not disabled) blocks it so focus is never dropped", () => {
+  const moves: number[] = [];
+  const enabled = DragHandle({ label: "Reorder Push", onMove: (direction) => moves.push(direction) });
+  const onKeyDown = enabled.props.onKeyDown as (event: KeyEventLike) => void;
+  onKeyDown(keyEvent("ArrowUp"));
+  onKeyDown(keyEvent("ArrowDown"));
+  onKeyDown(keyEvent("Enter"));
+  assert.deepEqual(moves, [-1, 1]);
+
+  const blocked: number[] = [];
+  const busy = DragHandle({ label: "Reorder Push", "aria-disabled": true, onMove: (direction) => blocked.push(direction) });
+  (busy.props.onKeyDown as (event: KeyEventLike) => void)(keyEvent("ArrowDown"));
+  assert.deepEqual(blocked, []);
+  assert.equal(busy.props.disabled, undefined, "the handle stays focusable while a reorder saves");
+  assert.equal(busy.props["aria-disabled"], true);
+});
+
+test("reorder hint and live region: polite status that always exists, announcing the new position", () => {
+  const hint = render(<CardReorderHint id="hint-1" noun="day" />);
+  assert.match(hint, /id="hint-1"/);
+  assert.match(hint, /Arrow Up or Arrow Down to move this day/);
+
+  const live = render(<CardLiveRegion message="" />);
+  assert.match(live, /role="status"/);
+  assert.match(live, /aria-live="polite"/);
+  assert.match(render(<CardLiveRegion message="Push moved to position 2 of 5" />), />Push moved to position 2 of 5</);
+  assert.equal(formatReorderAnnouncement({ name: "Push", position: 2, total: 5 }), "Push moved to position 2 of 5");
+});
+
+test("Escape closes an open card action row and focuses the control that opened it; closed rows ignore Escape", () => {
+  let closed = 0;
+  let focused = 0;
+  const currentTarget = { querySelector: (selector: string) => (selector.includes("aria-expanded") ? { focus: () => { focused += 1; } } : null) };
+  const open = Object.assign(keyEvent("Escape"), { currentTarget });
+  closeCardActionsOnEscape(open as never, true, () => { closed += 1; });
+  assert.deepEqual([closed, focused, open.defaultPrevented], [1, 1, true]);
+
+  closeCardActionsOnEscape({ ...keyEvent("Escape"), currentTarget } as never, false, () => { closed += 1; });
+  closeCardActionsOnEscape({ ...keyEvent("a"), currentTarget } as never, true, () => { closed += 1; });
+  assert.equal(closed, 1);
+});
+
+test("reorder wiring: day list and edit-day list announce moves, describe the handle, keep focus (aria-disabled) and never queue concurrent saves", () => {
+  const home = readFileSync(new URL("../../../app/routines/RoutineHomeClient.tsx", import.meta.url), "utf8");
+  const edit = readFileSync(new URL("../../../app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(home, /disabled=\{isReorderPending\}/);
+  assert.match(home, /aria-disabled=\{isReorderPending \|\| undefined\}/);
+  assert.match(home, /<CardLiveRegion message=\{reorderAnnouncement\} \/>/);
+  assert.match(home, /aria-describedby=\{REORDER_HINT_ID\}/);
+
+  assert.match(edit, /<CardLiveRegion message=\{reorderAnnouncement\} \/>/);
+  assert.match(edit, /aria-describedby=\{EDIT_DAY_REORDER_HINT_ID\}/);
+  assert.match(edit, /aria-disabled=\{isReorderSaving \|\| undefined\}/);
+  assert.match(edit, /if \(reorderSavingRef\.current \|\| workoutPlanDecisionOpen\) return;/);
+  assert.match(edit, /finally \{\s*setReorderSaving\(false\);/);
+});
+
+test("the Today day picker keeps list semantics: each picker card is an li inside the ul", () => {
+  const picker = readFileSync(new URL("../../../app/today/TodayDayPicker.tsx", import.meta.url), "utf8");
+  const list = picker.slice(picker.indexOf("<DayList"), picker.indexOf("</DayList>"));
+
+  assert.match(list, /<RoutineOverviewDayCard[\s\S]*?asListItem/);
 });
