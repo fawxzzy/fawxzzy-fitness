@@ -1,5 +1,17 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-12 - A failed generation must never dead-end a setup
+
+- Type: Product behavior (source)
+- WHAT changed: The curated handoff page now has a recovery path for every non-ready outcome: failed uses Edit setup (every answer kept; `reopen-intake` returns to Review as a draft) with Build manually; a transient server error uses Try again; a blocked outcome (symptoms, under-18 without guardian permission, feature off) makes Build manually primary and Edit setup secondary. The reviewed plan id travels with the create request, the browser guards double submit with an in-flight ref and a created flag, and fixed copy replaces raw error text. The six retired six-step components were deleted.
+- WHY it changed: A blocked or failed generation previously offered a disabled button and "Start over", which wipes all 60 answers.
+- Rule: Every terminal state of a multi-step intake offers a way forward that preserves the member's answers, plus the manual path the product already has.
+- Pattern: pure presentation/recovery model (`handoff.ts`) that the component only renders, so the rules are unit-testable without React.
+- Failure Mode: a retry button on a failure that is a property of the saved answers only repeats the failure; only transient errors are retryable.
+- Decision: keep the 60-question intake; edit-in-place beats restart.
+- Evidence: `src/features/curated-onboarding/handoff.ts`, `handoff.test.ts`, `handoff.actions.test.ts`, `reducer.ts` (`reopen-intake`), `CuratedOnboardingShell.tsx`, `tests/curated-onboarding-ui-contract.test.mjs`.
+- Status: Source only; no browser or device check of the handoff page; the flag stays off by default.
+
 ## 2026-11-12 - Review hold on the curated stack: fail closed, enforce at the action layer, stay idempotent
 
 - Type: Product behavior (source) + server-action hardening
