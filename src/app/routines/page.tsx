@@ -60,11 +60,11 @@ function buildRoutineBrowseSummaryParts(args: {
     args.exerciseCount > 0
       ? formatCount(args.exerciseCount, "exercise")
       : "No exercises",
-    formatCount(workoutPlanCount, "workout plan"),
-    `${args.restDays} rest`,
+    formatCount(workoutPlanCount, "training day"),
+    formatCount(args.restDays, "rest day"),
     args.completedSessionCount > 0
-      ? `${formatCount(args.completedSessionCount, "session")} logged`
-      : "No sessions logged",
+      ? formatCount(args.completedSessionCount, "session")
+      : "No sessions yet",
     args.lastCompletedSessionAt
       ? `Last ${formatDateShort(args.lastCompletedSessionAt)}`
       : "Not started",

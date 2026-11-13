@@ -42,7 +42,6 @@ export function RoutinesOfflineShell({
                   routine={routine}
                   showPreviewDays={Boolean(routine.isActive)}
                   onPress={undefined}
-                  rightIcon={null}
                 />
               </RoutinesListItem>
             ))}

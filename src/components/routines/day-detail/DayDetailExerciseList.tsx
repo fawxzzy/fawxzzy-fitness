@@ -1,24 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
-import {
-  buildExerciseCardMetadataItems,
-  ExerciseCardMetadataLine,
-  ExerciseCardProgressionStateInline,
-  ExerciseCardStandardTitle,
-} from "@/components/workout/ExerciseCardStandardTitle";
-import {
-  SHARED_PLANNED_CARD_CHEVRON_RAIL_CLASS_NAME,
-  SHARED_PLANNED_CARD_CONTENT_CLASS_NAME,
-  SHARED_PLANNED_CARD_INFO_BUTTON_CLASS_NAME,
-  SHARED_PLANNED_CARD_INFO_OVERLAY_CLASS_NAME,
-  SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME,
-} from "@/components/workout/ExerciseCardSurfaceChrome";
-import { StateChevron } from "@/components/ui/StateChevron";
-import { appTokens } from "@/components/ui/app/tokens";
+import { ExerciseRowCard } from "@/components/workout/ExerciseRowCard";
+import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
+import { CardInfoButton, cardTokens, type CardHeaderInteraction } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
+import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -54,6 +41,7 @@ type Props = {
   showOrderBadges?: boolean;
   onSelectItem?: (item: DayDetailExerciseListItem) => void;
   onInfoItem?: (item: DayDetailExerciseListItem) => void;
+  /** Standalone controls rendered before the info button (the drag handle). */
   renderOverlayActions?: (item: DayDetailExerciseListItem) => React.ReactNode;
   renderRowActions?: (item: DayDetailExerciseListItem) => React.ReactNode;
   renderExpandedContent?: (item: DayDetailExerciseListItem) => React.ReactNode;
@@ -76,46 +64,28 @@ function normalizeEditDaySummary(summary: string | null | undefined) {
   return normalized;
 }
 
-function DayDetailExerciseTitle({
-  item,
-  summary,
-  metadataLimit,
-}: {
-  item: DayDetailExerciseListItem;
-  summary?: ReactNode;
-  metadataLimit?: number;
-}) {
-  const metadataItems = buildExerciseCardMetadataItems({
-    primaryMuscle: item.primary_muscle,
-    movementPattern: item.movement_pattern,
-    equipment: item.equipment,
-  });
-  const visibleMetadataItems = typeof metadataLimit === "number"
-    ? metadataItems.slice(0, metadataLimit)
-    : metadataItems;
-  const normalizedSummary = typeof summary === "string" ? normalizeEditDaySummary(summary) : summary;
+function splitDecoratedValues(value: string | null | undefined) {
+  if (!value) {
+    return [];
+  }
 
-  return (
-    <ExerciseCardStandardTitle
-      name={item.name}
-      metadata={<ExerciseCardMetadataLine items={visibleMetadataItems} />}
-      rightContent={normalizedSummary ?? undefined}
-      rightSubcontent={item.progressionStateLabel?.trim() ? (
-        <ExerciseCardProgressionStateInline label={item.progressionStateLabel} />
-      ) : undefined}
-      columnLayout="compact"
-    />
-  );
+  return normalizeDecoratedText(value)
+    .split(/\s+[•|·]\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
-const dayDetailEditableChevronClassName = cn("h-[1.05rem] w-[1.05rem] shrink-0", appTokens.historyChevronIcon);
-
+/**
+ * Planned-exercise list on the day editor, on the shared exercise card (ExerciseRowCard).
+ * - editable + interactive: header toggles the editor panel (aria-expanded, panel id and test ids unchanged).
+ * - read-only + interactive: header runs onSelectItem.
+ * - drag handle (`renderOverlayActions`) and info button are separate 44px controls, handle first, then info.
+ * `data-exercise-row-id` stays on each `li`: the pointer drag finds its drop target through it.
+ */
 export function DayDetailExerciseList({
   items,
   mode,
-  density,
   activeItemId = null,
-  showOrderBadges = mode === "editable",
   onSelectItem,
   onInfoItem,
   renderOverlayActions,
@@ -128,120 +98,67 @@ export function DayDetailExerciseList({
   const renderedItems = activeItemId
     ? items.filter((item) => item.id === activeItemId)
     : items;
-  const editableOverlayActionsClassName = SHARED_PLANNED_CARD_INFO_OVERLAY_CLASS_NAME;
 
   return (
-    <ul className={cn("space-y-1.5", className)}>
+    <ul className={cn(cardTokens.list, className)}>
       {renderedItems.map((item) => {
         const isActive = activeItemId === item.id;
         const isStretchHub = isStretchHubExercise(item);
-        const resolvedSummary = isStretchHub ? undefined : normalizeEditDaySummary(item.summary);
-        const resolvedSummaryContent = isStretchHub ? undefined : item.summaryContent;
-        const editableCompanionSummary = mode === "editable" && !resolvedSummaryContent && typeof resolvedSummary === "string"
-          ? resolvedSummary
-          : undefined;
-        const editableOverlayActions = (
+        const contract = buildExerciseDisclosureContract({ itemId: item.id, scope: "day-detail" });
+        const metaItems = buildExerciseCardMetadataItems({
+          primaryMuscle: item.primary_muscle,
+          movementPattern: item.movement_pattern,
+          equipment: item.equipment,
+        }).slice(0, mode === "editable" ? 2 : 3);
+        const summary = isStretchHub ? null : normalizeEditDaySummary(item.summary);
+        const interaction: CardHeaderInteraction = !interactive
+          ? { kind: "none" }
+          : mode === "editable"
+            ? {
+              kind: "toggle",
+              expanded: isActive,
+              onToggle: () => onSelectItem?.(item),
+              controlsId: contract.panelId,
+              buttonProps: { "data-testid": contract.buttonTestId },
+            }
+            : { kind: "press", onPress: () => onSelectItem?.(item) };
+        const handle = mode === "editable" ? renderOverlayActions?.(item) : null;
+        const trailing = handle || onInfoItem ? (
           <>
-            {renderOverlayActions?.(item)}
+            {handle}
             {onInfoItem ? (
-              <button
-                type="button"
-                aria-label={`Open exercise info for ${item.name}`}
+              <CardInfoButton
+                label={`Open exercise info for ${item.name}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onInfoItem(item);
                 }}
-                className={SHARED_PLANNED_CARD_INFO_BUTTON_CLASS_NAME}
-              >
-                <span aria-hidden="true">i</span>
-              </button>
+              />
             ) : null}
           </>
-        );
-        const exerciseVisual = {
-          name: item.name,
-          slug: item.slug,
-          image_path: item.image_path,
-          image_icon_path: item.image_icon_path,
-          image_howto_path: item.image_howto_path,
-        };
-        const editableChevron = (
-          <StateChevron
-            expanded={isActive}
-            className={dayDetailEditableChevronClassName}
-            expandedClassName="text-[rgb(var(--accent-strong)/0.98)]"
-            collapsedClassName="text-[rgb(var(--text-muted)/0.88)]"
-          />
-        );
+        ) : undefined;
 
         return (
-          <li
-            key={item.id}
-            className={cn(appTokens.routineEditorReorderItem, mode === "editable" ? "relative" : undefined)}
-            data-exercise-row-id={item.id}
-          >
-            <div className={mode === "editable" && renderRowActions ? "pr-[40px]" : undefined}>
-              {mode === "editable" && interactive ? (
-                <ExerciseDisclosureCard
-                  scope="day-detail"
-                  itemId={item.id}
-                  expanded={isActive}
-                  onToggle={() => onSelectItem?.(item)}
-                  exercise={exerciseVisual}
-                  title={<DayDetailExerciseTitle item={item} summary={editableCompanionSummary} metadataLimit={2} />}
-                  summary={mode === "editable" ? undefined : resolvedSummary}
-                  summaryContent={resolvedSummaryContent}
-                  summaryLabel={undefined}
-                  state={isActive ? "selected" : "default"}
-                  semanticTone="current"
-                  badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
-                  bodyClassName={appTokens.routineEditorReorderBody}
-                  contentClassName={SHARED_PLANNED_CARD_CONTENT_CLASS_NAME}
-                  titleContainerClassName={SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME}
-                  subtitleTone="plain"
-                  showLeadingVisual={policy.showMedia}
-                  showAccentRail
-                  hideEmptySummary
-                  rightIconMode="overlay"
-                  overlayActions={editableOverlayActions}
-                  overlayActionsClassName={editableOverlayActionsClassName}
-                  rightIcon={editableChevron}
-                  rightRailClassName={SHARED_PLANNED_CARD_CHEVRON_RAIL_CLASS_NAME}
-                  surface="edit-day"
-                  stickyHeaderWhenExpanded={mode === "editable"}
-                >
-                  {renderExpandedContent?.(item)}
-                </ExerciseDisclosureCard>
-              ) : (
-                <StandardExerciseRow
-                  title={mode === "editable" ? <DayDetailExerciseTitle item={item} summary={editableCompanionSummary} metadataLimit={2} /> : undefined}
-                  exercise={exerciseVisual}
-                  summary={mode === "editable" ? undefined : resolvedSummary}
-                  summaryContent={resolvedSummaryContent}
-                  summaryLabel={mode === "editable" ? (isStretchHub ? "" : "Goal") : undefined}
-                  subtitleTone="plain"
-                  variant={interactive ? "interactive" : "standard"}
-                  density={density}
-                  state="default"
-                  semanticTone="current"
-                  onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                  badgeText={mode === "editable" && showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
-                  bodyClassName={mode === "editable" ? appTokens.routineEditorReorderBody : undefined}
-                  className={cn("w-full", appTokens.routineEditorReorderBase)}
-                  contentClassName={mode === "editable" ? SHARED_PLANNED_CARD_CONTENT_CLASS_NAME : "pl-3"}
-                  showLeadingVisual={policy.showMedia}
-                  showAccentRail
-                  hideEmptySummary
-                  overlayActions={mode === "editable" ? editableOverlayActions : undefined}
-                  overlayActionsClassName={mode === "editable" ? editableOverlayActionsClassName : undefined}
-                  rightIcon={mode === "editable" ? editableChevron : undefined}
-                  rightIconMode={mode === "editable" ? "overlay" : undefined}
-                  rightRailClassName={mode === "editable" ? SHARED_PLANNED_CARD_CHEVRON_RAIL_CLASS_NAME : undefined}
-                  surface={mode === "editable" ? "edit-day" : undefined}
-                  titleContainerClassName={mode === "editable" ? SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME : undefined}
-                />
-              )}
-            </div>
+          <li key={item.id} className="min-w-0" data-exercise-row-id={item.id}>
+            <ExerciseRowCard
+              exercise={{
+                name: item.name,
+                slug: item.slug,
+                image_path: item.image_path,
+                image_icon_path: item.image_icon_path,
+                image_howto_path: item.image_howto_path,
+              }}
+              metaItems={metaItems}
+              targetValues={splitDecoratedValues(summary)}
+              progressionLabel={item.progressionStateLabel?.trim() ? normalizeDecoratedText(item.progressionStateLabel).replace(/\s+[•|]\s+/g, " · ") : null}
+              showMedia={policy.showMedia}
+              tone={isActive ? "current" : "neutral"}
+              interaction={interaction}
+              trailing={trailing}
+              stickyHeader={mode === "editable"}
+              panel={mode === "editable" && isActive ? renderExpandedContent?.(item) : undefined}
+              panelProps={{ id: contract.panelId, "data-testid": contract.panelTestId }}
+            />
             {mode === "editable" ? renderRowActions?.(item) : null}
           </li>
         );

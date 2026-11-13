@@ -428,6 +428,40 @@ export function formatRoutineOccurrenceDateLabel(dateString: string) {
   }).format(new Date(timestamp));
 }
 
+const ROUTINE_DAY_WEEKDAY_NAMES = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+const ROUTINE_DAY_WEEKDAY_NAME_PATTERN = ROUTINE_DAY_WEEKDAY_NAMES
+  .flatMap((name) => [name, name.slice(0, 3)])
+  .join("|");
+
+/**
+ * Card-system day-label rule.
+ *
+ * A stored day name is a *generated placeholder* (not a user title) when it is a bare number ("7"),
+ * "Day 7", or any weekday name ("Tue"/"Tuesday"). Seeds store `name = String(index + 1)`, so after a
+ * reorder the stored number no longer equals the day's position; comparing against the current position
+ * made a reordered default-named day look like a custom title ("7 Tue"). Position and weekday are always
+ * derived from `dayIndex`/`startDate`, never from the stored name, so any placeholder is ignored here.
+ * No stored data changes.
+ */
+export function isRoutineDayGeneratedPlaceholderName(name: string | null | undefined) {
+  const trimmedName = name?.trim() ?? "";
+  if (trimmedName.length === 0) {
+    return true;
+  }
+
+  return /^\d+$/.test(trimmedName)
+    || /^day\s*\d+$/i.test(trimmedName)
+    || new RegExp(`^(?:${ROUTINE_DAY_WEEKDAY_NAME_PATTERN})$`, "i").test(trimmedName);
+}
+
 export function isRoutineDayDefaultName(args: {
   name: string | null | undefined;
   dayIndex: number;
@@ -445,7 +479,8 @@ export function isRoutineDayDefaultName(args: {
   return normalizedName === String(args.dayIndex)
     || normalizedName === `day ${args.dayIndex}`
     || normalizedName === longWeekday
-    || normalizedName === shortWeekday;
+    || normalizedName === shortWeekday
+    || isRoutineDayGeneratedPlaceholderName(trimmedName);
 }
 
 function stripRoutineDayWeekdayPrefix(args: {
@@ -458,9 +493,12 @@ function stripRoutineDayWeekdayPrefix(args: {
     return "";
   }
 
+  // Any weekday prefix is derived data (older names stored "Tue | Forge"); a prefix that no longer
+  // matches the day's current weekday after a reorder is just as stale as one that does.
   const weekdayLabels = [
     getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "short"),
     getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "long"),
+    ...ROUTINE_DAY_WEEKDAY_NAMES.flatMap((name) => [name, name.slice(0, 3)]),
   ];
 
   for (const weekdayLabel of weekdayLabels) {
@@ -512,6 +550,47 @@ export function formatRoutineDayStableDisplayName(args: {
   startDate: string | null | undefined;
 }) {
   return getRoutineDayEditableName(args) || `Day ${args.dayIndex}`;
+}
+
+export type RoutineDayHeading = {
+  /** Position-derived label, always "Day N". Never read from the stored name. */
+  positionLabel: string;
+  /** User-authored title, or null when the stored name is a generated placeholder. */
+  customTitle: string | null;
+  /** Headline: the custom title when present, otherwise the position label. */
+  title: string;
+  /** Weekday label derived from the day's position, or null when it cannot be resolved. */
+  weekday: string | null;
+  /** Secondary meta parts in display order: position label (only when a custom title replaced it) then weekday. */
+  metaParts: string[];
+};
+
+/**
+ * Single day-label rule for every card surface (routine detail, Today picker, chooser).
+ * Headline = custom title or "Day N"; "Day N" stays visible as meta when a custom title takes the headline,
+ * and the weekday is always meta. Rest days with no custom title read "Rest" in the headline.
+ */
+export function getRoutineDayHeading(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+  weekdayLabel?: string | null;
+  isRest?: boolean;
+}): RoutineDayHeading {
+  const positionLabel = `Day ${args.dayIndex}`;
+  const editableName = getRoutineDayEditableName(args);
+  const customTitle = editableName.length > 0 ? editableName : null;
+  const resolvedWeekday = args.weekdayLabel?.trim() || null;
+  const weekday = resolvedWeekday && resolvedWeekday.toLowerCase() !== positionLabel.toLowerCase()
+    ? resolvedWeekday
+    : null;
+  const title = customTitle ?? (args.isRest ? "Rest" : positionLabel);
+  const metaParts = [
+    title === positionLabel ? null : positionLabel,
+    weekday,
+  ].filter((part): part is string => Boolean(part));
+
+  return { positionLabel, customTitle, title, weekday, metaParts };
 }
 
 export function formatRoutineDayOccurrenceDisplayName(args: {

@@ -21,7 +21,7 @@ import {
   GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
 } from "@/components/ui/GlowSwitch";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
+import { DragHandle } from "@/components/ui/card-system";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -206,11 +206,6 @@ function RoutineTargetInputs({
   );
 }
 
-const CARD_REORDER_HANDLE_CLASS_NAME = cn(
-  appTokens.routineEditorReorderHandle,
-  "z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
-);
 const TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "toggleInactive",
   className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
@@ -1230,18 +1225,24 @@ export function EditableRoutineDayExerciseList({
     </BottomActionSingle>
   ) : null;
 
+  const moveItemByStep = (exerciseId: string, direction: -1 | 1) => {
+    const currentItems = itemsRef.current;
+    const fromIndex = currentItems.findIndex((item) => item.id === exerciseId);
+    const nextItems = moveItemWithinList(currentItems, fromIndex, fromIndex + direction);
+    if (nextItems === currentItems) return;
+    persistOrder(nextItems);
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>(`[data-exercise-row-id="${exerciseId}"] [data-card-drag-handle="true"]`)
+        ?.focus();
+    });
+  };
+
   const renderReorderHandle = (exerciseId: string, exerciseName: string) => (
-    <button
-      type="button"
-      aria-label={`Reorder ${exerciseName}`}
-      title="Drag to reorder"
-      className={cn(
-        CARD_REORDER_HANDLE_CLASS_NAME,
-        "pointer-events-auto",
-        "absolute right-[0.22rem] top-[0.12rem]",
-        "touch-none",
-        activeDragId === exerciseId ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined,
-      )}
+    <DragHandle
+      label={`Reorder ${exerciseName}`}
+      active={activeDragId === exerciseId}
+      onMove={(direction) => moveItemByStep(exerciseId, direction)}
       onPointerDown={(event) => handleHandlePointerDown(exerciseId, event)}
       onPointerMove={handleHandlePointerMove}
       onPointerUp={handleHandlePointerUp}
@@ -1253,14 +1254,12 @@ export function EditableRoutineDayExerciseList({
         if (dragState?.id === exerciseId && dragState.moved) {
           return;
         }
-        toast.info("Reorder button. Drag to reorder.", {
+        toast.info("Reorder button. Drag to reorder, or focus it and use the up and down arrow keys.", {
           id: "edit-day-reorder-hint",
           durationMs: 2200,
         });
       }}
-    >
-      <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
-    </button>
+    />
   );
 
   if (items.length === 0 || modeViewModel.sections.restDayCardVisible) {

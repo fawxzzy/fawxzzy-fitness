@@ -7,7 +7,10 @@ import {
   formatRoutineDayStableDisplayName,
   getRoutineCycleOccurrence,
   getRoutineDayEditableName,
+  getRoutineDayHeading,
   getRoutineDayResolvedWeekdayLabel,
+  isRoutineDayDefaultName,
+  isRoutineDayGeneratedPlaceholderName,
   resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
 } from "./routines.ts";
@@ -263,4 +266,69 @@ test("resolveRoutineScheduleForToday accepts ISO timestamp start dates from pers
   } finally {
     globalThis.Date = RealDate;
   }
+});
+
+test("a reordered default-named day reads as its position, not as a custom title (\"7 Tue\" regression)", () => {
+  // Seeds store name = String(index + 1). After day 7 is dragged to position 6 the stored name is still "7".
+  const args = { name: "7", dayIndex: 6, startDate: "2026-04-27" };
+
+  assert.equal(isRoutineDayDefaultName(args), true);
+  assert.equal(getRoutineDayEditableName(args), "");
+  assert.equal(formatRoutineDayStableDisplayName(args), "Day 6");
+});
+
+test("generated placeholder names are bare numbers, Day N and weekday names; anything else is a user title", () => {
+  for (const placeholder of ["", "  ", "7", "07", "Day 7", "day7", "Tue", "tuesday", "SUNDAY"]) {
+    assert.equal(isRoutineDayGeneratedPlaceholderName(placeholder), true, `expected placeholder: ${JSON.stringify(placeholder)}`);
+  }
+  for (const title of ["Push", "Lower A", "Rest", "Day 7 Heavy", "5K Run", "Tue Forge", "Tues"]) {
+    assert.equal(isRoutineDayGeneratedPlaceholderName(title), false, `expected user title: ${JSON.stringify(title)}`);
+  }
+  assert.equal(isRoutineDayGeneratedPlaceholderName(null), true);
+  assert.equal(isRoutineDayGeneratedPlaceholderName(undefined), true);
+});
+
+test("a stale weekday prefix from an earlier position or start date is stripped from custom titles", () => {
+  assert.equal(
+    getRoutineDayEditableName({ name: "Mon | Forge", dayIndex: 3, startDate: "2026-04-27" }),
+    "Forge",
+  );
+});
+
+test("getRoutineDayHeading: default-named day headlines with Day N and keeps the weekday as meta", () => {
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "3", dayIndex: 6, startDate: "2026-04-27", weekdayLabel: "Sat" }),
+    {
+      positionLabel: "Day 6",
+      customTitle: null,
+      title: "Day 6",
+      weekday: "Sat",
+      metaParts: ["Sat"],
+    },
+  );
+});
+
+test("getRoutineDayHeading: a custom title takes the headline and Day N moves to meta", () => {
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "Push", dayIndex: 2, startDate: "2026-04-27", weekdayLabel: "Tue" }),
+    {
+      positionLabel: "Day 2",
+      customTitle: "Push",
+      title: "Push",
+      weekday: "Tue",
+      metaParts: ["Day 2", "Tue"],
+    },
+  );
+});
+
+test("getRoutineDayHeading: rest days read Rest, an unresolved weekday is omitted, and the position label is never duplicated as a weekday", () => {
+  assert.equal(getRoutineDayHeading({ name: "4", dayIndex: 4, startDate: null, isRest: true }).title, "Rest");
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "4", dayIndex: 4, startDate: null, weekdayLabel: "Day 4" }).metaParts,
+    [],
+  );
+  assert.deepEqual(
+    getRoutineDayHeading({ name: "Rest", dayIndex: 4, startDate: null, weekdayLabel: "Thu", isRest: true }).metaParts,
+    ["Day 4", "Thu"],
+  );
 });

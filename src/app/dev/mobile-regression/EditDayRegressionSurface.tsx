@@ -8,7 +8,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
-import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
+import { DragHandle } from "@/components/ui/card-system";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
@@ -83,18 +83,7 @@ export function EditDayRegressionSurface({
     }
     : null;
   const renderMockReorderHandle = (exerciseName: string) => (
-    <button
-      type="button"
-      aria-label={`Reorder ${exerciseName}`}
-      title="Drag to reorder"
-      className={cn(
-        appTokens.routineEditorReorderHandle,
-        "absolute right-[0.22rem] top-[0.12rem]",
-        "z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
-      )}
-      >
-        <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
-      </button>
+    <DragHandle label={`Reorder ${exerciseName}`} />
   );
 
   if (fixture === "empty") {

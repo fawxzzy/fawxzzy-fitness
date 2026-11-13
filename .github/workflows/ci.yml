@@ -51,6 +51,7 @@ jobs:
           node --test scripts/seed-feedback-monetization-roadmap.test.mjs
           npm run test:project-board-owner-export
           npm run project-board:owner-export:check
+          npm run test:card-system
 
       - name: Build
         run: npm run build

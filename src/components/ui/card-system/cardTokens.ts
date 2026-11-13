@@ -1,0 +1,67 @@
+import {
+  type CardSemanticTone,
+  cardAccentRailClassNames,
+  cardShellToneClassNames,
+} from "@/components/cardSemanticTones";
+
+/**
+ * Card-system tokens: the single source for card chrome (see docs/design-system/CARD-SYSTEM.md).
+ * Colours always come from theme CSS variables and the radius from `--card-radius`, so every theme
+ * (default, rose, test, custom slots) restyles cards without per-card overrides.
+ */
+export type CardTone = CardSemanticTone;
+
+/** 44px minimum hit area for every standalone control inside a card (WCAG 2.5.5 / Apple HIG). */
+export const CARD_TAP_TARGET_CLASS_NAME = "min-h-11 min-w-11";
+
+export const cardTokens = {
+  /** Glass surface identical to Glass `base`, flat inside lists (no drop shadow). Radius comes from the theme through the glass radius variable, so no radius utility can conflict. */
+  surface:
+    "glass-surface glass-sheen relative isolate w-full min-w-0 text-left text-[rgb(var(--text-primary))] shadow-none [--glass-blur:var(--glass-current-blur-base)] [--glass-radius:var(--card-radius)]",
+  surfaceDashed: "border-dashed",
+  /** 4px status rail on the leading edge; paired with a visible text chip, never colour alone. */
+  rail: "pointer-events-none absolute bottom-px left-px top-px z-[2] w-1 rounded-r-full",
+  /** Header row: leading control, text block, trailing controls. */
+  headerRow: "relative flex min-w-0 items-center gap-1 px-1.5 py-1",
+  /** Leading slot is decorative media only (thumbnail): clicks fall through to the stretched header button. Controls live in the trailing slot. */
+  headerLeading: "pointer-events-none relative flex shrink-0 items-center pl-1.5",
+  headerTrailing: "relative z-10 flex shrink-0 items-center gap-0.5",
+  headerMain: "min-w-0 flex-1 px-2.5 py-2.5",
+  /** Stretched button: the whole header is one 44px+ target while controls stay separate siblings. */
+  headerHit:
+    "absolute inset-0 z-0 block h-full w-full rounded-[inherit] !border-0 !bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--accent)/0.5)] disabled:cursor-not-allowed",
+  title:
+    "m-0 min-w-0 text-base font-semibold leading-snug tracking-[-0.01em] text-[rgb(var(--text-primary))] [text-wrap:balance] [overflow-wrap:anywhere]",
+  titleSecondary: "ml-1.5 text-sm font-medium text-[rgb(var(--text-secondary)/0.92)]",
+  meta: "m-0 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-medium leading-snug text-[rgb(var(--text-secondary)/0.92)]",
+  metaSeparator: "select-none text-[rgb(var(--text-muted)/0.9)]",
+  chips: "flex min-w-0 flex-wrap items-center gap-1.5",
+  body: "px-4 pb-3",
+  bodyDivider: "border-t border-[rgb(var(--border-strong)/0.14)] pt-3",
+  /**
+   * The global `button` rule in globals.css is unlayered and out-ranks plain utilities for background, border
+   * and colour, so card controls restate those three with `!`. This is the only place that has to.
+   */
+  iconControl:
+    "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full !border !border-[rgb(var(--border-strong)/0.18)] !bg-[rgb(var(--surface-3-rgb)/0.4)] !text-[rgb(var(--text-secondary)/0.98)] transition-colors hover:!text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none",
+  iconControlActive: "!border-[rgb(var(--selection-rgb)/0.5)] !bg-[rgb(var(--selection-rgb)/0.18)] !text-[rgb(var(--text-primary))] ring-2 ring-[rgb(var(--selection-rgb)/0.4)]",
+  affordance: "pointer-events-none flex h-11 w-7 shrink-0 items-center justify-center text-[rgb(var(--text-muted)/0.95)]",
+  statLabel: "text-[11px] font-semibold uppercase leading-none tracking-[0.12em] text-[rgb(var(--text-muted)/0.98)]",
+  statValue: "text-sm font-semibold leading-snug text-[rgb(var(--text-primary))]",
+  list: "m-0 flex list-none flex-col gap-2 p-0",
+  /**
+   * Hit-area expansion for small inline controls: a transparent 44px pseudo-element centred on the control,
+   * so the visual size can stay compact without failing the 44px target rule.
+   */
+  hitArea:
+    "relative before:absolute before:left-1/2 before:top-1/2 before:h-[max(100%,44px)] before:w-[max(100%,44px)] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']",
+  /** Cards never scroll sideways: chips, meta and strips wrap instead of clipping mid-word (C1 finding 7). */
+  wrapRow: "flex min-w-0 flex-wrap items-center gap-1.5",
+} as const;
+
+export function resolveCardToneClassNames(tone: CardTone) {
+  return {
+    rail: cardAccentRailClassNames[tone],
+    shell: cardShellToneClassNames[tone],
+  };
+}

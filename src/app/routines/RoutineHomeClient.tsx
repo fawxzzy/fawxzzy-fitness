@@ -5,26 +5,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import { DayList } from "@/components/day-list/DayList";
 import {
   ROUTINE_CONTENT_GAP_CLASS_NAME,
-  ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME,
-  ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME,
-  ROUTINE_SURFACE_TAG_CLASS_NAME,
-  ROUTINE_SURFACE_TAG_ROW_CLASS_NAME,
   RoutineOverviewDayCard,
-  buildRoutineSplitParts,
-  renderRoutineMetricTagLabel,
 } from "@/components/day-list/RoutineDayCardPresentation";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import {
   RoutinesPageScaffold,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
-import {
-  ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME,
-  ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
-} from "@/components/routines/routineCardChrome";
 import {
   RoutineChooserOptionCard,
   RoutineDuplicateChooserPanel,
@@ -33,16 +21,18 @@ import {
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { RoutineDayKindCycleAction } from "@/components/routines/RoutineDayKindCycleAction";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { OverlayHeaderBlock, overlayChromeClassNames } from "@/components/ui/OverlayChrome";
 import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
+import {
+  CardActionFrame,
+  CardEmptyState,
+  DragHandle,
+  cardTokens,
+  getCardActionButtonClassName,
+} from "@/components/ui/card-system";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
@@ -55,8 +45,7 @@ import {
   type RoutineDayKind,
 } from "@/lib/routine-day-kind";
 import {
-  formatRoutineDayStableDisplayName,
-  getRoutineDayEditableName,
+  getRoutineDayHeading,
   getRoutineDayResolvedWeekdayLabel,
 } from "@/lib/routines";
 import { getRoutineDayEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
@@ -109,19 +98,6 @@ const ROUTINE_HOME_COPY = {
   empty: "No days yet.",
 } as const;
 
-const ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleInactive",
-  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
-});
-const ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "positive",
-  className: "translate-x-px !border-l-0 focus-visible:ring-[rgb(var(--accent)/0.24)]",
-});
-const ROUTINE_HOME_REORDER_HANDLE_CLASS_NAME = cn(
-  appTokens.routineEditorReorderHandle,
-  "relative z-[2] !h-7 !w-12 !rounded-full !px-1.5 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
-);
 const ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME = cn(
   overlayChromeClassNames.panelBase,
   `relative z-10 mx-auto flex max-h-[min(100dvh-2rem,42rem)] min-w-0 w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} flex-col overflow-hidden rounded-[1.25rem]`,
@@ -327,13 +303,13 @@ export function RoutineHomeClient({
       formData.set("routineDayId", day.id);
       const result = await deleteRoutineDayAction(formData);
       if (!result.ok) {
-        toast.error(result.error ?? "Could not delete workout plan.");
+        toast.error(result.error ?? "Could not delete day.");
         return;
       }
 
       setDayPendingDelete(null);
       setExpandedDayId((current) => (current === day.id ? null : current));
-      toast.success("Workout plan deleted.");
+      toast.success("Day deleted.");
       router.refresh();
     });
   }, [dayPendingDelete, deleteRoutineDayAction, routineId, router, toast]);
@@ -376,7 +352,7 @@ export function RoutineHomeClient({
           }
           return next;
         });
-        toast.error(result.error ?? "Could not update workout plan type.");
+        toast.error(result.error ?? "Could not update day type.");
         setRestTogglePendingDayId(null);
         return;
       }
@@ -384,7 +360,7 @@ export function RoutineHomeClient({
       const nextCopy = nextDayKind === "rest"
         ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled
         : nextDayKind === "optional"
-          ? "Optional workout plan: skipping it will not affect your plan."
+          ? "Optional day: skipping it will not affect your plan."
           : REST_DAY_BEHAVIOR_CONTRACT.copy.disabled;
       toast.info(nextCopy, {
         id: "day-rest-toggle-status",
@@ -440,6 +416,27 @@ export function RoutineHomeClient({
       requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
     }
   }, [days]);
+
+  const handleMoveDayByStep = useCallback((dayId: string, direction: -1 | 1) => {
+    if (isReorderPending) {
+      return;
+    }
+
+    const current = orderedDaysRef.current;
+    const fromIndex = current.findIndex((day) => day.id === dayId);
+    const next = moveDayWithinList(current, fromIndex, fromIndex + direction);
+    if (next === current) {
+      return;
+    }
+
+    orderedDaysRef.current = next;
+    setOrderedDays(next);
+    setExpandedDayId(null);
+    requestAnimationFrame(() => {
+      reorderFormRef.current?.requestSubmit();
+      document.querySelector<HTMLElement>(`[data-routine-day-id="${dayId}"] [data-card-drag-handle="true"]`)?.focus();
+    });
+  }, [isReorderPending, moveDayWithinList]);
 
   const handleReorderHandlePointerDown = useCallback((dayId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
     if (isReorderPending) {
@@ -539,18 +536,12 @@ export function RoutineHomeClient({
   );
   const displayDays = useMemo(() => orderedDays.map((day, index) => {
     const displayDayIndex = index + 1;
-    const hasCustomName = Boolean(getRoutineDayEditableName({
+    const displayTitle = getRoutineDayHeading({
       name: day.name ?? day.title ?? null,
-      dayIndex: day.dayIndex,
+      dayIndex: displayDayIndex,
       startDate: routineStartDate,
-    }));
-    const displayTitle = hasCustomName
-      ? day.title ?? day.name ?? undefined
-      : formatRoutineDayStableDisplayName({
-          name: null,
-          dayIndex: displayDayIndex,
-          startDate: routineStartDate,
-        });
+      isRest: day.isRest,
+    }).title;
 
     return {
       ...day,
@@ -588,7 +579,7 @@ export function RoutineHomeClient({
       <SharedDayListSection>
         <div className={ROUTINE_CONTENT_GAP_CLASS_NAME}>
           {displayDays.length > 0 ? (
-            <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
+            <ul className={cardTokens.list}>
               {displayDays.map((day) => {
                 const sourceDay = sourceDayById.get(day.id) ?? day;
                 const displayDayKind = dayKindOverrideByDayId[day.id] ?? getRoutineDayKind({
@@ -602,99 +593,84 @@ export function RoutineHomeClient({
                 const hasWorkoutPlanContent = routineDayHasWorkoutPlanContent(sourceDay);
                 const isExpanded = expandedDayId === day.id;
                 const isThisTogglePending = restTogglePendingDayId === day.id && isRestTogglePending;
+                const dayLabel = day.title ?? day.name ?? `day ${day.dayIndex}`;
                 return (
-                  <RoutineOverviewDayCard
-                    key={day.id}
-                    day={displayDay}
-                    startDate={routineStartDate}
-                    isSelected={day.isToday}
-                    isExpanded={isExpanded}
-                    onPress={() => handleToggleDayExpansion(day.id)}
-                    headerLayout="cornered"
-                    reorderHandle={reorderRoutineDaysAction && displayDays.length > 1 ? (
-                      <button
-                        type="button"
-                        aria-label={`Reorder ${day.title ?? day.name ?? `Workout plan ${day.dayIndex}`}`}
-                        title="Drag to reorder"
-                        disabled={isReorderPending}
-                        className={cn(
-                          ROUTINE_HOME_REORDER_HANDLE_CLASS_NAME,
-                          "touch-none",
-                          activeDragId === day.id ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined,
-                        )}
-                        onPointerDown={(event) => handleReorderHandlePointerDown(day.id, event)}
-                        onPointerMove={handleReorderHandlePointerMove}
-                        onPointerUp={handleReorderHandlePointerUp}
-                        onPointerCancel={finishReorder}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                        }}
-                      >
-                        <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
-                      </button>
-                    ) : undefined}
-                    wrapper={(card) => (
-                      <div className="relative min-w-0" data-routine-day-id={day.id}>
-                        <div className={ROUTINE_CARD_DELETE_CORNER_ANCHOR_CLASS_NAME}>
+                  <li key={day.id} className="min-w-0" data-routine-day-id={day.id}>
+                    <RoutineOverviewDayCard
+                      day={displayDay}
+                      startDate={routineStartDate}
+                      isSelected={day.isToday}
+                      isExpanded={isExpanded}
+                      interaction="toggle"
+                      controlsId={`routine-day-panel-${day.id}`}
+                      onPress={() => handleToggleDayExpansion(day.id)}
+                      reorderHandle={reorderRoutineDaysAction && displayDays.length > 1 ? (
+                        <DragHandle
+                          label={`Reorder ${dayLabel}`}
+                          active={activeDragId === day.id}
+                          disabled={isReorderPending}
+                          onMove={(direction) => handleMoveDayByStep(day.id, direction)}
+                          onPointerDown={(event) => handleReorderHandlePointerDown(day.id, event)}
+                          onPointerMove={handleReorderHandlePointerMove}
+                          onPointerUp={handleReorderHandlePointerUp}
+                          onPointerCancel={finishReorder}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                        />
+                      ) : undefined}
+                      footer={isExpanded ? (
+                        <CardActionFrame columns={displayIsRest ? 2 : 3} label={`Actions for ${dayLabel}`}>
                           <button
                             type="button"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setDayPendingDelete(sourceDay);
-                            }}
+                            data-bottom-action-intent="danger"
+                            data-card-action="delete"
+                            aria-label={`Delete ${dayLabel}`}
+                            onClick={() => setDayPendingDelete(sourceDay)}
                             disabled={isBusy}
-                            aria-label={`Delete ${day.title ?? day.name ?? `workout plan ${day.dayIndex}`}`}
-                            className={cn(
-                              ROUTINE_CARD_DELETE_TEXT_CLASS_NAME,
-                              "pointer-events-auto",
-                              isBusy ? "opacity-75" : undefined,
-                            )}
+                            className={getCardActionButtonClassName({ intent: "danger", divider: true })}
                           >
                             <span className="bottom-action__label">Delete</span>
                           </button>
-                        </div>
-                        {card}
-                        {isExpanded ? (
-                          <AttachedCardActionStripFrame gridClassName={displayIsRest ? "grid-cols-1" : "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]"}>
-                            <RoutineDayKindCycleAction
-                              dayKind={displayDayKind}
-                              dayName={day.title ?? day.name ?? `workout plan ${day.dayIndex}`}
-                              onCycle={() => handleCycleDayKind(sourceDay, displayDayKind)}
-                              disabled={isThisTogglePending}
-                              isPending={isThisTogglePending}
-                              className={nextDayKind === "required"
-                                ? getAttachedCardActionButtonClassName({ intent: "toggleActive" })
-                                : ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME}
-                            />
-                            {!displayIsRest ? (
-                              <button
-                                type="button"
-                                data-bottom-action-intent="positive"
-                                onClick={() => {
-                                  if (onOpenWorkoutPlan) {
-                                    void onOpenWorkoutPlan(sourceDay);
-                                    return;
-                                  }
+                          <RoutineDayKindCycleAction
+                            dayKind={displayDayKind}
+                            dayName={dayLabel}
+                            onCycle={() => handleCycleDayKind(sourceDay, displayDayKind)}
+                            disabled={isThisTogglePending}
+                            isPending={isThisTogglePending}
+                            className={getCardActionButtonClassName({
+                              intent: nextDayKind === "required" ? "toggle" : "neutral",
+                              divider: !displayIsRest,
+                            })}
+                          />
+                          {!displayIsRest ? (
+                            <button
+                              type="button"
+                              data-bottom-action-intent="positive"
+                              data-card-action="edit"
+                              onClick={() => {
+                                if (onOpenWorkoutPlan) {
+                                  void onOpenWorkoutPlan(sourceDay);
+                                  return;
+                                }
 
-                                  router.push(day.href);
-                                }}
-                                className={ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME}
-                              >
-                                <span className="bottom-action__label">{hasWorkoutPlanContent ? "Edit" : "Create"}</span>
-                              </button>
-                            ) : null}
-                          </AttachedCardActionStripFrame>
-                        ) : null}
-                      </div>
-                    )}
-                  />
+                                router.push(day.href);
+                              }}
+                              className={getCardActionButtonClassName({ intent: "primary" })}
+                            >
+                              <span className="bottom-action__label">{hasWorkoutPlanContent ? "Edit" : "Create"}</span>
+                            </button>
+                          ) : null}
+                        </CardActionFrame>
+                      ) : undefined}
+                    />
+                  </li>
                 );
               })}
-            </DayList>
+            </ul>
           ) : (
-            <EmptyState
+            <CardEmptyState
               title="No days"
               body={ROUTINE_HOME_COPY.empty}
               action={(
@@ -710,7 +686,6 @@ export function RoutineHomeClient({
                   {isDeleteDayPending ? "Deleting..." : isCreateDayPending ? "Adding day..." : "Add first day"}
                 </button>
               )}
-              className={appTokens.routinesOverviewEmptyState}
             />
           )}
         </div>
@@ -718,7 +693,7 @@ export function RoutineHomeClient({
 
       <ConfirmDestructiveModal
         open={dayPendingDelete !== null}
-        title="Delete workout plan?"
+        title="Delete day?"
         details={dayPendingDelete?.title ?? dayPendingDelete?.name ?? undefined}
         confirmLabel="Delete"
         onCancel={() => setDayPendingDelete(null)}
@@ -834,14 +809,14 @@ export function RoutineHomeClient({
           startReorderTransition(async () => {
             const result = await reorderRoutineDaysAction(formData);
             if (!result.ok) {
-              toast.error(result.error ?? "Could not reorder workout plans.");
+              toast.error(result.error ?? "Could not reorder days.");
               setOrderedDays(days);
               orderedDaysRef.current = days;
               setActiveDragId(null);
               return;
             }
 
-            toast.success("Workout plan order updated.");
+            toast.success("Day order updated.");
             setActiveDragId(null);
             router.refresh();
           });

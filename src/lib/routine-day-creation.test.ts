@@ -93,3 +93,12 @@ test("shouldApplyRoutineDayCreationOverrides only flags explicit blank or duplic
     blankModeIsRest: false,
   }), true);
 });
+
+test("resolveDuplicatedRoutineDayName treats a stale placeholder from a reordered day as default", () => {
+  assert.equal(resolveDuplicatedRoutineDayName({
+    sourceDayName: "7",
+    sourceDayIndex: 6,
+    sourceRoutineStartDate: "2026-06-15",
+    destinationDayIndex: 4,
+  }), "4");
+});
