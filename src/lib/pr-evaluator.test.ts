@@ -110,9 +110,8 @@ test("evaluatePrSummaries treats null, undefined, non-finite, and non-positive r
 test("evaluatePrSummaries excludes a negative-weight set from PR evaluation entirely, instead of crediting it as a bodyweight PR", () => {
   // A negative weight is never a value the live set-logging action would
   // accept (src/app/session/[id]/actions.ts explicitly rejects weight < 0);
-  // it can only reach here via corrupted/malformed legacy-import data
-  // (src/lib/migration/fitness-legacy-bridge.ts has no sign validation on
-  // import). Reproduced empirically against the pre-fix implementation: this
+  // it can only reach here via corrupted/malformed imported data with no
+  // sign validation. Reproduced empirically against the pre-fix implementation: this
   // exact input used to produce counts.reps === 1 and bestBodyweightReps ===
   // 20 -- a real, user-visible "1 Rep PR" badge manufactured from a set that
   // may actually have been a weighted set with a garbled weight field.

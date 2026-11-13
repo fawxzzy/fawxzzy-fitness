@@ -50,8 +50,7 @@ function normalizePositive(value: number | null | undefined): number {
 // A negative weight is never a legitimate logged value -- the live set-logging
 // action (src/app/session/[id]/actions.ts) explicitly rejects `weight < 0` at
 // the point of entry. The only way a negative value reaches here is corrupted
-// or malformed data from the legacy-import bridge
-// (src/lib/migration/fitness-legacy-bridge.ts), which has no sign validation.
+// or malformed data from older imported records, which had no sign validation.
 // Treating it the same as a genuine bodyweight set (weight null/0) would let
 // corrupted data manufacture a real, user-visible "Rep PR" badge from a set
 // that may actually have been a weighted set with a garbled weight field --
