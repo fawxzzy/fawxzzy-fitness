@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type MutableRefObject, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SetLoggerCard,
   type SessionLoggerDraftState,
@@ -16,6 +16,7 @@ import {
   SessionQuickLogRow,
   SessionRowActionButton,
   SessionRowNote,
+  type SessionFinishedExercise,
   type SessionStatusChip,
 } from "@/components/session/SessionRowCards";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
@@ -325,6 +326,7 @@ export function SessionExerciseFocus({
   updateSessionExerciseTimerAction,
   disableDraftPersistence = false,
   bottomDockCenter,
+  liveProgressRef,
 }: {
   userId: string;
   sessionId: string;
@@ -354,6 +356,8 @@ export function SessionExerciseFocus({
   }) => Promise<ActionResult<{ timer: ExerciseTimerSnapshot }>>;
   disableDraftPersistence?: boolean;
   bottomDockCenter?: ReactNode;
+  /** Read-only snapshot for the finish screen: per-exercise set count (set snapshots, queued sets included) and skip state. Written by an effect; nothing here reads it back. */
+  liveProgressRef?: MutableRefObject<SessionFinishedExercise[] | null>;
 }) {
   const cachedSessionState = sessionExerciseLocalStateCache.get(sessionId);
   const contract = resolveScreenContract("exerciseLog");
@@ -465,6 +469,18 @@ export function SessionExerciseFocus({
   }, [exercises, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId, unitLabel]);
   const toast = useToast();
   void removeExerciseAction;
+
+  useEffect(() => {
+    if (!liveProgressRef) {
+      return;
+    }
+    liveProgressRef.current = exercises.map((exercise) => ({
+      loggedSetCount: setSnapshotsBySessionExerciseId[exercise.id]?.length
+        ?? rowClientStateBySessionExerciseId[exercise.id]?.loggedSetCount
+        ?? exercise.loggedSetCount,
+      isSkipped: rowClientStateBySessionExerciseId[exercise.id]?.isSkipped ?? exercise.isSkipped,
+    }));
+  }, [exercises, liveProgressRef, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId]);
 
   // Snapshot of the latest `exercises` prop for use inside the skip-toggle
   // sync engine's callbacks (registered in a mount-scoped effect below, see
@@ -1407,9 +1423,7 @@ export function SessionExerciseFocus({
                 "origin-top transition-all duration-75 ease-out motion-reduce:transition-none",
                 isRemoving
                   ? "max-h-0 scale-[0.98] overflow-hidden opacity-0"
-                  : isExpanded
-                    ? "max-h-[240rem] scale-100 overflow-visible opacity-100"
-                    : "max-h-[48rem] scale-100 overflow-visible opacity-100",
+                  : "scale-100 overflow-visible opacity-100",
               ].join(" ")}
             >
               <SessionExerciseBlock>
@@ -1417,7 +1431,7 @@ export function SessionExerciseFocus({
                   <SessionHiddenRowCard
                     exercise={exerciseVisual}
                     status={baseRowViewModel.isSkipped ? "skipped" : "done"}
-                    progress={rowProgress}
+                    progress={buildTodayExerciseLoggedProgress(progressState, baseRowViewModel.isSkipped)}
                     action={(
                       <SessionRowActionButton
                         intent={rowState.skipActionIntent === "toggleActive" ? "toggle" : "neutral"}

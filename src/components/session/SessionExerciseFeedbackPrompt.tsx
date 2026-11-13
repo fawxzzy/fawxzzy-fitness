@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChipButton } from "@/components/ui/Chip";
 import { cn } from "@/lib/cn";
 import type { ActionResult } from "@/lib/action-result";
@@ -58,6 +58,10 @@ export function SessionExerciseFeedbackPrompt({
   const [note, setNote] = useState(initialFeedback.note ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const savedSignatureRef = useRef<string | null>(null);
+  // Collapsed to one 44px row until the user taps Rate (a finished exercise would otherwise push the next Log button
+  // down by a screen). A prompt that already holds an answer opens so nothing typed is hidden.
+  const [isOpen, setIsOpen] = useState(() => Boolean(initialFeedback.signal) || initialFeedback.effort != null || Boolean(initialFeedback.note));
+  const panelId = useId();
   const canSave = hasFeedbackAnswer({ signal, note, effort });
 
   useEffect(() => {
@@ -104,16 +108,29 @@ export function SessionExerciseFeedbackPrompt({
       role="group"
       aria-label="Exercise feedback"
       data-session-feedback-prompt="true"
-      className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.24)] px-3 pb-3 pt-2.5"
+      className="border-t border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.24)] px-3 pb-1 pt-0.5"
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.95)]">
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.95)]">
           Feedback
         </p>
-        {isSaving ? <span role="status" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.95)]">Saving</span> : null}
+        <div className="flex items-center gap-2">
+          {isSaving ? <span role="status" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.95)]">Saving</span> : null}
+          <ChipButton
+            type="button"
+            aria-expanded={isOpen}
+            aria-controls={panelId}
+            onClick={() => setIsOpen((current) => !current)}
+            className="min-h-11 min-w-11 justify-center px-4 text-[11px] font-semibold tracking-[0.12em]"
+          >
+            {isOpen ? "Hide" : "Rate"}
+          </ChipButton>
+        </div>
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      {isOpen ? (
+      <div id={panelId} className="pb-2">
+      <div className="mt-1 flex flex-wrap gap-1.5">
         {SESSION_COPILOT_FEEDBACK_SIGNALS.map((value) => (
           <ChipButton
             key={value}
@@ -163,6 +180,8 @@ export function SessionExerciseFeedbackPrompt({
         aria-label="Feedback note (optional)"
         className="mt-2 h-11 w-full border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.28)] bg-transparent px-0 text-sm text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-muted)/0.8)] focus:border-[rgb(var(--accent)/0.42)]"
       />
+      </div>
+      ) : null}
     </div>
   );
 }

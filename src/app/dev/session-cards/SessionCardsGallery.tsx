@@ -128,13 +128,21 @@ export function SessionCardsGallery() {
           />
         </li>
       </Section>
-      <Section title="Hidden rows (skipped, and finished then hidden)">
+      <Section title="Hidden rows (skipped with a set logged, skipped with nothing logged, finished then hidden)">
         <li>
           <SessionHiddenRowCard
             exercise={{ name: "Plank", slug: "plank" }}
             status="skipped"
             progress={{ label: "1 / 3 sets", percent: 33 }}
             action={<SessionRowActionButton intent="toggle" label="Unskip" ariaLabel="Unskip: Plank" inactive={false} onPress={() => {}} />}
+          />
+        </li>
+        <li>
+          <SessionHiddenRowCard
+            exercise={{ name: "Walking Lunge", slug: "walking-lunge" }}
+            status="skipped"
+            progress={null}
+            action={<SessionRowActionButton intent="toggle" label="Unskip" ariaLabel="Unskip: Walking Lunge" inactive={false} onPress={() => {}} />}
           />
         </li>
         <li>

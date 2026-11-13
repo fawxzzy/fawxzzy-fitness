@@ -19,6 +19,7 @@ import {
   type ExerciseRowCardProgress,
   type ExerciseRowCardVisual,
 } from "@/components/workout/ExerciseRowCard";
+import { getDurationWholeMinutes } from "@/lib/duration";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { cn } from "@/lib/cn";
 
@@ -149,18 +150,15 @@ type RowActionButtonProps = {
   inactive: boolean;
   divider?: boolean;
   intentAttr?: string;
-  className?: string;
-  testId?: string;
 };
 
 /** One 44px action in a session card footer. Inactive is aria-disabled, so a tap during a save never drops focus. */
-export function SessionRowActionButton({ intent, label, ariaLabel, onPress, inactive, divider = false, intentAttr, className, testId }: RowActionButtonProps) {
+export function SessionRowActionButton({ intent, label, ariaLabel, onPress, inactive, divider = false, intentAttr }: RowActionButtonProps) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
       aria-disabled={inactive || undefined}
-      data-testid={testId}
       data-bottom-action-intent={intentAttr}
       onClick={() => {
         if (inactive) {
@@ -171,7 +169,6 @@ export function SessionRowActionButton({ intent, label, ariaLabel, onPress, inac
       className={cn(
         getCardActionButtonClassName({ intent, divider }),
         "aria-disabled:cursor-not-allowed aria-disabled:opacity-60",
-        className,
       )}
     >
       <span className="bottom-action__label min-w-0">{label}</span>
@@ -246,8 +243,17 @@ export function SessionQuickLogRow({
     }
   };
 
+  // Polite live region, always mounted so the change is announced: a pending save is otherwise only a changed label.
+  const pendingAnnouncement = rowContract.isQuickLogPending
+    ? `Adding set to ${exerciseName}`
+    : rowContract.isSkipPending
+      ? `Saving ${exerciseName}`
+      : "";
+
   return (
-    <CardActionFrame
+    <>
+      <span role="status" aria-live="polite" className="sr-only">{pendingAnnouncement}</span>
+      <CardActionFrame
       columns={showLogAll ? 3 : 2}
       label={`Quick actions for ${exerciseName}`}
       gridClassName={showLogAll ? "grid-cols-[4.75rem_5rem_minmax(0,1fr)]" : "grid-cols-[4.75rem_minmax(0,1fr)]"}
@@ -279,7 +285,8 @@ export function SessionQuickLogRow({
         inactive={logInactive}
         onPress={() => { void onPress(); }}
       />
-    </CardActionFrame>
+      </CardActionFrame>
+    </>
   );
 }
 
@@ -292,9 +299,12 @@ export function SessionRowNote({ children }: { children: ReactNode }) {
   );
 }
 
-/** Facts for the finished-session card, from data the page already holds: exercises worked, sets logged, minutes. */
+/** What the finished card counts per exercise. `SessionExerciseFocus` keeps a live copy (set snapshots, including queued sets) in a ref. */
+export type SessionFinishedExercise = { loggedSetCount: number; isSkipped: boolean };
+
+/** Facts for the finished-session card: exercises worked, sets logged, whole minutes (floored like History). */
 export function buildSessionFinishedFacts(args: {
-  exercises: Array<{ loggedSetCount: number; isSkipped: boolean }>;
+  exercises: SessionFinishedExercise[];
   durationSeconds: number;
 }): string[] {
   const worked = args.exercises.filter((exercise) => !exercise.isSkipped && exercise.loggedSetCount > 0).length;
@@ -306,8 +316,9 @@ export function buildSessionFinishedFacts(args: {
   if (sets > 0) {
     facts.push(`${sets} ${sets === 1 ? "set" : "sets"}`);
   }
-  if (args.durationSeconds >= 60) {
-    facts.push(`${Math.round(args.durationSeconds / 60)} min`);
+  const minutes = getDurationWholeMinutes(args.durationSeconds);
+  if (minutes >= 1) {
+    facts.push(`${minutes} min`);
   }
 
   return facts;

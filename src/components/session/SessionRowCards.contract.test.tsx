@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isDevOnlyPath } from "../../lib/dev-route-guard.ts";
+import { getDurationWholeMinutes } from "../../lib/duration.ts";
+import { SessionExerciseFeedbackPrompt } from "./SessionExerciseFeedbackPrompt.tsx";
+import { TodayExerciseRows } from "../../app/today/TodayExerciseRows.tsx";
 import {
   buildSessionFinishedFacts,
   SessionExerciseRowCard,
@@ -196,7 +199,7 @@ test("feedback prompt: 44px effort and signal buttons, 11px text, named groups, 
   assert.match(source, /aria-label="Exercise feedback"/);
   assert.match(source, /aria-label="Effort, 1 to 10"/);
   assert.match(source, /aria-label=\{`Effort \$\{value\} out of 10`\}/);
-  assert.equal((source.match(/min-h-11/g) ?? []).length, 2, "signal chips and effort buttons");
+  assert.equal((source.match(/min-h-11/g) ?? []).length, 4, "header row, Rate toggle, signal chips and effort buttons");
   assert.match(source, /h-11 w-full/, "note input");
   assert.doesNotMatch(source, /h-6 w-6|h-7 |text-\[(9|10)px\]|overflow-x-auto/);
 });
@@ -227,4 +230,87 @@ test("the session-cards dev gallery is covered by the shared dev-route guard and
     assert.doesNotMatch(source, /supabaseAdmin|createSupabase|service[-_ ]role|process\.env/i);
   }
   assert.match(page, /robots:[\s\S]*index: false/);
+});
+
+test("finish minutes are whole minutes floored like History (2670s is 44, not 45)", () => {
+  assert.equal(getDurationWholeMinutes(2670), 44);
+  assert.equal(getDurationWholeMinutes(59), 0);
+  assert.equal(getDurationWholeMinutes(60), 1);
+  assert.equal(getDurationWholeMinutes(-5), 0);
+  assert.equal(getDurationWholeMinutes(Number.NaN), 0);
+  const facts = buildSessionFinishedFacts({ exercises: [{ loggedSetCount: 2, isSkipped: false }], durationSeconds: 2670 });
+  assert.deepEqual(facts, ["1 exercise", "2 sets", "44 min"]);
+});
+
+test("finish card data source: the live set counts of SessionExerciseFocus (queued sets included), not the server render snapshot", () => {
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  const page = readSource("../SessionPageClient.tsx");
+
+  // The ref is a read-only mirror written by an effect from the same state the rows render from.
+  assert.match(focus, /liveProgressRef\.current = exercises\.map\(\(exercise\) => \(\{\s*loggedSetCount: setSnapshotsBySessionExerciseId\[exercise\.id\]\?\.length/);
+  assert.match(focus, /isSkipped: rowClientStateBySessionExerciseId\[exercise\.id\]\?\.isSkipped \?\? exercise\.isSkipped/);
+  assert.equal((focus.match(/liveProgressRef\.current/g) ?? []).length, 1, "written once, never read back by the logger");
+  // The page reads it for the finish card; a session opened already completed falls back to the server rows.
+  assert.match(page, /const liveProgressRef = useRef<SessionFinishedExercise\[\] \| null>\(null\)/);
+  assert.match(page, /buildSessionFinishedFacts\(\{ exercises: liveProgressRef\.current \?\? exercises, durationSeconds \}\)/);
+  assert.match(page, /liveProgressRef=\{liveProgressRef\}/);
+});
+
+test("hidden rows: a skipped exercise with nothing logged shows no progress bar; the density clip is gone", () => {
+  const focus = readSource("../SessionExerciseFocus.tsx");
+
+  assert.match(focus, /progress=\{buildTodayExerciseLoggedProgress\(progressState, baseRowViewModel\.isSkipped\)\}/);
+  assert.doesNotMatch(focus, /max-h-\[48rem\]|max-h-\[240rem\]|max-h-72/);
+});
+
+test("quick-log row announces a pending save through an always-mounted polite status region", () => {
+  const idle = renderToStaticMarkup(
+    <SessionQuickLogRow exerciseName="Zed Press" logAllCount={0} rowContract={baseRowContract} onSkip={() => {}} onPress={() => {}} />,
+  );
+  assert.match(idle, /<span role="status" aria-live="polite" class="sr-only"><\/span>/);
+
+  const adding = renderToStaticMarkup(
+    <SessionQuickLogRow exerciseName="Zed Press" logAllCount={0} rowContract={{ ...baseRowContract, isQuickLogPending: true }} onSkip={() => {}} onPress={() => {}} />,
+  );
+  assert.match(adding, /aria-live="polite" class="sr-only">Adding set to Zed Press</);
+  const saving = renderToStaticMarkup(
+    <SessionQuickLogRow exerciseName="Zed Press" logAllCount={0} rowContract={{ ...baseRowContract, isSkipPending: true }} onSkip={() => {}} onPress={() => {}} />,
+  );
+  assert.match(saving, />Saving Zed Press</);
+  assert.doesNotMatch(readSource("./SessionRowCards.tsx"), /testId/);
+});
+
+test("feedback prompt starts as one 44px row with a Rate toggle; the grid opens on demand and an existing answer opens it", () => {
+  const noop = () => new Promise<never>(() => {});
+  const closed = renderToStaticMarkup(
+    <SessionExerciseFeedbackPrompt sessionId="s" sessionExerciseId="e" initialFeedback={{ signal: null, note: null, effort: null }} updateFeedbackAction={noop} onSaved={() => {}} />,
+  );
+  assert.match(closed, /aria-expanded="false"/);
+  assert.match(closed, />Rate</);
+  assert.doesNotMatch(closed, /Effort 1 out of 10/);
+  assert.doesNotMatch(closed, /Feedback note/);
+
+  const open = renderToStaticMarkup(
+    <SessionExerciseFeedbackPrompt sessionId="s" sessionExerciseId="e" initialFeedback={{ signal: null, note: null, effort: 7 }} updateFeedbackAction={noop} onSaved={() => {}} />,
+  );
+  assert.match(open, /aria-expanded="true"/);
+  assert.match(open, />Hide</);
+  assert.match(open, /aria-label="Effort 10 out of 10"/);
+  assert.match(open, /aria-label="Feedback note \(optional\)"/);
+});
+
+test("offline session list has no info control (it needs the network) and no session-exercise id is passed as an exercise id", () => {
+  const html = renderToStaticMarkup(
+    <TodayExerciseRows
+      exercises={[{ id: "session-ex-1", name: "Zed Press", targets: "4 sets", loggedSetCount: 1, targetSetsMin: 4, targetSetsMax: 4 }]}
+      emptyMessage="none"
+      surface="current-session"
+      showInfo={false}
+    />,
+  );
+  assert.doesNotMatch(html, /<button/);
+  assert.doesNotMatch(html, /Open exercise info/);
+  const shell = readSource("../../app/session/[id]/SessionOfflineShell.tsx");
+  assert.match(shell, /showInfo=\{false\}/);
+  assert.doesNotMatch(shell, /exerciseId \?\? exercise\.id/);
 });

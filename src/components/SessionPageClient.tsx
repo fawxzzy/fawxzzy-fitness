@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { buildSessionFinishedFacts, SessionFinishedCard } from "@/components/session/SessionRowCards";
+import { buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -166,6 +166,9 @@ export function SessionPageClient({
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialSelectedExerciseId);
+  // Live per-exercise set counts, written by SessionExerciseFocus (read-only mirror of its local state, queued sets included).
+  // The finish card reads it; a session opened already completed has no live list and uses the server snapshot.
+  const liveProgressRef = useRef<SessionFinishedExercise[] | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [isSessionCompleted, setIsSessionCompleted] = useState(initialIsSessionCompleted);
@@ -339,7 +342,7 @@ export function SessionPageClient({
           <ActionFeedbackToasts />
 
           {isSessionCompleted ? (
-            <SessionFinishedCard facts={buildSessionFinishedFacts({ exercises, durationSeconds })} />
+            <SessionFinishedCard facts={buildSessionFinishedFacts({ exercises: liveProgressRef.current ?? exercises, durationSeconds })} />
           ) : hasExercises ? (
             <SessionExerciseFocus
               userId={userId}
@@ -360,6 +363,7 @@ export function SessionPageClient({
               updateSessionExerciseTimerAction={updateSessionExerciseTimerAction}
               disableDraftPersistence={disableDraftPersistence}
               bottomDockCenter={null}
+              liveProgressRef={liveProgressRef}
             />
           ) : null}
 

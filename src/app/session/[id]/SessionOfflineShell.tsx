@@ -51,9 +51,10 @@ export function SessionOfflineShell({
         {cachedSnapshot ? (
           <>
             <TodayExerciseRows
-              exercises={cachedSnapshot.exercises.map((exercise) => ({ ...exercise, exerciseId: exercise.exerciseId ?? exercise.id }))}
+              exercises={cachedSnapshot.exercises}
               emptyMessage="No exercises in this session."
               surface="current-session"
+              showInfo={false}
             />
           </>
         ) : (
