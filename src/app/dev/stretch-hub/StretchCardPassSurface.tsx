@@ -106,12 +106,9 @@ export function StretchCardPassSurface() {
       <AppPanel className={cn(appTokens.detailSection, "space-y-3 p-3")}>
         <div className="space-y-1 px-2 pt-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgb(var(--accent)/0.9)]">Today</p>
-          <h3 className={cn(appTokens.detailSectionTitle, "text-left")}>Compact and detailed today-card views</h3>
+          <h3 className={cn(appTokens.detailSectionTitle, "text-left")}>Today card view</h3>
         </div>
-        <div className="space-y-3">
-          <TodayExerciseRows exercises={stretchPreviewTodayRows} emptyMessage="No exercises" density="compact" />
-          <TodayExerciseRows exercises={stretchPreviewTodayRows} emptyMessage="No exercises" density="detailed" />
-        </div>
+        <TodayExerciseRows exercises={stretchPreviewTodayRows} emptyMessage="No exercises" />
       </AppPanel>
 
       <AppPanel className={cn(appTokens.detailSection, "space-y-3 p-3")}>

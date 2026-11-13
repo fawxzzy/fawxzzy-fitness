@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { RoutineOverviewDayCard, RestDayCard, type RoutineOverviewDayCardItem } from "@/components/day-list/RoutineDayCardPresentation";
+import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
+import { TodayExerciseRows, type TodayExerciseRow } from "@/app/today/TodayExerciseRows";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
 import {
@@ -12,6 +14,7 @@ import {
   CardHeader,
   CardInfoButton,
   CardMeta,
+  CardNotice,
   CardStatusChip,
   CardSurface,
   DragHandle,
@@ -25,6 +28,13 @@ import { ExerciseRowCard } from "@/components/workout/ExerciseRowCard";
 import { getRoutineDayHeading } from "@/lib/routines";
 
 const START_DATE = "2026-04-27";
+
+const todayRows: TodayExerciseRow[] = [
+  { id: "t1", exerciseId: "gallery-squat", name: "Back Squat", targets: "4 sets • 5 reps • 225 lbs", primary_muscle: "Quads", movement_pattern: "Squat", equipment: "Barbell", targetSetsMin: 4, targetSetsMax: 4, loggedSetCount: 4, progressionStateLabel: "AUTO | SESSION | SET" },
+  { id: "t2", exerciseId: "gallery-lunge", name: "Walking Lunge With Dumbbells And A Long Name", targets: "3 sets • 8-10 reps", primary_muscle: "Glutes", movement_pattern: "Lunge", targetSetsMin: 3, targetSetsMax: 3, loggedSetCount: 1 },
+  { id: "t3", exerciseId: "gallery-rdl", name: "Romanian Deadlift", targets: "3 sets • 8 reps • 185 lbs", primary_muscle: "Hamstrings", movement_pattern: "Hinge", targetSetsMin: 3, targetSetsMax: 3, loggedSetCount: 0 },
+  { id: "t4", exerciseId: "gallery-walk", name: "Incline Walk", targets: "1 set • 20 min", primary_muscle: "Cardio", movement_pattern: "Gait", targetSetsMin: 1, targetSetsMax: 1, isSkipped: true },
+];
 
 const previewDays: NonNullable<RoutineBrowseCardItem["previewDays"]> = [
   { id: "d1", dayIndex: 1, title: "Push", weekdayLabel: "Mon", isRest: false, isCompleted: true, exerciseCount: 6 },
@@ -208,6 +218,28 @@ export function CardSystemGallery() {
           panel={expandedExercise === "ex-open" ? <p className="m-0 text-sm text-[rgb(var(--text-secondary)/0.95)]">Editor panel content renders here.</p> : undefined}
           panelProps={{ id: "gallery-ex-open" }}
         />
+      </Section>
+
+      <Section title="Today exercise cards" note="Static cards: thumbnail, name, meta, target, logged progress as text. DONE and SKIPPED are chips; skipped is compact. Info is a 44px control.">
+        <TodayExerciseRows exercises={todayRows} emptyMessage="No exercises today." />
+      </Section>
+
+      <Section title="Today empty and state cards" note="Rest day, empty day (with the way out), partial and blocked days, no scheduled workout.">
+        <RestDayCard headingLevel={2} />
+        <CardEmptyState
+          title="No exercises planned"
+          body="Add exercises to this day to start a workout from Today."
+          action={<span className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[rgb(var(--accent)/0.4)] px-4 text-sm font-semibold">Add exercises</span>}
+        />
+        <TodayDayStateCard tone="warning" title="Some exercises will be skipped" body="Some exercises could not be loaded and will be skipped when you start this workout." />
+        <TodayDayStateCard tone="blocking" title="Edit this day first" body="This day has invalid exercises. Edit the day before starting a workout." />
+        <TodayDayStateCard title="No scheduled workout today." body="Pick a day to run from Switch Day." />
+      </Section>
+
+      <Section title="Notices" note="Inline screen notices: status for neutral and attention, alert for danger; a glyph backs the colour.">
+        <CardNotice>Start session requires a live connection.</CardNotice>
+        <CardNotice tone="attention">Some exercises could not be loaded.</CardNotice>
+        <CardNotice tone="danger">Could not load Today. Try again.</CardNotice>
       </Section>
 
       <Section title="Chooser card (select)" note="Selection is aria-pressed with a visible SELECTED chip.">
