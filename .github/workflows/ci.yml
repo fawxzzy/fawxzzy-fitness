@@ -35,6 +35,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/components/error/auth-session-preservation.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/middleware.test.ts src/lib/detail-route-guard.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/timezones.test.ts src/lib/history-local-day-boundary.test.ts src/lib/history-sessions-page-loader.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/history-consistency-heatmap.test.ts src/components/history/ConsistencyHeatmapSurface.test.tsx
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-sync/route.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/client.session-sync.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-handoff/route.test.ts
