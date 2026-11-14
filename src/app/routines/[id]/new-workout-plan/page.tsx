@@ -99,16 +99,16 @@ export default async function CreateWorkoutPlanPage({ params, searchParams }: Pa
         floatingHeader={(
           <ContentRail className="py-1">
             <RoutinesRouteHeaderCard
-              title={isTargetMode ? "Choose Workout Plan" : "Create Workout Plan"}
+              title={isTargetMode ? "Choose Day" : "Create Day"}
               subtitle={(
                 <span className="text-center">
                   {isTargetMode
-                    ? <>Duplicate a source workout plan into <span className="font-semibold text-[rgb(var(--text-primary))]">{formatRoutineDayStableDisplayName({
+                    ? <>Duplicate a source day into <span className="font-semibold text-[rgb(var(--text-primary))]">{formatRoutineDayStableDisplayName({
                         name: targetDay?.name ?? null,
                         dayIndex: targetDay?.day_index ?? 1,
                         startDate: routineData.start_date,
                       })}</span> for <span className="font-semibold text-[rgb(var(--text-primary))]">{routineData.name}</span>.</>
-                    : <>Build the next workout plan for <span className="font-semibold text-[rgb(var(--text-primary))]">{routineData.name}</span>, then continue into the workout-plan editor.</>}
+                    : <>Build the next day for <span className="font-semibold text-[rgb(var(--text-primary))]">{routineData.name}</span>, then continue into the day editor.</>}
                 </span>
               )}
             />

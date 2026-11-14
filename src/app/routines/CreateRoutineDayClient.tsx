@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -12,7 +11,7 @@ import {
 } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { CardChips, CardHeader, CardMeta, CardStatusChip, CardSurface } from "@/components/ui/card-system";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ActionResult } from "@/lib/action-result";
 import { ROUTINE_COPY_NAME_MAX_LENGTH } from "@/lib/routine-copy-name";
@@ -60,7 +59,7 @@ export function CreateRoutineDayClient({
     ? "Confirm"
     : creationMode === "duplicate"
       ? "Confirm"
-      : "Create Workout Plan";
+      : "Create Day";
 
   const actionsNode = useMemo(() => (
     <BottomActionSplit
@@ -103,29 +102,29 @@ export function CreateRoutineDayClient({
                 const result: ActionResult & { routineDayId?: string } = isTargetMode
                   ? populateRoutineDayFromSourceAction
                     ? await populateRoutineDayFromSourceAction(formData)
-                    : { ok: false, error: "Could not duplicate workout plan." }
+                    : { ok: false, error: "Could not duplicate day." }
                   : await createRoutineDayAction(formData);
                 if (!result.ok) {
-                  toast.error(result.error ?? (isTargetMode ? "Could not duplicate workout plan." : "Could not create workout plan."));
+                  toast.error(result.error ?? (isTargetMode ? "Could not duplicate day." : "Could not create day."));
                   return;
                 }
                 if (!result.routineDayId) {
                   toast.error(isTargetMode
-                    ? "Workout plan was duplicated without a destination."
-                    : "New workout plan was created without a destination.");
+                    ? "Day was duplicated without a destination."
+                    : "New day was created without a destination.");
                   return;
                 }
 
                 toast.success(isTargetMode
-                  ? "Workout plan duplicated into this day."
+                  ? "Day copied into this day."
                   : creationMode === "duplicate"
-                    ? "Workout plan duplicated."
-                    : "Workout plan created.");
+                    ? "Day duplicated."
+                    : "Day created.");
                 router.push(isTargetMode
                   ? (targetDayEditHref ?? getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)))
                   : getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)));
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Could not complete the workout plan action.");
+                toast.error(error instanceof Error ? error.message : "Could not complete the day action.");
               }
             });
           }}
@@ -144,72 +143,73 @@ export function CreateRoutineDayClient({
         <>
           <div className="space-y-2">
             <RoutineChooserOptionCard
-              title="Blank workout plan"
+              title="Blank day"
+              kind="select"
               active={creationMode === "blank"}
-              rightSlot={<ChevronRightIcon className="h-4 w-4" />}
               onPress={() => setCreationMode("blank")}
             />
             <RoutineChooserOptionCard
-              title="Duplicate workout plan"
+              title="Duplicate day"
+              kind="toggle"
               active={creationMode === "duplicate"}
               disabled={days.length === 0}
-              rightSlot={creationMode === "duplicate" ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
               onPress={days.length > 0 ? () => {
                 setCreationMode("duplicate");
               } : undefined}
             />
           </div>
 
-          <div className="rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.9)] px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.78)]">
-              Workout Plan Setup
-            </p>
-            {creationMode === "blank" ? (
-              <label className="block pt-3">
-                <span className="block text-sm font-semibold text-[rgb(var(--text-primary))]">
-                  Workout plan name
-                </span>
-                <span className="block pt-0.5 text-xs text-[rgb(var(--text-secondary)/0.86)]">
-                  Optional for blank workout plans.
-                </span>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH))}
-                  placeholder="Legs, Push, Hotel Gym..."
-                  className="mt-2 w-full rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none transition focus:border-[rgb(var(--accent)/0.34)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]"
-                  maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                />
-              </label>
-            ) : null}
-
-            {creationMode === "blank" ? (
-              <button
-                type="button"
-                onClick={() => setIsRest((current) => !current)}
-                className={`mt-3 flex min-h-11 w-full items-center justify-between rounded-[0.9rem] border px-3 py-2.5 text-left transition ${isRest
-                  ? "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.12)]"
-                  : "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.6)]"}`}
-              >
-                <span className="min-w-0">
+          {creationMode === "blank" ? (
+            <CardSurface as="section" aria-labelledby="create-day-setup-title">
+              <CardHeader headingLevel={2} title={<span id="create-day-setup-title">Day setup</span>} />
+              <div className="space-y-3 px-4 pb-4">
+                <label className="block">
                   <span className="block text-sm font-semibold text-[rgb(var(--text-primary))]">
-                    {isRest ? "Rest workout plan enabled" : "Training plan"}
+                    Day name
                   </span>
-                  <span className="block pt-0.5 text-xs text-[rgb(var(--text-secondary)/0.84)]">
-                    {isRest
-                      ? "Create this workout-plan slot as a rest workout plan first. You can switch it back later."
-                      : "Start with a normal training workout plan and add exercises in the workout-plan editor."}
+                  <span className="block pt-0.5 text-xs text-[rgb(var(--text-secondary)/0.86)]">
+                    Optional. Leave blank to use the day number.
                   </span>
-                </span>
-              </button>
-            ) : null}
-          </div>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH))}
+                    placeholder="Legs, Push, Hotel Gym..."
+                    className="mt-2 min-h-11 w-full rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none transition focus:border-[rgb(var(--accent)/0.34)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]"
+                    maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
+                  />
+                </label>
+              </div>
+            </CardSurface>
+          ) : null}
+
+          {creationMode === "blank" ? (
+            <CardSurface tone={isRest ? "attention" : "neutral"} data-create-day-rest-toggle={isRest ? "on" : "off"}>
+              <CardHeader
+                headingLevel={3}
+                title="Make this a rest day"
+                meta={(
+                  <CardMeta
+                    items={[isRest
+                      ? "Created as a rest day. You can switch it back later."
+                      : "Off: a training day. Add exercises in the day editor."]}
+                  />
+                )}
+                chips={isRest ? <CardChips><CardStatusChip status="rest" /></CardChips> : undefined}
+                interaction={{
+                  kind: "select",
+                  selected: isRest,
+                  onSelect: () => setIsRest((current) => !current)
+                }}
+              />
+            </CardSurface>
+          ) : null}
         </>
       ) : null}
 
       {(isTargetMode || creationMode === "duplicate") && days.length > 0 ? (
         <RoutineDuplicateChooserPanel
-          title="Choose Workout Plan"
+          title="Choose Day"
           list={(
                   <RoutineDuplicateChooserListViewport scrollClassName="max-h-[min(22rem,46dvh)]">
                     {days.map((day) => (
@@ -236,18 +236,14 @@ export function CreateRoutineDayClient({
       ) : null}
 
       {!isTargetMode ? (
-        <Link
-          href={routineEditHref}
-          className="flex min-h-11 items-center justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-3 text-sm font-medium text-[rgb(var(--text-primary))]"
-        >
-          <span>
-            <span className="block">Manage cycle settings</span>
-            <span className="block pt-0.5 text-xs font-normal text-[rgb(var(--text-secondary)/0.84)]">
-              Adjust cycle length, start anchor, and progression defaults before you create the next workout-plan slot or duplicate a plan into a different cycle position.
-            </span>
-          </span>
-          <span aria-hidden="true">{"\u203A"}</span>
-        </Link>
+        <CardSurface>
+          <CardHeader
+            headingLevel={3}
+            title="Manage cycle settings"
+            meta={<CardMeta items={["Adjust cycle length, start anchor and progression defaults before you add the next day or duplicate a day into a different cycle position."]} />}
+            interaction={{ kind: "link", href: routineEditHref }}
+          />
+        </CardSurface>
       ) : null}
     </div>
   );

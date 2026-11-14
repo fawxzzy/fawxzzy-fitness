@@ -1,136 +1,109 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { CardChips, CardHeader, CardMeta, CardStatusChip, CardSurface, type CardHeaderInteraction } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
 
-export const ROUTINE_CHOOSER_OPTION_CARD_CLASS_NAME = "w-full rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.92)] px-3 py-3 text-left shadow-[0_12px_34px_rgba(0,0,0,0.18)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]";
-export const ROUTINE_CHOOSER_OPTION_CARD_ACTIVE_CLASS_NAME = "border-[rgb(var(--accent-divider-rgb)/0.32)] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.08),rgb(var(--surface-1-rgb)/0.96))]";
-export const ROUTINE_CHOOSER_DUPLICATE_PANEL_CLASS_NAME = "min-h-0 overflow-hidden rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-3 py-3";
-export const ROUTINE_CHOOSER_DUPLICATE_PANEL_TITLE_CLASS_NAME = "text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
-export const ROUTINE_CHOOSER_SOURCE_CARD_CLASS_NAME = "relative w-full overflow-hidden rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]";
-export const ROUTINE_CHOOSER_SOURCE_CARD_SELECTED_CLASS_NAME = "border-[rgb(var(--accent-divider-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.08),rgb(var(--surface-2-rgb)/0.76))]";
+/**
+ * Chooser cards for the create-routine menu and the add-day screens. They are shared-card-system cards
+ * (`CardSurface` + `CardHeader`), the same anatomy as routine, day and exercise cards:
+ * - `press`: the whole header runs an action or navigates (right chevron).
+ * - `toggle`: the whole header opens or closes a panel (down chevron, `aria-expanded`).
+ * - `select`: the whole header picks the card (`aria-pressed`, a visible SELECTED chip).
+ */
+export type RoutineChooserOptionKind = "press" | "toggle" | "select";
 
 export function RoutineChooserOptionCard({
   title,
-  rightSlot,
+  kind = "press",
   active = false,
   disabled = false,
   className,
   onPress,
+  controlsId,
 }: {
   title: ReactNode;
-  rightSlot?: ReactNode;
+  kind?: RoutineChooserOptionKind;
+  /** `select`: the card is chosen. `toggle`: the panel is open. `press`: the card is the current/highlighted choice. */
   active?: boolean;
   disabled?: boolean;
   className?: string;
   onPress?: () => void;
+  controlsId?: string;
 }) {
+  const handler = onPress ?? (() => undefined);
+  const isDisabled = disabled || !onPress;
+  const interaction: CardHeaderInteraction =
+    kind === "select"
+      ? { kind: "select", selected: active, onSelect: handler, disabled: isDisabled }
+      : kind === "toggle"
+        ? { kind: "toggle", expanded: active, onToggle: handler, disabled: isDisabled, controlsId }
+        : { kind: "press", onPress: handler, disabled: isDisabled };
+
   return (
-    <button
-      type="button"
-      onClick={onPress}
-      disabled={disabled}
-      className={cn(
-        ROUTINE_CHOOSER_OPTION_CARD_CLASS_NAME,
-        active ? ROUTINE_CHOOSER_OPTION_CARD_ACTIVE_CLASS_NAME : undefined,
-        disabled ? "opacity-70" : undefined,
-        className,
-      )}
-    >
-      <span className="flex items-center justify-between gap-3">
-        <span className="min-w-0 block text-sm font-semibold text-[rgb(var(--text-primary)/0.98)]">
-          {title}
-        </span>
-        {rightSlot ? <span className={cn("shrink-0", active ? "text-[rgb(var(--accent-divider-rgb)/0.96)]" : "text-[rgb(var(--text-secondary)/0.86)]")}>{rightSlot}</span> : null}
-      </span>
-    </button>
+    <CardSurface tone={active ? "current" : "neutral"} className={cn(disabled ? "opacity-70" : undefined, className)} data-chooser-option={kind}>
+      <CardHeader
+        headingLevel={3}
+        title={title}
+        chips={kind === "select" && active ? <CardChips><CardStatusChip status="selected" /></CardChips> : undefined}
+        interaction={interaction}
+      />
+    </CardSurface>
   );
 }
 
+/** Titled card that holds a chooser list (duplicate sources) and its confirm footer. */
 export function RoutineDuplicateChooserPanel({
   title,
   list,
   footer,
   className,
+  id,
 }: {
   title: string;
   list: ReactNode;
   footer?: ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
-    <div className={cn(ROUTINE_CHOOSER_DUPLICATE_PANEL_CLASS_NAME, "flex flex-col", className)}>
-      <p className={ROUTINE_CHOOSER_DUPLICATE_PANEL_TITLE_CLASS_NAME}>
-        {title}
-      </p>
-      {list}
-      {footer ? (
-        <div className="shrink-0 space-y-3 pt-3">
-          {footer}
-        </div>
-      ) : null}
-    </div>
+    <CardSurface as="section" id={id} className={cn("min-h-0", className)} data-chooser-panel="true">
+      <CardHeader headingLevel={3} title={title} />
+      <div className="flex min-h-0 flex-col px-3 pb-3">
+        {list}
+        {footer ? (
+          <div className="shrink-0 space-y-3 pt-3">
+            {footer}
+          </div>
+        ) : null}
+      </div>
+    </CardSurface>
   );
 }
 
+/** Selectable routine in the duplicate-routine chooser. Facts are a wrapping meta line (no sideways rail). */
 export function RoutineChooserSourceCard({
   title,
   selected = false,
   onPress,
-  tags,
-  recap,
-  footer,
-  selectedLabel = "Source",
-  defaultLabel = "Select",
+  meta,
   className,
 }: {
   title: string;
   selected?: boolean;
   onPress?: () => void;
-  tags?: ReactNode;
-  recap?: ReactNode;
-  footer?: ReactNode;
-  selectedLabel?: string;
-  defaultLabel?: string;
+  meta?: ReactNode[];
   className?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onPress}
-      className={cn(
-        ROUTINE_CHOOSER_SOURCE_CARD_CLASS_NAME,
-        selected ? ROUTINE_CHOOSER_SOURCE_CARD_SELECTED_CLASS_NAME : undefined,
-        className,
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "absolute inset-y-0 left-0 w-[3px] rounded-l-[inherit] bg-[rgb(var(--accent-divider-rgb)/0.96)]",
-          selected ? "opacity-100" : "opacity-82",
-        )}
+    <CardSurface tone={selected ? "current" : "neutral"} className={className} data-chooser-source="routine">
+      <CardHeader
+        headingLevel={3}
+        title={title}
+        meta={meta && meta.length > 0 ? <CardMeta items={meta} /> : undefined}
+        chips={selected ? <CardChips><CardStatusChip status="selected" /></CardChips> : undefined}
+        interaction={onPress ? { kind: "select", selected, onSelect: onPress } : { kind: "none" }}
       />
-      <span className="relative z-[1] flex min-w-0 flex-col gap-2 pl-1">
-        <span className="flex items-start justify-between gap-3">
-          <span className="inline-flex min-w-0 max-w-full flex-col items-start gap-[3px]">
-            <span className="block min-w-0 max-w-full whitespace-normal break-words text-[0.92rem] font-semibold leading-[1.12] text-[rgb(var(--text-primary)/0.98)] [text-wrap:balance]">
-              {title}
-            </span>
-            <span className="h-px w-full bg-[rgb(var(--accent-divider-rgb)/0.58)] opacity-90" />
-          </span>
-          <span className={cn("shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em]", selected ? "text-[rgb(var(--accent-divider-rgb)/0.96)]" : "text-[rgb(var(--text-secondary)/0.72)]")}>
-            {selected ? selectedLabel : defaultLabel}
-          </span>
-        </span>
-        {tags}
-        {recap}
-        {footer ? (
-          <span className="flex justify-end pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
-            {footer}
-          </span>
-        ) : null}
-      </span>
-    </button>
+    </CardSurface>
   );
 }

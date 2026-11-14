@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 import { listTrainingGoalDefinitions, type TrainingGoalId } from "@/lib/progression-playbooks";
 
 export const TRAINING_GOAL_SELECTOR_DROPDOWN_TITLE_CLASS_NAME =
-  "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.9)]";
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.9)]";
 
 export function TrainingGoalSelector({
   value,
