@@ -78,6 +78,8 @@ export function AppLoaderHost() {
     let lastLeaving: boolean | null = null;
     let lastAnnounced = "";
     let stageHidden = false;
+    // Set once if a frame throws: the loader is then off for the rest of the page's life (the cover must never stay).
+    let failed = false;
     // Whether the first frame must continue from the opaque server-rendered cover (false once it is already gone).
     let continueFromCover = true;
 
@@ -89,6 +91,7 @@ export function AppLoaderHost() {
     };
 
     const settleHidden = () => {
+      setAnnounced("");
       root.dataset.state = "live";
       root.dataset.visible = "false";
       root.dataset.leaving = "false";
@@ -127,7 +130,13 @@ export function AppLoaderHost() {
       // Announce only what the member can see: not during the show delay, and during boot only once the icon showed.
       const iconSeen =
         root.dataset.state !== "boot" || (readAnimationTimeMs(stage, APP_LOADER_STAGE_ANIMATION) ?? 0) >= LOADER_SHOW_DELAY_MS;
-      setAnnounced(active && frame.visible && iconSeen ? label : "");
+      // Set while it shows; cleared only once the loader is gone. A fade-out that turns around into the same wait keeps
+      // the text, so the same label is not announced twice.
+      if (active && frame.visible && iconSeen) {
+        setAnnounced(label);
+      } else if (phase === "idle" || phase === "waiting") {
+        setAnnounced("");
+      }
 
       if (phase === "idle") {
         // Boot is over: from here the stage is plain (no CSS fade-in) and the root is hidden until the next wait.
@@ -150,7 +159,21 @@ export function AppLoaderHost() {
 
     const run = (now: number) => {
       frameId = 0;
+      if (failed) {
+        return;
+      }
+      try {
+        step(now);
+      } catch (error) {
+        // After data-hydrated="true" the CSS failsafe is off, so a throw here would leave an opaque, tap-blocking
+        // cover until reload. Hide it, stop driving it, and say so once.
+        failed = true;
+        settleHidden();
+        console.error("[app-loader] a frame failed; the loader is switched off for this page", error);
+      }
+    };
 
+    const step = (now: number) => {
       for (const stale of takeStaleLoaderWaits(now, LOADER_WAIT_CEILING_MS)) {
         console.warn("[app-loader] a wait outlived the ceiling and no longer holds the loader", {
           label: stale.label,
@@ -180,7 +203,7 @@ export function AppLoaderHost() {
     };
 
     const schedule = () => {
-      if (frameId === 0) {
+      if (!failed && frameId === 0) {
         frameId = window.requestAnimationFrame(run);
       }
     };
@@ -196,6 +219,14 @@ export function AppLoaderHost() {
       if (frameId !== 0) {
         window.cancelAnimationFrame(frameId);
         frameId = 0;
+      }
+      // Nothing drives the cover any more, and the CSS failsafe has been off since hydration: never leave it standing.
+      if (continueFromCover) {
+        // No frame ever ran (development Strict Mode unmounts between its double mount): hand the untouched cover back
+        // to the CSS failsafe, so a real unmount here still cannot pin it, and the next mount continues from it.
+        root.dataset.hydrated = "false";
+      } else if (!(root.dataset.state === "live" && root.dataset.visible === "false")) {
+        settleHidden();
       }
       main?.removeAttribute("aria-busy");
     };

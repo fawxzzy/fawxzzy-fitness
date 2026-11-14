@@ -105,7 +105,7 @@ test("the boot failsafe is pinned: a cover that scripts never take over removes 
   assert.match(host, /isBootFailsafeFired\(/);
   assert.match(host, /root\.dataset\.hydrated = "true";\s*if \(failsafeFired\) \{\s*continueFromCover = false;\s*settleHidden\(\);/);
   assert.ok(host.indexOf('root.dataset.hydrated = "true"') < host.indexOf("const run = "), "hydration is marked before any frame callback");
-  assert.doesNotMatch(host.slice(host.indexOf("const run = ")), /dataset\.hydrated/, "never marked from a frame");
+  assert.doesNotMatch(host.slice(host.indexOf("const run = "), host.indexOf("const schedule = ")), /dataset\.hydrated/, "never marked from a frame");
   // No scripts: the cover is not shown at all.
   const layout = read("src/app/layout.tsx");
   assert.match(layout, /<noscript dangerouslySetInnerHTML=\{\{ __html: "<style>\.app-loader\{display:none\}<\/style>" \}\} \/>/);
@@ -127,8 +127,33 @@ test("the status region is empty on the server and written only while the loader
   const host = read("src/components/AppLoaderHost.tsx");
   assert.match(host, /<div ref=\{statusRef\} role="status" aria-live="polite" className="sr-only" data-app-loader-status="" \/>/);
   assert.doesNotMatch(host, /Opening Fitness/, "no server-rendered announcement on every load");
-  assert.match(host, /setAnnounced\(active && frame\.visible && iconSeen \? label : ""\)/);
+  // Set while showing; cleared only once idle (a fade-out that turns around keeps the text: no re-announce).
+  assert.match(host, /if \(active && frame\.visible && iconSeen\) \{\s*setAnnounced\(label\);\s*\} else if \(phase === "idle" \|\| phase === "waiting"\) \{\s*setAnnounced\(""\);/);
   assert.doesNotMatch(host, /useSyncExternalStore/);
+});
+
+test("a throwing frame or an early unmount can never leave the opaque cover standing", () => {
+  const host = read("src/components/AppLoaderHost.tsx");
+  // The frame callback is guarded: on a throw the cover is settled hidden, the loader is switched off and it is logged once.
+  assert.match(host, /const run = \(now: number\) => \{\s*frameId = 0;\s*if \(failed\) \{\s*return;\s*\}\s*try \{\s*step\(now\);\s*\} catch \(error\) \{\s*[^}]*failed = true;\s*settleHidden\(\);\s*console\.error\("\[app-loader\] a frame failed/);
+  assert.match(host, /if \(!failed && frameId === 0\)/, "a failed host never schedules another frame");
+  // The unmount cleanup settles the cover unless it is already settled (state live and hidden).
+  const cleanup = host.slice(host.lastIndexOf("return () => {"));
+  assert.match(cleanup, /if \(continueFromCover\) \{[^}]*root\.dataset\.hydrated = "false";\s*\} else if \(!\(root\.dataset\.state === "live" && root\.dataset\.visible === "false"\)\) \{\s*settleHidden\(\);/);
+  // settleHidden hides the cover for good: live state, not visible, not leaving, transparent, announcement cleared.
+  const settle = host.slice(host.indexOf("const settleHidden"), host.indexOf("// Hydration is marked HERE"));
+  for (const expected of ['setAnnounced("")', 'root.dataset.state = "live"', 'root.dataset.visible = "false"', 'root.dataset.leaving = "false"', 'root.style.opacity = "0"']) {
+    assert.ok(settle.includes(expected), `settleHidden: ${expected}`);
+  }
+});
+
+test("toasts sit above the loader cover and below modals, so a toast raised during a wait stays visible", () => {
+  const cover = Number(/\.app-loader \{[^}]*z-index: (\d+);/.exec(loaderCssBlock())?.[1]);
+  const toast = Number(/z-\[(\d+)\] flex w-\[min\(calc\(100%-1rem\),19\.5rem\)\]/.exec(read("src/components/ui/ToastProvider.tsx"))?.[1]);
+  const modal = Number(/z-\[(\d+)\]/.exec(read("src/components/ui/BottomSheet.tsx"))?.[1]);
+  assert.equal(cover, 95);
+  assert.ok(toast > cover, `toast layer ${toast} is above the cover ${cover}`);
+  assert.ok(toast < modal, `toast layer ${toast} is below modals ${modal}`);
 });
 
 test("a wait ceiling holds the loader at most 15 s and logs the stale wait", () => {
