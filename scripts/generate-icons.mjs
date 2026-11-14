@@ -12,7 +12,6 @@ const iconSourcePath = path.join(rootDir, "public", "brand", "fitness-app-icon-s
 const generatedPngPath = path.join(rootDir, "public", "brand", "fitness-app-icon.png");
 const outputTargets = [
   { type: "png", size: 1024, targetPath: generatedPngPath },
-  { type: "png", size: 1024, targetPath: path.join(rootDir, "public", "app", "loader-sigil.png") },
   { type: "png", size: 512, targetPath: path.join(rootDir, "public", "app", "icon-512.png") },
   { type: "png", size: 192, targetPath: path.join(rootDir, "public", "app", "icon-192.png") },
   { type: "png", size: 512, targetPath: path.join(rootDir, "public", "icons", "icon-512.png") },

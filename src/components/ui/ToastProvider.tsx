@@ -109,7 +109,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-3 top-[calc(var(--app-top-offset)+var(--app-top-chrome-content-gap,0px)+0.6rem)] z-50 flex w-[min(calc(100%-1rem),19.5rem)] flex-col items-stretch gap-2 sm:right-4 sm:w-[19.5rem]">
+      <div className="pointer-events-none fixed right-3 top-[calc(var(--app-top-offset)+var(--app-top-chrome-content-gap,0px)+0.6rem)] z-[110] flex w-[min(calc(100%-1rem),19.5rem)] flex-col items-stretch gap-2 sm:right-4 sm:w-[19.5rem]">
         {toasts.map((toast) => (
           <ToastMessageCard
             key={toast.id}

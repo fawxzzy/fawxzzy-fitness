@@ -66,10 +66,6 @@
       "reason": "STALE, needs owner triage: expects routine day edit back to return /routines, code returns /routines/<id>; decide which is intended."
     },
     {
-      "path": "src/lib/route-loading.test.ts",
-      "reason": "STALE, needs owner triage: the /entry boot-loader assertion no longer matches InitialExperienceGate source."
-    },
-    {
       "path": "src/lib/routine-day-loader.test.ts",
       "reason": "STALE, needs owner triage: buildCanonicalDaySummaries reaches requireUser and cookies() outside a request scope; needs a mock."
     },

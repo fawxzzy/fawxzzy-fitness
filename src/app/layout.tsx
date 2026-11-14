@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
+import { AppLoaderHost } from "@/components/AppLoaderHost";
 import { RouteLoading } from "@/components/RouteLoading";
 import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
 import { AppAmbientThemeBootstrap } from "@/components/ui/AppAmbientThemeBootstrap";
@@ -134,11 +135,14 @@ export default async function RootLayout({
         <Script id="local-dev-browser-reset" strategy="beforeInteractive">
           {buildLocalDevBrowserResetScript(CURRENT_APP_BUILD_ID)}
         </Script>
+        {/* Without scripts nothing can take over the server-rendered boot cover: do not show it at all. */}
+        <noscript dangerouslySetInnerHTML={{ __html: "<style>.app-loader{display:none}</style>" }} />
         <Script id="app-theme-primer" strategy="beforeInteractive">
           {buildPreHydrationAppBootPrimerScript()}
         </Script>
       </head>
       <body className="relative overflow-x-hidden">
+        <AppLoaderHost />
         <LegacyOriginAnalytics />
         <DevSupabaseTargetBanner />
         <AppThemeBootstrap />
@@ -153,7 +157,7 @@ export default async function RootLayout({
           <GlassEffectsBootstrap />
           <DisplayModeBootstrap />
           <MobileViewportGuard />
-          <main className="safe-area-main relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden">
+          <main id="app-main" className="safe-area-main relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden">
             <Suspense fallback={<RouteLoading label="Opening Fitness" variant="route" />}>
               <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
             </Suspense>
