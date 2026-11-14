@@ -1,70 +1,16 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { FawxzzySigilLoader } from "@/components/ui/FawxzzySigilLoader";
+import { useEffect, useRef } from "react";
+import { acquireLoaderWait } from "@/lib/app-loader-controller";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
-import {
-  getRouteLoadingDelayMs,
-  shouldHideRouteLoadingChrome,
-  type RouteLoadingVariant,
-} from "@/lib/route-loading";
-const LOADING_PARTICLES = [
-  { left: "18%", top: "22%", dx: "10px", dy: "24px", duration: "16s", delay: "0ms" },
-  { left: "74%", top: "18%", dx: "-12px", dy: "28px", duration: "19s", delay: "1400ms" },
-  { left: "84%", top: "62%", dx: "-10px", dy: "18px", duration: "15s", delay: "700ms" },
-  { left: "26%", top: "74%", dx: "12px", dy: "22px", duration: "21s", delay: "1800ms" },
-  { left: "56%", top: "82%", dx: "-8px", dy: "16px", duration: "18s", delay: "3200ms" },
-  { left: "44%", top: "16%", dx: "6px", dy: "14px", duration: "17s", delay: "900ms" },
-] as const;
+import { getRouteLoadingDiagnosticTimeoutMs, type RouteLoadingVariant } from "@/lib/route-loading";
 
-function useDelayedVisible(delayMs: number) {
-  const [isVisible, setIsVisible] = useState(delayMs === 0);
-
-  useEffect(() => {
-    if (delayMs === 0) {
-      setIsVisible(true);
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setIsVisible(true);
-    }, delayMs);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [delayMs]);
-
-  return isVisible;
-}
-
-function setRouteLoadingChromeHidden(isActive: boolean) {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  const root = document.documentElement;
-  const currentCount = Number.parseInt(root.dataset.routeLoadingCount ?? "0", 10);
-  const safeCount = Number.isFinite(currentCount) ? currentCount : 0;
-
-  if (isActive) {
-    const nextCount = safeCount + 1;
-    root.dataset.routeLoadingCount = String(nextCount);
-    root.dataset.routeLoading = "true";
-    return;
-  }
-
-  const nextCount = Math.max(0, safeCount - 1);
-  if (nextCount === 0) {
-    delete root.dataset.routeLoadingCount;
-    delete root.dataset.routeLoading;
-    return;
-  }
-
-  root.dataset.routeLoadingCount = String(nextCount);
-}
-
+/**
+ * Marks "this screen is waiting" while it is mounted. It draws nothing and owns no timer: the single
+ * <AppLoaderHost> in the root layout decides whether, when and how the loader shows (src/lib/app-loader.ts), so a
+ * route's loading.tsx, a Suspense fallback and an entry gate all share one delay, one minimum hold and one fade.
+ * `variant` no longer changes timing; it only picks the default diagnostics timeout.
+ */
 export function RouteLoading({
   label = "Loading...",
   detail,
@@ -80,91 +26,41 @@ export function RouteLoading({
   blockingReason?: string;
   timeoutMs?: number;
 }) {
-  const isVisible = useDelayedVisible(getRouteLoadingDelayMs(variant));
-  const chromeHidden = shouldHideRouteLoadingChrome(variant, isVisible);
-  const gateRef = useRef<ReturnType<typeof startLoadingDiagnosticGate> | null>(null);
+  const announced = detail ? `${label} ${detail}` : label;
+
+  useEffect(() => acquireLoaderWait(announced), [announced]);
+
+  // Diagnostics gate: started once per mounted gate, with the latest copy read at start time.
+  const latest = useRef({ label, detail, blockingReason, variant });
+  latest.current = { label, detail, blockingReason, variant };
 
   useEffect(() => {
     if (!gateName) {
       return;
     }
 
-    gateRef.current = startLoadingDiagnosticGate({
+    const current = latest.current;
+    const gate = startLoadingDiagnosticGate({
       gate: gateName,
       route: typeof window !== "undefined" ? window.location.pathname : null,
       source: "client",
-      blockingReason: blockingReason ?? detail ?? label,
+      blockingReason: current.blockingReason ?? current.detail ?? current.label,
       metadata: {
-        variant,
-        detail: detail ?? null,
-        label,
+        variant: current.variant,
+        detail: current.detail ?? null,
+        label: current.label,
       },
-      timeoutMs: timeoutMs ?? (variant === "boot" ? 5000 : 3500),
+      timeoutMs: timeoutMs ?? getRouteLoadingDiagnosticTimeoutMs(current.variant),
     });
 
     return () => {
-      gateRef.current?.resolve({
+      gate.resolve({
         blockingReason: "Route loading overlay unmounted.",
       });
-      gateRef.current = null;
     };
-  }, [blockingReason, detail, gateName, label, timeoutMs, variant]);
+  }, [gateName, timeoutMs]);
 
-  useLayoutEffect(() => {
-    if (!chromeHidden) {
-      return;
-    }
-
-    setRouteLoadingChromeHidden(true);
-
-    return () => {
-      setRouteLoadingChromeHidden(false);
-    };
-  }, [chromeHidden]);
-
-  useEffect(() => {
-    gateRef.current?.pending({
-      blockingReason: blockingReason ?? detail ?? label,
-      metadata: {
-        variant,
-        visible: isVisible,
-      },
-    });
-  }, [blockingReason, detail, isVisible, label, variant]);
-
-  if (!isVisible) {
-    return null;
-  }
-
-  return (
-    <section className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgb(var(--loader-scan-rgb)/0.18),transparent_22%),linear-gradient(180deg,rgb(var(--surface-3-rgb)/0.08),rgb(var(--surface-1-rgb)/0.26))]" />
-      <div className="route-loading__grid" />
-      <div className="route-loading__scan" />
-      <div className="route-loading__glow left-[12%] top-[14%] h-44 w-44 bg-[rgb(var(--loader-scan-rgb)/0.24)] [--route-loading-dx:14px] [--route-loading-dy:10px]" />
-      <div className="route-loading__glow right-[12%] bottom-[14%] h-40 w-40 bg-[rgb(var(--loader-scan-rgb)/0.18)] [--route-loading-dx:-12px] [--route-loading-dy:-10px]" style={{ animationDelay: "2200ms" }} />
-      {LOADING_PARTICLES.map((particle) => (
-        <span
-          key={`${particle.left}-${particle.top}-${variant}`}
-          className="route-loading__particle"
-          style={{
-            left: particle.left,
-            top: particle.top,
-            "--route-loading-particle-dx": particle.dx,
-            "--route-loading-particle-dy": particle.dy,
-            "--route-loading-duration": particle.duration,
-            "--route-loading-delay": particle.delay,
-          } as CSSProperties}
-        />
-      ))}
-      <div className="absolute inset-0 flex items-center justify-center px-4">
-        <div className="grid place-items-center" role="status" aria-live="polite">
-          <span className="sr-only">{detail ? `${label} ${detail}` : label}</span>
-          <FawxzzySigilLoader size="xl" />
-        </div>
-      </div>
-    </section>
-  );
+  return null;
 }
 
 export function RouteTabLoading() {

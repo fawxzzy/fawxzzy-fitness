@@ -34,6 +34,8 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/app/viewport.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/layout/bottomActionIntents.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/reduced-motion.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/app-loader.test.ts src/lib/app-loader-controller.test.ts src/lib/app-loader.contract.test.ts
+          node scripts/generate-app-loader-icon.mjs --check
           node --import ./scripts/register-test-aliases.mjs --test src/app/login/page.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/auth/signupFeedback.test.ts tests/signup-failure-copy-action.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/update-user.test.ts tests/account-update-actions.test.mjs tests/password-mutation-actions.test.mjs src/lib/recovery-session.test.ts

@@ -337,10 +337,6 @@ body {
   transition: opacity 120ms ease;
 }
 
-html[data-route-loading="true"] .app-edge-frame {
-  opacity: 0;
-}
-
 .app-edge-frame__buffer,
 .app-edge-frame__line,
 .app-edge-frame__echo,
@@ -718,120 +714,143 @@ html[data-route-loading="true"] .app-edge-frame {
   }
 }
 
-.route-loading__grid,
-.route-loading__scan,
-.route-loading__glow,
-.route-loading__particle {
-  pointer-events: none;
-  position: absolute;
-}
-
-.route-loading__grid,
-.route-loading__scan {
+/*
+ * App loader (docs/design-system/LOADER-SPEC.md). One overlay for boot and every route wait, mounted once in the root
+ * layout (src/components/AppLoaderHost.tsx). Timings and pulse numbers mirror src/lib/app-loader.ts and Mazer's loader
+ * and are pinned by src/lib/app-loader.contract.test.ts. Compositor-only motion (opacity and transform), no blur, no
+ * blend mode, no mask: the old route loader's full-screen blended layers are gone.
+ *
+ * The root is opaque shell colour from the first paint (the server renders it with data-state="boot"), so nothing
+ * flashes behind it; only the stage (icon and ring) fades in, after the 150 ms show delay, by CSS. After hydration the
+ * host drives the root's opacity (crossfade out, or in again for a later route wait).
+ */
+.app-loader {
+  position: fixed;
   inset: 0;
+  z-index: 95;
+  display: grid;
+  place-content: center;
+  background: #07111b;
+  pointer-events: none;
+  /* 30% of the short side, 88..150 px (LOADER_ICON_SIZE_RATIO / MIN / MAX). */
+  --app-loader-icon: clamp(88px, min(30vw, 30vh), 150px);
+  --app-loader-ring: #c8ed66;
 }
 
-.route-loading__grid {
-  opacity: 0.3;
-  background:
-    radial-gradient(circle at 50% 50%, rgb(var(--loader-scan-rgb) / 0.065), transparent 18%),
-    linear-gradient(120deg, transparent 0%, rgb(var(--loader-scan-rgb) / 0.03) 48%, transparent 100%),
-    linear-gradient(60deg, transparent 0%, rgb(var(--loader-scan-rgb) / 0.024) 52%, transparent 100%);
-  background-size: 100% 100%, 220% 220%, 180% 180%;
-  animation: route-loading-grid-drift 34s linear infinite;
+.app-loader[data-visible="false"] {
+  visibility: hidden;
 }
 
-.route-loading__scan {
-  inset: -12% 0;
-  opacity: 0.34;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    transparent 40%,
-    rgb(var(--loader-scan-rgb) / 0.06) 45%,
-    rgb(var(--loader-scan-rgb) / 0.28) 50%,
-    rgb(var(--loader-scan-rgb) / 0.06) 55%,
-    transparent 60%,
-    transparent 100%
-  );
-  mix-blend-mode: screen;
-  animation: route-loading-scan 18s linear infinite;
+.app-loader__stage {
+  position: relative;
+  width: var(--app-loader-icon);
+  height: var(--app-loader-icon);
 }
 
-.route-loading__glow {
-  border-radius: 999px;
-  filter: blur(42px);
-  opacity: 0.22;
-  animation: route-loading-glow 22s ease-in-out infinite;
+.app-loader[data-state="boot"] .app-loader__stage {
+  opacity: 0;
+  animation: app-loader-stage-in 200ms ease 150ms both;
 }
 
-.route-loading__particle {
-  width: 0.32rem;
-  height: 0.32rem;
-  border-radius: 999px;
-  background: rgb(var(--loader-scan-rgb) / 0.82);
-  box-shadow: 0 0 12px rgb(var(--loader-scan-rgb) / 0.32);
-  animation: route-loading-particle var(--route-loading-duration, 18s) ease-in-out infinite;
-  animation-delay: var(--route-loading-delay, 0ms);
+/* A static soft glow behind the icon (never animated, so nothing repaints per frame). */
+.app-loader__stage::before {
+  content: "";
+  position: absolute;
+  inset: -70%;
+  background: radial-gradient(circle, rgb(200 237 102 / 0.16), rgb(200 237 102 / 0) 62%);
 }
 
-@keyframes route-loading-grid-drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.22;
-  }
-
-  50% {
-    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
-    opacity: 0.34;
-  }
-
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.22;
-  }
+/* Size is reserved by width and height on the element and here; the image is an inline data URI (no request). */
+.app-loader__icon {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 20%;
 }
 
-@keyframes route-loading-scan {
-  0% {
-    transform: translate3d(0, -38%, 0);
+.app-loader__ring {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 22%;
+  border: 2px solid var(--app-loader-ring);
+  opacity: 0;
+}
+
+/* One beat (LOADER_PULSE_PERIOD_MS = 1200 ms). Animations only run while the loader is visible, and restart at the
+   icon edge each time it shows. */
+.app-loader[data-visible="true"] .app-loader__icon {
+  will-change: transform;
+  animation: app-loader-breathe 1.2s ease-in-out infinite;
+}
+
+.app-loader[data-visible="true"] .app-loader__ring {
+  will-change: transform, opacity;
+  animation: app-loader-ring 1.2s ease-out infinite;
+}
+
+/* If scripts never take over the boot cover (a failed bundle), it leaves by itself rather than hiding the page. */
+.app-loader[data-state="boot"][data-hydrated="false"] {
+  animation: app-loader-boot-failsafe 300ms ease 12s forwards;
+}
+
+/* While the loader is up, the decorative layers beneath it stop animating (it is opaque, so nothing is lost). */
+body:has(.app-loader[data-visible="true"]) :is(.app-ambient, .app-edge-frame, .ambient-background),
+body:has(.app-loader[data-visible="true"]) :is(.app-ambient, .app-edge-frame, .ambient-background) * {
+  animation-play-state: paused !important;
+}
+
+@keyframes app-loader-stage-in {
+  from {
     opacity: 0;
   }
 
-  12%,
-  76% {
-    opacity: 0.18;
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-loader-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes app-loader-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
   }
 
   100% {
-    transform: translate3d(0, 38%, 0);
+    transform: scale(1.22);
     opacity: 0;
   }
 }
 
-@keyframes route-loading-glow {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(0.96);
-    opacity: 0.16;
-  }
-
-  50% {
-    transform: translate3d(var(--route-loading-dx, 0px), var(--route-loading-dy, 0px), 0) scale(1.06);
-    opacity: 0.28;
+@keyframes app-loader-boot-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
   }
 }
 
-@keyframes route-loading-particle {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(0.92);
-    opacity: 0.28;
+@media (prefers-reduced-motion: reduce) {
+  /* Movement and pulsing stop: the icon holds still and the ring is a still halo. The fades are the 200 ms crossfade. */
+  .app-loader[data-visible="true"] .app-loader__icon {
+    animation: none;
   }
 
-  50% {
-    transform: translate3d(var(--route-loading-particle-dx, 0px), calc(var(--route-loading-particle-dy, 0px) * -1), 0) scale(1.16);
-    opacity: 0.86;
+  .app-loader[data-visible="true"] .app-loader__ring {
+    animation: none;
+    transform: scale(1.08);
+    opacity: 0.28;
   }
 }
 
