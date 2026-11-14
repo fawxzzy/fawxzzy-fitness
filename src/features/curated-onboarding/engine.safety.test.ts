@@ -324,3 +324,35 @@ test("shuffling every array and key order in the intake never changes the routin
 
   assert.deepEqual(a, b);
 });
+
+test("a named medical condition in free text requires clearance (conservative, deterministic)", () => {
+  for (const [key, text] of [
+    ["medicalConditions", "I am 20 weeks pregnant"],
+    ["medicalConditions", "High blood pressure, on medication"],
+    ["medicalConditions", "Had knee surgery in March"],
+    ["painDetails", "Heart murmur since childhood"],
+    ["medicationConsiderations", "Beta blocker lowers my heart rate"],
+  ] as const) {
+    const responses = clearSafetyResponses({ [key]: text });
+    assert.equal(evaluateCuratedSafetyGate(intake({}, responses)).status, "clearance-required", `${key}: ${text}`);
+    const result = resolveCuratedWorkoutPlan(intake({}, responses));
+    assert.equal(result.status, "blocked", text);
+    if (result.status === "blocked") assert.equal(result.reason, "safety-clearance-required");
+  }
+  for (const text of ["N.A.", "none", "No", "Mild seasonal allergies", ""]) {
+    assert.equal(evaluateCuratedSafetyGate(intake({}, clearSafetyResponses({ medicalConditions: text }))).status, "clear", text);
+  }
+});
+
+test("more joint and region limitations remove the roles that load them, and never match inside another word", () => {
+  const slugsFor = (limitations: string) => generateCuratedWorkoutPlan(intake({ equipment: ["full-gym"], limitations }))
+    .days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
+  // Hip loads every lower-body role: the day is too thin, so generation fails closed rather than guessing.
+  assert.throws(() => slugsFor("Hip impingement"), /Too few exercises remain/);
+  const elbow = slugsFor("Tennis elbow");
+  assert.equal(elbow.includes("barbell-bench-press"), false);
+  assert.equal(elbow.includes("overhead-press"), false);
+  // "relationship" and "ship" contain "hip"; "back squat" is an exercise name, not a back complaint.
+  assert.equal(slugsFor("Stressful relationship, shipping job").includes("back-squat"), true);
+  assert.equal(slugsFor("Lower back pain").includes("back-squat"), false);
+});
