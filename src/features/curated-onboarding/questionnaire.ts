@@ -749,6 +749,10 @@ export function formatCuratedResponse(question: CuratedQuestionDefinition, respo
   return question.required ? "Not answered" : "Not provided";
 }
 
+function isNotApplicableAnswer(value: string) {
+  return ["", "n/a", "na", "n.a.", "n.a", "none", "no", "nope", "nothing"].includes(value.trim().toLowerCase());
+}
+
 function splitTextList(value: string) {
   return value
     .split(/[,\n]/)
@@ -906,6 +910,8 @@ export function deriveCuratedEngineData(
     getStringResponse(responses, "medicalConditions"),
     medications === "yes" ? getStringResponse(responses, "medicationConsiderations") : "",
     professionalRestrictions === "yes" ? getStringResponse(responses, "restrictedMovements") : "",
+    // Movements the member called painful or "sketchy" are treated as stated limitations (conservative).
+    isNotApplicableAnswer(getStringResponse(responses, "uncomfortableExercises")) ? "" : getStringResponse(responses, "uncomfortableExercises"),
   ].filter(Boolean).join("\n")
     || (
       hasPainOrLimitationsResponse || medicationsResponse || professionalRestrictionsResponse

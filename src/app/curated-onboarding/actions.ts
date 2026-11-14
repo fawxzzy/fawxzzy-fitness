@@ -14,11 +14,11 @@ import {
 import {
   buildCuratedRoutineSchedule,
   deriveCuratedExerciseTarget,
-  type CuratedHistorySignals,
   type CuratedRoutineScheduleDay,
   type CuratedWorkoutPlan,
 } from "@/features/curated-onboarding/engine";
 import type { CuratedOnboardingData } from "@/features/curated-onboarding/types";
+import { loadCuratedHistorySignals } from "@/app/curated-onboarding/history-signals";
 import { requireUser } from "@/lib/auth";
 import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
 import { ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE } from "@/lib/pro-tier-limits";
@@ -52,76 +52,6 @@ export type GenerateCuratedWorkoutPlanResult =
 export type CreateCuratedRoutineDraftResult =
   | { ok: true; routineId: string; routineName: string }
   | { ok: false; error: string; code?: CuratedGenerationFailureCode; plan?: CuratedWorkoutPlan };
-
-function toCatalogSlug(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-async function loadCuratedHistorySignals(args: {
-  userId: string;
-  activeRoutineId?: string | null;
-  supabase: ReturnType<typeof supabaseServer>;
-}): Promise<CuratedHistorySignals> {
-  const feedbackResult = await args.supabase
-    .from("session_exercises")
-    .select("copilot_feedback_signal, exercise:exercises(name)")
-    .eq("user_id", args.userId)
-    .not("copilot_feedback_signal", "is", null)
-    .order("copilot_feedback_updated_at", { ascending: false })
-    .limit(40);
-  const failedExerciseSlugs = new Set<string>();
-  const fatiguedExerciseSlugs = new Set<string>();
-  const painOrFormExerciseSlugs = new Set<string>();
-  for (const row of (feedbackResult.data ?? []) as Array<{
-    copilot_feedback_signal?: string | null;
-    exercise?: { name?: string | null } | Array<{ name?: string | null }> | null;
-  }>) {
-    const exercise = Array.isArray(row.exercise) ? row.exercise[0] : row.exercise;
-    const slug = exercise?.name ? toCatalogSlug(exercise.name) : "";
-    if (!slug) continue;
-    // Pain and form breakdown are never kept in a routine; "too hard" may stay with a visible reason.
-    if (["form_breakdown", "pain_flag"].includes(row.copilot_feedback_signal ?? "")) {
-      painOrFormExerciseSlugs.add(slug);
-    }
-    if (row.copilot_feedback_signal === "too_hard") {
-      failedExerciseSlugs.add(slug);
-    }
-    if (["too_hard", "bad_day"].includes(row.copilot_feedback_signal ?? "")) {
-      fatiguedExerciseSlugs.add(slug);
-    }
-  }
-
-  if (!args.activeRoutineId) {
-    return {
-      completionRate: null,
-      missedWorkoutCount: 0,
-      failedExerciseSlugs: [...failedExerciseSlugs],
-      fatiguedExerciseSlugs: [...fatiguedExerciseSlugs],
-      painOrFormExerciseSlugs: [...painOrFormExerciseSlugs],
-    };
-  }
-
-  const since = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
-  const [routineResult, trainingDaysResult, completedSessionsResult] = await Promise.all([
-    args.supabase.from("routines").select("created_at").eq("id", args.activeRoutineId).eq("user_id", args.userId).maybeSingle(),
-    args.supabase.from("routine_days").select("id", { count: "exact", head: true }).eq("routine_id", args.activeRoutineId).eq("user_id", args.userId).eq("is_rest", false),
-    args.supabase.from("sessions").select("id", { count: "exact", head: true }).eq("routine_id", args.activeRoutineId).eq("user_id", args.userId).eq("status", "completed").gte("performed_at", since),
-  ]);
-  const createdAtMs = routineResult.data?.created_at ? Date.parse(routineResult.data.created_at) : Number.NaN;
-  const elapsedWeeks = Number.isFinite(createdAtMs)
-    ? Math.min(4, Math.max(1, Math.ceil((Date.now() - createdAtMs) / (7 * 24 * 60 * 60 * 1000))))
-    : 4;
-  const expectedWorkouts = Math.max(0, trainingDaysResult.count ?? 0) * elapsedWeeks;
-  const completedWorkouts = Math.max(0, completedSessionsResult.count ?? 0);
-
-  return {
-    completionRate: expectedWorkouts > 0 ? Math.min(1, completedWorkouts / expectedWorkouts) : null,
-    missedWorkoutCount: Math.max(0, expectedWorkouts - completedWorkouts),
-    failedExerciseSlugs: [...failedExerciseSlugs],
-    fatiguedExerciseSlugs: [...fatiguedExerciseSlugs],
-    painOrFormExerciseSlugs: [...painOrFormExerciseSlugs],
-  };
-}
 
 type SupabaseClient = ReturnType<typeof supabaseServer>;
 
