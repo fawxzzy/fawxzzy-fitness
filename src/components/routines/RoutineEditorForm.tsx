@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import {
   ACTION_CHROME_CONTROL_CLASS_NAME,
   ACTION_CHROME_RAIL_CLASS_NAME,
@@ -12,7 +12,8 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { InlineEdgeControlButton, INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME } from "@/components/ui/InlineEdgeControlButton";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import { CardHeader, CardSurface } from "@/components/ui/card-system";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
@@ -129,8 +130,8 @@ function RoutineEditorControlCaption({
 }) {
   return (
     <div className="text-center">
-      <p className={cn("text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]", labelClassName)}>{label}</p>
-      {detail ? <p className="mt-1 text-[10px] text-[rgb(var(--text-muted)/0.82)]">{detail}</p> : null}
+      <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]", labelClassName)}>{label}</p>
+      {detail ? <p className="mt-1 text-[11px] text-[rgb(var(--text-muted)/0.82)]">{detail}</p> : null}
     </div>
   );
 }
@@ -188,7 +189,7 @@ const routineEditorCycleFieldWidthClassName = "w-[9.75rem]";
 // A native date value ("11/12/2026") plus the picker icon and the field padding needs more room than the number steppers.
 const routineEditorCycleDateFieldWidthClassName = "w-[11.5rem]";
 const routineEditorCycleFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
-const routineEditorCycleFieldLegendClassName = "ml-auto mr-3 whitespace-nowrap px-1 py-0 text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-[rgb(var(--accent)/0.94)]";
+const routineEditorCycleFieldLegendClassName = "ml-auto mr-3 whitespace-nowrap px-1 py-0 text-[11px] font-semibold uppercase leading-none tracking-[0.14em] text-[rgb(var(--accent)/0.94)]";
 const routineEditorCompactExpandingControlWidthClassName = "w-full max-w-[9rem]";
 
 type RoutineEditorInfoPayload = {
@@ -338,53 +339,38 @@ function RoutineEditorCollapsibleSection({
   sectionKey?: RoutineEditorInfoSectionKey;
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const panelId = useId();
 
   return (
-    <section className="w-full max-w-full rounded-[1rem] bg-transparent shadow-none">
-      <button
-        type="button"
-        className={cn(
-          "group block min-h-11 w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pt-3 pb-2 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
-          appTokens.routineEditorInlineTitle,
-        )}
-        onClick={() => {
-          setIsExpanded((current) => {
-            const nextValue = !current;
-            if (sectionKey) {
-              publishRoutineEditorSectionToggle({
-                sectionKey,
-                isOpen: nextValue,
-              });
-            }
-            return nextValue;
-          });
+    <CardSurface as="section" tone={isExpanded ? "current" : "neutral"} data-routine-editor-section={sectionKey ?? "section"}>
+      <CardHeader
+        headingLevel={3}
+        title={title}
+        interaction={{
+          kind: "toggle",
+          expanded: isExpanded,
+          controlsId: panelId,
+          onToggle: () => {
+            setIsExpanded((current) => {
+              const nextValue = !current;
+              if (sectionKey) {
+                publishRoutineEditorSectionToggle({
+                  sectionKey,
+                  isOpen: nextValue,
+                });
+              }
+              return nextValue;
+            });
+          },
+          buttonProps: info ? routineEditorInfoHandlers(info) : undefined,
         }}
-        aria-expanded={isExpanded}
-        {...(info ? routineEditorInfoHandlers(info) : {})}
-      >
-        <span className="grid grid-cols-[1.25rem_minmax(0,1fr)_1.25rem] items-center">
-          <span aria-hidden="true" />
-          <span className="min-w-0 w-full text-center">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]">{title}</span>
-          </span>
-          <span
-            className={cn(
-              "flex items-center justify-end transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]",
-              isExpanded ? "text-[rgb(var(--accent-divider-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.84)]",
-            )}
-          >
-            {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-          </span>
-        </span>
-        <MetricAccentBar variant="thin" className="mt-1 opacity-80 transition-opacity group-hover:opacity-100" />
-      </button>
-
+      />
       {isExpanded ? (
-        <div className={cn(appTokens.routineEditorCompactStack, "px-3 pb-3 pt-1")}>
+        <div id={panelId} className={cn(appTokens.routineEditorCompactStack, "px-3 pb-3 pt-1")}>
           {children}
         </div>
       ) : null}
-    </section>
+    </CardSurface>
   );
 }
 
@@ -482,7 +468,7 @@ function RoutineEditorInlineUnitGroup({
   return (
     <div className="min-w-0 w-[9rem] shrink-0 space-y-2">
       <div className="mx-auto w-fit max-w-full space-y-1 text-center">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.96)]">
+        <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.96)]">
           {title}
         </p>
         <MetricAccentBar variant="thin" className="w-full opacity-85" />
@@ -511,7 +497,7 @@ export function RoutineEditorInlineCycleModeControl({
       })}
     >
       <div className="space-y-[2px]">
-        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+        <div className="px-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
           Routine Type
         </div>
         <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -564,7 +550,7 @@ function RoutineCycleDayDirectionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.32)] bg-transparent p-0 transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.32)] bg-transparent p-0 transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2",
         direction === "up"
           ? "hover:bg-[rgb(var(--accent)/0.12)] focus-visible:ring-[rgb(var(--accent)/0.22)]"
           : direction === "down"
@@ -816,8 +802,8 @@ export function RoutineEditorInlineCycleControls({
   const dayDirectionRow = onToggleEffortWaveDirection ? (
     <div className="space-y-2">
       <div className="mx-auto w-fit max-w-full space-y-1 text-center">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          Workout Plan Adjustments
+        <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          Day adjustments
         </p>
         <MetricAccentBar variant="thin" className="w-full opacity-85" />
       </div>
@@ -828,8 +814,8 @@ export function RoutineEditorInlineCycleControls({
           {Array.from({ length: visibleDayCount }, (_, index) => {
             const direction = effortWaveDirections?.[index] ?? "straight";
             return (
-              <div key={`cycle-day-direction-${index + 1}`} className="flex min-w-[2.25rem] shrink-0 flex-col items-center gap-1 text-center">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+              <div key={`cycle-day-direction-${index + 1}`} className="flex min-w-[2.75rem] shrink-0 flex-col items-center gap-1 text-center">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
                   {index + 1}
                 </span>
                 <MetricAccentBar variant="thin" className="w-5 opacity-80" />
@@ -850,7 +836,7 @@ export function RoutineEditorInlineCycleControls({
       <div className="space-y-3">
         {showSectionTitle ? (
           <div className="space-y-[2px] text-center">
-            <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+            <div className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
               Routine Type
             </div>
             <MetricAccentBar variant="thin" className="mx-auto w-12 opacity-80" />

@@ -80,7 +80,7 @@ function EditDayAdjustmentButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.32)] bg-transparent p-0 transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.32)] bg-transparent p-0 transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2",
         direction === "up"
           ? "hover:bg-[rgb(var(--accent)/0.12)] focus-visible:ring-[rgb(var(--accent)/0.22)]"
           : direction === "down"

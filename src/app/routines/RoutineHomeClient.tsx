@@ -21,7 +21,7 @@ import {
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { RoutineDayKindCycleAction } from "@/components/routines/RoutineDayKindCycleAction";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { OverlayHeaderBlock, overlayChromeClassNames } from "@/components/ui/OverlayChrome";
 import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -239,7 +239,7 @@ export function RoutineHomeClient({
       formData.set("routineId", routineId);
       const result = await loadWorkoutPlanSourcesAction(formData);
       if (!result.ok) {
-        toast.error(result.error ?? "Could not load workout plans.");
+        toast.error(result.error ?? "Could not load days.");
         return;
       }
 
@@ -250,7 +250,7 @@ export function RoutineHomeClient({
   const handleCreateDay = useCallback((creationMode: "blank" | "duplicate") => {
     if (creationMode === "duplicate") {
       if (!selectedSourceDayId) {
-        toast.error("Choose a workout plan first.");
+        toast.error("Choose a day first.");
         return;
       }
     }
@@ -274,9 +274,9 @@ export function RoutineHomeClient({
           ? await createRoutineDayAction(formData)
           : selectedSourceDayId
             ? await createRoutineDayAction(formData)
-            : { ok: false, error: "Choose a workout plan first." };
+            : { ok: false, error: "Choose a day first." };
         if (!result.ok) {
-          toast.error(result.error ?? (creationMode === "blank" ? "Could not add day." : "Could not duplicate workout plan."));
+          toast.error(result.error ?? (creationMode === "blank" ? "Could not add day." : "Could not duplicate day."));
           setAddDaySubmissionMode(null);
           return;
         }
@@ -284,7 +284,7 @@ export function RoutineHomeClient({
         setIsAddDayMenuOpen(false);
         setIsDuplicateSourceListOpen(false);
         setAddDaySubmissionMode(null);
-        toast.success(creationMode === "blank" ? "Empty day added." : "Workout plan duplicated into a new day.");
+        toast.success(creationMode === "blank" ? "Empty day added." : "Day duplicated into a new day.");
         if (creationMode === "duplicate" && "routineDayId" in result && result.routineDayId) {
           router.push(getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)));
           return;
@@ -292,7 +292,7 @@ export function RoutineHomeClient({
         router.refresh();
       } catch (error) {
         setAddDaySubmissionMode(null);
-        toast.error(error instanceof Error ? error.message : "Could not complete the workout plan action.");
+        toast.error(error instanceof Error ? error.message : "Could not complete the day action.");
       }
     });
   }, [availableWorkoutPlanSources, createRoutineDayAction, routineId, router, selectedSourceDayId, toast]);
@@ -760,17 +760,16 @@ export function RoutineHomeClient({
 
               <div className="space-y-2 pt-3">
                 <RoutineChooserOptionCard
-                  title="Blank workout plan"
+                  title="Blank day"
                   disabled={isBusy}
-                  rightSlot={<ChevronRightIcon className="h-4 w-4" />}
                   onPress={() => handleCreateDay("blank")}
                 />
 
                 <RoutineChooserOptionCard
-                  title="Duplicate workout plan"
+                  title="Duplicate day"
+                  kind="toggle"
                   active={isDuplicateSourceListOpen}
                   disabled={isCreateDayPending || isDeleteDayPending}
-                  rightSlot={isDuplicateSourceListOpen ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
                   onPress={() => {
                     if (isCreateDayPending || isDeleteDayPending) {
                       return;
@@ -785,11 +784,11 @@ export function RoutineHomeClient({
               {isDuplicateSourceListOpen ? (
                 <div className="pt-3">
                   <RoutineDuplicateChooserPanel
-                    title="Choose Workout Plan"
+                    title="Choose Day"
                     list={(
                       isWorkoutPlanSourcesPending ? (
                         <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
-                          Loading workout plans...
+                          Loading days...
                         </div>
                       ) : availableWorkoutPlanSources.length > 0 ? (
                         <RoutineDuplicateChooserListViewport>
@@ -811,7 +810,7 @@ export function RoutineHomeClient({
                         </RoutineDuplicateChooserListViewport>
                       ) : (
                         <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
-                          No workout plans available to duplicate.
+                          No days available to duplicate.
                         </div>
                       )
                     )}
