@@ -25,235 +25,10 @@ const BASELINE_CARD_IDS = new Set([
   "FF-ROUTINE-001", "FF-SEC-001", "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003",
   "FF-SESSION-004", "FF-SESSION-005", "FF-SOC-001", "FF-SOC-002", "FF-TEMPLATES-001",
 ]);
-// The accepted 24-card snapshot retains its existing public-safe decision; board-safe cards join once accepted.
-const ACCEPTED_PUBLIC_CARD_IDS = new Set([
-  "FF-ANALYTICS-001", "FF-ANALYTICS-002", "FF-BETA-001", "FF-ENGINE-001", "FF-ENGINE-002",
-  "FF-GAM-001", "FF-GAM-002", "FF-MKT-001", "FF-ONBOARD-001", "FF-PWA-003", "FF-QA-002",
-  "FF-RECAP-001", "FF-RET-001", "FF-RET-002", "FF-RET-003", "FF-RET-004", "FF-ROUTINE-001",
-  "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004", "FF-SESSION-005",
-  "FF-SOC-001", "FF-SOC-002",
-  // Board-safe cards the owner has fixed and accepted from live verification (2026-11-09).
-  "FF-ACCOUNT-002", "FF-AUTH-001", "FF-QA-003", "FF-RELIABILITY-001", "FF-RET-005",
-]);
 const VISIBILITIES = new Set(["public", "private", "unknown"]);
-const STATUS_MAPPING = new Map([
-  ["fawxzzy_review", { recordStatus: "active", lifecycle: "review" }],
-  ["confirmed", { recordStatus: "candidate", lifecycle: "planning" }],
-  ["planning", { recordStatus: "candidate", lifecycle: "planning" }],
-  ["in_progress", { recordStatus: "active", lifecycle: "in-progress" }],
-  ["review", { recordStatus: "active", lifecycle: "review" }],
-]);
-// Owner-completed (`fixed`) cards export as lifecycle `completed` ONLY when the id is in
-// ACCEPTED_PUBLIC_CARD_IDS and its resolved visibility is `public`. Every other `fixed` card stays
-// excluded, so completed private/monetization/security work never becomes public by accident.
-// record_status "active" mirrors the only closed-type values this exporter has emitted (active, candidate).
-const COMPLETED_MAPPING = { recordStatus: "active", lifecycle: "completed" };
-const isExportedCompleted = (item) => item.status === "fixed" && ACCEPTED_PUBLIC_CARD_IDS.has(item.id) && visibilityFor(item) === "public";
-
-const SUPPLEMENTAL_CARDS = [
-  {
-    cardId: "FF-GAM-002",
-    title: "Expand Achievements and Earned Notifications",
-    priority: "P2",
-    dependsOn: ["FF-GAM-001"],
-    description: "Plan a richer deterministic achievements phase and once-only earned notifications after the current achievement review is accepted.",
-    acceptanceCriteria: ["Milestone unlock rules remain deterministic and safe.", "Notifications are deduplicated and consent-aware.", "No public achievement feed or social-pressure loop is introduced."],
-  },
-  {
-    cardId: "FF-COPILOT-001",
-    title: "Session Copilot / Progression Bot Interface",
-    priority: "P1",
-    dependsOn: ["FF-CORE-001", "FF-HISTORY-001", "FF-TEMPLATES-001"],
-    description: "Complete the deterministic session-copilot action and recap contract while keeping the progression engine authoritative.",
-    acceptanceCriteria: ["Actions remain deterministic and inspectable.", "Recap truth persists into history.", "The interface does not become an opaque chat-first coach."],
-  },
-  {
-    cardId: "FF-ROUTINE-001",
-    title: "Add Optional Planned Workout Days",
-    priority: "P2",
-    dependsOn: [],
-    description: "Distinguish optional workout days from required and rest days without weakening adherence, missed-day, or streak truth.",
-    acceptanceCriteria: ["Routine setup distinguishes required, optional, and rest days.", "Skipped optional days do not count as missed required sessions.", "Completed optional workouts contribute normal session and progression truth."],
-  },
-  {
-    cardId: "FF-HISTORY-001",
-    title: "Rebuild useful history metrics and progression analytics",
-    priority: null,
-    dependsOn: [],
-    description: "Keep History focused on understandable, action-guiding training outcomes rather than filler statistics.",
-    acceptanceCriteria: ["History surfaces useful progression outcomes.", "Secondary diagnostics remain deeper in the flow.", "Low-data states remain clear and truthful."],
-  },
-  {
-    cardId: "FF-PWA-002",
-    title: "Offline-Ready PWA + Persistent Session Restore",
-    priority: "P1",
-    dependsOn: ["FF-PWA-001"],
-    description: "Provide a resilient installed-app experience with bounded offline behavior and deterministic session restoration.",
-    acceptanceCriteria: ["Installed sessions restore deterministically.", "Offline edits fail closed or synchronize predictably.", "Conflict and recovery states are explicit."],
-  },
-  {
-    cardId: "FF-QA-002",
-    title: "Harden Atlas Contracts and CI Environment Verification",
-    priority: "P1",
-    dependsOn: [],
-    description: "Keep Fitness contract exports and environment verification deterministic across local and hosted CI.",
-    acceptanceCriteria: ["Environment classification is deterministic.", "Contract export and check commands produce stable results.", "Hosted checks remain linked to their exact source identity."],
-  },
-  {
-    cardId: "FF-SOC-002",
-    title: "Show Live Active User Presence on Today",
-    priority: "P2",
-    dependsOn: ["FF-ANALYTICS-001", "FF-SOC-001"],
-    description: "Show a privacy-preserving aggregate active-user count on Today without exposing individual identities.",
-    acceptanceCriteria: ["Presence counting rules are deterministic.", "Only aggregate presence is exposed.", "Unavailable and stale states never present false precision."],
-  },
-  {
-    cardId: "FF-TEMPLATES-001",
-    title: "Add per-day exercise templates for easy copy, paste, and modification",
-    priority: null,
-    dependsOn: [],
-    description: "Provide reusable day-level exercise templates without expanding into broad routine sharing.",
-    acceptanceCriteria: ["Day templates are reusable and editable.", "The workflow is clear on mobile.", "Routine sharing remains outside this card."],
-  },
-  {
-    cardId: "FF-RELIABILITY-001",
-    title: "Make Workout Start Atomic",
-    priority: "P1",
-    dependsOn: [],
-    description: "Make starting a workout an all-or-nothing step so an interrupted start never leaves a partial session behind.",
-    acceptanceCriteria: ["Starting a workout either fully succeeds or leaves no partial session.", "Retried or double-tapped starts do not create duplicate sessions.", "The change goes live only after the matching database update is reviewed and applied."],
-  },
-  {
-    cardId: "FF-ACCOUNT-002",
-    title: "Enable Account Portal to Fitness Handoff",
-    priority: "P1",
-    dependsOn: [],
-    description: "Let people who begin in the Fawxzzy account portal continue straight into Fitness without a second sign-in step.",
-    acceptanceCriteria: ["Opening Fitness from the account portal lands the signed-in user in the app.", "When the handoff is unavailable the user sees a clear sign-in path instead of a dead end.", "The handoff stays off until readiness checks pass."],
-  },
-  {
-    cardId: "FF-ACCOUNT-003",
-    title: "Complete Self-Service Account Tools",
-    priority: "P2",
-    dependsOn: [],
-    description: "Finish the self-service account lifecycle: recovering a forgotten sign-in, changing your sign-in details, downloading your own data, and removing your account. Progress: changing sign-in details is merged and live, and saving a reset sign-in was fixed and is live, but neither has been exercised live yet. Recovery is not verified end to end. Data download and account removal are still planned. Not checked on a real phone.",
-    acceptanceCriteria: ["Forgotten-sign-in recovery is verified end to end (not yet verified).", "Changing sign-in details and saving a reset sign-in are exercised live (not yet done).", "People can export their own data.", "People can request account removal with a clear confirmation step."],
-  },
-  {
-    cardId: "FF-AUTH-001",
-    title: "Make Sign-In Outcomes Clear",
-    priority: "P1",
-    dependsOn: [],
-    description: "Show a clear message whenever a sign-in attempt does not complete, instead of quietly returning to the sign-in form.",
-    acceptanceCriteria: ["Every sign-in attempt that does not complete explains the next step.", "Temporary delays tell the user how to retry.", "Successful sign-in behavior is unchanged."],
-  },
-  {
-    cardId: "FF-ACCOUNT-004",
-    title: "Finish Account Site Setup for the Fitness App",
-    priority: "P1",
-    dependsOn: ["FF-AUTH-001"],
-    description: "Complete the shared account site that Fitness relies on for sign-in, sign-out, forgotten-sign-in recovery and returning people to the app, so the account side is finished before more Fitness work builds on it. Done and live as of 2026-11-13: starting sign-up from the account site, clearer sign-up feedback messages, one global sign-out that also signs people out of the app, and saving a changed username or contact address. Checked live only in headless Chromium with a standing test account (sign-in, account site handoff, sign-out then redirect to sign-in); not checked on a real phone. Still open: the recovery link needs an owner setup step on the account side and a live check, and a real-phone pass is pending.",
-    acceptanceCriteria: ["Sign-up, sign-in, sign-out and forgotten-sign-in recovery all work from the account site and return people to the Fitness app.", "The account site and the app always agree on who is signed in.", "Every account screen Fitness links to is complete and checked in the installed phone app (real-phone pass not yet done)."],
-  },
-
-  {
-    cardId: "FF-AUTH-002",
-    title: "Send Branded Account Messages for Fitness and Mazer",
-    priority: "P1",
-    dependsOn: ["FF-AUTH-001"],
-    description: "Account messages such as forgotten-sign-in recovery now come from one no-reply Fawxzzy sender with a per-app look (Fitness green, Mazer cyan). Checked live on 2026-11-10 with a throwaway account: the message arrived, its link opened the new sign-in form, a new sign-in was saved and sign-in worked. Sign-up confirmation messages do not exist while sign-up confirmation is off, so none are sent or need checking; the remaining work is the reset and recovery message path. Not verified: change-of-address messages and other mail clients. The hourly send allowance was raised from 2 to 30 on 2026-11-11 (confirmed by reload); the delivery service's free tier allows 100 messages a day.",
-    acceptanceCriteria: ["Account messages arrive from one branded sender with the app's own look (Fitness green, Mazer cyan).", "Forgotten-sign-in recovery works end to end: the message arrives, its link opens the new sign-in form, a new sign-in is saved and works (checked live 2026-11-10).", "The reset and recovery message path is finished: change-of-address messages are checked and other mail clients are reviewed (not yet verified). Sign-up confirmation messages are not needed while confirmation is off.", "Daily and hourly send allowances are watched as use grows."],
-  },
-  {
-    cardId: "FF-RELIABILITY-002",
-    title: "Lock Down Database Access for Signed-Out Visitors",
-    priority: "P1",
-    dependsOn: [],
-    description: "On 2026-11-10 signed-out visitors lost the ability to run 5 Fitness database functions and 5 internal tables became deny-by-default. The change was applied by approved hash and a rollback file is kept. Re-tested live afterward: sign-in, portal handoff, History and workout resume. Not verified: finishing a workout and reordering a routine were not clicked through.",
-    acceptanceCriteria: ["Signed-out visitors cannot run the five affected Fitness functions.", "The five internal tables deny access by default and a rollback file is kept.", "Sign-in, portal handoff, History and workout resume still work after the change (checked live 2026-11-10).", "Finishing a workout and reordering a routine are clicked through after the change (not yet done)."],
-  },
-  {
-    cardId: "FF-RET-005",
-    title: "Respect the Local Day Boundary in Workout Streaks",
-    priority: "P1",
-    dependsOn: ["FF-RET-002"],
-    description: "Count streak days in the user's local time zone so an evening workout is credited to the day it was logged.",
-    acceptanceCriteria: ["A workout logged in the evening counts toward that local calendar day.", "Streak, best-streak, and calendar views agree on day boundaries.", "Users without a saved time zone keep a clear, documented default."],
-  },
-  {
-    cardId: "FF-QA-003",
-    title: "Return a Proper Not-Found Status for Missing Pages",
-    priority: "P2",
-    dependsOn: [],
-    description: "Pages for items that do not exist or are unavailable should respond with a real not-found status along with the friendly not-found screen.",
-    acceptanceCriteria: ["Missing or unavailable pages respond with a not-found status, not a success status.", "The friendly not-found screen still renders.", "Existing pages are unaffected."],
-  },
-  {
-    cardId: "FF-DESIGN-001",
-    title: "Consistent cards across the app",
-    priority: "P2",
-    dependsOn: [],
-    description: "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system is merged and live on the Routines, Today, Settings, Session and History screens. Checked only in headless Chromium, on development fixtures and in a signed-in render sweep of those screens (no overflow, no console errors, no controls under 32px), not on a real phone. Still to do: the routine editor and routine creation, heatmap labels under 11px, the History filter toggle and the logger plus and minus steppers at 44px, and retiring the old exercise card once nothing uses it.",
-    acceptanceCriteria: ["Routines, Today, Settings, Session and History screens use the shared cards (merged and live).", "Those screens pass a signed-in render sweep with no page overflow and no console errors (headless Chromium only).", "Heatmap labels are at least 11px, and the History filter toggle and logger steppers are 44px (not yet done).", "The routine editor and routine creation use the shared cards (not yet done).", "The old exercise card and row are retired once no screen uses them (not yet done).", "The result is checked in the installed phone app (not yet done)."],
-  },
-  {
-    cardId: "FF-PLATFORM-001",
-    title: "Move to a supported framework version",
-    priority: "P2",
-    dependsOn: ["FF-QA-004"],
-    description: "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned.",
-    acceptanceCriteria: ["The app runs on a supported framework version.", "The framework upgrade is tested before release and rolled out without breaking sign-in or workouts.", "Everyday flows are checked live after the upgrade."],
-  },
-  {
-    cardId: "FF-QA-004",
-    title: "Cover the app with real interaction tests",
-    priority: "P2",
-    dependsOn: [],
-    description: "Add a library for testing what people see and tap, sort out 13 stale tests that are currently left out of the all-tests job, and wire the QA scripts so they run together.",
-    acceptanceCriteria: ["A screen-level test library is added and used for key flows.", "The 13 stale tests are fixed or retired and included in the all-tests job.", "QA scripts run together from one command."],
-  },
-  {
-    cardId: "FF-RELIABILITY-003",
-    title: "Keep set logging working offline",
-    priority: "P2",
-    dependsOn: [],
-    description: "Logging a set with the connection off now retries and syncs once the connection returns (quick-log retry and sync, #219 and #226), and each set keeps the time it was tapped rather than the time it was replayed (#234). Live. A click-through passed in headless Chromium. Not yet verified: a replay after reconnecting on a real phone.",
-    acceptanceCriteria: ["Sets logged with the connection off are kept and retried.", "After reconnecting, each set appears once.", "Rest timing uses the real tap time, not the replay time.", "A real offline-then-reconnect replay is checked on a real phone (not yet done)."],
-  },
-  {
-    cardId: "FF-TODAY-004",
-    title: "Show when an exercise has no target",
-    priority: "P3",
-    dependsOn: [],
-    description: "Today rows no longer show 'Goal missing' for an exercise without a target. Add a quiet 'No target set' cue so the gap stays visible without nagging. The day editor still shows the missing target.",
-    acceptanceCriteria: ["An exercise without a target shows a quiet 'No target set' cue on Today.", "Today rows do not show 'Goal missing'.", "The day editor keeps showing the missing target."],
-  },
-  {
-    cardId: "FF-DESIGN-002",
-    title: "Finish the remaining screens on the shared card style",
-    priority: "P3",
-    dependsOn: ["FF-DESIGN-001"],
-    description: "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens.",
-    acceptanceCriteria: ["The routine editor, routine creation, exercise picker, progression editor and stretch panel use the shared cards.", "No text on these screens is below the app minimum size, and no control is under 32px.", "The screens are checked in a signed-in render sweep and on a real phone."],
-  },
-  {
-    cardId: "FF-DESIGN-003",
-    title: "Smoother loading screen shared with Mazer",
-    priority: "P3",
-    dependsOn: [],
-    description: "The app now opens on one shared loading screen that waits 150 ms before showing, stays up for at least 350 ms and fades in and out, with the same timing as Mazer. Live. Checked only in headless Chromium with phone emulation, including a slow network (solid cover at the first frame, hidden by about 840 ms, taps work). Not checked on a real phone: iOS home-screen launch and Reduce Motion.",
-    acceptanceCriteria: ["Fast loads open without a flash of the loading screen.", "The loading screen never sticks and taps work once it is gone.", "Timing matches Mazer (150 ms delay, 350 ms hold, fades).", "iOS home-screen launch and Reduce Motion are checked on a real phone (not yet done)."],
-  },
-  {
-    cardId: "FF-DESIGN-004",
-    title: "Small leftovers after the card redesign",
-    priority: "P3",
-    dependsOn: ["FF-DESIGN-001"],
-    description: "Small items found after the card redesign: the Today offline info control has the wrong id, the History page has no top-level heading, and Finish shows minutes as 75 min instead of 1h 15m. Also still to do: 44px logger steppers and heatmap labels of at least 11px.",
-    acceptanceCriteria: ["The Today offline info control has a correct, unique id.", "The History page has one top-level heading.", "Finish shows long durations as 1h 15m rather than 75 min.", "Logger steppers are 44px and heatmap labels are at least 11px."],
-  },
-];
-
+const REQUIRED_OWNER_STATUSES = ["fawxzzy_review", "confirmed", "planning", "in_progress", "review", "fixed"];
+const RECORD_STATUSES = new Set(["active", "candidate"]);
+const LIFECYCLES = new Set(["planning", "in-progress", "review", "completed"]);
 const normalize = (value) => String(value).replace(/\r\n?/g, "\n");
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const uniqueSorted = (values) => [...new Set(values)].sort((left, right) => left.localeCompare(right));
@@ -271,24 +46,59 @@ function normalizeTimestamp(value) {
   return parsed.toISOString();
 }
 
-function sourceCards() {
+// Export policy now lives in the owner registry (acceptedPublicCardIds, statusMapping); the exporter only validates and applies it.
+// Owner-completed (`fixed`) cards export as lifecycle `completed` ONLY when the id is in acceptedPublicCardIds and its
+// resolved visibility is `public`. Every other `fixed` card stays excluded, so completed private/monetization/security
+// work never becomes public by accident. The accepted 24-card snapshot keeps its public-safe decision; board-safe cards
+// join once the owner has accepted them.
+function loadPolicy(registry) {
+  const ids = registry.acceptedPublicCardIds;
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string" || !STABLE_CARD_ID.test(id)) || new Set(ids).size !== ids.length) throw new Error("registry acceptedPublicCardIds must be unique stable FF ids");
+  const mapping = registry.statusMapping;
+  if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) throw new Error("registry statusMapping must be an object");
+  const statusMapping = new Map();
+  for (const status of REQUIRED_OWNER_STATUSES) {
+    const entry = mapping[status];
+    if (!entry || !RECORD_STATUSES.has(entry.recordStatus) || !LIFECYCLES.has(entry.lifecycle)) throw new Error(`registry statusMapping.${status} is invalid`);
+    statusMapping.set(status, { recordStatus: entry.recordStatus, lifecycle: entry.lifecycle });
+  }
+  if (Object.keys(mapping).length !== REQUIRED_OWNER_STATUSES.length) throw new Error("registry statusMapping has unsupported statuses");
+  return { accepted: new Set(ids), statusMapping };
+}
+
+// Cards authored in the registry carry their prose under `card`; a card's `sourcePath` keeps its legacy source_ref/evidence
+// path (default: the registry itself).
+function registryCards(registry) {
+  return registry.workItems.filter((item) => item.card !== undefined).map((item) => {
+    if (!item.card || typeof item.card !== "object" || Array.isArray(item.card)) throw new Error(`invalid registry card ${item.id}`);
+    const { sourcePath = REGISTRY_PATH, ...fields } = item.card;
+    return [{ cardId: item.id, ...fields }, requireString(sourcePath, `${item.id}.card.sourcePath`)];
+  });
+}
+
+function sourceCards(registry) {
   const byId = new Map();
-  for (const [cards, sourcePath] of [[FEEDBACK_MONETIZATION_ROADMAP, ROADMAP_PATH], [FEEDBACK_SESSION_TIMER_CARDS, SESSION_PATH], [SUPPLEMENTAL_CARDS, ADAPTER_PATH]]) {
+  const registrySources = registryCards(registry);
+  for (const [cards, sourcePath] of [[FEEDBACK_MONETIZATION_ROADMAP, ROADMAP_PATH], [FEEDBACK_SESSION_TIMER_CARDS, SESSION_PATH]]) {
     for (const card of cards) {
       const id = requireString(card.cardId, "cardId");
       if (!STABLE_CARD_ID.test(id)) throw new Error(`invalid source card ${id}`);
       if (byId.has(id)) throw new Error(`duplicate source card ${id}`);
-      // Keep legacy supplemental refs stable; new cards use the defining file.
-      byId.set(id, { card, sourcePath: sourcePath === ADAPTER_PATH && BASELINE_CARD_IDS.has(id) ? REGISTRY_PATH : sourcePath });
+      byId.set(id, { card, sourcePath });
     }
+  }
+  for (const [card, sourcePath] of registrySources) {
+    if (!STABLE_CARD_ID.test(card.cardId)) throw new Error(`invalid source card ${card.cardId}`);
+    if (byId.has(card.cardId)) throw new Error(`duplicate source card ${card.cardId}`);
+    byId.set(card.cardId, { card, sourcePath });
   }
   return byId;
 }
 
-function visibilityFor(item) {
+function visibilityFor(item, policy) {
   if (item.visibility === undefined) {
     if (!BASELINE_CARD_IDS.has(item.id)) throw new Error(`${item.id} requires explicit visibility: public, private or unknown`);
-    return ACCEPTED_PUBLIC_CARD_IDS.has(item.id) ? "public" : "unknown";
+    return policy.accepted.has(item.id) ? "public" : "unknown";
   }
   if (!VISIBILITIES.has(item.visibility)) throw new Error(`invalid visibility for ${item.id}`);
   return item.visibility;
@@ -329,10 +139,10 @@ function validateDependencyGraph(sources) {
   if (ready.length !== sources.size) throw new Error("Fitness source dependency cycle");
 }
 
-function mapCard(item, source, sourcePath) {
-  const mapping = item.status === "fixed" ? COMPLETED_MAPPING : STATUS_MAPPING.get(item.status);
+function mapCard(item, source, sourcePath, policy) {
+  const mapping = policy.statusMapping.get(item.status);
   if (!mapping) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
-  const visibility = visibilityFor(item);
+  const visibility = visibilityFor(item, policy);
   const sourceRef = `${atlasPath(sourcePath)}#${item.id}`;
   const normalizedId = item.id.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return {
@@ -386,22 +196,23 @@ export function buildProjectBoardOwnerExport(registry, sourceBytes) {
     || provenance.researchCandidateImport.stableIdOverlapCount !== 0 || provenance.excludedOwnerRecords?.recordCount !== 18) {
     throw new Error("Fitness reconciliation denominator is incomplete");
   }
-  const sources = sourceCards();
+  const policy = loadPolicy(registry);
+  const sources = sourceCards(registry);
   const validatedSources = new Map();
   for (const item of registry.workItems) {
     if (!sources.has(item.id)) throw new Error(`missing scoped source card ${item.id}`);
-    if (item.status !== "fixed" && !STATUS_MAPPING.has(item.status)) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
+    if (!policy.statusMapping.has(item.status)) throw new Error(`unsupported live status for ${item.id}: ${item.status}`);
     normalizeTimestamp(item.updatedAt);
-    visibilityFor(item);
+    visibilityFor(item, policy);
     validatedSources.set(item.id, validateSourceCard(item, sources.get(item.id).card, validIds));
   }
   validateDependencyGraph(validatedSources);
   const combined = [sourceBytes.registry, sourceBytes.roadmap, sourceBytes.session, sourceBytes.adapter].map(normalize).join("\n--FITNESS-OWNER-SOURCE--\n");
   const sourceRevision = `sha256:${digest(combined)}`;
   const generatedAt = normalizeTimestamp(registry.updatedAt);
-  const cards = registry.workItems.filter((item) => item.status !== "fixed" || isExportedCompleted(item)).map((item) => {
+  const cards = registry.workItems.filter((item) => item.status !== "fixed" || (policy.accepted.has(item.id) && visibilityFor(item, policy) === "public")).map((item) => {
     const source = sources.get(item.id);
-    return mapCard(item, validatedSources.get(item.id), source.sourcePath);
+    return mapCard(item, validatedSources.get(item.id), source.sourcePath, policy);
   })
     .sort((left, right) => left.record.card_id.localeCompare(right.record.card_id));
   return {

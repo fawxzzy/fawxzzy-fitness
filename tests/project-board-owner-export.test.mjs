@@ -438,3 +438,25 @@ test("binds new-card provenance to its actual collection rather than its ID pref
   const card = f.build().cards.find((entry) => entry.record.card_id === "FF-SESSION-999");
   assert.equal(card.record.source_ref, "repos/fawxzzy-fitness/scripts/feedback-monetization-roadmap.mjs#FF-SESSION-999");
 });
+
+test("reads export policy and supplemental card prose from the registry and fails closed when it is malformed", () => {
+  const build = (mutate) => {
+    const changed = structuredClone(registry);
+    mutate(changed);
+    return () => buildProjectBoardOwnerExport(changed, { ...bytes, registry: JSON.stringify(changed) });
+  };
+  assert.ok(registry.workItems.some((item) => item.card), "registry carries card prose");
+  assert.ok(Array.isArray(registry.acceptedPublicCardIds) && registry.statusMapping.fixed.lifecycle === "completed");
+  assert.equal(registry.workItems.find((item) => item.id === "FF-GAM-002").card.title, "Expand Achievements and Earned Notifications");
+  // Cards that used to live in the exporter keep their legacy source_ref and evidence through card.sourcePath.
+  const legacy = buildProjectBoardOwnerExport(registry, bytes).cards.find((card) => card.record.card_id === "FF-AUTH-001");
+  assert.deepEqual(legacy.content.evidence, ["repos/fawxzzy-fitness/scripts/export-project-board-owner.mjs"]);
+  assert.throws(build((r) => { delete r.statusMapping; }), /statusMapping must be an object/);
+  assert.throws(build((r) => { delete r.statusMapping.in_progress; }), /statusMapping\.in_progress is invalid/);
+  assert.throws(build((r) => { r.statusMapping.extra = { recordStatus: "active", lifecycle: "review" }; }), /unsupported statuses/);
+  assert.throws(build((r) => { delete r.acceptedPublicCardIds; }), /acceptedPublicCardIds/);
+  assert.throws(build((r) => { r.acceptedPublicCardIds.push("not-an-id"); }), /acceptedPublicCardIds/);
+  assert.throws(build((r) => { r.workItems.find((item) => item.id === "FF-GAM-002").card.title = ""; }), /title/);
+  // A card defined in the registry cannot also be defined by a generated source.
+  assert.throws(build((r) => { const item = r.workItems.find((entry) => entry.id === "FF-RET-001"); item.card = structuredClone(r.workItems.find((entry) => entry.id === "FF-GAM-002").card); }), /duplicate source card FF-RET-001/);
+});

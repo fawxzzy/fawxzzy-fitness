@@ -1,11 +1,11 @@
 {
   "contract_version": "atlas.project-board.owner-export.v1",
-  "export_id": "pbe_fitness_owner_registry_6d40a3c2d02a",
+  "export_id": "pbe_fitness_owner_registry_a5139494d072",
   "project_id": "fitness",
   "board_id": "fitness:project-feedback:fitness-active",
   "owner": "fitness",
   "adapter_id": "fitness-owner-registry-v1",
-  "source_revision": "sha256:6d40a3c2d02a93aa92eed6746b0cfec7f9690095d290ba679a61453744a59531",
+  "source_revision": "sha256:a5139494d07284be0b880ca703697c075242556c395918f3f1fc78dd615d7acb",
   "generated_at": "2026-11-14T12:00:00.000Z",
   "sources": [
     {
@@ -13,7 +13,7 @@
       "kind": "json",
       "repository": "fawxzzy-fitness",
       "path": "repos/fawxzzy-fitness/config/fitness-owner-work-registry.json",
-      "revision": "sha256:55e96ab17722e2f5be63ce79584cae21bd871f219743ed137427d9f55eed93e0",
+      "revision": "sha256:a7f6b503d744c1134a81d0e78a192f7162dde29dc80cfef516cfccca19f7192d",
       "observed_at": "2026-11-14T12:00:00.000Z"
     },
     {
@@ -37,7 +37,7 @@
       "kind": "generated",
       "repository": "fawxzzy-fitness",
       "path": "repos/fawxzzy-fitness/scripts/export-project-board-owner.mjs",
-      "revision": "sha256:04871b894a16467e00fcac29baab13a53fd91cddc3460d5d6e12bd68d1b65e9e",
+      "revision": "sha256:e8485f9091fb27f574b2999d1ca4ad9acf94c3f28b0d5f462836bf43ba3ec562",
       "observed_at": "2026-11-14T12:00:00.000Z"
     }
   ],
