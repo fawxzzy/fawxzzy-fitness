@@ -4,6 +4,7 @@ import {
   LOADER_FADE_IN_MS,
   LOADER_FADE_OUT_MS,
   LOADER_ICON_MAX_PX,
+  LOADER_BOOT_FAILSAFE_MS,
   LOADER_ICON_MIN_PX,
   LOADER_MIN_HOLD_MS,
   LOADER_REDUCED_CROSSFADE_MS,
@@ -11,6 +12,7 @@ import {
   LOADER_RING_REDUCED_SCALE,
   LOADER_SHOW_DELAY_MS,
   createLoaderMachine,
+  isBootFailsafeFired,
   resolveBootCoverExitDelayMs,
   resolveLoaderFadeMs,
   resolveLoaderIconSizePx,
@@ -208,4 +210,14 @@ test("reduced motion pose: no icon breath, a still halo", () => {
     assert.equal(pose.ringScale, LOADER_RING_REDUCED_SCALE);
     assert.equal(pose.ringAlpha, LOADER_RING_REDUCED_ALPHA);
   }
+});
+
+test("the boot failsafe has fired only once its animation clock reaches the failsafe delay", () => {
+  assert.equal(LOADER_BOOT_FAILSAFE_MS, 8000);
+  assert.equal(isBootFailsafeFired(null), false, "unknown is not fired here (the host also checks computed style)");
+  assert.equal(isBootFailsafeFired(Number.NaN), false);
+  assert.equal(isBootFailsafeFired(0), false);
+  assert.equal(isBootFailsafeFired(LOADER_BOOT_FAILSAFE_MS - 1), false);
+  assert.equal(isBootFailsafeFired(LOADER_BOOT_FAILSAFE_MS), true);
+  assert.equal(isBootFailsafeFired(LOADER_BOOT_FAILSAFE_MS + 300), true, "finished (fill forwards) still counts");
 });

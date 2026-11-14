@@ -23,6 +23,13 @@ cross-repo imports) and pins these numbers with its own test.
 | LOADER_REDUCED_CROSSFADE_MS | 200 | Reduced Motion: both fades are this one crossfade; delay and hold are unchanged. |
 | LOADER_PULSE_PERIOD_MS | 1200 | One beat: ring cycle and icon breath. |
 
+Fitness only (Mazer's splash is not server-rendered, so these two values are not part of the shared sheet):
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| LOADER_BOOT_FAILSAFE_MS | 8000 | If scripts never take over the server-rendered boot cover, CSS removes it after this long (300 ms fade). |
+| LOADER_WAIT_CEILING_MS | 15000 | A wait older than this stops holding the loader (the host fades out and logs `[app-loader]`), so a gate that never resolves cannot pin the opaque cover. |
+
 A new wait during a fade-out turns the fade around from the CURRENT opacity (opacity is continuous in every case).
 The pulse restarts at the icon edge each time the loader becomes visible.
 
@@ -52,7 +59,7 @@ The pulse restarts at the icon edge each time the loader becomes visible.
 
 | App | Backdrop | Ring and glow |
 | --- | --- | --- |
-| Fitness | `#07111b` (the manifest `background_color` and `theme_color`) | `#c8ed66`, sampled from the Fitness icon's neon ring |
+| Fitness | `rgb(var(--bg-0, 7 17 27))` = `#07111b` (the page colour, the manifest `background_color` and `theme_color`) | `#c8ed66`, sampled from the Fitness icon's neon ring |
 | Mazer | `#02080f` | `#3ddbd4` |
 
 ## Behaviour contract
@@ -64,10 +71,11 @@ The pulse restarts at the icon edge each time the loader becomes visible.
 - Exit after boot: wait out whatever is left of the 350 ms hold (`resolveBootCoverExitDelayMs` / Mazer's
   `resolveBootSplashExitDelayMs`: `0` if the stage never showed, otherwise `150 + 350 - elapsed`), then fade out over 300 ms.
 - The icon is a small inline data URI with its size reserved (`width`/`height` attributes and CSS): no request, no pop-in, no layout jump.
-- The overlay takes no pointer events and no focus; app chrome is never hidden or re-shown by the loader (it is covered, then uncovered).
+- Input (Fitness): while the opaque cover is visible and not fading out it takes the taps (`pointer-events: auto`), so nothing invisible behind it can be pressed; during its exit crossfade taps pass through. It takes no focus and makes nothing `inert` (that would drop focus inside the page, and the brief requires focus to survive); the 15 s ceiling bounds how long it can block. App chrome is never hidden or re-shown by the loader (it is covered, then uncovered).
 - Accessibility (Fitness): the visual overlay is `aria-hidden`; a separate polite `role="status"` live region carries the wait's
-  label; `aria-busy` is set on `<main>` while a wait is open.
-- A failed boot (scripts never take over) removes the cover by itself after 12 s (CSS only).
+  label, empty on the server and written only while the loader is actually showing (never for a wait that does not show; during boot
+  only once the icon has shown); `aria-busy` is set on `<main>` while a live wait is open.
+- A failed boot (scripts never take over) removes the cover by itself after 8 s (CSS only). Without scripts (`<noscript>`) the cover is not shown at all. If hydration arrives after the failsafe fired, the host settles straight to hidden; it never brings the cover back to fade it out.
 
 ## App image: one source
 

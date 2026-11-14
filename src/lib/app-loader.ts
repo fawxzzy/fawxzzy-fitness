@@ -26,6 +26,17 @@ export const LOADER_FADE_IN_MS = 200;
 export const LOADER_FADE_OUT_MS = 300;
 /** Reduced motion: both fades are this one crossfade. */
 export const LOADER_REDUCED_CROSSFADE_MS = 200;
+/**
+ * Fitness only (Mazer's splash is not server-rendered): if scripts never take over the server-rendered boot cover, it
+ * removes itself by CSS after this long (globals.css, app-loader-boot-failsafe), so a failed bundle can never hide a
+ * working page. Hydration that arrives after it fired must NOT bring the cover back (see isBootFailsafeFired).
+ */
+export const LOADER_BOOT_FAILSAFE_MS = 8000;
+/**
+ * Fitness only: a wait older than this stops counting as a wait, so a gate that never resolves cannot keep the opaque
+ * cover up forever (the host fades out and logs a diagnostic).
+ */
+export const LOADER_WAIT_CEILING_MS = 15000;
 /** The ring and icon breathe once per beat. */
 export const LOADER_PULSE_PERIOD_MS = 1200;
 
@@ -244,6 +255,15 @@ export function resolveLoaderPose(alpha: number, pulseTimeMs: number, reducedMot
     ringAlpha: a * LOADER_RING_PEAK_ALPHA * (1 - LOADER_EASING.easeOutCubic(phase)),
     ringScale: 1 + LOADER_RING_GROWTH * LOADER_EASING.easeOutCubic(phase),
   };
+}
+
+/**
+ * Whether the CSS boot failsafe has already fired, given the failsafe animation's currentTime (delay included), or
+ * null when unknown. When it has, the cover is already hidden and the host must settle straight to idle instead of
+ * "continuing from opaque" (which would bring it back and fade it out again).
+ */
+export function isBootFailsafeFired(elapsedMs: number | null): boolean {
+  return elapsedMs !== null && Number.isFinite(elapsedMs) && elapsedMs >= LOADER_BOOT_FAILSAFE_MS;
 }
 
 /**

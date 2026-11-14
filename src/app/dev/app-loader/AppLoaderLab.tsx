@@ -11,6 +11,7 @@ const CLIENT_WAITS_MS = [60, 140, 300, 1500] as const;
  */
 export function AppLoaderLab() {
   const [waitMs, setWaitMs] = useState<number | null>(null);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     if (waitMs === null) {
@@ -36,6 +37,15 @@ export function AppLoaderLab() {
           </li>
         ))}
       </ul>
+      <button
+        type="button"
+        data-testid="client-wait-stuck"
+        onClick={() => setStuck((current) => !current)}
+        className="mt-3 block w-full rounded-xl border border-[rgb(var(--stroke-soft)/0.4)] px-4 py-3 text-left"
+      >
+        {stuck ? "Release the never-resolving wait" : "Start a never-resolving wait"}
+      </button>
+      {stuck ? <RouteLoading label="Fixture stuck wait" variant="route" /> : null}
       {waitMs !== null ? <RouteLoading label="Fixture wait" variant="route" /> : null}
     </>
   );

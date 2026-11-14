@@ -135,6 +135,8 @@ export default async function RootLayout({
         <Script id="local-dev-browser-reset" strategy="beforeInteractive">
           {buildLocalDevBrowserResetScript(CURRENT_APP_BUILD_ID)}
         </Script>
+        {/* Without scripts nothing can take over the server-rendered boot cover: do not show it at all. */}
+        <noscript dangerouslySetInnerHTML={{ __html: "<style>.app-loader{display:none}</style>" }} />
         <Script id="app-theme-primer" strategy="beforeInteractive">
           {buildPreHydrationAppBootPrimerScript()}
         </Script>

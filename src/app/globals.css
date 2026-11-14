@@ -730,7 +730,8 @@ body {
   z-index: 95;
   display: grid;
   place-content: center;
-  background: #07111b;
+  /* The page background (--bg-0, 7 17 27 = #07111b = the manifest background), so the cover and the page are one colour. */
+  background: rgb(var(--bg-0, 7 17 27));
   pointer-events: none;
   /* 30% of the short side, 88..150 px (LOADER_ICON_SIZE_RATIO / MIN / MAX). */
   --app-loader-icon: clamp(88px, min(30vw, 30vh), 150px);
@@ -739,6 +740,12 @@ body {
 
 .app-loader[data-visible="false"] {
   visibility: hidden;
+}
+
+/* While the opaque cover is up and not leaving, it takes the taps: nothing invisible behind it can be pressed. It lets
+   input through for its exit crossfade, and a wait older than LOADER_WAIT_CEILING_MS stops counting (host). */
+.app-loader[data-visible="true"]:not([data-leaving="true"]) {
+  pointer-events: auto;
 }
 
 .app-loader__stage {
@@ -790,9 +797,10 @@ body {
   animation: app-loader-ring 1.2s ease-out infinite;
 }
 
-/* If scripts never take over the boot cover (a failed bundle), it leaves by itself rather than hiding the page. */
+/* If scripts never take over the boot cover (a failed bundle), it leaves by itself after LOADER_BOOT_FAILSAFE_MS (8 s)
+   rather than hiding the page. A late hydration must settle straight to hidden (AppLoaderHost), not bring it back. */
 .app-loader[data-state="boot"][data-hydrated="false"] {
-  animation: app-loader-boot-failsafe 300ms ease 12s forwards;
+  animation: app-loader-boot-failsafe 300ms ease 8s forwards;
 }
 
 /* While the loader is up, the decorative layers beneath it stop animating (it is opaque, so nothing is lost). */

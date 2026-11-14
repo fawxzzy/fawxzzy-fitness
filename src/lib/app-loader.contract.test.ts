@@ -54,7 +54,12 @@ test("LOADER-SPEC.md states every shared constant with the same value", () => {
     assert.ok(row, `${name} is in the spec`);
     assert.equal(Number(row.split("|")[2].trim()), value, `${name} value in the spec`);
   }
-  assert.match(spec, /`#07111b`/);
+  for (const [name, value] of [["LOADER_BOOT_FAILSAFE_MS", loader.LOADER_BOOT_FAILSAFE_MS], ["LOADER_WAIT_CEILING_MS", loader.LOADER_WAIT_CEILING_MS]] as const) {
+    const row = spec.split("\n").find((line) => line.startsWith(`| ${name} |`));
+    assert.ok(row, `${name} is in the spec`);
+    assert.equal(Number(row.split("|")[2].trim()), value, `${name} value in the spec`);
+  }
+  assert.match(spec, /rgb\(var\(--bg-0, 7 17 27\)\)/);
   assert.match(spec, /`#c8ed66`/);
   assert.match(spec, /5F1011EF2DB7A4725E991D5FB6347F3E589028669F74BC35F273E6E800F11F03/);
 });
@@ -80,9 +85,58 @@ test("the CSS keyframes and sizes are pinned to the constants", () => {
   assert.match(block, new RegExp(`clamp\\(${loader.LOADER_ICON_MIN_PX}px, min\\(${percent}vw, ${percent}vh\\), ${loader.LOADER_ICON_MAX_PX}px\\)`));
   assert.match(block, /border-radius: 22%;/);
   assert.match(block, /border: 2px solid var\(--app-loader-ring\);/);
-  // Opaque backdrop from the first paint, the same colour as the manifest background.
-  assert.match(block, /background: #07111b;/);
+  // Opaque backdrop from the first paint: the page colour (--bg-0 = 7 17 27 = #07111b), also the manifest background.
+  assert.match(block, /background: rgb\(var\(--bg-0, 7 17 27\)\);/);
+  assert.match(read("src/app/globals.css"), /--bg-0: 7 17 27;/);
   assert.match(read("src/app/manifest.ts"), /background_color: "#07111b"/);
+});
+
+test("the boot failsafe is pinned: a cover that scripts never take over removes itself after 8 s", () => {
+  const block = loaderCssBlock();
+  const seconds = `${loader.LOADER_BOOT_FAILSAFE_MS / 1000}s`;
+  assert.equal(loader.LOADER_BOOT_FAILSAFE_MS, 8000);
+  assert.match(
+    block,
+    new RegExp(`\\.app-loader\\[data-state="boot"\\]\\[data-hydrated="false"\\] \\{\\s*animation: app-loader-boot-failsafe 300ms ease ${seconds} forwards;`),
+  );
+  assert.match(block, /@keyframes app-loader-boot-failsafe \{\s*to \{\s*opacity: 0;\s*visibility: hidden;/);
+  // Hydration is marked from the effect body (a hidden tab never runs frames) and a fired failsafe settles to hidden.
+  const host = read("src/components/AppLoaderHost.tsx");
+  assert.match(host, /isBootFailsafeFired\(/);
+  assert.match(host, /root\.dataset\.hydrated = "true";\s*if \(failsafeFired\) \{\s*continueFromCover = false;\s*settleHidden\(\);/);
+  assert.ok(host.indexOf('root.dataset.hydrated = "true"') < host.indexOf("const run = "), "hydration is marked before any frame callback");
+  assert.doesNotMatch(host.slice(host.indexOf("const run = ")), /dataset\.hydrated/, "never marked from a frame");
+  // No scripts: the cover is not shown at all.
+  const layout = read("src/app/layout.tsx");
+  assert.match(layout, /<noscript dangerouslySetInnerHTML=\{\{ __html: "<style>\.app-loader\{display:none\}<\/style>" \}\} \/>/);
+  assert.ok(layout.indexOf("<noscript") < layout.indexOf("</head>"), "in the head, before first paint");
+});
+
+test("input: the visible cover takes taps, lets them through while leaving, and nothing is made inert", () => {
+  const block = loaderCssBlock();
+  assert.match(block, /\.app-loader \{[^}]*pointer-events: none;/);
+  assert.match(block, /\.app-loader\[data-visible="true"\]:not\(\[data-leaving="true"\]\) \{\s*pointer-events: auto;/);
+  const host = read("src/components/AppLoaderHost.tsx");
+  assert.match(host, /root\.dataset\.leaving = leaving \? "true" : "false"/);
+  assert.match(host, /const leaving = phase === "fading-out"/);
+  // Focus survives: nothing inside the page is made inert or blurred by the loader.
+  assert.doesNotMatch(host, /\.inert|"inert"|\binert=|\.blur\(/);
+});
+
+test("the status region is empty on the server and written only while the loader is showing", () => {
+  const host = read("src/components/AppLoaderHost.tsx");
+  assert.match(host, /<div ref=\{statusRef\} role="status" aria-live="polite" className="sr-only" data-app-loader-status="" \/>/);
+  assert.doesNotMatch(host, /Opening Fitness/, "no server-rendered announcement on every load");
+  assert.match(host, /setAnnounced\(active && frame\.visible && iconSeen \? label : ""\)/);
+  assert.doesNotMatch(host, /useSyncExternalStore/);
+});
+
+test("a wait ceiling holds the loader at most 15 s and logs the stale wait", () => {
+  assert.equal(loader.LOADER_WAIT_CEILING_MS, 15000);
+  const host = read("src/components/AppLoaderHost.tsx");
+  assert.match(host, /getLiveLoaderWaitCount\(now, LOADER_WAIT_CEILING_MS\) > 0/);
+  assert.match(host, /takeStaleLoaderWaits\(now, LOADER_WAIT_CEILING_MS\)/);
+  assert.match(host, /console\.warn\("\[app-loader\]/);
 });
 
 test("the loader has no blur, blend mode or mask, and nothing blocks input", () => {
@@ -137,7 +191,7 @@ test("the host markup is server-rendered opaque, accessible and focus-free", () 
   assert.match(host, /aria-hidden="true"/);
   assert.match(host, /role="status"\s+aria-live="polite"/);
   assert.match(host, /aria-busy/);
-  assert.doesNotMatch(host, /tabIndex|\.focus\(|autoFocus|inert/);
+  assert.doesNotMatch(host, /tabIndex|\.focus\(|autoFocus/);
   assert.match(host, /APP_LOADER_ICON_DATA_URI/);
   assert.match(host, /width=\{APP_LOADER_ICON_PX\}/);
   assert.match(host, /height=\{APP_LOADER_ICON_PX\}/);
