@@ -236,6 +236,22 @@ const SUPPLEMENTAL_CARDS = [
     description: "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens.",
     acceptanceCriteria: ["The routine editor, routine creation, exercise picker, progression editor and stretch panel use the shared cards.", "No text on these screens is below the app minimum size, and no control is under 32px.", "The screens are checked in a signed-in render sweep and on a real phone."],
   },
+  {
+    cardId: "FF-DESIGN-003",
+    title: "Smoother loading screen shared with Mazer",
+    priority: "P3",
+    dependsOn: [],
+    description: "The app now opens on one shared loading screen that waits 150 ms before showing, stays up for at least 350 ms and fades in and out, with the same timing as Mazer. Live. Checked only in headless Chromium with phone emulation, including a slow network (solid cover at the first frame, hidden by about 840 ms, taps work). Not checked on a real phone: iOS home-screen launch and Reduce Motion.",
+    acceptanceCriteria: ["Fast loads open without a flash of the loading screen.", "The loading screen never sticks and taps work once it is gone.", "Timing matches Mazer (150 ms delay, 350 ms hold, fades).", "iOS home-screen launch and Reduce Motion are checked on a real phone (not yet done)."],
+  },
+  {
+    cardId: "FF-DESIGN-004",
+    title: "Small leftovers after the card redesign",
+    priority: "P3",
+    dependsOn: ["FF-DESIGN-001"],
+    description: "Small items found after the card redesign: the Today offline info control has the wrong id, the History page has no top-level heading, and Finish shows minutes as 75 min instead of 1h 15m. Also still to do: 44px logger steppers and heatmap labels of at least 11px.",
+    acceptanceCriteria: ["The Today offline info control has a correct, unique id.", "The History page has one top-level heading.", "Finish shows long durations as 1h 15m rather than 75 min.", "Logger steppers are 44px and heatmap labels are at least 11px."],
+  },
 ];
 
 const normalize = (value) => String(value).replace(/\r\n?/g, "\n");
