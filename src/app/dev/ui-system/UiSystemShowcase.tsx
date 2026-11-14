@@ -15,7 +15,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import {
   resolveUiSystemFixture,
@@ -32,17 +32,13 @@ export function UiSystemShowcase({ fixtureId }: { fixtureId: UiSystemFixtureId }
   const cardRows = useMemo(
     () =>
       fixture.exercises.map((exercise) => (
-        <StandardExerciseRow
+        <TodayExerciseCard
           key={exercise.id}
           exercise={{
             name: exercise.name,
             image_icon_path: exercise.image_icon_path,
+            targets: exercise.summary ?? null,
           }}
-          summary={exercise.summary}
-          badgeText={exercise.badgeText}
-          state={exercise.state}
-          density={exercise.density}
-          showLeadingVisual={exercise.showLeadingVisual ?? true}
         />
       )),
     [fixture.exercises],

@@ -561,7 +561,7 @@ export function MeasurementPanelV2({
           side="left"
           ariaLabel={stepper.decrementAriaLabel}
           onClick={stepper.onDecrement}
-          className="left-1 h-6 w-6 z-20"
+          className="left-0 h-11 w-11 z-20"
           contentClassName="text-[18px] font-semibold"
         >
           -
@@ -570,7 +570,7 @@ export function MeasurementPanelV2({
           side="right"
           ariaLabel={stepper.incrementAriaLabel}
           onClick={stepper.onIncrement}
-          className="right-1 h-6 w-6 z-20"
+          className="right-0 h-11 w-11 z-20"
           contentClassName="text-[18px] font-semibold"
         >
           +

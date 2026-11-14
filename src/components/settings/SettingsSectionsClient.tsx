@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
@@ -52,13 +51,13 @@ export function getSettingsPanelId(section: SettingsSectionId) {
 export function SettingsSectionCard({
   section,
   expanded = false,
-  onPress,
+  href,
   onToggle,
 }: {
   section: SettingsSectionId;
   expanded?: boolean;
-  /** Navigate (Account). */
-  onPress?: () => void;
+  /** Navigate (Account): a real link, so it opens in a new tab and shows its destination. */
+  href?: string;
   /** Expand or collapse (everything else). */
   onToggle?: () => void;
 }) {
@@ -73,8 +72,8 @@ export function SettingsSectionCard({
         title={meta.title}
         meta={<CardMeta items={[meta.summary]} />}
         headingLevel={2}
-        interaction={onPress
-          ? { kind: "press", onPress }
+        interaction={href
+          ? { kind: "link", href }
           : { kind: "toggle", expanded, onToggle: onToggle ?? (() => {}), controlsId: expanded ? getSettingsPanelId(section) : undefined }}
       />
     </CardSurface>
@@ -102,7 +101,6 @@ export function SettingsSectionsClient({
   billingNotice?: "success" | "cancel" | null;
   achievements: HistoryAchievement[];
 }) {
-  const router = useRouter();
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
   // Collapsed: the list of section cards. Expanded: only that section's panel (its card is in the floating header).
@@ -112,7 +110,7 @@ export function SettingsSectionsClient({
         {SETTINGS_SECTION_ORDER.map((section) => (
           <li key={section}>
             {section === "account" ? (
-              <SettingsSectionCard section={section} onPress={() => router.push(getAccountRouteHref("/settings"))} />
+              <SettingsSectionCard section={section} href={getAccountRouteHref("/settings")} />
             ) : (
               <SettingsSectionCard section={section} onToggle={() => setExpandedSection(section)} />
             )}
@@ -127,7 +125,7 @@ export function SettingsSectionsClient({
   return (
     <div id={getSettingsPanelId(expandedSection)} role="region" aria-label={meta?.title} className="space-y-3">
       {expandedSection === "account" ? (
-        <SettingsSectionCard section="account" onPress={() => router.push(getAccountRouteHref("/settings"))} />
+        <SettingsSectionCard section="account" href={getAccountRouteHref("/settings")} />
       ) : null}
       {expandedSection === "achievements" ? <AccountAchievementsSection achievements={achievements} /> : null}
       {expandedSection === "pro" ? <ProAccessSettings snapshot={proAccess} billingNotice={billingNotice} /> : null}
