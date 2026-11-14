@@ -74,10 +74,11 @@ test("Settings sections keep their order and titles; Account navigates, the rest
     ["Account", "Achievements", "Pro Access", "Data", "App Theme", "Discord Connector"],
   );
 
-  const account = render(<SettingsSectionCard section="account" onPress={() => {}} />);
+  const account = render(<SettingsSectionCard section="account" href="/account" />);
   assert.match(account, /<h2[^>]*data-card-title="true"[^>]*>Account<\/h2>/);
-  assert.match(account, /data-card-hit="press"/);
-  assert.match(account, /data-card-affordance="press"/);
+  assert.match(account, /data-card-hit="link"/);
+  assert.match(account, /<a [^>]*href="/account"/);
+  assert.match(account, /data-card-affordance="link"/);
   assert.doesNotMatch(account, /aria-expanded/);
 
   const collapsed = render(<SettingsSectionCard section="data" onToggle={() => {}} />);

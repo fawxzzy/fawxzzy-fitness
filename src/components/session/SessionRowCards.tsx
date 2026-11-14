@@ -20,6 +20,7 @@ import {
   type ExerciseRowCardVisual,
 } from "@/components/workout/ExerciseRowCard";
 import { getDurationWholeMinutes } from "@/lib/duration";
+import { formatDurationShort } from "@/lib/formatting";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { cn } from "@/lib/cn";
 
@@ -302,7 +303,7 @@ export function SessionRowNote({ children }: { children: ReactNode }) {
 /** What the finished card counts per exercise. `SessionExerciseFocus` keeps a live copy (set snapshots, including queued sets) in a ref. */
 export type SessionFinishedExercise = { loggedSetCount: number; isSkipped: boolean };
 
-/** Facts for the finished-session card: exercises worked, sets logged, whole minutes (floored like History). */
+/** Facts for the finished-session card: exercises worked, sets logged, duration through the History formatter (whole minutes, floored; 75 min reads "1h 15m"). */
 export function buildSessionFinishedFacts(args: {
   exercises: SessionFinishedExercise[];
   durationSeconds: number;
@@ -318,7 +319,7 @@ export function buildSessionFinishedFacts(args: {
   }
   const minutes = getDurationWholeMinutes(args.durationSeconds);
   if (minutes >= 1) {
-    facts.push(`${minutes} min`);
+    facts.push(formatDurationShort(minutes * 60) ?? `${minutes}m`);
   }
 
   return facts;

@@ -141,10 +141,7 @@ export function TodayClientShell({
           <OfflineSyncBadge userId={userId} label={display.staleAt ? "Offline" : null} />
 
           <TodayExerciseRows
-            exercises={display.exercises.map((exercise) => ({
-              ...exercise,
-              exerciseId: exercise.exerciseId ?? exercise.id,
-            }))}
+            exercises={display.exercises}
             emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}
             isRestDay={display.routine.isRest}
           />

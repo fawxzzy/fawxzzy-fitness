@@ -74,6 +74,7 @@ export function ExerciseRowCard({
   metaItems,
   targetLabel = "Target",
   targetValues,
+  noTargetLabel,
   progressionLabel,
   progress,
   chips,
@@ -93,6 +94,8 @@ export function ExerciseRowCard({
   metaItems: string[];
   targetLabel?: string;
   targetValues: string[];
+  /** Quiet line shown instead of the target block when `targetValues` is empty (Today: "No target set"). Off by default. */
+  noTargetLabel?: string | null;
   /** Progression state, for example "AUTO - SESSION - SET". Rendered as quiet meta, never as a colour-only cue. */
   progressionLabel?: string | null;
   /** Logged-set or progression progress: a text label with an optional decorative bar. */
@@ -116,9 +119,14 @@ export function ExerciseRowCard({
   allowOverflow?: boolean;
   className?: string;
 }) {
-  const details = targetValues.length > 0 || progressionLabel || progress ? (
+  const showNoTarget = targetValues.length === 0 && Boolean(noTargetLabel);
+  const details = targetValues.length > 0 || showNoTarget || progressionLabel || progress ? (
     <div className="grid gap-1.5">
-      <StatBlock label={targetLabel} values={targetValues} />
+      {showNoTarget ? (
+        <p data-exercise-no-target="true" className="m-0 text-[12px] font-medium leading-tight text-[rgb(var(--text-muted)/0.98)]">{noTargetLabel}</p>
+      ) : (
+        <StatBlock label={targetLabel} values={targetValues} />
+      )}
       {progressionLabel ? (
         <p className="m-0 text-[11px] font-semibold uppercase leading-tight tracking-[0.1em] text-[rgb(var(--text-muted)/0.98)]">{progressionLabel}</p>
       ) : null}

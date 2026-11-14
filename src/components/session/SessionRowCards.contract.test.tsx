@@ -167,7 +167,7 @@ test("finished card: status role, heading, facts from sessions data, Continue hi
     ],
     durationSeconds: 2700,
   });
-  assert.deepEqual(facts, ["2 exercises", "4 sets", "45 min"]);
+  assert.deepEqual(facts, ["2 exercises", "4 sets", "45m"]);
   assert.deepEqual(buildSessionFinishedFacts({ exercises: [{ loggedSetCount: 1, isSkipped: false }], durationSeconds: 59 }), ["1 exercise", "1 set"]);
   assert.deepEqual(buildSessionFinishedFacts({ exercises: [], durationSeconds: 0 }), []);
 
@@ -239,7 +239,12 @@ test("finish minutes are whole minutes floored like History (2670s is 44, not 45
   assert.equal(getDurationWholeMinutes(-5), 0);
   assert.equal(getDurationWholeMinutes(Number.NaN), 0);
   const facts = buildSessionFinishedFacts({ exercises: [{ loggedSetCount: 2, isSkipped: false }], durationSeconds: 2670 });
-  assert.deepEqual(facts, ["1 exercise", "2 sets", "44 min"]);
+  assert.deepEqual(facts, ["1 exercise", "2 sets", "44m"]);
+  assert.deepEqual(
+    buildSessionFinishedFacts({ exercises: [{ loggedSetCount: 2, isSkipped: false }], durationSeconds: 4500 }),
+    ["1 exercise", "2 sets", "1h 15m"],
+    "long sessions read like History, not 75 min",
+  );
 });
 
 test("finish card data source: the live set counts of SessionExerciseFocus (queued sets included), not the server render snapshot", () => {

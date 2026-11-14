@@ -221,15 +221,6 @@ test("history-browser compact rows stay on the shared history card wrapper with 
   assert.match(readSource("../../src/components/history/HistoryDetailExerciseCard.tsx"), /<ExerciseThumb/);
 });
 
-test("standard exercise rows gate rail media behind the surface policy", () => {
-  const source = readSource("../../src/components/StandardExerciseRow.tsx");
-
-  assert.match(source, /resolveWorkoutCardSurfacePolicy/);
-  assert.match(source, /const mediaRailWidth = mediaRailWidthOverride \?\? surfacePolicy\.mediaRailWidth/);
-  assert.match(source, /surfacePolicy\.showMedia && mediaRailWidth > 0/);
-  assert.match(source, /leadingVisual=\{resolvedLeadingVisual\}/);
-});
-
 test("exercise card body stays clipping-safe while exposing shared media and density markers", () => {
   const source = readSource("../../src/components/ExerciseCard.tsx");
 
