@@ -6,6 +6,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { isSessionExpiredResponse, redirectToLoginForExpiredSession } from "@/lib/session-expired-client";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import {
   clearProgressionAppliedPinsForRoutineDay,
@@ -22,6 +23,11 @@ async function requestSessionStart(payload: { selectedDayIndex?: number; routine
     body: JSON.stringify(payload),
   });
 
+  if (isSessionExpiredResponse(response.status)) {
+    redirectToLoginForExpiredSession();
+    return { ok: false, error: "Your session has expired. Sign in again." } satisfies ActionResult<{ sessionId: string }>;
+  }
+
   const result = (await response.json()) as ActionResult<{ sessionId: string }>;
   if (!response.ok && result.ok) {
     return { ok: false, error: "Could not start session" } satisfies ActionResult<{ sessionId: string }>;
@@ -35,6 +41,11 @@ async function requestSessionResume(payload: { sessionId: string; returnTo?: str
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+
+  if (isSessionExpiredResponse(response.status)) {
+    redirectToLoginForExpiredSession();
+    return { ok: false, error: "Your session has expired. Sign in again." } satisfies ActionResult<{ href: string }>;
+  }
 
   const result = (await response.json()) as ActionResult<{ href: string }>;
   if (!response.ok && result.ok) {

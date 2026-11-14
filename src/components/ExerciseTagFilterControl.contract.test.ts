@@ -7,5 +7,5 @@ test("Group by row exposes a clear affordance and uses the shared ordering helpe
 
   assert.match(source, /orderGroupByOptions/);
   assert.match(source, /showGroupByClearButton/);
-  assert.match(source, /setSelectedGroupKey\(clearGroupBySelection\(\)\)/);
+  assert.match(source, /setSelectedGroupKeys\(clearGroupBySelection\(\)\)/);
 });

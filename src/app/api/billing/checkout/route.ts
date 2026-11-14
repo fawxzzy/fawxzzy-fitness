@@ -88,9 +88,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const admin = supabaseAdmin();
-    const entitlementsTable = admin.from("user_entitlements") as any;
-    const billingCustomersTable = admin.from("billing_customers") as any;
-    const billingPurchasesTable = admin.from("billing_purchases") as any;
+    const entitlementsTable = admin.from("user_entitlements");
+    const billingCustomersTable = admin.from("billing_customers");
+    const billingPurchasesTable = admin.from("billing_purchases");
 
     const entitlementResult = await entitlementsTable
       .select("id, user_id, entitlement_key, status, granted_at, expires_at, granted_via_purchase_id, source_subscription_id, created_at, updated_at")

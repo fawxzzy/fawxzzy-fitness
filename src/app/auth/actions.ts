@@ -197,11 +197,11 @@ export async function requestPasswordReset(formData: FormData) {
   const usesUsernameIdentifier = isUsernameIdentifier(identifier);
 
   if (!usesEmailIdentifier && !usesUsernameIdentifier) {
-    redirect(`/login?error=${encodeURIComponent("Enter your email or username to reset your password.")}`);
+    redirect(buildLoginRedirectHref({ error: "identifier_required" }));
   }
 
   if (usesUsernameIdentifier && !hasSupabaseAdminCredential()) {
-    redirect(`/login?error=${encodeURIComponent("Use your email to reset your password.")}`);
+    redirect(buildLoginRedirectHref({ error: "email_required" }));
   }
 
   const supabase = supabaseServer();
@@ -212,9 +212,9 @@ export async function requestPasswordReset(formData: FormData) {
     sendReset: (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo }),
     onSendError: (code) => console.error("Password reset email request failed", { code }),
   });
-  if (result !== "requested") redirect(`/login?error=${encodeURIComponent(result)}`);
+  if (result !== "requested") redirect(buildLoginRedirectHref({ error: result }));
 
-  redirect(`/login?info=${encodeURIComponent("reset_requested")}`);
+  redirect(buildLoginRedirectHref({ info: "reset_requested" }));
 }
 
 export async function requestPasswordResetInline(identifier: string) {

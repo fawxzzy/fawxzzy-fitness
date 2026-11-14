@@ -202,3 +202,40 @@ test("middleware leaves discord verify api public without session cookies", asyn
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("location"), null);
 });
+
+test("middleware answers an expired session on the session JSON endpoints with 401 JSON, not a login redirect", async () => {
+  for (const pathname of ["/api/sessions/start", "/api/sessions/resume"]) {
+    const request = new NextRequest(`https://example.com${pathname}`, {
+      method: "POST",
+      headers: { cookie: "sb-access-token=old-access; sb-refresh-token=bad-refresh" },
+    });
+
+    const response = await handleAuthSessionMiddleware(request, {
+      async recoverSession() {
+        return {
+          status: "failed",
+          failure: { reason: "refresh-token-invalid", loginErrorCode: "session_expired" },
+          error: new Error("Invalid Refresh Token: Refresh Token Not Found"),
+        };
+      },
+    });
+
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get("location"), null);
+    assert.match(response.headers.get("content-type") ?? "", /application\/json/);
+    const body = await response.json();
+    assert.equal(body.ok, false);
+    assert.equal(body.code, "session_expired");
+    assert.equal(body.loginPath, "/login?error=session_expired");
+    const setCookie = response.headers.get("set-cookie") ?? "";
+    assert.match(setCookie, /sb-access-token=;/);
+    assert.match(setCookie, /sb-refresh-token=;/);
+  }
+});
+
+test("middleware answers a session JSON request with no cookies at all with 401 JSON", async () => {
+  const request = new NextRequest("https://example.com/api/sessions/start", { method: "POST" });
+  const response = await handleAuthSessionMiddleware(request);
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).code, "session_expired");
+});
