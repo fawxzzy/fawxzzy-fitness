@@ -1,4 +1,5 @@
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
+import { LOGIN_INFO_COPY, resolveLoginErrorCopy, resolveLoginInfoCopy } from "@/lib/auth-route-feedback";
 import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,27 +17,15 @@ export function resolveLoginRouteMessages(args: {
   infoCode?: string | null;
   verified?: string | null;
 }) {
-  const error =
-    args.errorCode === "confirm_failed"
-      ? "Could not verify your link. Please request a new one."
-      : args.errorCode === "recovery_session_missing"
-        ? "Your reset link expired. Please request a new one."
-        : args.errorCode === "rate_limited"
-          ? "Too many reset requests. Please wait a few minutes and try again."
-          : args.errorCode === "send_failed"
-            ? "Could not send reset email. Please try again in a few minutes."
-        : args.errorCode === "session_expired"
-          ? "Session refresh failed. Re-enter your password to continue."
-          : args.errorCode ?? undefined;
+  // Codes only: unknown `error` / `info` values resolve to nothing (see auth-route-feedback.ts).
+  const error = resolveLoginErrorCopy(args.errorCode);
   const requiresReauth = args.errorCode === "session_expired";
   const info =
-    args.verified === "1" || args.infoCode === "confirmed"
-      ? "Email verified. You can log in now."
-      : args.infoCode === "reset_requested"
-        ? "Reset email sent. Check your inbox."
+    args.verified === "1"
+      ? LOGIN_INFO_COPY.confirmed
       : args.infoCode === "magic_link_sent"
         ? PASSWORD_LOGIN_UI_COPY.helper.default ?? undefined
-        : args.infoCode ?? undefined;
+        : resolveLoginInfoCopy(args.infoCode);
 
   return {
     error,

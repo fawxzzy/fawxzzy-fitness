@@ -1,3 +1,4 @@
+import type { FitnessSupabaseClient } from "@/lib/supabase/schema";
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
@@ -168,7 +169,7 @@ function getRecurringDetailsFromPrice(price: Stripe.Price | null | undefined) {
   };
 }
 
-async function findPurchaseByField(admin: any, field: string, value: string | null) {
+async function findPurchaseByField(admin: FitnessSupabaseClient, field: string, value: string | null) {
   if (!value) {
     return null;
   }
@@ -225,7 +226,7 @@ type SubscriptionPurchaseCandidate = {
 };
 
 async function findSubscriptionPurchaseCandidates(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   invoiceId: string | null;
   sessionId: string | null;
   subscriptionId: string;
@@ -339,7 +340,7 @@ function mergeSubscriptionPurchasePayload(
   };
 }
 
-async function resolveUserIdFromStripeCustomer(admin: any, stripeCustomerId: string | null) {
+async function resolveUserIdFromStripeCustomer(admin: FitnessSupabaseClient, stripeCustomerId: string | null) {
   if (!stripeCustomerId) {
     return null;
   }
@@ -358,7 +359,7 @@ async function resolveUserIdFromStripeCustomer(admin: any, stripeCustomerId: str
 }
 
 async function syncBillingCustomer(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   billingEmail: string | null;
   stripeCustomerId: string;
   subscriptionId?: string | null;
@@ -399,7 +400,7 @@ async function syncBillingCustomer(args: {
 }
 
 async function upsertCompletedLifetimePurchase(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   completedAt: string;
   eventId: string;
   paymentIntentId: string | null;
@@ -464,7 +465,7 @@ async function upsertCompletedLifetimePurchase(args: {
 }
 
 async function upsertSubscriptionPurchase(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   amountTotal?: number | null;
   billingInterval?: "month" | "year" | null;
   billingIntervalCount?: number | null;
@@ -620,7 +621,7 @@ async function upsertSubscriptionPurchase(args: {
 }
 
 async function upsertProEntitlement(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   active: boolean;
   expiresAt: string | null;
   grantedAt: string;
@@ -658,7 +659,7 @@ async function upsertProEntitlement(args: {
 }
 
 async function syncSubscriptionState(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   eventId: string;
   stripeCustomerId: string;
   subscription: Stripe.Subscription;
@@ -713,7 +714,7 @@ async function syncSubscriptionState(args: {
 }
 
 async function handleSubscriptionCheckoutCompleted(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   event: Stripe.Event;
   session: Stripe.Checkout.Session;
   stripeCustomerId: string;
@@ -782,7 +783,7 @@ async function handleSubscriptionCheckoutCompleted(args: {
 }
 
 async function handleInvoicePaid(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   event: Stripe.Event;
   invoice: Stripe.Invoice;
 }) {
@@ -859,7 +860,7 @@ async function handleInvoicePaid(args: {
 }
 
 async function handleInvoicePaymentFailed(args: {
-  admin: any;
+  admin: FitnessSupabaseClient;
   event: Stripe.Event;
   invoice: Stripe.Invoice;
 }) {
@@ -971,7 +972,7 @@ export async function POST(request: NextRequest) {
       signature,
       stripe,
     });
-    const admin = supabaseAdmin() as any;
+    const admin = supabaseAdmin();
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;

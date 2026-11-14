@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    const admin = supabaseAdmin() as any;
+    const admin = supabaseAdmin();
     const customerResult = await admin
       .from("billing_customers")
       .select("stripe_customer_id")

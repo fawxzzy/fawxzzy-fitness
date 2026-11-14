@@ -18,7 +18,7 @@ export type ReconcileCancelledCheckoutResult =
   | { ok: false; status: "error"; purchaseId: string | null; message: string };
 
 async function markPurchaseCancelled(admin: BillingAdminClient, purchaseId: string) {
-  const billingPurchasesTable = admin.from("billing_purchases") as any;
+  const billingPurchasesTable = admin.from("billing_purchases");
   const { error } = await billingPurchasesTable
     .update({
       status: "cancelled",
@@ -32,7 +32,7 @@ async function markPurchaseCancelled(admin: BillingAdminClient, purchaseId: stri
 }
 
 async function loadPendingSubscriptionPurchases(admin: BillingAdminClient, userId: string) {
-  const billingPurchasesTable = admin.from("billing_purchases") as any;
+  const billingPurchasesTable = admin.from("billing_purchases");
   const { data, error } = await billingPurchasesTable
     .select("id, user_id, purchase_kind, status, stripe_checkout_session_id, created_at, updated_at")
     .eq("user_id", userId)

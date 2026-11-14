@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { ensureProfileForEntryBootstrap, ensureProfileWithClient } from "./profile-core.ts";
 
 const PROFILE_SELECT_WITH_EXTENDED_COLUMNS =
-  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit, user_number, user_kind, user_number_assigned_at";
+  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit, show_qa_llel_data, user_number, user_kind, user_number_assigned_at";
 const PROFILE_SELECT_LEGACY = "id, timezone, active_routine_id";
 
 type QueryResult = {

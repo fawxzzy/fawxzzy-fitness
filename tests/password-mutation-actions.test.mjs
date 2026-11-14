@@ -37,6 +37,8 @@ const signupFeedback = load("src/components/auth/signupFeedback.ts", {
   "@/lib/username-policy": { USERNAME_VALIDATION_MESSAGE: "Invalid username" },
 });
 
+const authRouteFeedback = load("src/lib/auth-route-feedback.ts", { "@/lib/password-policy": policy });
+
 const b64urlJson = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 // A decodable access token carrying GoTrue's amr claim. The default is a session created by a recovery link just now.
@@ -89,6 +91,7 @@ function fixture({ token = REQUEST_ACCESS_TOKEN, updateError = null } = {}) {
     "@/lib/supabase/schema": { createFitnessSupabaseClient: unexpected },
     "@/lib/password-policy": policy,
     "@/components/auth/signupFeedback": signupFeedback,
+    "@/lib/auth-route-feedback": authRouteFeedback,
   };
   return {
     calls,
@@ -115,9 +118,8 @@ async function redirected(promise, expected) {
 for (const [label, value] of [["empty", ""], ["six characters", "x".repeat(6)], ["nine characters", "x".repeat(9)], ["missing", null], ["file", new Blob(["synthetic long content"]) ]]) {
   test(`signup and reset form reject ${label} before creating an Auth client`, async () => {
     const { auth, reset, calls } = fixture();
-    const message = encodeURIComponent(policy.NEW_PASSWORD_REQUIREMENT);
     await redirected(auth.signup(form(value)), "/signup?error=password_too_short");
-    await redirected(reset.updatePasswordAction(form(value)), `/reset-password?error=${message}`);
+    await redirected(reset.updatePasswordAction(form(value)), "/reset-password?error=password_requirement");
     assert.equal(calls.clients, 0);
     assert.equal(calls.cookies, 0);
   });
@@ -152,7 +154,7 @@ for (const [label, value] of [["exact minimum", "x".repeat(10)], ["spaces", "  p
 test("confirmation remains an exact match, including whitespace and non-string values", async () => {
   const { reset, calls } = fixture();
   for (const confirmation of ["passphrase", null, new Blob(["  passphrase  "])]) {
-    await redirected(reset.updatePasswordAction(form("  passphrase  ", confirmation)), "/reset-password?error=Passwords%20must%20match");
+    await redirected(reset.updatePasswordAction(form("  passphrase  ", confirmation)), "/reset-password?error=passwords_must_match");
   }
   assert.equal(calls.clients, 0);
 });
@@ -181,7 +183,7 @@ test("only a fresh recovery session may set a password: a normal sign-in token i
   }
   // The form action refuses it the same way and redirects with the same fixed copy.
   const f = fixture({ token: normalSignIn });
-  await redirected(f.reset.updatePasswordAction(form("synthetic passphrase")), `/reset-password?error=${encodeURIComponent(NOT_RECOVERY_COPY)}`);
+  await redirected(f.reset.updatePasswordAction(form("synthetic passphrase")), "/reset-password?error=not_recovery_session");
   assert.equal(f.calls.requests.length, 0);
 });
 

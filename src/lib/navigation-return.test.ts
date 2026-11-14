@@ -58,13 +58,13 @@ test("routine day view back falls back to routines when returnTo is missing or u
 test("routine day edit back returns to routine home and blocks legacy loops", () => {
   assert.equal(
     resolveRoutineDayEditBackHref("routine-1", "day-2", "%2Froutines%2Froutine-1%2Fdays%2Fday-2"),
-    "/routines",
+    "/routines/routine-1",
   );
 
-  assert.equal(resolveRoutineDayEditBackHref("routine-1", "day-2", undefined), "/routines");
+  assert.equal(resolveRoutineDayEditBackHref("routine-1", "day-2", undefined), "/routines/routine-1");
   assert.equal(
     resolveRoutineDayEditBackHref("routine-1", "day-2", "%2Froutines%2Froutine-1%2Fedit"),
-    "/routines",
+    "/routines/routine-1",
   );
 });
 

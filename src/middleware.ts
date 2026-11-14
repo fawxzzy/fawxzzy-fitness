@@ -16,6 +16,7 @@ import {
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { FITNESS_CANONICAL_ORIGIN } from "@/lib/app-origin";
+import { sessionExpiredApiResponse } from "@/lib/api-auth-redirect";
 import { buildRequestScopedUrl } from "@/lib/request-origin";
 import { hostnamesOf, isDevOnlyPath, isDevRouteWithdrawn } from "@/lib/dev-route-guard";
 import {
@@ -60,7 +61,20 @@ function getLoginReturnTo(request: NextRequest) {
   return `${pathname}${search}`;
 }
 
+// Fetch-driven JSON endpoints answer an expired session with 401 JSON; a redirect would hand the client login HTML.
+export const SESSION_JSON_API_PATHS = ["/api/sessions/start", "/api/sessions/resume"];
+
+export function isSessionJsonApiPath(pathname: string) {
+  return SESSION_JSON_API_PATHS.includes(pathname);
+}
+
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
+  if (isSessionJsonApiPath(request.nextUrl.pathname)) {
+    const unauthorized = sessionExpiredApiResponse();
+    clearSessionCookies(unauthorized.cookies);
+    return unauthorized;
+  }
+
   const responseUrl = buildRequestScopedUrl(request, "/login");
 
   if (errorCode) {

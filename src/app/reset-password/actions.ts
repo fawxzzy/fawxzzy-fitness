@@ -9,20 +9,22 @@ import { updateUserWithAccessToken, type UserUpdateFailureReason } from "@/lib/s
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
-import { isValidNewPassword, NEW_PASSWORD_REQUIREMENT } from "@/lib/password-policy";
+import { isValidNewPassword } from "@/lib/password-policy";
+import {
+  buildResetPasswordErrorHref,
+  RESET_PASSWORD_ERROR_COPY,
+  type ResetPasswordErrorCode,
+} from "@/lib/auth-route-feedback";
 
-const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
+const RECOVERY_SESSION_ERROR = RESET_PASSWORD_ERROR_COPY.session_expired;
 
-// Shown when the cookie session is a normal sign-in rather than a recovery link: no write happens.
-const NOT_RECOVERY_SESSION_ERROR = "To change your password while signed in, use Account > Change password.";
-
-const RESET_UPDATE_ERROR_COPY: Record<UserUpdateFailureReason, string> = {
-  session_expired: RECOVERY_SESSION_ERROR,
-  rate_limited: "Too many attempts. Please wait a few minutes and try again.",
-  same_password: "Choose a new password that is different from your current one.",
-  weak_password: "That password is too easy to guess. Choose a different one.",
-  username_taken: "Could not update password. Please try again.",
-  failed: "Could not update password. Please try again.",
+const RESET_UPDATE_ERROR_CODE: Record<UserUpdateFailureReason, ResetPasswordErrorCode> = {
+  session_expired: "session_expired",
+  rate_limited: "rate_limited",
+  same_password: "same_password",
+  weak_password: "weak_password",
+  username_taken: "failed",
+  failed: "failed",
 };
 
 export async function establishRecoverySession(input: { accessToken: string; refreshToken: string }) {
@@ -68,7 +70,7 @@ export async function establishRecoverySession(input: { accessToken: string; ref
 
 export async function updatePassword(newPassword: string) {
   if (!isValidNewPassword(newPassword)) {
-    return { ok: false as const, error: NEW_PASSWORD_REQUIREMENT };
+    return { ok: false as const, error: RESET_PASSWORD_ERROR_COPY.password_requirement, code: "password_requirement" as const };
   }
 
   // One token for the whole step: it is checked for proof of a recovery session here and then used, unchanged, for the
@@ -77,10 +79,8 @@ export async function updatePassword(newPassword: string) {
   const accessToken = getRequestAccessToken();
   const recovery = evaluateRecoverySessionToken(accessToken);
   if (!recovery.ok) {
-    return {
-      ok: false as const,
-      error: recovery.reason === "not_recovery" ? NOT_RECOVERY_SESSION_ERROR : RECOVERY_SESSION_ERROR,
-    };
+    const code: ResetPasswordErrorCode = recovery.reason === "not_recovery" ? "not_recovery_session" : "session_expired";
+    return { ok: false as const, error: RESET_PASSWORD_ERROR_COPY[code], code };
   }
 
   // `auth.updateUser` fails on this request-bound client (no stored session), so the write goes through the access
@@ -95,7 +95,8 @@ export async function updatePassword(newPassword: string) {
   }
 
   console.error("Password reset update failed", { code: result.code, status: result.status });
-  return { ok: false as const, error: RESET_UPDATE_ERROR_COPY[result.reason] };
+  const code = RESET_UPDATE_ERROR_CODE[result.reason];
+  return { ok: false as const, error: RESET_PASSWORD_ERROR_COPY[code], code };
 }
 
 export async function updatePasswordAction(formData: FormData) {
@@ -103,17 +104,17 @@ export async function updatePasswordAction(formData: FormData) {
   const confirmPassword = formData.get("confirmPassword");
 
   if (!isValidNewPassword(password)) {
-    redirect(`/reset-password?error=${encodeURIComponent(NEW_PASSWORD_REQUIREMENT)}`);
+    redirect(buildResetPasswordErrorHref("password_requirement"));
   }
 
   if (password !== confirmPassword) {
-    redirect("/reset-password?error=Passwords%20must%20match");
+    redirect(buildResetPasswordErrorHref("passwords_must_match"));
   }
 
   const result = await updatePassword(password);
 
   if (!result.ok) {
-    redirect(`/reset-password?error=${encodeURIComponent(result.error)}`);
+    redirect(buildResetPasswordErrorHref(result.code));
   }
 
   redirect("/today");

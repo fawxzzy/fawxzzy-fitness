@@ -6,20 +6,22 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ToastFeedbackBridge } from "@/components/ui/ToastFeedbackBridge";
+import { resolveResetPasswordErrorCopy } from "@/lib/auth-route-feedback";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 type ResetPasswordPageProps = {
   searchParams?: {
-    error?: string;
+    error?: string | string[];
     recovery?: string;
   };
 };
 
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const copy = AUTH_MODE_COPY["reset-password"];
-  const error = searchParams?.error;
+  // `error` is an allow-listed code (auth-route-feedback.ts); anything else resolves to nothing.
+  const error = resolveResetPasswordErrorCopy(searchParams?.error);
   const isRecoveryAttempt = searchParams?.recovery === "1";
 
   if (isRecoveryAttempt) {

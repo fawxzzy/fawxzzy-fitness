@@ -316,6 +316,8 @@ export async function buildCanonicalDaySummaries(args: {
   routineDays: RoutineDayRow[];
   allDayExercises: RoutineDayExerciseRow[];
   metadataMode?: "full" | "preview";
+  // Injectable so tests need no request scope; production uses the signed-in user's exercise name map.
+  loadExerciseNameMap?: () => Promise<Map<string, string>>;
 }): Promise<{
   summaries: CanonicalDaySummary[];
 }> {
@@ -342,7 +344,7 @@ export async function buildCanonicalDaySummaries(args: {
       return normalizedExerciseId.length > 0 && !exerciseDetailsById.has(normalizedExerciseId);
     });
   const exerciseNameMap = needsExerciseNameMap
-    ? await getExerciseNameMap()
+    ? await (args.loadExerciseNameMap ?? getExerciseNameMap)()
     : new Map<string, string>();
 
   const summaries: CanonicalDaySummary[] = routineDays.map((day) => {

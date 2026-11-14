@@ -150,6 +150,7 @@ async function buildSingleExerciseSummary(args: {
   };
   const { buildCanonicalDaySummaries } = await import("./routine-day-loader");
   const { summaries } = await buildCanonicalDaySummaries({
+    loadExerciseNameMap: async () => new Map(),
     supabase: createSupabaseStub([args.exercise], [], args.missingColumns ?? []) as never,
     routineDays: [routineDay],
     allDayExercises: [dayExercise],
@@ -354,7 +355,7 @@ test("buildCanonicalDaySummaries keeps partial days startable while fully invali
   ] as never;
 
   const { buildCanonicalDaySummaries } = await import("./routine-day-loader");
-  const { summaries } = await buildCanonicalDaySummaries({ supabase, routineDays, allDayExercises });
+  const { summaries } = await buildCanonicalDaySummaries({ loadExerciseNameMap: async () => new Map(), supabase, routineDays, allDayExercises });
   const partialDay = summaries.find((summary) => summary.day.id === "day-partial");
   const invalidDay = summaries.find((summary) => summary.day.id === "day-invalid");
 
