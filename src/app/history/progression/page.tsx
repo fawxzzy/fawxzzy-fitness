@@ -42,9 +42,7 @@ export default async function HistoryProgressionPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title=""
         activeTab="progression"
-        headerChrome="controlsOnly"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <ProgressionHistorySurface {...data} />
@@ -60,9 +58,7 @@ export default async function HistoryProgressionPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title=""
         activeTab="progression"
-        headerChrome="controlsOnly"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteErrorShell

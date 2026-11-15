@@ -11,9 +11,7 @@ import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface"
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { HistoryHeaderDensityToggle } from "@/components/history/HistoryHeaderDensityToggle";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { PillButton } from "@/components/ui/Pill";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
@@ -490,7 +488,7 @@ export function HistorySessionsClient({
   initialSelectedDayKey = null,
   initialQuery = "",
   initialSelectedTags = [],
-  showBottomActions = true,
+  showHeaderDensityToggle = true,
   sessionHrefOverrides,
   calendarNow,
 }: {
@@ -517,7 +515,8 @@ export function HistorySessionsClient({
   initialSelectedDayKey?: string | null;
   initialQuery?: string;
   initialSelectedTags?: string[];
-  showBottomActions?: boolean;
+  /** Portal the Compact / Detailed toggle into the History header (off on dev fixtures without that header). */
+  showHeaderDensityToggle?: boolean;
   sessionHrefOverrides?: Record<string, string>;
   calendarNow?: string;
 }) {
@@ -583,7 +582,6 @@ export function HistorySessionsClient({
   });
   const [isScopeLoading, setIsScopeLoading] = useState(false);
   const deferredQuery = useDeferredValue(query);
-  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const filterKey = useMemo(() => buildFilterStateKey(normalizedFilterState), [normalizedFilterState]);
   const scopedPayload = useMemo(() => (
@@ -1056,26 +1054,8 @@ export function HistorySessionsClient({
           Updating scope...
         </div>
       ) : null}
-      {showBottomActions ? (
-        <PublishBottomActions>
-          <BottomActionSplit
-            secondary={(
-              <BottomDockButton
-                type="button"
-                intent="toggleActive"
-                data-history-density-toggle="sessions"
-                onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
-              >
-                {nextViewModeLabel}
-              </BottomDockButton>
-            )}
-            primary={(
-              <BottomDockLink href="/history/exercises" intent="positive">
-                View Exercises
-              </BottomDockLink>
-            )}
-          />
-        </PublishBottomActions>
+      {showHeaderDensityToggle ? (
+        <HistoryHeaderDensityToggle scope="sessions" viewMode={viewMode} onViewModeChange={setViewMode} />
       ) : null}
     </div>
   );

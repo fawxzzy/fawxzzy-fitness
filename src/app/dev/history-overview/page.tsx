@@ -28,7 +28,7 @@ export default function DevHistoryOverviewPage({ searchParams }: { searchParams?
 
   const data = getHistoryPreviewSessionsPageData();
   return (
-    <HistoryRouteScaffold mode="overview" title="" activeTab="sessions" headerChrome="controlsOnly">
+    <HistoryRouteScaffold mode="overview" activeTab="sessions">
       <HistorySessionsClient
         sessions={data.sessionItems}
         filterOptions={data.filterOptions}

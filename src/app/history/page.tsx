@@ -116,9 +116,7 @@ export default async function HistoryPage({
       return (
         <HistoryRouteScaffold
           mode="overview"
-          title=""
           activeTab="sessions"
-          headerChrome="controlsOnly"
         >
           <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
           <HistoryOfflineShell userId={user.id} />
@@ -141,9 +139,7 @@ export default async function HistoryPage({
       return (
         <HistoryRouteScaffold
           mode="overview"
-          title=""
           activeTab="sessions"
-          headerChrome="controlsOnly"
         >
           <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
           <HistoryOfflineShell userId={user.id} initialSnapshot={historySnapshot} />
@@ -154,9 +150,7 @@ export default async function HistoryPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title=""
         activeTab="sessions"
-        headerChrome="controlsOnly"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistorySessionsClient
@@ -197,9 +191,7 @@ export default async function HistoryPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title=""
         activeTab="sessions"
-        headerChrome="controlsOnly"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteMessage

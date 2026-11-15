@@ -10,30 +10,8 @@ import { cn } from "@/lib/cn";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 
-export function HistoryPageHeader({
-  title,
-  subtitle,
-  children,
-  withPanel = true,
-}: {
-  title: string;
-  subtitle?: string;
-  children?: ReactNode;
-  withPanel?: boolean;
-}) {
-  return (
-    <SharedScreenHeader
-      recipe="historyDetail"
-      title={title}
-      subtitle={subtitle}
-      className="px-1"
-      align="center"
-      withPanel={withPanel}
-    >
-      {children}
-    </SharedScreenHeader>
-  );
-}
+/** The History header's trailing slot; the Sessions and Exercises lists portal their density toggle into it. */
+export const HISTORY_HEADER_TRAILING_SLOT_ID = "history-header-trailing";
 
 export function HistoryDetailHeader({
   title,
@@ -221,9 +199,8 @@ export function HistoryTabs({
         { label: "Progression", value: "progression", href: progressionHref },
       ]}
       value={value}
-      size="sm"
-      activeIntent="info"
-      ariaLabel="History tabs"
+      activeIntent="positive"
+      ariaLabel="History views"
     />
   );
 }

@@ -40,9 +40,7 @@ export default async function HistoryExercisesPage() {
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="Exercises"
         activeTab="exercises"
-        headerChrome="controlsOnly"
         floatingHeaderSlot={<div id="history-exercises-floating-header" />}
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
@@ -64,9 +62,7 @@ export default async function HistoryExercisesPage() {
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="Exercises"
         activeTab="exercises"
-        headerChrome="controlsOnly"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <ExercisesBrowserError />
