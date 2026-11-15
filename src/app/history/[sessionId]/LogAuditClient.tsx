@@ -19,6 +19,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
+import { computeSessionCompletion, resolvePlannedSetCount } from "@/lib/session-analytics";
 import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
 import {
   HistorySessionCard,
@@ -105,6 +106,7 @@ type AuditExercise = {
   default_unit: string | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
+  is_skipped?: boolean;
   targetSeriesSummary?: string | null;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: AuditSet[];
@@ -381,8 +383,18 @@ function hasMeaningfulSetData(set: EditableSet) {
   );
 }
 
+/** Completion of one exercise: logged sets / planned sets, via the shared helper (skipped exercises have no rate). */
+function computeExerciseCompletion(exercise: AuditExercise, loggedSets: number) {
+  return computeSessionCompletion([{
+    plannedSets: resolvePlannedSetCount({ targetSetsMin: exercise.target_sets_min, targetSetsMax: exercise.target_sets_max }),
+    loggedSets,
+    isSkipped: exercise.is_skipped,
+  }]);
+}
+
 function buildFocusedExerciseSessionSummary(args: {
   sessionSummary: SessionSummary;
+  exercise: AuditExercise;
   exerciseName: string;
   sets: EditableSet[];
   defaultUnit: string | null;
@@ -408,7 +420,7 @@ function buildFocusedExerciseSessionSummary(args: {
     durationSec: totalDurationSeconds > 0 ? totalDurationSeconds : undefined,
     totalVolume,
     volumeUnit,
-    completionRate: args.sets.length > 0 ? meaningfulSetCount / args.sets.length : undefined,
+    completionRate: computeExerciseCompletion(args.exercise, meaningfulSetCount),
     bestLift: bestDisplay ? { exerciseName: args.exerciseName, display: bestDisplay } : undefined,
     topSet: bestDisplay ? { exerciseName: args.exerciseName, display: bestDisplay } : undefined,
     prExerciseNames: isPrExercise ? [args.exerciseName] : [],
@@ -434,7 +446,6 @@ function buildLoggedSessionSummary(args: {
     };
   });
   const totalSetCount = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.length, 0);
-  const meaningfulSetCount = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.filter(hasMeaningfulSetData).length, 0);
   const totalReps = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => setSum + parsePositiveNumber(set.values.reps), 0), 0);
   const totalVolume = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => {
     const reps = parsePositiveNumber(set.values.reps);
@@ -459,7 +470,11 @@ function buildLoggedSessionSummary(args: {
     durationSec: totalDurationSeconds > 0 ? totalDurationSeconds : args.sessionSummary.durationSec,
     totalVolume,
     volumeUnit,
-    completionRate: totalSetCount > 0 ? meaningfulSetCount / totalSetCount : undefined,
+    completionRate: computeSessionCompletion(exerciseSummaries.map((entry) => ({
+      plannedSets: resolvePlannedSetCount({ targetSetsMin: entry.exercise.target_sets_min, targetSetsMax: entry.exercise.target_sets_max }),
+      loggedSets: entry.sets.filter(hasMeaningfulSetData).length,
+      isSkipped: entry.exercise.is_skipped,
+    }))),
     exerciseNames: visibleExerciseNames,
     prExerciseNames: (args.sessionSummary.prExerciseNames ?? []).filter((name) => visibleExerciseNames.includes(name)),
     bestLift: bestDisplay && bestExercise ? { exerciseName: bestExercise.name, display: bestDisplay } : undefined,
@@ -609,9 +624,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
     return reps > 0 && weight > 0 ? sum + (weight * reps) : sum;
   }, 0);
   const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit ?? null;
-  const completionRate = args.sets.length > 0
-    ? meaningfulSetCount / args.sets.length
-    : undefined;
+  const completionRate = computeExerciseCompletion(args.exercise, meaningfulSetCount);
   const distanceUnit = resolveFocusedDistanceUnit(args.sets, args.defaultUnit);
   const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
     ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
@@ -1090,6 +1103,7 @@ export function LogAuditClient({
     const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
     return buildFocusedExerciseSessionSummary({
       sessionSummary,
+      exercise: expandedExercise,
       exerciseName,
       sets: editableSets[expandedExercise.id] ?? [],
       defaultUnit: expandedExercise.default_unit,
