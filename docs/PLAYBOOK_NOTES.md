@@ -1703,3 +1703,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Swapping a writer and only checking sheet names would hide changed headers, dropped blanks or retyped cells; the test now compares every cell.
 - Evidence: `src/lib/account-workout-export.test.ts` (12 pass incl. round trip), preview test, typecheck, lint, npm run verify.
 - Status: Source only; the downloaded file was not opened in Excel or on a phone. Remaining audit findings are Next 14 line issues, unchanged.
+
+## 2026-11-15 FF-HISTORY-COMPLETION lane C (duration clamp, completion, finish confirm, legal copy)
+- WHAT changed: (1) `saveSessionAction` stores `sessions.duration_seconds` clamped to last-logged-set time + 30 min idle cap (`src/lib/session-duration.ts`); no backfill, no schema change; stored values over 24h are hidden at read (History list/detail, recap). (2) One completion helper, `computeSessionCompletion` in `src/lib/session-analytics.ts` = logged sets / planned sets (`target_sets_max ?? target_sets_min`), skipped exercises excluded, logged capped at plan; used by the History list, session detail and weekly progress. (3) Finish opens a "Finish workout?" confirm sheet only when planned sets are unfinished (`src/lib/session-finish.ts`); otherwise one tap. (4) Terms/Privacy copy "workout plans" is now "days".
+- WHY it changed: A session left open for 146h showed 146h and 100% with 0 of 2 sets logged (exercise-count completion plus an unbounded wall-clock duration); Finish had no guard against ending a workout early.
+- Rule: Completion and duration come from the shared helpers only; a surface never re-derives them. Persisted duration is clamped at write, and read-side sanitising covers legacy rows.
+- Failure Mode: Counting exercises "completed or skipped" as complete made an exercise with 0 sets count; a client wall-clock duration with no idle bound inflated by days. Both are covered by the 146h / 0-of-2 regression in `src/lib/session-analytics.test.ts`.
+- Evidence: session-analytics, session-duration and session-finish unit tests; typecheck.
+- Status: Source only; headless-emulated screenshots, nothing checked on a real phone. Data export is left raw (unclamped).
