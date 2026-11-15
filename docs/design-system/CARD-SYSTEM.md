@@ -189,6 +189,8 @@ Single rule, implemented in `src/lib/routines.ts`:
 
 ### 4.5 Copy
 
+> Superseded in part by `DESIGN-CONTRACT.md` sections 4.2 and 9: the product names `Blank workout plan`, `Duplicate workout plan` and the Workout Plans screen name are retired in favour of `day` (rule C18); dock labels, separators and message sentences follow the contract.
+
 Canonical terms (AGENT.md): routine, day, workout, session, exercise, set. Card copy touched by PR 1 changed: `workout plans` -> `training days`, `rest` -> `rest days`, `sessions logged` -> `sessions`, `No sessions logged` -> `No sessions yet`; toasts and delete confirmation on day cards say `day`. The Add Day chooser ("Blank workout plan", "Duplicate workout plan") and the Workout Plans screen keep their product names; see the migration plan.
 
 ### 4.6 States

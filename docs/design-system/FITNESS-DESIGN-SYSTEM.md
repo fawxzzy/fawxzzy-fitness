@@ -2,6 +2,8 @@
 
 The Fitness design system is owned by the repo and published through `truth-pack/fitness/design-system/`.
 
+Start with `docs/design-system/DESIGN-CONTRACT.md`: the one app-wide contract (colour, type, dock and buttons, inputs, toasts, state templates, copy rules, flows, accessibility floor, known violations). It sits on top of this pack, `CARD-SYSTEM.md` and `LOADER-SPEC.md`; where they disagree it wins.
+
 Use this contract-first:
 
 1. Freeze tokens in `tokens.v1.json`.
