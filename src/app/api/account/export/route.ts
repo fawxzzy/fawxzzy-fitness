@@ -81,8 +81,8 @@ export async function POST(request: Request) {
     }
 
     if (options.fileType === "xlsx") {
-      const body = buildAccountWorkoutExportWorkbookBuffer(exportPayload);
-      return new NextResponse(body, {
+      const body = await buildAccountWorkoutExportWorkbookBuffer(exportPayload);
+      return new NextResponse(new Blob([new Uint8Array(body)]), {
         status: 200,
         headers: {
           "Content-Type": getAccountWorkoutExportContentType(options.fileType),
