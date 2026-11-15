@@ -60,7 +60,7 @@ test("pain history is paged past one page", async () => {
   }
   const { client } = fakeClient(rows);
   const signals = await loadCuratedHistorySignals({ userId: "u", supabase: client });
-  assert.equal(signals.painOrFormExerciseSlugs.length, CURATED_PAIN_FEEDBACK_PAGE_SIZE + 3);
+  assert.equal(signals.painOrFormExerciseSlugs?.length, CURATED_PAIN_FEEDBACK_PAGE_SIZE + 3);
 });
 
 test("a failed signal query throws instead of generating with no safety history", async () => {

@@ -349,9 +349,11 @@ test("more joint and region limitations remove the roles that load them, and nev
     .days.flatMap((day) => day.exercises.map((exercise) => exercise.slug));
   // Hip loads every lower-body role: the day is too thin, so generation fails closed rather than guessing.
   assert.throws(() => slugsFor("Hip impingement"), /Too few exercises remain/);
-  const elbow = slugsFor("Tennis elbow");
-  assert.equal(elbow.includes("barbell-bench-press"), false);
-  assert.equal(elbow.includes("overhead-press"), false);
+  // Elbow loads every upper-body push and pull role, so upper days fail closed too.
+  assert.throws(() => slugsFor("Tennis elbow"), /Too few exercises remain/);
+  const neck = slugsFor("Neck strain");
+  assert.equal(neck.includes("overhead-press"), false);
+  assert.equal(neck.includes("pull-up"), false);
   // "relationship" and "ship" contain "hip"; "back squat" is an exercise name, not a back complaint.
   assert.equal(slugsFor("Stressful relationship, shipping job").includes("back-squat"), true);
   assert.equal(slugsFor("Lower back pain").includes("back-squat"), false);

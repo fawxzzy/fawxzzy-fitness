@@ -27,7 +27,6 @@ type FeedbackRow = {
 type QueryResult<T> = { data: T | null; error: { message: string } | null; count?: number | null };
 
 // Structural subset of the Supabase client used here; the real client satisfies it.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CuratedSignalsClient = { from: (table: string) => any };
 
 export function toCatalogSlug(value: string) {

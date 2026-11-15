@@ -1,5 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-14 - Curated engine fails closed on health text and never forgets pain history
+
+- Type: Safety logic (source)
+- WHAT changed: FF-ENGINE-001/002 and FF-ONBOARD-001. The curated safety gate now also blocks on named medical conditions in free text (medicalConditions, painDetails, medicationConsiderations) via a conservative whole-word list. Joint and region limitations (back, hip, ankle, elbow, wrist, neck, shoulder, hernia, hamstring and similar) remove the movement roles that load them; a day left too thin fails closed. Movements the member called uncomfortable count as limitations. History signals moved to `src/app/curated-onboarding/history-signals.ts`: pain and form-breakdown feedback is read in full (paged), effort feedback keeps the 40-row window, and a failed query throws instead of generating with no history.
+- WHY it changed: The old loader read only the latest 40 feedback rows, so an old pain flag could drop out and its exercise return in a new routine; free-text conditions such as pregnancy or a heart condition did not block generation.
+- Rule: A safety signal is never limited by recency or a row window, and a failed or partial safety read blocks generation instead of falling back to no signals. When unsure, block: a false block costs one tap to build manually.
+- Failure Mode: Windowed history silently fail-opens; substring matching ("hip" in "relationship") over-blocks; negation handling would under-block.
+- Evidence: `src/features/curated-onboarding/engine.safety.test.ts`, `src/app/curated-onboarding/history-signals.test.ts` (added to the ci.yml contract step).
+- Status: Source only; NEXT_PUBLIC_ENABLE_CURATED_ONBOARDING stays OFF; nothing deployed.
+
 ## 2026-11-14 - Board event fold: one line per fact, one deterministic fold at a milestone
 
 - Type: Process tooling (source) + Shared pattern with Mazer
