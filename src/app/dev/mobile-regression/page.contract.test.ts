@@ -82,6 +82,9 @@ test("active session keeps elapsed duration persisted without rendering it in th
   assert.match(source, /<input type="hidden" name="durationSeconds" value=\{String\(durationSeconds\)\} \/>/);
   assert.match(source, /<BottomActionSplit\s+secondary=\{quickAddAction\}\s+primary=\{\(/);
   assert.match(source, /<BottomDockButton\s+type="submit"\s+intent="positive"[\s\S]*?>\s*Finish\s*<\/BottomDockButton>/);
+  // Finish stays a plain submit (one tap); the confirm sheet only intercepts it while planned sets are unfinished.
+  assert.match(source, /buildSessionFinishCheck\(/);
+  assert.match(source, /event\.preventDefault\(\);\s*setFinishConfirm\(check\)/);
   assert.doesNotMatch(source, /currentSessionDurationPill/);
   assert.doesNotMatch(source, /formatDurationClock/);
 });

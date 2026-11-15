@@ -423,6 +423,9 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       id: exercise.id,
       session_id: exercise.session_id,
       exercise_id: exercise.exercise_id,
+      is_skipped: exercise.is_skipped === true,
+      target_sets_min: exercise.target_sets_min ?? null,
+      target_sets_max: exercise.target_sets_max ?? null,
       notes: exercise.notes ?? null,
       copilot_feedback_note: exercise.copilot_feedback_note ?? null,
     })),
@@ -472,6 +475,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
         target_sets_min: exercise.target_sets_min ?? null,
         target_sets_max: exercise.target_sets_max ?? null,
+        is_skipped: exercise.is_skipped === true,
         targetSeriesSummary: buildHistoryExerciseTargetSeriesSummary({
           sessionExercise: exercise,
           routineExercise,

@@ -39,5 +39,5 @@ test("dock roles: the session dock pairs a secondary Add with a primary Finish (
   const addSource = readFileSync(path.join(SRC_ROOT, "app", "session", "[id]", "QuickAddExerciseSheet.tsx"), "utf8");
   assert.match(addSource, /intent="info"/);
   const sessionSource = readFileSync(path.join(SRC_ROOT, "components", "SessionPageClient.tsx"), "utf8");
-  assert.match(sessionSource, /intent="positive"[\s\S]{0,80}Finish/);
+  assert.match(sessionSource, /intent="positive"[\s\S]{0,600}>\s*Finish\s*<\/BottomDockButton>/);
 });
