@@ -34,3 +34,6 @@ export const FitContentInput = ({fitContent,minVisibleCharacters,wrapperClassNam
 export const PasswordInput = ({fitContent,minVisibleCharacters,wrapperClassName,...props}:any)=><input type="password" {...props}/>;
 export const BottomActionSingle = ({children}:any)=><div>{children}</div>;
 export const BottomDockButton = ({loading,loadingLabel,intent,children,...props}:any)=><button {...props}>{children}</button>;
+export const LOGIN_INFO_COPY = {};
+export const resolveLoginErrorCopy = (x:any)=>x ?? undefined;
+export const resolveLoginInfoCopy = (_x:any)=>undefined;
