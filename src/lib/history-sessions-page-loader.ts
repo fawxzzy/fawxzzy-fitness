@@ -101,7 +101,7 @@ export type HistorySessionsRouteState<TData, TFallback> =
 type ConsoleLike = Pick<Console, "warn">;
 type QueryResult<T> = { data: T[] | null; error?: { message?: string | null } | null };
 type SupabaseLike = { from: (table: string) => any };
-type SessionExerciseSummaryRow = Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped"> & {
+type SessionExerciseSummaryRow = Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped" | "target_sets_min" | "target_sets_max"> & {
   copilot_feedback_signal?: SessionCopilotFeedbackSignal | null;
   copilot_feedback_note?: string | null;
   copilot_feedback_effort?: number | null;
@@ -242,6 +242,8 @@ function normalizeSessionExerciseRow(row: unknown): SessionExerciseSummaryRow | 
     session_id: sessionId,
     exercise_id: exerciseId,
     is_skipped: asBoolean(record.is_skipped),
+    target_sets_min: asNullableInteger(record.target_sets_min),
+    target_sets_max: asNullableInteger(record.target_sets_max),
     copilot_feedback_signal: normalizeSessionCopilotFeedbackSignal(record.copilot_feedback_signal),
     copilot_feedback_note: normalizeSessionCopilotFeedbackNote(record.copilot_feedback_note),
     copilot_feedback_effort: normalizeSessionCopilotFeedbackEffort(record.copilot_feedback_effort),
@@ -1010,7 +1012,7 @@ async function loadHistorySessionsScopeContext({
       label: "session exercise rows",
       load: () => supabase
         .from("session_exercises")
-        .select("id, session_id, exercise_id, is_skipped, notes, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_effort")
+        .select("id, session_id, exercise_id, is_skipped, target_sets_min, target_sets_max, notes, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_effort")
         .in("session_id", sessionIds)
         .eq("user_id", userId),
       logger,

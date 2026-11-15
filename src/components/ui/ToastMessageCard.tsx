@@ -1,5 +1,7 @@
 "use client";
 
+import { HIT_AREA_CLASS_NAME, HIT_AREA_WIDE_CLASS_NAME } from "@/components/ui/hitArea";
+
 type ToastTone = "info" | "success" | "warning" | "error";
 
 function resolveToneMeta(tone: ToastTone) {
@@ -85,7 +87,7 @@ export function ToastMessageCard({
                 type="button"
                 onClick={onDismiss}
                 aria-label="Dismiss message"
-                className={`inline-flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-rgb)/0.16)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[14px] [-webkit-backdrop-filter:blur(14px)] transition-colors ${toneMeta.closeClassName}`}
+                className={`${HIT_AREA_WIDE_CLASS_NAME} inline-flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-rgb)/0.16)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[14px] [-webkit-backdrop-filter:blur(14px)] transition-colors ${toneMeta.closeClassName}`}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5">
                   <path
@@ -104,7 +106,7 @@ export function ToastMessageCard({
                 <button
                   type="button"
                   onClick={onAction}
-                  className={`inline-flex min-h-8 items-center rounded-full border px-3.5 text-[0.74rem] font-semibold tracking-[0.02em] transition-colors ${toneMeta.actionClassName}`}
+                  className={`${HIT_AREA_CLASS_NAME} inline-flex min-h-8 items-center rounded-full border px-3.5 text-[0.74rem] font-semibold tracking-[0.02em] transition-colors ${toneMeta.actionClassName}`}
                 >
                   {action.label}
                 </button>

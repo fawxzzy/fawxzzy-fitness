@@ -336,37 +336,37 @@ function getMetricStripTierClassNames(item: MetricDatum) {
     case "micro":
       return {
         shell: "min-h-[4.15rem] rounded-[0.92rem] px-2.5 pt-2.25 pb-2",
-        label: "text-[9px] leading-[1.18]",
+        label: "text-[11px] leading-[1.18]",
         value: "text-[12px] leading-[1.18]",
-        meta: "text-[9px] leading-[1.24]",
+        meta: "text-[11px] leading-[1.24]",
       };
     case "compact":
       return {
         shell: "min-h-[4.45rem] rounded-[0.96rem] px-3 pt-2.5 pb-2.1",
-        label: "text-[9.5px] leading-[1.2]",
+        label: "text-[11px] leading-[1.2]",
         value: "text-[12.5px] leading-[1.22]",
-        meta: "text-[9.5px] leading-[1.28]",
+        meta: "text-[11px] leading-[1.28]",
       };
     case "standard":
       return {
         shell: "min-h-[4.8rem] rounded-[1rem] px-3.25 pt-2.75 pb-2.2",
-        label: "text-[10px] leading-[1.22]",
+        label: "text-[11px] leading-[1.22]",
         value: "text-[13px] leading-[1.24]",
-        meta: "text-[10px] leading-[1.32]",
+        meta: "text-[11px] leading-[1.32]",
       };
     case "wide":
       return {
         shell: "min-h-[5rem] rounded-[1rem] px-3.5 pt-3 pb-2.5",
-        label: "text-[10px] leading-[1.24]",
+        label: "text-[11px] leading-[1.24]",
         value: "text-[13px] leading-[1.26]",
-        meta: "text-[10px] leading-[1.36]",
+        meta: "text-[11px] leading-[1.36]",
       };
     default:
       return {
         shell: "min-h-[5.2rem] rounded-[1rem] px-3.75 pt-3.1 pb-2.6",
-        label: "text-[10px] leading-[1.24]",
+        label: "text-[11px] leading-[1.24]",
         value: "text-[13px] leading-[1.28]",
-        meta: "text-[10px] leading-[1.38]",
+        meta: "text-[11px] leading-[1.38]",
       };
   }
 }

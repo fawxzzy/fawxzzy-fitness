@@ -406,7 +406,7 @@ const exerciseInfoHeaderTitleClassName = "px-[3.45rem] pt-[5px] text-[1.02rem] l
 const exerciseInfoSectionTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
 const exerciseInfoHeaderTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.98)" } as const;
 const exerciseInfoTightLabelSlotClassName = "min-h-[1.45rem]";
-const exerciseInfoDenseLabelClassName = "text-[9px] tracking-[0.11em]";
+const exerciseInfoDenseLabelClassName = "text-[11px] tracking-[0.11em]";
 const exerciseInfoSubsectionHeadingClassName = "px-2 text-center text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const exerciseInfoFilterCompactSectionStackClassName = "space-y-1";
 const exerciseInfoFilterCompactHeaderWrapClassName = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]";
@@ -553,7 +553,7 @@ function ExerciseInfoSectionHeader({
       </div>
       {subtitle ? (
         <p className={cn(
-          "text-[10px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]",
+          "text-[11px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]",
           align === "center" ? "px-2 text-center" : "text-left",
         )}>
           {subtitle}
@@ -668,7 +668,7 @@ function ExerciseInfoSummaryPanel({
               </div>
             </div>
             {subtitle ? (
-              <p className="px-2 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]">
+              <p className="px-2 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]">
                 {subtitle}
               </p>
             ) : null}
@@ -1156,7 +1156,7 @@ function HistoryGraphLegend({
             <span className="flex h-5 w-8 shrink-0 items-center justify-center pt-[1px]">
               <HistoryGraphLegendIcon kind={item.kind} />
             </span>
-            <span className="min-w-0 whitespace-normal break-words text-[0.68rem] font-semibold uppercase leading-[1.3] tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]">
+            <span className="min-w-0 whitespace-normal break-words text-[11px] font-semibold uppercase leading-[1.3] tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]">
               {item.label}
             </span>
           </div>
@@ -2427,7 +2427,7 @@ export function ExerciseInfoSheet({
               className={cn(
                 ACTION_CHROME_CONTROL_CLASS_NAME,
                 ACTION_CHROME_SEGMENTED_CLASS_NAME,
-                "inline-flex min-h-11 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
+                "inline-flex min-h-11 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
               )}
             >
               <span>Re-sync</span>
@@ -2481,7 +2481,7 @@ export function ExerciseInfoSheet({
                           className={cn(
                             appTokens.exercisePickerFilterClearButton,
                             "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                            "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                            "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                           )}
                         >
                           Clear
@@ -2493,7 +2493,7 @@ export function ExerciseInfoSheet({
                           type="button"
                           active={headerFilterMode === option.value}
                           className={cn(
-                            "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                            "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                             headerFilterMode === option.value
                               ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                               : undefined,
@@ -2523,7 +2523,7 @@ export function ExerciseInfoSheet({
                             className={cn(
                               appTokens.exercisePickerFilterClearButton,
                               "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                              "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                              "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                             )}
                           >
                             Clear
@@ -2543,7 +2543,7 @@ export function ExerciseInfoSheet({
                               type="button"
                               active={isSelected}
                               className={cn(
-                                "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                                "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                                 isSelected
                                   ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                                   : undefined,
@@ -2580,7 +2580,7 @@ export function ExerciseInfoSheet({
                               className={cn(
                                 appTokens.exercisePickerFilterClearButton,
                                 "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                               )}
                             >
                               Clear
@@ -2594,7 +2594,7 @@ export function ExerciseInfoSheet({
                                 type="button"
                                 active={isSelected}
                                 className={cn(
-                                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                                   isSelected
                                     ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                                     : undefined,

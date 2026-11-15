@@ -58,7 +58,7 @@ export function AnchoredSelectorPanel({
           {hasSummary ? (
             <div className="min-w-0 space-y-1 border-t border-[rgb(var(--accent-divider-rgb)/0.18)] pt-2">
               {summaryLabel ? (
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.5)]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.5)]">
                   {summaryLabel}
                 </p>
               ) : null}

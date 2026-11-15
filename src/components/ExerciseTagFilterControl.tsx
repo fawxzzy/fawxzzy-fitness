@@ -198,7 +198,7 @@ export function ExerciseTagFilterControl({
                 appTokens.exercisePickerFilterClearButton,
                 "!border-[rgb(var(--accent-yellow-on)/0.58)]",
                 "shrink-0 whitespace-nowrap",
-                compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                compact ? "mr-2.5 px-2 py-1 text-[11px]" : "mr-2",
               )}
             >
               Clear
@@ -213,7 +213,7 @@ export function ExerciseTagFilterControl({
                 active={isSelected}
                 className={cn(
                   "shrink-0 whitespace-nowrap",
-                  compact ? "px-2 py-1 text-[10px]" : undefined,
+                  compact ? "px-2 py-1 text-[11px]" : undefined,
                   isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                 )}
                 onClick={() => setSelectedGroupKeys((current) => toggleGroupBySelection(current, option.key))}
@@ -251,7 +251,7 @@ export function ExerciseTagFilterControl({
           className={cn(
             appTokens.exercisePickerFilterClearButton,
             "!border-[rgb(var(--accent-yellow-on)/0.58)] shrink-0 whitespace-nowrap",
-            compact ? "px-2 py-1 text-[10px]" : undefined,
+            compact ? "px-2 py-1 text-[11px]" : undefined,
           )}
         >
           Clear all
@@ -266,7 +266,7 @@ export function ExerciseTagFilterControl({
               active
               className={cn(
                 "shrink-0 whitespace-nowrap !border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]",
-                compact ? "px-2 py-1 text-[10px]" : undefined,
+                compact ? "px-2 py-1 text-[11px]" : undefined,
               )}
               onClick={() => onChange(selectedTags.filter((value) => value !== tag.value))}
             >
@@ -302,7 +302,7 @@ export function ExerciseTagFilterControl({
                   appTokens.exercisePickerFilterClearButton,
                   "!border-[rgb(var(--accent-yellow-on)/0.58)]",
                   "shrink-0 whitespace-nowrap",
-                  compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                  compact ? "mr-2.5 px-2 py-1 text-[11px]" : "mr-2",
                 )}
               >
                 Clear
@@ -318,7 +318,7 @@ export function ExerciseTagFilterControl({
                   className={cn(
                     "max-w-full justify-start text-left leading-tight [word-break:normal]",
                     "w-full whitespace-normal",
-                    compact ? "px-2 py-1 text-[10px]" : undefined,
+                    compact ? "px-2 py-1 text-[11px]" : undefined,
                     isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                   )}
                   onClick={() => {
@@ -345,7 +345,7 @@ export function ExerciseTagFilterControl({
                   appTokens.exercisePickerFilterClearButton,
                   "!border-[rgb(var(--accent-yellow-on)/0.58)]",
                   "shrink-0 whitespace-nowrap",
-                  compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                  compact ? "mr-2.5 px-2 py-1 text-[11px]" : "mr-2",
                 )}
               >
                 Clear
@@ -361,7 +361,7 @@ export function ExerciseTagFilterControl({
                   className={cn(
                     "max-w-full justify-start text-left leading-tight [word-break:normal]",
                     useStackedTagLayout ? "w-full whitespace-normal" : "shrink-0 whitespace-nowrap",
-                    compact ? "px-2 py-1 text-[10px]" : undefined,
+                    compact ? "px-2 py-1 text-[11px]" : undefined,
                     isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                   )}
                   onClick={() => {

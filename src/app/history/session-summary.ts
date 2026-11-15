@@ -1,7 +1,8 @@
 import type { SessionRow } from "@/types/db";
 import { formatSetDisplay } from "@/lib/formatting";
 import { formatPrBreakdown, type PrCountByCategory } from "@/lib/pr-evaluator";
-import { deriveSessionAnalytics } from "@/lib/session-analytics";
+import { deriveSessionAnalytics, resolvePlannedSetCount } from "@/lib/session-analytics";
+import { sanitizeStoredSessionDurationSeconds } from "@/lib/session-duration";
 import type { SessionProgressionSummary } from "@/lib/progression-lifeline-summary";
 
 export type SessionRecapSignal = {
@@ -48,6 +49,8 @@ type SessionExerciseSummaryRow = {
   session_id: string;
   exercise_id: string;
   is_skipped?: boolean | null;
+  target_sets_min?: number | null;
+  target_sets_max?: number | null;
   notes?: string | null;
   copilot_feedback_note?: string | null;
 };
@@ -94,6 +97,7 @@ export function buildSessionSummary({
     sessionExercises.map((exercise) => ({
       exerciseId: exercise.exercise_id,
       isSkipped: exercise.is_skipped,
+      plannedSets: resolvePlannedSetCount({ targetSetsMin: exercise.target_sets_min, targetSetsMax: exercise.target_sets_max }),
       sets: (setsBySessionExerciseId.get(exercise.id) ?? []).map((set) => ({
         weight: set.weight,
         reps: set.reps,
@@ -121,9 +125,7 @@ export function buildSessionSummary({
     }
   }
 
-  const durationSec = typeof sessionRow.duration_seconds === "number" && sessionRow.duration_seconds > 0
-    ? sessionRow.duration_seconds
-    : undefined;
+  const durationSec = sanitizeStoredSessionDurationSeconds(sessionRow.duration_seconds);
   let repCount = 0;
   let volumeUnit: SessionSummary["volumeUnit"];
   for (const exercise of sessionExercises) {

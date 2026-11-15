@@ -25,13 +25,13 @@ function QuickLogActionLabel({ label }: { label: string }) {
   }
 
   return (
-    <span className="inline-flex min-w-0 items-center justify-center gap-1.5 text-[10px] leading-tight">
+    <span className="inline-flex min-w-0 items-center justify-center gap-1.5 text-[11px] leading-tight">
       <span>{prefix}</span>
       <SignatureMiniPipe aria-hidden className="shrink-0" />
       <SignatureInlineList
         items={details.map((detail) => <span key={detail}>{detail}</span>)}
         separator="pipe"
-        className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[9px] font-medium tracking-normal"
+        className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[11px] font-medium tracking-normal"
         itemClassName="whitespace-nowrap"
       />
     </span>
@@ -149,7 +149,7 @@ export function AttachedQuickActionStrip({
             isQuickLogDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
           )}
         >
-          <span className="bottom-action__label text-[10px]">Log all</span>
+          <span className="bottom-action__label text-[11px]">Log all</span>
         </button>
       ) : null}
       <button

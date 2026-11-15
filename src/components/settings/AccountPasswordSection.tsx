@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, type FormEvent, useState, useTransition } from "react";
 import { changePasswordAction, type PasswordUpdateState } from "@/app/settings/actions";
+import { AuthNoticeBox } from "@/components/auth/AuthShell";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -32,8 +33,7 @@ export function AccountPasswordSection({ email }: { email: string }) {
 
   const input = validateChangePasswordInput({ current: currentPassword, next: newPassword, confirmation: confirmPassword });
   const showMismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
-  const messageTone =
-    result.status === "error" ? appTokens.settingsStatusError : result.status === "success" ? appTokens.settingsStatusSuccess : appTokens.settingsStatusMuted;
+  const noticeTone = result.status === "error" ? "error" : result.status === "success" ? "success" : "info";
 
   // Typing again clears the previous outcome message.
   function edit(setValue: (value: string) => void) {
@@ -117,9 +117,9 @@ export function AccountPasswordSection({ email }: { email: string }) {
         </div>
         <div className={appTokens.settingsFieldStack} aria-live="polite">
           {showMismatch ? (
-            <p className={cn(appTokens.settingsBodyText, appTokens.settingsStatusError)}>{CHANGE_PASSWORD_COPY.confirmation_mismatch}</p>
+            <AuthNoticeBox tone="error">{CHANGE_PASSWORD_COPY.confirmation_mismatch}</AuthNoticeBox>
           ) : result.message ? (
-            <p className={cn(appTokens.settingsBodyText, messageTone)}>{result.message}</p>
+            <AuthNoticeBox tone={noticeTone}>{result.message}</AuthNoticeBox>
           ) : (
             <p className={cn(appTokens.settingsBodyText, appTokens.settingsStatusMuted)}>{NEW_PASSWORD_REQUIREMENT}</p>
           )}

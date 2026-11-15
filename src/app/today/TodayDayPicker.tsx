@@ -904,7 +904,7 @@ export function TodayDayPicker({
             }}
           >
             <div className="rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] p-2 text-left">
-              <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
+              <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
                 Apply to
               </p>
               <div className="grid gap-1">

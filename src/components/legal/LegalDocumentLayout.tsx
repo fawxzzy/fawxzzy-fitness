@@ -46,7 +46,7 @@ export function LegalDocumentLayout({
 
         <section className="px-1 py-5 sm:px-4 sm:py-7">
           <header className="mx-auto max-w-2xl text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-secondary)/0.84)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-secondary)/0.84)]">
               {eyebrow}
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-[rgb(var(--text-primary)/0.98)] sm:text-[2.05rem]">

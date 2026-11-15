@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
 import {
+  CARD_CHIP_CLASS_NAME,
   CardHeader,
   CardMeta,
   CardSurface,
@@ -11,6 +12,7 @@ import {
   type CardHeadingLevel,
   type CardTone,
 } from "@/components/ui/card-system";
+import { Chip } from "@/components/ui/Chip";
 import { cn } from "@/lib/cn";
 import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 
@@ -128,7 +130,7 @@ export function ExerciseRowCard({
         <StatBlock label={targetLabel} values={targetValues} />
       )}
       {progressionLabel ? (
-        <p className="m-0 text-[11px] font-semibold uppercase leading-tight tracking-[0.1em] text-[rgb(var(--text-muted)/0.98)]">{progressionLabel}</p>
+        <div data-exercise-progression-label="true"><Chip className={CARD_CHIP_CLASS_NAME}>{progressionLabel}</Chip></div>
       ) : null}
       {progress ? <ExerciseRowProgress progress={progress} /> : null}
     </div>

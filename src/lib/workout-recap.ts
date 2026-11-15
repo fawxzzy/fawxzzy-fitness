@@ -1,6 +1,7 @@
 import type { SessionSummary } from "@/app/history/session-summary";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
+import { sanitizeStoredSessionDurationSeconds } from "@/lib/session-duration";
 
 export type WorkoutRecapSetInput = {
   weight: number | null;
@@ -294,7 +295,7 @@ export async function buildWorkoutRecapArtifactForSession(args: {
       dayTitle: session.day_name_override ?? session.routine_day_name ?? undefined,
       exerciseNames: recapExercises.map((exercise) => exercise.exerciseName),
       prExerciseNames: [],
-      durationSec: session.duration_seconds ?? undefined,
+      durationSec: sanitizeStoredSessionDurationSeconds(session.duration_seconds),
       exerciseCount: recapExercises.length,
       setCount,
       repCount: recapExercises.reduce((sum, exercise) => sum + exercise.sets.reduce((setSum, set) => setSum + Math.max(0, set.reps ?? 0), 0), 0),

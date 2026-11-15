@@ -81,7 +81,7 @@ export default function PrivacyPolicyPage({
         </p>
         <p className="font-semibold text-[rgb(var(--text-primary)/0.96)]">Workout and training information</p>
         <p>
-          This may include routines, workout plans, exercises, sets, reps, load or weight targets, completion state,
+          This may include routines, days, exercises, sets, reps, load or weight targets, completion state,
           session history, notes, progression receipts, progression suggestions, streaks, and other activity you create
           or generate in the app.
         </p>

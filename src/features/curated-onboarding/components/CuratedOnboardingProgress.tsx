@@ -21,7 +21,7 @@ export function CuratedOnboardingProgress({
 }) {
   return (
     <div className="space-y-1.5" aria-label={`Step ${currentStep} of ${totalSteps}, ${progress}% complete`}>
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
         <span>Step {currentStep} of {totalSteps}</span>
         <h1 className="min-w-0 text-center text-[12px] font-semibold leading-tight tracking-[-0.01em] text-[rgb(var(--text-primary))] normal-case sm:text-[14px]">
           {title}
@@ -53,7 +53,7 @@ export function CuratedOnboardingProgress({
               aria-current={isCurrent ? "step" : undefined}
               disabled={!step.available || isCurrent}
               onClick={() => onStepSelect(step.id)}
-              className={`min-h-7 rounded-full border text-[9px] font-semibold tabular-nums transition-colors ${
+              className={`min-h-7 rounded-full border text-[11px] font-semibold tabular-nums transition-colors ${
                 isCurrent
                   ? "!border-[rgb(var(--accent))] !bg-[rgb(var(--accent))] !text-[rgb(var(--surface-0-rgb))] !opacity-100 shadow-[0_0_0_2px_rgb(var(--accent)/0.24),0_0_16px_rgb(var(--accent)/0.42)]"
                   : step.available

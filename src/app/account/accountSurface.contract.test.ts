@@ -59,3 +59,15 @@ test("change password sits on the Account screen with the shared password field,
   assert.doesNotMatch(action, /supabaseServerWithSession|supabaseServer\(/);
   assert.doesNotMatch(action, /error\.message/);
 });
+
+test("account outcome messages use the v2 notice box inside the existing live regions", () => {
+  const sectionSource = readFileSync(new URL("../../components/settings/AccountPasswordSection.tsx", import.meta.url), "utf8");
+  const formSource = readFileSync(new URL("../../components/settings/AccountSettingsForm.tsx", import.meta.url), "utf8");
+  assert.match(screenSource, /className="fx-account /);
+  for (const source of [sectionSource, formSource]) {
+    assert.match(source, /<AuthNoticeBox tone=/);
+    assert.match(source, /aria-live="polite"/);
+  }
+  // The password requirement hint stays plain helper text, not a notice.
+  assert.match(sectionSource, /settingsStatusMuted\)\}>\{NEW_PASSWORD_REQUIREMENT\}/);
+});

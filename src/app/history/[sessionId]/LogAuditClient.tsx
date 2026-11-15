@@ -19,6 +19,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
+import { computeSessionCompletion, resolvePlannedSetCount } from "@/lib/session-analytics";
 import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
 import {
   HistorySessionCard,
@@ -105,6 +106,7 @@ type AuditExercise = {
   default_unit: string | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
+  is_skipped?: boolean;
   targetSeriesSummary?: string | null;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: AuditSet[];
@@ -381,8 +383,18 @@ function hasMeaningfulSetData(set: EditableSet) {
   );
 }
 
+/** Completion of one exercise: logged sets / planned sets, via the shared helper (skipped exercises have no rate). */
+function computeExerciseCompletion(exercise: AuditExercise, loggedSets: number) {
+  return computeSessionCompletion([{
+    plannedSets: resolvePlannedSetCount({ targetSetsMin: exercise.target_sets_min, targetSetsMax: exercise.target_sets_max }),
+    loggedSets,
+    isSkipped: exercise.is_skipped,
+  }]);
+}
+
 function buildFocusedExerciseSessionSummary(args: {
   sessionSummary: SessionSummary;
+  exercise: AuditExercise;
   exerciseName: string;
   sets: EditableSet[];
   defaultUnit: string | null;
@@ -408,7 +420,7 @@ function buildFocusedExerciseSessionSummary(args: {
     durationSec: totalDurationSeconds > 0 ? totalDurationSeconds : undefined,
     totalVolume,
     volumeUnit,
-    completionRate: args.sets.length > 0 ? meaningfulSetCount / args.sets.length : undefined,
+    completionRate: computeExerciseCompletion(args.exercise, meaningfulSetCount),
     bestLift: bestDisplay ? { exerciseName: args.exerciseName, display: bestDisplay } : undefined,
     topSet: bestDisplay ? { exerciseName: args.exerciseName, display: bestDisplay } : undefined,
     prExerciseNames: isPrExercise ? [args.exerciseName] : [],
@@ -434,7 +446,6 @@ function buildLoggedSessionSummary(args: {
     };
   });
   const totalSetCount = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.length, 0);
-  const meaningfulSetCount = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.filter(hasMeaningfulSetData).length, 0);
   const totalReps = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => setSum + parsePositiveNumber(set.values.reps), 0), 0);
   const totalVolume = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => {
     const reps = parsePositiveNumber(set.values.reps);
@@ -459,7 +470,11 @@ function buildLoggedSessionSummary(args: {
     durationSec: totalDurationSeconds > 0 ? totalDurationSeconds : args.sessionSummary.durationSec,
     totalVolume,
     volumeUnit,
-    completionRate: totalSetCount > 0 ? meaningfulSetCount / totalSetCount : undefined,
+    completionRate: computeSessionCompletion(exerciseSummaries.map((entry) => ({
+      plannedSets: resolvePlannedSetCount({ targetSetsMin: entry.exercise.target_sets_min, targetSetsMax: entry.exercise.target_sets_max }),
+      loggedSets: entry.sets.filter(hasMeaningfulSetData).length,
+      isSkipped: entry.exercise.is_skipped,
+    }))),
     exerciseNames: visibleExerciseNames,
     prExerciseNames: (args.sessionSummary.prExerciseNames ?? []).filter((name) => visibleExerciseNames.includes(name)),
     bestLift: bestDisplay && bestExercise ? { exerciseName: bestExercise.name, display: bestDisplay } : undefined,
@@ -609,9 +624,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
     return reps > 0 && weight > 0 ? sum + (weight * reps) : sum;
   }, 0);
   const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit ?? null;
-  const completionRate = args.sets.length > 0
-    ? meaningfulSetCount / args.sets.length
-    : undefined;
+  const completionRate = computeExerciseCompletion(args.exercise, meaningfulSetCount);
   const distanceUnit = resolveFocusedDistanceUnit(args.sets, args.defaultUnit);
   const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
     ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
@@ -869,9 +882,9 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
         {recap.topEfforts.length > 0 ? (
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
               {prExerciseNames.size > 0 ? (
-                <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
+                <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
                   <span>Legend</span>
                   <DetailSectionBadge label="PR" />
                 </div>
@@ -913,8 +926,8 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
 
         <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
         <div className="flex flex-wrap justify-end gap-2">
-          <PillButton type="button" onClick={copyRecap}>Copy recap</PillButton>
-          <PillButton type="button" active onClick={shareRecap}>Share recap</PillButton>
+          <PillButton type="button" hitSlop onClick={copyRecap}>Copy recap</PillButton>
+          <PillButton type="button" active hitSlop onClick={shareRecap}>Share recap</PillButton>
         </div>
       </div>
     </HistorySection>
@@ -1090,6 +1103,7 @@ export function LogAuditClient({
     const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
     return buildFocusedExerciseSessionSummary({
       sessionSummary,
+      exercise: expandedExercise,
       exerciseName,
       sets: editableSets[expandedExercise.id] ?? [],
       defaultUnit: expandedExercise.default_unit,
@@ -1463,7 +1477,7 @@ export function LogAuditClient({
   const sessionHeaderDayLabel = [sessionSummary.dayTitle?.trim() || null, sessionHeaderWeekday].filter(Boolean).join(" \u00B7 ");
   const sessionHeaderTitle = (
     <span className="inline-flex min-w-0 flex-col items-start gap-1">
-      <SignatureMetaTag className="text-[10px] tracking-[0.08em]">
+      <SignatureMetaTag className="text-[11px] tracking-[0.08em]">
         {formatDateShort(sessionSummary.startedAt).toUpperCase()}
       </SignatureMetaTag>
       <RoutineDayHeaderTitle
@@ -1498,7 +1512,7 @@ export function LogAuditClient({
                 <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
                   <label className="block">
                     <LabeledEditorField label="Day name">
-                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-[2.65rem] px-3.5 pt-3.5")} />
+                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-11 px-3.5 pt-3.5")} />
                     </LabeledEditorField>
                   </label>
                   <label className="block">
@@ -1545,7 +1559,7 @@ export function LogAuditClient({
           style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
         >
           {exerciseViewportMeta.caption ? (
-            <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">
+            <div className="px-4 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">
               {exerciseViewportMeta.caption}
             </div>
           ) : null}

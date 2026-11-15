@@ -150,6 +150,19 @@ export function AuthNoticeSlot({
   );
 }
 
+/**
+ * The same notice box outside the auth shell (Account settings outcomes). No role or live region of its own: the
+ * caller keeps its existing live region, so adopting the v2 look changes nothing for assistive tech.
+ */
+export function AuthNoticeBox({ tone, children, testId }: { tone: AuthNotice["tone"]; children: ReactNode; testId?: string }) {
+  return (
+    <div className="fx-notice" data-tone={tone} data-testid={testId}>
+      <NoticeIcon tone={tone} />
+      <span className="fx-notice__t">{children}</span>
+    </div>
+  );
+}
+
 export function AuthLinks({ children }: { children: ReactNode }) {
   return <nav className="fx-links" aria-label="Account links" data-testid="auth-secondary-row">{children}</nav>;
 }

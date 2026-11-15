@@ -48,7 +48,7 @@ export function AccountScreen({
         )}
       >
         <ContentRail className={appTokens.settingsContentRail}>
-          <div className="space-y-3" data-testid="account-screen">
+          <div className="fx-account space-y-3" data-testid="account-screen">
             <AccountSettingsForm email={email} username={username} />
             <AccountPasswordSection email={email} />
           </div>
