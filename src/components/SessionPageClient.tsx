@@ -397,7 +397,7 @@ export function SessionPageClient({
                   </p>
                   {update.linkedDayNames.length > 1 ? (
                     <p className="mt-1 text-[0.68rem] font-semibold text-[rgb(var(--accent)/0.92)]">
-                      Days: {update.linkedDayNames.join(", ")}
+                      Plans: {update.linkedDayNames.join(", ")}
                     </p>
                   ) : null}
                 </li>
