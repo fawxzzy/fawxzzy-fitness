@@ -2956,7 +2956,8 @@ a:focus-visible {
   display: inline-block;
   width: 20px;
   height: 20px;
-  margin: 0 3px;
+  /* No right margin: the icon is often followed by "." or ",". */
+  margin: 0 0 0 3px;
   vertical-align: -4px;
   color: rgb(var(--fx-ac));
 }
