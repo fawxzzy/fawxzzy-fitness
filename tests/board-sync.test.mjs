@@ -374,6 +374,7 @@ test("apply folds events into the registry card store, appends the archive and r
   const dir = scratchRepo();
   const [a, b] = pickCards();
   const events = writeJsonl(tmp("apply"), sampleEvents(a, b));
+  const baseCount = JSON.parse(fs.readFileSync(path.join(dir, REGISTRY_PATH), "utf8")).provenance?.boardSync?.appliedEventCount ?? 0;
   const lines = [];
   assert.equal(runBoardSync(["apply", "--events", events], dir, (l) => lines.push(l), tools()), 0, lines.join("\n"));
   const registryAfter = JSON.parse(fs.readFileSync(path.join(dir, REGISTRY_PATH), "utf8"));
@@ -382,9 +383,9 @@ test("apply folds events into the registry card store, appends the archive and r
   assert.ok(registryAfter.acceptedPublicCardIds.includes(a.id), "completed public card is allowlisted");
   assert.equal(byId.get(b.id).status, "review");
   assert.equal(byId.get("FF-ZZTEST-901").card.title, "Check Screens");
-  assert.equal(registryAfter.provenance.boardSync.appliedEventCount, 3);
+  assert.equal(registryAfter.provenance.boardSync.appliedEventCount, baseCount + 3);
   const archive = parseJsonl(fs.readFileSync(path.join(dir, ARCHIVE_PATH), "utf8")).events;
-  assert.equal(archive.length, 3);
+  assert.equal(archive.length, baseCount + 3);
   assert.ok(archive.every((x) => x.event.id === eventId(x.event)));
   const exported = JSON.parse(fs.readFileSync(path.join(dir, EXPORT_PATH), "utf8"));
   assert.ok(exported.cards.some((c) => c.record.card_id === "FF-ZZTEST-901"));
@@ -415,11 +416,12 @@ test("apply keeps its files but exits 4 and says so when only the pinned owner-e
   const dir = scratchRepo();
   const [a, b] = pickCards();
   const events = writeJsonl(tmp("pins"), sampleEvents(a, b));
+  const baseCount = JSON.parse(fs.readFileSync(path.join(dir, REGISTRY_PATH), "utf8")).provenance?.boardSync?.appliedEventCount ?? 0;
   const lines = [];
   const code = runBoardSync(["apply", "--events", events], dir, (l) => lines.push(l), tools({ test: () => ({ ok: false, output: "expected 41 cards" }) }));
   assert.equal(code, 4);
   assert.match(lines.join("\n"), /update the pinned expectations in tests\/project-board-owner-export\.test\.mjs in the SAME pull request/);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, REGISTRY_PATH), "utf8")).provenance.boardSync.appliedEventCount, 3);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, REGISTRY_PATH), "utf8")).provenance.boardSync.appliedEventCount, baseCount + 3);
 });
 
 test("apply refuses a plan with problems and writes nothing", () => {
