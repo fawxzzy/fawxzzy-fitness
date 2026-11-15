@@ -2375,59 +2375,283 @@ a:focus-visible {
   background-color: transparent !important;
 }
 
-/* The account website and installed Fitness app intentionally share one
-   presentation contract while retaining separate, origin-bound auth adapters.
-   Keep the canonical account canvas opaque so the app's ambient geometry
-   cannot leak through and make installed auth look like a legacy app screen. */
-.auth-canonical-account-shell {
+/* Auth Surface v2 (approved by Zac 2026-11-15): a port of the approved mock's `.ph` spec, Fitness skin.
+   The account website and installed Fitness app share one presentation contract while keeping separate,
+   origin-bound auth adapters. One 100dvh flex column per screen: icon, kicker, title, lead, body (fields + ONE
+   reserved notice slot), links, legal, dock. Nothing is position:fixed; safe areas are padding (env() + spacing),
+   never fixed px offsets. Compact metrics apply at <= 640px tall (the 320x568 frame). */
+.fx-auth {
   --accent: 160 223 56;
   --accent-strong: 190 242 100;
   --accent-divider-rgb: 160 223 56;
-  background:
-    radial-gradient(circle at 50% 34%, rgb(106 152 120 / 0.12), transparent 40%),
-    #070b09;
+  --fx-ac: 160 223 56;
+  --fx-base: #060b07;
+  --fx-text: 241 245 242;
+  --fx-danger: 255 107 120;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--fx-base);
+  color: rgb(var(--fx-text));
+  font-family: "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.auth-canonical-account-shell .auth-canonical-legal-link {
-  color: rgb(var(--text-secondary) / 0.72);
+.fx-auth::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 380px;
+  background: radial-gradient(70% 70% at 50% 0%, rgb(var(--fx-ac) / 0.16), transparent 72%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.auth-canonical-account-shell .auth-canonical-legal-link:hover,
-.auth-canonical-account-shell .auth-canonical-legal-link:focus-visible {
-  color: rgb(var(--text-secondary) / 0.96);
+.fx-auth__frame {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 44px)
+    calc(env(safe-area-inset-right, 0px) + 24px)
+    calc(env(safe-area-inset-bottom, 0px) + 26px)
+    calc(env(safe-area-inset-left, 0px) + 24px);
+}
+
+.fx-head {
+  flex: none;
+  text-align: center;
+}
+
+.fx-appicon {
+  display: block;
+  width: 76px;
+  height: 76px;
+  border-radius: 22.4%;
+  object-fit: cover;
+  background: #000;
+  box-shadow: 0 0 34px rgb(var(--fx-ac) / 0.24);
+  flex: none;
+}
+
+.fx-appicon--top {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 14px;
+  box-shadow: 0 0 24px rgb(var(--fx-ac) / 0.2);
+}
+
+.fx-kick {
+  flex: none;
+  margin: 0;
+  padding-left: 0.34em;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgb(var(--fx-ac));
+}
+
+.fx-ttl {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 44px;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  color: rgb(var(--fx-text));
+  text-wrap: balance;
+}
+
+.fx-lead {
+  max-width: 310px;
+  margin: 12px auto 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.45;
+  color: rgb(var(--fx-text) / 0.68);
+  text-wrap: balance;
+}
+
+.fx-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 0 4px;
+  scrollbar-width: none;
+}
+
+/* Centre with auto margins, not justify-content: center. When the body overflows (landscape phones), auto margins
+   collapse to 0 and the first field stays reachable; centred overflow would push it above the scroll origin. */
+.fx-body::before,
+.fx-body::after {
+  content: "";
+  flex: none;
+}
+
+.fx-body::before {
+  margin-top: auto;
+}
+
+.fx-body::after {
+  margin-bottom: auto;
+}
+
+.fx-body::-webkit-scrollbar {
+  display: none;
+}
+
+.fx-body--top {
+  padding-top: 26px;
+}
+
+.fx-body--top::before {
+  margin-top: 0;
+}
+
+.fx-form {
+  display: contents;
+}
+
+.fx-fields {
+  display: flex;
+  flex-direction: column;
+  padding-top: 9px;
+}
+
+.fx-fld {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  margin-top: 20px;
+  border: 1px solid rgb(var(--fx-ac) / 0.42);
+  border-radius: 22px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.fx-fld:first-child {
+  margin-top: 0;
+}
+
+.fx-fld__label {
+  position: absolute;
+  top: -9px;
+  right: 24px;
+  z-index: 1;
+  padding: 0 8px;
+  background: var(--fx-base);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fx-ac) / 0.92);
+  pointer-events: none;
+}
+
+.fx-fld > div {
+  position: static !important;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.fx-auth .fx-fld__input {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  padding: 0 48px !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-align: center;
+  font-size: 17px !important;
+  color: #f6f9f7 !important;
+  caret-color: rgb(var(--fx-text));
+  touch-action: manipulation;
+  user-select: text;
+  -webkit-user-select: text;
+  text-overflow: ellipsis;
+}
+
+.fx-auth .fx-fld__input::placeholder {
+  color: rgb(var(--fx-text) / 0.32);
+  text-align: center;
+}
+
+.fx-auth .fx-fld__input[readonly] {
+  color: rgb(246 249 247 / 0.82) !important;
+  cursor: default;
+}
+
+.fx-fld__ico,
+.fx-fld > div > button {
+  color: rgb(var(--fx-ac) / 0.9) !important;
+}
+
+.fx-fld__ico {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.fx-fld > div > button {
+  right: 6px !important;
+}
+
+.fx-fld:focus-within {
+  border-color: rgb(var(--fx-ac) / 0.78);
+  box-shadow: 0 0 0 1px rgb(var(--fx-ac) / 0.16);
+}
+
+.fx-fld[data-locked="true"] {
+  border-color: rgb(var(--fx-ac) / 0.24);
+  box-shadow: none;
+}
+
+.fx-fld[data-invalid="true"],
+.fx-fld:has(.fx-fld__input:user-invalid) {
+  border-color: rgb(var(--fx-danger) / 0.7);
+}
+
+.fx-fld[data-invalid="true"] .fx-fld__label,
+.fx-fld:has(.fx-fld__input:user-invalid) .fx-fld__label {
+  color: #ff8f99;
 }
 
 .auth-input-plain:-webkit-autofill,
 .auth-input-plain:-webkit-autofill:hover,
 .auth-input-plain:-webkit-autofill:focus,
 .auth-input-plain:-webkit-autofill:active {
-  -webkit-text-fill-color: rgb(var(--text-primary) / 0.98);
+  -webkit-text-fill-color: #f6f9f7;
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
   box-shadow: 0 0 0 1000px transparent inset !important;
   background-color: transparent !important;
-  caret-color: rgb(var(--text-primary));
+  caret-color: rgb(var(--fx-text));
   transition: background-color 99999s ease-in-out 0s;
-}
-
-.auth-form-fields-centered {
-  position: fixed;
-  top: 50dvh;
-  left: 50%;
-  z-index: 10;
-  width: min(15rem, calc(100vw - 3rem));
-  transform: translate(-50%, -50%);
-}
-
-.auth-account-input,
-.auth-account-input::placeholder {
-  text-align: center;
-}
-
-.auth-account-input {
-  caret-color: rgb(var(--text-primary));
-  touch-action: manipulation;
-  user-select: text;
-  -webkit-user-select: text;
 }
 
 .auth-account-input::-ms-reveal,
@@ -2437,77 +2661,473 @@ a:focus-visible {
   height: 0;
 }
 
-.auth-account-field:focus-within {
-  border-color: rgb(var(--accent) / 0.68) !important;
-  box-shadow: 0 0 0 1px rgb(var(--accent) / 0.14);
+.fx-slot {
+  flex: none;
+  min-height: 70px;
+  margin-top: 14px;
 }
 
-.auth-account-field:has(.auth-account-input:user-invalid),
-.auth-account-field:has(.auth-account-input[aria-invalid="true"]) {
-  border-color: rgb(var(--danger-rgb) / 0.92) !important;
-  box-shadow: 0 0 0 1px rgb(var(--danger-rgb) / 0.18);
+.fx-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid;
+  border-radius: 16px;
+  padding: 11px 14px;
+  font-size: 14.5px;
+  line-height: 1.38;
+  text-align: left;
 }
 
-@media (max-height: 38rem) {
-  [data-testid="auth-shell-content"] {
-    flex: none;
-    min-height: max-content;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10rem);
-  }
+.fx-notice > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
 
-  [data-testid="auth-shell-content"] > [data-testid="auth-card"] {
-    flex: none;
-    min-height: max-content;
-  }
+.fx-notice[data-tone="error"] {
+  border-color: rgb(var(--fx-danger) / 0.55);
+  background: rgb(var(--fx-danger) / 0.1);
+  color: #ffd9dc;
+}
 
-  .auth-form-fields-centered {
-    position: static;
-    width: 100%;
-    margin-top: 2rem;
-    transform: none;
-  }
+.fx-notice[data-tone="error"] > svg {
+  color: #ff8f99;
+}
 
-  [data-testid="auth-footer"] {
-    position: static !important;
-    inset: auto !important;
-    margin-top: 6rem;
-  }
+.fx-notice[data-tone="info"] {
+  border-color: rgb(var(--fx-ac) / 0.45);
+  background: rgb(var(--fx-ac) / 0.08);
+  color: #e9f1ea;
+}
 
-  [data-testid="auth-dock"] {
-    background: linear-gradient(180deg, rgb(7 25 35 / 0.98), #071923);
-    box-shadow: 0 -1.25rem 1.5rem #071923;
+.fx-notice[data-tone="success"] {
+  border-color: rgb(var(--fx-ac) / 0.55);
+  background: rgb(var(--fx-ac) / 0.12);
+  color: #f1f8f2;
+}
+
+.fx-notice[data-tone="info"] > svg,
+.fx-notice[data-tone="success"] > svg {
+  color: rgb(var(--fx-ac));
+}
+
+.fx-notice__t {
+  flex: 1;
+  min-width: 0;
+}
+
+.fx-notice__act {
+  display: inline;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fx-links,
+.fx-legal {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.fx-links {
+  min-height: 24px;
+  margin-top: 6px;
+  font-size: 16px;
+  color: rgb(var(--fx-ac) / 0.95);
+}
+
+.fx-links > * + *::before,
+.fx-legal > * + *::before {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  border-radius: 2px;
+  vertical-align: -2px;
+}
+
+.fx-links > * + *::before {
+  height: 15px;
+  margin: 0 16px;
+  background: rgb(var(--fx-ac) / 0.6);
+}
+
+.fx-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fx-link:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.fx-link:focus-visible,
+.fx-legal a:focus-visible,
+.fx-dock:focus-visible,
+.fx-notice__act:focus-visible {
+  outline: 2px solid rgb(var(--fx-ac));
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.fx-legal {
+  margin-top: 14px;
+  font-size: 13.5px;
+  color: rgb(var(--fx-text) / 0.6);
+}
+
+.fx-legal > * + *::before {
+  height: 13px;
+  margin: 0 14px;
+  background: rgb(var(--fx-ac) / 0.5);
+}
+
+.fx-auth .auth-canonical-legal-link {
+  color: rgb(var(--fx-text) / 0.6);
+  text-decoration: none;
+}
+
+.fx-auth .auth-canonical-legal-link:hover,
+.fx-auth .auth-canonical-legal-link:focus-visible {
+  color: rgb(var(--fx-text) / 0.9);
+}
+
+.fx-dock {
+  display: flex;
+  flex: none;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 58px;
+  margin-top: 16px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 29px;
+  background: linear-gradient(180deg, color-mix(in srgb, rgb(var(--fx-ac)) 38%, #fff), rgb(var(--fx-ac)));
+  box-shadow: 0 0 26px rgb(var(--fx-ac) / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.5);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: #04100a;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fx-dock:disabled:not([data-busy="true"]) {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: default;
+}
+
+.fx-dock[data-busy="true"] {
+  cursor: progress;
+}
+
+.fx-dock--ghost {
+  border: 1px solid rgb(var(--fx-ac) / 0.5);
+  background: transparent;
+  box-shadow: none;
+  color: rgb(var(--fx-ac));
+}
+
+.fx-dock__sp {
+  width: 18px;
+  height: 18px;
+  animation: fx-auth-rot 0.9s linear infinite;
+}
+
+.fx-stat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding-bottom: 18px;
+  text-align: center;
+}
+
+.fx-stat .fx-ttl {
+  margin-top: 22px;
+  font-size: 34px;
+}
+
+.fx-stat .fx-slot {
+  width: 100%;
+  margin-top: 22px;
+}
+
+.fx-mark {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+}
+
+.fx-mark__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: rgb(var(--fx-ac));
+}
+
+.fx-mark__ring circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.fx-mark__track {
+  opacity: 0.18;
+}
+
+.fx-mark--spin .fx-mark__arc {
+  transform-origin: 50% 50%;
+  animation: fx-auth-rot 1.1s linear infinite;
+}
+
+@keyframes fx-auth-rot {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@media (max-height: 38rem) and (min-width: 40rem) {
-  .auth-form-fields-centered {
-    display: grid;
-    width: calc(100vw - 3rem);
-    max-width: calc(100vw - 3rem);
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: 1rem;
-    margin-top: 1.5rem;
-    margin-left: 50%;
-    transform: translateX(-50%);
+.fx-steps {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-steps li {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 4px;
+  border-bottom: 1px solid rgb(var(--fx-ac) / 0.18);
+  text-align: left;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.fx-steps li:last-child {
+  border-bottom: 0;
+}
+
+.fx-steps__n {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgb(var(--fx-ac) / 0.7);
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(var(--fx-ac));
+}
+
+.fx-steps svg {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  /* No right margin: the icon is often followed by "." or ",". */
+  margin: 0 0 0 3px;
+  vertical-align: -4px;
+  color: rgb(var(--fx-ac));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-mark--spin .fx-mark__arc,
+  .fx-dock__sp {
+    animation: none;
   }
 
-  .auth-form-fields-centered > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0 !important;
+  .fx-fld {
+    transition: none;
+  }
+}
+
+@media (max-width: 340px) {
+  .fx-auth__frame {
+    padding-right: calc(env(safe-area-inset-right, 0px) + 18px);
+    padding-left: calc(env(safe-area-inset-left, 0px) + 18px);
+  }
+}
+
+@media (max-height: 640px) {
+  .fx-auth__frame {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 26px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  }
+
+  .fx-appicon {
+    width: 62px;
+    height: 62px;
+  }
+
+  .fx-appicon--top {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 8px;
+  }
+
+  .fx-ttl {
+    margin-top: 10px;
+    font-size: 34px;
+  }
+
+  .fx-lead {
+    margin-top: 8px;
+    font-size: 14px;
+  }
+
+  .fx-fld {
+    height: 52px;
+    margin-top: 16px;
+  }
+
+  .fx-slot {
+    min-height: 62px;
+    margin-top: 10px;
+  }
+
+  .fx-notice {
+    padding: 9px 12px;
+    font-size: 13.5px;
+  }
+
+  .fx-links {
+    font-size: 14.5px;
+  }
+
+  .fx-legal {
+    margin-top: 8px;
+    font-size: 12.5px;
+  }
+
+  .fx-dock {
+    height: 50px;
+    margin-top: 10px;
+    border-radius: 25px;
+    font-size: 16px;
+  }
+
+  .fx-mark {
+    width: 78px;
+    height: 78px;
+  }
+
+  .fx-stat .fx-ttl {
+    margin-top: 16px;
+    font-size: 28px;
+  }
+
+  .fx-steps li {
+    gap: 12px;
+    padding: 11px 2px;
+    font-size: 15px;
+  }
+
+  .fx-steps__n {
+    width: 30px;
+    height: 30px;
   }
 }
 
 @media (forced-colors: active) {
-  .auth-account-field:focus-within {
-    border-color: Highlight !important;
+  .fx-fld:focus-within {
+    border-color: Highlight;
     outline: 2px solid Highlight;
     outline-offset: 2px;
   }
 
-  .auth-account-field:has(.auth-account-input:user-invalid),
-  .auth-account-field:has(.auth-account-input[aria-invalid="true"]) {
-    border-color: Mark !important;
+  .fx-fld[data-invalid="true"],
+  .fx-fld:has(.fx-fld__input:user-invalid) {
+    border-color: Mark;
     outline-color: Mark;
   }
+
+  .fx-dock {
+    border: 2px solid ButtonText;
+  }
+}
+
+/* Earned install prompt (Today): the install family as an inline card. Same icon, title, line, steps and pill
+   buttons as /install, sized for a card. */
+.fx-earned {
+  --fx-ac: 160 223 56;
+  --fx-text: 241 245 242;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px 18px 18px;
+  border: 1px solid rgb(var(--fx-ac) / 0.22);
+  border-radius: 22px;
+  background: radial-gradient(90% 80% at 50% 0%, rgb(var(--fx-ac) / 0.1), transparent 70%), #060b07;
+  color: rgb(var(--fx-text));
+  text-align: center;
+}
+
+.fx-earned .fx-appicon {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+}
+
+.fx-earned .fx-ttl {
+  margin-top: 10px;
+  font-size: 22px;
+}
+
+.fx-earned .fx-lead {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.fx-earned .fx-steps li {
+  padding: 10px 2px;
+  font-size: 15px;
+}
+
+.fx-earned__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.fx-earned .fx-dock {
+  height: 48px;
+  margin-top: 12px;
+  font-size: 16px;
 }
 
 .app-page-scroll {

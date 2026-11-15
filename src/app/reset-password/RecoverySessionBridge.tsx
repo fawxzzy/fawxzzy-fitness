@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { establishRecoverySession } from "@/app/reset-password/actions";
 import { hasRecoveryFragment, readRecoveryTokensFromHash } from "@/app/reset-password/recovery-fragment";
-import { AuthStack, AuthStatusText } from "@/components/auth/AuthShell";
-import { RouteLoading } from "@/components/RouteLoading";
-import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
+import ForgotPasswordFormClient from "@/app/forgot-password/ForgotPasswordFormClient";
+import { AuthStatusScreen } from "@/components/auth/AuthShell";
+import { authNotice, resetPasswordErrorNoticeId } from "@/components/auth/authMessages";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired.";
@@ -17,8 +17,6 @@ type RecoverySessionBridgeProps = {
 export function RecoverySessionBridge({ initialError }: RecoverySessionBridgeProps) {
   const [error, setError] = useState(initialError ?? null);
   const [isPending, setIsPending] = useState(!initialError);
-
-  useToastMessageEffect("error", error, { id: "recovery-session-error" });
 
   useEffect(() => {
     if (initialError) {
@@ -101,14 +99,9 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   }, [initialError]);
 
   if (isPending) {
-    return <RouteLoading label="Finishing your password reset link..." variant="route" />;
+    return <AuthStatusScreen title="Signing you in…" working testId="recovery-session-pending" />;
   }
 
-  return (
-    <>
-      <AuthStack>
-        <AuthStatusText>{error ?? RECOVERY_SESSION_ERROR}</AuthStatusText>
-      </AuthStack>
-    </>
-  );
+  // A failed link is never a dead end: it is the reset request screen with the reason in the box.
+  return <ForgotPasswordFormClient initialNotice={authNotice(resetPasswordErrorNoticeId(error ?? RECOVERY_SESSION_ERROR) ?? "reset.expired")} />;
 }

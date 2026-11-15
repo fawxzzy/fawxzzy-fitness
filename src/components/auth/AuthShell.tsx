@@ -1,96 +1,90 @@
+import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { AppSoftErrorBoundary } from "@/components/error/AppSoftErrorBoundary";
-import {
-  ACTION_CHROME_RAIL_CLASS_NAME,
-  ACTION_CHROME_RAIL_GRID_CLASS_NAME,
-} from "@/components/ui/actionChrome";
-import {
-  BOTTOM_ACTION_SHELL_CLASSNAME,
-  BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME,
-} from "@/components/layout/CanonicalBottomActions";
-import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
-import { appTokens } from "@/components/ui/app/tokens";
+import type { AuthNotice } from "@/components/auth/authMessages";
+import { APP_LOADER_ICON_DATA_URI } from "@/lib/app-loader-icon";
 import { cn } from "@/lib/cn";
 
-export const AUTH_PLAIN_CARD_CHROME_CLASS_NAME =
-  "auth-card-plain !border-transparent !bg-transparent !shadow-none [backdrop-filter:none] [-webkit-backdrop-filter:none]";
+// Auth Surface v2 (approved by Zac 2026-11-15). One anatomy for every auth, account, install, loading and error
+// screen: app icon, kicker, title, optional lead, a body (fields + ONE reserved notice slot), links, legal, dock.
+// The page is one 100dvh flex column: nothing is position:fixed, so no fixed px offsets sit on top of the
+// safe areas and the keyboard can never push a floating footer over a field. The look lives in globals.css
+// (`.fx-auth*`, a port of the approved mock's `.ph` spec) so every screen shares it.
 
-export const AUTH_PRIMARY_DOCK_BUTTON_CLASS_NAME =
-  "!h-14 !min-h-14 !rounded-[28px] !border !border-[rgb(var(--accent)/0.32)] !bg-[linear-gradient(180deg,#f4f4f5_0%,rgb(var(--accent))_180%)] !text-[#050505] !shadow-[inset_0_1px_0_rgb(255_255_255/0.82),0_10px_28px_rgb(var(--accent)/0.16)] disabled:!opacity-[0.68]";
+export const AUTH_APP_ICON_SRC = APP_LOADER_ICON_DATA_URI;
 
 export function AuthShell({
   children,
   className,
-  topAction,
-  header,
+  testId = "auth-shell",
+  variant = "form",
 }: {
   children: ReactNode;
   className?: string;
-  topAction?: ReactNode;
-  header?: ReactNode;
+  testId?: string;
+  variant?: "form" | "status" | "install";
 }) {
   return (
     <main
-      className={cn("auth-canonical-account-shell", appTokens.authShell)}
+      className={cn("fx-auth auth-canonical-account-shell", className)}
       data-auth-family="fawxzzy"
-      data-auth-layout="focused-split"
+      data-auth-layout="surface-v2"
       data-auth-product="fitness"
       data-auth-runtime="same-origin"
-      data-testid="auth-shell"
+      data-auth-variant={variant}
+      data-testid={testId}
     >
-      <div className={appTokens.authShellFrame}>
+      <div className="fx-auth__frame" data-testid="auth-shell-content">
         <AppSoftErrorBoundary area="auth-shell">
-          {topAction ? (
-            <div className={appTokens.authShellTopAction}>
-              {topAction}
-            </div>
-          ) : null}
-          {header ? (
-            <div className="flex justify-center text-center">
-              {header}
-            </div>
-          ) : null}
-          <div
-            className={cn("flex min-h-0 min-w-0 flex-1 flex-col", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
-            data-testid="auth-shell-content"
-          >
-            {children}
-          </div>
+          {children}
         </AppSoftErrorBoundary>
       </div>
     </main>
   );
 }
 
-export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
+/** The real Fitness app icon (the inline 256 px derivation the loader uses: no request, no pop-in). */
+export function AuthAppIcon({ placement = "top" }: { placement?: "top" | "mark" }) {
   return (
-    <header className={cn(appTokens.authIntro, appTokens.authIntroFrame)} data-testid="auth-intro">
-      <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
-      {eyebrow ? <p className={appTokens.authIntroEyebrow}>{eyebrow}</p> : null}
-      {title || subtitle ? (
-        <div className={appTokens.authIntroTitleStack}>
-          {title ? <h1 className={appTokens.authIntroTitle}>{title}</h1> : null}
-          {subtitle ? <p className={cn(appTokens.authIntroSubtitle, "mx-auto")}>{subtitle}</p> : null}
-        </div>
-      ) : null}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className={cn("fx-appicon", placement === "top" ? "fx-appicon--top" : "")}
+      src={AUTH_APP_ICON_SRC}
+      alt=""
+      width={placement === "top" ? 60 : 76}
+      height={placement === "top" ? 60 : 76}
+      decoding="sync"
+      data-testid="auth-app-icon"
+    />
+  );
+}
+
+export function AuthKicker() {
+  return <p className="fx-kick">{PASSWORD_LOGIN_UI_COPY.wordmark}</p>;
+}
+
+export function AuthHead({ title, lead }: { title: string; lead?: string | null }) {
+  return (
+    <header className="fx-head" data-testid="auth-intro">
+      <AuthAppIcon />
+      <AuthKicker />
+      <h1 className="fx-ttl">{title}</h1>
+      {lead ? <p className="fx-lead">{lead}</p> : null}
     </header>
   );
 }
 
-export function AuthCard({
+export function AuthBody({
   children,
+  align = "center",
   className,
   ...props
-}: ComponentPropsWithoutRef<"section">) {
+}: ComponentPropsWithoutRef<"section"> & { align?: "center" | "top" }) {
   return (
     <section
       {...props}
-      className={cn(
-        appTokens.authCard,
-        className,
-      )}
+      className={cn("fx-body", align === "top" ? "fx-body--top" : "", className)}
       data-testid="auth-card"
     >
       {children}
@@ -98,243 +92,224 @@ export function AuthCard({
   );
 }
 
-export function AuthMessage({ tone = "default", children }: { tone?: "default" | "error" | "success"; children: ReactNode }) {
-  const toneClassName =
-    tone === "error"
-      ? appTokens.authMessageError
-      : tone === "success"
-        ? appTokens.authMessageSuccess
-        : appTokens.authMessageDefault;
-
-  return <p className={cn(appTokens.authMessage, toneClassName)}>{children}</p>;
+export function AuthForm({ className, ...props }: ComponentPropsWithoutRef<"form">) {
+  return <form {...props} className={cn("fx-form", className)} />;
 }
 
-export function AuthField({
-  label,
-  children,
-  hideLabel = false,
-}: {
-  label: string;
-  children: ReactNode;
-  hideLabel?: boolean;
-}) {
+export function AuthFormFields({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <label className={appTokens.authField}>
-      <span className={hideLabel ? "sr-only" : appTokens.authFieldLabel}>{label}</span>
+    <div className={cn("fx-fields", className)} data-testid="auth-form-fields">
       {children}
-    </label>
+    </div>
   );
 }
 
-export function AuthForm({
-  children,
-  className,
-  ...props
-}: ComponentPropsWithoutRef<"form">) {
+function NoticeIcon({ tone }: { tone: AuthNotice["tone"] }) {
   return (
-    <form
-      {...props}
-      className={cn(appTokens.authFormStack, className)}
-    >
-      {children}
-    </form>
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9.5" />
+      {tone === "success" ? <path d="M8 12.4l2.8 2.8L16.2 9.4" /> : tone === "info" ? <path d="M12 11v5.5M12 7.6v.1" /> : <path d="M12 7.5v5.5M12 16.4v.1" />}
+    </svg>
   );
 }
 
-export function AuthFormFields({
-  children,
+/**
+ * The ONE notice box, in a slot whose height is always held (empty or not), so a message never moves the fields,
+ * links or dock. At most one inline action. Every tone is role=alert (spec: the box only appears when something needs reading).
+ */
+export function AuthNoticeSlot({
+  notice,
+  onAction,
   className,
 }: {
-  children: ReactNode;
+  notice: AuthNotice | null | undefined;
+  onAction?: () => void;
   className?: string;
 }) {
   return (
-    <div
-      className={cn("auth-form-fields-centered mx-auto w-full max-w-[15rem] space-y-[18px]", className)}
-      data-testid="auth-form-fields"
-    >
-      {children}
+    <div className={cn("fx-slot", className)} data-testid="auth-notice-slot">
+      {notice ? (
+        <div
+          className="fx-notice"
+          data-tone={notice.tone}
+          data-notice-id={notice.id}
+          role="alert"
+          aria-live="assertive"
+          data-testid="auth-notice"
+        >
+          <NoticeIcon tone={notice.tone} />
+          <span className="fx-notice__t">
+            {notice.text}
+            {notice.action && onAction ? (
+              <button type="button" className="fx-notice__act" onClick={onAction}>{notice.action}</button>
+            ) : null}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-export function AuthStatusText({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn(appTokens.authStatusMessage, className)}>{children}</p>;
+export function AuthLinks({ children }: { children: ReactNode }) {
+  return <nav className="fx-links" aria-label="Account links" data-testid="auth-secondary-row">{children}</nav>;
 }
 
-export function AuthStack({
-  children,
-  className,
-  size = "md",
-  ...props
-}: ComponentPropsWithoutRef<"div"> & {
-  size?: "xs" | "sm" | "compact" | "md" | "lg";
-}) {
-  const gapClassName =
-    size === "xs"
-      ? "space-y-1"
-      : size === "sm"
-        ? "space-y-2"
-        : size === "compact"
-          ? "space-y-3"
-        : size === "lg"
-          ? "space-y-5"
-          : "space-y-4";
-
-  return (
-    <div {...props} className={cn(gapClassName, className)}>
-      {children}
-    </div>
-  );
+export function AuthLinkButton({ className, type = "button", ...props }: ComponentPropsWithoutRef<"button">) {
+  return <button {...props} type={type} className={cn("fx-link", className)} />;
 }
 
-export function AuthActionRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex justify-end", className)}>{children}</div>;
+export function AuthLink({ className, ...props }: ComponentPropsWithoutRef<typeof Link>) {
+  return <Link {...props} className={cn("fx-link", className)} />;
 }
 
-export function AuthActionBar({
-  children,
-  className,
-  innerClassName,
-}: {
-  children: ReactNode;
-  className?: string;
-  innerClassName?: string;
-}) {
-  return (
-    <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, className)}>
-      <div className={cn(ACTION_CHROME_RAIL_GRID_CLASS_NAME, innerClassName)}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-export function AuthFooter({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <footer
-      className={cn(appTokens.authFooter, "grid grid-rows-[24px_24px] gap-1", className)}
-      data-testid="auth-footer"
-    >
-      {children}
-    </footer>
-  );
-}
-
-export function AuthFooterSeparator() {
-  return <SignatureMiniPipe className={appTokens.authFooterSeparator} />;
-}
-
-export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("flex min-h-6 flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center leading-6", className)}>{children}</p>;
-}
-
-export function AuthCenteredFooterRow({
-  leading,
-  trailing,
-  className,
-}: {
-  leading: ReactNode;
-  trailing: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn("grid min-h-6 w-full grid-cols-[minmax(0,1fr)_0.465rem_minmax(0,1fr)] items-center gap-x-2 leading-6", className)}
-      data-testid="auth-secondary-row"
-    >
-      <span className="flex min-w-0 justify-end">{leading}</span>
-      <AuthFooterSeparator />
-      <span className="flex min-w-0 justify-start">{trailing}</span>
-    </div>
-  );
-}
-
-export function AuthFooterSpacer() {
-  return <span aria-hidden="true" className="block min-h-6" data-testid="auth-secondary-row" />;
+function legalHref(pathname: "/privacy" | "/terms", returnTo?: string) {
+  return returnTo ? { pathname, query: { returnTo } } : pathname;
 }
 
 export function AuthLegalRow({ returnTo }: { returnTo?: string }) {
   return (
-    <div className="min-h-6 leading-6" data-testid="auth-legal-row">
-      <LegalInlineLinks
-        centerSeparator
-        className="h-full"
-        linkClassName={cn(appTokens.authInlineLink, "auth-canonical-legal-link")}
-        returnTo={returnTo}
-      />
-    </div>
+    <nav className="fx-legal" aria-label="Legal" data-testid="auth-legal-row">
+      <Link href={legalHref("/privacy", returnTo)} className="auth-canonical-legal-link">Privacy</Link>
+      <Link href={legalHref("/terms", returnTo)} className="auth-canonical-legal-link">Terms</Link>
+    </nav>
   );
 }
 
-export function AuthInlineLinkButton({
+function DockSpinner() {
+  return (
+    <svg className="fx-dock__sp" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <circle cx="12" cy="12" r="9" opacity=".25" />
+      <path d="M12 3a9 9 0 019 9" />
+    </svg>
+  );
+}
+
+export function AuthDockButton({
   children,
+  busy = false,
+  busyLabel,
   className,
+  disabled,
   type = "button",
+  tone = "primary",
   ...props
-}: ComponentPropsWithoutRef<"button">) {
+}: ComponentPropsWithoutRef<"button"> & { busy?: boolean; busyLabel?: string; tone?: "primary" | "ghost" }) {
   return (
     <button
       {...props}
       type={type}
-      className={cn(
-        "!border-0 !bg-transparent !px-1 !py-0.5 !text-[rgb(var(--accent))] !shadow-none !outline-none select-none hover:!text-[rgb(var(--accent-strong))] focus:!outline-none focus-visible:!outline-none focus:!shadow-none focus-visible:!shadow-none focus:!ring-0 focus-visible:!ring-0",
-        appTokens.authInlineButton,
-        className,
-      )}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      className={cn("fx-dock", tone === "ghost" ? "fx-dock--ghost" : "", className)}
+      data-busy={busy ? "true" : undefined}
+      data-auth-primary-action="true"
+      data-testid="auth-dock"
     >
-      {children}
+      {busy ? <DockSpinner /> : null}
+      {busy && busyLabel ? busyLabel : children}
     </button>
   );
 }
 
-export function AuthDock({
-  children,
-  className,
-  anchored = true,
-}: {
-  children: ReactNode;
-  className?: string;
-  anchored?: boolean;
-}) {
-  if (!anchored) {
-    return (
-      <div className={cn("mx-auto mt-6 w-full max-w-[23rem] px-4 sm:px-0", className)}>
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-30", className)} data-testid="auth-dock">
-      <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto !max-w-[390px] !px-6")}>
-        <div className={cn(BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME, "!pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] !pt-0")}>{children}</div>
-      </div>
-    </div>
-  );
+export function AuthDockLink({ className, ...props }: ComponentPropsWithoutRef<typeof Link>) {
+  return <Link {...props} className={cn("fx-dock", className)} data-auth-primary-action="true" data-testid="auth-dock" />;
 }
 
-export function AuthStatusCard({
+/** Loader, not-found, crash and offline screens: kicker, the icon in its mark (with a ring while working), title. */
+export function AuthStatusScreen({
   title,
-  description,
+  lead,
+  working = false,
+  notice,
+  onNoticeAction,
+  action,
   testId,
 }: {
   title: string;
-  description?: string;
+  lead?: string | null;
+  working?: boolean;
+  notice?: AuthNotice | null;
+  onNoticeAction?: () => void;
+  action?: ReactNode;
   testId?: string;
 }) {
   return (
-    <AuthCard className={appTokens.authStatusCard}>
-      <div
-        className={appTokens.authStatusSpinnerShell}
-        aria-hidden="true"
-      >
-        <span className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-r-transparent motion-reduce:animate-none" />
+    <AuthShell variant="status" testId={testId ?? "auth-shell"}>
+      <AuthKicker />
+      <div className="fx-stat" role={working ? "status" : undefined} aria-live={working ? "polite" : undefined}>
+        <div className={cn("fx-mark", working ? "fx-mark--spin" : "")}>
+          {working ? (
+            <svg className="fx-mark__ring" aria-hidden="true" viewBox="0 0 100 100">
+              <circle className="fx-mark__track" cx="50" cy="50" r="48" />
+              <circle className="fx-mark__arc" cx="50" cy="50" r="48" strokeDasharray="70 230" />
+            </svg>
+          ) : null}
+          <AuthAppIcon placement="mark" />
+        </div>
+        <h1 className="fx-ttl">{title}</h1>
+        {lead ? <p className="fx-lead">{lead}</p> : null}
+        {notice !== undefined ? <AuthNoticeSlot notice={notice} onAction={onNoticeAction} /> : null}
       </div>
-      <AuthStack size="xs" data-testid={testId}>
-        <p className={appTokens.authStatusTitle}>{title}</p>
-        {description ? <p className={appTokens.authStatusDescription}>{description}</p> : null}
-      </AuthStack>
-    </AuthCard>
+      {action ?? null}
+    </AuthShell>
+  );
+}
+
+export function AuthInstallSteps({ steps }: { steps: readonly ReactNode[] }) {
+  return (
+    <ol className="fx-steps" aria-label="Install Fitness" data-testid="install-steps">
+      {steps.map((step, index) => (
+        <li key={index}>
+          <span className="fx-steps__n" aria-hidden="true">{index + 1}</span>
+          <span>{step}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+const ICON_PROPS = {
+  "aria-hidden": true,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+export function AuthLockIcon() {
+  return (
+    <svg {...ICON_PROPS} className="fx-fld__ico">
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" />
+    </svg>
+  );
+}
+
+export function AuthShareIcon({ label = "Share" }: { label?: string }) {
+  return (
+    <svg {...ICON_PROPS} aria-hidden={undefined} role="img" aria-label={label}>
+      <path d="M12 15V3.5M8 7l4-4 4 4M6 11H5.5A1.5 1.5 0 004 12.5v7A1.5 1.5 0 005.5 21h13a1.5 1.5 0 001.5-1.5v-7a1.5 1.5 0 00-1.5-1.5H18" />
+    </svg>
+  );
+}
+
+export function AuthAddIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </svg>
+  );
+}
+
+export function AuthDotsIcon({ label = "Menu" }: { label?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" role="img" aria-label={label}>
+      <circle cx="5.5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="18.5" cy="12" r="1.8" />
+    </svg>
   );
 }

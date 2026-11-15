@@ -2,11 +2,9 @@
 
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AuthCard, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
+import { AuthDockButton, AuthLink, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
+import { authNotice } from "@/components/auth/authMessages";
 import { RouteLoading } from "@/components/RouteLoading";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { appTokens } from "@/components/ui/app/tokens";
 import {
   APP_UPDATE_STATUS_EVENT,
   type AppUpdateStatus,
@@ -456,96 +454,31 @@ export function InitialExperienceGate({
   }, [decision, gateState, retrySeed, stage, stageCopy.detail, updateStatus]);
 
   if (stage === "recovery" && recoveryState) {
+    // The handoff stalled. Same status screen as every failure: one box, one button, a way to Today. The build ids
+    // stay in the boot diagnostics (gate.pending metadata above), not on screen.
     return (
-      <AuthShell>
-        <AuthCard className={appTokens.authInteractiveCard} data-testid="initial-experience-gate-recovery">
-          <AuthIntro
-            eyebrow={stageCopy.eyebrow}
-            title={stageCopy.title}
-            subtitle={stageCopy.subtitle}
-          />
-          <div className="space-y-3 pt-2 text-sm leading-6 text-[rgb(var(--text-muted)/0.96)]">
-            <p>
-              The installed app stayed on the launch handoff longer than expected. A browser refresh should not be required.
-            </p>
-            <dl className="space-y-2 rounded-[var(--radius-lg)] border border-[rgb(var(--stroke-soft)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.62)] px-4 py-3 text-left">
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-[rgb(var(--text-muted))]">Route</dt>
-                <dd className="font-medium text-[rgb(var(--text-primary))]">{pathname ?? "/entry"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-[rgb(var(--text-muted))]">Target</dt>
-                <dd className="font-medium text-[rgb(var(--text-primary))]">{recoveryState.targetHref}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-[rgb(var(--text-muted))]">Current build</dt>
-                <dd className="font-medium text-[rgb(var(--text-primary))]">{CURRENT_APP_BUILD_ID}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-[rgb(var(--text-muted))]">Remote build</dt>
-                <dd className="font-medium text-[rgb(var(--text-primary))]">{recoveryState.remoteBuildId ?? "unavailable"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-[rgb(var(--text-muted))]">Time in handoff</dt>
-                <dd className="font-medium text-[rgb(var(--text-primary))]">{Math.round(recoveryState.elapsedMs / 100) / 10}s</dd>
-              </div>
-            </dl>
-          </div>
-        </AuthCard>
-
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
-          <div className="space-y-3">
-            <BottomActionSplit
-              secondary={(
-                <BottomDockButton
-                  type="button"
-                  intent="info"
-                  onClick={resetGate}
-                >
-                  Retry
-                </BottomDockButton>
-              )}
-              primary={(
-                <BottomDockButton
-                  type="button"
-                  intent="positive"
-                  onClick={() => {
-                    window.location.assign("/today");
-                  }}
-                >
-                  Open Today
-                </BottomDockButton>
-              )}
-            />
-            <BottomActionSplit
-              secondary={(
-                <BottomDockButton
-                  type="button"
-                  intent="info"
-                  onClick={() => {
-                    window.location.assign("/login?error=session_expired");
-                  }}
-                >
-                  Go to Login
-                </BottomDockButton>
-              )}
-              primary={(
-                <BottomDockButton
-                  type="button"
-                  intent="positive"
-                  onClick={() => {
-                    if (!attemptCacheBustedReload(recoveryState.targetHref, recoveryState.elapsedMs)) {
-                      window.location.reload();
-                    }
-                  }}
-                >
-                  Refresh App
-                </BottomDockButton>
-              )}
-            />
-          </div>
-        </div>
-      </AuthShell>
+      <AuthStatusScreen
+        testId="initial-experience-gate-recovery"
+        title="Could not load"
+        notice={authNotice("page.crash")}
+        action={(
+          <>
+            <AuthLinks>
+              <AuthLink href="/today">Go to Today</AuthLink>
+            </AuthLinks>
+            <AuthDockButton
+              type="button"
+              onClick={() => {
+                if (!attemptCacheBustedReload(recoveryState.targetHref, recoveryState.elapsedMs)) {
+                  window.location.reload();
+                }
+              }}
+            >
+              Try again
+            </AuthDockButton>
+          </>
+        )}
+      />
     );
   }
 
@@ -554,38 +487,20 @@ export function InitialExperienceGate({
   }
 
   return (
-    <AuthShell>
-      <AuthCard className={appTokens.authInteractiveCard} data-testid="initial-experience-gate">
-        <AuthIntro eyebrow="" title="" subtitle="" />
-        <p className="pt-2 text-center text-sm leading-6 text-[rgb(var(--text-muted)/0.96)]">
-          Could not open app.
-        </p>
-      </AuthCard>
-
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
-        <BottomActionSplit
-          secondary={(
-            <BottomDockButton
-              type="button"
-              intent="info"
-              onClick={resetGate}
-            >
-              Retry
-            </BottomDockButton>
-          )}
-          primary={(
-            <BottomDockButton
-              type="button"
-              intent="positive"
-              onClick={() => {
-                window.location.assign("/today");
-              }}
-            >
-              Start Offline
-            </BottomDockButton>
-          )}
-        />
-      </div>
-    </AuthShell>
+    <AuthStatusScreen
+      testId="initial-experience-gate"
+      title="Could not load"
+      notice={authNotice("page.crash")}
+      action={(
+        <>
+          <AuthLinks>
+            <AuthLink href="/today">Go to Today</AuthLink>
+          </AuthLinks>
+          <AuthDockButton type="button" onClick={resetGate}>
+            Try again
+          </AuthDockButton>
+        </>
+      )}
+    />
   );
 }
