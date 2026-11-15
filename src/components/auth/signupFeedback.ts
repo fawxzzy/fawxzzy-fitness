@@ -20,7 +20,9 @@ export const SIGNUP_ERROR_COPY = {
   // Usernames are public (shown on leaderboards), so naming this one is not a secret. Same sentence as the portal.
   username_taken: "That username is taken. Pick another one.",
   rate_limited: "Too many sign-up attempts. Please wait a few minutes and try again.",
-  // One fixed sentence for every other failure (already registered, weak password, network, unknown).
+  // The provider's password-strength check (leaked or guessable password). Says nothing about the account.
+  weak_password: "That password is too easy to guess. Try another.",
+  // One fixed sentence for every other failure (already registered, network, unknown).
   signup_failed:
     "We could not finish creating your account. If you already made one, sign in with it instead.",
 } as const;
@@ -86,7 +88,7 @@ function carriesUsernameTakenCode(record: Record<string, unknown>) {
 
 /**
  * Classifies a provider sign-up rejection into a safe code. The provider's message is read only to classify; it is
- * never returned. Rate limits and the public username guard get their own copy; every other rejection, including
+ * never returned. Rate limits, weak passwords and the public username guard get their own copy; every other rejection, including
  * "already registered", shares the one generic code.
  */
 export function classifySignupProviderError(error: unknown): SignupErrorCode {
@@ -99,6 +101,10 @@ export function classifySignupProviderError(error: unknown): SignupErrorCode {
   const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
   if (record.status === 429 || RATE_LIMIT_CODES.has(code) || message.includes("rate limit")) {
     return "rate_limited";
+  }
+  // Decided by the provider's machine code only, never by its message text.
+  if (code === "weak_password") {
+    return "weak_password";
   }
 
   return "signup_failed";

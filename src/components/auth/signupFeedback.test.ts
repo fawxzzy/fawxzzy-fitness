@@ -11,6 +11,12 @@ import {
   SIGNUP_ERROR_COPY,
   SIGNUP_INFO_COPY,
 } from "./signupFeedback.ts";
+import {
+  forgetStashedRememberedLogin,
+  restoreRememberedLoginAfterFailedSignup,
+  stashRememberedLoginBeforeSignup,
+} from "./signupRememberedLogin.ts";
+import { readRememberedLoginState, writeRememberedLoginState } from "@/lib/remembered-login";
 
 const read = (relativePath: string) => readFileSync(new URL(relativePath, import.meta.url), "utf8");
 
@@ -22,6 +28,7 @@ test("the error-code table is the small fixed allow-list, with the shared passwo
     "signup_failed",
     "username_invalid",
     "username_taken",
+    "weak_password",
   ]);
   assert.deepEqual(Object.keys(SIGNUP_INFO_COPY), ["check_email"]);
   assert.equal(SIGNUP_ERROR_COPY.password_too_short, NEW_PASSWORD_REQUIREMENT);
@@ -75,7 +82,7 @@ test("a provider rejection never turns into text from the provider, and already-
     "Signups not allowed for this instance",
   ];
   for (const message of providerMessages) {
-    for (const extra of [{}, { code: "user_already_exists", status: 422 }, { code: "email_exists", status: 422 }, { code: "weak_password", status: 422 }, { status: 500 }]) {
+    for (const extra of [{}, { code: "user_already_exists", status: 422 }, { code: "email_exists", status: 422 }, { status: 500 }]) {
       const code = classifySignupProviderError({ message, ...extra });
       assert.equal(code, "signup_failed", `${message} ${JSON.stringify(extra)}`);
       assert.ok(!SIGNUP_ERROR_COPY[code].toLowerCase().includes("already registered"));
@@ -96,6 +103,57 @@ test("rate limits and the public username guard get their own safe codes", () =>
   assert.equal(classifySignupProviderError({ details: "ACCOUNT_USERNAME_TAKEN", status: 409 }), "username_taken");
   // An email-duplicate rejection must not read as a username problem.
   assert.equal(classifySignupProviderError({ code: "user_already_exists", message: "User already registered" }), "signup_failed");
+});
+
+test("the provider's weak-password code gets its own safe code; message text alone never decides it", () => {
+  assert.equal(classifySignupProviderError({ code: "weak_password", status: 422, message: "Password is known to be weak" }), "weak_password");
+  assert.equal(classifySignupProviderError({ message: "Password is known to be weak and easy to guess" }), "signup_failed");
+  assert.equal(SIGNUP_ERROR_COPY.weak_password, "That password is too easy to guess. Try another.");
+  assert.equal(buildSignupRedirectHref({ error: "weak_password" }), "/signup?error=weak_password");
+});
+
+function memoryStore() {
+  const map = new Map<string, string>();
+  return {
+    getItem: (key: string) => (map.has(key) ? map.get(key)! : null),
+    setItem: (key: string, value: string) => void map.set(key, value),
+    removeItem: (key: string) => void map.delete(key),
+    map,
+  };
+}
+
+test("a failed sign-up does not leave its address as the remembered login", () => {
+  const local = memoryStore();
+  const session = memoryStore();
+  // No remembered login before the attempt: a failure clears the one the attempt wrote.
+  stashRememberedLoginBeforeSignup({ local, session });
+  writeRememberedLoginState({ email: "new@example.com", displayName: "newbie" }, local);
+  restoreRememberedLoginAfterFailedSignup({ local, session });
+  assert.equal(readRememberedLoginState(local), null);
+  assert.equal(session.map.size, 0);
+
+  // An earlier remembered login is put back on failure.
+  writeRememberedLoginState({ email: "old@example.com", displayName: "oldie", sessionState: "ready" }, local);
+  stashRememberedLoginBeforeSignup({ local, session });
+  writeRememberedLoginState({ email: "new@example.com", displayName: "newbie" }, local);
+  restoreRememberedLoginAfterFailedSignup({ local, session });
+  assert.equal(readRememberedLoginState(local)?.email, "old@example.com");
+  assert.equal(readRememberedLoginState(local)?.sessionState, "ready");
+
+  // A success keeps the new address and drops the stash.
+  stashRememberedLoginBeforeSignup({ local, session });
+  writeRememberedLoginState({ email: "new@example.com", displayName: "newbie" }, local);
+  forgetStashedRememberedLogin({ session });
+  assert.equal(readRememberedLoginState(local)?.email, "new@example.com");
+  assert.equal(session.map.size, 0);
+
+  // An error link opened without an attempt from this tab leaves the remembered login alone.
+  restoreRememberedLoginAfterFailedSignup({ local, session });
+  assert.equal(readRememberedLoginState(local)?.email, "new@example.com");
+
+  const form = read("./SignupForm.tsx");
+  assert.match(form, /stashRememberedLoginBeforeSignup\(\);\s*writeRememberedLoginState\(/);
+  assert.match(form, /restoreRememberedLoginAfterFailedSignup\(\);/);
 });
 
 // Auth Surface v2: the code shows once, in the form's reserved notice slot. The global bridge never toasts on /signup

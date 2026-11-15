@@ -145,6 +145,16 @@ test("every allow-listed route code maps to a matrix message, so no screen falls
   assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.username_taken), "signup.taken");
   assert.equal(resetRequestNoticeId("rate_limited"), "reset.rate");
   assert.equal(resetRequestNoticeId("anything"), "reset.sendfail");
+  // No server credential for a username lookup: a plain "unavailable" line, never one that implies an email was typed.
+  assert.equal(resetRequestNoticeId("email_required"), "reset.unavailable");
+  assert.equal(loginErrorNoticeId(LOGIN_ERROR_COPY.email_required), "reset.unavailable");
+  assert.doesNotMatch(AUTH_MESSAGES["reset.unavailable"].text, /email/i);
+  // The generic sign-up failure is sign-up specific, never the sign-in "unavailable" line, and never says whether
+  // the email already has an account (open owner decision).
+  assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.signup_failed), "signup.failed");
+  assert.doesNotMatch(AUTH_MESSAGES["signup.failed"].text, /sign-in|already|exists|registered/i);
+  assert.equal(AUTH_MESSAGES["signup.failed"].action, "Sign in");
+  assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.weak_password), "signup.pwweak");
 });
 
 test("crafted query text never selects a message", () => {

@@ -34,6 +34,11 @@ import {
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { isValidNewPassword, NEW_PASSWORD_MINIMUM } from "@/lib/password-policy";
 import { readRememberedLoginState, writeRememberedLoginState } from "@/lib/remembered-login";
+import {
+  forgetStashedRememberedLogin,
+  restoreRememberedLoginAfterFailedSignup,
+  stashRememberedLoginBeforeSignup,
+} from "@/components/auth/signupRememberedLogin";
 import { isUsernameIdentifier, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@/lib/username-policy";
 
 const SIGNUP_FORM_ID = "signup-form";
@@ -108,6 +113,9 @@ export function SignupForm({
     }
     // The values were saved on this device at submit (remembered login): bring them back after the redirect.
     const remembered = readRememberedLoginState();
+    if (isSignupCheckEmailInfo(info)) {
+      forgetStashedRememberedLogin();
+    }
     if (isSignupCheckEmailInfo(info) && remembered?.email) {
       setSent({ username: remembered.displayName ?? "", email: remembered.email });
       setNotice(authNotice("signup.sent", { email: remembered.email }));
@@ -132,6 +140,8 @@ export function SignupForm({
       setEmail(remembered.email);
       setUsername(remembered.displayName ?? "");
     }
+    // The attempt failed: the address typed here is not an account, so it must not stay the remembered login.
+    restoreRememberedLoginAfterFailedSignup();
   }, [error, info, previewSent]);
 
   const canSubmit = Boolean(username.trim() && email.trim() && password);
@@ -164,6 +174,7 @@ export function SignupForm({
     setInvalidField(null);
     setNotice(null);
     setIsSubmitting(true);
+    stashRememberedLoginBeforeSignup();
     writeRememberedLoginState({
       email: nextEmail,
       displayName: nextUsername || undefined,
@@ -260,7 +271,10 @@ export function SignupForm({
               />
             </AuthAccountField>
           </AuthFormFields>
-          <AuthNoticeSlot notice={notice} />
+          <AuthNoticeSlot
+            notice={notice}
+            onAction={notice?.id === "signup.failed" ? () => window.location.assign("/login") : undefined}
+          />
         </AuthForm>
       </AuthBody>
       <AuthLinks>

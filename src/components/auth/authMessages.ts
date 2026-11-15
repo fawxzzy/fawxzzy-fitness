@@ -36,6 +36,9 @@ export const AUTH_MESSAGES = {
   "signup.pwshort": { tone: "error", text: "Use at least 10 characters. A longer phrase works well." },
   "signup.pwweak": { tone: "error", text: "That password is too easy to guess. Try another." },
   "signup.rate": { tone: "error", text: "Too many sign-up attempts. Wait a few minutes and try again." },
+  // Copy-matrix addition (not in the 2026-11-15 matrix): the generic sign-up failure. It never says whether the email
+  // already has an account (that is an open owner decision); the "Sign in" action covers the people who do.
+  "signup.failed": { tone: "error", text: "Could not create your account. Try again in a minute.", action: "Sign in" },
   "signup.sent": { tone: "success", text: "Check {e} for a link to confirm your account." },
   "reset.sent": { tone: "success", text: "Reset link sent to {e}. It expires in 1 hour." },
   "reset.sentany": { tone: "success", text: "If that account exists, we sent a reset link to its email." },
@@ -43,6 +46,9 @@ export const AUTH_MESSAGES = {
   "reset.invalid": { tone: "error", text: "That reset link is not valid. Send a new one." },
   "reset.rate": { tone: "error", text: "Too many reset requests. Wait a few minutes and try again." },
   "reset.sendfail": { tone: "error", text: "Could not send the email. Try again in a few minutes." },
+  // Copy-matrix addition: a username reset cannot be looked up on this deployment (no server credential). It does not
+  // ask for an email, because the reset screen never takes a typed email.
+  "reset.unavailable": { tone: "error", text: "Password reset is unavailable right now. Try again later." },
   "reset.mismatch": { tone: "error", text: "The two passwords do not match." },
   "reset.same": { tone: "error", text: "Choose a password different from your current one." },
   "reset.savefail": { tone: "error", text: "Could not save your password. Try again." },
@@ -89,7 +95,7 @@ const LOGIN_ERROR_NOTICE: Record<LoginErrorCode, AuthMessageId> = {
   send_failed: "reset.sendfail",
   session_expired: "signin.session",
   identifier_required: "signup.userinvalid",
-  email_required: "reset.sendfail",
+  email_required: "reset.unavailable",
 };
 
 // The fixed sign-in failure sentences (username-signin-index.ts), in LOGIN_FAILURE_MESSAGES order.
@@ -138,6 +144,9 @@ export function resetRequestNoticeId(code: string | null | undefined): AuthMessa
   if (code === "identifier_required") {
     return "signup.userinvalid";
   }
+  if (code === "email_required") {
+    return "reset.unavailable";
+  }
   return "reset.sendfail";
 }
 
@@ -165,15 +174,16 @@ export function resetPasswordErrorNoticeId(resolvedError: string | null | undefi
   return null;
 }
 
-// `signup_failed` is the one generic code (already registered, weak password, network, unknown). Whether to say
-// "That email already has an account" is an open owner decision, so it uses the system-wide "unavailable" line.
+// `signup_failed` is the one generic code (already registered, network, unknown). Whether to say "That email already
+// has an account" is an open owner decision, so it uses the sign-up-specific generic line with a "Sign in" action.
 const SIGNUP_ERROR_NOTICE: Record<SignupErrorCode, AuthMessageId> = {
   password_too_short: "signup.pwshort",
   username_invalid: "signup.userinvalid",
   email_invalid: "signup.emailinvalid",
   username_taken: "signup.taken",
   rate_limited: "signup.rate",
-  signup_failed: "signin.unavailable",
+  weak_password: "signup.pwweak",
+  signup_failed: "signup.failed",
 };
 
 /** Maps the already allow-listed /signup `error` text to a matrix id. */
