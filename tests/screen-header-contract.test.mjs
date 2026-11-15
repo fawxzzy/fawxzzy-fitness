@@ -1,6 +1,6 @@
 // Screen header contract (docs/design-system/DESIGN-CONTRACT.md section 15).
-// Source-level checks: one ScreenHeader, the tab family on it, Account opens the portal,
-// Sign out in the Settings body, no dock toggles or info rails in the tab headers.
+// Source-level checks: one ScreenHeader, the tab and detail families on it, no raw <h1> screen titles
+// outside it, Account opens the portal, Sign out in the Settings body, no dock toggles or info rails.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -100,4 +100,88 @@ test("History uses one segmented control and the header density toggle, not a do
 test("the in-app /account route and its form stay reachable by direct visit", () => {
   assert.match(read("src/app/account/page.tsx"), /export default/);
   assert.match(read("src/components/settings/AccountSettingsForm.tsx"), /export /);
+});
+
+// A screen title is an <h1>. Only ScreenHeader may render one; anything else is a second, hand-styled header.
+const RAW_H1_PATTERN = /<h1\b|\bas="h1"|\btitleAs\s*=\s*"h1"/;
+const toPosix = (path) => path.split(sep).join("/");
+const RAW_H1_ALLOWED = new Map([
+  ["src/components/ui/app/ScreenHeader.tsx", "the one header"],
+  ["src/components/auth/AuthShell.tsx", "auth screens own their title (Auth Surface v2, section 15.1)"],
+  ["src/components/ui/app/AppHeader.tsx", "legacy header; only routines screens still use it until lane H1a moves them"],
+]);
+const RAW_H1_ALLOWED_DIRS = [
+  ["src/app/dev/", "internal fixture and gallery pages"],
+  ["src/app/api/", "server-rendered HTML strings, not app screens"],
+];
+
+export function findRawH1Offenders(files, readSource) {
+  return files
+    .map(toPosix)
+    .filter((path) => !RAW_H1_ALLOWED.has(path))
+    .filter((path) => !RAW_H1_ALLOWED_DIRS.some(([dir]) => path.startsWith(dir)))
+    .filter((path) => RAW_H1_PATTERN.test(readSource(path)));
+}
+
+test("no raw <h1> screen title outside ScreenHeader in src/app, src/components or src/features", () => {
+  const files = ["src/app", "src/components", "src/features"].flatMap((dir) => listSourceFiles(dir));
+  assert.deepEqual(findRawH1Offenders(files, read), []);
+});
+
+test("the raw <h1> check catches a hand-made centred title (mutation guard)", () => {
+  const fake = {
+    "src/app/history/[sessionId]/Fake.tsx": '<h1 className="text-center text-2xl">Workout</h1>',
+    "src/features/curated-onboarding/components/Fake.tsx": '<TitleText as="h1">Setup</TitleText>',
+    "src/components/ui/app/Fake.tsx": 'export function X({ titleAs = "h1" }) {}',
+    "src/components/history/Fine.tsx": '<h2 className="text-sm">Section</h2>',
+    "src/app/dev/fixture/page.tsx": "<h1>Dev fixture</h1>",
+  };
+  assert.deepEqual(findRawH1Offenders(Object.keys(fake), (path) => fake[path]), [
+    "src/app/history/[sessionId]/Fake.tsx",
+    "src/features/curated-onboarding/components/Fake.tsx",
+    "src/components/ui/app/Fake.tsx",
+  ]);
+});
+
+test("detail screens render the standard detail header with Back on the left", () => {
+  const cases = [
+    ["src/components/SessionHeaderControls.tsx", /<ScreenHeader\s+kind="detail"\s+title="Workout"/],
+    ["src/app/history/[sessionId]/LogAuditClient.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{sessionSummary\.dayTitle\?\.trim\(\) \|\| "Workout"\}/],
+    ["src/app/history/[sessionId]/page.tsx", /<ScreenHeader kind="detail" title="Workout" back=\{<ScreenBackButton href="\/history" label="Back to History" \/>\} \/>/],
+    ["src/components/ExerciseInfoSheet.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{exercise\?\.name \?\? "Exercise"\}/],
+    ["src/components/account/AccountScreen.tsx", /<ScreenHeader\s+kind="detail"\s+title="Account"/],
+    ["src/features/curated-onboarding/components/CuratedOnboardingShell.tsx", /<ScreenHeader\s+kind="detail"\s+title="Routine setup"/],
+    ["src/components/legal/LegalDocumentLayout.tsx", /<ScreenHeader kind="detail" title=\{title\}/],
+    ["src/app/review/optional-planned-day/page.tsx", /<ScreenHeader\s+kind="detail"\s+title="Optional workout day"/],
+  ];
+  for (const [path, pattern] of cases) {
+    const source = read(path);
+    assert.match(source, pattern, path);
+    assert.match(source, /<ScreenBack(?:Button|Link)\s/, `${path}: Back uses the shared left Back control`);
+    assert.doesNotMatch(
+      source,
+      /\b(?:AppHeader|SharedScreenHeader|TopRightBackButton|HeaderInfoRail|standaloneHeaderFamily|SessionBackButton|HistoryDetailsBackButton|RoutineDayHeaderTitle|DetailHeader|SignatureMetaTag)\b/,
+      `${path}: no legacy header pieces`,
+    );
+  }
+});
+
+test("the live workout header is title, one day · routine line, Back and at most the offline chip", () => {
+  const controls = read("src/components/SessionHeaderControls.tsx");
+  assert.match(controls, /\.join\(" · "\)/);
+  assert.match(controls, /trailing=\{statusBadge\}/);
+  const client = read("src/components/SessionPageClient.tsx");
+  assert.doesNotMatch(client, /buildCurrentSessionHeaderInfoRailItems|sessionHeaderInfoItems|isExerciseOpen \?/);
+  assert.doesNotMatch(read("src/lib/header-info-rail.ts"), /buildCurrentSessionHeaderInfoRailItems/);
+});
+
+test("the old per-screen back buttons are gone", () => {
+  for (const path of [
+    "src/components/SessionBackButton.tsx",
+    "src/app/history/[sessionId]/HistoryDetailsBackButton.tsx",
+    "src/components/DetailSurface.tsx",
+    "src/components/settings/SettingsHeaderIdentity.tsx",
+  ]) {
+    assert.throws(() => statSync(join(root, path)), /ENOENT/, `${path} should be deleted`);
+  }
 });
