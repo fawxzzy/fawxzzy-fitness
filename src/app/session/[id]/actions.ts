@@ -26,6 +26,7 @@ import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { TablesInsert } from "@/lib/supabase/database.types";
 import type { SetRow } from "@/types/db";
 import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
+import { clampSessionDurationSeconds } from "@/lib/session-duration";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
 import { SKIP_TOGGLE_PERSISTENCE_ERROR } from "@/lib/offline/skip-toggle-reconciliation";
@@ -263,6 +264,51 @@ function isMissingExerciseTimerColumnError(error: { message?: string } | null | 
 function isMissingSetLoggedAtColumnError(error: { message?: string } | null | undefined) {
   const message = error?.message?.toLowerCase() ?? "";
   return message.includes("logged_at") && (message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find"));
+}
+
+/**
+ * Clamps the client-reported duration to (last logged set - session start) + idle cap so a session left open
+ * for days cannot store a wall-clock gap. Best effort: any read problem keeps the reported value.
+ */
+async function resolveClampedSessionDurationSeconds(args: {
+  sessionId: string;
+  userId: string;
+  supabase: ReturnType<typeof supabaseServer>;
+  reportedSeconds: number | null;
+}): Promise<number | null> {
+  if (args.reportedSeconds === null) {
+    return null;
+  }
+
+  try {
+    const [sessionResult, exercisesResult] = await Promise.all([
+      args.supabase.from("sessions").select("performed_at").eq("id", args.sessionId).eq("user_id", args.userId).maybeSingle(),
+      args.supabase.from("session_exercises").select("id").eq("session_id", args.sessionId).eq("user_id", args.userId),
+    ]);
+    const startedAtMs = sessionResult.data?.performed_at ? Date.parse(sessionResult.data.performed_at) : null;
+    const exerciseIds = (exercisesResult.data ?? []).map((row) => row.id);
+    if (sessionResult.error || exercisesResult.error || startedAtMs === null || exerciseIds.length === 0) {
+      return args.reportedSeconds;
+    }
+
+    const lastSetResult = await args.supabase
+      .from("sets")
+      .select("logged_at")
+      .in("session_exercise_id", exerciseIds)
+      .eq("user_id", args.userId)
+      .not("logged_at", "is", null)
+      .order("logged_at", { ascending: false })
+      .limit(1);
+    const lastLoggedAt = lastSetResult.error ? null : (lastSetResult.data?.[0]?.logged_at ?? null);
+
+    return clampSessionDurationSeconds({
+      reportedSeconds: args.reportedSeconds,
+      startedAtMs: Number.isFinite(startedAtMs) ? startedAtMs : null,
+      lastLoggedAtMs: lastLoggedAt ? Date.parse(lastLoggedAt) : null,
+    });
+  } catch {
+    return args.reportedSeconds;
+  }
 }
 
 async function finalizeRunningExerciseTimersForSession(args: {
@@ -1327,13 +1373,13 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
 
   const sessionId = String(formData.get("sessionId") ?? "");
   const durationValue = String(formData.get("durationSeconds") ?? "").trim();
-  const durationSeconds = durationValue ? Number(durationValue) : null;
+  const reportedDurationSeconds = durationValue ? Number(durationValue) : null;
 
   if (!sessionId) {
     return { ok: false, error: "Missing session info" };
   }
 
-  if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
+  if (reportedDurationSeconds !== null && (!Number.isInteger(reportedDurationSeconds) || reportedDurationSeconds < 0)) {
     return { ok: false, error: "Session time must be an integer in seconds" };
   }
 
@@ -1355,6 +1401,13 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
   if (!timerFinalization.ok) {
     return timerFinalization;
   }
+
+  const durationSeconds = await resolveClampedSessionDurationSeconds({
+    sessionId,
+    userId: user.id,
+    supabase,
+    reportedSeconds: reportedDurationSeconds,
+  });
 
   const { error } = await supabase
     .from("sessions")
