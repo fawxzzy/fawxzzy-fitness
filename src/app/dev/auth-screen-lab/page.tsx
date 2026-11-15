@@ -9,6 +9,7 @@ import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { authNotice } from "@/components/auth/authMessages";
 import { AppRecoveryScreen } from "@/components/error/AppRecoveryScreen";
+import { ERROR_COPY } from "@/components/error/errorCopy";
 import { InstallScreen } from "@/components/install/InstallGateChrome";
 import { InstallRouteSurface } from "@/components/install/InstallRouteSurface";
 import { AuthDockButton, AuthLink, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
@@ -57,6 +58,7 @@ const screens = [
   { id: "entry-handoff", label: "Entry handoff" },
   { id: "entry-handoff-error", label: "Entry handoff error" },
   { id: "app-recovery", label: "Could not load" },
+  { id: "global-error", label: "App could not finish loading" },
   { id: "not-found", label: "Page not found" },
   { id: "curated-restore-loading", label: "Curated restore loading" },
 ] as const;
@@ -203,6 +205,8 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
       );
     case "app-recovery":
       return <AppRecoveryScreen errorName="LabPreview" />;
+    case "global-error":
+      return <AppRecoveryScreen errorName="LabPreview" topMessage={ERROR_COPY.globalBody} />;
     case "not-found":
       return <NotFound />;
     case "curated-restore-loading":

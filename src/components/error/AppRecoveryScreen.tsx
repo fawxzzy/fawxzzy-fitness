@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
+import { AuthDockButton, AuthLinkButton, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
 import { ERROR_COPY } from "@/components/error/errorCopy";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import {
@@ -22,7 +21,7 @@ export function AppRecoveryScreen({
   errorName?: string;
   onReopen?: () => void;
   title?: string;
-  topMessage?: ReactNode;
+  topMessage?: string;
 }) {
   const pathname = usePathname();
   const recoveryStartedRef = useRef(false);
@@ -52,22 +51,22 @@ export function AppRecoveryScreen({
 
   }, [digest, errorName, pathname]);
 
-  const btn = (variant: "primary" | "secondary") => getAppButtonClassName({ variant, fullWidth: true });
-
+  // Auth Surface v2 status screen: app icon, title, one line, Retry in the dock and Reload app as the one link.
   return (
-    <div className="fixed inset-0 grid place-items-center bg-[rgb(var(--bg))] p-4">
-      <SurfaceCard className="w-full max-w-sm space-y-4 text-center" role="alert">
-        <p className="text-base font-semibold text-[rgb(var(--text-primary))]">{title}</p>
-        <div className="text-sm text-[rgb(var(--text-secondary))]">{topMessage ?? ERROR_COPY.boundaryBody}</div>
-        <div className="flex flex-col gap-3">
-          <button type="button" className={btn("primary")} onClick={() => onReopen?.()}>
+    <AuthStatusScreen
+      testId="app-recovery-screen"
+      title={title}
+      lead={topMessage ?? ERROR_COPY.boundaryBody}
+      action={(
+        <>
+          <AuthLinks>
+            <AuthLinkButton onClick={() => window.location.reload()}>{ERROR_COPY.reloadLabel}</AuthLinkButton>
+          </AuthLinks>
+          <AuthDockButton type="button" onClick={() => onReopen?.()}>
             {ERROR_COPY.retryLabel}
-          </button>
-          <button type="button" className={btn("secondary")} onClick={() => window.location.reload()}>
-            {ERROR_COPY.reloadLabel}
-          </button>
-        </div>
-      </SurfaceCard>
-    </div>
+          </AuthDockButton>
+        </>
+      )}
+    />
   );
 }
