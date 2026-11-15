@@ -1,5 +1,4 @@
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
-import type { HeaderInfoRailItem } from "@/lib/header-info-rail";
 import {
   buildTodayCacheDbKey,
   isOfflineSnapshotStale,
@@ -38,7 +37,6 @@ export type SessionCacheSnapshot = {
   capturedAt: string;
   routineName: string;
   sessionDayName: string;
-  headerInfoItems: HeaderInfoRailItem[];
   exercises: CachedSessionExercise[];
 };
 

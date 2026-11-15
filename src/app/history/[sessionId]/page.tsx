@@ -41,6 +41,8 @@ import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
 import { HistoryRouteErrorShell } from "@/components/history/HistoryShared";
+import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 
 export const dynamic = "force-dynamic";
 type PageProps = {
@@ -564,13 +566,15 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     });
 
     return (
-      <HistoryRouteScaffold mode="detail" showTopChrome={false} floatingHeader={<div id="history-log-floating-header" />}>
+      <HistoryRouteScaffold
+        mode="detail"
+        showTopChrome={false}
+        floatingHeader={<ScreenHeader kind="detail" title="Workout" back={<ScreenBackButton href="/history" label="Back to History" />} />}
+      >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteErrorShell
           title="Unable to load this session right now."
-          caption="Please go back to History and try again in a moment."
-          backHref="/history?tab=sessions"
-          backLabel="Back to History"
+          caption="Go back to History and try again in a moment."
         />
       </HistoryRouteScaffold>
     );
