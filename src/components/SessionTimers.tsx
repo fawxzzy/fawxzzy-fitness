@@ -1731,7 +1731,7 @@ export function SetLoggerCard({
             data-bottom-action-intent="info"
             className={getAttachedCardActionButtonClassName({
               intent: "info",
-              className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
+              className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.2)]",
             })}
           >
             <span className="bottom-action__label">{lastTargetButtonLabel}</span>

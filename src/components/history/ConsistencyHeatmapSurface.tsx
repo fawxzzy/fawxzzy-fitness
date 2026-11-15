@@ -55,8 +55,8 @@ function cellToneClassName(tone: HeatmapTone) {
   }
 }
 
-// Cue text is 10px (11px from 390px up): the smallest size that still fits a ~13.5px cell at 320px.
-const CELL_BASE_CLASS_NAME = "flex aspect-square w-full min-w-0 items-center justify-center rounded-[0.2rem] border text-[11px] font-bold leading-none min-[390px]:text-[11px]";
+// Cue text is the 11px floor (DESIGN-CONTRACT C17); cells are square and share the card width.
+const CELL_BASE_CLASS_NAME = "flex aspect-square w-full min-w-0 items-center justify-center rounded-[0.2rem] border text-[11px] font-bold leading-none";
 const CUE_DOT_CLASS_NAME = "block h-[5px] w-[5px] rounded-full bg-current";
 const FUTURE_CELL_CLASS_NAME = "border-dashed border-[rgb(var(--border-strong)/0.12)] bg-transparent";
 const TODAY_CELL_CLASS_NAME = "ring-[1.5px] ring-[rgb(var(--accent-yellow-on)/0.95)]";

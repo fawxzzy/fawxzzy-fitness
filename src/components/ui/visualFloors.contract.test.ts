@@ -33,3 +33,23 @@ test("visual floors: no Tailwind text size below 11px outside dev fixtures (DESI
   }
   assert.deepEqual(offenders, []);
 });
+
+test("visual floors: no CSS font-size or inline fontSize below 11px outside dev fixtures", () => {
+  const offenders: string[] = [];
+  const scan = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = path.join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry !== "dev") scan(full);
+      } else if (/\.(css|ts|tsx)$/.test(entry) && !/\.test\.(ts|tsx)$/.test(entry)) {
+        const source = readFileSync(full, "utf8");
+        for (const match of source.matchAll(/font-size:\s*([0-9.]+(?:px|rem))|fontSize:\s*"?([0-9.]+)(px|rem)?"?/g)) {
+          const value = match[1] ?? `${match[2]}${match[3] ?? "px"}`;
+          if (pixelSize(value) < 11) offenders.push(`${path.relative(SRC_ROOT, full)}: ${match[0]}`);
+        }
+      }
+    }
+  };
+  scan(SRC_ROOT);
+  assert.deepEqual(offenders, []);
+});

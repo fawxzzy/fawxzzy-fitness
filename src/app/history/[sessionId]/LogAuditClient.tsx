@@ -913,8 +913,8 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
 
         <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
         <div className="flex flex-wrap justify-end gap-2">
-          <PillButton type="button" onClick={copyRecap}>Copy recap</PillButton>
-          <PillButton type="button" active onClick={shareRecap}>Share recap</PillButton>
+          <PillButton type="button" hitSlop onClick={copyRecap}>Copy recap</PillButton>
+          <PillButton type="button" active hitSlop onClick={shareRecap}>Share recap</PillButton>
         </div>
       </div>
     </HistorySection>

@@ -28,12 +28,17 @@ export function Pill({ active, tone = "default", className, ...props }: HTMLAttr
   );
 }
 
-export function PillButton({ active, tone = "default", className, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & SharedProps) {
+/**
+ * Tappable pill. The default is a real 44px-tall control (`min-h-11`), which is the only version that is safe inside
+ * horizontal filter rails (the rail clips overflow) and wrapped rows (a neighbour's hit layer would overlap). Pass
+ * `hitSlop` only for an isolated pill whose visible shape must stay small; it pads the target with an invisible layer.
+ */
+export function PillButton({ active, tone = "default", hitSlop = false, className, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & SharedProps & { hitSlop?: boolean }) {
   return (
     <button
       type={type}
       className={cn(
-        HIT_AREA_CLASS_NAME,
+        hitSlop ? HIT_AREA_CLASS_NAME : "min-h-11",
         "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
         active
           ? "border-[rgb(var(--accent)/0.38)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]"

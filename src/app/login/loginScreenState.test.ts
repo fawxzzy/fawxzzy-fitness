@@ -117,10 +117,16 @@ test("reset-password delivery failures avoid leaking raw error codes", () => {
   );
 });
 
-test("login route error toast shares one id between the global feedback bridge and the login screen", async () => {
+// Auth Surface v2: a login route code shows once, in the screen's reserved notice slot; the bridge never toasts it and
+// a repeat redirect (the bridge clears the query) updates the box through the [error, info] effect.
+test("login route errors show in the inline notice slot, never as a toast", async () => {
   const { readFileSync } = await import("node:fs");
   const bridge = readFileSync(new URL("../../components/ActionFeedbackToasts.tsx", import.meta.url), "utf8");
   const screen = readFileSync(new URL("./LoginScreen.tsx", import.meta.url), "utf8");
-  assert.match(screen, /id: "login-route-error"/);
-  assert.match(bridge, /pathname === "\/login" \? \{ id: "login-route-error" \}/);
+  assert.doesNotMatch(screen, /useToast|login-route-error/);
+  assert.match(screen, /<AuthNoticeSlot notice=\{notice\} \/>/);
+  assert.match(screen, /const nextNotice = resolveRouteNotice\(error, info, false\);/);
+  assert.doesNotMatch(bridge, /login-route-error/);
+  assert.match(bridge, /const INLINE_NOTICE_ROUTES = new Set\(\["\/login", "\/signup"\]\)/);
+  assert.match(bridge, /if \(pathname === "\/reset-password"\) \{\s*return;/);
 });

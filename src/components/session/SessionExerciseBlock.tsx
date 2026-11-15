@@ -127,7 +127,7 @@ export function AttachedQuickActionStrip({
         className={cn(
           getAttachedCardActionButtonClassName({
             intent: rowContract.skipActionIntent ?? "toggleInactive",
-            className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
+            className: "!border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.2)]",
           }),
           rowContract.isSkipDisabled ? "border-r-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
           skipActionClassName,

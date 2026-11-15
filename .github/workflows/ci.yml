@@ -35,16 +35,19 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/components/layout/bottomActionIntents.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/visualFloors.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/reduced-motion.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/components/ui/dockRoles.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/app-loader.test.ts src/lib/app-loader-controller.test.ts src/lib/app-loader.contract.test.ts
           node scripts/generate-app-loader-icon.mjs --check
           node --import ./scripts/register-test-aliases.mjs --test src/app/login/page.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/auth/signupFeedback.test.ts tests/signup-failure-copy-action.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/update-user.test.ts tests/account-update-actions.test.mjs tests/password-mutation-actions.test.mjs src/lib/recovery-session.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/error/auth-session-preservation.contract.test.ts src/components/error/errorScreens.contract.test.tsx
+          node --import ./scripts/register-test-aliases.mjs --test src/components/auth/authMessages.test.ts src/lib/install/config.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/middleware.test.ts src/lib/detail-route-guard.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/timezones.test.ts src/lib/history-local-day-boundary.test.ts src/lib/history-sessions-page-loader.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/history-consistency-heatmap.test.ts src/components/history/ConsistencyHeatmapSurface.test.tsx
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-sync/route.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/auth/sign-out-revocation.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/client.session-sync.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-handoff/route.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/auth-handoff-supabase-store.test.ts scripts/qa/fitness-auth-handoff-loopback.test.ts

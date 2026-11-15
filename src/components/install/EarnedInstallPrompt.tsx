@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AppBadge } from "@/components/ui/app/AppBadge";
-import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { AuthAppIcon, AuthInstallSteps } from "@/components/auth/AuthShell";
+import { INSTALL_SCREEN_LEADS, IOS_SAFARI_INSTALL_STEPS } from "@/components/install/InstallGateChrome";
 import { cn } from "@/lib/cn";
-import { appTokens } from "@/components/ui/app/tokens";
 import { getInstallContext } from "@/lib/install/getInstallContext";
 import {
   consumeInstallEarnedMoment,
@@ -14,29 +13,6 @@ import {
   type InstallEarnedMoment,
 } from "@/lib/install/earned-install-prompt";
 import { usePWAInstallPrompt } from "@/components/install/usePWAInstallPrompt";
-
-function getEarnedPromptCopy(moment: InstallEarnedMoment) {
-  if (moment === "stable-return") {
-    return {
-      eyebrow: "Welcome back",
-      title: "Keep Fitness one tap away",
-      body: "You have returned on several training days. Install Fitness for a faster path back to Today and your active session.",
-    };
-  }
-  if (moment === "workout-completed") {
-    return {
-      eyebrow: "Workout Saved",
-      title: "Install Fitness for faster return",
-      body: "You finished a workout. Install Fitness to get back into Today and Session flows faster next time.",
-    };
-  }
-
-  return {
-    eyebrow: "Install Fitness",
-    title: "Install Fitness",
-    body: "Install Fitness for quicker return and a more app-like workout loop.",
-  };
-}
 
 export function EarnedInstallPrompt({ className }: { className?: string }) {
   const installPrompt = usePWAInstallPrompt();
@@ -81,8 +57,6 @@ export function EarnedInstallPrompt({ className }: { className?: string }) {
     return null;
   }
 
-  const copy = getEarnedPromptCopy(earnedMoment);
-
   const dismissPrompt = () => {
     dismissInstallEarnedPromptForSession();
     setIsVisible(false);
@@ -100,65 +74,31 @@ export function EarnedInstallPrompt({ className }: { className?: string }) {
     }
   };
 
+  // Same family as /install: icon, title, one line, the iPhone steps when Safari has no install action, two pills.
   return (
-    <div
-      className={cn(
-        appTokens.panelMuted,
-        "flex flex-col gap-3 rounded-[1.35rem] border border-[rgb(var(--border-strong)/0.16)] bg-[linear-gradient(180deg,rgba(13,20,29,0.94),rgba(9,15,23,0.94))] px-4 py-4 shadow-[0_18px_48px_rgba(3,8,14,0.28)]",
-        className,
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <AppBadge tone="success">{copy.eyebrow}</AppBadge>
-          <div className="space-y-1">
-            <p className="text-[0.98rem] font-semibold tracking-[-0.01em] text-[rgb(var(--text-primary)/0.98)]">
-              {copy.title}
-            </p>
-            <p className={cn(appTokens.mutedText, "text-sm leading-6")}>
-              {copy.body}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={dismissPrompt}
-          className="shrink-0 rounded-full border border-[rgb(var(--border-strong)/0.16)] px-2.5 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.9)] transition hover:border-[rgb(var(--accent)/0.28)] hover:text-[rgb(var(--text-primary)/0.96)]"
-        >
-          Dismiss
-        </button>
-      </div>
-
-      {context.shouldShowIOSAddToHomeScreenGate ? (
-        <ol className="space-y-1 rounded-[1rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2)/0.58)] px-3.5 py-3 text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
-          <li>1. Tap Share in Safari.</li>
-          <li>2. Tap Add to Home Screen.</li>
-          <li>3. Open Fitness from your Home Screen next time.</li>
-        </ol>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-2">
-        {context.shouldShowIOSAddToHomeScreenGate ? (
-          <BottomDockLink href="/install" intent="info">
-            Install Help
-          </BottomDockLink>
-        ) : (
-          <BottomDockButton
+    <section className={cn("fx-earned", className)} aria-label="Install Fitness" data-earned-moment={earnedMoment} data-testid="earned-install-prompt">
+      <AuthAppIcon placement="mark" />
+      <h2 className="fx-ttl">Install Fitness</h2>
+      <p className="fx-lead">{context.shouldShowIOSAddToHomeScreenGate ? INSTALL_SCREEN_LEADS["ios-safari"] : INSTALL_SCREEN_LEADS.prompt}</p>
+      {context.shouldShowIOSAddToHomeScreenGate ? <AuthInstallSteps steps={IOS_SAFARI_INSTALL_STEPS} /> : null}
+      <div className="fx-earned__actions" style={context.shouldShowIOSAddToHomeScreenGate ? { gridTemplateColumns: "1fr" } : undefined}>
+        {context.shouldShowIOSAddToHomeScreenGate ? null : (
+          <button
             type="button"
-            intent="info"
-            loading={installPrompt.isPrompting}
-            loadingLabel="Installing app..."
+            className="fx-dock"
+            disabled={installPrompt.isPrompting}
+            aria-busy={installPrompt.isPrompting || undefined}
             onClick={() => {
               void handleInstall();
             }}
           >
             Install
-          </BottomDockButton>
+          </button>
         )}
-        <BottomDockButton type="button" intent="info" onClick={dismissPrompt}>
+        <button type="button" className="fx-dock fx-dock--ghost" onClick={dismissPrompt}>
           Not now
-        </BottomDockButton>
+        </button>
       </div>
-    </div>
+    </section>
   );
 }
