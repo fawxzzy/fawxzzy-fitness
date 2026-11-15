@@ -702,3 +702,37 @@ test("loads suggested export date range from account workout data", async () => 
     dateTo: "2026-05-09",
   });
 });
+
+test("xlsx round trip covers empty-string, boolean and date cell types", async () => {
+  const payload = buildPayload();
+  // Empty and whitespace-only strings are dropped by the export, so they must read back as empty cells.
+  payload.sessions = [{ ...payload.sessions[0]!, notes: "" }, { ...payload.sessions[0]!, id: "session-2", notes: "   " }];
+  // One skipped (true) and one not skipped (false) exercise exercise the boolean cell type.
+  payload.sessionExercises = [
+    { ...payload.sessionExercises[0]!, is_skipped: true },
+    { ...payload.sessionExercises[0]!, id: "session-exercise-2", is_skipped: false },
+  ];
+
+  const sheets = await readXlsxFile(await buildAccountWorkoutExportWorkbookBuffer(payload));
+  const byName = new Map(sheets.map((sheet) => [sheet.sheet, sheet.data]));
+  const column = (sheetName: string, header: string) => {
+    const data = byName.get(sheetName)!;
+    const index = data[0]!.indexOf(header);
+    assert.ok(index >= 0, `${sheetName} has a ${header} column`);
+    return data.slice(1).map((row) => row[index] ?? null);
+  };
+
+  assert.deepEqual(column("History Exercises", "skipped"), [true, false]);
+  assert.ok(column("History Exercises", "skipped").every((value) => typeof value === "boolean"));
+
+  const sessionIds = column("History Sessions", "sessionId");
+  assert.deepEqual(sessionIds, ["session-1", "session-2"]);
+  const notesIndex = byName.get("History Sessions")![0]!.indexOf("notes");
+  if (notesIndex >= 0) {
+    assert.deepEqual(column("History Sessions", "notes"), [null, null]);
+  }
+
+  // Dates are exported as ISO strings and must round trip as the same text, not a shifted Date.
+  assert.deepEqual(column("History Sessions", "performedAt"), ["2026-05-04T10:00:00.000Z", "2026-05-04T10:00:00.000Z"]);
+  assert.deepEqual(column("Routines", "startDate"), ["2026-05-01"]);
+});
