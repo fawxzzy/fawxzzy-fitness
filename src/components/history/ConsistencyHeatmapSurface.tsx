@@ -56,7 +56,7 @@ function cellToneClassName(tone: HeatmapTone) {
 }
 
 // Cue text is 10px (11px from 390px up): the smallest size that still fits a ~13.5px cell at 320px.
-const CELL_BASE_CLASS_NAME = "flex aspect-square w-full min-w-0 items-center justify-center rounded-[0.2rem] border text-[0.625rem] font-bold leading-none min-[390px]:text-[0.6875rem]";
+const CELL_BASE_CLASS_NAME = "flex aspect-square w-full min-w-0 items-center justify-center rounded-[0.2rem] border text-[11px] font-bold leading-none min-[390px]:text-[11px]";
 const CUE_DOT_CLASS_NAME = "block h-[5px] w-[5px] rounded-full bg-current";
 const FUTURE_CELL_CLASS_NAME = "border-dashed border-[rgb(var(--border-strong)/0.12)] bg-transparent";
 const TODAY_CELL_CLASS_NAME = "ring-[1.5px] ring-[rgb(var(--accent-yellow-on)/0.95)]";
@@ -93,7 +93,7 @@ function HeatmapGrid({ heatmap, ariaLabel }: { heatmap: HistoryConsistencyHeatma
         <span
           key={`weekday-${index}`}
           aria-hidden="true"
-          className="flex items-center pr-1.5 text-[0.6875rem] font-semibold uppercase leading-none text-[rgb(var(--text-muted)/0.78)]"
+          className="flex items-center pr-1.5 text-[11px] font-semibold uppercase leading-none text-[rgb(var(--text-muted)/0.78)]"
         >
           {label}
         </span>
@@ -105,7 +105,7 @@ function HeatmapGrid({ heatmap, ariaLabel }: { heatmap: HistoryConsistencyHeatma
             <span
               aria-hidden="true"
               data-heatmap-month={monthKey}
-              className="block h-3.5 whitespace-nowrap text-[0.6875rem] font-semibold uppercase leading-none tracking-[0.08em] text-[rgb(var(--text-muted)/0.78)]"
+              className="block h-3.5 whitespace-nowrap text-[11px] font-semibold uppercase leading-none tracking-[0.08em] text-[rgb(var(--text-muted)/0.78)]"
             >
               {monthKey ? formatMonth(monthKey) : null}
             </span>
@@ -149,7 +149,7 @@ function HeatmapLegend() {
         {LEGEND_STEPS.map((step) => (
           <span
             key={step.tone}
-            className={cn("flex h-4 w-4 items-center justify-center rounded-[0.2rem] border text-[0.6875rem] font-bold leading-none tracking-normal", cellToneClassName(step.tone))}
+            className={cn("flex h-4 w-4 items-center justify-center rounded-[0.2rem] border text-[11px] font-bold leading-none tracking-normal", cellToneClassName(step.tone))}
           >
             {step.cue === "dot"
               ? <span className={CUE_DOT_CLASS_NAME} />

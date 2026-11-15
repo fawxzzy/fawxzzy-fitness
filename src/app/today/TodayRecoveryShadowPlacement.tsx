@@ -140,7 +140,7 @@ export function TodayRecoveryShadowPlacement(props: {
             <button
               type="button"
               className={cn(
-                "inline-flex min-h-10 items-center justify-center rounded-[var(--radius-md)] border border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.18)] px-4 text-sm font-semibold text-[rgb(var(--text-primary))] transition-colors hover:bg-[rgb(var(--accent)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+                "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.18)] px-4 text-sm font-semibold text-[rgb(var(--text-primary))] transition-colors hover:bg-[rgb(var(--accent)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
                 isPending && "cursor-wait opacity-70",
               )}
               onClick={() => {
@@ -161,7 +161,7 @@ export function TodayRecoveryShadowPlacement(props: {
             </button>
             <button
               type="button"
-              className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.88)] px-4 text-sm font-medium text-[rgb(var(--text-primary)/0.88)] transition-colors hover:bg-[rgb(var(--surface-2)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.88)] px-4 text-sm font-medium text-[rgb(var(--text-primary)/0.88)] transition-colors hover:bg-[rgb(var(--surface-2)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
               onClick={() => {
                 startTransition(async () => {
                   const ok = await recordPilotShadowEvent({

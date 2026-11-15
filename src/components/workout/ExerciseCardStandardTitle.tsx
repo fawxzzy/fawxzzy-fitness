@@ -49,7 +49,7 @@ export function ExerciseCardMetadataLine({
     <SignatureInlineList
       separator="pipe"
       className={cn(
-        "min-w-0 max-w-full gap-x-1.5 pb-px text-[9.75px] font-medium leading-[1.18] text-[rgb(var(--text-secondary)/0.9)] [text-wrap:pretty]",
+        "min-w-0 max-w-full gap-x-1.5 pb-px text-[11px] font-medium leading-[1.18] text-[rgb(var(--text-secondary)/0.9)] [text-wrap:pretty]",
         allowWrap ? "gap-y-0.5 whitespace-normal" : "!flex-nowrap gap-y-0 whitespace-nowrap",
         className,
       )}
@@ -96,7 +96,7 @@ export function ExerciseCardProgressionStateInline({
           {index > 0 ? <SignatureDot className="h-[4px] w-[4px] self-center -translate-y-px" /> : null}
           <span
             className={cn(
-              "text-[8.5px] font-semibold leading-none tracking-[0.12em]",
+              "text-[11px] font-semibold leading-none tracking-[0.12em]",
               part === "AUTO"
                 ? "text-[rgb(var(--accent-strong)/0.98)]"
                 : part === "MANUAL"
@@ -125,7 +125,7 @@ function renderRightContent(content: ReactNode) {
   return (
     <AccentDotSeparatedText
       text={normalized}
-      className="min-w-0 max-w-full items-center gap-x-1.5 gap-y-0.5 text-[9.75px] tracking-[0.01em] leading-[1.16] text-[rgb(var(--text-secondary)/0.88)] [text-wrap:pretty]"
+      className="min-w-0 max-w-full items-center gap-x-1.5 gap-y-0.5 text-[11px] tracking-[0.01em] leading-[1.16] text-[rgb(var(--text-secondary)/0.88)] [text-wrap:pretty]"
       itemClassName="min-w-0 leading-[1.12]"
     />
   );
@@ -226,7 +226,7 @@ export function ExerciseCardStandardTitle({
               </span>
             ) : null}
             {hasPrimaryRightRow ? (
-              <span className={cn("inline-flex w-fit min-w-0 max-w-full flex-wrap items-center justify-start gap-x-1.5 gap-y-0.5 text-[9.75px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)]", isCompactLayout ? "text-[9.35px]" : undefined, rightContentClassName)}>
+              <span className={cn("inline-flex w-fit min-w-0 max-w-full flex-wrap items-center justify-start gap-x-1.5 gap-y-0.5 text-[11px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)]", isCompactLayout ? "text-[11px]" : undefined, rightContentClassName)}>
                 {resolvedRightContent ? (
                   <span className="inline-flex min-w-0 max-w-full items-center">
                     {resolvedRightContent}
@@ -245,7 +245,7 @@ export function ExerciseCardStandardTitle({
             {rightSubcontent ? (
               <span
                 className={cn(
-                  "inline-flex w-fit min-w-0 max-w-full flex-wrap items-center gap-1.5 text-[9.25px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)] [text-wrap:pretty]",
+                  "inline-flex w-fit min-w-0 max-w-full flex-wrap items-center gap-1.5 text-[11px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)] [text-wrap:pretty]",
                   hasPrimaryRightRow ? undefined : "pt-[4px]",
                 )}
               >

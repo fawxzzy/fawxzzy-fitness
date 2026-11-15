@@ -32,7 +32,7 @@ export function GenerationHandoffStep({
       <CuratedInfoCard tone={copy.tone} compact>
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">{copy.title}</p>
-          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
+          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
             {copy.badge}
           </span>
         </div>
@@ -45,13 +45,13 @@ export function GenerationHandoffStep({
             <SignatureInlineList
               separator="pipe"
               items={visiblePlan.rationale}
-              className="text-[10px] font-medium leading-5 text-[rgb(var(--text-secondary)/0.92)]"
+              className="text-[11px] font-medium leading-5 text-[rgb(var(--text-secondary)/0.92)]"
             />
           </CuratedInfoCard>
 
           {visiblePlan.adjustments.length > 0 ? (
             <CuratedInfoCard compact tone="accent" data-curated-adjustments="true">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
                 Why this routine changed
               </p>
               <ul className="mt-1.5 space-y-1.5">

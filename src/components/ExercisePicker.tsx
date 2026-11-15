@@ -210,7 +210,7 @@ const pickerRowMobileDensityClassNames = {
   subtitle: "max-md:text-[11px] max-md:leading-[1.26]",
   content: "max-md:space-y-0.25",
   trailing: "max-md:min-w-[4.3rem]",
-  selectPill: "max-md:min-h-[1.65rem] max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[9px]",
+  selectPill: "max-md:min-h-11 max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[11px]",
 } as const;
 
 const customExerciseFilterRailCardClassName = cn(
@@ -1304,7 +1304,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
                 name={exercise.name}
                 metadataItems={metadataItems}
                 nameClassName="text-[0.96rem] font-semibold text-[rgb(var(--text)/0.96)]"
-                metadataClassName="text-[10.5px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.86)]"
+                metadataClassName="text-[11px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.86)]"
                 emphasizeLeadMetadata
                 metadataLeadClassName={rowCue.leadTextClassName}
               />
@@ -1367,13 +1367,13 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
                     </span>
                     <MetricAccentBar variant="thin" className="w-full opacity-75" />
                   </span>
-                  <span className="min-w-0 whitespace-nowrap text-[10.25px] tracking-[0.01em] leading-[1.18] text-[rgb(var(--text-secondary)/0.88)]">
+                  <span className="min-w-0 whitespace-nowrap text-[11px] tracking-[0.01em] leading-[1.18] text-[rgb(var(--text-secondary)/0.88)]">
                     {selectedSummaryText}
                   </span>
                 </>
               ) : undefined}
               nameClassName="text-[0.98rem] font-semibold text-[rgb(var(--text)/0.98)]"
-              metadataClassName="!flex-nowrap text-[10.25px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
+              metadataClassName="!flex-nowrap text-[11px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
               emphasizeLeadMetadata
               metadataLeadClassName={rowCue.leadTextClassName}
               showTitleUnderline={isSelected}
@@ -1490,7 +1490,7 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
               name="Custom Exercise"
               metadataItems={["Create one not in library"]}
               nameClassName="text-[0.96rem] font-semibold text-[rgb(var(--text)/0.98)]"
-              metadataClassName="!flex-nowrap text-[10.5px] text-[rgb(var(--accent-strong)/0.88)]"
+              metadataClassName="!flex-nowrap text-[11px] text-[rgb(var(--accent-strong)/0.88)]"
               emphasizeLeadMetadata
               metadataLeadClassName="text-[rgb(var(--accent-strong)/0.98)]"
               showUnderline
@@ -1523,13 +1523,13 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
                   </span>
                   <MetricAccentBar variant="thin" className="w-full opacity-75" />
                 </span>
-                <span className={cn("min-w-0 whitespace-normal break-words text-[10.25px] tracking-[0.01em] leading-[1.18]", targetSummaryToneClassName)}>
+                <span className={cn("min-w-0 whitespace-normal break-words text-[11px] tracking-[0.01em] leading-[1.18]", targetSummaryToneClassName)}>
                   {targetSummaryText}
                 </span>
               </>
             ) : undefined}
             nameClassName="text-[0.95rem] font-semibold text-[rgb(var(--text)/0.98)]"
-            metadataClassName="max-w-full gap-x-2 gap-y-1.5 text-[10.25px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
+            metadataClassName="max-w-full gap-x-2 gap-y-1.5 text-[11px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
             emphasizeLeadMetadata
             metadataLeadClassName="text-[rgb(var(--accent-strong)/0.98)]"
             showTitleUnderline
@@ -1564,7 +1564,7 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
               {showStatusSeparator ? <SignatureMiniPipe className="mt-[1px] shrink-0 self-start" /> : null}
               <div
                 className={cn(
-                  "min-w-0 text-[10.5px] leading-[1.22]",
+                  "min-w-0 text-[11px] leading-[1.22]",
                   draftHelperToneClassName,
                 )}
               >
@@ -2522,9 +2522,9 @@ export function ExercisePicker({
     ACTION_CHROME_CONTROL_CLASS_NAME,
     ACTION_CHROME_SEGMENTED_CLASS_NAME,
     GLOW_SWITCH_STANDARD_CLASS_NAME,
-    "relative inline-flex w-full min-w-0 items-center justify-center overflow-visible rounded-full border-[rgb(var(--accent-strong)/0.54)] bg-[linear-gradient(180deg,rgba(71,215,196,0.18),rgba(18,31,48,0.96))] px-[0.42rem] pb-[0.28rem] pt-[0.46rem] text-[10px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.18)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+    "relative inline-flex w-full min-w-0 items-center justify-center overflow-visible rounded-full border-[rgb(var(--accent-strong)/0.54)] bg-[linear-gradient(180deg,rgba(71,215,196,0.18),rgba(18,31,48,0.96))] px-[0.42rem] pb-[0.28rem] pt-[0.46rem] text-[11px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.18)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
   );
-  const embeddedToggleLabelClassName = "pointer-events-none absolute right-2.5 top-0 z-[2] max-w-[calc(100%-1rem)] -translate-y-[38%] whitespace-nowrap bg-transparent text-right text-[8px] font-semibold uppercase leading-none tracking-[0.06em] text-[rgb(var(--accent-strong))]";
+  const embeddedToggleLabelClassName = "pointer-events-none absolute right-2.5 top-0 z-[2] max-w-[calc(100%-1rem)] -translate-y-[38%] whitespace-nowrap bg-transparent text-right text-[11px] font-semibold uppercase leading-none tracking-[0.06em] text-[rgb(var(--accent-strong))]";
   const useLastToggleCard = !isStretchHubSelected && selectedStats && hasLast ? (
     <div
       className={addFlowSecondaryToggleCardClassName}
@@ -2557,7 +2557,7 @@ export function ExercisePicker({
               separator="dot"
               className={cn(
                 appTokens.currentSessionLoggerSummaryText,
-                "measurement-toggle__label min-w-0 flex-nowrap justify-center whitespace-nowrap text-center text-[10.5px] font-semibold leading-none text-inherit",
+                "measurement-toggle__label min-w-0 flex-nowrap justify-center whitespace-nowrap text-center text-[11px] font-semibold leading-none text-inherit",
                 "[&_.signature-inline-list__item]:whitespace-nowrap",
               )}
             />

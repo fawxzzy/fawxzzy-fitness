@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
+import { HIT_AREA_CLASS_NAME } from "@/components/ui/hitArea";
 
 function buildLegalHref(pathname: "/privacy" | "/terms", returnTo?: string) {
   if (!returnTo) {
@@ -42,7 +43,7 @@ export function LegalInlineLinks({
     >
       <Link
         href={buildLegalHref("/privacy", returnTo)}
-        className={cn(centerSeparator ? "justify-self-end" : "", "underline-offset-4 hover:underline", linkClassName)}
+        className={cn(centerSeparator ? "justify-self-end" : "", HIT_AREA_CLASS_NAME, "underline-offset-4 hover:underline", linkClassName)}
       >
         Privacy Policy
       </Link>
@@ -51,7 +52,7 @@ export function LegalInlineLinks({
       )}
       <Link
         href={buildLegalHref("/terms", returnTo)}
-        className={cn(centerSeparator ? "justify-self-start" : "", "underline-offset-4 hover:underline", linkClassName)}
+        className={cn(centerSeparator ? "justify-self-start" : "", HIT_AREA_CLASS_NAME, "underline-offset-4 hover:underline", linkClassName)}
       >
         Terms of Service
       </Link>

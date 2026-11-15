@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
+import { CardChip, type CardChipTone } from "@/components/ui/card-system/CardChip";
 import { cn } from "@/lib/cn";
 import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 
@@ -38,48 +39,18 @@ export type DetailSectionListSection = {
   legendSignals?: DetailSectionSignalTone[];
 };
 
+/** Labels stay as authored (copy is owned elsewhere); the look is the one card chip (DESIGN-CONTRACT C7) and the tones match the History signal chips. */
 const DETAIL_SECTION_BADGE_CONFIG = {
-  pr: {
-    label: "PR",
-    textClassName: "text-[rgb(var(--secondary-action-rgb)/0.96)]",
-    chipClassName: "border-[rgb(var(--secondary-action-rgb)/0.2)] bg-[rgb(var(--secondary-action-rgb)/0.1)] text-[rgb(var(--secondary-action-rgb)/0.96)]",
-    dotClassName: "bg-[rgb(var(--secondary-action-rgb)/0.96)]",
-  },
-  promotion: {
-    label: "PROMO",
-    textClassName: "text-[rgb(var(--accent-divider-rgb)/0.96)]",
-    chipClassName: "border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--accent-divider-rgb)/0.08)] text-[rgb(var(--accent-divider-rgb)/0.94)]",
-    dotClassName: "bg-[rgb(var(--accent-divider-rgb)/0.96)]",
-  },
-  watch: {
-    label: "WATCH",
-    textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]",
-    chipClassName: "border-[rgb(var(--accent-yellow-on)/0.18)] bg-[rgb(var(--accent-yellow-on)/0.08)] text-[rgb(var(--accent-yellow-on)/0.94)]",
-    dotClassName: "bg-[rgb(var(--accent-yellow-on)/0.96)]",
-  },
-  regression: {
-    label: "REG",
-    textClassName: "text-[rgb(255,116,116)]",
-    chipClassName: "border-[rgb(255,116,116,0.24)] bg-[rgb(255,116,116,0.1)] text-[rgb(255,116,116)]",
-    dotClassName: "bg-[rgb(255,116,116)]",
-  },
-  best: {
-    label: "BEST",
-    textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]",
-    chipClassName: "border-[rgb(var(--accent-yellow-on)/0.22)] bg-[rgb(var(--accent-yellow-on)/0.1)] text-[rgb(var(--accent-yellow-on)/0.96)]",
-    dotClassName: "bg-[rgb(var(--accent-yellow-on)/0.96)]",
-  },
-  default: {
-    label: "",
-    textClassName: "text-[rgb(var(--text-secondary)/0.92)]",
-    chipClassName: "border-[rgb(var(--border-rgb)/0.32)] bg-[rgb(var(--surface-2-rgb)/0.3)] text-[rgb(var(--text-secondary)/0.9)]",
-    dotClassName: "bg-[rgb(var(--text-secondary)/0.9)]",
-  },
+  pr: { label: "PR", tone: "success", textClassName: "text-[rgb(var(--secondary-action-rgb)/0.96)]" },
+  promotion: { label: "PROMO", tone: "success", textClassName: "text-[rgb(var(--accent-divider-rgb)/0.96)]" },
+  watch: { label: "WATCH", tone: "attention", textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]" },
+  regression: { label: "REG", tone: "attention", textClassName: "text-[rgb(255,116,116)]" },
+  best: { label: "BEST", tone: "success", textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]" },
+  default: { label: "", tone: "neutral", textClassName: "text-[rgb(var(--text-secondary)/0.92)]" },
 } satisfies Record<DetailSectionBadgeTone, {
   label: string;
+  tone: CardChipTone;
   textClassName: string;
-  chipClassName: string;
-  dotClassName: string;
 }>;
 
 function normalizeSignalTones(value?: DetailSectionSignalTone | DetailSectionSignalTone[] | null) {
@@ -107,16 +78,7 @@ export function DetailSectionBadge({
   const resolvedTone = tone ?? resolveDetailSectionBadgeTone(label);
   const config = DETAIL_SECTION_BADGE_CONFIG[resolvedTone];
   const displayLabel = config.label || label;
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]",
-        config.chipClassName,
-      )}
-    >
-      {displayLabel}
-    </span>
-  );
+  return <CardChip tone={config.tone}>{displayLabel}</CardChip>;
 }
 
 function renderSignalChips(signals: DetailSectionSignalTone[]) {

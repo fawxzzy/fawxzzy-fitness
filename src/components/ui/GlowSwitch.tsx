@@ -40,7 +40,7 @@ export function GlowSwitch({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex min-w-0 items-center justify-between gap-1.5 rounded-full border border-transparent bg-transparent px-[0.42rem] py-[0.22rem] text-[10px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)] active:scale-[0.985]",
+        "inline-flex min-w-0 items-center justify-between gap-1.5 rounded-full border border-transparent bg-transparent px-[0.42rem] py-[0.22rem] text-[11px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)] active:scale-[0.985]",
         checked ? "flex-row-reverse" : "flex-row",
         isInteractionLocked ? "cursor-not-allowed opacity-55 active:scale-100" : undefined,
         className,

@@ -71,9 +71,9 @@ test("heatmap marks exactly one local today and dims the days that have not happ
 test("heatmap does not rely on colour alone: a dot for one session, the count for more, and a legend", () => {
   const html = render(ACTIVE_SESSIONS, "detailed");
 
-  // One session is a 5px dot (not 3px), and the cue text is at least 10px.
+  // One session is a 5px dot (not 3px), and the cue text is at least 11px.
   assert.match(html, /data-heatmap-day="2026-11-05" data-heatmap-count="1"[^>]*><span aria-hidden="true" class="block h-\[5px\] w-\[5px\] rounded-full bg-current"><\/span>/);
-  assert.match(html, /data-heatmap-day="2026-11-10"[^>]*class="[^"]*text-\[0\.625rem\]/);
+  assert.match(html, /data-heatmap-day="2026-11-10"[^>]*class="[^"]*text-\[11px\]/);
   assert.doesNotMatch(html, /text-\[0\.5rem\]/);
   // Cells with two and three sessions carry their count as text.
   assert.match(html, /data-heatmap-count="2"[^>]*>(?:<span[^>]*>2<\/span>)/);

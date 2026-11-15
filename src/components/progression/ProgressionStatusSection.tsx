@@ -32,7 +32,7 @@ export function ProgressionStatusSection({
       className="space-y-2 rounded-[1.2rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] px-3 py-3"
     >
       <div className="space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.8)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.8)]">
           Progress Status
         </p>
         <p className="text-[12px] leading-snug text-[rgb(var(--text-secondary)/0.92)]">
@@ -63,7 +63,7 @@ export function ProgressionStatusSection({
                         style={{ width: `${Math.max(0, Math.min(100, item.progress.percent))}%` }}
                       />
                     </div>
-                    <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.76)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.76)]">
                       {item.progress.percent}% toward the next update
                     </p>
                   </div>
@@ -80,7 +80,7 @@ export function ProgressionStatusSection({
               </div>
               <span
                 className={cn(
-                  "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold",
+                  "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
                   getReadinessBadgeClassName(item.readinessState),
                 )}
               >

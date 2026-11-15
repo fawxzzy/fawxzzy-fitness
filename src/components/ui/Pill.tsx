@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
+import { HIT_AREA_CLASS_NAME } from "@/components/ui/hitArea";
 
 type SharedProps = {
   active?: boolean;
@@ -32,6 +33,7 @@ export function PillButton({ active, tone = "default", className, type = "button
     <button
       type={type}
       className={cn(
+        HIT_AREA_CLASS_NAME,
         "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
         active
           ? "border-[rgb(var(--accent)/0.38)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]"

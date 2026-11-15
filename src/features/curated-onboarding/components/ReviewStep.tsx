@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { getCuratedReviewSections } from "../selectors.ts";
 import type { CuratedOnboardingData, CuratedStepId } from "../types.ts";
 
-const EDIT_ACTION_CLASS_NAME = "relative appearance-none !border-0 !bg-transparent !px-0 !pb-1 !pt-0 !text-[rgb(var(--warning-rgb))] !shadow-none text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:rounded-full after:bg-[linear-gradient(90deg,rgb(var(--warning-rgb)/0.14),rgb(var(--warning-rgb)/0.9),rgb(var(--warning-rgb)/0.14))] after:shadow-[0_0_14px_rgb(var(--warning-rgb)/0.18)] hover:!text-[rgb(255_242_200)] focus-visible:!outline-none focus-visible:after:h-[2px]";
+const EDIT_ACTION_CLASS_NAME = "relative appearance-none !border-0 !bg-transparent !px-0 !pb-1 !pt-0 !text-[rgb(var(--warning-rgb))] !shadow-none text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:rounded-full after:bg-[linear-gradient(90deg,rgb(var(--warning-rgb)/0.14),rgb(var(--warning-rgb)/0.9),rgb(var(--warning-rgb)/0.14))] after:shadow-[0_0_14px_rgb(var(--warning-rgb)/0.18)] hover:!text-[rgb(255_242_200)] focus-visible:!outline-none focus-visible:after:h-[2px]";
 
 export function ReviewStep({
   data,
@@ -29,7 +29,7 @@ export function ReviewStep({
             <span
               data-section-status={section.complete ? "completed" : "incomplete"}
               className={cn(
-                "flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.11em]",
+                "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.11em]",
                 section.complete
                   ? "text-[rgb(var(--accent)/0.96)]"
                   : "text-[rgb(var(--danger-rgb)/0.98)]",
@@ -62,7 +62,7 @@ export function ReviewStep({
                 >
                   <dt
                     className={cn(
-                      "text-[9px] font-semibold uppercase leading-4 tracking-[0.11em]",
+                      "text-[11px] font-semibold uppercase leading-4 tracking-[0.11em]",
                       answer.incomplete
                         ? "text-[rgb(var(--danger-rgb))]"
                         : "text-[rgb(var(--accent)/0.9)]",

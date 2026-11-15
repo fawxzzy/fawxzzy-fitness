@@ -354,7 +354,7 @@ export function ProgressionReviewCard({
                   >
                     {group.items.length > 0 ? (
                       <div className="mt-2 space-y-1.5">
-                        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
+                        <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
                           Ready Updates
                         </p>
                         <ul className="space-y-1.5">
@@ -427,7 +427,7 @@ export function ProgressionReviewCard({
                                 ) : null}
                                 {!applied && canApply && linkedTargets.length > 1 ? (
                                   <div className="mt-1.5 rounded-[0.75rem] border border-[rgb(var(--border-strong)/0.10)] bg-[rgb(var(--surface-2-rgb)/0.16)] p-1.5">
-                                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
+                                    <p className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
                                       Apply to
                                     </p>
                                     <div className="grid gap-1">
@@ -471,7 +471,7 @@ export function ProgressionReviewCard({
                                   </div>
                                 ) : null}
                                 {showDebugMetadata && item.debug ? (
-                                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.72)]">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.72)]">
                                     Debug: {item.debug.historySource.replaceAll("_", " ")} • {item.debug.historySetCount} sets • {item.debug.historySessionCount} sessions • {item.debug.candidateType}
                                   </p>
                                 ) : null}
