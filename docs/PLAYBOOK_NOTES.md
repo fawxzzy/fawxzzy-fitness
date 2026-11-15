@@ -1651,3 +1651,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Mapping `exerciseId ?? id` made the info sheet request an exercise with a row id offline. A non-important `h-11` after `h-8` left the stepper at 32px with no test noticing; measure the rendered box.
 - Evidence: contract tests (TodayCards incl. no-target cue, SettingsCards, SettingsSections, HistoryCards h1 pin, SessionRowCards); lint, typecheck, verify. Headless Playwright at 320x568 and 390x844 (DPR3, touch, standalone emulation): `/dev/mobile-regression?scenario=session-logger-strength-weight` steppers measure 44x44, value text fits between them, no page overflow; `/dev/history-overview` Consistency heatmap month labels end inside the grid (Nov ends at 257 of 320, 319 of 390), no horizontal overflow.
 - Status: Source only; merge, deploy and a real-device check remain separate. Not done: ExerciseCard and AttachedQuickActionStrip are still used by other screens (kept); heatmap cell cue text stays 10px below 390px wide.
+
+## 2026-11-14 - Card system: routine editor, chooser and add-day screens (FF-DESIGN-002)
+
+- WHAT changed: The create-routine chooser, the duplicate chooser, the add-day (create/choose) screens, the routine editor sections and the training-goal selector render on the shared card system (`CardSurface` + `CardHeader`, interaction kinds press / toggle / select). The chooser option cards, duplicate panel and source cards no longer carry their own class recipes. Inside a routine the copy says "day" (Blank day, Duplicate day, Choose Day, Create Day); "workout plan" is kept for the top-level Workout Plans list.
+- WHY it changed: These screens were the last routine surfaces with hand-built cards, 9-11px labels and sideways rails; the same card anatomy now covers routine, day and exercise cards.
+- Rule: A chooser option is a card-system header interaction, never a bespoke button recipe; a collapsible editor section is a `toggle` header, so its 44px target comes from the card-system affordance token.
+- Failure Mode: A contract test that greps the old inline class (`min-h-11 w-full`) keeps passing only while the recipe is copied; after moving to the shared header it failed, so the test now pins the toggle interaction and the token floor.
+- Evidence: routines, routine-components and card-system contract tests (52 pass), typecheck, lint; dev fixture `/dev/routine-editor-cards` checked at 390x844.
+- Status: Source only; merge, deploy and a real-phone check remain separate.
