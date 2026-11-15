@@ -273,7 +273,7 @@ export function SignupForm({
           </AuthFormFields>
           <AuthNoticeSlot
             notice={notice}
-            onAction={notice?.id === "signup.failed" ? () => window.location.assign("/login") : undefined}
+            onAction={notice?.id === "signup.failed" || notice?.id === "signup.emailexists" ? () => window.location.assign("/login") : undefined}
           />
         </AuthForm>
       </AuthBody>

@@ -35,6 +35,7 @@ const screens = [
   { id: "login-remembered-reauth", label: "Login remembered reauth" },
   { id: "signup", label: "Create account" },
   { id: "signup-taken", label: "Create account, username taken" },
+  { id: "signup-email-exists", label: "Create account, email already has an account" },
   { id: "signup-sent", label: "Create account, check your email" },
   { id: "forgot-password", label: "Reset password request" },
   { id: "forgot-password-signed-in", label: "Reset password request, signed in" },
@@ -142,6 +143,8 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
       return <SignupForm />;
     case "signup-taken":
       return <SignupForm previewNotice="signup.taken" />;
+    case "signup-email-exists":
+      return <SignupForm previewNotice="signup.emailexists" />;
     case "signup-sent":
       return <SignupForm previewSent={{ username: "atlas", email: PREVIEW_SIGNED_IN_EMAIL }} />;
     case "forgot-password":

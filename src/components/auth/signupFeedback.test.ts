@@ -6,6 +6,7 @@ import { USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 import {
   buildSignupRedirectHref,
   classifySignupProviderError,
+  isExistingAccountSignupResponse,
   isSignupErrorCode,
   resolveSignupRouteMessages,
   SIGNUP_ERROR_COPY,
@@ -22,6 +23,7 @@ const read = (relativePath: string) => readFileSync(new URL(relativePath, import
 
 test("the error-code table is the small fixed allow-list, with the shared password and username rules as copy", () => {
   assert.deepEqual(Object.keys(SIGNUP_ERROR_COPY).sort(), [
+    "email_exists",
     "email_invalid",
     "password_too_short",
     "rate_limited",
@@ -73,7 +75,9 @@ test("redirect hrefs carry exactly one allow-listed code and nothing else", () =
   assert.equal(buildSignupRedirectHref({ info: "check_email" }), "/signup?info=check_email");
 });
 
-test("a provider rejection never turns into text from the provider, and already-registered shares the generic code", () => {
+// Owner decision 2026-11-15 (Web #177 parity): an email that already has an account gets its own code, decided by
+// the provider's machine code only. Message text alone, however explicit, still falls to the generic code.
+test("a provider rejection never turns into text from the provider; an existing email is decided by machine code only", () => {
   const providerMessages = [
     "User already registered",
     "A user with this email address has already been registered",
@@ -82,13 +86,18 @@ test("a provider rejection never turns into text from the provider, and already-
     "Signups not allowed for this instance",
   ];
   for (const message of providerMessages) {
-    for (const extra of [{}, { code: "user_already_exists", status: 422 }, { code: "email_exists", status: 422 }, { status: 500 }]) {
+    for (const extra of [{}, { status: 500 }, { status: 422 }]) {
       const code = classifySignupProviderError({ message, ...extra });
       assert.equal(code, "signup_failed", `${message} ${JSON.stringify(extra)}`);
       assert.ok(!SIGNUP_ERROR_COPY[code].toLowerCase().includes("already registered"));
       assert.ok(!SIGNUP_ERROR_COPY[code].toLowerCase().includes("email address"));
     }
+    for (const extra of [{ code: "user_already_exists", status: 422 }, { code: "email_exists", status: 422 }]) {
+      assert.equal(classifySignupProviderError({ message, ...extra }), "email_exists", `${message} ${JSON.stringify(extra)}`);
+    }
   }
+  assert.equal(SIGNUP_ERROR_COPY.email_exists, "That email already has an account.");
+  assert.equal(buildSignupRedirectHref({ error: "email_exists" }), "/signup?error=email_exists");
   assert.equal(classifySignupProviderError(null), "signup_failed");
   assert.equal(classifySignupProviderError(undefined), "signup_failed");
   assert.equal(classifySignupProviderError({}), "signup_failed");
@@ -102,7 +111,9 @@ test("rate limits and the public username guard get their own safe codes", () =>
   assert.equal(classifySignupProviderError({ message: "duplicate key ACCOUNT_USERNAME_TAKEN" }), "username_taken");
   assert.equal(classifySignupProviderError({ details: "ACCOUNT_USERNAME_TAKEN", status: 409 }), "username_taken");
   // An email-duplicate rejection must not read as a username problem.
-  assert.equal(classifySignupProviderError({ code: "user_already_exists", message: "User already registered" }), "signup_failed");
+  assert.equal(classifySignupProviderError({ code: "user_already_exists", message: "User already registered" }), "email_exists");
+  // Rate limits still win over an existing-email code, so the captcha/rate-limit path is unchanged.
+  assert.equal(classifySignupProviderError({ code: "user_already_exists", status: 429 }), "rate_limited");
 });
 
 test("the provider's weak-password code gets its own safe code; message text alone never decides it", () => {
@@ -110,6 +121,18 @@ test("the provider's weak-password code gets its own safe code; message text alo
   assert.equal(classifySignupProviderError({ message: "Password is known to be weak and easy to guess" }), "signup_failed");
   assert.equal(SIGNUP_ERROR_COPY.weak_password, "That password is too easy to guess. Try another.");
   assert.equal(buildSignupRedirectHref({ error: "weak_password" }), "/signup?error=weak_password");
+});
+
+test("the confirmation-on fake success (user with no identities, no session) reads as an existing email", () => {
+  assert.equal(isExistingAccountSignupResponse({ user: { id: "x", identities: [] }, session: null }), true);
+  // A real new account has one identity; a signed-in result has a session; anything malformed is not a match.
+  assert.equal(isExistingAccountSignupResponse({ user: { id: "x", identities: [{ provider: "email" }] }, session: null }), false);
+  assert.equal(isExistingAccountSignupResponse({ user: { id: "x", identities: [] }, session: { access_token: "t" } }), false);
+  assert.equal(isExistingAccountSignupResponse({ user: { id: "x" }, session: null }), false);
+  assert.equal(isExistingAccountSignupResponse({ user: null, session: null }), false);
+  for (const value of [null, undefined, {}, "x", 42, []]) {
+    assert.equal(isExistingAccountSignupResponse(value), false, JSON.stringify(value));
+  }
 });
 
 function memoryStore() {
@@ -183,4 +206,10 @@ test("the sign-up action keeps provider text and free text out of the redirect",
   assert.doesNotMatch(signup, /encodeURIComponent/);
   assert.doesNotMatch(signup, /redirect\(`/);
   assert.match(signup, /buildSignupRedirectHref\(\{ error: classifySignupProviderError\(error\) \}\)/);
+  // The fake-success check runs after the session branch and before the check-your-email redirect.
+  const sessionAt = signup.indexOf("if (data.session)");
+  const existingAt = signup.indexOf("if (isExistingAccountSignupResponse(data))");
+  const sentAt = signup.indexOf('buildSignupRedirectHref({ info: "check_email" })');
+  assert.ok(sessionAt > 0 && existingAt > sessionAt && sentAt > existingAt);
+  assert.match(signup, /isExistingAccountSignupResponse\(data\)\) \{\s*redirect\(buildSignupRedirectHref\(\{ error: "email_exists" \}\)\);/);
 });

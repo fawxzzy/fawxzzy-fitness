@@ -18,7 +18,7 @@ import {
 import { enforceLoginFailureFloor } from "@/lib/login-failure-floor";
 import { buildFitnessRecoveryRedirectUrl, requestResetForIdentifier } from "@/lib/password-reset-request";
 import { isValidNewPassword } from "@/lib/password-policy";
-import { buildSignupRedirectHref, classifySignupProviderError } from "@/components/auth/signupFeedback";
+import { buildSignupRedirectHref, classifySignupProviderError, isExistingAccountSignupResponse } from "@/components/auth/signupFeedback";
 
 function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
@@ -186,6 +186,11 @@ export async function signup(formData: FormData) {
       refreshToken: data.session.refresh_token,
     });
     redirect("/entry");
+  }
+
+  // Confirmation on + an email that already has an account: the provider returns a fake success with no identities.
+  if (isExistingAccountSignupResponse(data)) {
+    redirect(buildSignupRedirectHref({ error: "email_exists" }));
   }
 
   redirect(buildSignupRedirectHref({ info: "check_email" }));
