@@ -33,7 +33,8 @@ import {
 import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { buildPlannedSetTargetSeriesSummary } from "@/lib/session-recap-target-series";
 import { generateSetFlowTargets } from "@/lib/set-flow-targets";
-import { buildWorkoutRecapArtifact } from "@/lib/workout-recap";
+import { buildWorkoutRecapArtifact, buildWorkoutRecapStreakAsOf } from "@/lib/workout-recap";
+import { loadHistorySessionsScopePayloadForUser } from "@/lib/history-sessions-page-loader";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionEventRow, RoutineDayExerciseRow, SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
@@ -498,9 +499,23 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       });
     }));
     const clientSessionSummary = toClientPlainObject(sessionSummary);
+    // Streak callout derives from the same History payload the Settings milestones use; failure degrades to no callout.
+    const recapStreak = isFeatureEnabled("shareableRecapArtifacts")
+      ? await loadHistorySessionsScopePayloadForUser({
+          supabase,
+          userId: user.id,
+          showQaLlelDataOverride: showQaLlelData,
+        }).then((history) => buildWorkoutRecapStreakAsOf({
+          sessions: history.sessionItems,
+          sessionId: sessionRow.id,
+          timezone: history.weeklyProgress.timezone,
+          skippedDayKeys: history.plannedSkippedDayKeys,
+        })).catch(() => null)
+      : null;
     const recapArtifact = isFeatureEnabled("shareableRecapArtifacts")
       ? buildWorkoutRecapArtifact({
           sessionSummary: clientSessionSummary,
+          streak: recapStreak,
           exercises: clientExercises.map((exercise) => ({
             id: exercise.id,
             exerciseId: exercise.exercise_id,

@@ -1686,4 +1686,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Every place that turns a URL parameter into visible copy resolves it through the allow-list; a second consumer of the same parameter must not bypass the first.
 - Failure Mode: Hardening the page components but leaving the shared layout bridge as a raw pass-through left the hole open.
 - Evidence: `src/lib/auth-route-feedback.test.ts` (4 pass), typecheck, lint.
-- Status: Source only; headless, not device-checked. Not done: non-auth routes (Today, routines) still toast server-set `?error=`/`?success=` sentences, which need a code migration. `auth-route-feedback.test.ts` is not listed in ci.yml (ci.yml untouched per scope).
+- Status: Source only; headless, not device-checked. Not done: non-auth routes (Today, routines) still toast server-set `?error=`/`?success=` sentences, which need a code migration. `auth-route-feedback.test.ts` runs in CI via `npm run test:all` auto-discovery.
+
+## 2026-11-14 FF-RECAP-001 recap streak callout
+- WHAT changed: The workout recap artifact gains an optional `streakCallout` (share text line, `Streak: N session streak`, plus a card line), derived from the existing History payload via `buildWorkoutRecapStreakAsOf`; shown only for 2+ planned sessions.
+- WHY it changed: The recap showed PRs but never the streak the History surface already computes, so a streak-worth sharing was invisible.
+- Rule: Streak copy comes from `buildHistoryWorkoutStreak`, evaluated as of the recap session so older recaps never claim a later streak; no new columns or queries beyond the existing History loader.
+- Failure Mode: Using the overall current streak on an old session recap would overstate it; the as-of helper drops later sessions and later skipped days, and a loader failure degrades to no callout.
+- Evidence: workout-recap tests (6 pass), typecheck. `src/lib/workout-recap.test.ts` is picked up by `npm run test:all` (auto-discovery).
+- Status: Source only; headless-only, not device-checked; follow-up-job artifact work out of scope.
