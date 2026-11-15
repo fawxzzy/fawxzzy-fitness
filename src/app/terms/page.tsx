@@ -95,7 +95,7 @@ export default function TermsOfServicePage({
 
       <Section title="Workout Data and Progression">
         <p>
-          Fitness stores routines, workout plans, exercises, targets, notes, session history, completion state, and
+          Fitness stores routines, days, exercises, targets, notes, session history, completion state, and
           progression-related activity so your training state can persist across sessions and devices.
         </p>
         <p>
