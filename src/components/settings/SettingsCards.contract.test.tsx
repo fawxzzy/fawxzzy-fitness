@@ -77,7 +77,7 @@ test("Settings sections keep their order and titles; Account navigates, the rest
   const account = render(<SettingsSectionCard section="account" href="/account" />);
   assert.match(account, /<h2[^>]*data-card-title="true"[^>]*>Account<\/h2>/);
   assert.match(account, /data-card-hit="link"/);
-  assert.match(account, /<a [^>]*href="/account"/);
+  assert.match(account, /<a [^>]*href="\/account"/);
   assert.match(account, /data-card-affordance="link"/);
   assert.doesNotMatch(account, /aria-expanded/);
 

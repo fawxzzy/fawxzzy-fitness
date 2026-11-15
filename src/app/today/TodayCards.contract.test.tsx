@@ -229,3 +229,16 @@ test("no behaviour code moved: TodayStartButton, the offline cache read and the 
   assert.match(shell, /readTodayCache\(userId\)/);
   assert.match(shell, /Start session requires a live connection\./);
 });
+
+test("FF-TODAY-004: an exercise without a target shows a quiet 'No target set' cue, never 'Goal missing'; targets and stretch hub stay clean", () => {
+  const none = rows([{ targets: null }]);
+  assert.match(none, /data-exercise-no-target="true"[^>]*>No target set</);
+  assert.doesNotMatch(none, /Goal missing/);
+  assert.doesNotMatch(rows([{}]), /No target set/);
+  assert.doesNotMatch(rows([{ targets: null, name: "Hip Opener", slug: "stretch-hip-opener", kind: "stretch", type: "stretch", tags: ["stretch-hub"], categories: ["stretch-hub"] }]), /No target set/);
+});
+
+test("FF-DESIGN-004: the Today info control uses the real exercise id, never the row id", () => {
+  const source = readFileSync(new URL("./TodayClientShell.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /exerciseId:\s*exercise\.exerciseId \?\? exercise\.id/);
+});
