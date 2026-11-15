@@ -132,11 +132,16 @@ test("session-expired path still keeps explicit helper messaging", () => {
   assert.equal(viewState.helperText, "Your session ended. Enter your password to continue.");
 });
 
-test("login screen always renders the credential form instead of a remembered-account choice", () => {
+// Auth Surface v2: the remembered account is a locked field inside the same credential form (password always shown),
+// never a separate choose-an-account step. "Not you?" is the one way to forget it and type another account.
+test("login screen always renders the credential form; a remembered account is a locked field, not a choice step", () => {
   assert.match(loginScreenSource, /label="Email or username"/);
   assert.match(loginScreenSource, /name="password"/);
   assert.doesNotMatch(loginScreenSource, /BottomActionSplit/);
-  assert.doesNotMatch(loginScreenSource, /handleRevealCredentialStep|handleSwitchAccount|clearRememberedLoginState/);
+  assert.doesNotMatch(loginScreenSource, /handleRevealCredentialStep|handleSwitchAccount/);
+  assert.match(loginScreenSource, /<AuthLockedField id=\{REMEMBERED_INPUT_ID\}/);
+  assert.match(loginScreenSource, /<AuthLinkButton onClick=\{forgetRememberedAccount\}>Not you\?<\/AuthLinkButton>/);
+  assert.match(loginScreenSource, /function forgetRememberedAccount\(\) \{\s+clearRememberedLoginState\(\);/);
 });
 
 test("normal credential login never races an in-flight session clear on mount", () => {

@@ -37,3 +37,16 @@ export const BottomDockButton = ({loading,loadingLabel,intent,children,...props}
 export const LOGIN_INFO_COPY = {};
 export const resolveLoginErrorCopy = (x:any)=>x ?? undefined;
 export const resolveLoginInfoCopy = (_x:any)=>undefined;
+// Auth Surface v2 shell pieces. The dock mirrors the real AuthDockButton: disabled while busy, submits by form id.
+export const clearRememberedLoginState = ()=>{};
+export const authNotice = (id:string)=>({id,tone:'error',text:id});
+export const loginErrorNoticeId = (_x:any)=>null;
+export const loginInfoNoticeId = (_x:any)=>null;
+export const AuthHead = ({title}:any)=><h1>{title}</h1>;
+export const AuthBody = ({children,align,...props}:any)=><section {...props}>{children}</section>;
+export const AuthNoticeSlot = ({notice}:any)=><div>{notice ? <div role="alert">{notice.text}</div> : null}</div>;
+export const AuthLinks = ({children}:any)=><nav>{children}</nav>;
+export const AuthLink = ({href,children,...props}:any)=><a href={href} {...props}>{children}</a>;
+export const AuthLinkButton = ({children,...props}:any)=><button type="button" {...props}>{children}</button>;
+export const AuthLockedField = ({id,label,value}:any)=><label>{label}<input id={id} value={value} readOnly/></label>;
+export const AuthDockButton = ({busy,busyLabel,tone,children,disabled,...props}:any)=><button {...props} disabled={disabled||busy} data-auth-primary-action="true">{busy&&busyLabel?busyLabel:children}</button>;

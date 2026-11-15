@@ -17,29 +17,29 @@ const resetPageSource = read("../reset-password/page.tsx");
 const passwordSource = read("../../components/ui/PasswordInput.tsx");
 const labSource = read("../dev/auth-screen-lab/page.tsx");
 const accountSource = read("../account/page.tsx");
-const designSystemSource = read("../../components/ui/app/designSystem.ts");
 const loginEntrySource = read("./LoginEntry.tsx");
 
-test("shared auth shell owns the viewport anchors and stable two-row footer", () => {
+// Auth Surface v2 (Zac 2026-11-15): updated deliberately from the v1 fixed-centre layout. Same family, product and
+// runtime markers; a 100dvh flex column instead of fixed anchors; one reserved notice slot; locked fields for known
+// values; the remembered account is a locked field, not a name under the title.
+test("shared auth shell keeps the family markers and the one-column v2 layout", () => {
   assert.match(shellSource, /data-auth-family="fawxzzy"/);
-  assert.match(shellSource, /data-auth-layout="focused-split"/);
+  assert.match(shellSource, /data-auth-layout="surface-v2"/);
   assert.match(shellSource, /data-auth-product="fitness"/);
   assert.match(shellSource, /data-auth-runtime="same-origin"/);
   assert.match(shellSource, /auth-canonical-account-shell/);
-  assert.match(shellSource, /auth-form-fields-centered/);
-  assert.match(shellSource, /grid-rows-\[24px_24px\]/);
-  assert.match(shellSource, /grid-cols-\[minmax\(0,1fr\)_0\.465rem_minmax\(0,1fr\)\]/);
-  assert.match(shellSource, /env\(safe-area-inset-bottom,0px\)\+1\.5rem/);
+  assert.match(shellSource, /"fx-fields"/);
+  assert.match(globalCssSource, /\.fx-auth \{[^}]*height: 100dvh;/);
+  assert.match(globalCssSource, /\.fx-auth__frame \{[^}]*env\(safe-area-inset-bottom, 0px\) \+ 26px/);
   assert.doesNotMatch(shellSource, /\[caret-color:transparent\]/);
 });
 
 test("installed auth uses the canonical account presentation without crossing origins", () => {
   assert.match(loginEntrySource, /getInstallContext\(\)\.isStandalone \|\| isLocalManualLogin/);
   assert.match(loginEntrySource, /return <LoginScreen \{\.\.\.props\} \/>/);
-  assert.match(designSystemSource, /circle_at_50%_34%,rgba\(106,152,120,0\.12\),transparent_40%\),#070b09/);
-  assert.match(globalCssSource, /\.auth-canonical-account-shell[\s\S]*--accent: 160 223 56/);
-  assert.match(globalCssSource, /\.auth-canonical-account-shell[\s\S]*#070b09/);
-  assert.match(globalCssSource, /\.auth-canonical-account-shell \.auth-canonical-legal-link[\s\S]*--text-secondary/);
+  assert.match(globalCssSource, /\.fx-auth \{[^}]*--accent: 160 223 56/);
+  assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-base: #060b07/);
+  assert.match(globalCssSource, /\.fx-auth \.auth-canonical-legal-link \{/);
   assert.match(read("../../components/auth/authCopy.ts"), /idle: "Sign in"[\s\S]*ready: "Sign in"/);
 
   assert.match(loginSource, /data-auth-intent="login"/);
@@ -53,42 +53,36 @@ test("installed auth uses the canonical account presentation without crossing or
   assert.doesNotMatch(signupSource, /iframe|account\.fawxzzy\.com|accessToken|refreshToken/);
 });
 
-test("account fields preserve centered native editing and one fieldset focus indicator", () => {
-  assert.match(fieldSource, /auth-account-field/);
-  assert.match(fieldSource, /text-center/);
-  assert.match(fieldSource, /placeholder:text-center/);
-  assert.match(fieldSource, /!text-base/);
+test("account fields keep centred native editing and one focus indicator per field", () => {
+  assert.match(fieldSource, /"fx-fld auth-account-field"/);
   assert.match(fieldSource, /auth-input-plain/);
-  assert.match(fieldSource, /px-12/);
-  assert.match(fieldSource, /!px-12/);
-  assert.match(globalCssSource, /\.auth-form-fields-centered[\s\S]*top: 50dvh/);
-  assert.match(globalCssSource, /\.auth-account-input[\s\S]*caret-color: rgb\(var\(--text-primary\)\)/);
-  assert.match(globalCssSource, /\.auth-account-field:focus-within/);
+  assert.match(fieldSource, /data-invalid=\{invalid \? "true" : undefined\}/);
+  assert.match(fieldSource, /readOnly\s+aria-readonly="true"/);
+  assert.match(globalCssSource, /\.fx-auth \.fx-fld__input \{[^}]*text-align: center/);
+  assert.match(globalCssSource, /\.fx-auth \.fx-fld__input \{[^}]*font-size: 17px/);
+  assert.match(globalCssSource, /\.fx-fld:focus-within \{/);
   assert.match(globalCssSource, /:user-invalid/);
   assert.match(globalCssSource, /@media \(forced-colors: active\)/);
-  assert.match(globalCssSource, /@media \(max-height: 38rem\)[\s\S]*padding-bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 10rem\)/);
-  assert.match(globalCssSource, /@media \(max-height: 38rem\)[\s\S]*\[data-testid="auth-footer"\][\s\S]*position: static !important/);
-  assert.match(globalCssSource, /@media \(max-height: 38rem\)[\s\S]*\[data-testid="auth-dock"\][\s\S]*background: linear-gradient/);
-  assert.match(globalCssSource, /@media \(max-height: 38rem\) and \(min-width: 40rem\)[\s\S]*grid-template-columns: repeat\(auto-fit, minmax\(12rem, 1fr\)\)/);
   assert.match(globalCssSource, /\.auth-account-input::-ms-reveal/);
 });
 
-test("every editable Fitness account form consumes the canonical field and footer rows", () => {
+test("every editable Fitness account form uses the canonical field, notice slot, dock and legal row", () => {
   for (const source of [loginSource, signupSource, forgotSource, resetFormSource]) {
     assert.match(source, /AuthAccountField/);
+    assert.match(source, /<AuthNoticeSlot notice=\{notice\}/);
     assert.match(source, /AuthLegalRow/);
+    assert.match(source, /AuthDockButton/);
   }
-
-  assert.match(loginSource, /AuthCenteredFooterRow/);
-  assert.match(forgotSource, /AuthCenteredFooterRow/);
-  assert.match(resetFormSource, /AuthCenteredFooterRow/);
-  assert.match(resetPageSource, /AuthFooterSpacer/);
-  assert.match(resetPageSource, /AuthLegalRow/);
+  for (const source of [loginSource, signupSource, forgotSource]) {
+    assert.match(source, /<AuthLinks>/);
+  }
+  // No reset-password route renders a dead end: link problems become the request screen.
+  assert.match(resetPageSource, /<ForgotPasswordFormClient initialNotice=/);
 });
 
-test("returning login retains Welcome and the remembered canonical display name", () => {
-  assert.match(loginSource, /rememberedDisplayName/);
-  assert.match(loginSource, /appTokens\.authDisplayName/);
+test("returning login says Welcome back and shows the remembered account as a locked field", () => {
+  assert.match(loginSource, /rememberedLogin \? "Welcome back" : AUTH_MODE_COPY\["password-login"\]\.title/);
+  assert.match(loginSource, /<AuthLockedField id=\{REMEMBERED_INPUT_ID\} label=\{rememberedLabel\} value=\{rememberedValue\} \/>/);
   assert.match(read("../../components/auth/authCopy.ts"), /title: "Welcome"/);
 });
 
@@ -100,8 +94,12 @@ test("password inputs keep one product reveal control while native reveal chrome
   assert.match(globalCssSource, /::-ms-reveal/);
 });
 
-test("dev lab covers the public auth and same-origin account screen family", () => {
-  for (const screen of ["login", "signup", "forgot-password", "reset-password", "reset-password-expired", "entry-handoff-error", "account"]) {
+test("dev lab covers the public auth, install, status and same-origin account screen family", () => {
+  for (const screen of [
+    "login", "signup", "forgot-password", "reset-password", "reset-password-expired", "entry-handoff-error", "account",
+    "login-remembered", "forgot-password-signed-in", "forgot-password-sent", "signup-sent", "not-found", "app-recovery",
+    "install-ios-safari", "install-ios-inapp", "install-prompt", "install-manual", "install-unsupported", "install-installed",
+  ]) {
     assert.match(labSource, new RegExp(`id: "${screen}"`));
   }
 

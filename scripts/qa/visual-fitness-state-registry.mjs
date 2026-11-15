@@ -110,11 +110,11 @@ const authLabInventory = [
   ["login-remembered-password", "Password"],
   ["login-remembered-reauth", "Password"],
   ["signup", "Create"],
-  ["reset-password-linking", "Finishing your password reset link"],
+  ["reset-password-linking", "Signing you in"],
   ["loading-boot", "Opening FawxzzyFitness"],
   ["loading-route", "Loading"],
   ["entry-handoff", "Checking where to drop you in"],
-  ["entry-handoff-error", "Could not open app"],
+  ["entry-handoff-error", "Could not load"],
   ["curated-restore-loading", "Restoring your training setup"],
 ];
 

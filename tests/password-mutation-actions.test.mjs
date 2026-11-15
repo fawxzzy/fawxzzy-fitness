@@ -278,7 +278,8 @@ test("both new-password forms use the shared policy and matching HTML minimum", 
   for (const [file, expectedInputs] of [["src/components/auth/SignupForm.tsx", 1], ["src/app/reset-password/ResetPasswordForm.tsx", 2]]) {
     const source = read(file);
     assert.match(source, /from "@\/lib\/password-policy"/);
-    assert.match(source, /isValidNewPassword\(password\)/);
+    // Sign-up validates the submitted FormData value (catches autofill that skipped onChange), reset its field state.
+    assert.match(source, /isValidNewPassword\((?:password|nextPassword)\)/);
     assert.equal((source.match(/minLength=\{NEW_PASSWORD_MINIMUM\}/g) ?? []).length, expectedInputs);
     const passwordInputs = source.match(/<PasswordInput\b[\s\S]*?\/>/g) ?? [];
     assert.equal(passwordInputs.length, expectedInputs);

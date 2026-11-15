@@ -98,22 +98,23 @@ test("rate limits and the public username guard get their own safe codes", () =>
   assert.equal(classifySignupProviderError({ code: "user_already_exists", message: "User already registered" }), "signup_failed");
 });
 
-test("the /signup page, the sign-up form and the global toast bridge all route through the allow-list", () => {
+// Auth Surface v2: the code shows once, in the form's reserved notice slot. The global bridge never toasts on /signup
+// (no second copy of the message, no query text), it only clears the query.
+test("the /signup page and the sign-up form route through the allow-list; the global bridge never toasts there", () => {
   const page = read("../../app/signup/page.tsx");
   assert.match(page, /resolveSignupRouteMessages\(\{\s*errorCode: searchParams\?\.error,\s*infoCode: searchParams\?\.info,?\s*\}\)/);
   assert.match(page, /<SignupForm error=\{routeMessages\.error\} info=\{routeMessages\.info\} \/>/);
   assert.doesNotMatch(page, /<SignupForm error=\{searchParams/);
 
   const bridge = read("../ActionFeedbackToasts.tsx");
-  assert.match(bridge, /pathname === "\/signup"/);
-  assert.match(bridge, /resolveSignupRouteMessages\(\{ errorCode: error \}\)/);
-  assert.match(bridge, /SIGNUP_ROUTE_ERROR_TOAST_ID/);
-  // /signup never shows ?success= text.
-  assert.match(bridge, /const success = pathname === "\/signup" \? null : searchParams\.get\("success"\)/);
+  assert.match(bridge, /const INLINE_NOTICE_ROUTES = new Set\(\["\/login", "\/signup"\]\)/);
+  assert.match(bridge, /const success = inlineNoticeRoute \? null : searchParams\.get\("success"\)/);
+  assert.match(bridge, /if \(error && !inlineNoticeRoute\) \{\s*toast\.error\(error\);/);
 
   const form = read("./SignupForm.tsx");
-  assert.match(form, /SIGNUP_ROUTE_ERROR_TOAST_ID/);
-  assert.match(form, /SIGNUP_ROUTE_INFO_TOAST_ID/);
+  assert.match(form, /signupErrorNoticeId\(error\)/);
+  assert.match(form, /<AuthNoticeSlot notice=\{notice\}/);
+  assert.doesNotMatch(form, /useToastMessageEffect|useToast\b/);
 });
 
 test("the sign-up action keeps provider text and free text out of the redirect", () => {
