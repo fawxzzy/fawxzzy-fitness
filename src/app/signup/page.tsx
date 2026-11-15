@@ -1,5 +1,3 @@
-import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthIntro, AuthShell } from "@/components/auth/AuthShell";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { resolveSignupRouteMessages } from "@/components/auth/signupFeedback";
 
@@ -14,17 +12,10 @@ type SignupPageProps = {
 };
 
 export default function SignupPage({ searchParams }: SignupPageProps) {
-  const copy = AUTH_MODE_COPY["create-account"];
   const routeMessages = resolveSignupRouteMessages({
     errorCode: searchParams?.error,
     infoCode: searchParams?.info,
   });
 
-  return (
-    <AuthShell
-      header={<AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />}
-    >
-      <SignupForm error={routeMessages.error} info={routeMessages.info} />
-    </AuthShell>
-  );
+  return <SignupForm error={routeMessages.error} info={routeMessages.info} />;
 }

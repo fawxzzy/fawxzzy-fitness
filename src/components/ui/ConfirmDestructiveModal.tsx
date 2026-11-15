@@ -14,7 +14,7 @@ const MODAL_BOTTOM_BAR_SURFACE_CLASSNAME =
   "bg-[linear-gradient(180deg,rgba(var(--bg-app),0.28)_0%,rgba(var(--bg-app),0.86)_18%,rgba(var(--bg-app),0.97)_100%)] backdrop-blur-[14px]";
 const DELETE_MODAL_CANCEL_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "toggleInactive",
-  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.22)]",
+  className: "!border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.22)]",
 });
 const DELETE_MODAL_CONFIRM_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "danger",

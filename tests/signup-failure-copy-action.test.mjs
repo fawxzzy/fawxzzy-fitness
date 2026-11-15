@@ -104,7 +104,6 @@ test("every non-rate-limit provider failure is indistinguishable from an already
   const baseline = await failing(alreadyRegistered).submit();
   for (const error of [
     { code: "email_exists", status: 422, message: "A user with this email address has already been registered" },
-    { code: "weak_password", status: 422, message: "Password is known to be weak" },
     { code: "unexpected_failure", status: 500, message: "Database error saving new user" },
     { code: "signup_disabled", status: 422, message: "Signups not allowed for this instance" },
     { status: 502, message: "Bad gateway" },
@@ -114,8 +113,10 @@ test("every non-rate-limit provider failure is indistinguishable from an already
   }
 });
 
-test("rate limits and the public username guard keep their own fixed codes", async () => {
+test("rate limits, weak passwords and the public username guard keep their own fixed codes", async () => {
   assert.equal(await failing({ code: "over_request_rate_limit", status: 429, message: "Request rate limit reached" }).submit(), "/signup?error=rate_limited");
+  // The provider checks password strength before it looks the address up, so this code says nothing about the account.
+  assert.equal(await failing({ code: "weak_password", status: 422, message: "Password is known to be weak" }).submit(), "/signup?error=weak_password");
   assert.equal(await failing({ code: "unexpected_failure", status: 500, message: "ACCOUNT_USERNAME_TAKEN" }).submit(), "/signup?error=username_taken");
 });
 

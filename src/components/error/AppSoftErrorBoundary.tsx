@@ -6,6 +6,9 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { SurfaceCard } from "@/components/ui/SurfaceCard";
+import { ERROR_COPY } from "@/components/error/errorCopy";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordClientBootDiagnostic } from "@/lib/boot-diagnostics";
 
@@ -25,39 +28,33 @@ type AppSoftErrorBoundaryState = {
 };
 
 function AppSoftErrorFallback({
-  area,
   error,
   onRetry,
 }: {
-  area: string;
   error: Error;
   onRetry: () => void;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
-      <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">
-        Fitness could not load {area.endsWith("-shell") ? "this screen" : area}.
-      </p>
-      <p className="text-xs text-[rgb(var(--text-secondary))]">
-        This error did not sign you out.
-        {process.env.NODE_ENV !== "production" ? ` (${error.name})` : ""}
-      </p>
-      <div className="flex flex-wrap justify-center gap-3">
-        <button
-          type="button"
-          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
-          onClick={onRetry}
-        >
-          Retry
-        </button>
-        <button
-          type="button"
-          className="min-h-11 rounded-full border border-[rgb(var(--border-strong)/0.42)] px-5 text-sm font-semibold text-[rgb(var(--text-primary))]"
-          onClick={() => window.location.reload()}
-        >
-          Reload app
-        </button>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-4">
+      <SurfaceCard className="w-full max-w-sm space-y-4 text-center" role="alert">
+        <p className="text-base font-semibold text-[rgb(var(--text-primary))]">{ERROR_COPY.boundaryTitle}</p>
+        <p className="text-sm text-[rgb(var(--text-secondary))]">
+          {ERROR_COPY.boundaryBody}
+          {process.env.NODE_ENV !== "production" ? ` (${error.name})` : ""}
+        </p>
+        <div className="flex flex-col gap-3">
+          <button type="button" className={getAppButtonClassName({ variant: "primary", fullWidth: true })} onClick={onRetry}>
+            {ERROR_COPY.retryLabel}
+          </button>
+          <button
+            type="button"
+            className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
+            onClick={() => window.location.reload()}
+          >
+            {ERROR_COPY.reloadLabel}
+          </button>
+        </div>
+      </SurfaceCard>
     </div>
   );
 }
@@ -122,7 +119,6 @@ class AppSoftErrorBoundaryInner extends Component<
     if (this.state.error) {
       return (
         <AppSoftErrorFallback
-          area={this.props.area ?? "app-content"}
           error={this.state.error}
           onRetry={this.handleRetry}
         />

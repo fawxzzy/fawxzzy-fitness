@@ -210,7 +210,7 @@ function RoutineTargetInputs({
 
 const TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "toggleInactive",
-  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
+  className: "!border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.2)]",
 });
 const TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "positive",

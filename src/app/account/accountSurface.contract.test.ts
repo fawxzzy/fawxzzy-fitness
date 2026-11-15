@@ -29,7 +29,7 @@ test("account screen reuses the established mobile shell, account form, and dete
 
 test("the local account surface retains validated sign-out cleanup", () => {
   assert.match(signOutSource, /clearPersistedWorkoutClientState\(\)/);
-  assert.match(signOutSource, /supabase\.auth\.signOut\(\)/);
+  assert.match(signOutSource, /supabase\.auth\.signOut\(\{ scope: "local" \}\)/);
   assert.match(signOutSource, /fetch\("\/auth\/session-sync"/);
   assert.match(signOutSource, /method: "DELETE"/);
   assert.match(signOutSource, /router\.replace\(AUTH_ENTRY_PATH\)/);

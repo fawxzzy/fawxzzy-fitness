@@ -87,7 +87,7 @@ export function ExerciseTimerControl({
           className={cn(
             getAttachedCardActionButtonClassName({
               intent: "info",
-                className: cn("!h-12", isComplete ? "rounded-bl-[var(--card-radius)] rounded-br-[var(--card-radius)]" : "rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]"),
+                className: cn("!h-12", isComplete ? "rounded-bl-[var(--card-radius)] rounded-br-[var(--card-radius)]" : "rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--border-strong)/0.18)]"),
             }),
             isPending ? "opacity-55" : undefined,
           )}
@@ -103,7 +103,7 @@ export function ExerciseTimerControl({
             className={cn(
               getAttachedCardActionButtonClassName({
                 intent: "info",
-                className: "!h-12 !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
+                className: "!h-12 !border-r !border-r-[rgb(var(--border-strong)/0.18)]",
               }),
               isPending ? "opacity-55" : undefined,
             )}

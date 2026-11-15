@@ -1,11 +1,7 @@
-import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
+import ForgotPasswordFormClient from "@/app/forgot-password/ForgotPasswordFormClient";
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
 import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
-import { AuthCard, AuthDock, AuthFooter, AuthFooterSpacer, AuthIntro, AuthLegalRow, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockLink } from "@/components/layout/BottomDockButton";
-import { appTokens } from "@/components/ui/app/tokens";
-import { ToastFeedbackBridge } from "@/components/ui/ToastFeedbackBridge";
+import { authNotice, resetPasswordErrorNoticeId } from "@/components/auth/authMessages";
 import { resolveResetPasswordErrorCopy } from "@/lib/auth-route-feedback";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -18,67 +14,32 @@ type ResetPasswordPageProps = {
   };
 };
 
+// Link problems that belong on the request screen (send a new link); every other code stays on the new-password form.
+const LINK_NOTICES = new Set(["reset.expired", "reset.invalid", "reset.rate"]);
+
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
-  const copy = AUTH_MODE_COPY["reset-password"];
   // `error` is an allow-listed code (auth-route-feedback.ts); anything else resolves to nothing.
   const error = resolveResetPasswordErrorCopy(searchParams?.error);
   const isRecoveryAttempt = searchParams?.recovery === "1";
 
   if (isRecoveryAttempt) {
-    return (
-      <AuthShell
-        header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}
-      >
-        <AuthCard className={appTokens.authInteractiveCard}>
-          <RecoverySessionBridge initialError={error} />
-        </AuthCard>
-        <AuthFooter>
-          <AuthFooterSpacer />
-          <AuthLegalRow />
-        </AuthFooter>
-        <AuthDock>
-          <BottomActionSingle>
-            <BottomDockLink href="/login" intent="positive">
-              Log In
-            </BottomDockLink>
-          </BottomActionSingle>
-        </AuthDock>
-      </AuthShell>
-    );
+    return <RecoverySessionBridge initialError={error} />;
   }
 
   const supabase = supabaseServer();
   const { data } = await supabase.auth.getUser();
+  const noticeId = resetPasswordErrorNoticeId(error);
 
   if (!data.user) {
-    return (
-      <AuthShell
-        header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}
-      >
-        <ToastFeedbackBridge error={error ?? "Reset link expired."} />
-        <AuthCard className={appTokens.authInteractiveCard}>
-          <AuthStatusText>{error ?? "Reset link expired."}</AuthStatusText>
-        </AuthCard>
-        <AuthFooter>
-          <AuthFooterSpacer />
-          <AuthLegalRow />
-        </AuthFooter>
-        <AuthDock>
-          <BottomActionSingle>
-            <BottomDockLink href="/login" intent="positive">
-              Log In
-            </BottomDockLink>
-          </BottomActionSingle>
-        </AuthDock>
-      </AuthShell>
-    );
+    // No recovery session: never a dead end, it is the request screen with the reason in the box.
+    return <ForgotPasswordFormClient initialNotice={authNotice(noticeId && LINK_NOTICES.has(noticeId) ? noticeId : "reset.expired")} />;
   }
 
-  return (
-    <AuthShell
-      header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}
-    >
-      <ResetPasswordForm error={error} />
-    </AuthShell>
-  );
+  if (noticeId && LINK_NOTICES.has(noticeId) && noticeId !== "reset.rate") {
+    return <ForgotPasswordFormClient signedInEmail={data.user.email ?? null} initialNotice={authNotice(noticeId)} />;
+  }
+
+  // A fresh key per server render: the save action redirects back here with ?error=<code>, and a repeat of the same
+  // code (the same password twice) must still free the dock and show the notice. Nothing strips this query.
+  return <ResetPasswordForm key={Date.now()} error={error} />;
 }
