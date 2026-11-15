@@ -13,7 +13,8 @@ export function SignOutButton() {
 
   const handleSignOut = async () => {
     clearPersistedWorkoutClientState();
-    await supabase.auth.signOut();
+    // The server revokes the auth session from the cookies first: this browser client usually holds no session of
+    // its own (sign-in happens on the server / portal), so its signOut() alone never reaches the auth server.
     try {
       await fetch("/auth/session-sync", {
         method: "DELETE",
@@ -22,6 +23,12 @@ export function SignOutButton() {
       });
     } catch {
       // Ignore cookie cleanup failures and continue to the login screen.
+    }
+    try {
+      // Local scope: drop any browser-held session without a second, redundant revoke (the server already did it).
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // The cookie mirror is already cleared; still continue to the login screen.
     }
     router.replace(AUTH_ENTRY_PATH);
     window.location.assign(AUTH_ENTRY_PATH);
