@@ -9,7 +9,7 @@ type HistoryViewMode = "compact" | "detailed";
 
 /**
  * Compact / Detailed rows as the History header's one trailing 44x44 action (DESIGN-CONTRACT.md section 15).
- * The label says what a tap does; `aria-pressed` says whether details are showing.
+ * One static label plus `aria-pressed`: screen readers hear "Show detailed rows, pressed" or "not pressed".
  */
 export function HistoryHeaderDensityToggle({
   scope,
@@ -31,7 +31,7 @@ export function HistoryHeaderDensityToggle({
   }
 
   const showingDetails = viewMode === "detailed";
-  const label = showingDetails ? "Show compact rows" : "Show detailed rows";
+  const label = "Show detailed rows";
 
   return createPortal(
     <button

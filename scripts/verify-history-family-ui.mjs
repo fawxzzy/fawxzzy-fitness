@@ -249,12 +249,13 @@ async function main() {
         { type: "waitForText", text: "Back Squat", timeoutMs: 10000 },
         {
           type: "assertExpression",
-          message: "History exercises top area must not render the old History/count/tabs shared header block.",
+          message: "History exercises must use the one ScreenHeader plus the Sessions / Exercises / Progression segmented control, not the old shared header block.",
           expression: `(() => {
             const oldHeader = document.querySelector("[data-shared-screen-header='true']");
-            const hasTabs = Boolean(document.querySelector("[aria-label='History views']"));
+            const screenHeader = document.querySelector("[data-screen-header='tab']");
+            const hasViewSwitch = Boolean(document.querySelector("[aria-label='History views']"));
             const bodyText = document.body?.innerText?.toLowerCase() ?? "";
-            return !oldHeader && !hasTabs && !bodyText.includes("tracked exercises");
+            return !oldHeader && Boolean(screenHeader) && hasViewSwitch && !bodyText.includes("tracked exercises");
           })()`,
         },
         {

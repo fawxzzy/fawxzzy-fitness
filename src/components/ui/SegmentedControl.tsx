@@ -96,9 +96,14 @@ export function SegmentedControl({
         : "min-h-12 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-[13px] font-semibold focus-visible:ring-[rgb(var(--accent)/0.2)]",
     );
 
+  // Links that switch pages (History: Sessions / Exercises / Progression) are navigation, not tabs: a <nav> with
+  // `aria-current="page"` on the active link. Buttons that switch in-page content keep the tablist pattern.
+  const isNavigation = !onChange && options.length > 0 && options.every((option) => Boolean(option.href));
+  const ShellTag = isNavigation ? "nav" : "div";
+
   return (
-    <div
-      role="tablist"
+    <ShellTag
+      role={isNavigation ? undefined : "tablist"}
       aria-label={ariaLabel}
       className={cn(
         ACTION_CHROME_RAIL_CLASS_NAME,
@@ -183,13 +188,14 @@ export function SegmentedControl({
             key={option.value}
             href={option.href}
             prefetch={shouldPrefetchLinks}
-            role="tab"
-            aria-selected={isActive}
-            tabIndex={isActive ? 0 : -1}
+            role={isNavigation ? undefined : "tab"}
+            aria-selected={isNavigation ? undefined : isActive}
+            aria-current={isNavigation && isActive ? "page" : undefined}
+            tabIndex={isNavigation ? undefined : isActive ? 0 : -1}
             data-action-chrome-intent={intent}
             data-action-chrome-segmented="true"
             data-action-chrome-selected={isActive ? "true" : undefined}
-            onKeyDown={handleKeyDown}
+            onKeyDown={isNavigation ? undefined : handleKeyDown}
             className={cn(itemClassName, stateClassName)}
             data-segmented-control-value={option.value}
           >
@@ -197,6 +203,6 @@ export function SegmentedControl({
           </Link>
         );
       })}
-    </div>
+    </ShellTag>
   );
 }

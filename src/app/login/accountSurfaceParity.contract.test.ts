@@ -39,6 +39,9 @@ test("installed auth uses the canonical account presentation without crossing or
   assert.match(loginEntrySource, /return <LoginScreen \{\.\.\.props\} \/>/);
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--accent: 160 223 56/);
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-base: #060b07/);
+  // Sign in is the app's standard green primary, flat, with no lime gradient or glow.
+  assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-primary: 32 151 78;/);
+  assert.match(globalCssSource, /\.fx-dock \{[^}]*background: rgb\(var\(--fx-primary\)\);\s*box-shadow: none;/);
   assert.match(globalCssSource, /\.fx-auth \.auth-canonical-legal-link \{/);
   assert.match(read("../../components/auth/authCopy.ts"), /idle: "Sign in"[\s\S]*ready: "Sign in"/);
 
