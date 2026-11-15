@@ -561,11 +561,17 @@ test("buildDiscordGuildCommandsDefinition keeps Music Sesh slash commands staff-
   const feedbackCompletionReviewDecisionOption = feedbackCompletionReview?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
   const warnSeverityOption = warn?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
 
-  assert.equal(commands.length, 23);
+  assert.equal(commands.length, 24);
+  assert.ok(commands.some((command) => command.name === "computa"));
+  // /computa is the one deliberately public entry point (its public menu card); owner-only subcommands are gated at
+  // runtime in the interactions route. Every other command carries a staff permission bitfield.
   assert.equal(
-    commands.every((command) => typeof command.default_member_permissions === "string"),
+    commands
+      .filter((command) => command.name !== "computa")
+      .every((command) => typeof command.default_member_permissions === "string"),
     true,
   );
+  assert.equal(commands.find((command) => command.name === "computa")?.default_member_permissions, undefined);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(verifyCleanup);
