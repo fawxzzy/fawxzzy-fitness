@@ -23,7 +23,7 @@ export const CURATED_INTAKE_SECTIONS: readonly CuratedIntakeSection[] = [
     stepId: "intro",
     title: "Your Details",
     description:
-      "Your answers shape a workout plan around your goals, schedule, equipment, training background, limitations, and preferences.",
+      "Your answers shape a routine around your goals, schedule, equipment, training background, limitations, and preferences.",
     questions: [
       { id: "email", label: "Email", type: "short-text", required: true, readOnly: true },
       { id: "name", label: "Name", type: "short-text", required: true, placeholder: "Your name" },

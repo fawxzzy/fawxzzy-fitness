@@ -3510,8 +3510,8 @@ export function ProgressionPlaybookEditor({
       "Equipment step",
       "Session Settings",
       "Session count",
-      "Workout Plan Adjustment Settings",
-      "Workout Plan Adjustments Settings",
+      "Day Adjustment Settings",
+      "Day Adjustments Settings",
       "Set Settings",
       "Stall",
       "Deload",
@@ -3646,7 +3646,7 @@ export function ProgressionPlaybookEditor({
             summary: "Cycle Settings control the routine cycle mode, cycle count, and the cycle anchor used for week-based schedules.",
             rows: [
               { label: "Routine Type", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
-              { label: "Routine Length", value: "Total workout plans before the cycle repeats. In week-based mode, extra plans can continue into the next week." },
+              { label: "Routine Length", value: "Total days before the cycle repeats. In week-based mode, extra days can continue into the next week." },
               { label: "Weekday Anchor", value: "Shown in week-based mode. This date places Slot 1 inside the anchored week." },
             ],
           };
@@ -3684,8 +3684,8 @@ export function ProgressionPlaybookEditor({
         };
       case "day_settings":
         return {
-          title: "Workout Plan Adjustments Settings",
-          summary: "Workout Plan Adjustments Settings shape the target for that workout-plan slot before Session Settings and Set Settings continue the progression flow.",
+          title: "Day Adjustments Settings",
+          summary: "Day Adjustments Settings shape the target for that day slot before Session Settings and Set Settings continue the progression flow.",
           rows: [
             { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
             { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
@@ -4308,8 +4308,8 @@ export function ProgressionPlaybookEditor({
           value={loadValue}
           onChange={setLoadValue}
           stepper={{
-            decrementAriaLabel: "Decrease workout plan weight adjustment",
-            incrementAriaLabel: "Increase workout plan weight adjustment",
+            decrementAriaLabel: "Decrease day weight adjustment",
+            incrementAriaLabel: "Increase day weight adjustment",
             onDecrement: () => setLoadValue(decrementProgressionNumericValue({ value: loadValue, inputMode: "decimal" })),
             onIncrement: () => setLoadValue(incrementProgressionNumericValue({ value: loadValue, inputMode: "decimal" })),
           }}
@@ -4325,8 +4325,8 @@ export function ProgressionPlaybookEditor({
           value={repValue}
           onChange={setRepValue}
           stepper={{
-            decrementAriaLabel: "Decrease workout plan rep adjustment",
-            incrementAriaLabel: "Increase workout plan rep adjustment",
+            decrementAriaLabel: "Decrease day rep adjustment",
+            incrementAriaLabel: "Increase day rep adjustment",
             onDecrement: () => setRepValue(decrementProgressionNumericValue({ value: repValue, inputMode: "numeric" })),
             onIncrement: () => setRepValue(incrementProgressionNumericValue({ value: repValue, inputMode: "numeric" })),
           }}
@@ -4342,8 +4342,8 @@ export function ProgressionPlaybookEditor({
           value={durationValue}
           onChange={setDurationValue}
           stepper={{
-            decrementAriaLabel: "Decrease workout plan time adjustment",
-            incrementAriaLabel: "Increase workout plan time adjustment",
+            decrementAriaLabel: "Decrease day time adjustment",
+            incrementAriaLabel: "Increase day time adjustment",
             onDecrement: () => setDurationValue(decrementProgressionNumericValue({ value: durationValue, inputMode: "numeric" })),
             onIncrement: () => setDurationValue(incrementProgressionNumericValue({ value: durationValue, inputMode: "numeric" })),
           }}
@@ -4359,8 +4359,8 @@ export function ProgressionPlaybookEditor({
           value={distanceValue}
           onChange={setDistanceValue}
           stepper={{
-            decrementAriaLabel: "Decrease workout plan distance adjustment",
-            incrementAriaLabel: "Increase workout plan distance adjustment",
+            decrementAriaLabel: "Decrease day distance adjustment",
+            incrementAriaLabel: "Increase day distance adjustment",
             onDecrement: () => setDistanceValue(decrementProgressionNumericValue({ value: distanceValue, inputMode: "decimal" })),
             onIncrement: () => setDistanceValue(incrementProgressionNumericValue({ value: distanceValue, inputMode: "decimal" })),
           }}
@@ -6426,8 +6426,8 @@ export function ProgressionPlaybookEditor({
                   { label: "Schedule Mode", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
                   { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Slot 1 inside the current anchored week." },
                   { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Slot 1 anchors to. Covered weekdays show how the current cycle spans forward from that anchor." },
-                  { label: "Cycle Length", value: "Total workout plans before the cycle repeats. In week-based mode, extra plans continue into the next week." },
-                  { label: "Timezone", value: "Controls Today rollover, workout-plan slot rollover, and routine occurrence dates." },
+                  { label: "Cycle Length", value: "Total days before the cycle repeats. In week-based mode, extra days continue into the next week." },
+                  { label: "Timezone", value: "Controls Today rollover, day slot rollover, and routine occurrence dates." },
                   { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
                 ]}
               />
@@ -6502,7 +6502,7 @@ export function ProgressionPlaybookEditor({
             content: (
               <ProgressionInfoRows
                 rows={[
-                  { label: "Purpose", value: "Controls how the effective target adjusts for a workout-plan slot before Session Settings and Set Settings continue the workout flow." },
+                  { label: "Purpose", value: "Controls how the effective target adjusts for a day slot before Session Settings and Set Settings continue the workout flow." },
                   { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
                   { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
                   { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
@@ -6921,7 +6921,7 @@ export function ProgressionPlaybookEditor({
               {shouldRenderPromotionStepSettings ? (
                 <div className="space-y-2">
                   <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
-                    Workout Plan Adjustments Settings
+                    Day Adjustments Settings
                   </p>
                   <LoopingScrollRail className="pb-1" innerClassName="items-start justify-center gap-4 px-1 text-center" segmentClassName="shrink-0">
                     <div className="flex w-max min-w-max flex-col gap-2">

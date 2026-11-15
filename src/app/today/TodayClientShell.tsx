@@ -152,7 +152,7 @@ export function TodayClientShell({
               returnTo="/today"
               fullWidth
               className="w-full"
-              label="Resume Workout"
+              label="Resume"
             />
           ) : display.staleAt ? null : (
             <CardNotice>Start session requires a live connection.</CardNotice>

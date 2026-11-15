@@ -39,7 +39,7 @@ export function DayRestToggleAutosaveDock({ routineId, routineDayId, initialIsRe
           const result = await updateRoutineDaySettingsAction(formData);
           if (!result.ok) {
             setIsRest(!nextIsRest);
-            toast.error(result.error ?? "Could not update workout plan type.");
+            toast.error(result.error ?? "Could not update day type.");
             return;
           }
           toast.info(nextIsRest ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : REST_DAY_BEHAVIOR_CONTRACT.copy.disabled, {
