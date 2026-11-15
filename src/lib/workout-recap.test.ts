@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildWorkoutRecapArtifact } from "./workout-recap.ts";
+import { buildWorkoutRecapArtifact, buildWorkoutRecapStreakAsOf, buildWorkoutRecapStreakCallout } from "./workout-recap.ts";
 import type { SessionSummary } from "@/app/history/session-summary";
 
 const baseSummary: SessionSummary = {
@@ -102,4 +102,37 @@ test("workout recap handles empty sessions with stable output", () => {
   ]);
   assert.deepEqual(recap.topEfforts, []);
   assert.equal(buildWorkoutRecapArtifact({ sessionSummary: { ...baseSummary, setCount: 0 }, exercises: [] }).sessionId, "session-1");
+});
+
+test("streak callout needs 2+ sessions and flags a best streak", () => {
+  assert.equal(buildWorkoutRecapStreakCallout(null), null);
+  assert.equal(buildWorkoutRecapStreakCallout({ currentSessionCount: 1, bestSessionCount: 1 }), null);
+  assert.equal(buildWorkoutRecapStreakCallout({ currentSessionCount: 2, bestSessionCount: 2 }), "2 session streak");
+  assert.equal(buildWorkoutRecapStreakCallout({ currentSessionCount: 4, bestSessionCount: 4 }), "4 session streak, your best yet");
+  assert.equal(buildWorkoutRecapStreakCallout({ currentSessionCount: 3, bestSessionCount: 6 }), "3 session streak");
+});
+
+test("recap artifact carries streak callout into share text, and omits it otherwise", () => {
+  const withStreak = buildWorkoutRecapArtifact({ sessionSummary: baseSummary, exercises: [], streak: { currentSessionCount: 3, bestSessionCount: 5 } });
+  assert.equal(withStreak.streakCallout, "3 session streak");
+  assert.match(withStreak.shareText, /Streak: 3 session streak/);
+  const without = buildWorkoutRecapArtifact({ sessionSummary: baseSummary, exercises: [] });
+  assert.equal(without.streakCallout, null);
+  assert.doesNotMatch(without.shareText, /Streak:/);
+});
+
+test("streak as of a recap ignores later sessions and later skipped days", () => {
+  const day = (id: string, iso: string): SessionSummary => ({ ...baseSummary, id, startedAt: iso });
+  const sessions = [
+    day("s1", "2026-05-06T15:00:00.000Z"),
+    day("s2", "2026-05-07T15:00:00.000Z"),
+    day("s3", "2026-05-08T15:00:00.000Z"),
+    day("s4", "2026-05-10T15:00:00.000Z"),
+  ];
+  const asOfS2 = buildWorkoutRecapStreakAsOf({ sessions, sessionId: "s2", timezone: "UTC", skippedDayKeys: ["2026-05-09"] });
+  assert.equal(asOfS2?.currentSessionCount, 2);
+  const asOfS4 = buildWorkoutRecapStreakAsOf({ sessions, sessionId: "s4", timezone: "UTC", skippedDayKeys: ["2026-05-09"] });
+  assert.equal(asOfS4?.currentSessionCount, 1);
+  assert.equal(asOfS4?.bestSessionCount, 3);
+  assert.equal(buildWorkoutRecapStreakAsOf({ sessions, sessionId: "missing", timezone: "UTC" }), null);
 });

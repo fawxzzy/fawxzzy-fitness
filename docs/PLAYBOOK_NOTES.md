@@ -1678,3 +1678,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: A premium surface ships only when each metric is a stated deterministic rule over stored rows, is gated on the server, and is omitted (not locked-placeholdered) when data is thin.
 - Failure Mode: Locked placeholder boxes erode trust; client-only gating leaks premium numbers; mixed units and mid-cycle plan edits produce misleading deltas.
 - Status: Plan only; owner decisions pending; nothing built or deployed.
+
+## 2026-11-14 FF-RECAP-001 recap streak callout
+- WHAT changed: The workout recap artifact gains an optional `streakCallout` (share text line, `Streak: N session streak`, plus a card line), derived from the existing History payload via `buildWorkoutRecapStreakAsOf`; shown only for 2+ planned sessions.
+- WHY it changed: The recap showed PRs but never the streak the History surface already computes, so a streak-worth sharing was invisible.
+- Rule: Streak copy comes from `buildHistoryWorkoutStreak`, evaluated as of the recap session so older recaps never claim a later streak; no new columns or queries beyond the existing History loader.
+- Failure Mode: Using the overall current streak on an old session recap would overstate it; the as-of helper drops later sessions and later skipped days, and a loader failure degrades to no callout.
+- Evidence: workout-recap tests (6 pass), typecheck. `src/lib/workout-recap.test.ts` is picked up by `npm run test:all` (auto-discovery).
+- Status: Source only; headless-only, not device-checked; follow-up-job artifact work out of scope.
