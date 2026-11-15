@@ -2356,7 +2356,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         initialSelectedExerciseId={mobileRegressionSelectedSessionExerciseByScenarioId[scenario.id] ?? null}
           saveSessionAction={scenario.id === "session-auto-progression-confirmation" ? noopSessionSaveWithPromotion : noopActionResult}
           requestedReturnTo="/today"
-              quickAddAction={<BottomDockButton type="button" intent="positive">Add</BottomDockButton>}
+              quickAddAction={<BottomDockButton type="button" intent="info">Add</BottomDockButton>}
         addSetAction={noopSetAction}
         syncQueuedSetLogsAction={noopSyncQueuedSetLogsAction}
         toggleSkipAction={noopActionResult}

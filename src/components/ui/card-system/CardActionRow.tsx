@@ -29,7 +29,7 @@ export function getCardActionButtonClassName({
     intent: intentToBottomActionIntent[intent],
     className: cn(
       "!h-11 !min-h-0 !rounded-none !border-0 !px-3",
-      divider ? "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]" : undefined,
+      divider ? "!border-r !border-r-[rgb(var(--border-strong)/0.18)]" : undefined,
       className,
     ),
   });
