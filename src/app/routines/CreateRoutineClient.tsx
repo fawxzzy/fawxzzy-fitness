@@ -12,10 +12,10 @@ import {
   RoutineChooserSourceCard,
 } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
-import { labeledEditorFieldControlClassName, LabeledEditorField } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { overlayChromeClassNames } from "@/components/ui/OverlayChrome";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveCuratedRoutineMenuOption, type CuratedRoutineMenuOption } from "@/features/curated-onboarding/selectors";
 import { loadCuratedOnboardingGateState } from "@/features/curated-onboarding/storage";
@@ -316,22 +316,21 @@ export function CreateRoutineClient({
           `max-h-[min(100dvh-2rem,42rem)] ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME}`,
         )}
       >
-        <div className="relative px-4 pb-2 pt-4 text-center">
-          <div className="absolute right-4 top-4">
-            <TopRightBackButton
-              href={!onRequestClose ? backHref : undefined}
-              ariaLabel="Back to routines"
-              historyBehavior="fallback-only"
-              onClick={onRequestClose
-                ? (event) => {
-                  event.preventDefault();
-                  onRequestClose();
-                }
-                : undefined}
-            />
-          </div>
-          <h2 id={titleId} className="text-[1.3125rem] font-semibold tracking-[-0.03em] text-[rgb(var(--text-primary))]">
-            New Routine
+        {/* Same grammar as ScreenHeader kind="detail": Back on the left, a left-aligned one-line noun title. */}
+        <div className="flex min-w-0 items-center gap-1 px-2 pb-2 pt-3">
+          <ScreenHeaderBackButton
+            href={backHref}
+            label="Back to routines"
+            historyBehavior="fallback-only"
+            onClick={onRequestClose
+              ? (event) => {
+                event.preventDefault();
+                onRequestClose();
+              }
+              : undefined}
+          />
+          <h2 id={titleId} className="min-w-0 truncate text-lg font-semibold tracking-[-0.02em] text-[rgb(var(--text-primary))]">
+            New routine
           </h2>
         </div>
 
@@ -398,14 +397,10 @@ export function CreateRoutineClient({
                 )}
                 footer={selectedSourceRoutineId ? (
                   <>
-                    <LabeledEditorField
-                      label="New Routine Title"
-                      className={cn(
-                        "rounded-[1rem] bg-[rgb(var(--surface-2-rgb)/0.54)]",
-                        duplicateNameConflict
-                          ? "border-[rgb(var(--danger-rgb,220_68_68)/0.72)] shadow-[0_0_0_1px_rgb(var(--danger-rgb,220_68_68)/0.18),0_10px_24px_rgba(0,0,0,0.12)]"
-                          : undefined,
-                      )}
+                    <FormField
+                      label="New routine name"
+                      invalid={Boolean(duplicateNameConflict)}
+                      error={duplicateNameError}
                     >
                       <input
                         value={duplicateName}
@@ -414,19 +409,11 @@ export function CreateRoutineClient({
                           setDuplicateName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH));
                         }}
                         placeholder="Enter routine name"
-                        aria-label="New routine title"
+                        aria-label="New routine name"
                         maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                        className={cn(
-                          labeledEditorFieldControlClassName,
-                          "h-12 px-4 py-3 text-center text-sm font-semibold",
-                        )}
+                        className={cn(formFieldControlClassName, "font-semibold")}
                       />
-                    </LabeledEditorField>
-                    {duplicateNameError ? (
-                      <p className="px-1 text-center text-[0.78rem] font-medium text-[rgb(var(--danger-rgb,220_68_68)/0.94)]">
-                        {duplicateNameError}
-                      </p>
-                    ) : null}
+                    </FormField>
                     <BottomDockButton
                       type="button"
                       intent="positive"

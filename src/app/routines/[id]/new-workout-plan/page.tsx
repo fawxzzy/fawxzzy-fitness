@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { CreateRoutineDayClient } from "@/app/routines/CreateRoutineDayClient";
 import { createRoutineDayAction, populateRoutineDayFromSourceAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
@@ -91,36 +91,33 @@ export default async function CreateWorkoutPlanPage({ params, searchParams }: Pa
     excludeDayId: targetDayId || null,
   });
 
+  const backHref = isTargetMode && targetDay
+    ? getRoutineDayEditHref(routineData.id, targetDay.id, getRoutineHomeHref(routineData.id))
+    : getRoutineHomeHref(routineData.id);
+
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <ContentRail className="py-1">
-            <RoutinesRouteHeaderCard
-              title={isTargetMode ? "Choose Day" : "Create Day"}
-              subtitle={(
-                <span className="text-center">
-                  {isTargetMode
-                    ? <>Duplicate a source day into <span className="font-semibold text-[rgb(var(--text-primary))]">{formatRoutineDayStableDisplayName({
-                        name: targetDay?.name ?? null,
-                        dayIndex: targetDay?.day_index ?? 1,
-                        startDate: routineData.start_date,
-                      })}</span> for <span className="font-semibold text-[rgb(var(--text-primary))]">{routineData.name}</span>.</>
-                    : <>Build the next day for <span className="font-semibold text-[rgb(var(--text-primary))]">{routineData.name}</span>, then continue into the day editor.</>}
-                </span>
-              )}
-            />
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title={isTargetMode ? "Copy a day" : "Create day"}
+            subtitle={isTargetMode
+              ? `Into ${formatRoutineDayStableDisplayName({
+                name: targetDay?.name ?? null,
+                dayIndex: targetDay?.day_index ?? 1,
+                startDate: routineData.start_date,
+              })} · ${routineData.name}`
+              : routineData.name}
+            back={<ScreenHeaderBackButton href={backHref} />}
+          />
         )}
       >
         <ContentRail className="space-y-3">
           <CreateRoutineDayClient
             routineId={routineData.id}
-            backHref={isTargetMode && targetDay
-              ? getRoutineDayEditHref(routineData.id, targetDay.id, getRoutineHomeHref(routineData.id))
-              : getRoutineHomeHref(routineData.id)}
+            backHref={backHref}
             routineEditHref={getRoutineEditHref(routineData.id)}
             createRoutineDayAction={createRoutineDayAction}
             populateRoutineDayFromSourceAction={populateRoutineDayFromSourceAction}
