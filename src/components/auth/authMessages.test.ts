@@ -149,11 +149,14 @@ test("every allow-listed route code maps to a matrix message, so no screen falls
   assert.equal(resetRequestNoticeId("email_required"), "reset.unavailable");
   assert.equal(loginErrorNoticeId(LOGIN_ERROR_COPY.email_required), "reset.unavailable");
   assert.doesNotMatch(AUTH_MESSAGES["reset.unavailable"].text, /email/i);
-  // The generic sign-up failure is sign-up specific, never the sign-in "unavailable" line, and never says whether
-  // the email already has an account (open owner decision).
+  // The generic sign-up failure is sign-up specific, never the sign-in "unavailable" line, and does not claim the
+  // email has an account; that case has its own message (owner decision 2026-11-15, Web #177 parity).
   assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.signup_failed), "signup.failed");
   assert.doesNotMatch(AUTH_MESSAGES["signup.failed"].text, /sign-in|already|exists|registered/i);
   assert.equal(AUTH_MESSAGES["signup.failed"].action, "Sign in");
+  assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.email_exists), "signup.emailexists");
+  assert.equal(AUTH_MESSAGES["signup.emailexists"].text, "That email already has an account.");
+  assert.equal(AUTH_MESSAGES["signup.emailexists"].action, "Sign in");
   assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.weak_password), "signup.pwweak");
 });
 
