@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-14 - FF-QA-004: DOM interaction tests on card primitives; stale exclusions triaged
+
+- Type: Test infrastructure (source)
+- WHAT changed: Added jsdom + React Testing Library as dev dependencies and `tests/dom/dom-env.ts` (import first; installs a jsdom window). `tests/dom/card-interactions.dom.test.tsx` drives real click, keyboard and focus on Today exercise rows, the routine card (header press, actions control, Escape returns focus), the session logger (row toggle, quick-log Skip and Log, aria-disabled pending state) and the reorder handle. `npm run test:dom` runs it and is in the ci.yml contract step; test:all also picks it up. Triaged scripts/test-all.exclusions.json: 8 stale entries now run (profile, discord interactions, navigation-return, routine-day-loader, ExerciseTagFilterControl, CreateWorkoutPlanFlow, export-feedback-board, progression-visual-receipt); two fixes: the progression receipt test gained the new today-shell-ready step, and the two Discord export scripts read DISCORD_GUILD_ID from process.env when the module-load snapshot lacks it. Three Discord tooling tests stay excluded because the docs they assert on were never committed.
+- WHY it changed: Existing card tests render static markup and read source text, so they could not catch a handler that does not fire, a lost focus or a broken keyboard path.
+- Rule: A behaviour claim on a shared primitive needs a test that dispatches the event and reads the DOM, not a markup or source-text match. An exclusion needs a reason that still holds; re-run excluded tests when touching their area.
+- Failure Mode: Excluded stale tests rot silently (8 of 13 had already been fixed by other work); a jsdom window installed after Testing Library imports breaks its `screen`; jsdom does not check layout, so this is not a device check.
+- Status: Source only, headless-only, not device-checked.
+
 ## 2026-11-14 - Curated engine fails closed on health text and never forgets pain history
 
 - Type: Safety logic (source)

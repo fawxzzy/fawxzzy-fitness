@@ -14,6 +14,7 @@ test("today progression receipt follows the current inline Today-card contract",
       text: "text" in action ? action.text : null,
     })),
     [
+      { id: "today-shell-ready", type: "waitForSelector", text: null },
       { id: "promote-affordance-renders", type: "waitForText", text: "Promote" },
       { id: "primary-progression-card-renders", type: "waitForText", text: "Back Squat" },
       { id: "next-target-renders", type: "waitForText", text: "230 lbs" },

@@ -71,6 +71,7 @@ jobs:
           node --test tests/board-sync.test.mjs
           npm run board:check
           npm run test:card-system
+          npm run test:dom
 
       - name: Build
         run: npm run build
