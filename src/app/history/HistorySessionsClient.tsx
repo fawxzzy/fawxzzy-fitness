@@ -583,7 +583,7 @@ export function HistorySessionsClient({
   });
   const [isScopeLoading, setIsScopeLoading] = useState(false);
   const deferredQuery = useDeferredValue(query);
-  const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
+  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const filterKey = useMemo(() => buildFilterStateKey(normalizedFilterState), [normalizedFilterState]);
   const scopedPayload = useMemo(() => (

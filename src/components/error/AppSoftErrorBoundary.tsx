@@ -36,7 +36,7 @@ function AppSoftErrorFallback({
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
       <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">
-        Fitness could not load {area}.
+        Fitness could not load {area.endsWith("-shell") ? "this screen" : area}.
       </p>
       <p className="text-xs text-[rgb(var(--text-secondary))]">
         This error did not sign you out.

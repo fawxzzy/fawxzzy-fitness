@@ -65,6 +65,8 @@ type ExportPreview = {
   };
 };
 
+const NETWORK_ERROR_COPY = "Could not reach the server. Check your connection and try again.";
+
 const FILE_TYPE_OPTIONS: Array<{ value: ExportFileType; label: string }> = [
   { value: "xlsx", label: "Excel (.xlsx)" },
   { value: "csv", label: "CSV" },
@@ -250,7 +252,9 @@ export function DataSettingsSection({
         }
 
         setExportPreview(null);
-        setExportPreviewError(error instanceof Error ? error.message : "Unable to load export preview.");
+        setExportPreviewError(
+          error instanceof TypeError ? NETWORK_ERROR_COPY : error instanceof Error ? error.message : "Unable to load export preview.",
+        );
       } finally {
         if (!controller.signal.aborted) {
           setIsLoadingExportPreview(false);
@@ -314,7 +318,10 @@ export function DataSettingsSection({
         URL.revokeObjectURL(downloadUrl);
         toast.success(`Export ready: ${filename}`, { id: "account-export-ready" });
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Export failed.", { id: "account-export-error" });
+        toast.error(
+          error instanceof TypeError ? NETWORK_ERROR_COPY : error instanceof Error ? error.message : "Export failed.",
+          { id: "account-export-error" },
+        );
       }
     });
   };

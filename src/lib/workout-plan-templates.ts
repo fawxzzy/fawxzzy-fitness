@@ -529,7 +529,7 @@ export async function ensureWorkoutPlanTemplateForRoutineDay(args: {
       templateId: null,
       templateName: null,
       templateExercises: [] as WorkoutPlanTemplateExerciseRow[],
-      error: createResult.error ?? new Error("Could not create workout plan."),
+      error: createResult.error ?? new Error("Could not create day."),
     };
   }
 
@@ -637,7 +637,7 @@ export async function saveRoutineDayAsNewWorkoutPlanTemplate(args: {
       templateId: null,
       templateName: null,
       templateExercises: [] as WorkoutPlanTemplateExerciseRow[],
-      error: createResult.error ?? new Error("Could not create workout plan."),
+      error: createResult.error ?? new Error("Could not create day."),
     };
   }
 

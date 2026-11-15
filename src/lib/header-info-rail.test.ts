@@ -69,5 +69,5 @@ test("buildRoutineWorkoutPlanEditorInfoRailItems includes totals summary with au
 
   const totalsItem = items.find((item) => item.id === "totals");
   assert.ok(totalsItem);
-  assert.equal(totalsItem?.value, "3 workout plans • 10 exercises • 3 auto");
+  assert.equal(totalsItem?.value, "3 days • 10 exercises • 3 auto");
 });

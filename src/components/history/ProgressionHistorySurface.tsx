@@ -49,7 +49,7 @@ export function ProgressionHistorySurface({
     <div className="space-y-4">
       <HistorySection
         title="Progression History"
-        description="Durable record of applied progression changes. Read-only until replay or mutation semantics are explicitly designed."
+        description="Every target change the app applied, newest first."
       >
         <div className="space-y-3">
           <HistoryControlPanel>
@@ -95,7 +95,7 @@ export function ProgressionHistorySurface({
                 <p className="text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
                   {hasActiveFilters
                     ? `Showing ${filteredEventCount} of ${totalEventCount} progression events.`
-                    : `${totalEventCount} progression events in the durable ledger.`}
+                    : `${totalEventCount} progression events recorded.`}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   {hasActiveFilters ? (

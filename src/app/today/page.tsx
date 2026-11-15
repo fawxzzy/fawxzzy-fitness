@@ -1475,14 +1475,14 @@ export default async function TodayPage({
                 returnTo="/today"
                 fullWidth
                 className="w-full"
-                label="Resume Workout"
+                label="Resume"
               />
             )}
             secondary={(
               <ConfirmedServerFormButton
                 action={discardInProgressSessionAction}
                 hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                triggerLabel="Discard Workout"
+                triggerLabel="Discard"
                 triggerIntent="danger"
                 triggerClassName="h-full w-full"
                 size="md"

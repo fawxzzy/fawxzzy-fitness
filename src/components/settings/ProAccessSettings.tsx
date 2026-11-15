@@ -103,9 +103,9 @@ function getProValueSummary(snapshot: ProAccessSnapshot) {
         : "Base includes up to 3 routines. Extra routines stay hidden and locked until Pro is restored.",
     },
     {
-      title: "Saved workout plans",
+      title: "Saved days",
       description: snapshot.accessState === "pro"
-        ? "Pro keeps saved workout plan creation unlimited while access is active."
+        ? "Pro keeps saved day creation unlimited while access is active."
         : "Base includes up to 14 saved days. Extra saved days stay hidden and locked until Pro is restored.",
     },
   ];

@@ -396,7 +396,7 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
           name: day.name,
           dayIndex: day.day_index,
           startDate: sourceRoutine?.start_date,
-        }) || "Workout Plan",
+        }) || "Day",
         weekdayLabel: getRoutineDayResolvedWeekdayLabel({
           dayIndex: day.day_index,
           startDate: sourceRoutine?.start_date,
