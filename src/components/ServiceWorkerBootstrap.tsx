@@ -24,6 +24,7 @@ import {
   isBelowMinBuild,
   isColdLaunchWindow,
   resolveRequiredSince,
+  resolveUpdateNavigationTarget,
   serializeApplyAttempt,
   shouldAttemptApply,
 } from "@/lib/app-update-policy";
@@ -389,7 +390,7 @@ export function ServiceWorkerBootstrap() {
       registrationRef?.waiting?.postMessage({ type: "SKIP_WAITING" });
     };
 
-    const rememberReloadState = () => {
+    const rememberReloadState = (boundary: "hidden" | "cold-launch") => {
       let drafts: StoredFormDraft[] = [];
       if (hasDirtyInput()) {
         try {
@@ -410,6 +411,7 @@ export function ServiceWorkerBootstrap() {
           updatedAt: Date.now(),
           sessionId: activeSessionId(),
           drafts,
+          boundary,
         }),
       );
     };
@@ -443,7 +445,7 @@ export function ServiceWorkerBootstrap() {
       applying = true;
       writeStorage(window.sessionStorage, APP_UPDATE_LAST_APPLY_KEY, serializeApplyAttempt(CURRENT_APP_BUILD_ID, pendingBuildId, now));
       if (!navigateTo) {
-        rememberReloadState();
+        rememberReloadState(boundary === "hidden" ? "hidden" : "cold-launch");
       }
       publishStatus("applying-update");
       recordClientBootDiagnostic({
@@ -604,46 +606,50 @@ export function ServiceWorkerBootstrap() {
 
     // A same-origin link click while an update waits becomes a full navigation,
     // which loads the new build as part of the screen change the person asked for.
+    // Bubble phase: runs after the page's own handlers, so a cancelled click stays cancelled.
     const handleDocumentClick = (event: MouseEvent) => {
-      if (pendingBuildId === null || event.defaultPrevented || event.button !== 0) {
-        return;
-      }
-
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      if (pendingBuildId === null) {
         return;
       }
 
       const target = event.target instanceof Element ? event.target : null;
       const anchor = target?.closest("a[href]");
-      if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download")) {
+      if (!(anchor instanceof HTMLAnchorElement)) {
         return;
       }
 
-      if (anchor.target && anchor.target !== "_self") {
-        return;
-      }
+      const navigateTo = resolveUpdateNavigationTarget({
+        defaultPrevented: event.defaultPrevented,
+        button: event.button,
+        modifierKey: event.metaKey || event.ctrlKey || event.shiftKey || event.altKey,
+        href: anchor.href,
+        download: anchor.hasAttribute("download"),
+        target: anchor.target || null,
+        currentHref: window.location.href,
+      });
 
-      let url: URL;
-      try {
-        url = new URL(anchor.href, window.location.href);
-      } catch {
-        return;
-      }
-
-      if (url.origin !== window.location.origin) {
-        return;
-      }
-
-      if (url.pathname === window.location.pathname && url.search === window.location.search) {
-        return;
-      }
-
-      if (tryApply("navigation", url.href)) {
+      if (navigateTo && tryApply("navigation", navigateTo)) {
         event.preventDefault();
       }
     };
 
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+    // Attached at mount, before registration resolves, so early taps and typing count
+    // (a cold-launch apply must never wipe input typed in the first seconds).
+    window.addEventListener("pointerdown", recordInteraction, { passive: true });
+    window.addEventListener("touchstart", recordInteraction, { passive: true });
+    window.addEventListener("keydown", recordInteraction);
+    document.addEventListener("input", recordInput, true);
+    document.addEventListener("submit", clearDirtyInput, true);
+    document.addEventListener("click", handleDocumentClick);
+    const removeInputListeners = () => {
+      window.removeEventListener("pointerdown", recordInteraction);
+      window.removeEventListener("touchstart", recordInteraction);
+      window.removeEventListener("keydown", recordInteraction);
+      document.removeEventListener("input", recordInput, true);
+      document.removeEventListener("submit", clearDirtyInput, true);
+      document.removeEventListener("click", handleDocumentClick);
+    };
 
     navigator.serviceWorker.register("/app-sw.js", { scope: "/" })
       .then((registration) => {
@@ -686,23 +692,11 @@ export function ServiceWorkerBootstrap() {
 
         document.addEventListener("visibilitychange", onVisibilityChange);
         window.addEventListener("focus", onFocus);
-        window.addEventListener("pointerdown", recordInteraction, { passive: true });
-        window.addEventListener("touchstart", recordInteraction, { passive: true });
-        window.addEventListener("keydown", recordInteraction);
-        document.addEventListener("input", recordInput, true);
-        document.addEventListener("submit", clearDirtyInput, true);
-        document.addEventListener("click", handleDocumentClick, true);
 
         return () => {
           window.clearInterval(intervalId);
           document.removeEventListener("visibilitychange", onVisibilityChange);
           window.removeEventListener("focus", onFocus);
-          window.removeEventListener("pointerdown", recordInteraction);
-          window.removeEventListener("touchstart", recordInteraction);
-          window.removeEventListener("keydown", recordInteraction);
-          document.removeEventListener("input", recordInput, true);
-          document.removeEventListener("submit", clearDirtyInput, true);
-          document.removeEventListener("click", handleDocumentClick, true);
         };
       })
       .then((cleanup) => {
@@ -736,6 +730,7 @@ export function ServiceWorkerBootstrap() {
     return () => {
       cancelled = true;
       teardown?.();
+      removeInputListeners();
       navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
     };
   }, []);

@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  APP_UPDATE_HIDDEN_RELOAD_STATE_MAX_AGE_MS,
+  APP_UPDATE_RELOAD_STATE_MAX_AGE_MS,
   parseStoredAppUpdateReloadState,
   serializeStoredAppUpdateReloadState,
   shouldRestoreReloadState,
@@ -88,4 +90,27 @@ test("parseStoredAppUpdateReloadState drops malformed drafts and still reads old
     drafts: [{ key: 1, value: "x" }, "bad", { key: "#ok", value: "kept" }],
   });
   assert.deepEqual(parseStoredAppUpdateReloadState(malformed, 1_000)?.drafts, [{ key: "#ok", value: "kept" }]);
+});
+
+test("a reload started while hidden keeps its drafts long enough for a suspended iOS page to finish reloading", () => {
+  const state = {
+    href: "https://fitness.fawxzzy.com/routines/new",
+    scrollX: 0,
+    scrollY: 40,
+    targetBuildId: "build-2",
+    updatedAt: 0,
+    drafts: [{ key: "#routine-name", value: "Push day" }],
+  };
+  const afterShortWindow = APP_UPDATE_RELOAD_STATE_MAX_AGE_MS + 60_000;
+  assert.equal(APP_UPDATE_HIDDEN_RELOAD_STATE_MAX_AGE_MS, 30 * 60 * 1000);
+
+  const hidden = parseStoredAppUpdateReloadState(serializeStoredAppUpdateReloadState({ ...state, boundary: "hidden" }), afterShortWindow);
+  assert.deepEqual(hidden?.drafts, [{ key: "#routine-name", value: "Push day" }]);
+  assert.equal(hidden?.boundary, "hidden");
+  assert.equal(parseStoredAppUpdateReloadState(serializeStoredAppUpdateReloadState({ ...state, boundary: "hidden" }), APP_UPDATE_HIDDEN_RELOAD_STATE_MAX_AGE_MS + 1), null);
+
+  // Cold-launch and older records without a boundary keep the short window.
+  assert.equal(parseStoredAppUpdateReloadState(serializeStoredAppUpdateReloadState({ ...state, boundary: "cold-launch" }), afterShortWindow), null);
+  assert.equal(parseStoredAppUpdateReloadState(serializeStoredAppUpdateReloadState(state), afterShortWindow), null);
+  assert.equal(parseStoredAppUpdateReloadState(JSON.stringify({ ...state, boundary: "visible" }), afterShortWindow), null);
 });

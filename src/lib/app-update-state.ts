@@ -1,6 +1,9 @@
 import type { StoredFormDraft } from "@/lib/app-update-policy";
 
-const APP_UPDATE_RELOAD_STATE_MAX_AGE_MS = 5 * 60 * 1000;
+export const APP_UPDATE_RELOAD_STATE_MAX_AGE_MS = 5 * 60 * 1000;
+// A reload started while the page is hidden can finish much later: iOS suspends a backgrounded PWA mid-reload and
+// completes it when the person returns. The saved scroll position, session id and drafts must outlive that gap.
+export const APP_UPDATE_HIDDEN_RELOAD_STATE_MAX_AGE_MS = 30 * 60 * 1000;
 
 export const APP_UPDATE_RELOAD_STATE_KEY = "fawxzzy:fitness:app-update:reload-state";
 // Legacy key from the removed "Updated to the latest build." toast; only cleared.
@@ -16,7 +19,13 @@ export type StoredAppUpdateReloadState = {
   updatedAt: number;
   sessionId?: string | null;
   drafts?: StoredFormDraft[];
+  /** The boundary the update reload started from; "hidden" gets the longer max age. */
+  boundary?: "hidden" | "cold-launch";
 };
+
+export function reloadStateMaxAgeMs(boundary: StoredAppUpdateReloadState["boundary"]) {
+  return boundary === "hidden" ? APP_UPDATE_HIDDEN_RELOAD_STATE_MAX_AGE_MS : APP_UPDATE_RELOAD_STATE_MAX_AGE_MS;
+}
 
 export type AppUpdatePhase = "idle" | "checking" | "update-queued" | "applying-update" | "error";
 
@@ -84,7 +93,9 @@ export function parseStoredAppUpdateReloadState(
       return null;
     }
 
-    if (now - updatedAt > APP_UPDATE_RELOAD_STATE_MAX_AGE_MS) {
+    const boundary = parsed.boundary === "hidden" || parsed.boundary === "cold-launch" ? parsed.boundary : undefined;
+
+    if (now - updatedAt > reloadStateMaxAgeMs(boundary)) {
       return null;
     }
 
@@ -99,6 +110,7 @@ export function parseStoredAppUpdateReloadState(
       updatedAt,
       ...(sessionId ? { sessionId } : {}),
       ...(drafts.length > 0 ? { drafts } : {}),
+      ...(boundary ? { boundary } : {}),
     };
   } catch {
     return null;

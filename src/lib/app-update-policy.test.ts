@@ -12,6 +12,8 @@ import {
   isColdLaunchWindow,
   resolveMinBuildId,
   resolveRequiredSince,
+  resolveUpdateNavigationTarget,
+  type NavigationClickInput,
   serializeApplyAttempt,
   shouldAttemptApply,
 } from "@/lib/app-update-policy";
@@ -142,4 +144,39 @@ test("collectFormDrafts never keeps passwords or one-time codes", () => {
     { key: "[name]notes", value: "felt strong" },
     { key: "#warmup", value: "on", checked: true },
   ]);
+});
+
+function click(overrides: Partial<NavigationClickInput>): NavigationClickInput {
+  return {
+    defaultPrevented: false,
+    button: 0,
+    modifierKey: false,
+    href: "https://fitness.fawxzzy.com/history",
+    download: false,
+    target: null,
+    currentHref: "https://fitness.fawxzzy.com/today",
+    ...overrides,
+  };
+}
+
+test("a plain same-origin link click to another screen becomes the update navigation", () => {
+  assert.equal(resolveUpdateNavigationTarget(click({})), "https://fitness.fawxzzy.com/history");
+  assert.equal(resolveUpdateNavigationTarget(click({ href: "/routines?tab=all", target: "_self" })), "https://fitness.fawxzzy.com/routines?tab=all");
+});
+
+test("a click a page handler cancelled is never turned into a navigation", () => {
+  // The listener runs in the bubble phase, after the page's own onClick; defaultPrevented means the page (or
+  // next/link, which routes client-side and lets Next fall back to a full load on a new build) owns the click.
+  assert.equal(resolveUpdateNavigationTarget(click({ defaultPrevented: true })), null);
+});
+
+test("modified, non-primary, download, new-tab, cross-origin and same-screen clicks are left alone", () => {
+  assert.equal(resolveUpdateNavigationTarget(click({ button: 1 })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ modifierKey: true })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ download: true })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ target: "_blank" })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ href: "https://example.com/history" })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ href: "/today#top" })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ href: null })), null);
+  assert.equal(resolveUpdateNavigationTarget(click({ currentHref: "not a url" })), null);
 });

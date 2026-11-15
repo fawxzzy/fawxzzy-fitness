@@ -61,3 +61,24 @@ test("silent update: no overlay, no toast, and a controller change never reloads
   assert.match(bootstrap, /decideAppUpdateApply\(/);
   assert.match(route, /minBuildId: resolveMinBuildId\(CURRENT_APP_BUILD_ID\)/);
 });
+
+test("silent update: input listeners attach at mount and link clicks are judged after page handlers", () => {
+  const bootstrap = readFileSync(path.join(repoRoot, "src", "components", "ServiceWorkerBootstrap.tsx"), "utf8");
+  const registerAt = bootstrap.indexOf('navigator.serviceWorker.register("/app-sw.js"');
+  assert.ok(registerAt > 0);
+  // Early taps and typing must count before registration resolves, or a cold-launch reload can wipe them.
+  for (const listener of [
+    'window.addEventListener("pointerdown", recordInteraction',
+    'window.addEventListener("keydown", recordInteraction',
+    'document.addEventListener("input", recordInput, true)',
+    'document.addEventListener("click", handleDocumentClick)',
+  ]) {
+    const at = bootstrap.indexOf(listener);
+    assert.ok(at > 0 && at < registerAt, listener);
+    assert.equal(bootstrap.split(listener).length, 2, `${listener} is attached once`);
+  }
+  // Bubble phase, so a click the page cancelled is respected.
+  assert.doesNotMatch(bootstrap, /addEventListener\("click", handleDocumentClick, true\)/);
+  assert.match(bootstrap, /resolveUpdateNavigationTarget\(\{\s*defaultPrevented: event\.defaultPrevented/);
+  assert.match(bootstrap, /removeInputListeners\(\);/);
+});

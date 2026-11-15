@@ -99,6 +99,50 @@ export function isActiveSessionRoute(pathname: string) {
   return pathname === "/session" || pathname.startsWith("/session/");
 }
 
+export type NavigationClickInput = {
+  defaultPrevented: boolean;
+  button: number;
+  modifierKey: boolean;
+  href: string | null;
+  download: boolean;
+  target: string | null;
+  currentHref: string;
+};
+
+/**
+ * The full-navigation target for a same-origin link click, or null to leave the click alone. Runs after every page
+ * handler (bubble phase), so a click a handler cancelled is respected. next/link also cancels its click to route
+ * client-side; those navigations are left to Next, which itself does a full page load when the server build differs.
+ */
+export function resolveUpdateNavigationTarget(input: NavigationClickInput): string | null {
+  if (input.defaultPrevented || input.button !== 0 || input.modifierKey || input.download || !input.href) {
+    return null;
+  }
+
+  if (input.target && input.target !== "_self") {
+    return null;
+  }
+
+  let url: URL;
+  let current: URL;
+  try {
+    current = new URL(input.currentHref);
+    url = new URL(input.href, current);
+  } catch {
+    return null;
+  }
+
+  if (url.origin !== current.origin) {
+    return null;
+  }
+
+  if (url.pathname === current.pathname && url.search === current.search) {
+    return null;
+  }
+
+  return url.href;
+}
+
 type StoredRequiredSince = { buildId: string; since: number };
 
 export function resolveRequiredSince(rawValue: string | null, currentBuildId: string, now: number): StoredRequiredSince {
