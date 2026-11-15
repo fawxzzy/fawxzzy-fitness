@@ -284,7 +284,7 @@ export function RoutineHomeClient({
         setIsAddDayMenuOpen(false);
         setIsDuplicateSourceListOpen(false);
         setAddDaySubmissionMode(null);
-        toast.success(creationMode === "blank" ? "Empty day added." : "Day duplicated into a new day.");
+        toast.success(creationMode === "blank" ? "Empty day added." : "Day duplicated.");
         if (creationMode === "duplicate" && "routineDayId" in result && result.routineDayId) {
           router.push(getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)));
           return;

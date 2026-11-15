@@ -93,7 +93,7 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
         />
       )}
       backHref={backHref}
-      backAriaLabel="Back to workout plan"
+      backAriaLabel="Back to day"
       headerAlign="center"
       floatingHeaderRailClassName={cn(appTokens.historyFloatingHeaderRail, "relative z-30 pointer-events-auto")}
       backButtonClassName="relative z-30 pointer-events-auto"

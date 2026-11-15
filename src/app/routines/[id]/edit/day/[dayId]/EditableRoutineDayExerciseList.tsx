@@ -1032,14 +1032,14 @@ export function EditableRoutineDayExerciseList({
     const normalizedWorkoutPlanName = normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName);
     if (decisionMode === "save_new") {
       if (!normalizedWorkoutPlanName) {
-        setWorkoutPlanDecisionError("Workout plan name is required.");
+        setWorkoutPlanDecisionError("Day name is required.");
         return;
       }
       if (hasWorkoutPlanNameConflict({
         candidateName: normalizedWorkoutPlanName,
         workoutPlanNames: existingWorkoutPlanNames,
       })) {
-        setWorkoutPlanDecisionError("Workout plan name already exists.");
+        setWorkoutPlanDecisionError("Day name already exists.");
         return;
       }
     }
@@ -1056,7 +1056,7 @@ export function EditableRoutineDayExerciseList({
 
         const result = await resolveWorkoutPlanDecisionAction(decisionFormData);
         if (!result.ok) {
-          setWorkoutPlanDecisionError(result.error ?? "Could not update workout plan.");
+          setWorkoutPlanDecisionError(result.error ?? "Could not update day.");
           return;
         }
 
@@ -1073,8 +1073,8 @@ export function EditableRoutineDayExerciseList({
         if (result.workoutPlanName ?? result.templateName) {
           toast.success(
             decisionMode === "update_existing"
-              ? `Workout plan updated: ${result.workoutPlanName ?? result.templateName}`
-              : `New workout plan saved: ${result.workoutPlanName ?? result.templateName}`,
+              ? `Day updated: ${result.workoutPlanName ?? result.templateName}`
+              : `New day saved: ${result.workoutPlanName ?? result.templateName}`,
           );
         }
 
@@ -1200,7 +1200,7 @@ export function EditableRoutineDayExerciseList({
       const stateResult = await syncWorkoutPlanDecisionState();
       if (!stateResult.ok) {
         addExerciseNavigationLockedRef.current = false;
-        toast.error(stateResult.error ?? "Could not verify workout plan state.");
+        toast.error(stateResult.error ?? "Could not verify day state.");
         return;
       }
 
@@ -1237,7 +1237,7 @@ export function EditableRoutineDayExerciseList({
     <BottomActionSplit
       secondary={(
         <BottomDockLink href={duplicateWorkoutPlanHref} intent="toggleInactive">
-          Duplicate Workout Plan
+          Duplicate Day
         </BottomDockLink>
       )}
       primary={(
@@ -1302,15 +1302,15 @@ export function EditableRoutineDayExerciseList({
           {modeViewModel.sections.restDayCardVisible ? (
             <DayDetailStateCard
               tone="rest"
-              title="Rest workout plan enabled"
+              title="Rest day enabled"
               body={REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
               meta={items.length > 0 ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : undefined}
             />
           ) : (
             <DayDetailStateCard
               tone="neutral"
-              title="No workout plan built yet"
-              body="Add an exercise to build this workout plan from scratch, or duplicate an existing workout plan into this day."
+              title="No day built yet"
+              body="Add an exercise to build this day from scratch, or duplicate an existing day into this day."
             />
           )}
         </SharedSectionShell>
@@ -1569,7 +1569,7 @@ export function EditableRoutineDayExerciseList({
 
       <ConfirmDestructiveModal
         open={workoutPlanDecisionOpen}
-        title="Workout Plan"
+        title="Day"
         confirmLabel="Confirm"
         confirmVariant="primary"
         hideBottomActions
@@ -1586,7 +1586,7 @@ export function EditableRoutineDayExerciseList({
                   onClick={() => submitWorkoutPlanDecision("update_existing")}
                 >
                   <span className="bottom-action__label">
-                    {isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "update_existing" ? "Updating..." : "Update Workout Plan"}
+                    {isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "update_existing" ? "Updating..." : "Update Day"}
                   </span>
                 </button>
                 <button
@@ -1596,7 +1596,7 @@ export function EditableRoutineDayExerciseList({
                   className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
                   onClick={() => submitWorkoutPlanDecision("save_new")}
                 >
-                  <span className="bottom-action__label">Save New Workout Plan</span>
+                  <span className="bottom-action__label">Save New Day</span>
                 </button>
               </>
             ) : (
@@ -1641,7 +1641,7 @@ export function EditableRoutineDayExerciseList({
         <div className="space-y-3">
           {workoutPlanDecisionStep === "save_new" ? (
             <label className="block">
-              <span className="sr-only">Workout plan name</span>
+              <span className="sr-only">Day name</span>
               <input
                 type="text"
                 value={workoutPlanDecisionName}
@@ -1649,7 +1649,7 @@ export function EditableRoutineDayExerciseList({
                   setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
                   setWorkoutPlanDecisionError(null);
                 }}
-                placeholder="Workout plan name"
+                placeholder="Day name"
                 maxLength={15}
                 className={cn(
                   "w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition",

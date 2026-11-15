@@ -110,7 +110,7 @@ async function getSavedWorkoutPlanCapacityError(args: {
       return null;
     }
 
-    return new Error("Could not verify workout plan capacity.");
+    return new Error("Could not verify day capacity.");
   }
 
   if ((count ?? 0) >= BASE_SAVED_WORKOUT_PLAN_LIMIT) {
@@ -196,7 +196,7 @@ async function loadRoutineDayWorkoutPlanSyncContext(args: {
       linkedRoutineDayIds: [] as string[],
       linkedRoutineDayCount: 0,
       shouldSyncTemplate: false,
-      error: routineDayResult.error ?? new Error("Workout plan not found."),
+      error: routineDayResult.error ?? new Error("Day not found."),
     };
   }
 
@@ -291,7 +291,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
   const dayAdjustmentRaw = String(formData.get("dayAdjustmentDirection") ?? "").trim();
   const dayAdjustmentDirection = isSetFlowDirection(dayAdjustmentRaw) ? dayAdjustmentRaw : null;
   if (!routineId || !routineDayId) {
-    return { ok: false, error: "Missing workout plan info" };
+    return { ok: false, error: "Missing day info" };
   }
 
   const routineAccess = await enforceRoutineAccessForCurrentTier({
@@ -310,7 +310,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     routineDayId,
   });
   if (templateSyncContext.error || !templateSyncContext.routineDay) {
-    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found" };
+    return { ok: false, error: templateSyncContext.error?.message ?? "Day not found" };
   }
 
   const existingDay = templateSyncContext.routineDay;
@@ -542,7 +542,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
         .eq("user_id", user.id)
         .eq("is_global", false);
     }
-    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found" };
+    return { ok: false, error: templateSyncContext.error?.message ?? "Day not found" };
   }
 
   const shouldSyncTemplate = shouldSyncLinkedWorkoutPlan(formData) || templateSyncContext.shouldSyncTemplate;
@@ -654,7 +654,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
   const requestedTemplateName = normalizeWorkoutPlanNameCandidate(formData.get("templateName")?.toString() ?? "");
 
   if (!routineId || !routineDayId || !decisionMode) {
-    return { ok: false, error: "Missing workout plan decision info." };
+    return { ok: false, error: "Missing day decision info." };
   }
 
   const routineAccess = await enforceRoutineAccessForCurrentTier({
@@ -673,7 +673,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
     userId: user.id,
   });
   if (routineDayError || !routineDay) {
-    return { ok: false, error: routineDayError?.message ?? "Workout plan not found." };
+    return { ok: false, error: routineDayError?.message ?? "Day not found." };
   }
 
   const dayExercisesResult = await loadRoutineDayExercisesWithWorkoutPlanCompat({
@@ -691,7 +691,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
 
   if (decisionMode === "save_new") {
     if (!requestedTemplateName) {
-      return { ok: false, error: "Workout plan name is required." };
+      return { ok: false, error: "Day name is required." };
     }
 
     const existingTemplateNames = await loadWorkoutPlanNames({
@@ -702,7 +702,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
       candidateName: requestedTemplateName,
       workoutPlanNames: existingTemplateNames,
     })) {
-      return { ok: false, error: "Workout plan name already exists." };
+      return { ok: false, error: "Day name already exists." };
     }
 
     const capacityError = await getSavedWorkoutPlanCapacityError({
@@ -718,7 +718,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
       capacityError,
     });
     if (saveResult.error || !saveResult.templateId) {
-      return { ok: false, error: saveResult.error?.message ?? "Could not save new workout plan." };
+      return { ok: false, error: saveResult.error?.message ?? "Could not save new day." };
     }
 
     revalidateRoutineEditPaths(routineId, routineDayId);
@@ -748,7 +748,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
     capacityError,
   });
   if (ensureResult.error || !ensureResult.templateId) {
-    return { ok: false, error: ensureResult.error?.message ?? "Could not prepare workout plan." };
+    return { ok: false, error: ensureResult.error?.message ?? "Could not prepare day." };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
@@ -778,7 +778,7 @@ export async function loadWorkoutPlanEditDecisionStateAction(
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
 
   if (!routineId || !routineDayId) {
-    return { ok: false, error: "Missing workout plan decision info." };
+    return { ok: false, error: "Missing day decision info." };
   }
 
   const routineAccess = await enforceRoutineAccessForCurrentTier({
@@ -798,7 +798,7 @@ export async function loadWorkoutPlanEditDecisionStateAction(
   });
 
   if (templateSyncContext.error || !templateSyncContext.routineDay) {
-    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+    return { ok: false, error: templateSyncContext.error?.message ?? "Day not found." };
   }
 
   const templateId = templateSyncContext.routineDay.workout_plan_template_id ?? null;
@@ -904,7 +904,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
       routineDayId,
     });
     if (templateSyncContext.error || !templateSyncContext.routineDay) {
-      return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+      return { ok: false, error: templateSyncContext.error?.message ?? "Day not found." };
     }
 
     const shouldSyncTemplate = explicitTemplateSync || templateSyncContext.shouldSyncTemplate;
@@ -1010,7 +1010,7 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
     routineDayId,
   });
   if (templateSyncContext.error || !templateSyncContext.routineDay) {
-    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+    return { ok: false, error: templateSyncContext.error?.message ?? "Day not found." };
   }
 
   let error = null;
@@ -1100,7 +1100,7 @@ export async function deleteRoutineDayExerciseAction(formData: FormData): Promis
     routineDayId,
   });
   if (templateSyncContext.error || !templateSyncContext.routineDay) {
-    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+    return { ok: false, error: templateSyncContext.error?.message ?? "Day not found." };
   }
 
   const { data: existingExercise, error: existingExerciseError } = await supabase

@@ -301,8 +301,8 @@ export function EditDaySettingsAutosaveForm({
               setDraft(nextSnapshot);
               scheduleAutosave(nextSnapshot);
             }}
-            placeholder="Workout Plan"
-            ariaLabel="Workout Plan Name"
+            placeholder="Day"
+            ariaLabel="Day Name"
             maxLength={15}
             className="text-center"
             hideLabel
@@ -332,12 +332,12 @@ export function EditDaySettingsAutosaveForm({
       {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
       <ConfirmDestructiveModal
         open={workoutPlanDecisionOpen}
-        title="Workout Plan"
+        title="Day"
         description={workoutPlanDecisionMode === "update_existing"
-          ? "Update this shared workout plan so linked workout plans stay in sync."
-          : "Save this as a new workout plan before these edits continue autosaving."}
+          ? "Update this shared day so linked days stay in sync."
+          : "Save this as a new day before these edits continue autosaving."}
         confirmLabel="Confirm"
-        confirmActionLabel={workoutPlanDecisionMode === "update_existing" ? "Update Workout Plan" : "Save New Workout Plan"}
+        confirmActionLabel={workoutPlanDecisionMode === "update_existing" ? "Update Day" : "Save New Day"}
         cancelLabel="Cancel"
         confirmVariant="primary"
         confirmDisabled={workoutPlanDecisionMode === "save_new" && normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName).length === 0}
@@ -350,14 +350,14 @@ export function EditDaySettingsAutosaveForm({
           const normalizedWorkoutPlanName = normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName);
           if (workoutPlanDecisionMode === "save_new") {
             if (!normalizedWorkoutPlanName) {
-              setWorkoutPlanDecisionError("Workout plan name is required.");
+              setWorkoutPlanDecisionError("Day name is required.");
               return;
             }
             if (hasWorkoutPlanNameConflict({
               candidateName: normalizedWorkoutPlanName,
               workoutPlanNames: existingWorkoutPlanNames,
             })) {
-              setWorkoutPlanDecisionError("Workout plan name already exists.");
+              setWorkoutPlanDecisionError("Day name already exists.");
               return;
             }
           }
@@ -374,7 +374,7 @@ export function EditDaySettingsAutosaveForm({
 
               const result = await resolveWorkoutPlanDecisionAction(decisionFormData);
               if (!result.ok) {
-                setWorkoutPlanDecisionError(result.error ?? "Could not update workout plan.");
+                setWorkoutPlanDecisionError(result.error ?? "Could not update day.");
                 return;
               }
 
@@ -388,8 +388,8 @@ export function EditDaySettingsAutosaveForm({
               if (result.workoutPlanName ?? result.templateName) {
                 toast.success(
                   workoutPlanDecisionMode === "update_existing"
-                    ? `Workout plan updated: ${result.workoutPlanName ?? result.templateName}`
-                    : `New workout plan saved: ${result.workoutPlanName ?? result.templateName}`,
+                    ? `Day updated: ${result.workoutPlanName ?? result.templateName}`
+                    : `New day saved: ${result.workoutPlanName ?? result.templateName}`,
                 );
               }
               submitAutosave({ forceTemplateSync: true });
@@ -412,7 +412,7 @@ export function EditDaySettingsAutosaveForm({
                 setWorkoutPlanDecisionError(null);
               }}
             >
-              Update Workout Plan
+              Update Day
             </button>
             <button
               type="button"
@@ -427,12 +427,12 @@ export function EditDaySettingsAutosaveForm({
                 setWorkoutPlanDecisionError(null);
               }}
             >
-              Save New Workout Plan
+              Save New Day
             </button>
           </div>
           {workoutPlanDecisionMode === "save_new" ? (
             <label className="block">
-              <span className="sr-only">Workout plan name</span>
+              <span className="sr-only">Day name</span>
               <input
                 type="text"
                 value={workoutPlanDecisionName}
@@ -440,7 +440,7 @@ export function EditDaySettingsAutosaveForm({
                   setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
                   setWorkoutPlanDecisionError(null);
                 }}
-                placeholder="Workout plan name"
+                placeholder="Day name"
                 maxLength={15}
                 className={cn(
                   "w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition",
