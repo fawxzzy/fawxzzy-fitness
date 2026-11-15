@@ -34,7 +34,8 @@ test("ScreenHeader has two kinds, a left-aligned single-line h1, and no centred 
   const block = tokens.slice(tokens.indexOf("export const screenHeaderTokens"));
   assert.match(block, /title: "truncate /, "the title truncates to one line");
   const tokenCode = block.slice(0, block.indexOf("} as const;")).replace(/^\s*\/\/.*$/gm, "");
-  assert.doesNotMatch(tokenCode, /border|shadow|text-center/, "no hairline, glow or centring");
+  assert.doesNotMatch(tokenCode, /border(?!-0)|shadow|text-center/, "no hairline, glow or centring");
+  assert.match(tokenCode, /iconAction:\s*"[^"]*!border-0 !bg-transparent/, "the icon action opts out of the global button ring");
 });
 
 test("the four tab screens render the standard tab header", () => {

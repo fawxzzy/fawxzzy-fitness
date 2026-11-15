@@ -33,7 +33,8 @@ export const screenHeaderTokens = {
   subtitle: "truncate text-sm leading-5 text-[rgb(var(--text-muted))]",
   // At most one 44x44 icon action or one chip.
   trailingSlot: "-mr-1 flex min-h-11 min-w-11 shrink-0 items-center justify-end",
-  // The one header icon-button look (44x44, no border, no shadow, no glow).
+  // The one header icon-button look (44x44, no border, no shadow, no glow). `!` beats the global
+  // `button, [type="button"]` rule in globals.css, which otherwise adds a surface fill and a 1px ring.
   iconAction:
-    "inline-flex h-11 w-11 items-center justify-center rounded-full text-[rgb(var(--text-secondary))] transition-colors hover:bg-[rgb(var(--surface-2)/0.6)] hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-bg)/0.6)] aria-pressed:text-[rgb(var(--text-primary))]",
+    "inline-flex h-11 w-11 items-center justify-center rounded-full !border-0 !bg-transparent text-[rgb(var(--text-secondary))] transition-colors hover:!bg-[rgb(var(--surface-2)/0.6)] hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-bg)/0.6)] aria-pressed:text-[rgb(var(--text-primary))]",
 } as const;
