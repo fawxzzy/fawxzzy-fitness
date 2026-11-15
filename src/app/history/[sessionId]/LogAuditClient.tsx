@@ -905,6 +905,12 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
           </p>
         ) : null}
 
+        {recap.streakCallout ? (
+          <p className="rounded-[0.85rem] border border-[rgb(var(--accent-divider-rgb)/0.2)] px-2.5 py-2 text-xs font-semibold text-[rgb(var(--text-primary)/0.92)]">
+            Streak: {recap.streakCallout}
+          </p>
+        ) : null}
+
         <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
         <div className="flex flex-wrap justify-end gap-2">
           <PillButton type="button" onClick={copyRecap}>Copy recap</PillButton>

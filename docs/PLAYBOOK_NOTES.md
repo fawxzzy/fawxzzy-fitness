@@ -1669,3 +1669,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A contract test that greps the old inline class (`min-h-11 w-full`) keeps passing only while the recipe is copied; after moving to the shared header it failed, so the test now pins the toggle interaction and the token floor.
 - Evidence: routines, routine-components and card-system contract tests (52 pass), typecheck, lint; dev fixture `/dev/routine-editor-cards` checked at 390x844.
 - Status: Source only; merge, deploy and a real-phone check remain separate.
+
+## 2026-11-14 FF-RECAP-001 recap streak callout
+- WHAT changed: The workout recap artifact gains an optional `streakCallout` (share text line, `Streak: N session streak`, plus a card line), derived from the existing History payload via `buildWorkoutRecapStreakAsOf`; shown only for 2+ planned sessions.
+- WHY it changed: The recap showed PRs but never the streak the History surface already computes, so a streak-worth sharing was invisible.
+- Rule: Streak copy comes from `buildHistoryWorkoutStreak`, evaluated as of the recap session so older recaps never claim a later streak; no new columns or queries beyond the existing History loader.
+- Failure Mode: Using the overall current streak on an old session recap would overstate it; the as-of helper drops later sessions and later skipped days, and a loader failure degrades to no callout.
+- Evidence: workout-recap tests (6 pass), typecheck. Not in CI workflow (ci.yml out of lane scope; add `src/lib/workout-recap.test.ts` to the contract step).
+- Status: Source only; headless-only, not device-checked; follow-up-job artifact work out of scope.

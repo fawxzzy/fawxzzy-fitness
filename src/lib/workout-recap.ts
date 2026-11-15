@@ -1,5 +1,6 @@
 import type { SessionSummary } from "@/app/history/session-summary";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
 
 export type WorkoutRecapSetInput = {
   weight: number | null;
@@ -26,6 +27,8 @@ export type WorkoutRecapArtifact = {
   metrics: Array<{ label: string; value: string }>;
   topEfforts: Array<{ exerciseName: string; value: string }>;
   prMoments: string[];
+  /** Plain streak line, or null/absent when there is no streak worth calling out (2+ planned sessions). */
+  streakCallout?: string | null;
   shareText: string;
 };
 
@@ -108,11 +111,50 @@ function buildTopEfforts(exercises: WorkoutRecapExerciseInput[]) {
     .map(({ exerciseName, value }) => ({ exerciseName, value }));
 }
 
+export type WorkoutRecapStreakInput = {
+  currentSessionCount: number;
+  bestSessionCount?: number | null;
+};
+
+/** Derives the callout from the streak as of this session. No fake highlights: needs 2+ sessions. */
+export function buildWorkoutRecapStreakCallout(streak: WorkoutRecapStreakInput | null | undefined): string | null {
+  const count = Math.floor(streak?.currentSessionCount ?? 0);
+  if (!Number.isFinite(count) || count < 2) {
+    return null;
+  }
+  const best = Math.floor(streak?.bestSessionCount ?? 0);
+  return best > 0 && count >= best && count > 2
+    ? `${count} session streak, your best yet`
+    : `${count} session streak`;
+}
+
+/** Streak as of the recap session: ignores later sessions and later skipped days so older recaps stay accurate. */
+export function buildWorkoutRecapStreakAsOf(args: {
+  sessions: SessionSummary[];
+  sessionId: string;
+  timezone?: string | null;
+  skippedDayKeys?: string[];
+}): WorkoutRecapStreakInput | null {
+  const target = args.sessions.find((session) => session.id === args.sessionId);
+  if (!target) {
+    return null;
+  }
+  const upTo = args.sessions.filter((session) => session.startedAt <= target.startedAt);
+  const targetDayKey = buildHistoryWorkoutStreak({ sessions: [target], timezone: args.timezone }).lastCompletedDayKey;
+  const summary = buildHistoryWorkoutStreak({
+    sessions: upTo,
+    timezone: args.timezone,
+    skippedDayKeys: (args.skippedDayKeys ?? []).filter((dayKey) => !targetDayKey || dayKey <= targetDayKey),
+  });
+  return { currentSessionCount: summary.currentSessionCount, bestSessionCount: summary.bestSessionCount };
+}
+
 function buildShareText(args: {
   title: string;
   metrics: Array<{ label: string; value: string }>;
   topEfforts: Array<{ exerciseName: string; value: string }>;
   prMoments: string[];
+  streakCallout?: string | null;
 }) {
   const metricLine = args.metrics.map((metric) => `${metric.label}: ${metric.value}`).join(" | ");
   const effortLines = args.topEfforts.map((effort) => `- ${effort.exerciseName}: ${effort.value}`);
@@ -122,6 +164,7 @@ function buildShareText(args: {
     args.title,
     metricLine,
     prLine,
+    args.streakCallout ? `Streak: ${args.streakCallout}` : null,
     effortLines.length > 0 ? "Top efforts:" : null,
     ...effortLines,
   ].filter(Boolean).join("\n");
@@ -130,6 +173,7 @@ function buildShareText(args: {
 export function buildWorkoutRecapArtifact(args: {
   sessionSummary: SessionSummary;
   exercises: WorkoutRecapExerciseInput[];
+  streak?: WorkoutRecapStreakInput | null;
 }): WorkoutRecapArtifact {
   const summary = args.sessionSummary;
   const duration = formatDuration(summary.durationSec);
@@ -144,6 +188,7 @@ export function buildWorkoutRecapArtifact(args: {
   const topEfforts = buildTopEfforts(args.exercises);
   const prMoments = summary.prExerciseNames ?? [];
   const day = summary.dayTitle ? ` | ${summary.dayTitle}` : "";
+  const streakCallout = buildWorkoutRecapStreakCallout(args.streak);
   const title = `${summary.routineTitle}${day} recap`;
 
   return {
@@ -154,7 +199,8 @@ export function buildWorkoutRecapArtifact(args: {
     metrics,
     topEfforts,
     prMoments,
-    shareText: buildShareText({ title, metrics, topEfforts, prMoments }),
+    streakCallout,
+    shareText: buildShareText({ title, metrics, topEfforts, prMoments, streakCallout }),
   };
 }
 
