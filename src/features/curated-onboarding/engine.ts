@@ -82,7 +82,7 @@ export type CuratedPlanResult =
   | { status: "failed"; reason: "incomplete-intake" | "no-safe-plan"; message: string };
 
 export const CURATED_SAFETY_CLEARANCE_MESSAGE =
-  "You reported symptoms during exercise, so a routine cannot be built for you automatically. Check with a qualified professional before starting or changing exercise. You can still build your own routine.";
+  "You reported a symptom or a health condition that needs a professional's input, so a routine cannot be built for you automatically. Check with a qualified professional before starting or changing exercise. You can still build your own routine.";
 
 export const CURATED_GUARDIAN_PERMISSION_MESSAGE =
   "A routine can only be built for someone under 18 with a parent or guardian's permission. Ask a parent or guardian to help with your setup, or build your own routine.";
@@ -127,6 +127,38 @@ export type CuratedSafetyGate =
   | { status: "clearance-required"; symptoms: string[] };
 
 /**
+ * Free-text health answers that require a professional's clearance before any automatic routine. Matching is
+ * deliberately conservative: it is a whole-word scan with no negation handling, so "no heart problems" also
+ * blocks. A false block costs the member one tap ("Build manually"); a false pass would hand an automatic
+ * routine to someone who named a cardiac, pregnancy, surgical or similar condition. Deterministic: the same
+ * answers always give the same result, and the list lives only here.
+ */
+const MEDICAL_CLEARANCE_PATTERN = new RegExp(
+  "\\b(" + [
+    "heart", "cardiac", "cardio ?vascular", "arrhythmi\\w*", "afib", "angina", "murmur", "pacemaker",
+    "hypertension", "blood pressure", "stroke", "aneurysm", "blood clot\\w*", "dvt",
+    "pregnan\\w*", "postpartum", "post partum", "prenatal",
+    "surger\\w*", "surgical", "post ?op\\w*", "operation",
+    "fractur\\w*", "broken", "hernia\\w*", "osteoporo\\w*", "seizure\\w*", "epilep\\w*",
+    "concussion\\w*", "marfan", "syncope", "faint\\w*", "diabet\\w*", "cancer", "chemo\\w*", "kidney",
+  ].join("|") + ")\\b",
+  "i",
+);
+const MEDICAL_CLEARANCE_ANSWER_KEYS = ["medicalConditions", "painDetails", "medicationConsiderations"] as const;
+
+function findMedicalClearanceTerms(responses: Record<string, unknown>) {
+  const found = new Set<string>();
+  for (const key of MEDICAL_CLEARANCE_ANSWER_KEYS) {
+    const value = responses[key];
+    if (typeof value !== "string") continue;
+    const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+    const match = MEDICAL_CLEARANCE_PATTERN.exec(normalized);
+    if (match) found.add(`condition: ${match[1].trim()}`);
+  }
+  return [...found].sort();
+}
+
+/**
  * Fail-closed safety gate over the raw intake. Generation proceeds only when the member answered the
  * safety questions: `warningSymptoms` must be a non-empty string list, `safetyAcknowledgment` must be
  * `true`, and `under18` must be answered. Missing, empty or wrong-typed answers are `unanswered`, never
@@ -149,7 +181,10 @@ export function evaluateCuratedSafetyGate(data: CuratedOnboardingData): CuratedS
     return { status: "guardian-permission-required" };
   }
 
-  const symptoms = [...new Set((symptomList ?? []).filter((value) => value !== "none"))].sort();
+  const symptoms = [
+    ...new Set((symptomList ?? []).filter((value) => value !== "none")),
+    ...findMedicalClearanceTerms(responses),
+  ].sort();
   return symptoms.length > 0 ? { status: "clearance-required", symptoms } : { status: "clear" };
 }
 
@@ -341,7 +376,23 @@ const LIMITATION_ROLE_CONSTRAINTS: Array<{ phrases: string[]; roles: MovementRol
   { phrases: ["overhead", "shoulder"], roles: ["vertical-push"] },
   { phrases: ["knee"], roles: ["squat", "lunge"] },
   { phrases: ["low back", "lower back"], roles: ["squat", "hinge"] },
+  // Conservative additions (FF-ENGINE-001): a named joint or region removes the roles that load it. A role
+  // emptied this way is omitted from the day; a day left too thin fails closed instead of generating.
+  { phrases: ["back pain", "back injur", "back issue", "back problem", "back strain", "back sprain", "back hurt", "backache", "spine", "spinal", "bulging disc", "slipped disc", "sciatic", "lumbar", "herniat", "scolio"], roles: ["squat", "hinge"] },
+  { phrases: ["hip", "groin"], roles: ["squat", "hinge", "lunge"] },
+  { phrases: ["ankle", "achilles", "foot", "feet", "shin", "calf", "plantar"], roles: ["squat", "lunge", "cardio"] },
+  { phrases: ["elbow", "tennis", "golfer"], roles: ["horizontal-push", "vertical-push", "horizontal-pull", "vertical-pull"] },
+  { phrases: ["wrist", "carpal", "hand", "finger"], roles: ["horizontal-push", "vertical-push", "vertical-pull"] },
+  { phrases: ["neck", "cervical"], roles: ["vertical-push", "vertical-pull"] },
+  { phrases: ["rotator", "labrum", "collarbone", "clavicle", "ac joint", "pec tear"], roles: ["horizontal-push", "vertical-push", "vertical-pull"] },
+  { phrases: ["hernia", "abdominal", "diastasis"], roles: ["core", "hinge"] },
+  { phrases: ["hamstring", "quad", "pulled"], roles: ["hinge", "squat", "lunge"] },
 ];
+
+/** A phrase matches at a word start ("knees", "shoulders") but never inside a word ("ship" is not "hip"). */
+function limitationMentions(normalizedText: string, phrase: string) {
+  return ` ${normalizedText}`.includes(` ${phrase}`);
+}
 
 const TARGET_AREA_ROLES: Record<string, MovementRole[]> = {
   ab: ["core"],
@@ -373,7 +424,7 @@ function buildIntakeConstraintExclusions(data: CuratedOnboardingData) {
   const avoidedEquipment = new Set<EquipmentAccess>(data.avoidedEquipment ?? []);
   const limitationRoles = new Set(
     LIMITATION_ROLE_CONSTRAINTS
-      .filter(({ phrases }) => phrases.some((phrase) => limitationText.includes(phrase)))
+      .filter(({ phrases }) => phrases.some((phrase) => limitationMentions(limitationText, phrase)))
       .flatMap(({ roles }) => roles),
   );
 
