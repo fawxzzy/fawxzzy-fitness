@@ -137,7 +137,7 @@ export default async function WorkoutPlansPage() {
               subtitle={(
                 <HeaderInfoRail
                   items={headerInfoItems}
-                  ariaLabel="Workout plan library summary"
+                  ariaLabel="Days summary"
                   behavior="rotate-single"
                   className="justify-center text-center"
                 />

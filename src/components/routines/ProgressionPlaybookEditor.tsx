@@ -3646,7 +3646,7 @@ export function ProgressionPlaybookEditor({
             summary: "Cycle Settings control the routine cycle mode, cycle count, and the cycle anchor used for week-based schedules.",
             rows: [
               { label: "Routine Type", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
-              { label: "Routine Length", value: "Total days before the cycle repeats. In week-based mode, extra plans can continue into the next week." },
+              { label: "Routine Length", value: "Total days before the cycle repeats. In week-based mode, extra days can continue into the next week." },
               { label: "Weekday Anchor", value: "Shown in week-based mode. This date places Slot 1 inside the anchored week." },
             ],
           };
@@ -6426,7 +6426,7 @@ export function ProgressionPlaybookEditor({
                   { label: "Schedule Mode", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
                   { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Slot 1 inside the current anchored week." },
                   { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Slot 1 anchors to. Covered weekdays show how the current cycle spans forward from that anchor." },
-                  { label: "Cycle Length", value: "Total days before the cycle repeats. In week-based mode, extra plans continue into the next week." },
+                  { label: "Cycle Length", value: "Total days before the cycle repeats. In week-based mode, extra days continue into the next week." },
                   { label: "Timezone", value: "Controls Today rollover, day slot rollover, and routine occurrence dates." },
                   { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
                 ]}

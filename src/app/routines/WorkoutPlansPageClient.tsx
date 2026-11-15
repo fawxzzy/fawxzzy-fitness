@@ -191,7 +191,7 @@ export function WorkoutPlansPageClient({
             }
 
             setPlanPendingDelete(null);
-            toast.success("Workout plan deleted.");
+            toast.success("Day deleted.");
             router.refresh();
           });
         }}

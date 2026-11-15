@@ -649,7 +649,7 @@ export function RoutineEditorCycleLengthField({
       className={cn("block", routineEditorCycleFieldWidthClassName)}
       {...routineEditorInfoHandlers({
         title: "Routine Length",
-        summary: "Total days before the cycle repeats. In week-based mode, extra plans continue into the next week.",
+        summary: "Total days before the cycle repeats. In week-based mode, extra days continue into the next week.",
         sectionKey: "routine_setup",
       })}
     >
