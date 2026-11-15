@@ -75,7 +75,7 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
               loading={emailPending}
               disabled={!isDirty}
             >
-              Save
+              Save account details
             </BottomDockButton>
           )}
         />

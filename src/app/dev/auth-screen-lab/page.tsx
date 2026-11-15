@@ -130,7 +130,6 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
           email="atlas.qa@example.com"
           username="Atlas QA"
           returnHref="/settings"
-          activePathnameOverride="/account"
         />
       );
     case "login-remembered":

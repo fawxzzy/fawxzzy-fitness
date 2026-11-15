@@ -1,50 +1,33 @@
-import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { AccountPasswordSection } from "@/components/settings/AccountPasswordSection";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
-import { SettingsHeaderIdentity } from "@/components/settings/SettingsHeaderIdentity";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
+import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { appTokens } from "@/components/ui/app/tokens";
 
+// Account is a detail screen pushed from Settings (DESIGN-CONTRACT.md section 15): Back on the left, title
+// "Account", the username (or email) as the one subtitle line. No tab bar, no second identity block.
 export function AccountScreen({
   email,
   username,
   returnHref,
-  activePathnameOverride,
 }: {
   email: string;
   username: string;
   returnHref: string;
-  activePathnameOverride?: string;
 }) {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" activePathnameOverride={activePathnameOverride} />}
         floatingHeader={(
-          <ContentRail className={appTokens.settingsFloatingHeaderRail}>
-            <div className="space-y-3 px-4 py-3">
-              <AppHeader
-                title="Account"
-                align="center"
-                className={standaloneHeaderFamily.headerClassName}
-                actionClassName={standaloneHeaderFamily.actionClassName}
-                titleClassName={standaloneHeaderFamily.titleClassName}
-                action={(
-                  <TopRightBackButton
-                    href={returnHref}
-                    historyBehavior="fallback-only"
-                    ariaLabel="Back to Settings"
-                  />
-                )}
-              />
-              <SettingsHeaderIdentity email={email} username={username} />
-            </div>
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title="Account"
+            subtitle={username.trim() || email.trim() || null}
+            back={<ScreenBackButton href={returnHref} historyBehavior="fallback-only" label="Back to Settings" />}
+          />
         )}
       >
         <ContentRail className={appTokens.settingsContentRail}>

@@ -18,14 +18,13 @@ test("account route consumes the existing Fitness session and never redirects to
 test("account screen reuses the established mobile shell, account form, and deterministic back control", () => {
   assert.match(screenSource, /ScrollScreenWithBottomActions/);
   assert.match(screenSource, /<AccountSettingsForm email=\{email\} username=\{username\} \/>/);
-  assert.match(screenSource, /<TopRightBackButton/);
-  assert.match(screenSource, /historyBehavior="fallback-only"/);
-  assert.match(screenSource, /ariaLabel="Back to Settings"/);
+  assert.match(screenSource, /<ScreenHeader\s+kind="detail"\s+title="Account"/);
+  assert.match(screenSource, /<ScreenBackButton href=\{returnHref\} historyBehavior="fallback-only" label="Back to Settings" \/>/);
+  assert.doesNotMatch(screenSource, /TopRightBackButton|AppHeader|standaloneHeaderFamily|SettingsHeaderIdentity|<AppNav/);
   // Navigation links to the portal now; /account stays working for direct visits until the portal edits username/email.
   assert.match(settingsSource, /getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);
   assert.match(appNavSource, /link\.href === "\/settings"/);
   assert.match(appNavSource, /activePathname === "\/account" \|\| activePathname\.startsWith\("\/account\/"\)/);
-  assert.match(screenSource, /activePathnameOverride=\{activePathnameOverride\}/);
 });
 
 test("the local account surface retains validated sign-out cleanup", () => {
@@ -48,7 +47,7 @@ test("change password sits on the Account screen with the shared password field,
   assert.equal((sectionSource.match(/autoComplete="new-password"/g) ?? []).length, 2);
   assert.equal((sectionSource.match(/minLength=\{NEW_PASSWORD_MINIMUM\}/g) ?? []).length, 2);
   assert.doesNotMatch(sectionSource, /maxLength=/);
-  // The Account dock stays Sign out + Save; the password form owns its own submit.
+  // The Account dock stays Sign out + "Save account details"; the password form owns its own submit.
   assert.doesNotMatch(sectionSource, /PublishBottomActions|BottomDockButton/);
   assert.match(sectionSource, /type="submit"/);
 
@@ -71,4 +70,10 @@ test("account outcome messages use the v2 notice box inside the existing live re
   }
   // The password requirement hint stays plain helper text, not a notice.
   assert.match(sectionSource, /settingsStatusMuted\)\}>\{NEW_PASSWORD_REQUIREMENT\}/);
+});
+
+test("the account form's dock button says what it saves", () => {
+  const formSource = readFileSync(new URL("../../components/settings/AccountSettingsForm.tsx", import.meta.url), "utf8");
+  assert.match(formSource, />\s*Save account details\s*<\/BottomDockButton>/);
+  assert.match(formSource, /updateAccountEmailAction/);
 });

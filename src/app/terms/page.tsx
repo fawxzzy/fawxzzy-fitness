@@ -54,7 +54,6 @@ export default function TermsOfServicePage({
 
   return (
     <LegalDocumentLayout
-      eyebrow="Legal"
       title="Terms of Service"
       lastUpdated={TERMS_OF_SERVICE_LAST_UPDATED}
       returnTo={returnTo}

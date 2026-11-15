@@ -3,7 +3,6 @@
 import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -30,7 +29,8 @@ import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
@@ -323,27 +323,6 @@ function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
   ].filter((item): item is string => Boolean(item))));
 }
 
-function ExerciseInfoHeaderMetaLine({
-  items,
-}: {
-  items: string[];
-}) {
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 px-[3.15rem] pt-[5px] text-center text-[11px] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.84)]">
-      {items.map((item, index) => (
-        <div key={`${item}-${index}`} className="flex min-w-0 max-w-full items-center gap-2">
-          {index > 0 ? <SignatureMiniPipe /> : null}
-          <p className="min-w-0 [text-wrap:balance]">{item}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function renderMetricValuePrefix(valuePrefix: string | null | undefined) {
   if (!valuePrefix) {
     return null;
@@ -402,9 +381,7 @@ function normalizeCompactProgressionComparisonValue(value: string | null | undef
 
 const exerciseInfoSectionTitleClassName = "px-0 pt-0.5 text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const exerciseInfoSubsectionTitleClassName = "text-[rgb(var(--accent-divider-rgb)/0.92)]";
-const exerciseInfoHeaderTitleClassName = "px-[3.45rem] pt-[5px] text-[1.02rem] leading-[1.12] text-[rgb(var(--accent-divider-rgb)/0.98)]";
 const exerciseInfoSectionTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
-const exerciseInfoHeaderTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.98)" } as const;
 const exerciseInfoTightLabelSlotClassName = "min-h-[1.45rem]";
 const exerciseInfoDenseLabelClassName = "text-[11px] tracking-[0.11em]";
 const exerciseInfoSubsectionHeadingClassName = "px-2 text-center text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
@@ -2413,11 +2390,9 @@ export function ExerciseInfoSheet({
       return nextValue;
     });
   };
-  const detailHeader = (
-    <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
-      <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10 flex items-center justify-start px-2">
-        <div className="pointer-events-auto flex items-center gap-1.5">
-          {filterResyncActive ? (
+  // Detail header (DESIGN-CONTRACT.md section 15): Back on the left, the exercise name as the title, equipment and
+  // movement as the one subtitle line, and the filter (or Re-sync) control as the one trailing action.
+  const headerFilterControl = filterResyncActive ? (
             <button
               type="button"
               onClick={handlePointSelectionResync}
@@ -2439,17 +2414,35 @@ export function ExerciseInfoSheet({
               onClick={toggleHeaderFilterOpen}
               ariaLabel="Open exercise info filters"
               countBadge={appliedFilterCount > 0 ? appliedFilterCount : null}
-              className={cn(
-                appTokens.exercisePickerFilterToggle,
-                "!min-h-[44px] !w-auto !min-w-[3.45rem] !border-[rgb(var(--accent)/0.52)] !bg-[rgb(var(--surface-2-rgb)/0.28)] !px-2.5 !pl-3 !pr-1.5",
-              )}
+              className={cn(appTokens.exercisePickerFilterToggle, "!min-h-[44px] !w-auto !min-w-[3.45rem]")}
             />
-          )}
-        </div>
+          );
+  const detailHeader = (
+    <div className="sticky top-0 z-30 bg-[rgb(var(--bg))] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
+      <ScreenHeader
+        kind="detail"
+        title={exercise?.name ?? "Exercise"}
+        subtitle={metadata.length > 0 ? metadata.join(" · ") : null}
+        back={(
+          <ScreenBackButton
+            href="/today"
+            label="Back"
+            onClick={(event) => {
+              event.preventDefault();
+              if (onClose) {
+                onClose();
+                return;
+              }
+              router.back();
+            }}
+          />
+        )}
+        trailing={headerFilterControl}
+      />
         {isHeaderFilterOpen && !filterResyncActive ? (
           <div
             className={cn(
-              "pointer-events-auto fixed left-1/2 top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+3.75rem)] z-60 -translate-x-1/2",
+              "pointer-events-auto fixed left-1/2 top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+4.25rem)] z-60 -translate-x-1/2",
               SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME,
             )}
           >
@@ -2617,36 +2610,6 @@ export function ExerciseInfoSheet({
             </div>
           </div>
         ) : null}
-      </div>
-      <DetailHeader
-        title={(
-          <span
-            data-app-header-raw-title="true"
-            className={exerciseInfoHeaderTitleClassName}
-            style={exerciseInfoHeaderTitleStyle}
-          >
-            {exercise?.name ?? "Exercise"}
-          </span>
-        )}
-        className="!border-transparent !bg-[rgba(var(--bg-app),0.48)] !shadow-none backdrop-blur-[14px]"
-        align="center"
-        action={(
-          <TopRightBackButton
-            onClick={(event) => {
-              event.preventDefault();
-              if (onClose) {
-                onClose();
-                return;
-              }
-              router.back();
-            }}
-            ariaLabel="Back"
-          />
-        )}
-        meta={metadata.length > 0 ? (
-          <ExerciseInfoHeaderMetaLine items={metadata} />
-        ) : undefined}
-      />
     </div>
   );
 
@@ -2800,11 +2763,11 @@ export function ExerciseInfoSheet({
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
       <AmbientBackground />
       <main className="app-page-scroll relative z-10 min-h-[100dvh]">
+        {detailHeader}
         <ContentRail className={cn(
-          "flex min-h-[100dvh] flex-col gap-2 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.7rem)]",
+          "flex min-h-[100dvh] flex-col gap-2",
           !inline && historyPointNavigationActions ? "pb-24" : undefined,
         )}>
-          {detailHeader}
 
           <Glass variant="base" className="overflow-hidden rounded-[34px]">
             <div className="px-3 pb-4 pt-2.5">
