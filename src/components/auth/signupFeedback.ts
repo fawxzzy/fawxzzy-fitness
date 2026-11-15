@@ -3,10 +3,10 @@ import { USERNAME_VALIDATION_MESSAGE } from "@/lib/username-policy";
 
 // Sign-up feedback is code-based on purpose.
 //
-// 1. The identity provider's raw error text never reaches the screen. "User already registered" would confirm that
-//    an address has an account; every provider failure collapses to one fixed sentence (same rule as the account
-//    portal's `safeAuthError("signup")` and as the sign-in copy verified identical for existing and unknown
-//    identifiers).
+// 1. The identity provider's raw error text never reaches the screen; every provider failure becomes one fixed
+//    sentence. One exception is decided on purpose (Zac, 2026-11-15, matching the account portal, Web #177): an email
+//    that already has an account gets its own sentence with a "Sign in" action. It is detected from the provider's
+//    machine code or the shape of its confirmation-on response, never from message text.
 // 2. /signup never renders arbitrary `?error=` / `?info=` text. The URL carries one allow-listed code and the screen
 //    owns the copy, so a crafted link cannot put attacker-chosen words in a toast on this origin.
 //
@@ -22,7 +22,9 @@ export const SIGNUP_ERROR_COPY = {
   rate_limited: "Too many sign-up attempts. Please wait a few minutes and try again.",
   // The provider's password-strength check (leaked or guessable password). Says nothing about the account.
   weak_password: "That password is too easy to guess. Try another.",
-  // One fixed sentence for every other failure (already registered, network, unknown).
+  // The email already has an account (owner decision 2026-11-15, same sentence as the account portal).
+  email_exists: "That email already has an account.",
+  // One fixed sentence for every other failure (network, unknown, provider rules).
   signup_failed:
     "We could not finish creating your account. If you already made one, sign in with it instead.",
 } as const;
@@ -64,6 +66,9 @@ export function resolveSignupRouteMessages(args: { errorCode?: unknown; infoCode
   };
 }
 
+// Provider machine codes for "this email already has an account". Decided by code only, never by message text.
+const EMAIL_EXISTS_CODES = new Set(["user_already_exists", "email_exists"]);
+
 const RATE_LIMIT_CODES = new Set([
   "over_request_rate_limit",
   "over_email_send_rate_limit",
@@ -88,8 +93,8 @@ function carriesUsernameTakenCode(record: Record<string, unknown>) {
 
 /**
  * Classifies a provider sign-up rejection into a safe code. The provider's message is read only to classify; it is
- * never returned. Rate limits, weak passwords and the public username guard get their own copy; every other rejection, including
- * "already registered", shares the one generic code.
+ * never returned. Rate limits, weak passwords, the public username guard and an existing email (by machine code) get
+ * their own copy; every other rejection shares the one generic code.
  */
 export function classifySignupProviderError(error: unknown): SignupErrorCode {
   const record = asRecord(error);
@@ -106,6 +111,23 @@ export function classifySignupProviderError(error: unknown): SignupErrorCode {
   if (code === "weak_password") {
     return "weak_password";
   }
+  if (EMAIL_EXISTS_CODES.has(code)) {
+    return "email_exists";
+  }
 
   return "signup_failed";
+}
+
+/**
+ * With email confirmation on, the provider answers a sign-up for an email that already has an account with a fake
+ * success: a user object whose `identities` list is empty and no session. A real new account always has one identity.
+ * Reads only the shape of the response, never any text.
+ */
+export function isExistingAccountSignupResponse(data: unknown): boolean {
+  const record = asRecord(data);
+  if (record.session) {
+    return false;
+  }
+  const identities = asRecord(record.user).identities;
+  return Array.isArray(identities) && identities.length === 0;
 }

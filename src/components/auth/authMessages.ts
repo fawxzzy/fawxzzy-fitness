@@ -36,8 +36,10 @@ export const AUTH_MESSAGES = {
   "signup.pwshort": { tone: "error", text: "Use at least 10 characters. A longer phrase works well." },
   "signup.pwweak": { tone: "error", text: "That password is too easy to guess. Try another." },
   "signup.rate": { tone: "error", text: "Too many sign-up attempts. Wait a few minutes and try again." },
-  // Copy-matrix addition (not in the 2026-11-15 matrix): the generic sign-up failure. It never says whether the email
-  // already has an account (that is an open owner decision); the "Sign in" action covers the people who do.
+  // Owner decision 2026-11-15 (same message as the account portal, Web #177): the email already has an account.
+  "signup.emailexists": { tone: "error", text: "That email already has an account.", action: "Sign in" },
+  // Copy-matrix addition (not in the 2026-11-15 matrix): the generic sign-up failure (network, unknown, provider
+  // rules). The "Sign in" action stays for anyone who already made an account another way.
   "signup.failed": { tone: "error", text: "Could not create your account. Try again in a minute.", action: "Sign in" },
   "signup.sent": { tone: "success", text: "Check {e} for a link to confirm your account." },
   "reset.sent": { tone: "success", text: "Reset link sent to {e}. It expires in 1 hour." },
@@ -174,8 +176,8 @@ export function resetPasswordErrorNoticeId(resolvedError: string | null | undefi
   return null;
 }
 
-// `signup_failed` is the one generic code (already registered, network, unknown). Whether to say "That email already
-// has an account" is an open owner decision, so it uses the sign-up-specific generic line with a "Sign in" action.
+// `email_exists` (provider machine code or the confirmation-on fake success) gets "That email already has an account."
+// (owner decision 2026-11-15). `signup_failed` is the generic code (network, unknown) with a "Sign in" action.
 const SIGNUP_ERROR_NOTICE: Record<SignupErrorCode, AuthMessageId> = {
   password_too_short: "signup.pwshort",
   username_invalid: "signup.userinvalid",
@@ -183,6 +185,7 @@ const SIGNUP_ERROR_NOTICE: Record<SignupErrorCode, AuthMessageId> = {
   username_taken: "signup.taken",
   rate_limited: "signup.rate",
   weak_password: "signup.pwweak",
+  email_exists: "signup.emailexists",
   signup_failed: "signup.failed",
 };
 
