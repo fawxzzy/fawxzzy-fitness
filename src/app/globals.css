@@ -1861,39 +1861,39 @@ button,
 }
 
 .action-chrome[data-action-chrome-intent="info"] {
-  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.26);
-  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.4);
-  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.1);
-  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.04);
-  --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.14);
-  --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.06);
-  --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.18);
-  --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.08);
-  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.98);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.3);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.42);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.045);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.018);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.063);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.027);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.081);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.036);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.94);
 }
 
 .action-chrome[data-action-chrome-intent="toggleInactive"] {
-  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.16);
-  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.3);
-  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.025);
-  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.006);
-  --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.12);
-  --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.05);
-  --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.16);
-  --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.06);
-  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.58);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.22);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.40);
+  --action-chrome-overlay-top: rgb(var(--border-strong) / 0.03);
+  --action-chrome-overlay-bottom: rgb(var(--border-strong) / 0.01);
+  --action-chrome-overlay-top-hover: rgb(var(--border-strong) / 0.17);
+  --action-chrome-overlay-bottom-hover: rgb(var(--border-strong) / 0.07);
+  --action-chrome-overlay-top-active: rgb(var(--border-strong) / 0.22);
+  --action-chrome-overlay-bottom-active: rgb(var(--border-strong) / 0.08);
+  --action-chrome-text-color: rgb(var(--text-secondary) / 0.78);
 }
 
 .action-chrome[data-action-chrome-intent="toggleActive"] {
-  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.34);
-  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.48);
-  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.14);
-  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.06);
-  --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.18);
-  --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.08);
-  --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.22);
-  --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.1);
-  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.98);
+  --action-chrome-border-color: rgb(var(--selection-rgb) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--selection-rgb) / 0.48);
+  --action-chrome-overlay-top: rgb(var(--selection-rgb) / 0.14);
+  --action-chrome-overlay-bottom: rgb(var(--selection-rgb) / 0.06);
+  --action-chrome-overlay-top-hover: rgb(var(--selection-rgb) / 0.18);
+  --action-chrome-overlay-bottom-hover: rgb(var(--selection-rgb) / 0.08);
+  --action-chrome-overlay-top-active: rgb(var(--selection-rgb) / 0.22);
+  --action-chrome-overlay-bottom-active: rgb(var(--selection-rgb) / 0.1);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.98);
 }
 
 .action-chrome[data-action-chrome-intent="danger"] {
@@ -2027,39 +2027,40 @@ a:focus-visible {
   color: rgb(var(--text-primary) / 0.98);
 }
 
+/* Dock roles (DESIGN-CONTRACT C3/C9/C11): primary = accent green, secondary = neutral outline, destructive = red.
+   Amber is not a button colour, so secondary and the toggle intents use neutral text and borders; an active toggle is green (C4). */
 .bottom-action--secondary {
-  --bottom-action-border-color-hover: rgb(var(--secondary-action-rgb) / 0.4);
-  --bottom-action-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.14);
-  --bottom-action-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.06);
-  --bottom-action-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.18);
-  --bottom-action-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.08);
-  border-color: rgb(var(--secondary-action-rgb) / 0.24);
-  background:
-    linear-gradient(180deg, rgb(var(--secondary-action-rgb) / 0.12), rgb(var(--surface-muted) / 0.92));
-  color: rgb(var(--secondary-action-rgb) / 0.98);
+  --bottom-action-border-color-hover: rgb(var(--border-strong) / 0.42);
+  --bottom-action-overlay-top-hover: rgb(255 255 255 / 0.06);
+  --bottom-action-overlay-bottom-hover: rgb(255 255 255 / 0.03);
+  --bottom-action-overlay-top-active: rgb(255 255 255 / 0.08);
+  --bottom-action-overlay-bottom-active: rgb(255 255 255 / 0.04);
+  border-color: rgb(var(--border-strong) / 0.3);
+  background: rgb(var(--surface-muted) / 0.92);
+  color: rgb(var(--text-primary) / 0.94);
 }
 
 .bottom-action[data-bottom-action-intent="toggleActive"] {
-  --bottom-action-border-color-hover: rgb(var(--secondary-action-rgb) / 0.48);
-  --bottom-action-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.18);
-  --bottom-action-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.08);
-  --bottom-action-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.22);
-  --bottom-action-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.1);
-  border-color: rgb(var(--secondary-action-rgb) / 0.28);
+  --bottom-action-border-color-hover: rgb(var(--selection-rgb) / 0.56);
+  --bottom-action-overlay-top-hover: rgb(var(--selection-rgb) / 0.16);
+  --bottom-action-overlay-bottom-hover: rgb(var(--selection-rgb) / 0.07);
+  --bottom-action-overlay-top-active: rgb(var(--selection-rgb) / 0.2);
+  --bottom-action-overlay-bottom-active: rgb(var(--selection-rgb) / 0.09);
+  border-color: rgb(var(--selection-rgb) / 0.4);
   background:
-    linear-gradient(180deg, rgb(var(--secondary-action-rgb) / 0.16), rgb(var(--surface-muted) / 0.94));
-  color: rgb(var(--secondary-action-rgb) / 0.98);
+    linear-gradient(180deg, rgb(var(--selection-rgb) / 0.16), rgb(var(--surface-muted) / 0.94));
+  color: rgb(var(--text-primary) / 0.98);
 }
 
 .bottom-action[data-bottom-action-intent="toggleInactive"] {
-  --bottom-action-border-color-hover: rgb(var(--secondary-action-rgb) / 0.3);
-  --bottom-action-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.12);
-  --bottom-action-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.05);
-  --bottom-action-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.16);
-  --bottom-action-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.06);
-  border-color: rgb(var(--secondary-action-rgb) / 0.14);
+  --bottom-action-border-color-hover: rgb(var(--border-strong) / 0.34);
+  --bottom-action-overlay-top-hover: rgb(255 255 255 / 0.05);
+  --bottom-action-overlay-bottom-hover: rgb(255 255 255 / 0.025);
+  --bottom-action-overlay-top-active: rgb(255 255 255 / 0.07);
+  --bottom-action-overlay-bottom-active: rgb(255 255 255 / 0.035);
+  border-color: rgb(var(--border-strong) / 0.2);
   background: rgb(var(--surface-muted) / 0.84);
-  color: rgb(var(--secondary-action-rgb) / 0.64);
+  color: rgb(var(--text-secondary) / 0.86);
 }
 
 .bottom-action--danger,

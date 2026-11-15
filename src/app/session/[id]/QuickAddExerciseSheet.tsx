@@ -8,7 +8,7 @@ export function QuickAddExerciseSheet({
   return (
     <BottomDockLink
       href={`/session/${sessionId}/add-exercise?returnTo=${encodeURIComponent(`/session/${sessionId}`)}`}
-      intent="positive"
+      intent="info"
     >
       Add
     </BottomDockLink>
