@@ -396,7 +396,7 @@ export function SessionPageClient({
                     {update.previousTarget ?? "Current target"} {"\u2192"} {update.appliedTarget ?? "Updated target"}
                   </p>
                   {update.linkedDayNames.length > 1 ? (
-                    <p className="mt-1 text-[0.68rem] font-semibold text-[rgb(var(--accent)/0.92)]">
+                    <p className="mt-1 text-[11px] font-semibold text-[rgb(var(--accent)/0.92)]">
                       Plans: {update.linkedDayNames.join(", ")}
                     </p>
                   ) : null}

@@ -29,7 +29,7 @@ export function StatFieldLabel({
       {normalizedSuffix ? (
         <span
           className={cn(
-            "text-[10px] tracking-[0.1em]",
+            "text-[11px] tracking-[0.1em]",
             emphasis === "target" ? "text-[rgb(var(--text-secondary)/0.82)]" : "text-[rgb(var(--text-secondary)/0.74)]",
           )}
         >

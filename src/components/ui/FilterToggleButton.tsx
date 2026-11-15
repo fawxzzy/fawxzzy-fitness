@@ -42,7 +42,7 @@ export function FilterToggleButton({
       )}
     >
       {showCountBadge ? (
-        <span className="absolute -left-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full border border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.18)] px-1 text-[9px] font-semibold leading-none text-[rgb(var(--text-primary)/0.98)]">
+        <span className="absolute -left-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full border border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.18)] px-1 text-[11px] font-semibold leading-none text-[rgb(var(--text-primary)/0.98)]">
           {countBadge}
         </span>
       ) : null}
@@ -50,7 +50,7 @@ export function FilterToggleButton({
         {labelText ? (
           <span
             className={cn(
-              "truncate text-[10px] font-semibold uppercase tracking-[0.12em]",
+              "truncate text-[11px] font-semibold uppercase tracking-[0.12em]",
               isHighlighted ? "text-[rgb(var(--accent)/0.96)]" : "text-[rgb(var(--text-primary)/0.9)]",
             )}
           >

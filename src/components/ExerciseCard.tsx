@@ -65,7 +65,7 @@ const densityStyles: Record<ExerciseCardDensity, {
 export const EXERCISE_CARD_LABEL_CLASS_NAME = appTokens.measurementLabel;
 export const EXERCISE_CARD_SUMMARY_CLASS_NAME = cn("text-safe-wrap pr-0.5 text-[12px] leading-[1.36] [text-wrap:pretty]", appTokens.exerciseCardSummaryTextPad);
 export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = cn(appTokens.workoutCardDetailCompact, appTokens.exerciseCardTertiaryTextPad);
-export const EXERCISE_CARD_BADGE_CLASS_NAME = cn(appTokens.badgeBase, "min-h-[1.5rem] px-2.5 py-1 text-[10px] tracking-[0.12em]");
+export const EXERCISE_CARD_BADGE_CLASS_NAME = cn(appTokens.badgeBase, "min-h-[1.5rem] px-2.5 py-1 text-[11px] tracking-[0.12em]");
 export const EXERCISE_CARD_TRAILING_ICON_CLASS_NAME = "flex h-full min-h-10 items-center justify-end";
 
 const shellStateClassNames: Record<ExerciseCardState, string> = {

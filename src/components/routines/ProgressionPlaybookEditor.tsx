@@ -98,7 +98,7 @@ export type { PromotionStepFieldId } from "@/lib/progression-playbook-ui-options
 const progressionFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 const progressionFieldLabelClassName = cn(
   labeledEditorFieldFloatingLabelClassName,
-  "mx-auto block w-fit whitespace-nowrap px-1 py-0 text-center text-[9px] leading-none",
+  "mx-auto block w-fit whitespace-nowrap px-1 py-0 text-center text-[11px] leading-none",
 );
 const progressionMeasurementTitleClassName = "!text-[rgb(var(--accent-strong)/0.98)] tracking-[0.11em]";
 const progressionExampleTitleClassName = "text-[rgb(var(--accent)/0.82)] tracking-[0.15em]";
@@ -313,7 +313,7 @@ function ConnectorGlyph({
     return (
       <span className="relative top-px inline-flex h-6 items-center justify-center gap-0.5 whitespace-nowrap leading-none">
         <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 rotate-180" />
-        <span className="text-[9px] font-semibold uppercase tracking-[0.08em]">and</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">and</span>
         <ChevronRightIcon className="h-3.5 w-3.5 shrink-0" />
       </span>
     );
@@ -321,7 +321,7 @@ function ConnectorGlyph({
 
   return (
     <span className="relative top-px inline-flex h-6 items-center justify-center gap-0.5 whitespace-nowrap leading-none">
-      <span className="text-[9px] font-semibold uppercase tracking-[0.08em]">then</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">then</span>
       <ChevronRightIcon className="h-3.5 w-3.5 shrink-0" />
     </span>
   );
@@ -1121,7 +1121,7 @@ function CompactProgressionNumberField({
         fieldShellClassName,
       )}>
         <legend className={cn(
-          "mx-auto px-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]",
+          "mx-auto px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]",
           labelClassName,
         )} style={labelStyle}>
           {label}
@@ -1289,7 +1289,7 @@ function CountDirectionPillControl({
         {showValueInput ? (
           <span
             className={cn(
-              "pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2 px-1 text-[9px] font-semibold uppercase tracking-[0.11em] leading-none whitespace-nowrap",
+              "pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2 px-1 text-[11px] font-semibold uppercase tracking-[0.11em] leading-none whitespace-nowrap",
               progressionMeasurementTitleClassName,
             )}
           >
@@ -1582,7 +1582,7 @@ function ProgressionHorizontalRail({
   );
 }
 
-const progressionInfoTitleClassName = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
+const progressionInfoTitleClassName = "text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const progressionInfoBodyClassName = "text-[0.78rem] leading-5 text-[rgb(var(--text-secondary)/0.94)]";
 const progressionInfoMiniCardClassName = cn(
   "inline-flex w-[17.75rem] min-w-[17.75rem] max-w-[min(22rem,calc(100vw-4.25rem))] shrink-0 flex-col self-start shadow-none",
@@ -1879,7 +1879,7 @@ function PromotionMeasurementOrderRow({
                   className={cn(
                     ACTION_CHROME_CONTROL_CLASS_NAME,
                     ACTION_CHROME_SEGMENTED_CLASS_NAME,
-                    "flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-[0.9rem] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))]",
+                    "flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-[0.9rem] px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))]",
                   )}
                 >
                   {ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement]}
@@ -1897,7 +1897,7 @@ function PromotionMeasurementOrderRow({
                 ) : null}
               </div>
               {index < measurements.length - 1 ? (
-                <div className="flex items-center px-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-strong)/0.9)]">
+                <div className="flex items-center px-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-strong)/0.9)]">
                   then
                 </div>
               ) : null}
@@ -2332,7 +2332,7 @@ function PromotionMeasurementStepRow({
                 })()}
                 {index < measurements.length - 1 ? (
                   <div
-                    className="flex self-start items-start px-0 pt-px text-[9px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-yellow-on))]"
+                    className="flex self-start items-start px-0 pt-px text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-yellow-on))]"
                     style={{ gridColumn: index * 2 + 2, gridRow: 2 }}
                   >
                     <div className="relative flex w-full items-start justify-center pt-[4px]">
@@ -2585,7 +2585,7 @@ function SetFlowMeasurementStepRow({
                 </div>
                 {index < measurements.length - 1 ? (
                   <div
-                    className="flex self-start items-start px-0 pt-px text-[9px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-yellow-on))]"
+                    className="flex self-start items-start px-0 pt-px text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-yellow-on))]"
                     style={{ gridColumn: index * 2 + 2, gridRow: 2 }}
                   >
                     <div className="relative flex w-full items-start justify-center pt-[4px]">
@@ -2651,7 +2651,7 @@ function getDirectionActionButtonClassName(args: {
     intent,
     className: cn(
       args.compact ? "w-full !justify-center !px-0" : "w-full !justify-center !px-3",
-      "!text-[10px] !tracking-[0.1em]",
+      "!text-[11px] !tracking-[0.1em]",
       args.active
         ? undefined
         : "opacity-82",
@@ -2747,7 +2747,7 @@ function DirectionControlFooter({
         type="button"
         className={cn(
           getDirectionActionButtonClassName({ direction: value, active: true }),
-          slim ? "!h-9 !text-[9px]" : undefined,
+          slim ? "!h-9 !text-[11px]" : undefined,
         )}
         onClick={isDisplayOnly ? undefined : onToggle}
         disabled={isDisplayOnly}
@@ -3010,7 +3010,7 @@ function RoutineEditorFloatingDropdownChrome({
                     <span className="mt-0.5 block whitespace-normal break-words text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)] [text-wrap:balance]">
                       {currentSectionTitle}
                     </span>
-                    <span className="mt-0.5 block whitespace-normal break-words text-[0.68rem] font-medium normal-case tracking-[0.02em] text-[rgb(var(--text-secondary)/0.82)] [text-wrap:pretty]">
+                    <span className="mt-0.5 block whitespace-normal break-words text-[11px] font-medium normal-case tracking-[0.02em] text-[rgb(var(--text-secondary)/0.82)] [text-wrap:pretty]">
                       {currentSectionSummary}
                     </span>
                   </>
@@ -3023,7 +3023,7 @@ function RoutineEditorFloatingDropdownChrome({
                 isOpen ? "text-[rgb(var(--accent-divider-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.84)]",
               )}>
                 {hasSelection && !isOpen ? (
-                  <span className="text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]">
                     {title}
                   </span>
                 ) : null}
@@ -4513,7 +4513,7 @@ export function ProgressionPlaybookEditor({
     }
   };
   const progressionSettingsGroupTitleClassName = "mx-auto w-fit max-w-full space-y-1 text-center";
-  const progressionSettingsGroupLabelClassName = "text-[9.5px] font-semibold uppercase tracking-[0.15em]";
+  const progressionSettingsGroupLabelClassName = "text-[11px] font-semibold uppercase tracking-[0.15em]";
   const progressionSettingsFieldRowClassName = "flex w-max max-w-full flex-nowrap items-center justify-center gap-1.5 text-center";
   const progressionSettingsPipeClassName = "h-11 w-px shrink-0 self-end -translate-y-[31px] rounded-full bg-[rgb(var(--accent-strong)/0.82)]";
   const renderInlineSettingsFields = (fields: ReactNode[], infoSection: ActiveProgressionInfoSection) => {
@@ -4636,7 +4636,7 @@ export function ProgressionPlaybookEditor({
           name="progressionStallThreshold"
           inputMode="numeric"
           value={resolvedProgressionStallThreshold}
-          labelClassName="!mx-auto !mr-auto block w-fit text-center normal-case text-[10px] tracking-[0.06em]"
+          labelClassName="!mx-auto !mr-auto block w-fit text-center normal-case text-[11px] tracking-[0.06em]"
           onChange={(nextValue) => onChange({
             ...value,
             progressionStallThreshold: normalizePositiveIntegerDraftValue(nextValue, resolvedProgressionStallThreshold),
@@ -4662,7 +4662,7 @@ export function ProgressionPlaybookEditor({
       <div className="space-y-2" {...getCustomInfoHandlers(() => getTargetMutationInfoPayload(value.progressionTargetMutation))}>
         <p className={cn(
           progressionMeasurementTitleClassName,
-          "px-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em]",
+          "px-1 text-center text-[11px] font-semibold uppercase tracking-[0.14em]",
         )}>
           Target changes
         </p>
@@ -4678,13 +4678,13 @@ export function ProgressionPlaybookEditor({
             showCustomInfo(getTargetMutationInfoPayload(nextValue as ProgressionPlaybookFormState["progressionTargetMutation"]));
           }}
           className="w-full"
-          buttonClassName="min-w-[7.6rem] text-[9.5px] tracking-[0.08em]"
+          buttonClassName="min-w-[7.6rem] text-[11px] tracking-[0.08em]"
         />
       </div>
       <div className="space-y-2" {...getCustomInfoHandlers(() => getQualificationWindowInfoPayload(value.progressionRequiredQualifiedSessions))}>
         <p className={cn(
           progressionMeasurementTitleClassName,
-          "px-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em]",
+          "px-1 text-center text-[11px] font-semibold uppercase tracking-[0.14em]",
         )}>
           Session count
         </p>
@@ -4697,7 +4697,7 @@ export function ProgressionPlaybookEditor({
             showCustomInfo(getQualificationWindowInfoPayload(nextValue));
           }}
           className="w-full"
-          buttonClassName="min-w-[5.25rem] text-[9.5px] tracking-[0.08em]"
+          buttonClassName="min-w-[5.25rem] text-[11px] tracking-[0.08em]"
         />
       </div>
     </div>
@@ -6080,7 +6080,7 @@ export function ProgressionPlaybookEditor({
                       const direction = getPreProgressionCycleShiftDirection(row.before, row.after);
                       return (
                         <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", getEffortShiftTitleClassName(direction))}>
+                          <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", getEffortShiftTitleClassName(direction))}>
                             <span>Progression Cycle Reset </span>
                             <span aria-hidden="true">
                               {direction === "up" ? "\u2191" : direction === "down" ? "\u2193" : "\u2014"}
@@ -6111,7 +6111,7 @@ export function ProgressionPlaybookEditor({
                   {row.sections.map((section) => (
                     <div key={`measurement-column-${section.key}`} className="flex min-w-[18rem] shrink-0 flex-col items-stretch gap-2">
                       <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                        <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                        <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                           <span className={progressionExampleMetricUnitClassName}>{row.headingMeasurement}</span>
                         </p>
                         <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -6123,17 +6123,17 @@ export function ProgressionPlaybookEditor({
                         )}
                       >
                         <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                          <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                          <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                             <span className={progressionExampleMeasurementLabelClassName}>{section.headingPrefix}</span>
                           </p>
                           <MetricAccentBar variant="thin" className="w-full opacity-80" />
                         </div>
                         <div className="space-y-2">
-                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                          <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                             Within Session
                           </p>
                           {shouldRenderPromotionStepSettings && activeDayStepMeasurements.length > 0 && shouldShowEffortShiftLabel(section.direction) ? (
-                            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
+                            <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
                               <span className={getEffortShiftTitleClassName(section.direction)}>
                                 {`Day ${section.dayNumber} Shift ${section.direction === "up" ? "\u2191" : "\u2193"}`}
                               </span>
@@ -6150,7 +6150,7 @@ export function ProgressionPlaybookEditor({
                                 key={`${section.key}-${target.label}-value-inline`}
                                 className="flex flex-col items-center gap-1"
                               >
-                                <p className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                                <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                                   {target.label}
                                 </p>
                                 <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
@@ -6163,7 +6163,7 @@ export function ProgressionPlaybookEditor({
                       </div>
                       {section.postBefore !== section.postAfter ? (
                         <div className="w-full max-w-full space-y-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
-                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                          <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                             {getPostSessionTitle(section.headingMeasurement, section.sessionCount)}
                           </p>
                           <div className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
@@ -6188,7 +6188,7 @@ export function ProgressionPlaybookEditor({
           <div key={row.key} className="space-y-2">
             <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                 <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                  <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                  <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                     <span className={progressionExampleMetricUnitClassName}>{row.headingMeasurement}</span>
                   </p>
                   <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -6204,7 +6204,7 @@ export function ProgressionPlaybookEditor({
                       )}
                     >
                       <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                        <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                        <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                           <span className={progressionExampleMeasurementLabelClassName}>{section.headingPrefix}</span>
                         </p>
                         <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -6213,7 +6213,7 @@ export function ProgressionPlaybookEditor({
                       <div className="space-y-2">
                         {false && section.repResetBefore && section.repResetAfter ? (
                           <div className="space-y-2">
-                            <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                            <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                               Rep Reset
                             </p>
                             <div className="mx-auto flex w-fit max-w-full flex-col items-center justify-center gap-y-1 text-center">
@@ -6225,11 +6225,11 @@ export function ProgressionPlaybookEditor({
                             </div>
                           </div>
                         ) : null}
-                        <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                        <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                           Within Session
                         </p>
                         {shouldRenderPromotionStepSettings && activeDayStepMeasurements.length > 0 && shouldShowEffortShiftLabel(section.direction) ? (
-                          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
+                          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
                             <span className={getEffortShiftTitleClassName(section.direction)}>
                               {`Day ${section.dayNumber} Shift ${section.direction === "up" ? "↑" : "↓"}`}
                             </span>
@@ -6255,7 +6255,7 @@ export function ProgressionPlaybookEditor({
                               key={`${section.key}-${target.label}-value`}
                               className="flex flex-col items-center gap-1"
                             >
-                              <p className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                              <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                                 {target.label}
                               </p>
                               <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
@@ -6268,7 +6268,7 @@ export function ProgressionPlaybookEditor({
 
                       {false && section.isFinalSessionForGroup ? (
                         <div className="space-y-2">
-                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                          <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                             Post-Session
                           </p>
                           {renderProgressionExampleComparisonStack(section.postBefore, section.postAfter)}
@@ -6286,7 +6286,7 @@ export function ProgressionPlaybookEditor({
             {finalSection?.isFinalSessionForGroup ? (
               <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                   <div className="w-fit max-w-full space-y-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
-                    <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                    <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                       {getPostSessionTitle(finalSection.headingMeasurement, finalSection.sessionCount)}
                     </p>
                     <div className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
@@ -6616,7 +6616,7 @@ export function ProgressionPlaybookEditor({
                     {showAutoApplyUpdatesControl ? (
                       <div className="min-w-0 shrink-0 space-y-[5px]">
                         <div className="space-y-[2px]">
-                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                          <div className="px-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
                             Auto Apply Updates
                           </div>
                           <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -6920,14 +6920,14 @@ export function ProgressionPlaybookEditor({
             ))}>
               {shouldRenderPromotionStepSettings ? (
                 <div className="space-y-2">
-                  <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+                  <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                     Day Adjustments Settings
                   </p>
                   <LoopingScrollRail className="pb-1" innerClassName="items-start justify-center gap-4 px-1 text-center" segmentClassName="shrink-0">
                     <div className="flex w-max min-w-max flex-col gap-2">
                       {dayExampleRows.map((row) => (
                         <div key={row.label} className="flex w-max min-w-max items-center justify-center gap-2">
-                          <p className="min-w-[4.5rem] text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+                          <p className="min-w-[4.5rem] text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                             {row.label} {formatSetFlowDirectionGlyph(row.direction)}
                           </p>
                           {renderExampleMetricUnderline(renderPromotionExampleMetricLine(row.before, row.after, "left"))}
@@ -6942,7 +6942,7 @@ export function ProgressionPlaybookEditor({
                   </LoopingScrollRail>
                 </div>
               ) : null}
-              <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                 Post-Session
               </p>
               <LoopingScrollRail className="pb-1" innerClassName="items-start justify-center gap-6 px-1 text-center" segmentClassName="shrink-0">
@@ -6960,14 +6960,14 @@ export function ProgressionPlaybookEditor({
               </LoopingScrollRail>
               {shouldRenderSetStepSettings ? (
                 <div className="space-y-2">
-                  <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+                  <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                     Within Session
                   </p>
                   <div className="mx-auto flex w-fit max-w-full flex-col gap-2 text-center">
                     {setStepExampleRows.map((row) => (
                       <div key={row.label} className="flex flex-col items-center gap-1">
                         <div className="text-center">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                             {row.label}
                           </p>
                         </div>
@@ -7009,7 +7009,7 @@ export function ProgressionPlaybookEditor({
                               const direction = getPreProgressionCycleShiftDirection(row.before, row.after);
                               return (
                                 <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                                  <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", getEffortShiftTitleClassName(direction))}>
+                                  <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", getEffortShiftTitleClassName(direction))}>
                                     <span>Progression Cycle Reset </span>
                                     <span aria-hidden="true">
                                       {direction === "up" ? "\u2191" : direction === "down" ? "\u2193" : "\u2014"}
@@ -7039,7 +7039,7 @@ export function ProgressionPlaybookEditor({
                   <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
                     <div className="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                       <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                          <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                          <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                             <span className={progressionExampleMetricUnitClassName}>{row.headingMeasurement}</span>
                           </p>
                         <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -7057,7 +7057,7 @@ export function ProgressionPlaybookEditor({
                             )}
                           >
                   <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
-                    <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                    <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                       <span className={progressionExampleMeasurementLabelClassName}>{section.headingPrefix}</span>
                     </p>
                     <MetricAccentBar variant="thin" className="w-full opacity-80" />
@@ -7066,7 +7066,7 @@ export function ProgressionPlaybookEditor({
                   <div className="space-y-2">
                     {false && section.repResetBefore && section.repResetAfter ? (
                       <div className="space-y-2">
-                        <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                        <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                           Rep Reset
                         </p>
                         <div className="mx-auto flex w-fit max-w-full flex-col items-center justify-center gap-y-1 text-center">
@@ -7078,11 +7078,11 @@ export function ProgressionPlaybookEditor({
                         </div>
                       </div>
                     ) : null}
-                    <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                    <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                       Within Session
                     </p>
                     {shouldRenderPromotionStepSettings && activeDayStepMeasurements.length > 0 && shouldShowEffortShiftLabel(section.direction) ? (
-                      <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
+                      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
                         <span className={getEffortShiftTitleClassName(section.direction)}>
                         {`Day ${section.dayNumber} Shift ${section.direction === "up" ? "↑" : "↓"}`}
                         </span>
@@ -7108,7 +7108,7 @@ export function ProgressionPlaybookEditor({
                           key={`${section.key}-${target.label}-value`}
                           className="flex flex-col items-center gap-1"
                         >
-                          <p className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                          <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                             {target.label}
                           </p>
                           <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
@@ -7121,7 +7121,7 @@ export function ProgressionPlaybookEditor({
 
                   {false && section.isFinalSessionForGroup ? (
                     <div className="space-y-2">
-                      <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                      <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                         Post-Session
                       </p>
                       <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
@@ -7142,7 +7142,7 @@ export function ProgressionPlaybookEditor({
                     <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
                       <div className="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                         <div className="w-fit max-w-full space-y-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
-                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                          <p className={cn("text-center text-[11px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                             {getPostSessionTitle(finalSection.headingMeasurement, finalSection.sessionCount)}
                           </p>
                           <div className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
@@ -7171,14 +7171,14 @@ export function ProgressionPlaybookEditor({
         {false ? (
           <ProgressionControlsSection title="Set Flow Example Hidden">
             <div className="space-y-2" {...getCustomInfoHandlers(() => getSetFlowInfoPayload())}>
-              <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                 Within Session
               </p>
               <div className="mx-auto flex w-fit max-w-full flex-col gap-2 text-center">
                 {setStepExampleRows.map((row) => (
                   <div key={row.label} className="flex flex-col items-center gap-1">
                     <div className="text-center">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                         {row.label}
                       </p>
                     </div>
@@ -7272,7 +7272,7 @@ export function ProgressionPlaybookEditor({
               data-action-chrome-intent="info"
               className={cn(
                 ACTION_CHROME_CONTROL_CLASS_NAME,
-                "min-h-7 rounded-[999px] px-2.5 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--secondary-action-rgb)/0.96)]",
+                "min-h-11 rounded-[999px] px-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary)/0.94)]",
               )}
             >
               Reset

@@ -176,7 +176,7 @@ export function StretchLibraryPanel({
             </div>
 
             <div className="flex items-center justify-between gap-3 px-0.5">
-              <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
+              <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
                 {filteredStretches.length} of {STRETCH_LIBRARY_SUMMARIES.length} shown
                 <span className="ml-2 text-[rgb(var(--text-secondary)/0.68)]">{activeFilterLabel}</span>
               </p>
@@ -187,7 +187,7 @@ export function StretchLibraryPanel({
                     setQuery("");
                     setSelectedFilter("all");
                   }}
-                  className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-secondary)/0.76)] transition-colors hover:text-[rgb(var(--accent-divider-rgb)/0.94)]"
+                  className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-secondary)/0.76)] transition-colors hover:text-[rgb(var(--accent-divider-rgb)/0.94)]"
                 >
                   Clear
                 </button>
@@ -211,7 +211,7 @@ export function StretchLibraryPanel({
                       onClick={() => setSelectedFilter(filter.id)}
                       aria-pressed={isActive}
                         className={cn(
-                          "inline-flex min-h-8 items-center rounded-full border px-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors",
+                          "inline-flex min-h-11 items-center rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors",
                         isActive
                           ? "border-[rgb(var(--selection-rgb)/0.26)] bg-[rgb(var(--selection-rgb)/0.14)] text-[rgb(var(--selection-rgb)/0.98)]"
                           : "border-[rgb(var(--border-strong)/0.08)] bg-[rgb(var(--surface-3)/0.5)] text-[rgb(var(--text-secondary)/0.82)] hover:text-[rgb(var(--text)/0.9)]",
@@ -283,7 +283,7 @@ export function StretchLibraryPanel({
                     <button
                       type="button"
                       onClick={revealMoreStretches}
-                      className="flex min-h-10 w-full items-center justify-center rounded-[1rem] border border-[rgb(var(--border-strong)/0.1)] bg-[rgb(var(--surface-3)/0.54)] px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)] transition-colors hover:bg-[rgb(var(--accent-divider-rgb)/0.12)]"
+                      className="flex min-h-10 w-full items-center justify-center rounded-[1rem] border border-[rgb(var(--border-strong)/0.1)] bg-[rgb(var(--surface-3)/0.54)] px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)] transition-colors hover:bg-[rgb(var(--accent-divider-rgb)/0.12)]"
                     >
                       Load {Math.min(VISIBLE_STRETCH_INCREMENT, filteredStretches.length - visibleCount)} more stretches
                     </button>

@@ -120,7 +120,7 @@ export function RoutineSwitcherBar({
                     {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
                   </span>
                   {isCurrent ? (
-                    <span className="ml-3 rounded-full border border-[rgb(var(--selection-rgb)/0.28)] bg-[rgb(var(--selection-rgb)/0.14)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--selection-rgb)/0.96)]">
+                    <span className="ml-3 rounded-full border border-[rgb(var(--selection-rgb)/0.28)] bg-[rgb(var(--selection-rgb)/0.14)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--selection-rgb)/0.96)]">
                       Active
                     </span>
                   ) : null}

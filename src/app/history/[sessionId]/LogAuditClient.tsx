@@ -869,9 +869,9 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
         {recap.topEfforts.length > 0 ? (
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
               {prExerciseNames.size > 0 ? (
-                <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
+                <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
                   <span>Legend</span>
                   <DetailSectionBadge label="PR" />
                 </div>
@@ -913,8 +913,8 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
 
         <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
         <div className="flex flex-wrap justify-end gap-2">
-          <PillButton type="button" onClick={copyRecap}>Copy recap</PillButton>
-          <PillButton type="button" active onClick={shareRecap}>Share recap</PillButton>
+          <PillButton type="button" hitSlop onClick={copyRecap}>Copy recap</PillButton>
+          <PillButton type="button" active hitSlop onClick={shareRecap}>Share recap</PillButton>
         </div>
       </div>
     </HistorySection>
@@ -1463,7 +1463,7 @@ export function LogAuditClient({
   const sessionHeaderDayLabel = [sessionSummary.dayTitle?.trim() || null, sessionHeaderWeekday].filter(Boolean).join(" \u00B7 ");
   const sessionHeaderTitle = (
     <span className="inline-flex min-w-0 flex-col items-start gap-1">
-      <SignatureMetaTag className="text-[10px] tracking-[0.08em]">
+      <SignatureMetaTag className="text-[11px] tracking-[0.08em]">
         {formatDateShort(sessionSummary.startedAt).toUpperCase()}
       </SignatureMetaTag>
       <RoutineDayHeaderTitle
@@ -1498,7 +1498,7 @@ export function LogAuditClient({
                 <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
                   <label className="block">
                     <LabeledEditorField label="Day name">
-                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-[2.65rem] px-3.5 pt-3.5")} />
+                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-11 px-3.5 pt-3.5")} />
                     </LabeledEditorField>
                   </label>
                   <label className="block">
@@ -1545,7 +1545,7 @@ export function LogAuditClient({
           style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
         >
           {exerciseViewportMeta.caption ? (
-            <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">
+            <div className="px-4 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">
               {exerciseViewportMeta.caption}
             </div>
           ) : null}

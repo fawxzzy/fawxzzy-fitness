@@ -298,7 +298,7 @@ export function QuestionnaireStep({
 
             {notice ? (
               <CuratedInfoCard compact tone="warning" data-curated-notice={notice.title}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--warning-rgb))]">{notice.title}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--warning-rgb))]">{notice.title}</p>
                 <p className="mt-1 text-xs leading-5 text-[rgb(var(--text-secondary)/0.94)]">{notice.body}</p>
               </CuratedInfoCard>
             ) : null}

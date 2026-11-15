@@ -149,7 +149,7 @@ function FilterSection({
               className={cn(
                 appTokens.exercisePickerFilterClearButton,
                 "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
               )}
             >
               Clear
@@ -306,7 +306,7 @@ function HistorySessionFilters({
             type="button"
             active={normalizedFilterState.analyticsScope !== "all_time"}
             className={cn(
-              "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+              "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
               normalizedFilterState.analyticsScope !== "all_time"
                 ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                 : undefined,
@@ -332,7 +332,7 @@ function HistorySessionFilters({
                 type="button"
                 active={isSelected}
                 className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                   isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                 )}
                 onClick={() => handleRoutineSelect(routine)}
@@ -358,7 +358,7 @@ function HistorySessionFilters({
                 type="button"
                 active={isSelected}
                 className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                   isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                 )}
                 onClick={() => {
@@ -387,7 +387,7 @@ function HistorySessionFilters({
                 type="button"
                 active={isSelected}
                 className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                   isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)]" : undefined,
                 )}
                 onClick={() => onCalendarDayChange(isSelected ? null : option.key)}
@@ -408,7 +408,7 @@ function HistorySessionFilters({
                 type="button"
                 active={isSelected}
                 className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
                   isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)]" : undefined,
                 )}
                 onClick={() => onMonthChange(isSelected ? null : option.key)}

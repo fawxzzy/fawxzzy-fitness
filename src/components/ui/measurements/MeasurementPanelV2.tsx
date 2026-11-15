@@ -30,13 +30,13 @@ const metricCardClassName = appTokens.measurementField;
 const valueInputClassName = appTokens.measurementInput;
 const bottomRightInlineLabelClassName = appTokens.measurementInlineValueLabel;
 const lowerBottomRightInlineLabelClassName = appTokens.measurementInlineValueLabelLower;
-const compactTopRowInlineLabelClassName = cn(lowerBottomRightInlineLabelClassName, "right-2.5 text-[8px] tracking-[0.06em]");
-const topRightInlineLabelClassName = "top-2.5 right-2.5 translate-y-0 text-[8px] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
+const compactTopRowInlineLabelClassName = cn(lowerBottomRightInlineLabelClassName, "right-2.5 text-[11px] tracking-[0.06em]");
+const topRightInlineLabelClassName = "top-2.5 right-2.5 translate-y-0 text-[11px] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
 const floatingBorderLabelClassName = cn(
   labeledEditorFieldFloatingLabelClassName,
   "mx-auto mr-auto px-1 py-0 text-center leading-none",
 );
-const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[8px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
+const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[11px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
 const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] [-webkit-tap-highlight-color:transparent] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 const horizontalRailTouchIntentThreshold = 10;
 const horizontalRailTouchIntentRatio = 1.15;
@@ -820,7 +820,7 @@ export function MeasurementPanelV2({
                   label={METRICS[0].title}
                   showEmptyValue={!values.reps.trim()}
                   hasValue={Boolean(values.reps.trim())}
-                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[11px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
@@ -866,7 +866,7 @@ export function MeasurementPanelV2({
                   label={values.weightUnit}
                   showEmptyValue={!values.weight.trim()}
                   hasValue={Boolean(values.weight.trim())}
-                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[11px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
@@ -913,7 +913,7 @@ export function MeasurementPanelV2({
                   label={resolveMetricLabel("time", "s")}
                   showEmptyValue={!values.duration.trim()}
                   hasValue={Boolean(values.duration.trim())}
-                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[11px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
@@ -959,7 +959,7 @@ export function MeasurementPanelV2({
                   label={resolveMetricLabel("distance", resolvedDistanceUnit)}
                   showEmptyValue={!values.distance.trim()}
                   hasValue={Boolean(values.distance.trim())}
-                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[11px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
@@ -1006,7 +1006,7 @@ export function MeasurementPanelV2({
                   label="cal"
                   showEmptyValue={!values.calories.trim()}
                   hasValue={Boolean(values.calories.trim())}
-                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[11px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
@@ -1052,9 +1052,9 @@ export function MeasurementPanelV2({
                   label="EFFORT / 10"
                   showEmptyValue={!(rpe ?? "").trim()}
                   hasValue={Boolean((rpe ?? "").trim())}
-                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[11px] tracking-[0.08em]" : undefined)}
                   emptyValueClassName={undefined}
-                  valueLabelClassName={resolveValueLabelClassName("bottom-3 right-3 text-[9px] tracking-[0.06em]")}
+                  valueLabelClassName={resolveValueLabelClassName("bottom-3 right-3 text-[11px] tracking-[0.06em]")}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input

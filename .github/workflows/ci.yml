@@ -33,6 +33,7 @@ jobs:
         run: |
           node --import ./scripts/register-test-aliases.mjs --test src/app/viewport.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/layout/bottomActionIntents.contract.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/components/ui/visualFloors.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/app/reduced-motion.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/ui/dockRoles.contract.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/app-loader.test.ts src/lib/app-loader-controller.test.ts src/lib/app-loader.contract.test.ts
