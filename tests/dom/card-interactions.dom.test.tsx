@@ -108,8 +108,8 @@ test("Session logger: row header toggles, info does not, and quick-log Skip and 
           exerciseName="Zed Press"
           logAllCount={2}
           rowContract={rowContract}
-          onSkip={() => calls.push("skip")}
-          onPress={() => calls.push("log")}
+          onSkip={() => { calls.push("skip"); }}
+          onPress={() => { calls.push("log"); }}
         />
       }
     />,
@@ -146,14 +146,14 @@ test("Session logger: a pending quick-log is aria-disabled, keeps focus and neve
 
 test("Reorder handle: Arrow keys request one-step moves; an aria-disabled handle ignores them", () => {
   const moves: number[] = [];
-  const { rerender } = render(<DragHandle label="Reorder Push" onMove={(direction) => moves.push(direction)} />);
+  const { rerender } = render(<DragHandle label="Reorder Push" onMove={(direction) => { moves.push(direction); }} />);
   const handle = screen.getByRole("button", { name: "Reorder Push" });
   fireEvent.keyDown(handle, { key: "ArrowDown" });
   fireEvent.keyDown(handle, { key: "ArrowUp" });
   fireEvent.keyDown(handle, { key: "a" });
   assert.deepEqual(moves, [1, -1]);
 
-  rerender(<DragHandle label="Reorder Push" aria-disabled="true" onMove={(direction) => moves.push(direction)} />);
+  rerender(<DragHandle label="Reorder Push" aria-disabled="true" onMove={(direction) => { moves.push(direction); }} />);
   fireEvent.keyDown(screen.getByRole("button", { name: "Reorder Push" }), { key: "ArrowDown" });
   assert.deepEqual(moves, [1, -1]);
 });
