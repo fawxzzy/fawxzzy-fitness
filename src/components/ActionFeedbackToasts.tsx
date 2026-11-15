@@ -15,10 +15,12 @@ export function ActionFeedbackToasts() {
   useEffect(() => {
     const error = searchParams.get("error");
     // /signup carries allow-listed codes only: it never shows `?success=` text, and `?error=` is resolved to fixed copy.
-    const authFeedback = resolveAuthRouteToastFeedback({ pathname, error, success: searchParams.get("success") });
-    const success = pathname === "/signup" || authFeedback ? null : searchParams.get("success");
+    const success = pathname === "/signup" ? null : searchParams.get("success");
+    const authFeedback = resolveAuthRouteToastFeedback({ pathname, error, success });
+    // /login and /reset-password never show `?success=` text either.
+    const toastSuccess = authFeedback ? null : success;
 
-    if (!error && !success) {
+    if (!error && !toastSuccess) {
       return;
     }
 
@@ -39,8 +41,8 @@ export function ActionFeedbackToasts() {
       toast.error(error, pathname === "/login" ? { id: "login-route-error" } : undefined);
     }
 
-    if (success) {
-      toast.success(success);
+    if (toastSuccess) {
+      toast.success(toastSuccess);
     }
 
     const next = new URLSearchParams(searchParams.toString());
