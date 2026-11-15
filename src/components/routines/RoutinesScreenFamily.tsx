@@ -1,6 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -13,18 +12,6 @@ type RoutinesPageScaffoldProps = {
 
 export function RoutinesPageScaffold({ children }: RoutinesPageScaffoldProps) {
   return <div className={appTokens.routinesOverviewPageStack}>{children}</div>;
-}
-
-export function ActiveRoutineSummaryCard({
-  title,
-  metadata,
-  status,
-}: {
-  title: ReactNode;
-  metadata?: ReactNode;
-  status?: ReactNode;
-}) {
-  return <SharedScreenHeader recipe="routinesOverview" title={title} meta={metadata} action={status} align="center" />;
 }
 
 export function RoutinesRouteHeaderCard({
@@ -49,10 +36,6 @@ export function RoutinesRouteHeaderCard({
       align="center"
     />
   );
-}
-
-export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
-  return active ? <AppBadge tone="success">ACTIVE</AppBadge> : null;
 }
 
 export function RoutinesSectionCard({

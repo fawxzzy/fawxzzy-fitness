@@ -1,7 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
-import { FloatingHeaderRail, FloatingHeaderSlot } from "@/components/layout/FloatingHeaderRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -28,42 +27,9 @@ export function TodayRouteScaffold({
   );
 }
 
-export function TodayFloatingHeaderRail({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <FloatingHeaderRail className={cn("py-1", className)}>{children}</FloatingHeaderRail>;
-}
-
-export function TodayFloatingHeaderSlot({
-  id,
-}: {
-  id: string;
-}) {
-  return <FloatingHeaderSlot railClassName="py-1" id={id} />;
-}
-
-export function TodayRoutineSwitchFloatingHeaderSlot({
-  id,
-}: {
-  id: string;
-}) {
-  return (
-    <ContentRail>
-      <div id={id} />
-    </ContentRail>
-  );
-}
-
+/** Legacy centred header; only the session screen still uses it until H1 moves it to ScreenHeader kind="detail". */
 export function TodayOverviewHeader(props: Omit<ComponentProps<typeof SharedScreenHeader>, "recipe">) {
   return <SharedScreenHeader recipe="todayOverview" withPanel={false} {...props} />;
-}
-
-export function TodayRoutineSwitchHeader(props: Omit<ComponentProps<typeof SharedScreenHeader>, "recipe" | "withPanel">) {
-  return <SharedScreenHeader recipe="routinesOverview" withPanel {...props} />;
 }
 
 export function TodayOverviewContent({

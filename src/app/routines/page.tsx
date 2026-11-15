@@ -2,9 +2,8 @@ import { cookies } from "next/headers";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { RoutinesOfflineBridge } from "@/app/routines/RoutinesOfflineBridge";
@@ -13,7 +12,6 @@ import { deleteRoutineAction, duplicateRoutineAction, setActiveRoutineAction } f
 import { requireUser } from "@/lib/auth";
 import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
-import { buildRoutineBrowseInfoRailItems } from "@/lib/header-info-rail";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { selectAccessibleRoutineIdsForTier } from "@/lib/pro-tier-limits";
@@ -426,24 +424,6 @@ export default async function RoutinesPage() {
     });
   }
 
-  const headerInfoItems = pageModel ? buildRoutineBrowseInfoRailItems({
-    activeRoutineName: pageModel.activeRoutineName,
-    routineCount: pageModel.routineBrowseItems.length,
-  }) : [];
-  const headerSubtitle = (
-    pageModel && headerInfoItems.length > 0
-      ? (
-        <HeaderInfoRail
-          items={headerInfoItems}
-          ariaLabel="Routine browse summary"
-          behavior="rotate-single"
-          className="justify-center text-center"
-        />
-      )
-      : fetchFailed
-        ? <span className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--warning-rgb)/0.9)]">Offline</span>
-        : undefined
-  );
   const routinesSnapshot: RoutinesCacheSnapshot | null = pageModel
     ? {
         schemaVersion: ROUTINES_CACHE_SCHEMA_VERSION,
@@ -458,14 +438,7 @@ export default async function RoutinesPage() {
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={(
-          <ContentRail className="py-1">
-            <RoutinesRouteHeaderCard
-              title="Routines"
-              subtitle={headerSubtitle}
-            />
-          </ContentRail>
-        )}
+        floatingHeader={<ScreenHeader kind="tab" title="Routines" subtitle={fetchFailed ? "Offline" : null} />}
       >
         <ContentRail className="space-y-3">
           {fetchFailed || !pageModel ? (

@@ -7,15 +7,14 @@ import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
 import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
-import { TodayOverviewHeader, TodayOverviewScaffold, TodayRoutineSwitchHeader } from "@/components/today/TodayScreenFamily";
-import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
+import { TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { DayList } from "@/components/day-list/DayList";
 import {
   ROUTINE_CONTENT_GAP_CLASS_NAME,
   RestDayCard,
   RoutineOverviewDayCard,
-  RoutineDayCardTitle,
 } from "@/components/day-list/RoutineDayCardPresentation";
 import { useHasBottomActions, usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -27,7 +26,8 @@ import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
-import { buildCurrentRoutineInfoRailItems, buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
+import { formatRoutineDayStableDisplayName } from "@/lib/routines";
+import { formatTodayHeaderSubtitle } from "@/lib/today-page-state";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import type { ActionResult } from "@/lib/action-result";
 import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
@@ -521,47 +521,6 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
-  const selectedDaySplitSummary = useMemo(() => (
-    selectedDay
-      ? getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)
-      : null
-  ), [selectedDay]);
-  const todayHeaderInfoItems = useMemo(() => {
-    const restDays = days.filter((day) => day.isRest).length;
-    const trainingDays = Math.max(days.length - restDays, 0);
-    return buildTodayHeaderInfoRailItems({
-      trainingDays,
-      restDays,
-      daysLength: days.length,
-      selectedDay: selectedDay ? {
-        dayIndex: selectedDay.dayIndex,
-        isRest: selectedDay.isRest,
-        isToday: selectedDay.dayIndex === currentDayIndex,
-        isInSession: inSessionDayIndex === selectedDay.dayIndex,
-        state: selectedDay.state,
-        invalidExerciseCount: selectedDay.invalidExerciseCount,
-        splitSummary: selectedDaySplitSummary,
-      } : null,
-    });
-  }, [currentDayIndex, days, inSessionDayIndex, selectedDay, selectedDaySplitSummary]);
-  const routineHeaderInfoItems = useMemo(() => {
-    const restDays = days.filter((day) => day.isRest).length;
-    const trainingDays = Math.max(days.length - restDays, 0);
-
-    return buildCurrentRoutineInfoRailItems({
-      trainingDays,
-      restDays,
-      days: days.map((day) => ({
-        dayIndex: day.dayIndex,
-        isRest: day.isRest,
-        isToday: day.dayIndex === currentDayIndex,
-        isCompleted: completedDayIndexSet.has(day.dayIndex),
-        isSkipped: false,
-        isInSession: inSessionDayIndex === day.dayIndex,
-        splitSummary: getRestDayExerciseCountSummaryFromInputs(day.exercises, day.isRest),
-      })),
-    });
-  }, [completedDayIndexSet, currentDayIndex, days, inSessionDayIndex]);
   // Deliberate rest-day card for the closed-picker, selected-rest-day case.
   // Reuses the same shared rest-day treatment as the Routine Overview day
   // card (RoutineOverviewDayCard) instead of leaving the body empty (the
@@ -623,46 +582,22 @@ export function TodayDayPicker({
     );
   }, [mode.dayPickerOpen, mode.emptyTrainingDay, noScheduledDayNotice, progressionRoutineId, selectedDay]);
 
+  // One "Today" tab header (DESIGN-CONTRACT.md section 15). Picker closed: the subtitle names the selected day and
+  // routine. Picker open: it names the routine whose days are listed below.
   const headerNode = selectedDay && !mode.dayPickerOpen
     ? (
-      <TodayOverviewHeader
-        title={(
-          <RoutineDayCardTitle
-            routineName={routineName.trim() || "Routine"}
-            name={selectedDay.name}
-            dayIndex={selectedDay.dayIndex}
-            startDate={startDate}
-            weekdayLabel={selectedDay.occurrenceWeekday}
-            dayWeekdaySeparator="dot"
-          />
+      <ScreenHeader
+        kind="tab"
+        title="Today"
+        subtitle={formatTodayHeaderSubtitle(
+          formatRoutineDayStableDisplayName({ name: selectedDay.name, dayIndex: selectedDay.dayIndex, startDate }),
+          routineName,
         )}
-        align="center"
-        subtitle={todayHeaderInfoItems.length > 0 ? (
-          <HeaderInfoRail
-            items={todayHeaderInfoItems}
-            ariaLabel="Today day summary"
-            behavior="rotate-single"
-            className="justify-center text-center"
-          />
-        ) : undefined}
       />
     )
     : null;
   const switchHeaderNode = selectedDay && mode.dayPickerOpen
-    ? (
-      <TodayRoutineSwitchHeader
-        title={routineName.trim() || "Routine"}
-        subtitle={(
-          <HeaderInfoRail
-            items={routineHeaderInfoItems}
-            ariaLabel="Routine cycle summary"
-            behavior="rotate-single"
-            className="justify-center text-center"
-          />
-        )}
-        align="center"
-      />
-    )
+    ? <ScreenHeader kind="tab" title="Today" subtitle={routineName.trim() || null} />
     : null;
 
   const actionsNode = useMemo(() => {
