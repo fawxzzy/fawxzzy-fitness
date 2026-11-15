@@ -1695,3 +1695,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Using the overall current streak on an old session recap would overstate it; the as-of helper drops later sessions and later skipped days, and a loader failure degrades to no callout.
 - Evidence: workout-recap tests (6 pass), typecheck. `src/lib/workout-recap.test.ts` is picked up by `npm run test:all` (auto-discovery).
 - Status: Source only; headless-only, not device-checked; follow-up-job artifact work out of scope.
+
+## 2026-11-14 FF-PLATFORM-001 replace xlsx writer
+- WHAT changed: The Excel export now writes through `write-excel-file` (pinned 4.1.1) instead of `xlsx` (SheetJS 0.18.5, npm audit high). Same sheets, same header row, same cell values and blanks; `buildAccountWorkoutExportWorkbookBuffer` is now async and the export route awaits it. `xlsx` is removed; `read-excel-file` (dev only, pinned) reads the workbook back in the test. No persisted or server-visible data change.
+- WHY it changed: Owner decision 2026-11-14 kept the Excel export and asked for the vulnerable write-only dependency to be replaced rather than dropping the format.
+- Rule: A format kept for users gets a maintained writer plus a round-trip test that reads the generated file back and compares cells to the section source of truth.
+- Failure Mode: Swapping a writer and only checking sheet names would hide changed headers, dropped blanks or retyped cells; the test now compares every cell.
+- Evidence: `src/lib/account-workout-export.test.ts` (12 pass incl. round trip), preview test, typecheck, lint, npm run verify.
+- Status: Source only; the downloaded file was not opened in Excel or on a phone. Remaining audit findings are Next 14 line issues, unchanged.

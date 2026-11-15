@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import * as XLSX from "xlsx";
+import readXlsxFile from "read-excel-file/node";
 
 import {
   buildAccountWorkoutExportCsvTables,
@@ -9,6 +9,7 @@ import {
   buildAccountWorkoutExportPayload,
   buildAccountWorkoutExportSections,
   buildAccountWorkoutExportWorkbookBuffer,
+  buildAccountWorkoutExportWorkbookSheets,
   getAccountWorkoutExportContentType,
   getAccountWorkoutExportSuggestedDateRange,
   resolveAccountWorkoutExportSuggestedDateRange,
@@ -368,12 +369,13 @@ test("builds a json export document with section metadata", () => {
   assert.equal(document.data.historySessions?.[0]?.sessionId, "session-1");
 });
 
-test("builds an xlsx workbook with the expected sheet names", () => {
+test("builds an xlsx workbook whose sheets, headers and cells match the export sections", async () => {
   const payload = buildPayload();
-  const workbookBuffer = buildAccountWorkoutExportWorkbookBuffer(payload);
-  const workbook = XLSX.read(workbookBuffer, { type: "buffer" });
+  const workbookBuffer = await buildAccountWorkoutExportWorkbookBuffer(payload);
+  const sheets = await readXlsxFile(workbookBuffer);
+  const expected = buildAccountWorkoutExportWorkbookSheets(payload);
 
-  assert.deepEqual(workbook.SheetNames, [
+  assert.deepEqual(sheets.map((sheet) => sheet.sheet), [
     "History Sessions",
     "History Exercises",
     "History Sets",
@@ -382,8 +384,28 @@ test("builds an xlsx workbook with the expected sheet names", () => {
     "Routine Days",
     "Routine Exercises",
   ]);
-});
 
+  for (const [index, sheet] of sheets.entries()) {
+    const expectedSheet = expected[index]!;
+    assert.deepEqual(sheet.data[0], [...expectedSheet.headers], `${expectedSheet.name} headers`);
+    assert.equal(sheet.data.length, expectedSheet.rows.length + 1, `${expectedSheet.name} row count`);
+
+    expectedSheet.rows.forEach((row, rowIndex) => {
+      const actualRow = sheet.data[rowIndex + 1]!;
+      expectedSheet.headers.forEach((header, columnIndex) => {
+        const value = row[header];
+        assert.equal(
+          actualRow[columnIndex] ?? null,
+          value === undefined ? null : value,
+          `${expectedSheet.name} row ${rowIndex + 1} column ${header}`,
+        );
+      });
+    });
+  }
+
+  const historySets = sheets[2]!;
+  assert.ok(historySets.data.length > 1, "history sets sheet has data rows");
+});
 test("reports the xlsx content type", () => {
   assert.equal(
     getAccountWorkoutExportContentType("xlsx"),

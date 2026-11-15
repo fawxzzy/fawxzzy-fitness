@@ -1,6 +1,6 @@
 import "server-only";
 
-import * as XLSX from "xlsx";
+import writeXlsxFile from "write-excel-file/node";
 import type {
   ProgressionEventRow,
   RoutineDayExerciseRow,
@@ -700,17 +700,19 @@ export function buildAccountWorkoutExportWorkbookSheets(payload: AccountWorkoutE
   });
 }
 
-export function buildAccountWorkoutExportWorkbookBuffer(payload: AccountWorkoutExportPayload) {
-  const workbook = XLSX.utils.book_new();
+export async function buildAccountWorkoutExportWorkbookBuffer(payload: AccountWorkoutExportPayload): Promise<Buffer> {
+  const sheets = buildAccountWorkoutExportWorkbookSheets(payload).map((sheet) => ({
+    sheet: sheet.name,
+    data: [
+      sheet.headers.map((header) => ({ value: header })),
+      ...sheet.rows.map((row) => sheet.headers.map((header) => {
+        const value = row[header];
+        return value === null || value === undefined ? null : { value };
+      })),
+    ],
+  }));
 
-  for (const sheet of buildAccountWorkoutExportWorkbookSheets(payload)) {
-    const worksheet = sheet.rows.length > 0
-      ? XLSX.utils.json_to_sheet(sheet.rows, { header: sheet.headers })
-      : XLSX.utils.aoa_to_sheet([sheet.headers]);
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
-  }
-
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  return Buffer.from(await writeXlsxFile(sheets).toBuffer());
 }
 
 export function buildAccountWorkoutExportJsonDocument(payload: AccountWorkoutExportPayload): AccountWorkoutExportJsonDocument {
