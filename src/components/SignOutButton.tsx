@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { AppButton } from "@/components/ui/AppButton";
 import { clearPersistedWorkoutClientState } from "@/lib/offline/client-storage";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const AUTH_ENTRY_PATH = "/login";
 
-export function SignOutButton() {
+export function SignOutButton({ placement = "dock" }: { placement?: "dock" | "body" } = {}) {
   const router = useRouter();
   const supabase = createBrowserSupabase();
 
@@ -33,6 +34,15 @@ export function SignOutButton() {
     router.replace(AUTH_ENTRY_PATH);
     window.location.assign(AUTH_ENTRY_PATH);
   };
+
+  if (placement === "body") {
+    // Settings body (not the dock): the dock is for the screen's primary action, and signing out is not that.
+    return (
+      <AppButton type="button" variant="secondary" fullWidth onClick={handleSignOut} data-settings-sign-out="true">
+        Sign out
+      </AppButton>
+    );
+  }
 
   return (
     <BottomDockButton

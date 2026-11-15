@@ -9,7 +9,8 @@ import { useSettingsScreenState, type SettingsSectionKey } from "@/components/se
 import { CardHeader, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import type { HistoryAchievement } from "@/lib/history-achievements";
-import { getAccountRouteHref } from "@/lib/account-navigation";
+import { SignOutButton } from "@/components/SignOutButton";
+import { getFitnessAccountPortalUrl } from "@/lib/account-portal";
 
 type SettingsSectionId = Exclude<SettingsSectionKey, null>;
 
@@ -18,13 +19,13 @@ type SettingsSectionMeta = {
   summary: string;
 };
 
-/** Settings sections in screen order. `account` opens its own route; every other section expands in place. */
+/** Settings sections in screen order. `account` opens the Fawxzzy account portal; every other section expands in place. */
 export const SETTINGS_SECTION_ORDER: readonly SettingsSectionId[] = ["account", "achievements", "pro", "data", "theme", "discord"];
 
 export function getSettingsSectionMeta(section: SettingsSectionId): SettingsSectionMeta | null {
   switch (section) {
     case "account":
-      return { title: "Account", summary: "Username, email, password and sign out" };
+      return { title: "Account", summary: "Opens account.fawxzzy.com" };
     case "achievements":
       return { title: "Achievements", summary: "Training milestones you have earned" };
     case "theme":
@@ -44,15 +45,20 @@ export function getSettingsPanelId(section: SettingsSectionId) {
   return `settings-section-${section}`;
 }
 
+/** Where the Settings "Account" row goes: the shared Fawxzzy account portal, coming back to Settings. */
+export const SETTINGS_ACCOUNT_PORTAL_HREF = getFitnessAccountPortalUrl("/account", "/settings");
+
 /**
  * One Settings section as a card. `Account` navigates (right chevron); the others expand a panel (down chevron).
- * When `expanded`, the card is the screen's `h2` in the floating header and collapses the panel again.
+ * When `expanded`, the card leads the body (as the panel's `h2`) and collapses the panel again.
+ * `signedInAs` adds who is signed in to the Account card (the header carries only the screen title).
  */
 export function SettingsSectionCard({
   section,
   expanded = false,
   href,
   onToggle,
+  signedInAs,
 }: {
   section: SettingsSectionId;
   expanded?: boolean;
@@ -60,6 +66,7 @@ export function SettingsSectionCard({
   href?: string;
   /** Expand or collapse (everything else). */
   onToggle?: () => void;
+  signedInAs?: string;
 }) {
   const meta = getSettingsSectionMeta(section);
   if (!meta) {
@@ -70,7 +77,7 @@ export function SettingsSectionCard({
     <CardSurface tone={expanded ? "current" : "neutral"} data-settings-section-card={section}>
       <CardHeader
         title={meta.title}
-        meta={<CardMeta items={[meta.summary]} />}
+        meta={<CardMeta items={signedInAs ? [signedInAs, meta.summary] : [meta.summary]} />}
         headingLevel={2}
         interaction={href
           ? { kind: "link", href }
@@ -90,7 +97,10 @@ export function SettingsSectionsClient({
   proAccess,
   billingNotice,
   achievements,
+  signedInAs,
 }: {
+  /** Username (or email when there is none), shown on the Account card. */
+  signedInAs?: string;
   userKind: "human" | "automation" | "unknown";
   userNumber: number | null;
   canAccessQaVisibilitySetting: boolean;
@@ -103,20 +113,30 @@ export function SettingsSectionsClient({
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
-  // Collapsed: the list of section cards. Expanded: only that section's panel (its card is in the floating header).
+  const accountCard = <SettingsSectionCard section="account" href={SETTINGS_ACCOUNT_PORTAL_HREF} signedInAs={signedInAs} />;
+  const signOut = (
+    <div className="pt-2">
+      <SignOutButton placement="body" />
+    </div>
+  );
+
+  // Collapsed: the list of section cards, then Sign out. Expanded: that section's card (tap to close) and its panel.
   if (expandedSection === null) {
     return (
-      <ul className={cardTokens.list}>
-        {SETTINGS_SECTION_ORDER.map((section) => (
-          <li key={section}>
-            {section === "account" ? (
-              <SettingsSectionCard section={section} href={getAccountRouteHref("/settings")} />
-            ) : (
-              <SettingsSectionCard section={section} onToggle={() => setExpandedSection(section)} />
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className="space-y-3">
+        <ul className={cardTokens.list}>
+          {SETTINGS_SECTION_ORDER.map((section) => (
+            <li key={section}>
+              {section === "account" ? (
+                accountCard
+              ) : (
+                <SettingsSectionCard section={section} onToggle={() => setExpandedSection(section)} />
+              )}
+            </li>
+          ))}
+        </ul>
+        {signOut}
+      </div>
     );
   }
 
@@ -125,8 +145,13 @@ export function SettingsSectionsClient({
   return (
     <div id={getSettingsPanelId(expandedSection)} role="region" aria-label={meta?.title} className="space-y-3">
       {expandedSection === "account" ? (
-        <SettingsSectionCard section="account" href={getAccountRouteHref("/settings")} />
-      ) : null}
+        <>
+          {accountCard}
+          {signOut}
+        </>
+      ) : (
+        <SettingsSectionCard section={expandedSection} expanded onToggle={() => setExpandedSection(null)} />
+      )}
       {expandedSection === "achievements" ? <AccountAchievementsSection achievements={achievements} /> : null}
       {expandedSection === "pro" ? <ProAccessSettings snapshot={proAccess} billingNotice={billingNotice} /> : null}
       {expandedSection === "data" ? (

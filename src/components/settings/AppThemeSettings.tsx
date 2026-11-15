@@ -464,7 +464,7 @@ export function AppThemeSettings({
                 disabled={!canSaveAnyChange}
                 loading={isSaving}
               >
-                Save
+                Save theme
               </BottomDockButton>
             )}
           />

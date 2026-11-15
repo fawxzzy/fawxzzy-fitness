@@ -24,10 +24,13 @@ test("Achievements are a Settings section card and remain deep-linkable", () => 
   assert.match(achievementsSource, /data-account-achievements-section="true"/);
 });
 
-test("Account opens the same-origin Fitness account route instead of an external portal", () => {
-  assert.match(sectionsSource, /href=\{getAccountRouteHref\("\/settings"\)\}/);
+test("Account opens the shared account portal (account.fawxzzy.com); Sign out stays in the Settings body", () => {
+  assert.match(sectionsSource, /SETTINGS_ACCOUNT_PORTAL_HREF = getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);
+  assert.match(sectionsSource, /href=\{SETTINGS_ACCOUNT_PORTAL_HREF\}/);
+  assert.doesNotMatch(sectionsSource, /getAccountRouteHref/, "Settings no longer links to the in-app /account screen");
+  assert.match(sectionsSource, /<SignOutButton placement="body" \/>/);
   assert.doesNotMatch(sectionsSource, /useRouter/);
-  assert.doesNotMatch(sectionsSource, /getFitnessAccountPortalUrl|SettingsExternalTrigger/);
+  assert.doesNotMatch(sectionsSource, /SettingsExternalTrigger/);
   assert.doesNotMatch(sectionsSource, /<PublishBottomActions>\s*<SignOutButton/);
   assert.doesNotMatch(sectionsSource, /expandedSection === "account" \? <AccountSettingsForm/);
 });

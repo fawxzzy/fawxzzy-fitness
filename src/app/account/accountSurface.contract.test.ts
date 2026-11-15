@@ -21,7 +21,8 @@ test("account screen reuses the established mobile shell, account form, and dete
   assert.match(screenSource, /<TopRightBackButton/);
   assert.match(screenSource, /historyBehavior="fallback-only"/);
   assert.match(screenSource, /ariaLabel="Back to Settings"/);
-  assert.match(settingsSource, /getAccountRouteHref\("\/settings"\)/);
+  // Navigation links to the portal now; /account stays working for direct visits until the portal edits username/email.
+  assert.match(settingsSource, /getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);
   assert.match(appNavSource, /link\.href === "\/settings"/);
   assert.match(appNavSource, /activePathname === "\/account" \|\| activePathname\.startsWith\("\/account\/"\)/);
   assert.match(screenSource, /activePathnameOverride=\{activePathnameOverride\}/);

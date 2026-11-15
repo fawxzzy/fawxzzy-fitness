@@ -93,22 +93,19 @@ test("Settings sections keep their order and titles; Account navigates, the rest
   assert.match(expanded, /data-card-tone="current"/);
 });
 
-test("Settings header: an sr-only h1, then the open section as the h2 that collapses it", () => {
-  const closed = render(
-    <SettingsScreenStateProvider>
-      <SettingsFloatingHeader email="a@example.com" username="atlas" />
-    </SettingsScreenStateProvider>,
-  );
-  assert.match(closed, /<h1 class="sr-only">Settings<\/h1>/);
-  assert.doesNotMatch(closed, /<h2/);
-
-  const open = render(
-    <SettingsScreenStateProvider initialExpandedSection="theme">
-      <SettingsFloatingHeader email="a@example.com" username="atlas" />
-    </SettingsScreenStateProvider>,
-  );
-  assert.match(open, /<h2[^>]*>App Theme<\/h2>/);
-  assert.match(open, /aria-expanded="true"/);
+test("Settings header: the standard tab header with a visible h1 and nothing else, open section or not", () => {
+  for (const initialExpandedSection of [null, "theme"] as const) {
+    const html = render(
+      <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
+        <SettingsFloatingHeader />
+      </SettingsScreenStateProvider>,
+    );
+    assert.match(html, /data-screen-header="tab"/);
+    assert.match(html, /<h1[^>]*>Settings<\/h1>/);
+    assert.doesNotMatch(html, /sr-only/, "the title is visible, not screen-reader only");
+    assert.doesNotMatch(html, /<h2/, "the open section's card lives in the body, not in a second header row");
+    assert.doesNotMatch(html, /aria-expanded/);
+  }
 });
 
 test("Achievements: a list of cards, text chips instead of dimming, h3 section title and h4 card titles", () => {
