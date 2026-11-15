@@ -6,6 +6,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SignOutButton } from "@/components/SignOutButton";
+import { AuthNoticeBox } from "@/components/auth/AuthShell";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
@@ -59,11 +60,7 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
     [email, emailValue, startEmailTransition, usernameValue],
   );
 
-  const emailMessageTone = useMemo(() => {
-    if (emailState.status === "error") return appTokens.settingsStatusError;
-    if (emailState.status === "success") return appTokens.settingsStatusSuccess;
-    return appTokens.settingsStatusMuted;
-  }, [emailState.status]);
+  const emailNoticeTone = emailState.status === "error" ? "error" : emailState.status === "success" ? "success" : "info";
 
   return (
     <>
@@ -125,7 +122,7 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
             </div>
           </div>
           <div className={appTokens.settingsFieldStack} aria-live="polite">
-            {emailState.message ? <p className={cn(appTokens.settingsBodyText, emailMessageTone)}>{emailState.message}</p> : null}
+            {emailState.message ? <AuthNoticeBox tone={emailNoticeTone}>{emailState.message}</AuthNoticeBox> : null}
           </div>
         </SettingsCard>
       </form>

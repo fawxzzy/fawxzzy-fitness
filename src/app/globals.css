@@ -2733,6 +2733,12 @@ a:focus-visible {
   cursor: pointer;
 }
 
+/* Account settings (signed in) borrows the v2 notice box: same tokens as .fx-auth, scoped to the Account screen. */
+.fx-account {
+  --fx-ac: 160 223 56;
+  --fx-danger: 255 107 120;
+}
+
 .fx-links,
 .fx-legal {
   display: flex;

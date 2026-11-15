@@ -58,3 +58,24 @@ test("the dev-only error name suffix stays behind the production check", async (
   const recovery = await read("./AppRecoveryScreen.tsx");
   assert.doesNotMatch(recovery, /\{errorName\}|error\.name\}/);
 });
+
+test("not-found, app-error and global-error render in the Auth Surface v2 status shell", async () => {
+  const html = renderToStaticMarkup(createElement(NotFoundScreen));
+  assert.match(html, /data-testid="not-found-screen"/);
+  assert.match(html, /class="fx-auth[^"]*"/);
+  assert.match(html, /class="fx-mark"/);
+  assert.match(html, /<h1 class="fx-ttl">We can&#x27;t find that page\.<\/h1>/);
+  assert.match(html, /<p class="fx-lead">It may have moved, or the link may be wrong\.<\/p>/);
+  assert.match(html, /class="fx-dock"[^>]*>Back to Today</);
+
+  const recovery = await read("./AppRecoveryScreen.tsx");
+  assert.match(recovery, /<AuthStatusScreen/);
+  assert.match(recovery, /lead=\{topMessage \?\? ERROR_COPY\.boundaryBody\}/);
+  assert.match(recovery, /<AuthDockButton[^>]*onClick=\{\(\) => onReopen\?\.\(\)\}/);
+  assert.match(recovery, /<AuthLinkButton onClick=\{\(\) => window\.location\.reload\(\)\}>\{ERROR_COPY\.reloadLabel\}/);
+  assert.doesNotMatch(recovery, /SurfaceCard|fixed inset-0/);
+
+  for (const route of ["../../app/error.tsx", "../../app/global-error.tsx"]) {
+    assert.match(await read(route), /<AppRecoveryScreen/);
+  }
+});
