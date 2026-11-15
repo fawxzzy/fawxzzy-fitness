@@ -44,7 +44,7 @@ function buildWorkoutPlanLibraryInfoItems(args: {
   items.push(
     {
       id: "workout-plan-count",
-      label: "workout plans",
+      label: "days",
       value: args.workoutPlanCount,
       tone: "accent",
     },
@@ -64,7 +64,7 @@ export default async function WorkoutPlansPage() {
   const user = await requireUser({
     gate: "workout-plans.auth.session",
     route: "/routines/workout-plans",
-    blockingReason: "Waiting for authenticated session before loading workout plans.",
+    blockingReason: "Waiting for authenticated session before loading days.",
     timeoutMs: 5000,
     collector: diagnostics,
   });
@@ -137,7 +137,7 @@ export default async function WorkoutPlansPage() {
               subtitle={(
                 <HeaderInfoRail
                   items={headerInfoItems}
-                  ariaLabel="Workout plan library summary"
+                  ariaLabel="Days summary"
                   behavior="rotate-single"
                   className="justify-center text-center"
                 />

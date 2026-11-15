@@ -298,10 +298,10 @@ function buildRoutineWorkoutPlanEditorSignalMap(args: {
   if (workoutPlanCount > 0) {
     signalMap["workout-plan-count"] = {
       id: "workout-plan-count",
-      label: workoutPlanCount === 1 ? "workout plan" : "workout plans",
+      label: workoutPlanCount === 1 ? "day" : "days",
       value: workoutPlanCount,
       tone: "accent",
-      title: "Configured workout plans in this routine",
+      title: "Configured days in this routine",
     };
   }
 
@@ -329,9 +329,9 @@ function buildRoutineWorkoutPlanEditorSignalMap(args: {
     signalMap.totals = {
       id: "totals",
       label: "Totals",
-      value: `${workoutPlanCount} workout plans • ${totalExercises} exercises${autoProgressionExerciseCount > 0 ? ` • ${autoProgressionExerciseCount} auto` : ""}`,
+      value: `${workoutPlanCount} days • ${totalExercises} exercises${autoProgressionExerciseCount > 0 ? ` • ${autoProgressionExerciseCount} auto` : ""}`,
       tone: autoProgressionExerciseCount > 0 ? "accent" : "default",
-      title: "Routine totals across workout plans, exercises, and auto progression coverage",
+      title: "Routine totals across days, exercises, and auto progression coverage",
       valuePosition: "after",
     };
   }

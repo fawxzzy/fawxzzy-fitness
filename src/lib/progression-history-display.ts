@@ -411,7 +411,7 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
       id: "total-events",
       label: "Total events",
       value: String(summary.totalEvents),
-      detail: summary.totalEvents > 0 ? "Durable ledger entries" : "No progression changes recorded yet",
+      detail: summary.totalEvents > 0 ? "Changes applied" : "No progression changes recorded yet",
       caption: null,
       tone: summary.totalEvents > 0 ? "default" : "muted",
     },

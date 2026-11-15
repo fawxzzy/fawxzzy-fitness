@@ -89,7 +89,7 @@ export function RoutinesPageClient({
     <BottomActionSplit
       secondary={(
         <BottomDockLink href={workoutPlansHref} intent="toggleInactive">
-          Workout Plans
+          Days
         </BottomDockLink>
       )}
       primary={canOpenInlineCreate ? (

@@ -44,11 +44,11 @@ export function WorkoutPlansPageClient({
       )}
       primary={newWorkoutPlanHref ? (
         <BottomDockLink href={newWorkoutPlanHref} intent="positive">
-          New Workout Plan
+          New Day
         </BottomDockLink>
       ) : (
         <BottomDockButton type="button" intent="positive" disabled>
-          New Workout Plan
+          New Day
         </BottomDockButton>
       )}
     />
@@ -70,17 +70,17 @@ export function WorkoutPlansPageClient({
       <SharedDayListSection>
         {workoutPlans.length === 0 ? (
           <CardEmptyState
-            title="No workout plans yet"
+            title="No days yet"
             body={newWorkoutPlanHref
-              ? "Create a workout plan without drilling into a routine first."
-              : "Create a routine first, then build workout plans from that routine."}
+              ? "Create a day without drilling into a routine first."
+              : "Create a routine first, then build days from that routine."}
             action={newWorkoutPlanHref ? (
               <BottomDockLink
                 href={newWorkoutPlanHref}
                 intent="positive"
                 className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
               >
-                New Workout Plan
+                New Day
               </BottomDockLink>
             ) : (
               <BottomDockLink
@@ -96,7 +96,7 @@ export function WorkoutPlansPageClient({
           <RoutinesCardList>
             {workoutPlans.map((plan) => {
               const planHref = plan.href ?? null;
-              const planTitle = plan.title?.trim() || "Workout Plan";
+              const planTitle = plan.title?.trim() || "Day";
               const actionsOpen = expandedActionsPlanId === plan.id;
               const actionsId = `workout-plan-actions-${plan.id}`;
               const closeActions = () => setExpandedActionsPlanId(null);
@@ -186,12 +186,12 @@ export function WorkoutPlansPageClient({
 
             const result = await deleteWorkoutPlanSourceAction(formData);
             if (!result.ok) {
-              toast.error(result.error ?? "Could not delete workout plan.");
+              toast.error(result.error ?? "Could not delete day.");
               return;
             }
 
             setPlanPendingDelete(null);
-            toast.success("Workout plan deleted.");
+            toast.success("Day deleted.");
             router.refresh();
           });
         }}
