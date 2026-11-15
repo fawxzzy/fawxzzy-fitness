@@ -6,8 +6,8 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
 // Drives the real signup() server action with only its external boundaries substituted (Supabase, next/navigation,
-// headers, cookies). Guards the call site: if signup() ever forwards the provider's error text again, an address
-// that already has an account becomes distinguishable by message and these tests fail.
+// headers, cookies). Guards the call site: signup() must never forward the provider's error text; every outcome is
+// a fixed route code chosen from machine codes and response shape only.
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const unexpected = () => { throw new Error("Unexpected dependency call in signup failure test"); };
@@ -93,17 +93,29 @@ function failing(error) {
 
 const alreadyRegistered = { name: "AuthApiError", code: "user_already_exists", status: 422, message: PROVIDER_ALREADY_REGISTERED };
 
-test("an already-registered address redirects with the generic code, not the provider's message", async () => {
+// Owner decision (Zac, 2026-11-15, Web #177 parity): an address that already has an account gets its own fixed
+// code, decided by the provider's machine code or the empty-identities fake success, never by message text.
+test("an already-registered address redirects with the fixed email_exists code, not the provider's message", async () => {
   const existing = await failing(alreadyRegistered).submit({ email: "member@example.test" });
-  assert.equal(existing, "/signup?error=signup_failed");
+  assert.equal(existing, "/signup?error=email_exists");
   assert.ok(!existing.includes("registered"));
   assert.ok(!decodeURIComponent(existing).includes(PROVIDER_ALREADY_REGISTERED));
+  assert.equal(await failing({ code: "email_exists", status: 422, message: "A user with this email address has already been registered" }).submit(), existing);
+  // Message text alone never selects the existing-account code.
+  assert.equal(await failing({ status: 422, message: PROVIDER_ALREADY_REGISTERED }).submit(), "/signup?error=signup_failed");
 });
 
-test("every non-rate-limit provider failure is indistinguishable from an already-registered address", async () => {
-  const baseline = await failing(alreadyRegistered).submit();
+test("the confirmation-on fake success (empty identities, no session) is the existing-account code, not check-your-email", async () => {
+  const fake = harness({ signUpResult: { data: { user: { id: "u", identities: [] }, session: null }, error: null } });
+  assert.equal(await fake.submit(), "/signup?error=email_exists");
+  assert.equal(fake.calls.cookies, 0);
+  const fresh = harness({ signUpResult: { data: { user: { id: "u", identities: [{ id: "i" }] }, session: null }, error: null } });
+  assert.equal(await fresh.submit(), "/signup?info=check_email");
+});
+
+test("every other non-rate-limit provider failure shares one generic code", async () => {
+  const baseline = "/signup?error=signup_failed";
   for (const error of [
-    { code: "email_exists", status: 422, message: "A user with this email address has already been registered" },
     { code: "unexpected_failure", status: 500, message: "Database error saving new user" },
     { code: "signup_disabled", status: 422, message: "Signups not allowed for this instance" },
     { status: 502, message: "Bad gateway" },
