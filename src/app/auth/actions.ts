@@ -225,6 +225,7 @@ export async function requestPasswordResetInline(identifier: string) {
   if (!usesEmailIdentifier && !usesUsernameIdentifier) {
     return {
       ok: false,
+      code: "identifier_required" as const,
       error: "Enter your email or username to reset your password.",
     };
   }
@@ -232,6 +233,7 @@ export async function requestPasswordResetInline(identifier: string) {
   if (usesUsernameIdentifier && !hasSupabaseAdminCredential()) {
     return {
       ok: false,
+      code: "email_required" as const,
       error: "Use your email to reset your password.",
     };
   }
@@ -247,6 +249,7 @@ export async function requestPasswordResetInline(identifier: string) {
   if (result !== "requested") {
     return {
       ok: false,
+      code: result === "rate_limited" ? "rate_limited" as const : "send_failed" as const,
       error: result === "rate_limited"
         ? "Too many reset requests. Please wait a few minutes and try again."
         : "Could not send reset email. Please try again in a few minutes.",

@@ -1,153 +1,189 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
-import { requestPasswordReset } from "@/app/auth/actions";
+import { requestPasswordResetInline } from "@/app/auth/actions";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
-  AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
-  AuthCard,
-  AuthCenteredFooterRow,
-  AuthDock,
-  AuthFooter,
+  AUTH_ACCOUNT_INPUT_CLASS_NAME,
+  AuthAccountField,
+  AuthLockedField,
+} from "@/components/auth/AuthAccountField";
+import {
+  AuthBody,
+  AuthDockButton,
   AuthForm,
   AuthFormFields,
-  AuthIntro,
+  AuthHead,
   AuthLegalRow,
+  AuthLink,
+  AuthLinkButton,
+  AuthLinks,
+  AuthNoticeSlot,
   AuthShell,
 } from "@/components/auth/AuthShell";
-import { AUTH_ACCOUNT_INPUT_CLASS_NAME, AuthAccountField } from "@/components/auth/AuthAccountField";
-import { appTokens } from "@/components/ui/app/tokens";
-import { FitContentInput } from "@/components/ui/FitContentInput";
-import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
-import { cn } from "@/lib/cn";
-import { isUsernameIdentifier } from "@/lib/username-policy";
+import {
+  authNotice,
+  formatResendCountdown,
+  resetRequestNoticeId,
+  type AuthNotice,
+} from "@/components/auth/authMessages";
+import { isUsernameIdentifier, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@/lib/username-policy";
 
-const COOLDOWN_SECONDS = 60;
-const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
-const RESET_FORM_ID = "reset-password-request-form";
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const RESET_COOLDOWN_SECONDS = 60;
+export const RESET_NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
+const RESET_FORM_ID = "reset-request-form";
+const RESET_USERNAME_INPUT_ID = "reset-username";
+const RESET_EMAIL_INPUT_ID = "reset-email";
 
-type ForgotPasswordFormClientProps = {
-  errorMessage: string | null;
-  infoMessage: string | null;
-  shouldStartCooldown: boolean;
-};
+export const RESET_REQUEST_LEAD = "We will email a reset link to the address on your account.";
 
+function readCooldownSeconds() {
+  const stored = Number(window.localStorage.getItem(RESET_NEXT_ALLOWED_AT_KEY) ?? "0");
+  return Number.isFinite(stored) && stored > Date.now() ? Math.ceil((stored - Date.now()) / 1000) : 0;
+}
+
+/**
+ * Reset request (Auth Surface v2). The address is never typed: signed out it takes a username only (the answer never
+ * says whether the account exists); signed in it shows the account email locked. Success keeps the field, locked, and
+ * the dock turns into a resend timer. Expired or invalid reset links land here with their notice.
+ */
 export default function ForgotPasswordFormClient({
-  errorMessage,
-  infoMessage,
-  shouldStartCooldown,
-}: ForgotPasswordFormClientProps) {
-  const copy = AUTH_MODE_COPY["reset-password"];
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [email, setEmail] = useState("");
-
-  useToastMessageEffect("error", errorMessage, { id: "forgot-password-error" });
-  useToastMessageEffect("success", infoMessage, { id: "forgot-password-info" });
-
-  useEffect(() => {
-    const now = Date.now();
-    const stored = Number(window.localStorage.getItem(NEXT_ALLOWED_AT_KEY) ?? "0");
-    if (Number.isFinite(stored) && stored > now) {
-      setCooldownRemaining(Math.ceil((stored - now) / 1000));
-    }
-
-    if (shouldStartCooldown && stored <= now) {
-      const nextAllowedAt = now + COOLDOWN_SECONDS * 1000;
-      window.localStorage.setItem(NEXT_ALLOWED_AT_KEY, String(nextAllowedAt));
-      setCooldownRemaining(COOLDOWN_SECONDS);
-    }
-  }, [shouldStartCooldown]);
+  signedInEmail = null,
+  initialUsername = "",
+  initialNotice = null,
+  onBackToSignIn,
+  previewSent = false,
+  returnTo,
+}: {
+  signedInEmail?: string | null;
+  initialUsername?: string;
+  initialNotice?: AuthNotice | null;
+  onBackToSignIn?: () => void;
+  previewSent?: boolean;
+  returnTo?: string;
+}) {
+  const [username, setUsername] = useState(initialUsername);
+  const [notice, setNotice] = useState<AuthNotice | null>(initialNotice);
+  const [invalid, setInvalid] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sent, setSent] = useState(previewSent);
+  const [cooldown, setCooldown] = useState(previewSent ? RESET_COOLDOWN_SECONDS : 0);
 
   useEffect(() => {
-    if (cooldownRemaining <= 0) {
+    if (!previewSent) {
+      setCooldown(readCooldownSeconds());
+    }
+  }, [previewSent]);
+
+  useEffect(() => {
+    if (cooldown <= 0 || previewSent) {
       return;
     }
-
-    const timer = window.setInterval(() => {
-      const nextAllowedAt = Number(window.localStorage.getItem(NEXT_ALLOWED_AT_KEY) ?? "0");
-      const seconds = Math.max(0, Math.ceil((nextAllowedAt - Date.now()) / 1000));
-      setCooldownRemaining(seconds);
-    }, 1000);
-
+    const timer = window.setInterval(() => setCooldown(readCooldownSeconds()), 1000);
     return () => window.clearInterval(timer);
-  }, [cooldownRemaining]);
+  }, [cooldown, previewSent]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const formData = new FormData(event.currentTarget);
-    const identifier = String(formData.get("email") ?? "").trim();
+  useEffect(() => {
+    if (previewSent) {
+      setNotice(signedInEmail ? authNotice("reset.sent", { email: signedInEmail }) : authNotice("reset.sentany"));
+    }
+  }, [previewSent, signedInEmail]);
 
-    if ((!EMAIL_PATTERN.test(identifier.toLowerCase()) && !isUsernameIdentifier(identifier)) || cooldownRemaining > 0) {
-      event.preventDefault();
+  const identifier = signedInEmail ?? username.trim().toLowerCase();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSending || cooldown > 0) {
+      return;
+    }
+    if (!signedInEmail && !isUsernameIdentifier(identifier)) {
+      setInvalid(true);
+      setNotice(authNotice("signup.userinvalid"));
+      return;
+    }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setNotice(authNotice("signin.offline"));
       return;
     }
 
-    setIsSubmitting(true);
+    setInvalid(false);
+    setIsSending(true);
+    try {
+      const result = await requestPasswordResetInline(identifier);
+      if (result.ok) {
+        window.localStorage.setItem(RESET_NEXT_ALLOWED_AT_KEY, String(Date.now() + RESET_COOLDOWN_SECONDS * 1000));
+        setCooldown(RESET_COOLDOWN_SECONDS);
+        setSent(true);
+        setNotice(signedInEmail ? authNotice("reset.sent", { email: signedInEmail }) : authNotice("reset.sentany"));
+        return;
+      }
+      setNotice(authNotice(resetRequestNoticeId("code" in result ? result.code : null)));
+    } catch {
+      setNotice(authNotice("reset.sendfail"));
+    } finally {
+      setIsSending(false);
+    }
   }
 
-  const isCoolingDown = cooldownRemaining > 0;
-  const identifierValue = email.trim();
-  const emailValid = EMAIL_PATTERN.test(identifierValue.toLowerCase()) || isUsernameIdentifier(identifierValue);
-  const submitLabel = isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
+  const dockLabel = cooldown > 0 ? formatResendCountdown(cooldown) : "Send reset link";
 
   return (
-    <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}>
-      <AuthCard
-        aria-label="Fitness account recovery"
-        data-auth-surface="recovery"
-        className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}
-      >
-        <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
+    <AuthShell>
+      <AuthHead title={AUTH_MODE_COPY["reset-password"].title} lead={RESET_REQUEST_LEAD} />
+      <AuthBody aria-label="Fitness password reset" data-auth-intent="reset-request" data-auth-surface="recovery">
+        <AuthForm id={RESET_FORM_ID} onSubmit={handleSubmit} noValidate>
           <AuthFormFields>
-            <AuthAccountField label="Email or username">
-              <FitContentInput
-                type="text"
-                name="email"
-                required
-                autoComplete="username"
-                fitContent={false}
-                minVisibleCharacters={17}
-                wrapperClassName="w-full"
-                className={cn(
-                  AUTH_ACCOUNT_INPUT_CLASS_NAME,
-                )}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </AuthAccountField>
+            {signedInEmail ? (
+              <AuthLockedField id={RESET_EMAIL_INPUT_ID} label="Email" value={signedInEmail} />
+            ) : sent ? (
+              <AuthLockedField id={RESET_USERNAME_INPUT_ID} label="Username" value={username} />
+            ) : (
+              <AuthAccountField label="Username" htmlFor={RESET_USERNAME_INPUT_ID} invalid={invalid}>
+                <input
+                  id={RESET_USERNAME_INPUT_ID}
+                  name="username"
+                  type="text"
+                  inputMode="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoComplete="username"
+                  minLength={USERNAME_MIN_LENGTH}
+                  maxLength={USERNAME_MAX_LENGTH}
+                  value={username}
+                  aria-invalid={invalid || undefined}
+                  readOnly={isSending}
+                  className={AUTH_ACCOUNT_INPUT_CLASS_NAME}
+                  onChange={(event) => {
+                    setUsername(event.target.value);
+                    setInvalid(false);
+                  }}
+                />
+              </AuthAccountField>
+            )}
           </AuthFormFields>
+          <AuthNoticeSlot notice={notice} />
         </AuthForm>
-
-        <AuthFooter>
-          <AuthCenteredFooterRow
-            leading={<Link href="/signup" className={appTokens.authInlineLink}>
-              Create account
-            </Link>}
-            trailing={<Link href="/login" className={appTokens.authInlineLink}>
-              Log In
-            </Link>}
-          />
-          <AuthLegalRow />
-        </AuthFooter>
-      </AuthCard>
-
-      <AuthDock>
-        <BottomActionSingle>
-          <BottomDockButton
-            type="submit"
-            form={RESET_FORM_ID}
-            intent="positive"
-            disabled={!emailValid || isSubmitting || isCoolingDown}
-            loading={isSubmitting}
-            loadingLabel="Sending..."
-          >
-            {submitLabel}
-          </BottomDockButton>
-        </BottomActionSingle>
-      </AuthDock>
+      </AuthBody>
+      <AuthLinks>
+        {signedInEmail ? (
+          <AuthLink href="/settings">Back to account</AuthLink>
+        ) : onBackToSignIn ? (
+          <AuthLinkButton onClick={onBackToSignIn}>Sign in</AuthLinkButton>
+        ) : (
+          <AuthLink href={returnTo ? { pathname: "/login", query: { returnTo } } : "/login"}>Sign in</AuthLink>
+        )}
+      </AuthLinks>
+      <AuthLegalRow returnTo={returnTo} />
+      <AuthDockButton
+        type="submit"
+        form={RESET_FORM_ID}
+        busy={isSending}
+        busyLabel="Sending…"
+        disabled={cooldown > 0 || (!signedInEmail && !username.trim())}
+      >
+        {dockLabel}
+      </AuthDockButton>
     </AuthShell>
   );
 }

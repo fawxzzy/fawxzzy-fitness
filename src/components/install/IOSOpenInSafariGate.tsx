@@ -1,20 +1,11 @@
-import { InstallGateChrome, type InstallCopyState } from "@/components/install/InstallGateChrome";
-import { FITNESS_INSTALL_STEPS } from "@/components/install/InstallRouteSurface";
+import { InstallScreen, type InstallCopyState } from "@/components/install/InstallGateChrome";
 
 type IOSOpenInSafariGateProps = {
   copyState: InstallCopyState;
-  installUrl: string;
   onCopy: () => void;
-  primaryHref?: string;
-  primaryLabel?: string;
 };
 
-export function IOSOpenInSafariGate({
-  copyState: _copyState,
-  installUrl: _installUrl,
-  onCopy: _onCopy,
-  primaryHref: _primaryHref,
-  primaryLabel: _primaryLabel,
-}: IOSOpenInSafariGateProps) {
-  return <InstallGateChrome steps={FITNESS_INSTALL_STEPS} />;
+// iPhone in-app browser (Instagram, Gmail...): it cannot add to the home screen, so open in Safari first.
+export function IOSOpenInSafariGate({ copyState, onCopy }: IOSOpenInSafariGateProps) {
+  return <InstallScreen kind="ios-inapp" copyState={copyState} onCopy={onCopy} />;
 }

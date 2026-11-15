@@ -2,24 +2,32 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { InstallGateChrome } from "@/components/install/InstallGateChrome";
-import { getInstalledAppHref } from "@/lib/install/config";
-import { getInstallContext } from "@/lib/install/getInstallContext";
+import { InstallScreen, type InstallCopyState, type InstallScreenKind } from "@/components/install/InstallGateChrome";
+import { getCanonicalInstallUrl, getInstalledAppHref } from "@/lib/install/config";
+import { getInstallContext, type InstallContext } from "@/lib/install/getInstallContext";
 import { useInstallContextOverride } from "@/lib/install/useInstallContextOverride";
 import { usePWAInstallPrompt } from "@/components/install/usePWAInstallPrompt";
 import { RouteLoading } from "@/components/RouteLoading";
 
-export const FITNESS_INSTALL_STEPS = [
-  "Open this page in your device's default browser.",
-  "Tap Share, then choose More.",
-  "Select Add to Home Screen, Install app, or Download.",
-] as const;
-
-export const FITNESS_UNSUPPORTED_INSTALL_STEPS = [
-  "Open this page in Safari, Chrome, or Edge.",
-  "Use that browser's Share or menu button, then choose More.",
-  "Select Add to Home Screen, Install app, or Download.",
-] as const;
+/** Which install screen this browser gets. No screen offers a way into the app before it runs installed. */
+export function resolveInstallScreenKind(
+  context: Pick<InstallContext, "hasSupportedInstallPath" | "shouldShowIOSOpenInSafariGate" | "shouldShowIOSAddToHomeScreenGate" | "canUseNativeInstallPrompt">,
+  { isInstalled = false }: { isInstalled?: boolean } = {},
+): InstallScreenKind {
+  if (isInstalled) {
+    return "installed";
+  }
+  if (context.shouldShowIOSOpenInSafariGate) {
+    return "ios-inapp";
+  }
+  if (context.shouldShowIOSAddToHomeScreenGate) {
+    return "ios-safari";
+  }
+  if (!context.hasSupportedInstallPath) {
+    return "unsupported";
+  }
+  return context.canUseNativeInstallPrompt ? "prompt" : "manual";
+}
 
 export function InstallRouteSurface({
   initialInstallContext = null,
@@ -32,6 +40,7 @@ export function InstallRouteSurface({
   const installPrompt = usePWAInstallPrompt();
   const override = useInstallContextOverride(initialInstallContext);
   const [hasResolvedClientInstallContext, setHasResolvedClientInstallContext] = useState(false);
+  const [copyState, setCopyState] = useState<InstallCopyState>("idle");
   const context = useMemo(
     () => getInstallContext({
       override,
@@ -48,13 +57,35 @@ export function InstallRouteSurface({
     }
   }, [context.isStandalone, initialReturnTo, router]);
 
+  useEffect(() => {
+    if (copyState !== "copied") {
+      return;
+    }
+    const timer = window.setTimeout(() => setCopyState("idle"), 2400);
+    return () => window.clearTimeout(timer);
+  }, [copyState]);
+
   if (!hasResolvedClientInstallContext || context.isStandalone) {
     return <RouteLoading label="Opening Fitness" variant="route" />;
   }
 
-  if (!context.hasSupportedInstallPath) {
-    return <InstallGateChrome steps={FITNESS_UNSUPPORTED_INSTALL_STEPS} />;
-  }
+  const kind = resolveInstallScreenKind(context, { isInstalled: installPrompt.isInstalled });
 
-  return <InstallGateChrome steps={FITNESS_INSTALL_STEPS} />;
+  return (
+    <InstallScreen
+      kind={kind}
+      copyState={copyState}
+      isPrompting={installPrompt.isPrompting}
+      onInstall={() => {
+        void installPrompt.promptInstall();
+      }}
+      onCopy={() => {
+        const url = getCanonicalInstallUrl();
+        void navigator.clipboard?.writeText(url).then(
+          () => setCopyState("copied"),
+          () => setCopyState("error"),
+        );
+      }}
+    />
+  );
 }

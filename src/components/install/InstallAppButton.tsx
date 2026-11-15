@@ -1,6 +1,6 @@
 "use client";
 
-import { AppButton } from "@/components/ui/AppButton";
+import { AuthDockButton } from "@/components/auth/AuthShell";
 
 type InstallAppButtonProps = {
   canPromptInstall: boolean;
@@ -18,15 +18,15 @@ export function InstallAppButton({
   }
 
   return (
-    <AppButton
-      fullWidth
-      loading={isPrompting}
+    <AuthDockButton
+      type="button"
+      busy={isPrompting}
+      busyLabel="Install"
       onClick={() => {
         void onInstall();
       }}
-      variant="primary"
     >
-      Install app
-    </AppButton>
+      Install
+    </AuthDockButton>
   );
 }
