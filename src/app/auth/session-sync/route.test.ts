@@ -251,6 +251,60 @@ test("session sync rejects invalid or expired credentials without setting cookie
   assert.equal(response.headers.get("set-cookie"), null);
 });
 
+test("session sync delete revokes the session behind the cookies, then clears them", async () => {
+  const seen: Array<{ accessToken: string; refreshToken: string }> = [];
+  const sync = createSessionSyncHandlers({
+    getHandoffRuntime: () => null,
+    revokeSession: async (tokens) => {
+      seen.push(tokens);
+      return "revoked";
+    },
+    validateSession: async () => null,
+  });
+
+  const response = await sync.DELETE(new Request(URL, {
+    headers: { cookie: "sb-access-token=live-access; sb-refresh-token=live-refresh", origin: ORIGIN },
+    method: "DELETE",
+  }));
+
+  assert.deepEqual(seen, [{ accessToken: "live-access", refreshToken: "live-refresh" }]);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, signOut: "revoked" });
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.match(setCookie, /sb-access-token=;/);
+  assert.match(setCookie, /sb-refresh-token=;/);
+});
+
+test("session sync delete still clears cookies when revocation throws, reports no-session, and skips cross-origin calls", async () => {
+  let calls = 0;
+  const failing = createSessionSyncHandlers({
+    getHandoffRuntime: () => null,
+    revokeSession: async () => {
+      calls += 1;
+      throw new Error("auth server unreachable");
+    },
+    validateSession: async () => null,
+  });
+
+  const failed = await failing.DELETE(new Request(URL, {
+    headers: { cookie: "sb-refresh-token=only-refresh", origin: ORIGIN },
+    method: "DELETE",
+  }));
+  assert.equal(failed.status, 200);
+  assert.deepEqual(await failed.json(), { ok: true, signOut: "failed" });
+  assert.match(failed.headers.get("set-cookie") ?? "", /sb-refresh-token=;/);
+
+  const noCookies = await failing.DELETE(new Request(URL, { headers: { origin: ORIGIN }, method: "DELETE" }));
+  assert.deepEqual(await noCookies.json(), { ok: true, signOut: "no-session" });
+
+  const crossOrigin = await failing.DELETE(new Request(URL, {
+    headers: { cookie: "sb-access-token=a; sb-refresh-token=r", origin: "https://evil.example" },
+    method: "DELETE",
+  }));
+  assert.equal(crossOrigin.status, 403);
+  assert.equal(calls, 1);
+});
+
 test("session sync delete clears auth cookies only for the same browser origin", async () => {
   const sync = handlers();
   const invalid = await sync.DELETE(new Request(URL, { headers: { origin: "https://account.fawxzzy.com" }, method: "DELETE" }));

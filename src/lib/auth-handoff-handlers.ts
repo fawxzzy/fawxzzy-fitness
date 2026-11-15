@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
-import { clearSessionCookies, setSessionCookies } from "@/lib/auth-session";
+import {
+  ACCESS_COOKIE_NAME,
+  clearSessionCookies,
+  REFRESH_COOKIE_NAME,
+  setSessionCookies,
+} from "@/lib/auth-session";
+import {
+  revokeSessionBehindCookies,
+  revokeSessionBehindCookiesWithin,
+  type SignOutRevocationClient,
+  type SignOutRevocationOutcome,
+} from "@/lib/auth/sign-out-revocation";
 import {
   clearFitnessHandoffBindingCookie,
   createHandoffSecret,
@@ -71,6 +82,8 @@ export type SessionSyncDependencies = {
   getHandoffRuntime: () => FitnessHandoffRuntime | null;
   getReadiness?: (runtime: FitnessHandoffRuntime | null) => FitnessHandoffReadiness | null;
   validateSession: (tokens: SessionTokenPair) => Promise<SessionTokenPair | null>;
+  /** Revokes the auth session behind the request's cookies on sign-out (DELETE). Omitted: cookies are only cleared. */
+  revokeSession?: (tokens: { accessToken: string; refreshToken: string }) => Promise<SignOutRevocationOutcome>;
 };
 
 type JsonBodyResult =
@@ -78,7 +91,7 @@ type JsonBodyResult =
   | { error: "Invalid session payload." | "Session payload is too large." | "Unsupported session payload."; ok: false; status: 400 | 413 | 415 };
 
 function buildResponse(
-  body: { ok: true; handoffId?: string; readiness?: FitnessHandoffReadiness; returnTo?: string; session?: SessionTokenPair } | { ok: false; error: string },
+  body: { ok: true; handoffId?: string; readiness?: FitnessHandoffReadiness; returnTo?: string; session?: SessionTokenPair; signOut?: SignOutRevocationOutcome } | { ok: false; error: string },
   status = 200,
   origin?: string,
 ) {
@@ -232,6 +245,32 @@ export async function validateSubmittedSession(
   }
 }
 
+function createSignOutRevocationClient(): SignOutRevocationClient {
+  return createFitnessSupabaseClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+function readCookieToken(request: Request, name: string) {
+  const raw = getRequestCookie(request, name);
+  try {
+    return decodeURIComponent(raw).trim();
+  } catch {
+    return raw.trim();
+  }
+}
+
+/** Sign-out revocation with the user's own tokens from the cookie mirror; never throws, bounded by a timeout. */
+export function revokeRequestSession(tokens: { accessToken: string; refreshToken: string }) {
+  return revokeSessionBehindCookiesWithin(() => revokeSessionBehindCookies({
+    ...tokens,
+    client: createSignOutRevocationClient(),
+  }));
+}
+
 export function createSessionHandoffHandlers(dependencies: SessionHandoffDependencies = {
   getReadiness: getFitnessHandoffReadiness,
   getRuntime: getFitnessHandoffRuntime,
@@ -300,6 +339,7 @@ export function createSessionHandoffHandlers(dependencies: SessionHandoffDepende
 
 export function createSessionSyncHandlers(dependencies: SessionSyncDependencies = {
   getHandoffRuntime: getFitnessHandoffRuntime,
+  revokeSession: revokeRequestSession,
   validateSession: validateSubmittedSession,
 }) {
   async function OPTIONS(request: Request) {
@@ -409,7 +449,19 @@ export function createSessionSyncHandlers(dependencies: SessionSyncDependencies 
       return buildResponse({ ok: false, error: "Invalid session origin." }, 403);
     }
 
-    const response = buildResponse({ ok: true });
+    // Revoke the auth session before dropping the cookies: the browser client holds no session of its own, so
+    // this request is the only place the sign-out can reach the auth server. Cookies are cleared whatever the
+    // outcome so the user is always signed out locally; `signOut` reports whether the revocation was confirmed.
+    let outcome: SignOutRevocationOutcome | undefined;
+    if (dependencies.revokeSession) {
+      const accessToken = readCookieToken(request, ACCESS_COOKIE_NAME);
+      const refreshToken = readCookieToken(request, REFRESH_COOKIE_NAME);
+      outcome = accessToken || refreshToken
+        ? await dependencies.revokeSession({ accessToken, refreshToken }).catch((): SignOutRevocationOutcome => "failed")
+        : "no-session";
+    }
+
+    const response = buildResponse(outcome ? { ok: true, signOut: outcome } : { ok: true });
     clearSessionCookies(response.cookies);
     return response;
   }
