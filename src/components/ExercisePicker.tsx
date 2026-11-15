@@ -18,7 +18,8 @@ import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/Sign
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { GLOW_SWITCH_STANDARD_CLASS_NAME } from "@/components/ui/GlowSwitch";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
+import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
@@ -836,8 +837,8 @@ function ExerciseTitleWithCompanion({
   titleUnderlineClassName?: string;
 }) {
   return (
-    <span className="inline-flex min-w-0 max-w-full items-start gap-2.5 align-top">
-      <span className="inline-flex min-w-0 max-w-[10.9rem] flex-1 basis-0 flex-col">
+    <span data-exercise-title-companion-row="true" className="inline-flex min-w-0 max-w-full flex-wrap items-start gap-x-2.5 gap-y-1.5 align-top">
+      <span className="inline-flex min-w-[7rem] max-w-[10.9rem] flex-1 basis-[7rem] flex-col">
         <ExerciseTitleInline
           name={name}
           metadataItems={metadataItems}
@@ -1545,7 +1546,7 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
         contentClassName={cn("pr-1.5", pickerRowMobileDensityClassNames.content)}
       >
         <div className="space-y-1.5 pr-2">
-          <LabeledEditorField label={fieldLabel} className="w-full">
+          <FormField label={fieldLabel} className="w-full">
             <input
               type="text"
               name="customExerciseNameDisplay"
@@ -1553,12 +1554,9 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
               onChange={(event) => onValueChange(event.target.value)}
               placeholder="Custom Exercise"
               maxLength={80}
-              className={cn(
-                labeledEditorFieldControlClassName,
-                "block h-11 w-full min-w-0 px-3 text-[0.95rem] font-semibold leading-tight",
-              )}
+              className={cn(formFieldControlClassName, "font-semibold")}
             />
-          </LabeledEditorField>
+          </FormField>
           {draftHelperText ? (
             <div className="flex min-w-0 items-start gap-1.5 pl-0.5">
               {showStatusSeparator ? <SignatureMiniPipe className="mt-[1px] shrink-0 self-start" /> : null}
@@ -1633,7 +1631,7 @@ function CustomExerciseFilterRailCard({
       <button
         ref={buttonRef}
         type="button"
-        className="group block h-auto w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pb-[4px] pt-[4px] text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+        className="group -my-2.5 flex min-h-11 w-full flex-col justify-center select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 py-0 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
         onClick={onClick}
         aria-expanded={isOpen}
       >

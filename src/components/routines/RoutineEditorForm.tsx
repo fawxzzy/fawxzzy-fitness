@@ -10,7 +10,8 @@ import {
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { InlineEdgeControlButton, INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME } from "@/components/ui/InlineEdgeControlButton";
-import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
+import { FormField } from "@/components/ui/FormField";
+import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon } from "@/components/ui/Chevrons";
 import { CardHeader, CardSurface } from "@/components/ui/card-system";
@@ -179,6 +180,8 @@ function RoutineEditorBinaryToggleButton({
   );
 }
 
+// C14 label: 11px uppercase ABOVE the control, muted, no accent underline.
+const routineEditorFieldLabelClassName = "mb-1.5 px-1 text-[11px] font-semibold uppercase leading-4 tracking-[0.12em] text-[rgb(var(--text-secondary)/0.92)]";
 const routineEditorCycleInputClassName = cn(
   appTokens.measurementInput,
   labeledEditorFieldControlClassName,
@@ -188,8 +191,6 @@ const routineEditorCycleLengthInputClassName = cn(routineEditorCycleInputClassNa
 const routineEditorCycleFieldWidthClassName = "w-[9.75rem]";
 // A native date value ("11/12/2026") plus the picker icon and the field padding needs more room than the number steppers.
 const routineEditorCycleDateFieldWidthClassName = "w-[11.5rem]";
-const routineEditorCycleFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
-const routineEditorCycleFieldLegendClassName = "ml-auto mr-3 whitespace-nowrap px-1 py-0 text-[11px] font-semibold uppercase leading-none tracking-[0.14em] text-[rgb(var(--accent)/0.94)]";
 const routineEditorCompactExpandingControlWidthClassName = "w-full max-w-[9rem]";
 
 type RoutineEditorInfoPayload = {
@@ -466,13 +467,8 @@ function RoutineEditorInlineUnitGroup({
   children: ReactNode;
 }) {
   return (
-    <div className="min-w-0 w-[9rem] shrink-0 space-y-2">
-      <div className="mx-auto w-fit max-w-full space-y-1 text-center">
-        <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.96)]">
-          {title}
-        </p>
-        <MetricAccentBar variant="thin" className="w-full opacity-85" />
-      </div>
+    <div className="min-w-0 w-[9rem] shrink-0">
+      <p className={routineEditorFieldLabelClassName}>{title}</p>
       {children}
     </div>
   );
@@ -496,12 +492,7 @@ export function RoutineEditorInlineCycleModeControl({
         sectionKey: "routine_setup",
       })}
     >
-      <div className="space-y-[2px]">
-        <div className="px-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          Routine Type
-        </div>
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
+      <p className={routineEditorFieldLabelClassName}>Routine type</p>
       <RoutineEditorBinaryToggleButton
         label={scheduleMode === "rolling_n_day" ? "# day-based" : "Week-based"}
         ariaLabel="Routine schedule mode"
@@ -580,29 +571,19 @@ function RoutineEditorTextField({
   label,
   children,
   className,
-  labelClassName,
   info,
 }: {
   label: string;
   children: ReactNode;
   className?: string;
-  labelClassName?: string;
   info?: RoutineEditorInfoPayload;
 }) {
   return (
-    <label className="block" {...(info ? routineEditorInfoHandlers(info) : {})}>
-      <fieldset
-        className={cn(
-          "min-w-0 rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.28)] shadow-[0_10px_24px_rgba(0,0,0,0.12)] transition-colors focus-within:border-[rgb(var(--button-primary-border)/0.42)]",
-          className,
-        )}
-      >
-        <legend className={cn(labeledEditorFieldFloatingLabelClassName, labelClassName)}>
-          {label}
-        </legend>
+    <div className="block" {...(info ? routineEditorInfoHandlers(info) : {})}>
+      <FormField label={label} shellClassName={className}>
         {children}
-      </fieldset>
-    </label>
+      </FormField>
+    </div>
   );
 }
 
@@ -658,10 +639,7 @@ export function RoutineEditorCycleLengthField({
         appTokens.measurementFieldStandard,
         "min-h-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
       )}>
-        <fieldset className={routineEditorCycleFieldShellClassName}>
-          <legend className={cn(labeledEditorFieldFloatingLabelClassName, routineEditorCycleFieldLegendClassName)}>
-            Routine Length
-          </legend>
+        <FormField label="Routine length">
           <InlineEdgeControlButton
             side="left"
             ariaLabel="Decrease routine length"
@@ -702,7 +680,7 @@ export function RoutineEditorCycleLengthField({
           >
             +
           </InlineEdgeControlButton>
-        </fieldset>
+        </FormField>
       </div>
     </label>
   );
@@ -729,10 +707,7 @@ export function RoutineEditorCycleAnchorField({
         appTokens.measurementFieldStandard,
         "min-h-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
       )}>
-        <fieldset className={routineEditorCycleFieldShellClassName}>
-          <legend className={cn(labeledEditorFieldFloatingLabelClassName, routineEditorCycleFieldLegendClassName)}>
-            Weekday Anchor
-          </legend>
+        <FormField label="Start date">
           <input
             type="date"
             name="startDate"
@@ -744,7 +719,7 @@ export function RoutineEditorCycleAnchorField({
               "[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80",
             )}
           />
-        </fieldset>
+        </FormField>
       </div>
     </label>
   );
@@ -801,12 +776,7 @@ export function RoutineEditorInlineCycleControls({
   );
   const dayDirectionRow = onToggleEffortWaveDirection ? (
     <div className="space-y-2">
-      <div className="mx-auto w-fit max-w-full space-y-1 text-center">
-        <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          Day adjustments
-        </p>
-        <MetricAccentBar variant="thin" className="w-full opacity-85" />
-      </div>
+      <p className={routineEditorFieldLabelClassName}>Day adjustments</p>
       <HorizontalScrollHint
         scrollClassName="overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
         contentClassName="mx-auto flex w-max min-w-max items-start justify-center gap-3 px-1"
@@ -815,10 +785,9 @@ export function RoutineEditorInlineCycleControls({
             const direction = effortWaveDirections?.[index] ?? "straight";
             return (
               <div key={`cycle-day-direction-${index + 1}`} className="flex min-w-[2.75rem] shrink-0 flex-col items-center gap-1 text-center">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.92)]">
                   {index + 1}
                 </span>
-                <MetricAccentBar variant="thin" className="w-5 opacity-80" />
                 <RoutineCycleDayDirectionButton
                   dayNumber={index + 1}
                   direction={direction}
@@ -835,12 +804,7 @@ export function RoutineEditorInlineCycleControls({
     <section className="px-0 py-0">
       <div className="space-y-3">
         {showSectionTitle ? (
-          <div className="space-y-[2px] text-center">
-            <div className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-              Routine Type
-            </div>
-            <MetricAccentBar variant="thin" className="mx-auto w-12 opacity-80" />
-          </div>
+          <p className={routineEditorFieldLabelClassName}>Routine type</p>
         ) : null}
         {showCycleFields ? (
           <RoutineEditorWeekdayField
