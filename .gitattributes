@@ -1,1 +1,2 @@
 docs/*.json text eol=lf
+docs/PLAYBOOK_NOTES.md merge=union
