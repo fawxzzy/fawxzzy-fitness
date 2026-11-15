@@ -23,6 +23,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
+import { buildSessionFinishCheck, type SessionFinishCheck } from "@/lib/session-finish";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { buildCurrentSessionHeaderInfoRailItems } from "@/lib/header-info-rail";
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
@@ -173,6 +174,9 @@ export function SessionPageClient({
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [isSessionCompleted, setIsSessionCompleted] = useState(initialIsSessionCompleted);
   const [completedSessionUpdates, setCompletedSessionUpdates] = useState<SessionAutoPromotionUpdate[] | null>(null);
+  // Set only when Finish is tapped with planned sets still unlogged; null means the sheet is closed.
+  const [finishConfirm, setFinishConfirm] = useState<SessionFinishCheck | null>(null);
+  const finishFormRef = useRef<HTMLFormElement>(null);
   const toast = useToast();
   useToastMessageEffect("error", searchError, { id: "session-search-error" });
   const fallbackReturnHref = useMemo(
@@ -286,6 +290,7 @@ export function SessionPageClient({
       </BottomDockButton>
     ) : (
       <form
+        ref={finishFormRef}
         action={async (formData) => {
           const result = await saveSessionAction(formData);
           toastActionResult(toast, result, {
@@ -312,6 +317,14 @@ export function SessionPageClient({
               type="submit"
               intent="positive"
               className="!min-h-[44px]"
+              onClick={(event) => {
+                // One tap (plain submit) when every planned set is logged; a confirm sheet only when some are unfinished.
+                const check = buildSessionFinishCheck({ exercises, live: liveProgressRef.current });
+                if (check.needsConfirm) {
+                  event.preventDefault();
+                  setFinishConfirm(check);
+                }
+              }}
             >
               Finish
             </BottomDockButton>
@@ -319,7 +332,7 @@ export function SessionPageClient({
         />
       </form>
     ),
-    [durationSeconds, isSessionCompleted, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
+    [durationSeconds, exercises, isSessionCompleted, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
   );
 
   return (
@@ -370,6 +383,23 @@ export function SessionPageClient({
           {isSessionCompleted ? null : emptyState}
         </section>
       </ContentRail>
+      {finishConfirm && !isSessionCompleted ? (
+        <ConfirmDestructiveModal
+          open
+          title="Finish workout?"
+          titleVariant="raw"
+          description={finishConfirm.message}
+          confirmLabel="Finish"
+          confirmActionLabel="Finish"
+          confirmVariant="primary"
+          cancelLabel="Keep going"
+          onCancel={() => setFinishConfirm(null)}
+          onConfirm={() => {
+            setFinishConfirm(null);
+            finishFormRef.current?.requestSubmit();
+          }}
+        />
+      ) : null}
       {completedSessionUpdates ? (
         <ConfirmDestructiveModal
           open
