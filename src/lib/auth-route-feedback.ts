@@ -87,3 +87,23 @@ export function resolveResetPasswordErrorCopy(code: unknown): string | undefined
 export function buildResetPasswordErrorHref(code: ResetPasswordErrorCode) {
   return `/reset-password?error=${encodeURIComponent(code)}`;
 }
+
+/**
+ * What the global ?error= / ?success= toast bridge may show on the auth screens that own their own copy.
+ * Returns `null` for any other path (the bridge keeps its existing behavior there).
+ * /login: only allow-listed error codes or fixed sign-in sentences, never `?success=` text.
+ * /reset-password: nothing; the page renders its own allow-listed error and never reads `?success=`.
+ */
+export function resolveAuthRouteToastFeedback(args: {
+  pathname: string;
+  error: unknown;
+  success: unknown;
+}): { error?: string; success?: undefined } | null {
+  if (args.pathname === "/login") {
+    return { error: resolveLoginErrorCopy(args.error) };
+  }
+  if (args.pathname === "/reset-password") {
+    return {};
+  }
+  return null;
+}

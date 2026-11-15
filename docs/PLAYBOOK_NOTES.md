@@ -1678,3 +1678,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: A premium surface ships only when each metric is a stated deterministic rule over stored rows, is gated on the server, and is omitted (not locked-placeholdered) when data is thin.
 - Failure Mode: Locked placeholder boxes erode trust; client-only gating leaks premium numbers; mixed units and mid-cycle plan edits produce misleading deltas.
 - Status: Plan only; owner decisions pending; nothing built or deployed.
+
+## 2026-11-14 - Toast bridge: allow-listed codes only on /login and /reset-password (FF-DESIGN-004 leftovers)
+
+- WHAT changed: The global `ActionFeedbackToasts` bridge no longer toasts raw `?error=` / `?success=` text on `/login` (allow-listed code or fixed sign-in sentence only, `?success=` never) and `/reset-password` (the page owns its allow-listed copy; the bridge shows nothing). Logic lives in `resolveAuthRouteToastFeedback` in `src/lib/auth-route-feedback.ts`. Other routes keep their existing behavior. Audit: the Today offline info control already uses the real exercise id (#245, pinned by a TodayCards contract test) and the finish screen already uses the History duration formatter (#249, "1h 15m"); no change needed for those. No persisted or server-visible change.
+- WHY it changed: The page-level screens were already code-based, but the layout-level bridge still toasted the raw query text, so a crafted `/reset-password?error=<words>` or `/login?success=<words>` put chosen text in a toast on this origin.
+- Rule: Every place that turns a URL parameter into visible copy resolves it through the allow-list; a second consumer of the same parameter must not bypass the first.
+- Failure Mode: Hardening the page components but leaving the shared layout bridge as a raw pass-through left the hole open.
+- Evidence: `src/lib/auth-route-feedback.test.ts` (4 pass), typecheck, lint.
+- Status: Source only; headless, not device-checked. Not done: non-auth routes (Today, routines) still toast server-set `?error=`/`?success=` sentences, which need a code migration. `auth-route-feedback.test.ts` is not listed in ci.yml (ci.yml untouched per scope).

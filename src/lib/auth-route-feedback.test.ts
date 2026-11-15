@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   LOGIN_FAILURE_MESSAGES,
+  resolveAuthRouteToastFeedback,
   resolveLoginErrorCopy,
   resolveLoginInfoCopy,
   resolveResetPasswordErrorCopy,
@@ -52,4 +53,13 @@ test("reset-password route resolves known codes only and takes the first of repe
   assert.equal(resolveResetPasswordErrorCopy(["weak_password", CRAFTED]), "That password is too easy to guess. Choose a different one.");
   assert.equal(resolveLoginErrorCopy([CRAFTED]), undefined);
   assert.equal(resolveLoginInfoCopy("confirmed"), "Email verified. You can log in now.");
+});
+
+test("the global toast bridge shows allow-listed text only on /login and nothing on /reset-password", () => {
+  assert.deepEqual(resolveAuthRouteToastFeedback({ pathname: "/login", error: CRAFTED, success: CRAFTED }), { error: undefined });
+  assert.deepEqual(resolveAuthRouteToastFeedback({ pathname: "/login", error: "session_expired", success: CRAFTED }), {
+    error: "Session refresh failed. Re-enter your password to continue.",
+  });
+  assert.deepEqual(resolveAuthRouteToastFeedback({ pathname: "/reset-password", error: "session_expired", success: CRAFTED }), {});
+  assert.equal(resolveAuthRouteToastFeedback({ pathname: "/today", error: CRAFTED, success: null }), null);
 });

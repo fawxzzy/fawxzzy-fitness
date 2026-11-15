@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { resolveSignupRouteMessages, SIGNUP_ROUTE_ERROR_TOAST_ID } from "@/components/auth/signupFeedback";
+import { resolveAuthRouteToastFeedback } from "@/lib/auth-route-feedback";
 import { useToast } from "@/components/ui/ToastProvider";
 
 export function ActionFeedbackToasts() {
@@ -14,13 +15,19 @@ export function ActionFeedbackToasts() {
   useEffect(() => {
     const error = searchParams.get("error");
     // /signup carries allow-listed codes only: it never shows `?success=` text, and `?error=` is resolved to fixed copy.
-    const success = pathname === "/signup" ? null : searchParams.get("success");
+    const authFeedback = resolveAuthRouteToastFeedback({ pathname, error, success: searchParams.get("success") });
+    const success = pathname === "/signup" || authFeedback ? null : searchParams.get("success");
 
     if (!error && !success) {
       return;
     }
 
-    if (error && pathname === "/signup") {
+    if (error && authFeedback) {
+      // /login and /reset-password: allow-listed codes only; unknown text is dropped, never toasted.
+      if (authFeedback.error) {
+        toast.error(authFeedback.error, pathname === "/login" ? { id: "login-route-error" } : undefined);
+      }
+    } else if (error && pathname === "/signup") {
       // Never render arbitrary query text here. The signup screen toasts the same fixed copy under the same id.
       const message = resolveSignupRouteMessages({ errorCode: error }).error;
       if (message) {
