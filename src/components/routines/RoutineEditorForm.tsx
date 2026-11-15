@@ -10,7 +10,7 @@ import {
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { InlineEdgeControlButton, INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME } from "@/components/ui/InlineEdgeControlButton";
-import { FormField } from "@/components/ui/FormField";
+import { FormField, formFieldControlClassName, type FormFieldControlProps } from "@/components/ui/FormField";
 import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon } from "@/components/ui/Chevrons";
@@ -574,7 +574,7 @@ function RoutineEditorTextField({
   info,
 }: {
   label: string;
-  children: ReactNode;
+  children: (control: FormFieldControlProps) => ReactNode;
   className?: string;
   info?: RoutineEditorInfoPayload;
 }) {
@@ -626,7 +626,7 @@ export function RoutineEditorCycleLengthField({
   };
 
   return (
-    <label
+    <div
       className={cn("block", routineEditorCycleFieldWidthClassName)}
       {...routineEditorInfoHandlers({
         title: "Routine Length",
@@ -640,6 +640,8 @@ export function RoutineEditorCycleLengthField({
         "min-h-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
       )}>
         <FormField label="Routine length">
+          {(control) => (
+          <>
           <InlineEdgeControlButton
             side="left"
             ariaLabel="Decrease routine length"
@@ -650,6 +652,7 @@ export function RoutineEditorCycleLengthField({
             −
           </InlineEdgeControlButton>
           <input
+            {...control}
             type="text"
             inputMode="numeric"
             enterKeyHint="done"
@@ -680,9 +683,11 @@ export function RoutineEditorCycleLengthField({
           >
             +
           </InlineEdgeControlButton>
+          </>
+          )}
         </FormField>
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -694,11 +699,11 @@ export function RoutineEditorCycleAnchorField({
   onChange?: (value: string) => void;
 }) {
   return (
-    <label
+    <div
       className={cn("block", routineEditorCycleDateFieldWidthClassName)}
       {...routineEditorInfoHandlers({
-        title: "Weekday Anchor",
-        summary: "Calendar date that places Slot 1 inside the current anchored week.",
+        title: "Start date",
+        summary: "Day 1 falls on this date and the cycle repeats from it, before and after. A future date does not delay the routine.",
         sectionKey: "routine_setup",
       })}
     >
@@ -707,8 +712,10 @@ export function RoutineEditorCycleAnchorField({
         appTokens.measurementFieldStandard,
         "min-h-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
       )}>
-        <FormField label="Start date">
+        <FormField label="Start date" helper="Day 1 falls on this date; the cycle repeats from it.">
+          {(control) => (
           <input
+            {...control}
             type="date"
             name="startDate"
             required
@@ -719,9 +726,10 @@ export function RoutineEditorCycleAnchorField({
               "[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80",
             )}
           />
+          )}
         </FormField>
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -896,21 +904,19 @@ export function RoutineEditorFormFields({
                   summary: "Name shown on Today, Routines, and edit screens.",
                 }}
               >
-                <input
-                  name="name"
-                  required
-                  maxLength={15}
-                  defaultValue={nameDefaultValue}
-                  value={values?.name}
-                  onChange={(event) => onFieldChange?.("name", event.target.value)}
-                  aria-label="Routine Name"
-                  placeholder="Push/Pull/Legs"
-                  className={cn(
-                    labeledEditorFieldControlClassName,
-                    "h-14 px-[10px] py-3 text-center",
-                    titleInput ? "text-base" : undefined,
-                  )}
-                />
+                {(control) => (
+                  <input
+                    {...control}
+                    name="name"
+                    required
+                    maxLength={15}
+                    defaultValue={nameDefaultValue}
+                    value={values?.name}
+                    onChange={(event) => onFieldChange?.("name", event.target.value)}
+                    placeholder="Push/Pull/Legs"
+                    className={cn(formFieldControlClassName, "font-semibold", titleInput ? "text-base" : undefined)}
+                  />
+                )}
               </RoutineEditorTextField>
             </div>
           ) : null}

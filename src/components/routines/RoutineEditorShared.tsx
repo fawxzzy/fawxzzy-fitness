@@ -179,7 +179,6 @@ export function RoutineEditorTitleInput({
   value,
   onChange,
   placeholder,
-  ariaLabel,
   maxLength,
   className,
   label = "Name",
@@ -190,7 +189,6 @@ export function RoutineEditorTitleInput({
   value: string;
   onChange: (nextValue: string) => void;
   placeholder: string;
-  ariaLabel: string;
   maxLength?: number;
   className?: string;
   label?: string;
@@ -199,17 +197,18 @@ export function RoutineEditorTitleInput({
 }) {
   return (
     <FormField label={label} invalid={invalid} error={error} className={className}>
-      <input
-        name={name}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        aria-invalid={invalid || undefined}
-        maxLength={maxLength}
-        autoComplete="off"
-        className={cn(formFieldControlClassName, "font-semibold")}
-      />
+      {(control) => (
+        <input
+          {...control}
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          autoComplete="off"
+          className={cn(formFieldControlClassName, "font-semibold")}
+        />
+      )}
     </FormField>
   );
 }

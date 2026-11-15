@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseCard, EXERCISE_CARD_SUMMARY_CLASS_NAME } from "@/components/ExerciseCard";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
@@ -1459,6 +1459,9 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
   const hasDraftTags = selectedTags.length > 0;
   const draftMetaItems = hasDraftTags ? selectedTags : ["Create one not in library"];
   const draftHelperText = helperText;
+  // A warning helper is shown only for a blocking name problem (duplicate name), so it marks the field invalid.
+  const isDraftNameInvalid = helperTone === "warning" && Boolean(draftHelperText);
+  const draftHelperId = `custom-exercise-helper-${useId()}`;
   const draftHelperToneClassName = helperTone === "warning"
     ? "text-[rgb(var(--accent-yellow-on)/0.94)]"
     : helperTone === "accent"
@@ -1546,21 +1549,26 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
         contentClassName={cn("pr-1.5", pickerRowMobileDensityClassNames.content)}
       >
         <div className="space-y-1.5 pr-2">
-          <FormField label={fieldLabel} className="w-full">
-            <input
-              type="text"
-              name="customExerciseNameDisplay"
-              value={value}
-              onChange={(event) => onValueChange(event.target.value)}
-              placeholder="Custom Exercise"
-              maxLength={80}
-              className={cn(formFieldControlClassName, "font-semibold")}
-            />
+          <FormField label={fieldLabel} className="w-full" invalid={isDraftNameInvalid}>
+            {(control) => (
+              <input
+                {...control}
+                aria-describedby={draftHelperText ? draftHelperId : undefined}
+                type="text"
+                name="customExerciseNameDisplay"
+                value={value}
+                onChange={(event) => onValueChange(event.target.value)}
+                placeholder="Custom Exercise"
+                maxLength={80}
+                className={cn(formFieldControlClassName, "font-semibold")}
+              />
+            )}
           </FormField>
           {draftHelperText ? (
             <div className="flex min-w-0 items-start gap-1.5 pl-0.5">
               {showStatusSeparator ? <SignatureMiniPipe className="mt-[1px] shrink-0 self-start" /> : null}
               <div
+                id={draftHelperId}
                 className={cn(
                   "min-w-0 text-[11px] leading-[1.22]",
                   draftHelperToneClassName,

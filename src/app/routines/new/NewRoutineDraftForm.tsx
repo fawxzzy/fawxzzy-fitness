@@ -278,12 +278,10 @@ export function NewRoutineDraftForm({
         }}
         label="Routine name"
         placeholder="e.g. Upper / Lower"
-        ariaLabel="Routine Name"
         maxLength={15}
-        invalid={hasUserEdited && isRoutineNameInvalid}
-        error={routineNameConflict ? "That name is already used." : null}
+        invalid={isRoutineNameInvalid}
       />
-  ), [draft.name, hasUserEdited, isRoutineNameInvalid, routineNameConflict]);
+  ), [draft.name, isRoutineNameInvalid]);
 
   useEffect(() => {
     if (!isUsingExitGuard) {

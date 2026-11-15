@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
-import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { WorkoutPlansPageClient } from "@/app/routines/WorkoutPlansPageClient";
 import { deleteWorkoutPlanSourceAction } from "@/app/routines/actions";
@@ -76,9 +76,15 @@ export default async function WorkoutPlansPage() {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
+      {/* Pushed from Routines, so a detail screen (DESIGN-CONTRACT 15.1): Back to /routines, no tab bar. */}
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<ScreenHeader kind="tab" title="Days" />}
+        floatingHeader={(
+          <ScreenHeader
+            kind="detail"
+            title="Days"
+            back={<ScreenHeaderBackButton href="/routines" label="Back to routines" />}
+          />
+        )}
       >
         <ContentRail className="space-y-3">
           <WorkoutPlansPageClient

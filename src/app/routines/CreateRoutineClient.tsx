@@ -402,17 +402,19 @@ export function CreateRoutineClient({
                       invalid={Boolean(duplicateNameConflict)}
                       error={duplicateNameError}
                     >
-                      <input
-                        value={duplicateName}
-                        onChange={(event) => {
-                          setDuplicateNameError(null);
-                          setDuplicateName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH));
-                        }}
-                        placeholder="Enter routine name"
-                        aria-label="New routine name"
-                        maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                        className={cn(formFieldControlClassName, "font-semibold")}
-                      />
+                      {(control) => (
+                        <input
+                          {...control}
+                          value={duplicateName}
+                          onChange={(event) => {
+                            setDuplicateNameError(null);
+                            setDuplicateName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH));
+                          }}
+                          placeholder="Enter routine name"
+                          maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
+                          className={cn(formFieldControlClassName, "font-semibold")}
+                        />
+                      )}
                     </FormField>
                     <BottomDockButton
                       type="button"

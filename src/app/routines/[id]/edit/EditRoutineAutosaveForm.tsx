@@ -141,9 +141,7 @@ export function EditRoutineAutosaveForm(props: Props) {
         }}
         label="Routine name"
         placeholder="Routine name"
-        ariaLabel="Routine Name"
         maxLength={15}
-        invalid={draft.name.trim().length === 0}
       />
   ), [draft.name]);
 

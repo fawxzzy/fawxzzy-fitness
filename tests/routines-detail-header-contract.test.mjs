@@ -52,9 +52,11 @@ test("routines screens import no legacy header component", () => {
   }
 });
 
-test("the Days library keeps its route and says Days in a tab ScreenHeader", () => {
+test("the Days library keeps its route and is a detail screen: Days title, Back to /routines, no tab bar", () => {
   const source = code("src/app/routines/workout-plans/page.tsx");
-  assert.match(source, /<ScreenHeader kind="tab" title="Days" \/>/);
+  assert.match(source, /<ScreenHeader\s+kind="detail"\s+title="Days"/);
+  assert.match(source, /<ScreenHeaderBackButton href="\/routines"/);
+  assert.doesNotMatch(source, /topChrome|AppNav|kind="tab"/);
   assert.doesNotMatch(source, /HeaderInfoRail|RoutinesRouteHeaderCard/);
 });
 
@@ -77,7 +79,9 @@ test("routine forms use the C14 FormField recipe: no legend-on-border, no accent
   assert.match(editorShared, /<FormField\b/);
   const editorForm = code("src/components/routines/RoutineEditorForm.tsx");
   assert.match(editorForm, /<FormField label="Routine length">/);
-  assert.match(editorForm, /<FormField label="Start date">/);
+  // The start date is an anchor that wraps both ways; a future date does not delay the routine. Say so.
+  assert.match(editorForm, /<FormField label="Start date" helper="Day 1 falls on this date; the cycle repeats from it.">/);
+  assert.doesNotMatch(editorForm, /Weekday Anchor/);
   assert.doesNotMatch(editorForm, /labeledEditorFieldFloatingLabelClassName/);
   for (const file of ["src/app/routines/CreateRoutineClient.tsx", "src/components/ExercisePicker.tsx"]) {
     assert.doesNotMatch(code(file), /<LabeledEditorField\b/, `${file} still uses the legend-on-border field`);

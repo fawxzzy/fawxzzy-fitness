@@ -165,7 +165,6 @@ export function RoutineHomeEditorClient(props: Props) {
         }}
         label="Routine name"
         placeholder="e.g. Upper / Lower"
-        ariaLabel="Routine Name"
         maxLength={15}
       />
   ), [draft.name]);

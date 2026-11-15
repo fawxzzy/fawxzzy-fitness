@@ -15,7 +15,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
-import { getRoutineDayEditableName, resolveRoutineDaySettingsSubmitName } from "@/lib/routines";
+import { formatRoutineDayStableDisplayName, getRoutineDayEditableName, resolveRoutineDaySettingsSubmitName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { publishEditDayAdjustmentDirection, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
 import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
@@ -292,7 +292,8 @@ export function EditDaySettingsAutosaveForm({
   const headerNode = (
     <ScreenHeader
       kind="detail"
-      title={draft.name.trim() || `Day ${dayIndex}`}
+      // The saved name, not the draft: the title must not change while the name field is being typed in.
+      title={formatRoutineDayStableDisplayName({ name, dayIndex, startDate })}
       subtitle={routineName?.trim() || null}
       back={<ScreenHeaderBackButton href={backHref} label="Back to routine" historyBehavior="history-first" />}
     />
@@ -442,7 +443,6 @@ export function EditDaySettingsAutosaveForm({
           scheduleAutosave(nextSnapshot);
         }}
         placeholder={`Day ${dayIndex}`}
-        ariaLabel="Day Name"
         maxLength={15}
       />
       <RoutineDayKindSelector
