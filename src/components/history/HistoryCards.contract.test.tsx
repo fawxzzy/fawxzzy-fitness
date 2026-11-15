@@ -330,6 +330,8 @@ test("History routes use the card components and the dev fixture is behind the d
   assert.doesNotMatch(audit, /shellStyle=|mediaClassName=|badgeItems=/);
 });
 
-test("History controlsOnly routes keep one sr-only h1 (FF-DESIGN-004)", () => {
-  assert.match(read("./HistoryRouteScaffold.tsx"), /<h1 className="sr-only">\{props\.title \|\| "History"\}<\/h1>/);
+test("History overview routes have one visible h1 from the standard tab header (FF-DESIGN-004, DESIGN-CONTRACT 15)", () => {
+  const scaffold = read("./HistoryRouteScaffold.tsx");
+  assert.match(scaffold, /<ScreenHeader\s+kind="tab"\s+title="History"/);
+  assert.doesNotMatch(scaffold, /sr-only|headerChrome|controlsOnly/);
 });

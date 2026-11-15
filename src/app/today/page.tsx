@@ -10,30 +10,25 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { EarnedInstallPrompt } from "@/components/install/EarnedInstallPrompt";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { RoutineDayCardTitle } from "@/components/day-list/RoutineDayCardPresentation";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import {
-  TodayFloatingHeaderRail,
-  TodayFloatingHeaderSlot,
-  TodayRoutineSwitchFloatingHeaderSlot,
   TodayOverviewContent,
-  TodayOverviewHeader,
   TodayOverviewScaffold,
   TodayRouteScaffold,
 } from "@/components/today/TodayScreenFamily";
-import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { CardNotice } from "@/components/ui/card-system";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { ActionResult } from "@/lib/action-result";
 import { buildExerciseProgressionStateLabel } from "@/lib/exercise-progression-state-label";
-import { buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
   buildTodayRoutinePayloadState,
+  formatTodayHeaderSubtitle,
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
@@ -70,7 +65,7 @@ import {
   recordProgressionEvent,
 } from "@/lib/progression-events";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
@@ -1258,28 +1253,6 @@ export default async function TodayPage({
     completedTodayCount,
     inProgressSessionId: inProgressSession?.id ?? null,
   };
-  const todayHeaderSummary = todayPayload.routine
-    ? getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)
-    : null;
-  const routineRestDays = normalizedDaySummaries.filter((summary) => summary.day.is_rest).length;
-  const routineTrainingDays = Math.max(normalizedDaySummaries.length - routineRestDays, 0);
-  const todayHeaderInfoItems = todayPayload.routine
-    ? buildTodayHeaderInfoRailItems({
-        trainingDays: routineTrainingDays,
-        restDays: routineRestDays,
-        daysLength: normalizedDaySummaries.length,
-        selectedDay: {
-          dayIndex: todayPayload.routine.dayIndex,
-          isRest: todayPayload.routine.isRest,
-          isToday: true,
-          isInSession: Boolean(todayPayload.inProgressSessionId),
-          state: todayPayload.routine.state,
-          invalidExerciseCount: effectiveDaySummary?.invalidExercises.length ?? 0,
-          splitSummary: todayHeaderSummary,
-        },
-      })
-    : [];
-
   const todayGlobalError = getTodayGlobalErrorMessage({
     searchParamError: searchParams?.error,
     hasInProgressSession: Boolean(todayPayload.inProgressSessionId),
@@ -1315,50 +1288,23 @@ export default async function TodayPage({
       },
       timeoutMs: 5000,
     });
-  const todayHeaderSubtitle = todayHeaderInfoItems.length > 0
-    ? (
-      <HeaderInfoRail
-        items={todayHeaderInfoItems}
-        ariaLabel="Today day summary"
-        behavior="rotate-single"
-        className="justify-center text-center"
-      />
-    )
-    : undefined;
-
   return (
     <TodayRouteScaffold
-      floatingHeader={todayPayload.routine ? (
-          todayPayload.inProgressSessionId || !hasDetailedRoutineState ? (
-            <TodayFloatingHeaderRail>
-              <TodayOverviewHeader
-                title={(
-                  <RoutineDayCardTitle
-                    routineName={todayPayload.routine.name}
-                    name={todayPayload.routine.dayName}
-                    dayIndex={todayPayload.routine.dayIndex}
-                    startDate={activeRoutine?.start_date ?? null}
-                    weekdayLabel={todayPayload.routine.dayWeekday}
-                    dayWeekdaySeparator="dot"
-                  />
-                )}
-                align="center"
-                subtitle={todayHeaderSubtitle}
-              />
-            </TodayFloatingHeaderRail>
-          ) : (
-            <>
-              <TodayRoutineSwitchFloatingHeaderSlot id="today-routine-switch-floating-header-slot" />
-              <TodayFloatingHeaderSlot id="today-floating-header-slot" />
-            </>
-          )
-        ) : !todayPayload.routine ? (
-          <TodayFloatingHeaderRail>
-            <TodayOverviewHeader
-              title="No active routine"
-            />
-          </TodayFloatingHeaderRail>
-        ) : undefined}
+      floatingHeader={todayPayload.routine && !todayPayload.inProgressSessionId && hasDetailedRoutineState ? (
+          // The day picker portals the "Today" header into one of these slots (its subtitle follows the selected day).
+          <>
+            <div id="today-routine-switch-floating-header-slot" />
+            <div id="today-floating-header-slot" />
+          </>
+        ) : (
+          <ScreenHeader
+            kind="tab"
+            title="Today"
+            subtitle={todayPayload.routine
+              ? formatTodayHeaderSubtitle(todayPayload.routine.dayName, todayPayload.routine.name)
+              : "No active routine"}
+          />
+        )}
     >
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <TodayRouteRevalidator />

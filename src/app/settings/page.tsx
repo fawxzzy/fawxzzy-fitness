@@ -153,7 +153,7 @@ export default async function SettingsPage({
       <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<SettingsFloatingHeader email={user.email ?? ""} username={username} />}
+          floatingHeader={<SettingsFloatingHeader />}
         >
           <ContentRail className={appTokens.settingsContentRail}>
             <div className="space-y-3">
@@ -167,6 +167,7 @@ export default async function SettingsPage({
                 proAccess={proAccess}
                 billingNotice={billingNotice}
                 achievements={achievements}
+                signedInAs={username || user.email || undefined}
               />
             </div>
           </ContentRail>

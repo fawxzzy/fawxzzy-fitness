@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildTodayRoutinePayloadState,
   deriveTodayScreenMode,
-  formatTodayHeaderTitle,
+  formatTodayHeaderSubtitle,
   getTodayGlobalErrorMessage,
   getTodayDaySummary,
   getTodayDaySummaryTone,
@@ -315,7 +315,9 @@ test("rest and invalid-empty summaries resolve from pure summary selectors", () 
   assert.equal(neutralEmptySummary, null);
 });
 
-test("formatTodayHeaderTitle joins routine and day names", () => {
-  assert.equal(formatTodayHeaderTitle("4Dayz", "Chest"), "4Dayz | Chest");
-  assert.equal(formatTodayHeaderTitle("4Dayz", ""), "4Dayz");
+test("formatTodayHeaderSubtitle is one plain line: day, then routine", () => {
+  assert.equal(formatTodayHeaderSubtitle("Lower A", "QA Routine"), "Lower A · QA Routine");
+  assert.equal(formatTodayHeaderSubtitle("  ", "QA Routine"), "QA Routine");
+  assert.equal(formatTodayHeaderSubtitle("Day 2", null), "Day 2");
+  assert.equal(formatTodayHeaderSubtitle(null, undefined), null);
 });

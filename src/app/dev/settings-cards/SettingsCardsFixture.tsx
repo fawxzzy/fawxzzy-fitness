@@ -117,7 +117,7 @@ export function SettingsCardsFixture({ section, plan }: { section: string | null
       <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<SettingsFloatingHeader email="dev-fixture@example.com" username="dev-fixture" />}
+          floatingHeader={<SettingsFloatingHeader />}
         >
           <ContentRail className={appTokens.settingsContentRail}>
             <div className="space-y-3">
@@ -131,6 +131,7 @@ export function SettingsCardsFixture({ section, plan }: { section: string | null
                 proAccess={plan === "pro" ? PRO_PLAN : FREE_PLAN}
                 billingNotice={null}
                 achievements={ACHIEVEMENTS}
+                signedInAs="dev-fixture"
               />
             </div>
           </ContentRail>

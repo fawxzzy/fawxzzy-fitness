@@ -101,7 +101,7 @@ export default async function DevHistorySessionsLivePage({
             initialFiltersOpen={initialFiltersOpen}
             initialQuery={initialQuery}
             initialSelectedTags={initialSelectedTags}
-            showBottomActions={false}
+            showHeaderDensityToggle={false}
           />
         </ContentRail>
       </MainTabScreen>
@@ -111,9 +111,7 @@ export default async function DevHistorySessionsLivePage({
   return (
     <HistoryRouteScaffold
       mode="overview"
-      title=""
       activeTab="sessions"
-      headerChrome="controlsOnly"
     >
       <HistorySessionsClient
         sessions={data.sessionItems}

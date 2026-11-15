@@ -3,7 +3,8 @@ import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { FloatingHeaderSlot } from "@/components/layout/FloatingHeaderRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
+import { HISTORY_HEADER_TRAILING_SLOT_ID, HistoryTabs } from "@/components/history/HistoryShared";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -11,13 +12,11 @@ import { cn } from "@/lib/cn";
 
 type HistoryOverviewRouteScaffoldProps = {
   mode: "overview";
-  title: string;
-  subtitle?: string;
   activeTab: "sessions" | "exercises" | "progression";
   children: ReactNode;
   showTopChrome?: boolean;
+  /** Filters that stay pinned under the segmented control (Exercises portals its search here). */
   floatingHeaderSlot?: ReactNode;
-  headerChrome?: "titleOnly" | "tabsWithControls" | "controlsOnly";
   contentRailClassName?: string;
   contentClassName?: string;
   floatingHeaderRailClassName?: string;
@@ -39,46 +38,27 @@ type HistoryRouteScaffoldProps =
 
 export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
   const showTopChrome = props.showTopChrome ?? true;
+  // Overview: the standard tab header ("History", density toggle as its one trailing action), then ONE segmented
+  // control for Sessions / Exercises / Progression (DESIGN-CONTRACT.md C13 and section 15).
   const floatingHeader = props.mode === "overview"
-    ? (() => {
-        const headerChrome = props.headerChrome ?? "tabsWithControls";
-        const showTabs = headerChrome === "tabsWithControls";
-        const showTitleHeader = headerChrome !== "controlsOnly";
-        const headerChildren = showTabs || props.floatingHeaderSlot
-          ? (
-              <div className={showTabs ? appTokens.historyOverviewHeaderStack : appTokens.historyExerciseHeaderStack}>
-                {showTabs ? (
-                  <HistoryTabs
-                    value={props.activeTab}
-                    sessionsHref="/history"
-                    exercisesHref="/history/exercises"
-                    progressionHref="/history/progression"
-                  />
-                ) : null}
-                {props.floatingHeaderSlot}
-              </div>
-            )
-          : null;
-
-        return (
-          <FloatingHeaderSlot
-            railClassName={cn(appTokens.historyFloatingHeaderRail, props.floatingHeaderRailClassName)}
-            data-history-floating-header
-          >
-            {showTitleHeader ? (
-              <HistoryPageHeader title={props.title} subtitle={props.subtitle} withPanel={headerChrome !== "titleOnly"}>
-                {headerChildren}
-              </HistoryPageHeader>
-            ) : (
-              <>
-                {/* controlsOnly drops the visible title; keep one h1 for the heading outline and screen readers. */}
-                <h1 className="sr-only">{props.title || "History"}</h1>
-                {props.floatingHeaderSlot}
-              </>
-            )}
-          </FloatingHeaderSlot>
-        );
-      })()
+    ? (
+        <div data-history-floating-header>
+          <ScreenHeader
+            kind="tab"
+            title="History"
+            trailing={props.activeTab === "progression" ? undefined : <div id={HISTORY_HEADER_TRAILING_SLOT_ID} className="contents" />}
+          />
+          <ContentRail className={cn(appTokens.historyOverviewHeaderStack, "pb-2", props.floatingHeaderRailClassName)}>
+            <HistoryTabs
+              value={props.activeTab}
+              sessionsHref="/history"
+              exercisesHref="/history/exercises"
+              progressionHref="/history/progression"
+            />
+            {props.floatingHeaderSlot}
+          </ContentRail>
+        </div>
+      )
       : (
         <FloatingHeaderSlot
           railClassName={cn(appTokens.historyDetailFloatingHeaderRail, !showTopChrome ? "pt-3" : undefined, props.floatingHeaderRailClassName)}

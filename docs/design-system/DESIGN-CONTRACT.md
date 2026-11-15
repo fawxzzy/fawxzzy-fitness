@@ -61,7 +61,7 @@ Defined in `CARD-SYSTEM.md` (anatomy, primitives, 44px controls, one affordance 
 
 - **C7. One status vocabulary, spelled in `cardStatusChips`.** Chip set: `ACTIVE, TODAY, IN SESSION, DONE, SKIPPED, REST, OPTIONAL, SELECTED` (cards) plus `PR, BEST, PROMOTION, REGRESSION, WATCH, MANUAL` (progression and history signals; full words, D50) plus `EARNED, LOCKED` (achievements and Pro unlocks). Look: 11px uppercase text in a tone-coloured outlined pill with `px-2.5 py-1` (the `uisys--default` chips are the reference), tones neutral / current(green) / success(green) / attention(amber) / danger(red). The text chip carries meaning; glyph only for DONE (check) and SKIPPED. Retired looks: grey MANUAL, text-only PROMO, 9px uppercase TYPE chip, circle PR badge, NOT EARNED (use no chip for an unearned item, or a neutral `LOCKED`).
 - Counts and facts are meta text, not chips; duplicate chips are dropped (`dev--exercise-detail-cardio` repeats "Cardio").
-- Header grammar (**C8**): centred title block on every top-level and detail screen (Today, Routines, view-day, edit-day, session, exercise detail, History detail); left-aligned only inside a card. Title line = screen or object name, 18px / 600; subtitle line = one fact string in 12px secondary, facts joined by ` · ` (middle dot). No colon, pipe or bullet separators (`Today : Workout Day`, `Lower A | 2 strength`, `Day 1 • Thu` all migrate: `Workout day`, `Lower A` with subtitle `2 strength · 1 cardio`, `Day 1 · Thu`). A sub-screen has a 44px back chevron on the left; the title may wrap to two lines but never runs under the chevron (title column has `px-14`). Reason: centred is already the majority shape and `dev--ui-contract` (left) is the outlier.
+- Header grammar (**C8**): superseded by section 15 (one `ScreenHeader`, left-aligned, single-line title). The separator rule still holds: facts are joined by ` · ` (middle dot), never colon, pipe or bullet.
 - Chevron grammar: right = navigates, down = expands (CARD-SYSTEM 4.1); applies to Settings rows too.
 
 ### 4.2 Buttons and the dock
@@ -86,8 +86,8 @@ Decisions:
 
 ### 4.3 Section switching: segmented control, not dock
 
-- **C13. Switching views of one section is a segmented control at the top of the content; the dock is for actions.** History Sessions / Exercises / Progression use the segmented control (already shipped on Progression); `View Exercises`, `View History` dock buttons go away. Density (Compact / Detailed) is a toggle in the search row, not a dock button. Segments: 44px tall, equal width, active = green fill (C4), 3 segments max at 390px, labels 1 word. Reason: dock buttons swap the page the user is on; a segmented control says "same place, other view" and removes the wrapping labels.
-- Tabs at the top (Today / Routines / History / Account) stay the app navigation; a screen never has both a tab and a segmented control that change the same thing.
+- **C13. Switching views of one section is a segmented control at the top of the content; the dock is for actions.** History Sessions / Exercises / Progression use the segmented control directly under the History header; `View Exercises`, `View History` dock buttons are gone (H0). Density (Compact / Detailed) is the header's one trailing icon action (section 15), not a dock button. Segments: 44px tall, equal width, active = green fill (C4), 3 segments max at 390px, labels 1 word. Reason: dock buttons swap the page the user is on; a segmented control says "same place, other view" and removes the wrapping labels.
+- Tabs at the top (Today / Routines / History / Settings) stay the app navigation; a screen never has both a tab and a segmented control that change the same thing.
 
 ### 4.4 Form inputs
 
@@ -124,7 +124,7 @@ Frozen pack classes (`typography.*`) stay. App-wide scale, in px at 390 wide:
 | Eyebrow, label, chip, legend | 11 / 600 uppercase, 0.12-0.16em | the floor |
 
 - **C17. 11px is the floor, for everything**, including legends, TARGET eyebrows, logger labels, week-strip labels, calendar legends, toast text and footer links. The gallery found 6-10px text on session logger, steppers, history grids, settings grids and filters (section 11); `appTokens` entries at 8.5-9.9px (`exerciseLogMetricLabelClassName` 10px, `measurementInlineValueLabelClassName` 9px) are known debt to retire.
-- Long names wrap (`overflow-wrap: anywhere`), never ellipsis (CARD-SYSTEM 4.2); the same applies to headers (title wraps, back chevron keeps its column).
+- Long names wrap (`overflow-wrap: anywhere`), never ellipsis (CARD-SYSTEM 4.2). Exception: the screen header title is one line and truncates with an ellipsis (section 15); the full name is in its `title` attribute and in the body.
 - Numbers use tabular figures; units are spaced consistently (`1.7 mi`, `-0.4 mi`, `225 lbs`).
 - Monospace blocks are not used for user content (the recap block in History detail is regular text and is not repeated under the summary row it duplicates).
 
@@ -188,7 +188,7 @@ Success is a toast (in-app) or an inline info block (auth), one sentence, past t
 - **C18. "day", never "workout plan".** Drop `Workout Plan(s)`, `Create Workout Plan`, `New Workout Plan`, `Blank workout plan`, `Duplicate workout plan` from every surface incl. docks, headers and the day editor header (`real--routines-workout-plans--workout-plans-list`, `real--routines-id-new-workout-plan--new-workout-plan`, `real--routines-id-edit-day-dayid--edit-day`, `settings-cards--pro-free`). The route `/routines/workout-plans` is a second list of the same objects as the day cards, and `/routines/[id]/new-workout-plan` duplicates `/routines/[id]/new-day`: the redesign lane folds each into the day screens (a route change is a behaviour change to declare in its PR). `CARD-SYSTEM.md` 4.5's "keep their product names" is superseded. Legal copy ("routines, workout plans, exercises, sets") changes to "routines, days" only with Zac's OK (section 12). Planned items are "exercises", not "workouts" (`dev--ui-contract` `5 planned workouts`).
 - **C19. Sign in / Sign out / Create account / Reset password** (not Log in / Log In / Login). Link text and messages use the same verb (`login` route name stays; copy changes: `You can log in now` becomes `You can sign in now`).
 - **C20. One name for the entitlement: "Pro".** Section `Pro`, status `Pro active`, action `Upgrade`, never `Monthly Pro` / `Pro Access` / `Upgrade to Pro` as parallel names.
-- Section words: `Today`, `Routines`, `History`, `Account` (tabs); `Settings` is the screen reached from Account.
+- Section words: `Today`, `Routines`, `History`, `Settings` (tabs). `Account` is the Settings row that opens the shared account portal (section 15.4).
 - No internal vocabulary: `scope`, `stored snapshot`, `durable ledger`, `lane`, `schema`, `mutation semantics`, `Set current target`, `Resync`, `Use Last`, `Active Set` without context. Write what the user gets.
 
 ### 9.2 Messages
@@ -249,7 +249,7 @@ Shot ids from the gallery. "Rule" points at the section above. Each lane re-meas
 | 9 | Dock overlaps content (footer links, Update password, last history card, "quiet stretch" text) | `settings-cards--pro-pro`, `real--account--signed-in-account-screen`, `real--history--sessions-overview-with-data`, `dev--history-overview-detailed` | 4.2 |
 | 10 | Section switched by dock vs segmented control; amber active tab | `mr--history-sessions-compact`, `mr--history-progression-default` | C13, C4 |
 | 11 | Chip vocabulary: five or more looks (outlined, grey, text-only, circle, uppercase 9px, EARNED/NOT EARNED, LOCKED/ACTIVE) | `mr--history-detail-progression-expanded`, `mr--history-progression-filtered`, `dev--history-cards`, `settings-cards--achievements-free` | C7 |
-| 12 | Header grammar: left vs centred; colon/pipe/bullet separators; 13px titles; title under the back chevron | `mr--today-in-session-summary`, `mr--view-day`, `mr--edit-day-default`, `mr--add-exercise-default`, `mr--create-routine`, `mr--exercise-detail-strength`, `dev--ui-contract` | C8 |
+| 12 | Header grammar: left vs centred; colon/pipe/bullet separators; 13px titles; title under the back chevron (tab screens fixed in H0; detail screens in H1) | `mr--today-in-session-summary`, `mr--view-day`, `mr--edit-day-default`, `mr--add-exercise-default`, `mr--create-routine`, `mr--exercise-detail-strength`, `dev--ui-contract` | 15 |
 | 13 | Same control, two treatments (Measurement Labels / Routine Type / Time Zone: card rows vs centred rules; underline title) | `routine-editor--editor-collapsed` vs `real--routines-new--create-routine-draft`, `mr--edit-routine`, `real--routines-id-edit--edit-routine` | 3, 4.4 |
 | 14 | Native date and select leak; legend-on-border; underline inputs | `mr--history-progression-default`, `mr--settings-data-export`, `routine-editor--editor-open`, `dev--curated-onboarding`, `mr--add-exercise-custom-taxonomy` | C14, C15 |
 | 15 | Developer and internal copy visible; raw error strings | `mr--history-progression-default`, `real--history-progression--progression-history`, `mr--settings-data-export` ("Failed to fetch"), `dev--app-boundary-probe-crash` ("(Error)", "app-shell"), `mr--edit-day-add-exercise`, `real--review-optional-planned-day--optional-planned-day-review`, `dev--history-preview-status` | 8.3, 9.1 |
@@ -282,3 +282,41 @@ Only items that are not design choices:
 3. **Paid analytics cards and the elbow safety rule** (existing open decisions) change Pro and Settings content; this contract defines how they look (chip `LOCKED`, `Pro` naming) but not whether they ship.
 
 Mazer: nothing here changes `LOADER-SPEC.md`, the loader numbers, the shared app-image source, or Mazer's colours. Decisions that look shared but are Fitness only: C1/C2 (Fitness accent and page colour), the type and hit-area floors, toast placement and z-order. Mazer may adopt the 11px and 44px floors separately.
+
+## 15. Header, surfaces and ease of use (2026-11-15, supersedes C8)
+
+Enforced by `tests/screen-header-contract.test.mjs`. Component: `src/components/ui/app/ScreenHeader.tsx`; metrics: `screenHeaderTokens` in `src/components/ui/app/headerTokens.ts` (no per-screen overrides).
+
+### 15.1 One header, two kinds
+
+- **tab**: the four screens reached from the top tab bar: Today, Routines, History, Settings. The tab bar stays; the header sits under it; no Back button.
+- **detail**: every pushed screen (routine overview, day, edit day, edit routine, add exercise, session, history detail, exercise detail, review, create flows, onboarding steps). No tab bar; Back on the left. Migrates in lane H1; until then those screens keep `SharedScreenHeader` / `AppHeader`.
+- Anatomy, always this order: [Back 44x44, left, detail only] [title block] [trailing slot]. Title block = the `h1` (one style: 22px / 600, left aligned, one line, ellipsis, full text in `title`) plus at most ONE muted subtitle line (14px, plain words, one line). Trailing slot = at most ONE 44x44 icon action or ONE chip. Nothing else.
+- Every screen has a title, a plain noun: `Today`, `Routines`, `History`, `Settings`, the routine / day / exercise name, `Add exercise`, `Workout`.
+- No line under the header (no hairline, no accent bar): "none" is the one choice, applied everywhere.
+- Banned in headers: centred titles, eyebrows and kickers, pipes and green separators, rotating info rails, counts as the subtitle (`3 logged` belongs in the body), duplicate captions, second action rows, status chips that repeat the body. What still matters moves into the first card of the body.
+
+### 15.2 The tab family (H0)
+
+| Screen | Title | Subtitle | Trailing | Under the header |
+|---|---|---|---|---|
+| Today | `Today` | `<day> · <routine>`; picker open: the routine; no routine: `No active routine` | none | body |
+| Routines | `Routines` | `Offline` only when showing the cached copy | none | body |
+| History | `History` | none | density toggle (Sessions and Exercises; icon button, `aria-pressed`, label says what tapping does) | one segmented control `Sessions / Exercises / Progression` (equal width, green when selected, C4/C13); Exercises adds its search row |
+| Settings | `Settings` | none | none | section cards; an open section shows its card at the top of the body, not in the header |
+
+### 15.3 Minimal surfaces (applies to every screen; H1 and later lanes migrate the rest)
+
+- One surface style (`CardSurface`), one accent (the standard green `--accent`), quiet type. Prefer fewer borders, shadows, glows, gradients, badges and captions: if an element does not help the user act or understand, remove it.
+- Headers have no surface at all (no card, panel, glow or border behind the title).
+- A badge appears only when it changes what the user does (an `ACTIVE` chip on the one active routine is fine; an `IN SESSION` chip next to a `Resume` button is not).
+- Generous spacing beats separators: sections are split by the 12px section gap, not by rules.
+
+### 15.4 Easy to understand (3-second test)
+
+Judge every screen by one question: can a first-time user tell what it is and what to do within 3 seconds?
+
+- One obvious primary action per screen, in the dock on the right (C9). Back is always top left (detail screens). The same job uses the same pattern everywhere.
+- Plain words; labels say what happens (`Save theme`, `Change password`, `Show detailed rows`), no jargon or developer copy (9.1).
+- Navigation is predictable: the tab bar only switches the four sections; it never leaves the app. The Settings `Account` row opens the shared account portal (`account.fawxzzy.com`, `getFitnessAccountPortalUrl`), with the destination named in its summary (`Opens account.fawxzzy.com`). Sign out is a quiet secondary button in the Settings body, not the dock.
+- The in-app `/account` screen (username and email edit) keeps working for direct visits but is no longer linked from navigation; it is retired once the portal offers those edits.

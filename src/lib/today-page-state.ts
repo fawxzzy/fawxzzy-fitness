@@ -10,10 +10,13 @@ export function getTodayGlobalErrorMessage(args: {
   return error;
 }
 
-export function formatTodayHeaderTitle(routineName: string | null | undefined, dayName: string | null | undefined) {
-  const normalizedRoutineName = routineName?.trim() || "Routine";
-  const normalizedDayName = dayName?.trim();
-  return normalizedDayName ? `${normalizedRoutineName} | ${normalizedDayName}` : normalizedRoutineName;
+/**
+ * The Today tab header's one subtitle line: "<day> · <routine>" in plain words (DESIGN-CONTRACT.md section 15).
+ * Falls back to whichever name exists; null when neither does.
+ */
+export function formatTodayHeaderSubtitle(dayName: string | null | undefined, routineName: string | null | undefined) {
+  const parts = [dayName?.trim(), routineName?.trim()].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 type SessionDaySnapshot = {

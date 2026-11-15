@@ -44,9 +44,7 @@ export default async function DevHistoryExercisesShotPage({
   return (
     <HistoryRouteScaffold
       mode="overview"
-      title="Exercises"
       activeTab="exercises"
-      headerChrome="controlsOnly"
       floatingHeaderSlot={<div id="history-exercises-floating-header" />}
     >
       <ExerciseBrowserClient

@@ -8,9 +8,7 @@ import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { HistoryHeaderDensityToggle } from "@/components/history/HistoryHeaderDensityToggle";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { PillButton } from "@/components/ui/Pill";
@@ -47,7 +45,8 @@ type ExerciseBrowserClientProps = {
   initialRows?: ExerciseBrowserRow[];
   filterOptions?: ExerciseInfoFilterOptions;
   activeRoutineTitle?: string | null;
-  showBottomActions?: boolean;
+  /** Portal the Compact / Detailed toggle into the History header (off on dev fixtures without that header). */
+  showHeaderDensityToggle?: boolean;
 };
 
 function buildFilterStateKey(filterState: ExerciseInfoFilterState) {
@@ -423,7 +422,7 @@ export function ExerciseBrowserClient({
   inlineHeaderControls = false,
   initialViewMode = "compact",
   initialFiltersOpen = false,
-  showBottomActions = true,
+  showHeaderDensityToggle = true,
 }: ExerciseBrowserClientProps & { inlineHeaderControls?: boolean; initialViewMode?: "compact" | "detailed"; initialFiltersOpen?: boolean }) {
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -436,7 +435,6 @@ export function ExerciseBrowserClient({
   const [lastVisibleScopedRows, setLastVisibleScopedRows] = useState<ExerciseBrowserRow[]>(initialRows);
   const [isScopeLoading, setIsScopeLoading] = useState(false);
   const deferredQuery = useDeferredValue(query);
-  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const filterKey = useMemo(() => buildFilterStateKey(normalizedFilterState), [normalizedFilterState]);
   const scopedRows = useMemo(() => (
@@ -696,26 +694,8 @@ export function ExerciseBrowserClient({
         }}
         sourceContext="ExerciseBrowserClient"
       />
-      {showBottomActions ? (
-        <PublishBottomActions>
-          <BottomActionSplit
-            secondary={(
-              <BottomDockButton
-                type="button"
-                intent="toggleActive"
-                data-history-density-toggle="exercises"
-                onClick={() => applyViewMode(viewMode === "compact" ? "detailed" : "compact")}
-              >
-                {nextViewModeLabel}
-              </BottomDockButton>
-            )}
-            primary={(
-              <BottomDockLink href="/history" intent="positive">
-                View History
-              </BottomDockLink>
-            )}
-          />
-        </PublishBottomActions>
+      {showHeaderDensityToggle ? (
+        <HistoryHeaderDensityToggle scope="exercises" viewMode={viewMode} onViewModeChange={applyViewMode} />
       ) : null}
     </div>
   );

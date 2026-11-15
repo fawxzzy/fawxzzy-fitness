@@ -22,6 +22,8 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
+import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -34,7 +36,6 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
-import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { Chip } from "@/components/ui/Chip";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
@@ -58,7 +59,7 @@ import {
 import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
-import { formatTodayHeaderTitle } from "@/lib/today-page-state";
+import { formatTodayHeaderSubtitle } from "@/lib/today-page-state";
 import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
 import type { ExerciseTimerStatus } from "@/lib/exercise-timer";
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
@@ -136,10 +137,6 @@ const SessionPageClient = nextDynamic(() => import("@/components/SessionPageClie
 });
 const SettingsSectionsClient = nextDynamic(
   () => import("@/components/settings/SettingsSectionsClient").then((mod) => mod.SettingsSectionsClient),
-  { ssr: true },
-);
-const SettingsHeaderIdentity = nextDynamic(
-  () => import("@/components/settings/SettingsHeaderIdentity").then((mod) => mod.SettingsHeaderIdentity),
   { ssr: true },
 );
 
@@ -2197,18 +2194,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={(
-            <ContentRail>
-              <ScreenScaffold recipe="todayOverview" className="w-full">
-                <SharedScreenHeader
-                  recipe="todayOverview"
-                  title={PREVIEW_ROUTINE_NAME}
-                  subtitle={<DayTaxonomyHeaderSummary dayName={selectedDay.name} summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, false)} isRest={false} />}
-                  action={<AppBadge tone="success">In Session</AppBadge>}
-                />
-              </ScreenScaffold>
-            </ContentRail>
-          )}
+          floatingHeader={<ScreenHeader kind="tab" title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
         >
           <ContentRail className="space-y-3">
             <ScreenScaffold recipe="todayOverview" className="w-full">
@@ -2266,13 +2252,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={(
-          <ContentRail>
-            <ScreenScaffold recipe="todayOverview" className="w-full">
-              <div id="today-floating-header-slot" />
-            </ScreenScaffold>
-          </ContentRail>
-        )}
+        floatingHeader={<div id="today-floating-header-slot" />}
       >
         <ContentRail className="space-y-3">
           <TodayDayPicker
@@ -2449,14 +2429,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={(
-            <ContentRail>
-              <RoutinesRouteHeaderCard
-                title="Routines"
-                subtitle="2 routines • Active routine pinned to Today"
-              />
-            </ContentRail>
-          )}
+          floatingHeader={<ScreenHeader kind="tab" title="Routines" />}
         >
           <ContentRail className="space-y-3">
             <RoutinesPageClient
@@ -2759,13 +2732,9 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
   } satisfies Record<string, string>;
 
   return (
-    <MainTabScreen topNavMode="none" ambientPreset="history">
+    <HistoryRouteScaffold mode="overview" activeTab="sessions">
       <RegressionMarker scenario={scenario} />
-      <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<ContentRail><HistoryPageHeader title="Sessions" subtitle={`${mockHistorySessions.length} logged`} /></ContentRail>}
-      >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient
             sessions={[...mockHistorySessions]}
             currentRoutineSessions={[...mockHistorySessions]}
@@ -2796,9 +2765,8 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             sessionHrefOverrides={sessionHrefOverrides}
             calendarNow="2026-04-10T12:00:00.000Z"
           />
-        </ContentRail>
-      </ScrollScreenWithBottomActions>
-    </MainTabScreen>
+      </div>
+    </HistoryRouteScaffold>
   );
 }
 
@@ -2810,8 +2778,6 @@ function renderHistoryProgressionScenario(scenario: MobileFixtureScenario) {
   return (
     <HistoryRouteScaffold
       mode="overview"
-      title="Progression"
-      subtitle="Durable ledger of applied target changes"
       activeTab="progression"
     >
       <RegressionMarker scenario={scenario} />
@@ -2829,17 +2795,10 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
       : [...mockHistoryExerciseRows];
 
   return (
-    <MainTabScreen topNavMode="none" ambientPreset="history">
+    <HistoryRouteScaffold mode="overview" activeTab="exercises">
       <RegressionMarker scenario={scenario} />
-      <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
-      >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ExerciseBrowserClient initialRows={rows} inlineHeaderControls initialViewMode={initialViewMode} />
-        </ContentRail>
-      </ScrollScreenWithBottomActions>
-    </MainTabScreen>
+      <ExerciseBrowserClient initialRows={rows} inlineHeaderControls initialViewMode={initialViewMode} />
+    </HistoryRouteScaffold>
   );
 }
 
@@ -2918,16 +2877,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={(
-          <ContentRail className={appTokens.settingsFloatingHeaderRail}>
-            <SurfaceCard dense className="px-4 py-3">
-              <SettingsHeaderIdentity
-                email="dev-regression@example.com"
-                username="dev-regression"
-              />
-            </SurfaceCard>
-          </ContentRail>
-        )}
+        floatingHeader={<SettingsFloatingHeader />}
       >
         <ContentRail className={appTokens.settingsContentRail}>
           <div className="space-y-3">

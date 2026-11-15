@@ -69,7 +69,7 @@ export default async function DevHistoryExercisesLivePage({
             inlineHeaderControls
             initialViewMode={initialViewMode}
             initialFiltersOpen={initialFiltersOpen}
-            showBottomActions={false}
+            showHeaderDensityToggle={false}
           />
         </ContentRail>
       </MainTabScreen>
@@ -79,9 +79,7 @@ export default async function DevHistoryExercisesLivePage({
   return (
     <HistoryRouteScaffold
       mode="overview"
-      title="Exercises"
       activeTab="exercises"
-      headerChrome="controlsOnly"
       floatingHeaderSlot={<div id="history-exercises-floating-header" />}
     >
       <ExerciseBrowserClient
