@@ -41,6 +41,7 @@ Allowed governance documentation files:
 - `docs/CHANGELOG.md`
 - `docs/CODEX_GUARDRAILS.md`
 - `docs/PLAYBOOK_NOTES.md`
+- `docs/playbook-notes/` (one note file per change; see its README)
 - `docs/ops/FITNESS-LLEL-CHECKLIST.md`
 
 ## Playbook Operator Path (Single Active Surface)

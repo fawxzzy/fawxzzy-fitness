@@ -2,6 +2,16 @@
   "runtime": {
     "stateRoot": ".playbook"
   },
+  "verify": {
+    "rules": {
+      "requireNotesOnChanges": [
+        {
+          "whenChanged": ["src/**", "app/**", "server/**", "supabase/**"],
+          "mustTouch": ["docs/PLAYBOOK_NOTES.md", "docs/playbook-notes/**"]
+        }
+      ]
+    }
+  },
   "commands": {
     "verify": "npm run verify",
     "plan": "npm run plan"
