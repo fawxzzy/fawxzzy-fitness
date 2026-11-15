@@ -69,7 +69,7 @@ function getSupabaseUrl() {
 }
 
 function getOptionalGuildId() {
-  const value = getOptionalEnv("DISCORD_GUILD_ID");
+  const value = getOptionalEnv("DISCORD_GUILD_ID") ?? (process.env.DISCORD_GUILD_ID?.trim() || null);
   return value && /^[0-9]{5,32}$/.test(value) ? value : null;
 }
 
