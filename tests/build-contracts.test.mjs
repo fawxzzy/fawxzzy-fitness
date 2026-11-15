@@ -39,3 +39,25 @@ test("legacy worker retires old-host caches while the current worker uses a dist
   assert.match(retirementWorker, /canonicalUrl\.pathname = clientUrl\.pathname/);
   assert.match(retirementWorker, /canonicalUrl\.search = clientUrl\.search/);
 });
+
+test("silent update: no overlay, no toast, and a controller change never reloads", () => {
+  const bootstrap = readFileSync(path.join(repoRoot, "src", "components", "ServiceWorkerBootstrap.tsx"), "utf8");
+  const route = readFileSync(path.join(repoRoot, "src", "app", "api", "app-version", "route.ts"), "utf8");
+
+  assert.doesNotMatch(bootstrap, /Updating FawxzzyFitness/);
+  assert.doesNotMatch(bootstrap, /Updated to the latest build/);
+  assert.doesNotMatch(bootstrap, /isApplyingUpdate|RouteLoading|useToast/);
+  assert.doesNotMatch(bootstrap, /shouldPrioritizeImmediateUpdate|UPDATE_IDLE_THRESHOLD_MS/);
+
+  const controllerChange = bootstrap.slice(
+    bootstrap.indexOf("const handleControllerChange"),
+    bootstrap.indexOf("const handleVisibilityChange"),
+  );
+  assert.ok(controllerChange.length > 0);
+  assert.doesNotMatch(controllerChange, /reload|tryApply/);
+
+  // Every reload goes through the boundary decision.
+  assert.equal((bootstrap.match(/window\.location\.reload\(\)/g) ?? []).length, 1);
+  assert.match(bootstrap, /decideAppUpdateApply\(/);
+  assert.match(route, /minBuildId: resolveMinBuildId\(CURRENT_APP_BUILD_ID\)/);
+});

@@ -1,6 +1,9 @@
+import type { StoredFormDraft } from "@/lib/app-update-policy";
+
 const APP_UPDATE_RELOAD_STATE_MAX_AGE_MS = 5 * 60 * 1000;
 
 export const APP_UPDATE_RELOAD_STATE_KEY = "fawxzzy:fitness:app-update:reload-state";
+// Legacy key from the removed "Updated to the latest build." toast; only cleared.
 export const APP_UPDATE_NOTICE_KEY = "fawxzzy:fitness:app-update:notice";
 export const APP_UPDATE_STATUS_EVENT = "fawxzzy:fitness:app-update-status";
 export const APP_UPDATE_STATUS_WINDOW_KEY = "__FAWXZZY_APP_UPDATE_STATUS__";
@@ -11,6 +14,8 @@ export type StoredAppUpdateReloadState = {
   scrollY: number;
   targetBuildId: string | null;
   updatedAt: number;
+  sessionId?: string | null;
+  drafts?: StoredFormDraft[];
 };
 
 export type AppUpdatePhase = "idle" | "checking" | "update-queued" | "applying-update" | "error";
@@ -40,6 +45,22 @@ function parseFiniteNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function parseStoredDrafts(value: unknown): StoredFormDraft[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.key !== "string" || typeof entry.value !== "string") {
+      return [];
+    }
+
+    return typeof entry.checked === "boolean"
+      ? [{ key: entry.key, value: entry.value, checked: entry.checked }]
+      : [{ key: entry.key, value: entry.value }];
+  });
+}
+
 export function parseStoredAppUpdateReloadState(
   rawValue: string | null,
   now = Date.now(),
@@ -67,12 +88,17 @@ export function parseStoredAppUpdateReloadState(
       return null;
     }
 
+    const sessionId = typeof parsed.sessionId === "string" && parsed.sessionId ? parsed.sessionId : null;
+    const drafts = parseStoredDrafts(parsed.drafts);
+
     return {
       href: parsed.href,
       scrollX,
       scrollY,
       targetBuildId,
       updatedAt,
+      ...(sessionId ? { sessionId } : {}),
+      ...(drafts.length > 0 ? { drafts } : {}),
     };
   } catch {
     return null;
@@ -96,26 +122,6 @@ export function shouldRestoreReloadState(
     return storedUrl.pathname === currentUrl.pathname
       && storedUrl.search === currentUrl.search
       && storedUrl.hash === currentUrl.hash;
-  } catch {
-    return false;
-  }
-}
-
-export function shouldShowAppUpdateNotice(
-  rawValue: string | null,
-  currentBuildId: string,
-) {
-  if (!rawValue) {
-    return false;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue) as unknown;
-    if (!isRecord(parsed)) {
-      return false;
-    }
-
-    return parsed.targetBuildId === currentBuildId;
   } catch {
     return false;
   }
