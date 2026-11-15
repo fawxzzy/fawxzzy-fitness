@@ -18,7 +18,10 @@ test("routine setup keeps compact controls inside 44px touch targets", async () 
   assert.match(source, /routineEditorCycleInputClassName[\s\S]*?px-8/);
   assert.match(source, /routineEditorCycleLengthInputClassName[\s\S]*?px-12/);
   assert.match(source, /type="date"[\s\S]*?className=\{cn\(\s*routineEditorCycleInputClassName,/);
-  assert.match(source, /RoutineEditorCollapsibleSection[\s\S]*?min-h-11 w-full/);
+  // Collapsible sections are shared CardHeader toggles; the 44px floor lives in the card-system affordance token.
+  assert.match(source, /RoutineEditorCollapsibleSection[\s\S]*?kind: "toggle"/);
+  const cardTokens = await readFile(new URL("../ui/card-system/cardTokens.ts", import.meta.url), "utf8");
+  assert.match(cardTokens, /affordance:\s*"[^"]*h-11/);
 });
 
 test("training focus controls keep the same 44px touch-target floor", async () => {

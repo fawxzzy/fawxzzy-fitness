@@ -152,17 +152,17 @@ export function EditDayAddExerciseScreen({
         customExerciseEnabled
         backHref={backHref}
         addExerciseAction={wrappedAddExerciseAction}
-        successMessage="Exercise added to the workout plan."
-        errorMessage="Could not add exercise to the workout plan."
+        successMessage="Exercise added to the day."
+        errorMessage="Could not add exercise to the day."
       />
       <ConfirmDestructiveModal
         open={workoutPlanDecisionOpen}
-        title="Workout Plan"
+        title="Day"
         description={workoutPlanDecisionMode === "update_existing"
-          ? "Update this shared workout plan so linked workout plans stay in sync."
-          : "Save this as a new workout plan before these edits continue autosaving."}
+          ? "Update this shared day so linked days stay in sync."
+          : "Save this as a new day before these edits continue autosaving."}
         confirmLabel="Confirm"
-        confirmActionLabel={workoutPlanDecisionMode === "update_existing" ? "Update Workout Plan" : "Save New Workout Plan"}
+        confirmActionLabel={workoutPlanDecisionMode === "update_existing" ? "Update Day" : "Save New Day"}
         cancelLabel="Cancel"
         confirmVariant="primary"
         confirmDisabled={workoutPlanDecisionMode === "save_new" && normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName).length === 0}
@@ -176,14 +176,14 @@ export function EditDayAddExerciseScreen({
           const normalizedWorkoutPlanName = normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName);
           if (workoutPlanDecisionMode === "save_new") {
             if (!normalizedWorkoutPlanName) {
-              setWorkoutPlanDecisionError("Workout plan name is required.");
+              setWorkoutPlanDecisionError("Day name is required.");
               return;
             }
             if (hasWorkoutPlanNameConflict({
               candidateName: normalizedWorkoutPlanName,
               workoutPlanNames: existingWorkoutPlanNames,
             })) {
-              setWorkoutPlanDecisionError("Workout plan name already exists.");
+              setWorkoutPlanDecisionError("Day name already exists.");
               return;
             }
           }
@@ -200,7 +200,7 @@ export function EditDayAddExerciseScreen({
 
               const decisionResult = await resolveWorkoutPlanDecisionAction(decisionFormData);
               if (!decisionResult.ok) {
-                setWorkoutPlanDecisionError(decisionResult.error ?? "Could not update workout plan.");
+                setWorkoutPlanDecisionError(decisionResult.error ?? "Could not update day.");
                 return;
               }
 
@@ -218,8 +218,8 @@ export function EditDayAddExerciseScreen({
               const addResult = await addExerciseAction(resumedFormData);
               if (!addResult.ok) {
                 toastActionResult(toast, addResult, {
-                  success: "Exercise added to the workout plan.",
-                  error: "Could not add exercise to the workout plan.",
+                  success: "Exercise added to the day.",
+                  error: "Could not add exercise to the day.",
                 });
                 return;
               }
@@ -235,13 +235,13 @@ export function EditDayAddExerciseScreen({
               if (decisionResult.workoutPlanName ?? decisionResult.templateName) {
                 toast.success(
                   workoutPlanDecisionMode === "update_existing"
-                    ? `Workout plan updated: ${decisionResult.workoutPlanName ?? decisionResult.templateName}`
-                    : `New workout plan saved: ${decisionResult.workoutPlanName ?? decisionResult.templateName}`,
+                    ? `Day updated: ${decisionResult.workoutPlanName ?? decisionResult.templateName}`
+                    : `New day saved: ${decisionResult.workoutPlanName ?? decisionResult.templateName}`,
                 );
               }
               toastActionResult(toast, addResult, {
-                success: "Exercise added to the workout plan.",
-                error: "Could not add exercise to the workout plan.",
+                success: "Exercise added to the day.",
+                error: "Could not add exercise to the day.",
               });
               if (addResult.ok) {
                 router.push(backHref);
@@ -263,7 +263,7 @@ export function EditDayAddExerciseScreen({
                 setWorkoutPlanDecisionError(null);
               }}
             >
-              Update Workout Plan
+              Update Day
             </button>
             <button
               type="button"
@@ -275,12 +275,12 @@ export function EditDayAddExerciseScreen({
                 setWorkoutPlanDecisionError(null);
               }}
             >
-              Save New Workout Plan
+              Save New Day
             </button>
           </div>
           {workoutPlanDecisionMode === "save_new" ? (
             <label className="block">
-              <span className="sr-only">Workout plan name</span>
+              <span className="sr-only">Day name</span>
               <input
                 type="text"
                 value={workoutPlanDecisionName}
@@ -288,7 +288,7 @@ export function EditDayAddExerciseScreen({
                   setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
                   setWorkoutPlanDecisionError(null);
                 }}
-                placeholder="Workout plan name"
+                placeholder="Day name"
                 maxLength={15}
                 className={`w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition ${workoutPlanDecisionError
                   ? "border-[rgb(var(--danger-rgb)/0.52)]"

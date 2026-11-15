@@ -7,8 +7,8 @@ test("create workout plan route keeps the header in the server page floating slo
   const clientSource = readFileSync(new URL("./CreateRoutineDayClient.tsx", import.meta.url), "utf8");
 
   assert.match(pageSource, /RoutinesRouteHeaderCard/);
-  assert.match(pageSource, /"Create Workout Plan"/);
-  assert.match(pageSource, /"Choose Workout Plan"/);
+  assert.match(pageSource, /"Create Day"/);
+  assert.match(pageSource, /"Choose Day"/);
   assert.doesNotMatch(clientSource, /createPortal/);
   assert.doesNotMatch(clientSource, /RoutinesRouteHeaderCard/);
 });

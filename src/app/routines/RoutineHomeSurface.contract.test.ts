@@ -12,9 +12,9 @@ test("routine home keeps inline reorder (pointer drag plus keyboard) and the add
   assert.match(source, /data-routine-day-id=\{day\.id\}/);
   assert.match(source, /orderedRoutineDayIds/);
   assert.match(source, /Add Day/);
-  assert.match(source, /Blank workout plan/);
-  assert.match(source, /Duplicate workout plan/);
-  assert.match(source, /Choose Workout Plan/);
+  assert.match(source, /Blank day/);
+  assert.match(source, /Duplicate day/);
+  assert.match(source, /Choose Day/);
 });
 
 test("routine home day cards use the card system: toggle header, action row inside the card, no corner Delete", () => {

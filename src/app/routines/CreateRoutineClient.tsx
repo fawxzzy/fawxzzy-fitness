@@ -3,10 +3,7 @@
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
-import {
-  ROUTINE_SURFACE_TAG_CLASS_NAME,
-  splitRoutineSummaryParts,
-} from "@/components/day-list/RoutineDayCardPresentation";
+import { splitRoutineSummaryParts } from "@/components/day-list/RoutineDayCardPresentation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import {
@@ -15,9 +12,6 @@ import {
   RoutineChooserSourceCard,
 } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
-import { AppBadge } from "@/components/ui/app/AppBadge";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { labeledEditorFieldControlClassName, LabeledEditorField } from "@/components/ui/LabeledEditorField";
 import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { overlayChromeClassNames } from "@/components/ui/OverlayChrome";
@@ -41,71 +35,15 @@ type Props = {
   initialDuplicateExpanded?: boolean;
 };
 
-function renderRoutineSourceTags(routine: RoutineBrowseCardItem) {
+function buildRoutineSourceMeta(routine: RoutineBrowseCardItem): string[] {
   const parts = routine.summaryParts?.length
     ? routine.summaryParts
     : splitRoutineSummaryParts(routine.summary);
-  if (parts.length === 0) {
-    return null;
-  }
-
-  function renderCompactRoutineSourceTagLabel(value: string) {
-    const normalizedValue = value.trim();
-    const match = normalizedValue.match(/^(\d+(?:[.,]\d+)?)(\s+.*)?$/);
-    if (!match) {
-      return normalizedValue;
-    }
-
-    const [, count, suffix = ""] = match;
-    const trimmedSuffix = suffix.trim().toLowerCase();
-    const mobileSuffix = trimmedSuffix === "workout plans"
-      ? "plans"
-      : trimmedSuffix === "sessions logged"
-        ? "sessions"
-        : trimmedSuffix === "training"
-          ? "train"
-          : suffix.trim();
-
-    return (
-      <>
-        <span className="text-[rgb(var(--text-primary))]">{count}</span>
-        {trimmedSuffix ? (
-          <>
-            <span className="ml-1 sm:hidden">{mobileSuffix}</span>
-            <span className="ml-1 hidden sm:inline">{suffix.trim()}</span>
-          </>
-        ) : null}
-      </>
-    );
-  }
-
-  return (
-    <HorizontalScrollHint
-      className="-mx-0.5"
-      scrollClassName="px-0.5 pb-0.5 pr-[0.85rem]"
-      contentClassName="flex w-max min-w-full flex-nowrap items-center gap-1 pr-[0.65rem]"
-      showEdgeFades={false}
-    >
-      {parts.map((part) => (
-        <AppBadge
-          key={`${routine.id}-${part}`}
-          tone="default"
-          className={`${ROUTINE_SURFACE_TAG_CLASS_NAME} px-[0.54rem] py-[0.2rem] text-[9px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`}
-        >
-          {renderCompactRoutineSourceTagLabel(part)}
-        </AppBadge>
-      ))}
-    </HorizontalScrollHint>
-  );
-}
-
-function renderRoutineSourceFooter(routine: RoutineBrowseCardItem) {
   const normalizedCreatedAt = typeof routine.createdAt === "string" ? routine.createdAt.trim() : "";
-  if (!normalizedCreatedAt) {
-    return null;
-  }
-
-  return `Created ${formatDateShort(normalizedCreatedAt)}`;
+  return [
+    ...parts.map((part) => part.trim()).filter(Boolean),
+    normalizedCreatedAt ? `Created ${formatDateShort(normalizedCreatedAt)}` : "",
+  ].filter(Boolean);
 }
 
 function routineLooksConfigured(routine: RoutineBrowseCardItem) {
@@ -362,10 +300,6 @@ export function CreateRoutineClient({
     return null;
   }
 
-  const duplicateTriggerIcon = isDuplicateExpanded
-    ? <ChevronDownIcon className="h-5 w-5 text-[rgb(var(--accent-divider-rgb)/0.98)]" />
-    : <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
-
   return createPortal(
     <div
       ref={modalRootRef}
@@ -422,7 +356,6 @@ export function CreateRoutineClient({
             {curatedMenuOption ? (
               <RoutineChooserOptionCard
                 title={curatedMenuOption.label}
-                rightSlot={<ChevronRightIcon className="h-4 w-4" />}
                 disabled={isPending}
                 onPress={() => {
                   setIsDuplicateExpanded(false);
@@ -432,7 +365,6 @@ export function CreateRoutineClient({
             ) : null}
             <RoutineChooserOptionCard
               title="Build manually"
-              rightSlot={<ChevronRightIcon className="h-4 w-4" />}
               disabled={isPending}
               onPress={() => {
                 setIsDuplicateExpanded(false);
@@ -441,8 +373,8 @@ export function CreateRoutineClient({
             />
             <RoutineChooserOptionCard
               title="Duplicate routine"
+              kind="toggle"
               active={isDuplicateExpanded}
-              rightSlot={duplicateTriggerIcon}
               disabled={routines.length === 0 || isPending}
               onPress={routines.length > 0 && !isPending ? handleToggleDuplicateExpanded : undefined}
             />
@@ -459,8 +391,7 @@ export function CreateRoutineClient({
                         onPress={() => handleSelectSourceRoutine(routine.id)}
                         title={routine.name}
                         selected={selectedSourceRoutineId === routine.id}
-                        tags={renderRoutineSourceTags(routine)}
-                        footer={renderRoutineSourceFooter(routine)}
+                        meta={buildRoutineSourceMeta(routine)}
                       />
                     ))}
                   </RoutineDuplicateChooserListViewport>
