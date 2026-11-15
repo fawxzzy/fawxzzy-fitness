@@ -2488,7 +2488,6 @@ a:focus-visible {
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: center;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2496,13 +2495,32 @@ a:focus-visible {
   scrollbar-width: none;
 }
 
+/* Centre with auto margins, not justify-content: center. When the body overflows (landscape phones), auto margins
+   collapse to 0 and the first field stays reachable; centred overflow would push it above the scroll origin. */
+.fx-body::before,
+.fx-body::after {
+  content: "";
+  flex: none;
+}
+
+.fx-body::before {
+  margin-top: auto;
+}
+
+.fx-body::after {
+  margin-bottom: auto;
+}
+
 .fx-body::-webkit-scrollbar {
   display: none;
 }
 
 .fx-body--top {
-  justify-content: flex-start;
   padding-top: 26px;
+}
+
+.fx-body--top::before {
+  margin-top: 0;
 }
 
 .fx-form {
