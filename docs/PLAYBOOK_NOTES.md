@@ -1669,3 +1669,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A contract test that greps the old inline class (`min-h-11 w-full`) keeps passing only while the recipe is copied; after moving to the shared header it failed, so the test now pins the toggle interaction and the token floor.
 - Evidence: routines, routine-components and card-system contract tests (52 pass), typecheck, lint; dev fixture `/dev/routine-editor-cards` checked at 390x844.
 - Status: Source only; merge, deploy and a real-phone check remain separate.
+
+## 2026-11-14 - FF-ANALYTICS-002: premium cycle analytics plan (plan document only)
+
+- Type: Planning doc (source)
+- WHAT changed: Added `docs/ops/FF-ANALYTICS-002-PREMIUM-CYCLE-ANALYTICS-PLAN.md`: cycle insights with stated rules, source tables already stored, screens, a proposed free/Pro split, phasing, risks and open owner decisions. No code, migration or UI.
+- WHY it changed: The empty Locked Pro History preview was rejected on 2026-07-15; value must be defined from real stored data before any gated surface.
+- Rule: A premium surface ships only when each metric is a stated deterministic rule over stored rows, is gated on the server, and is omitted (not locked-placeholdered) when data is thin.
+- Failure Mode: Locked placeholder boxes erode trust; client-only gating leaks premium numbers; mixed units and mid-cycle plan edits produce misleading deltas.
+- Status: Plan only; owner decisions pending; nothing built or deployed.
