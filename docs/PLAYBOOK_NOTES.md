@@ -1684,5 +1684,5 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - WHY it changed: The recap showed PRs but never the streak the History surface already computes, so a streak-worth sharing was invisible.
 - Rule: Streak copy comes from `buildHistoryWorkoutStreak`, evaluated as of the recap session so older recaps never claim a later streak; no new columns or queries beyond the existing History loader.
 - Failure Mode: Using the overall current streak on an old session recap would overstate it; the as-of helper drops later sessions and later skipped days, and a loader failure degrades to no callout.
-- Evidence: workout-recap tests (6 pass), typecheck. Not in CI workflow (ci.yml out of lane scope; add `src/lib/workout-recap.test.ts` to the contract step).
+- Evidence: workout-recap tests (6 pass), typecheck. `src/lib/workout-recap.test.ts` is picked up by `npm run test:all` (auto-discovery).
 - Status: Source only; headless-only, not device-checked; follow-up-job artifact work out of scope.
