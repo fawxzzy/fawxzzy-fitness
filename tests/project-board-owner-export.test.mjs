@@ -76,14 +76,14 @@ const STILL_EXCLUDED_COMPLETED_IDS = [
 // 2026-11-09 (RELIABILITY-001, QA-003, RET-005, ACCOUNT-002, RET-002), which is why completed is 15, not 10.
 const EXPORTED_COMPLETED_IDS = [
   "FF-ACCOUNT-002", "FF-AUTH-001", "FF-GAM-001", "FF-PWA-003", "FF-QA-002", "FF-QA-003", "FF-RELIABILITY-001",
-  "FF-RET-001", "FF-RET-002", "FF-RET-004", "FF-RET-005", "FF-ROUTINE-001",
+  "FF-DESIGN-003", "FF-RELIABILITY-003", "FF-RET-001", "FF-RET-003", "FF-RET-002", "FF-RET-004", "FF-RET-005", "FF-ROUTINE-001",
   "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004",
 ];
 
 test("keeps non-public completed owner truth out of the live export and exports accepted completed cards", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
   const completed = registry.workItems.filter((item) => item.status === "fixed");
-  assert.equal(completed.length, 31);
+  assert.equal(completed.length, 34);
   assert.deepEqual(completed.map((item) => item.id).filter((id) => !EXPORTED_COMPLETED_IDS.includes(id)).sort(), STILL_EXCLUDED_COMPLETED_IDS);
   for (const id of STILL_EXCLUDED_COMPLETED_IDS) assert.equal(output.cards.some((card) => card.record.card_id === id), false, id);
   assert.deepEqual(output.cards.filter((card) => card.record.lifecycle === "completed").map((card) => card.record.card_id).sort(), [...EXPORTED_COMPLETED_IDS].sort());
@@ -93,7 +93,7 @@ test("keeps non-public completed owner truth out of the live export and exports 
     assert.equal(card.record_status, "active");
   }
   assert.equal(output.extensions.excluded_completed_card_count, 15);
-  assert.equal(output.extensions.exported_completed_card_count, 16);
+  assert.equal(output.extensions.exported_completed_card_count, 19);
   assert.equal(output.extensions.private_records_included, false);
 });
 
@@ -126,11 +126,11 @@ test("board-safe real-work cards are public with screened wording and the accept
     // 2026-11-11: branded account messages and database lock-down are live but only partly verified, so they stay in review.
     ["FF-AUTH-002", "review"], ["FF-RELIABILITY-002", "review"],
     // 2026-11-13: ACCOUNT-004 is in progress (sign-up entry, sign-out, save fixes live; recovery link and real-phone pass open); new cards DESIGN-001 (review), PLATFORM-001 and QA-004 (planning).
-    ["FF-ACCOUNT-004", "in-progress"], ["FF-DESIGN-001", "review"], ["FF-PLATFORM-001", "planning"], ["FF-QA-004", "planning"], ["FF-DESIGN-003", "review"], ["FF-DESIGN-004", "planning"],
+    ["FF-ACCOUNT-004", "in-progress"], ["FF-DESIGN-001", "review"], ["FF-PLATFORM-001", "planning"], ["FF-QA-004", "review"], ["FF-DESIGN-003", "completed"], ["FF-DESIGN-004", "review"],
     // Second 2026-11-13 release: RELIABILITY-003 is live but not replay-checked on a phone (review); TODAY-004 is planned.
     // Third 2026-11-13 release: DESIGN-001 stays in review (more screens live, still no real-phone check); DESIGN-002 is planned.
-    ["FF-DESIGN-002", "planning"],
-    ["FF-RELIABILITY-003", "review"], ["FF-TODAY-004", "planning"],
+    ["FF-DESIGN-002", "review"],
+    ["FF-RELIABILITY-003", "completed"], ["FF-TODAY-004", "review"],
   ]);
   const screen = /\b(passwords?|secrets?|credentials?|tokens?|cookies?|jwt|security|vulnerabilit\w*|incident|exploit\w*|leak\w*|premium|paid|payments?|billing|subscriptions?|monetiz\w*|throttl\w*|rate[ -]limit\w*|session id|e-?mail)\b|https?:\/\/|[\w-]+\.(?:json|mjs|ts|tsx|sql|md)\b/i;
   for (const [cardId, lifecycle] of expected) {
@@ -167,19 +167,20 @@ test("applies the evidence-based 2026-11-06 status refresh and keeps untouched c
   const output = buildProjectBoardOwnerExport(registry, bytes);
   const refreshed = "2026-11-06T17:20:00.000Z";
   const expected = new Map([
-    ["FF-ANALYTICS-002", ["planning", "2026-07-15T00:49:00.000Z"]],
+    ["FF-ANALYTICS-002", ["review", "2026-11-15T03:15:46.000Z"]],
     ["FF-GAM-001", ["completed", refreshed]],
+    ["FF-RET-003", ["completed", "2026-11-15T01:51:12.000Z"]], // fixed 2026-11-14 (PR #216 deployed c48235cb); pinned
+
     ["FF-GAM-002", ["planning", "2026-07-15T15:20:00.000Z"]],
-    ["FF-RET-003", ["review", "2026-11-13T17:40:00.000Z"]], // moved to review 2026-11-13: heatmap merged and live, not checked with real data on a phone
     ["FF-RET-004", ["completed", refreshed]],
     ["FF-ROUTINE-001", ["completed", refreshed]],
     ["FF-SESSION-001", ["completed", refreshed]],
     ["FF-SESSION-005", ["in-progress", refreshed]],
     // Dormant behind default-off flags or a known defect: stay in review.
-    ["FF-ENGINE-001", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-ENGINE-001", ["review", "2026-11-15T02:10:19.000Z"]],
     ["FF-ENGINE-002", ["review", "2026-07-13T04:31:19.434Z"]],
     ["FF-ONBOARD-001", ["review", "2026-07-13T04:31:19.434Z"]],
-    ["FF-RECAP-001", ["review", "2026-07-13T04:31:19.434Z"]],
+    ["FF-RECAP-001", ["review", "2026-11-15T03:37:55.000Z"]],
     ["FF-ANALYTICS-001", ["planning", "2026-07-09T23:41:16.303Z"]],
     ["FF-SOC-002", ["planning", "2026-07-14T22:23:17.502Z"]],
   ]);
@@ -208,11 +209,10 @@ test("applies the 2026-11-09 live-verification status refresh", () => {
   assert.equal(auth.updated_at, "2026-11-09T21:00:00.000Z");
   // Untouched by this refresh.
   assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-ACCOUNT-003").record.lifecycle, "planning");
-  assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-RET-003").record.lifecycle, "review");
   assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-SESSION-005").record.lifecycle, "in-progress");
   const lifecycles = {};
   for (const card of output.cards) lifecycles[card.record.lifecycle] = (lifecycles[card.record.lifecycle] ?? 0) + 1;
-  assert.deepEqual(lifecycles, { completed: 16, "in-progress": 2, planning: 11, review: 12 });
+  assert.deepEqual(lifecycles, { completed: 19, "in-progress": 2, planning: 6, review: 14 });
 });
 
 test("public cards contain stable product facts and no private/provider fields", () => {

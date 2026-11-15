@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-14T12:00:00.000Z",
+  "updatedAt": "2026-11-15T03:46:40.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -14,7 +14,8 @@
       "sha256": "182178ae89a240bfaabb4c57bc406b38fc7b2ec4edb58a34b6e11dd5b92f9fca"
     },
     "researchCandidateImport": { "recordCount": 64, "adoptedCount": 0, "stableIdOverlapCount": 0, "sha256": "6bdeb360433a8413edda9e7f094728120f37eae2f9223e4cca00a975e1d6dca1" },
-    "excludedOwnerRecords": { "recordCount": 18, "reason": "missing stable Fitness card identity or belongs to another product" }
+    "excludedOwnerRecords": { "recordCount": 18, "reason": "missing stable Fitness card identity or belongs to another product" },
+    "boardSync": { "at": "2026-11-15T03:46:40.000Z", "appliedEventCount": 13, "lastEventId": "882f79f5d1bd" }
   },
   "acceptedPublicCardIds": [
     "FF-ANALYTICS-001",
@@ -45,7 +46,9 @@
     "FF-AUTH-001",
     "FF-QA-003",
     "FF-RELIABILITY-001",
-    "FF-RET-005"
+    "FF-RET-005",
+    "FF-DESIGN-003",
+    "FF-RELIABILITY-003"
   ],
   "statusMapping": {
     "fawxzzy_review": { "recordStatus": "active", "lifecycle": "review" },
@@ -58,7 +61,7 @@
   "workItems": [
     { "id": "FF-ACCOUNT-001", "status": "fixed", "updatedAt": "2026-07-10T00:18:20.089Z" },
     { "id": "FF-ANALYTICS-001", "status": "confirmed", "updatedAt": "2026-07-09T23:41:16.303Z" },
-    { "id": "FF-ANALYTICS-002", "status": "planning", "updatedAt": "2026-07-15T00:49:00.000Z" },
+    { "id": "FF-ANALYTICS-002", "status": "review", "updatedAt": "2026-11-15T03:15:46.000Z" },
     { "id": "FF-BETA-001", "status": "confirmed", "updatedAt": "2026-07-09T23:42:53.268Z" },
     { "id": "FF-COPILOT-001", "status": "fixed", "updatedAt": "2026-06-14T00:57:10.554Z",
       "card": {
@@ -71,7 +74,7 @@
     },
     { "id": "FF-CORE-001", "status": "fixed", "updatedAt": "2026-07-13T00:04:27.895Z" },
     { "id": "FF-CORE-002", "status": "fixed", "updatedAt": "2026-07-13T00:04:27.895Z" },
-    { "id": "FF-ENGINE-001", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
+    { "id": "FF-ENGINE-001", "status": "review", "updatedAt": "2026-11-15T02:10:19.000Z" },
     { "id": "FF-ENGINE-002", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
     { "id": "FF-GAM-001", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-GAM-002", "status": "planning", "updatedAt": "2026-07-15T15:20:00.000Z",
@@ -120,10 +123,10 @@
         "acceptanceCriteria": ["Environment classification is deterministic.","Contract export and check commands produce stable results.","Hosted checks remain linked to their exact source identity."]
       }
     },
-    { "id": "FF-RECAP-001", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
+    { "id": "FF-RECAP-001", "status": "review", "updatedAt": "2026-11-15T03:37:55.000Z" },
     { "id": "FF-RET-001", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-RET-002", "status": "fixed", "updatedAt": "2026-11-09T00:00:00.000Z" },
-    { "id": "FF-RET-003", "status": "review", "updatedAt": "2026-11-13T17:40:00.000Z" },
+    { "id": "FF-RET-003", "status": "fixed", "updatedAt": "2026-11-15T01:51:12.000Z" },
     { "id": "FF-RET-004", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-ROUTINE-001", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z",
       "card": {
@@ -259,72 +262,72 @@
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-PLATFORM-001", "status": "planning", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public",
+    { "id": "FF-PLATFORM-001", "status": "planning", "updatedAt": "2026-11-15T03:12:33.000Z", "visibility": "public",
       "card": {
         "title": "Move to a supported framework version",
         "priority": "P2",
         "dependsOn": ["FF-QA-004"],
-        "description": "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned.",
+        "description": "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned. Board update 2026-11-15: Migration-readiness audit note added (docs only); Excel export library swap skipped pending owner decision; Next/React migration not started PR #250 merged (676be263). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The app runs on a supported framework version.","The framework upgrade is tested before release and rolled out without breaking sign-in or workouts.","Everyday flows are checked live after the upgrade."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-QA-004", "status": "planning", "updatedAt": "2026-11-13T17:40:00.000Z", "visibility": "public",
+    { "id": "FF-QA-004", "status": "review", "updatedAt": "2026-11-15T02:49:34.000Z", "visibility": "public",
       "card": {
         "title": "Cover the app with real interaction tests",
         "priority": "P2",
         "dependsOn": [],
-        "description": "Add a library for testing what people see and tap, sort out 13 stale tests that are currently left out of the all-tests job, and wire the QA scripts so they run together.",
+        "description": "Add a library for testing what people see and tap, sort out 13 stale tests that are currently left out of the all-tests job, and wire the QA scripts so they run together. Board update 2026-11-15: Session start/resume endpoints now answer 401 JSON and the client sends people to sign-in; session-expired and login messages use a fixed allow-list. Merged, not deployed; headless/source only, no live expired-session run. Interaction-test library and the 13 stale excluded tests are still open. PR #247 merged (37702680). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: DOM interaction test setup (jsdom + RTL) with 5 card-primitive tests; 8 stale tests triaged back into test:all; test/CI-only, no runtime surface; headless-only, not device-checked PR #249 merged (c6396fc0). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["A screen-level test library is added and used for key flows.","The 13 stale tests are fixed or retired and included in the all-tests job.","QA scripts run together from one command."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-RELIABILITY-003", "status": "review", "updatedAt": "2026-11-13T19:02:00.000Z", "visibility": "public",
+    { "id": "FF-RELIABILITY-003", "status": "fixed", "updatedAt": "2026-11-15T01:51:08.000Z", "visibility": "public",
       "card": {
         "title": "Keep set logging working offline",
         "priority": "P2",
         "dependsOn": [],
-        "description": "Logging a set with the connection off now retries and syncs once the connection returns (quick-log retry and sync, #219 and #226), and each set keeps the time it was tapped rather than the time it was replayed (#234). Live. A click-through passed in headless Chromium. Not yet verified: a replay after reconnecting on a real phone.",
+        "description": "Logging a set with the connection off now retries and syncs once the connection returns (quick-log retry and sync, #219 and #226), and each set keeps the time it was tapped rather than the time it was replayed (#234). Live. A click-through passed in headless Chromium. Not yet verified: a replay after reconnecting on a real phone. Board update 2026-11-15: Offline set logging retries and syncs, and each set keeps its tap time; live; headless click-through only, reconnect replay not checked on a real phone. PR #219 merged (036e9b49), PR #234 merged (07c5b04c). Deployed: production build c48235cb. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["Sets logged with the connection off are kept and retried.","After reconnecting, each set appears once.","Rest timing uses the real tap time, not the replay time.","A real offline-then-reconnect replay is checked on a real phone (not yet done)."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-TODAY-004", "status": "planning", "updatedAt": "2026-11-13T19:02:00.000Z", "visibility": "public",
+    { "id": "FF-TODAY-004", "status": "review", "updatedAt": "2026-11-15T02:24:00.000Z", "visibility": "public",
       "card": {
         "title": "Show when an exercise has no target",
         "priority": "P3",
         "dependsOn": [],
-        "description": "Today rows no longer show 'Goal missing' for an exercise without a target. Add a quiet 'No target set' cue so the gap stays visible without nagging. The day editor still shows the missing target.",
+        "description": "Today rows no longer show 'Goal missing' for an exercise without a target. Add a quiet 'No target set' cue so the gap stays visible without nagging. The day editor still shows the missing target. Board update 2026-11-15: Today rows without a target show a quiet 'No target set' cue; the day editor still shows 'Goal missing'. Merged, not deployed; headless/source only, no phone check. PR #245 merged (650254e8). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["An exercise without a target shows a quiet 'No target set' cue on Today.","Today rows do not show 'Goal missing'.","The day editor keeps showing the missing target."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-DESIGN-002", "status": "planning", "updatedAt": "2026-11-13T21:38:00.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-002", "status": "review", "updatedAt": "2026-11-15T02:30:18.000Z", "visibility": "public",
       "card": {
         "title": "Finish the remaining screens on the shared card style",
         "priority": "P3",
         "dependsOn": ["FF-DESIGN-001"],
-        "description": "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens.",
+        "description": "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens. Board update 2026-11-15: Partial, merged not deployed: routine chooser, editor and add-day screens on the shared card style; 'day' wording across that flow incl. server messages. Exercise picker, progression editor and stretch panel not done; one 'workout plan' string left in the day rest dock. Headless only, no phone check. PR #246 merged (4989c729). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The routine editor, routine creation, exercise picker, progression editor and stretch panel use the shared cards.","No text on these screens is below the app minimum size, and no control is under 32px.","The screens are checked in a signed-in render sweep and on a real phone."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-DESIGN-003", "status": "review", "updatedAt": "2026-11-14T12:00:00.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-003", "status": "fixed", "updatedAt": "2026-11-15T01:51:05.000Z", "visibility": "public",
       "card": {
         "title": "Smoother loading screen shared with Mazer",
         "priority": "P3",
         "dependsOn": [],
-        "description": "The app now opens on one shared loading screen that waits 150 ms before showing, stays up for at least 350 ms and fades in and out, with the same timing as Mazer. Live. Checked only in headless Chromium with phone emulation, including a slow network (solid cover at the first frame, hidden by about 840 ms, taps work). Not checked on a real phone: iOS home-screen launch and Reduce Motion.",
+        "description": "The app now opens on one shared loading screen that waits 150 ms before showing, stays up for at least 350 ms and fades in and out, with the same timing as Mazer. Live. Checked only in headless Chromium with phone emulation, including a slow network (solid cover at the first frame, hidden by about 840 ms, taps work). Not checked on a real phone: iOS home-screen launch and Reduce Motion. Board update 2026-11-15: Shared loading screen is live (150 ms delay, 350 ms hold, fades, same as Mazer); headless phone emulation only, iOS home-screen launch and Reduce Motion not checked on a real phone. PR #241 merged (c48235cb). Deployed: production build c48235cb. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["Fast loads open without a flash of the loading screen.","The loading screen never sticks and taps work once it is gone.","Timing matches Mazer (150 ms delay, 350 ms hold, fades).","iOS home-screen launch and Reduce Motion are checked on a real phone (not yet done)."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-DESIGN-004", "status": "planning", "updatedAt": "2026-11-14T12:00:00.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-004", "status": "review", "updatedAt": "2026-11-15T03:46:40.000Z", "visibility": "public",
       "card": {
         "title": "Small leftovers after the card redesign",
         "priority": "P3",
         "dependsOn": ["FF-DESIGN-001"],
-        "description": "Small items found after the card redesign: the Today offline info control has the wrong id, the History page has no top-level heading, and Finish shows minutes as 75 min instead of 1h 15m. Also still to do: 44px logger steppers and heatmap labels of at least 11px.",
+        "description": "Small items found after the card redesign: the Today offline info control has the wrong id, the History page has no top-level heading, and Finish shows minutes as 75 min instead of 1h 15m. Also still to do: 44px logger steppers and heatmap labels of at least 11px. Board update 2026-11-15: Leftovers merged, not deployed: History h1, Today offline info id fix, 44px logger steppers and History filter/search, 11px heatmap labels, Settings Account card is a real link, 3 unused components removed. SurfaceMetricGrid scroll not audited; headless only, no phone check. PR #245 merged (650254e8). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Toast bridge allow-lists codes on login and reset (crafted URL text no longer shown); Today info id and finish duration format already fixed in #245/#249; merged, not deployed; headless-only, not device-checked PR #251 merged (5de4243b). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The Today offline info control has a correct, unique id.","The History page has one top-level heading.","Finish shows long durations as 1h 15m rather than 75 min.","Logger steppers are 44px and heatmap labels are at least 11px."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
