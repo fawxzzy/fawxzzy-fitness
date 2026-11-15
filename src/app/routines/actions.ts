@@ -157,7 +157,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
         sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
         sourceRoutineStartDate: null as string | null,
         templateSupported: !isMissingWorkoutPlanTableError(templateError),
-        error: templateError ?? new Error("Source workout plan not found."),
+        error: templateError ?? new Error("Source day not found."),
       };
     }
 
@@ -231,7 +231,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
       sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: false,
-      error: new Error("Missing workout plan info."),
+      error: new Error("Missing day info."),
     };
   }
 
@@ -247,7 +247,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
       sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: false,
-      error: sourceDayResult.error ?? new Error("Source workout plan not found."),
+      error: sourceDayResult.error ?? new Error("Source day not found."),
     };
   }
 
@@ -309,7 +309,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
       sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: true,
-      error: ensuredTemplateResult.error ?? new Error("Could not prepare workout plan."),
+      error: ensuredTemplateResult.error ?? new Error("Could not prepare day."),
     };
   }
 
@@ -539,7 +539,7 @@ export async function appendRoutineDayAction(formData: FormData): Promise<Append
     .maybeSingle();
 
   if (appendedDayError || !appendedDay) {
-    return { ok: false, error: appendedDayError?.message ?? "New workout plan was not created." };
+    return { ok: false, error: appendedDayError?.message ?? "New day was not created." };
   }
 
   return { ok: true, routineDayId: appendedDay.id };
@@ -552,7 +552,7 @@ export async function deleteRoutineDayAction(formData: FormData): Promise<Action
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
 
   if (!routineId || !routineDayId) {
-    return { ok: false, error: "Missing workout plan info." };
+    return { ok: false, error: "Missing day info." };
   }
 
   const accessResult = await enforceRoutineAccessForCurrentTier({
@@ -586,11 +586,11 @@ export async function deleteRoutineDayAction(formData: FormData): Promise<Action
 
   const existingDays = routineDays ?? [];
   if (!existingDays.some((day) => day.id === routineDayId)) {
-    return { ok: false, error: "Workout plan not found." };
+    return { ok: false, error: "Day not found." };
   }
 
   if (existingDays.length <= 1) {
-    return { ok: false, error: "A routine must keep at least one workout plan." };
+    return { ok: false, error: "A routine must keep at least one day." };
   }
 
   const { error: deleteError } = await supabase
@@ -647,7 +647,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
   const workoutPlanTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
 
   if (!routineId || (!sourceRoutineDayId && !workoutPlanTemplateId)) {
-    return { ok: false, error: "Missing workout plan info." };
+    return { ok: false, error: "Missing day info." };
   }
 
   const accessResult = await enforceRoutineAccessForCurrentTier({
@@ -676,7 +676,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
     sourceRoutineDayId,
   });
   if (sourceContext.error || (!sourceContext.template && sourceContext.templateSupported)) {
-    return { ok: false, error: sourceContext.error?.message ?? "Source workout plan not found." };
+    return { ok: false, error: sourceContext.error?.message ?? "Source day not found." };
   }
   const sourceDay = sourceContext.sourceDay;
 
@@ -684,7 +684,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
   appendFormData.set("routineId", routineId);
   const appendResult = await appendRoutineDayAction(appendFormData);
   if (!appendResult.ok || !appendResult.routineDayId) {
-    return { ok: false, error: appendResult.ok ? "Could not create destination workout plan." : appendResult.error ?? "Could not create destination workout plan." };
+    return { ok: false, error: appendResult.ok ? "Could not create destination day." : appendResult.error ?? "Could not create destination day." };
   }
 
   const { data: destinationDay, error: destinationDayError } = await supabase
@@ -703,7 +703,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
       routineDayId: appendResult.routineDayId,
       previousCycleLength: routine.cycle_length_days,
     });
-    return { ok: false, error: destinationDayError?.message ?? "Destination workout plan not found." };
+    return { ok: false, error: destinationDayError?.message ?? "Destination day not found." };
   }
 
   const duplicatedName = resolveDuplicatedRoutineDayName({
@@ -880,7 +880,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
   const workoutPlanTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
 
   if (!routineId || !targetRoutineDayId || (!sourceRoutineDayId && !workoutPlanTemplateId)) {
-    return { ok: false, error: "Missing workout plan info." };
+    return { ok: false, error: "Missing day info." };
   }
 
   const accessResult = await enforceRoutineAccessForCurrentTier({
@@ -898,7 +898,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
   });
 
   if (targetDayError || !targetDay) {
-    return { ok: false, error: targetDayError?.message ?? "Target workout plan not found." };
+    return { ok: false, error: targetDayError?.message ?? "Target day not found." };
   }
 
   const { data: existingTargetExercises, error: existingTargetExercisesError } = await supabase
@@ -913,7 +913,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
   }
 
   if ((existingTargetExercises ?? []).length > 0) {
-    return { ok: false, error: "This workout plan already has exercises." };
+    return { ok: false, error: "This day already has exercises." };
   }
 
   const sourceContext = await loadWorkoutPlanTemplateSourceContext({
@@ -924,7 +924,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
     sourceRoutineDayId,
   });
   if (sourceContext.error || (!sourceContext.template && sourceContext.templateSupported)) {
-    return { ok: false, error: sourceContext.error?.message ?? "Source workout plan not found." };
+    return { ok: false, error: sourceContext.error?.message ?? "Source day not found." };
   }
   const sourceDay = sourceContext.sourceDay;
 
@@ -1506,7 +1506,7 @@ export async function createRoutineDayAction(formData: FormData): Promise<Create
   }
 
   if (creationMode !== "blank" && creationMode !== "duplicate") {
-    return { ok: false, error: "Invalid workout plan creation mode." };
+    return { ok: false, error: "Invalid day creation mode." };
   }
 
   const actionFormData = new FormData();
@@ -1525,7 +1525,7 @@ export async function createRoutineDayAction(formData: FormData): Promise<Create
   if (!routineDayResult.ok || !routineDayResult.routineDayId) {
     return {
       ok: false,
-      error: routineDayResult.ok ? "Could not create workout plan." : routineDayResult.error ?? "Could not create workout plan.",
+      error: routineDayResult.ok ? "Could not create day." : routineDayResult.error ?? "Could not create day.",
     };
   }
 
@@ -1553,7 +1553,7 @@ export async function createRoutineDayAction(formData: FormData): Promise<Create
       routineDayId: routineDayResult.routineDayId,
       previousCycleLength: routine.cycle_length_days,
     });
-    return { ok: false, error: createdDayError?.message ?? "Created workout plan not found." };
+    return { ok: false, error: createdDayError?.message ?? "Created day not found." };
   }
 
   const resolvedOverrides = resolveRoutineDayCreationOverrides({
@@ -1815,7 +1815,7 @@ async function enforceWorkoutPlanTemplateAccessForCurrentTier(args: {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { ok: false, error: "Could not verify workout plan access." };
+    return { ok: false, error: "Could not verify day access." };
   }
 
   const accessibleTemplateIds = selectAccessibleWorkoutPlanTemplateIdsForTier({
@@ -1849,7 +1849,7 @@ async function getSavedWorkoutPlanCapacityError(args: {
       return null;
     }
 
-    return new Error("Could not verify workout plan capacity.");
+    return new Error("Could not verify day capacity.");
   }
 
   if ((count ?? 0) >= BASE_SAVED_WORKOUT_PLAN_LIMIT) {
@@ -2236,7 +2236,7 @@ export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise
   const requestedSourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
 
   if (!requestedTemplateId && !requestedSourceRoutineDayId) {
-    return { ok: false, error: "Missing workout plan source info." };
+    return { ok: false, error: "Missing day source info." };
   }
 
   const allRoutineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
@@ -2257,7 +2257,7 @@ export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise
       userId: user.id,
     });
     if (sourceDayResult.error || !sourceDayResult.data) {
-      return { ok: false, error: sourceDayResult.error?.message ?? "Workout plan source not found." };
+      return { ok: false, error: sourceDayResult.error?.message ?? "Day source not found." };
     }
 
     const sourceDay = sourceDayResult.data;

@@ -106,7 +106,7 @@ function getProValueSummary(snapshot: ProAccessSnapshot) {
       title: "Saved workout plans",
       description: snapshot.accessState === "pro"
         ? "Pro keeps saved workout plan creation unlimited while access is active."
-        : "Base includes up to 14 saved workout plans. Extra saved plans stay hidden and locked until Pro is restored.",
+        : "Base includes up to 14 saved days. Extra saved days stay hidden and locked until Pro is restored.",
     },
   ];
 

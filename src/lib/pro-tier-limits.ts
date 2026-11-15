@@ -19,7 +19,7 @@ export const ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE =
   "Base includes up to 3 routines. Upgrade to Pro to restore unlimited routine access.";
 
 export const WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE =
-  "Base includes up to 14 saved workout plans. Upgrade to Pro to restore unlimited workout plan access.";
+  "Base includes up to 14 saved days. Upgrade to Pro to restore unlimited saved days.";
 
 function compareNullableTimestampDesc(left?: string | null, right?: string | null) {
   const normalizedLeft = left ?? "";
