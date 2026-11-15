@@ -25,8 +25,8 @@ test("Achievements are a Settings section card and remain deep-linkable", () => 
 });
 
 test("Account opens the same-origin Fitness account route instead of an external portal", () => {
-  assert.match(sectionsSource, /router\.push\(getAccountRouteHref\("\/settings"\)\)/);
-  assert.match(sectionsSource, /import \{ useRouter \} from "next\/navigation"/);
+  assert.match(sectionsSource, /href=\{getAccountRouteHref\("\/settings"\)\}/);
+  assert.doesNotMatch(sectionsSource, /useRouter/);
   assert.doesNotMatch(sectionsSource, /getFitnessAccountPortalUrl|SettingsExternalTrigger/);
   assert.doesNotMatch(sectionsSource, /<PublishBottomActions>\s*<SignOutButton/);
   assert.doesNotMatch(sectionsSource, /expandedSection === "account" \? <AccountSettingsForm/);

@@ -70,7 +70,11 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
                 {headerChildren}
               </HistoryPageHeader>
             ) : (
-              props.floatingHeaderSlot
+              <>
+                {/* controlsOnly drops the visible title; keep one h1 for the heading outline and screen readers. */}
+                <h1 className="sr-only">{props.title || "History"}</h1>
+                {props.floatingHeaderSlot}
+              </>
             )}
           </FloatingHeaderSlot>
         );

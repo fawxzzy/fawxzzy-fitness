@@ -329,3 +329,7 @@ test("History routes use the card components and the dev fixture is behind the d
   assert.match(audit, /<HistoryDetailExerciseCard/);
   assert.doesNotMatch(audit, /shellStyle=|mediaClassName=|badgeItems=/);
 });
+
+test("History controlsOnly routes keep one sr-only h1 (FF-DESIGN-004)", () => {
+  assert.match(read("./HistoryRouteScaffold.tsx"), /<h1 className="sr-only">\{props\.title \|\| "History"\}<\/h1>/);
+});

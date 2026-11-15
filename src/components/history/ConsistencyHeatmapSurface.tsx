@@ -93,7 +93,7 @@ function HeatmapGrid({ heatmap, ariaLabel }: { heatmap: HistoryConsistencyHeatma
         <span
           key={`weekday-${index}`}
           aria-hidden="true"
-          className="flex items-center pr-1.5 text-[0.5625rem] font-semibold uppercase leading-none text-[rgb(var(--text-muted)/0.78)] min-[390px]:text-[0.625rem]"
+          className="flex items-center pr-1.5 text-[0.6875rem] font-semibold uppercase leading-none text-[rgb(var(--text-muted)/0.78)]"
         >
           {label}
         </span>
@@ -105,7 +105,7 @@ function HeatmapGrid({ heatmap, ariaLabel }: { heatmap: HistoryConsistencyHeatma
             <span
               aria-hidden="true"
               data-heatmap-month={monthKey}
-              className="block h-3.5 whitespace-nowrap text-[0.5625rem] font-semibold uppercase leading-none tracking-[0.08em] text-[rgb(var(--text-muted)/0.78)] min-[390px]:text-[0.625rem]"
+              className="block h-3.5 whitespace-nowrap text-[0.6875rem] font-semibold uppercase leading-none tracking-[0.08em] text-[rgb(var(--text-muted)/0.78)]"
             >
               {monthKey ? formatMonth(monthKey) : null}
             </span>
@@ -149,7 +149,7 @@ function HeatmapLegend() {
         {LEGEND_STEPS.map((step) => (
           <span
             key={step.tone}
-            className={cn("flex h-4 w-4 items-center justify-center rounded-[0.2rem] border text-[0.625rem] font-bold leading-none tracking-normal", cellToneClassName(step.tone))}
+            className={cn("flex h-4 w-4 items-center justify-center rounded-[0.2rem] border text-[0.6875rem] font-bold leading-none tracking-normal", cellToneClassName(step.tone))}
           >
             {step.cue === "dot"
               ? <span className={CUE_DOT_CLASS_NAME} />
