@@ -1726,3 +1726,9 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Borrowing `.fx-notice` outside `.fx-auth` without its colour variables renders an unstyled border; the Account screen scopes `--fx-ac`/`--fx-danger` with `.fx-account`. A notice with its own `role="alert"` inside an existing live region would double-announce, so `AuthNoticeBox` has no role.
 - Evidence: `src/components/error/errorScreens.contract.test.tsx` (status-shell markup and the Retry/Reload wiring), `src/app/account/accountSurface.contract.test.ts`, typecheck, lint, test:all, build. Dev-lab screenshots at 390x844 and 320x568 with standalone emulation (not-found, app-recovery, global-error, account with a mismatch notice).
 - Status: Source only, headless. Not checked on a real phone.
+## 2026-11-15 - Terms and Privacy last-updated dates bumped
+- WHAT changed: `PRIVACY_POLICY_LAST_UPDATED` and `TERMS_OF_SERVICE_LAST_UPDATED` in `src/lib/legal-documents.ts` now read "November 15, 2026". Constants only; no copy or behaviour change.
+- WHY it changed: #270 changed Terms/Privacy wording (workout plans to days) while the pages still showed July 1, 2026; the date should follow a copy change.
+- Rule: Bump both legal last-updated constants in the same release as any Terms/Privacy copy change.
+- Evidence: typecheck, lint; the dates render through the shared legal page component.
+- Status: Source only, headless. Zac approved the bump 2026-11-15.
