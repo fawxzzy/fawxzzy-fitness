@@ -2381,11 +2381,12 @@ a:focus-visible {
    reserved notice slot), links, legal, dock. Nothing is position:fixed; safe areas are padding (env() + spacing),
    never fixed px offsets. Compact metrics apply at <= 640px tall (the 320x568 frame). */
 .fx-auth {
-  --accent: 160 223 56;
-  --accent-strong: 190 242 100;
-  --accent-divider-rgb: 160 223 56;
-  --fx-ac: 160 223 56;
-  /* The primary dock button uses the app's standard green (root --accent-mint), so Sign in matches the in-app primary. */
+  /* One accent: the app's standard green (root --accent-mint / --accent-mint-strong defaults), fixed because auth screens
+     render before a theme is chosen. The primary dock button uses the same green, so Sign in matches the in-app primary. */
+  --accent: 32 151 78;
+  --accent-strong: 68 168 106;
+  --accent-divider-rgb: 32 151 78;
+  --fx-ac: 32 151 78;
   --fx-primary: 32 151 78;
   --fx-base: #060b07;
   --fx-text: 241 245 242;
@@ -2735,9 +2736,9 @@ a:focus-visible {
   cursor: pointer;
 }
 
-/* Account settings (signed in) borrows the v2 notice box: same tokens as .fx-auth, scoped to the Account screen. */
+/* Account screen (signed in): v2 tokens scoped to the Account screen, accent = the app's standard green. */
 .fx-account {
-  --fx-ac: 160 223 56;
+  --fx-ac: var(--accent-mint);
   --fx-danger: 255 107 120;
 }
 
@@ -3090,7 +3091,7 @@ a:focus-visible {
 /* Earned install prompt (Today): the install family as an inline card. Same icon, title, line, steps and pill
    buttons as /install, sized for a card. */
 .fx-earned {
-  --fx-ac: 160 223 56;
+  --fx-ac: var(--accent-mint);
   --fx-text: 241 245 242;
   display: flex;
   flex-direction: column;

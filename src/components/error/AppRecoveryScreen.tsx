@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { AuthDockButton, AuthLinkButton, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
+import { AuthDockButton, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
+import { authNotice } from "@/components/auth/authMessages";
 import { ERROR_COPY } from "@/components/error/errorCopy";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import {
@@ -14,14 +15,10 @@ export function AppRecoveryScreen({
   digest,
   errorName,
   onReopen,
-  title = ERROR_COPY.boundaryTitle,
-  topMessage,
 }: {
   digest?: string;
   errorName?: string;
   onReopen?: () => void;
-  title?: string;
-  topMessage?: string;
 }) {
   const pathname = usePathname();
   const recoveryStartedRef = useRef(false);
@@ -51,18 +48,20 @@ export function AppRecoveryScreen({
 
   }, [digest, errorName, pathname]);
 
-  // Auth Surface v2 status screen: app icon, title, one line, Retry in the dock and Reload app as the one link.
+  // Auth Surface v2 crash screen, words from the shared copy matrix: "Could not load", the one `page.crash` notice,
+  // Try again in the dock (re-render, or a reload when there is nothing to re-render) and a plain link back to Today
+  // (a full page load). Neither path signs the person out.
   return (
     <AuthStatusScreen
       testId="app-recovery-screen"
-      title={title}
-      lead={topMessage ?? ERROR_COPY.boundaryBody}
+      title={ERROR_COPY.boundaryTitle}
+      notice={authNotice("page.crash")}
       action={(
         <>
           <AuthLinks>
-            <AuthLinkButton onClick={() => window.location.reload()}>{ERROR_COPY.reloadLabel}</AuthLinkButton>
+            <a className="fx-link" href={ERROR_COPY.homeHref}>{ERROR_COPY.homeLabel}</a>
           </AuthLinks>
-          <AuthDockButton type="button" onClick={() => onReopen?.()}>
+          <AuthDockButton type="button" onClick={() => (onReopen ? onReopen() : window.location.reload())}>
             {ERROR_COPY.retryLabel}
           </AuthDockButton>
         </>

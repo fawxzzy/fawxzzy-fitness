@@ -37,7 +37,9 @@ test("shared auth shell keeps the family markers and the one-column v2 layout", 
 test("installed auth uses the canonical account presentation without crossing origins", () => {
   assert.match(loginEntrySource, /getInstallContext\(\)\.isStandalone \|\| isLocalManualLogin/);
   assert.match(loginEntrySource, /return <LoginScreen \{\.\.\.props\} \/>/);
-  assert.match(globalCssSource, /\.fx-auth \{[^}]*--accent: 160 223 56/);
+  // One accent on auth screens: the standard green, no lime left (Zac 2026-11-15).
+  assert.match(globalCssSource, /\.fx-auth \{[^}]*--accent: 32 151 78;[^}]*--fx-ac: 32 151 78;/);
+  assert.doesNotMatch(globalCssSource, /160 223 56|190 242 100/);
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-base: #060b07/);
   // Sign in is the app's standard green primary, flat, with no lime gradient or glow.
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-primary: 32 151 78;/);

@@ -145,15 +145,13 @@ test("every allow-listed route code maps to a matrix message, so no screen falls
   assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.username_taken), "signup.taken");
   assert.equal(resetRequestNoticeId("rate_limited"), "reset.rate");
   assert.equal(resetRequestNoticeId("anything"), "reset.sendfail");
-  // No server credential for a username lookup: a plain "unavailable" line, never one that implies an email was typed.
-  assert.equal(resetRequestNoticeId("email_required"), "reset.unavailable");
-  assert.equal(loginErrorNoticeId(LOGIN_ERROR_COPY.email_required), "reset.unavailable");
-  assert.doesNotMatch(AUTH_MESSAGES["reset.unavailable"].text, /email/i);
-  // The generic sign-up failure is sign-up specific, never the sign-in "unavailable" line, and does not claim the
-  // email has an account; that case has its own message (owner decision 2026-11-15, Web #177 parity).
-  assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.signup_failed), "signup.failed");
-  assert.doesNotMatch(AUTH_MESSAGES["signup.failed"].text, /sign-in|already|exists|registered/i);
-  assert.equal(AUTH_MESSAGES["signup.failed"].action, "Sign in");
+  // No server credential for a username lookup: the portal's "could not send" line (FawxzzyWeb copy-matrix parity).
+  assert.equal(resetRequestNoticeId("email_required"), "reset.sendfail");
+  assert.equal(loginErrorNoticeId(LOGIN_ERROR_COPY.email_required), "reset.sendfail");
+  // The generic sign-up failure shows the portal's crash line and never claims the email has an account; that case
+  // has its own message (owner decision 2026-11-15, Web #177 parity).
+  assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.signup_failed), "page.crash");
+  assert.doesNotMatch(AUTH_MESSAGES["page.crash"].text, /sign-in|already|exists|registered/i);
   assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.email_exists), "signup.emailexists");
   assert.equal(AUTH_MESSAGES["signup.emailexists"].text, "That email already has an account.");
   assert.equal(AUTH_MESSAGES["signup.emailexists"].action, "Sign in");

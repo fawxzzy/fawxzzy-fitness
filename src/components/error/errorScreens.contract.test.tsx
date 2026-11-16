@@ -13,11 +13,11 @@ const read = (name: string) => readFile(new URL(name, import.meta.url), "utf8");
 
 test("not-found renders a branded page with one primary action to Today", () => {
   const html = renderToStaticMarkup(createElement(NotFoundScreen));
-  assert.match(html, /We can&#x27;t find that page\./);
+  assert.match(html, /Page not found/);
   assert.match(html, /Fitness/);
   assert.equal((html.match(/<a /g) ?? []).length, 1);
   assert.match(html, /href="\/today"/);
-  assert.match(html, />Back to Today</);
+  assert.match(html, />Go to Today</);
   assert.equal((html.match(/<button/g) ?? []).length, 0);
 });
 
@@ -34,22 +34,30 @@ test("error copy has no developer terms", () => {
   for (const value of Object.values(ERROR_COPY)) {
     assert.doesNotMatch(value, DEVELOPER_TERMS);
   }
-  assert.equal(ERROR_COPY.boundaryTitle, "Something went wrong");
-  assert.equal(ERROR_COPY.boundaryBody, "This did not sign you out.");
+  // Shared copy matrix words (FawxzzyWeb status-copy.ts): never the retired "Something went wrong".
+  assert.equal(ERROR_COPY.boundaryTitle, "Could not load");
+  assert.equal(ERROR_COPY.boundaryBody, "Check your connection and try again.");
+  assert.equal(ERROR_COPY.retryLabel, "Try again");
+  assert.equal(ERROR_COPY.notFoundTitle, "Page not found");
+  assert.equal(ERROR_COPY.notFoundBody, "That page does not exist.");
+  for (const value of Object.values(ERROR_COPY)) {
+    assert.doesNotMatch(value, /something went wrong/i);
+  }
 });
 
-test("boundaries and global-error use the shared copy and keep Retry and Reload app", async () => {
+test("boundaries and global-error use the shared copy and keep Try again plus a way out", async () => {
   const recovery = await read("./AppRecoveryScreen.tsx");
   const soft = await read("./AppSoftErrorBoundary.tsx");
   const globalError = await read("../../app/global-error.tsx");
   for (const source of [recovery, soft, globalError]) {
-    assert.doesNotMatch(source, /app-shell|could not load|data service|safe shell/i);
+    assert.doesNotMatch(source, /app-shell|data service|safe shell/i);
   }
   for (const source of [recovery, soft]) {
     assert.match(source, /ERROR_COPY\.retryLabel/);
-    assert.match(source, /ERROR_COPY\.reloadLabel/);
   }
-  assert.match(globalError, /ERROR_COPY\.globalBody/);
+  assert.match(soft, /ERROR_COPY\.reloadLabel/);
+  assert.match(recovery, /ERROR_COPY\.homeLabel/);
+  assert.match(globalError, /<AppRecoveryScreen/);
 });
 
 test("the dev-only error name suffix stays behind the production check", async () => {
@@ -64,15 +72,17 @@ test("not-found, app-error and global-error render in the Auth Surface v2 status
   assert.match(html, /data-testid="not-found-screen"/);
   assert.match(html, /class="fx-auth[^"]*"/);
   assert.match(html, /class="fx-mark"/);
-  assert.match(html, /<h1 class="fx-ttl">We can&#x27;t find that page\.<\/h1>/);
-  assert.match(html, /<p class="fx-lead">It may have moved, or the link may be wrong\.<\/p>/);
-  assert.match(html, /class="fx-dock"[^>]*>Back to Today</);
+  assert.match(html, /<h1 class="fx-ttl">Page not found<\/h1>/);
+  assert.match(html, /<p class="fx-lead">That page does not exist\.<\/p>/);
+  assert.match(html, /class="fx-dock"[^>]*>Go to Today</);
 
   const recovery = await read("./AppRecoveryScreen.tsx");
   assert.match(recovery, /<AuthStatusScreen/);
-  assert.match(recovery, /lead=\{topMessage \?\? ERROR_COPY\.boundaryBody\}/);
-  assert.match(recovery, /<AuthDockButton[^>]*onClick=\{\(\) => onReopen\?\.\(\)\}/);
-  assert.match(recovery, /<AuthLinkButton onClick=\{\(\) => window\.location\.reload\(\)\}>\{ERROR_COPY\.reloadLabel\}/);
+  // One notice in the reserved slot (no lead), Try again in the dock, a plain link back to Today.
+  assert.match(recovery, /notice=\{authNotice\("page\.crash"\)\}/);
+  assert.doesNotMatch(recovery, /lead=/);
+  assert.match(recovery, /<AuthDockButton[^>]*onClick=\{\(\) => \(onReopen \? onReopen\(\) : window\.location\.reload\(\)\)\}/);
+  assert.match(recovery, /<a className="fx-link" href=\{ERROR_COPY\.homeHref\}>\{ERROR_COPY\.homeLabel\}<\/a>/);
   assert.doesNotMatch(recovery, /SurfaceCard|fixed inset-0/);
 
   for (const route of ["../../app/error.tsx", "../../app/global-error.tsx"]) {
