@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-15 (FF-DESIGN-001, account lane H2)
+
+### WHAT
+- Username, email and password are changed on the shared portal only: the in-app account edit form and the password form are removed. `/account` is a read-only screen (Username, Email, Password rows linking to `account.fawxzzy.com/account?app=fitness`) and identity is read again on return.
+- Sign out ends this device only (server revoke, then one navigation: portal `/signout` in a browser tab, `/login` in the installed app) with a `Signing out…` state; a separate `Sign out everywhere` link opens the portal Account page.
+- Auth screens: no lime left (standard green), copy identical to the FawxzzyWeb copy matrix (generic sign-up failure = `page.crash`, unsendable reset = `reset.sendfail`). Crash screen: `Could not load` + one notice + Try again + Go to Today; 404: `Page not found` / `That page does not exist.` / Go to Today.
+
+### WHY
+- One place to change identity and one auth wording across Fawxzzy apps (Auth Surface v2). No route removed, no server action, database or env change.
+
 ## Unreleased - 2026-11-15 (FF-DESIGN-001, header lane H1b)
 
 ### WHAT
