@@ -2,13 +2,13 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ProgressionDashboardCards } from "@/components/history/ProgressionDashboardCards";
 import { ProgressionHistoryCharts } from "@/components/history/ProgressionHistoryCharts";
-import { HistoryControlGroup, HistoryControlPanel, HistorySection } from "@/components/history/HistoryShared";
+import { HistoryControlPanel, HistorySection } from "@/components/history/HistoryShared";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
 import { serializeProgressionHistoryFilters } from "@/lib/progression-history-filters";
 
-const filterFieldClassName = "h-12 w-full rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] px-3 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)] outline-none focus:border-[rgb(var(--accent-divider-rgb)/0.4)]";
 
 function getBadgeTone(tone: "default" | "success" | "warning" | "destructive") {
   switch (tone) {
@@ -55,40 +55,50 @@ export function ProgressionHistorySurface({
           <HistoryControlPanel>
             <form method="get" className="space-y-3">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <HistoryControlGroup label="Event type">
-                  <select name="eventType" defaultValue={filters.eventType ?? ""} className={filterFieldClassName}>
+                <FormField label="Event type">
+                  {(control) => (
+                    <select {...control} name="eventType" defaultValue={filters.eventType ?? ""} className={formFieldControlClassName}>
                     <option value="">All event types</option>
                     {filterOptions.eventTypes.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                </HistoryControlGroup>
+                  )}
+                </FormField>
 
-                <HistoryControlGroup label="Routine">
-                  <select name="routineId" defaultValue={filters.routineId ?? ""} className={filterFieldClassName}>
+                <FormField label="Routine">
+                  {(control) => (
+                    <select {...control} name="routineId" defaultValue={filters.routineId ?? ""} className={formFieldControlClassName}>
                     <option value="">All routines</option>
                     {filterOptions.routines.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                </HistoryControlGroup>
+                  )}
+                </FormField>
 
-                <HistoryControlGroup label="Exercise">
-                  <select name="exerciseId" defaultValue={filters.exerciseId ?? ""} className={filterFieldClassName}>
+                <FormField label="Exercise">
+                  {(control) => (
+                    <select {...control} name="exerciseId" defaultValue={filters.exerciseId ?? ""} className={formFieldControlClassName}>
                     <option value="">All exercises</option>
                     {filterOptions.exercises.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                </HistoryControlGroup>
+                  )}
+                </FormField>
 
-                <HistoryControlGroup label="From">
-                  <input type="date" name="dateFrom" defaultValue={filters.dateFrom ?? ""} className={filterFieldClassName} />
-                </HistoryControlGroup>
+                <FormField label="From">
+                  {(control) => (
+                    <input {...control} type="date" name="dateFrom" defaultValue={filters.dateFrom ?? ""} className={formFieldControlClassName} />
+                  )}
+                </FormField>
 
-                <HistoryControlGroup label="To">
-                  <input type="date" name="dateTo" defaultValue={filters.dateTo ?? ""} className={filterFieldClassName} />
-                </HistoryControlGroup>
+                <FormField label="To">
+                  {(control) => (
+                    <input {...control} type="date" name="dateTo" defaultValue={filters.dateTo ?? ""} className={formFieldControlClassName} />
+                  )}
+                </FormField>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3">

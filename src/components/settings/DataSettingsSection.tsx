@@ -5,7 +5,7 @@ import { updateQaLlelVisibilityAction } from "@/app/settings/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { CardMeta, StatBlock } from "@/components/ui/card-system";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -93,9 +93,6 @@ function getExportFormatNote(fileType: ExportFileType) {
       return "CSV exports one clean table per section instead of one wide log filled with blanks.";
   }
 }
-
-const DATE_INPUT_CLASS_NAME =
-  "block h-12 w-full rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.16)] px-3 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)] outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]";
 
 /** Radio group drawn as tiles. The native radios stay in the DOM (visually hidden), so keyboard and screen readers get a real group. */
 function OptionTiles<T extends string>({
@@ -423,39 +420,42 @@ export function DataSettingsSection({
       </SettingsCard>
 
       <SettingsCard title="Export">
-        <LabeledEditorField label="Name" className="w-full">
+        <FormField label="Name" className="w-full">
+          {(control) => (
           <input
+            {...control}
             type="text"
-            aria-label="Export name"
             value={exportName}
             onChange={(event) => setExportName(sanitizeExportNameInput(event.currentTarget.value))}
             placeholder="fitness-export"
-            className={cn(
-              labeledEditorFieldControlClassName,
-              "auth-input-plain h-12 px-4 py-3 text-center !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-            )}
+            className={cn(formFieldControlClassName, "text-center")}
           />
-        </LabeledEditorField>
+          )}
+        </FormField>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block space-y-2">
-            <span className={appTokens.settingsFieldLabel}>From</span>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.currentTarget.value)}
-              className={DATE_INPUT_CLASS_NAME}
-            />
-          </label>
-          <label className="block space-y-2">
-            <span className={appTokens.settingsFieldLabel}>To</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.currentTarget.value)}
-              className={DATE_INPUT_CLASS_NAME}
-            />
-          </label>
+          <FormField label="From">
+            {(control) => (
+              <input
+                {...control}
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.currentTarget.value)}
+                className={cn(formFieldControlClassName, "font-semibold")}
+              />
+            )}
+          </FormField>
+          <FormField label="To">
+            {(control) => (
+              <input
+                {...control}
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.currentTarget.value)}
+                className={cn(formFieldControlClassName, "font-semibold")}
+              />
+            )}
+          </FormField>
         </div>
 
         <OptionTiles legend="Type" name="export-file-type" options={FILE_TYPE_OPTIONS} value={exportType} onChange={setExportType} />

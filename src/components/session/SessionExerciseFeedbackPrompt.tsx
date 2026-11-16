@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChipButton } from "@/components/ui/Chip";
 import { cn } from "@/lib/cn";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import type { ActionResult } from "@/lib/action-result";
 import { resolveSessionExerciseFeedbackSaveOutcome } from "@/lib/session-feedback-ui";
 import {
@@ -171,15 +172,19 @@ export function SessionExerciseFeedbackPrompt({
           </ChipButton>
         ))}
       </div>
-      <input
-        type="text"
-        value={note}
-        maxLength={SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}
-        onChange={(event) => setNote(event.currentTarget.value)}
-        placeholder="Optional note"
-        aria-label="Feedback note (optional)"
-        className="mt-2 h-11 w-full border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.28)] bg-transparent px-0 text-sm text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-muted)/0.8)] focus:border-[rgb(var(--accent)/0.42)]"
-      />
+      <FormField label="Feedback note (optional)" className="mt-2">
+        {(control) => (
+          <input
+            {...control}
+            type="text"
+            value={note}
+            maxLength={SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}
+            onChange={(event) => setNote(event.currentTarget.value)}
+            placeholder="Optional note"
+            className={formFieldControlClassName}
+          />
+        )}
+      </FormField>
       </div>
       ) : null}
     </div>

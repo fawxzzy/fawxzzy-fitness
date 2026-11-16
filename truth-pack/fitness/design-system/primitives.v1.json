@@ -27,15 +27,21 @@
           }
         },
         {
-          "id": "standalone",
+          "id": "tab",
           "semanticRefs": {
-            "panelRadius": "radii.xl",
-            "panelShadow": "shadows.glassRaised",
-            "panelPaddingX": "spacing.5",
-            "panelPaddingTop": "spacing.1",
-            "panelPaddingBottom": "spacing.4",
-            "actionButtonSize": "spacing.10",
-            "actionButtonRadius": "radii.pill"
+            "back": "none",
+            "title": "typography.title",
+            "trailingSlot": "single 44x44 action or chip (optional)",
+            "sourceSurface": "ScreenHeader kind=\"tab\""
+          }
+        },
+        {
+          "id": "detail",
+          "semanticRefs": {
+            "back": "44x44 control, left",
+            "title": "typography.title",
+            "trailingSlot": "single 44x44 action or chip (optional)",
+            "sourceSurface": "ScreenHeader kind=\"detail\""
           }
         }
       ],
