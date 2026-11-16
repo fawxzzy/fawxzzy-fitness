@@ -53,12 +53,12 @@ test("exports the exact stable active and planned Fitness owner set", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
   assert.equal(output.contract_version, "atlas.project-board.owner-export.v1");
   assert.equal(output.project_id, "fitness");
-  // 39 original registry items + 6 board-safe real-work cards added 2026-11-06 + FF-ACCOUNT-004 added 2026-11-09 + FF-AUTH-002 and FF-RELIABILITY-002 added 2026-11-11 + FF-DESIGN-001, FF-PLATFORM-001 and FF-QA-004 added 2026-11-13 + FF-RELIABILITY-003 and FF-TODAY-004 added 2026-11-13 (second release) + FF-DESIGN-002 added 2026-11-13 (third release) + FF-DESIGN-003 and FF-DESIGN-004 added 2026-11-14 = 56 source items.
+  // 39 original registry items + 6 board-safe real-work cards added 2026-11-06 + FF-ACCOUNT-004 added 2026-11-09 + FF-AUTH-002 and FF-RELIABILITY-002 added 2026-11-11 + FF-DESIGN-001, FF-PLATFORM-001 and FF-QA-004 added 2026-11-13 + FF-RELIABILITY-003 and FF-TODAY-004 added 2026-11-13 (second release) + FF-DESIGN-002 added 2026-11-13 (third release) + FF-DESIGN-003 and FF-DESIGN-004 added 2026-11-14 + FF-RELIABILITY-004 added 2026-11-15 = 57 source items.
   // 31 exported = 24 accepted public/held-out snapshot ids + the 6 new cards; 15 older fixed items stay excluded.
-  assert.equal(output.extensions.source_work_item_count, 56);
-  assert.equal(output.cards.length, 41);
+  assert.equal(output.extensions.source_work_item_count, 57);
+  assert.equal(output.cards.length, 42);
   assert.deepEqual(output.cards.map((card) => card.record.card_id), [...output.cards.map((card) => card.record.card_id)].sort());
-  assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 41);
+  assert.equal(new Set(output.cards.map((card) => card.record.card_id)).size, 42);
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-GAM-002"));
   assert.ok(output.cards.some((card) => card.record.card_id === "FF-ROUTINE-001"));
   assert.deepEqual(output.cards, acceptedSnapshot.cards);
@@ -76,14 +76,14 @@ const STILL_EXCLUDED_COMPLETED_IDS = [
 // 2026-11-09 (RELIABILITY-001, QA-003, RET-005, ACCOUNT-002, RET-002), which is why completed is 15, not 10.
 const EXPORTED_COMPLETED_IDS = [
   "FF-ACCOUNT-002", "FF-AUTH-001", "FF-GAM-001", "FF-PWA-003", "FF-QA-002", "FF-QA-003", "FF-RELIABILITY-001",
-  "FF-DESIGN-003", "FF-RELIABILITY-003", "FF-RET-001", "FF-RET-003", "FF-RET-002", "FF-RET-004", "FF-RET-005", "FF-ROUTINE-001",
+  "FF-DESIGN-003", "FF-RELIABILITY-003", "FF-RELIABILITY-004", "FF-RET-001", "FF-RET-003", "FF-RET-002", "FF-RET-004", "FF-RET-005", "FF-ROUTINE-001",
   "FF-SESSION-001", "FF-SESSION-002", "FF-SESSION-003", "FF-SESSION-004",
 ];
 
 test("keeps non-public completed owner truth out of the live export and exports accepted completed cards", () => {
   const output = buildProjectBoardOwnerExport(registry, bytes);
   const completed = registry.workItems.filter((item) => item.status === "fixed");
-  assert.equal(completed.length, 34);
+  assert.equal(completed.length, 35);
   assert.deepEqual(completed.map((item) => item.id).filter((id) => !EXPORTED_COMPLETED_IDS.includes(id)).sort(), STILL_EXCLUDED_COMPLETED_IDS);
   for (const id of STILL_EXCLUDED_COMPLETED_IDS) assert.equal(output.cards.some((card) => card.record.card_id === id), false, id);
   assert.deepEqual(output.cards.filter((card) => card.record.lifecycle === "completed").map((card) => card.record.card_id).sort(), [...EXPORTED_COMPLETED_IDS].sort());
@@ -93,7 +93,7 @@ test("keeps non-public completed owner truth out of the live export and exports 
     assert.equal(card.record_status, "active");
   }
   assert.equal(output.extensions.excluded_completed_card_count, 15);
-  assert.equal(output.extensions.exported_completed_card_count, 19);
+  assert.equal(output.extensions.exported_completed_card_count, 20);
   assert.equal(output.extensions.private_records_included, false);
 });
 
@@ -126,7 +126,7 @@ test("board-safe real-work cards are public with screened wording and the accept
     // 2026-11-11: branded account messages and database lock-down are live but only partly verified, so they stay in review.
     ["FF-AUTH-002", "review"], ["FF-RELIABILITY-002", "review"],
     // 2026-11-13: ACCOUNT-004 is in progress (sign-up entry, sign-out, save fixes live; recovery link and real-phone pass open); new cards DESIGN-001 (review), PLATFORM-001 and QA-004 (planning).
-    ["FF-ACCOUNT-004", "in-progress"], ["FF-DESIGN-001", "review"], ["FF-PLATFORM-001", "planning"], ["FF-QA-004", "review"], ["FF-DESIGN-003", "completed"], ["FF-DESIGN-004", "review"],
+    ["FF-ACCOUNT-004", "in-progress"], ["FF-DESIGN-001", "review"], ["FF-PLATFORM-001", "review"], ["FF-QA-004", "review"], ["FF-DESIGN-003", "completed"], ["FF-DESIGN-004", "review"],
     // Second 2026-11-13 release: RELIABILITY-003 is live but not replay-checked on a phone (review); TODAY-004 is planned.
     // Third 2026-11-13 release: DESIGN-001 stays in review (more screens live, still no real-phone check); DESIGN-002 is planned.
     ["FF-DESIGN-002", "review"],
@@ -175,7 +175,7 @@ test("applies the evidence-based 2026-11-06 status refresh and keeps untouched c
     ["FF-RET-004", ["completed", refreshed]],
     ["FF-ROUTINE-001", ["completed", refreshed]],
     ["FF-SESSION-001", ["completed", refreshed]],
-    ["FF-SESSION-005", ["in-progress", refreshed]],
+    ["FF-SESSION-005", ["review", "2026-11-15T04:06:10.000Z"]],
     // Dormant behind default-off flags or a known defect: stay in review.
     ["FF-ENGINE-001", ["review", "2026-11-15T02:10:19.000Z"]],
     ["FF-ENGINE-002", ["review", "2026-07-13T04:31:19.434Z"]],
@@ -209,10 +209,10 @@ test("applies the 2026-11-09 live-verification status refresh", () => {
   assert.equal(auth.updated_at, "2026-11-09T21:00:00.000Z");
   // Untouched by this refresh.
   assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-ACCOUNT-003").record.lifecycle, "planning");
-  assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-SESSION-005").record.lifecycle, "in-progress");
+  assert.equal(output.cards.find((entry) => entry.record.card_id === "FF-SESSION-005").record.lifecycle, "review");
   const lifecycles = {};
   for (const card of output.cards) lifecycles[card.record.lifecycle] = (lifecycles[card.record.lifecycle] ?? 0) + 1;
-  assert.deepEqual(lifecycles, { completed: 19, "in-progress": 2, planning: 6, review: 14 });
+  assert.deepEqual(lifecycles, { completed: 20, "in-progress": 1, planning: 5, review: 16 });
 });
 
 test("public cards contain stable product facts and no private/provider fields", () => {
@@ -286,8 +286,8 @@ test("supports bounded source-backed growth without changing the accepted snapsh
   f.add("FF-TEST-001", "private");
   f.add("FF-TEST-002", "public");
   const output = f.build();
-  assert.equal(output.extensions.source_work_item_count, 58);
-  assert.equal(output.extensions.exported_card_count, 43);
+  assert.equal(output.extensions.source_work_item_count, 59);
+  assert.equal(output.extensions.exported_card_count, 44);
   assert.equal(output.extensions.excluded_completed_card_count, 15);
   assert.deepEqual(output.cards.filter((card) => !card.record.card_id.startsWith("FF-TEST-")), acceptedSnapshot.cards);
   const added = output.cards.find((card) => card.record.card_id === "FF-TEST-002");
@@ -332,7 +332,7 @@ test("accepts acyclic dependencies with a shared prerequisite", async (t) => {
   const f = await fixture(t, definitions);
   definitions.forEach(({ cardId }) => f.add(cardId, "private"));
   const output = f.build();
-  assert.equal(output.cards.length, 44);
+  assert.equal(output.cards.length, 45);
   assert.deepEqual(output.cards.find((card) => card.record.card_id === "FF-TEST-003").record.dependencies, ["FF-TEST-001", "FF-TEST-002"]);
 });
 
@@ -371,7 +371,7 @@ test("derives completed exclusions when a synthetic new card is already fixed", 
   const f = await fixture(t, [syntheticCard()]);
   f.add("FF-TEST-001", "private", "fixed");
   const output = f.build();
-  assert.equal(output.extensions.source_work_item_count, 57);
+  assert.equal(output.extensions.source_work_item_count, 58);
   assert.equal(output.extensions.excluded_completed_card_count, 16);
   assert.deepEqual(output.cards, acceptedSnapshot.cards);
 });
