@@ -29,6 +29,7 @@ test("dock roles: attached action dividers use the neutral border, not amber", (
     ["components", "session", "ExerciseTimerControl.tsx"],
     ["components", "session", "SessionExerciseBlock.tsx"],
     ["components", "SessionTimers.tsx"],
+    ["app", "dev", "mobile-regression", "EditDayRegressionSurface.tsx"],
   ]) {
     const source = readFileSync(path.join(SRC_ROOT, ...file), "utf8");
     assert.doesNotMatch(source, /secondary-action-rgb/, `${file.join("/")} still uses amber for a button divider`);
