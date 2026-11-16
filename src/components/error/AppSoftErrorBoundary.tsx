@@ -27,31 +27,21 @@ type AppSoftErrorBoundaryState = {
   retryNonce: number;
 };
 
+// One line and one action, like Mazer: "Could not load", the shared crash line, "Try again". The error name never
+// shows. The first Try again re-renders the area; if it fails again the same button reloads the app.
 function AppSoftErrorFallback({
-  error,
   onRetry,
 }: {
-  error: Error;
   onRetry: () => void;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-4">
       <SurfaceCard className="w-full max-w-sm space-y-4 text-center" role="alert">
         <p className="text-base font-semibold text-[rgb(var(--text-primary))]">{ERROR_COPY.boundaryTitle}</p>
-        <p className="text-sm text-[rgb(var(--text-secondary))]">
-          {ERROR_COPY.boundaryBody}
-          {process.env.NODE_ENV !== "production" ? ` (${error.name})` : ""}
-        </p>
+        <p className="text-sm text-[rgb(var(--text-secondary))]">{ERROR_COPY.boundaryBody}</p>
         <div className="flex flex-col gap-3">
           <button type="button" className={getAppButtonClassName({ variant: "primary", fullWidth: true })} onClick={onRetry}>
             {ERROR_COPY.retryLabel}
-          </button>
-          <button
-            type="button"
-            className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
-            onClick={() => window.location.reload()}
-          >
-            {ERROR_COPY.reloadLabel}
           </button>
         </div>
       </SurfaceCard>
@@ -119,8 +109,7 @@ class AppSoftErrorBoundaryInner extends Component<
     if (this.state.error) {
       return (
         <AppSoftErrorFallback
-          error={this.state.error}
-          onRetry={this.handleRetry}
+          onRetry={this.state.retryNonce > 0 ? () => window.location.reload() : this.handleRetry}
         />
       );
     }

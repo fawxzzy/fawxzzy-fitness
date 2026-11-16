@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { requestPasswordResetInline } from "@/app/auth/actions";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import {
@@ -68,19 +68,29 @@ export default function ForgotPasswordFormClient({
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(previewSent);
   const [cooldown, setCooldown] = useState(previewSent ? RESET_COOLDOWN_SECONDS : 0);
+  // The lab preview counts down exactly like the real flow (60, 59, 58...): its deadline is one cooldown after it opened.
+  const previewDeadline = useRef<number | null>(null);
+
+  const readCooldown = () => {
+    if (previewSent) {
+      previewDeadline.current ??= Date.now() + RESET_COOLDOWN_SECONDS * 1000;
+      return Math.max(0, Math.ceil((previewDeadline.current - Date.now()) / 1000));
+    }
+    return readCooldownSeconds();
+  };
 
   useEffect(() => {
-    if (!previewSent) {
-      setCooldown(readCooldownSeconds());
-    }
+    setCooldown(readCooldown());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewSent]);
 
   useEffect(() => {
-    if (cooldown <= 0 || previewSent) {
+    if (cooldown <= 0) {
       return;
     }
-    const timer = window.setInterval(() => setCooldown(readCooldownSeconds()), 1000);
+    const timer = window.setInterval(() => setCooldown(readCooldown()), 1000);
     return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cooldown, previewSent]);
 
   useEffect(() => {
@@ -134,9 +144,9 @@ export default function ForgotPasswordFormClient({
         <AuthForm id={RESET_FORM_ID} onSubmit={handleSubmit} noValidate>
           <AuthFormFields>
             {signedInEmail ? (
-              <AuthLockedField id={RESET_EMAIL_INPUT_ID} label="Email" value={signedInEmail} />
+              <AuthLockedField id={RESET_EMAIL_INPUT_ID} name="email" autoComplete="email" label="Email" value={signedInEmail} />
             ) : sent ? (
-              <AuthLockedField id={RESET_USERNAME_INPUT_ID} label="Username" value={username} />
+              <AuthLockedField id={RESET_USERNAME_INPUT_ID} name="username" autoComplete="username" label="Username" value={username} />
             ) : (
               <AuthAccountField label="Username" htmlFor={RESET_USERNAME_INPUT_ID} invalid={invalid}>
                 <input

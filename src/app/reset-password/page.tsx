@@ -30,13 +30,18 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
   const { data } = await supabase.auth.getUser();
   const noticeId = resetPasswordErrorNoticeId(error);
 
-  if (!data.user) {
+  // An error from the NEW-password step (too short, not matching, same as before, too easy to guess, save failed) belongs
+  // on the New password screen, whether or not this render can see the session (Web parity). It never touches the
+  // account: saving without a recovery session answers with the expired-link notice on the request screen.
+  const isNewPasswordStepError = Boolean(noticeId) && !LINK_NOTICES.has(noticeId as string);
+
+  if (!data.user && !isNewPasswordStepError) {
     // No recovery session: never a dead end, it is the request screen with the reason in the box.
     return <ForgotPasswordFormClient initialNotice={authNotice(noticeId && LINK_NOTICES.has(noticeId) ? noticeId : "reset.expired")} />;
   }
 
   if (noticeId && LINK_NOTICES.has(noticeId) && noticeId !== "reset.rate") {
-    return <ForgotPasswordFormClient signedInEmail={data.user.email ?? null} initialNotice={authNotice(noticeId)} />;
+    return <ForgotPasswordFormClient signedInEmail={data.user?.email ?? null} initialNotice={authNotice(noticeId)} />;
   }
 
   // A fresh key per server render: the save action redirects back here with ?error=<code>, and a repeat of the same

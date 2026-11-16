@@ -11,7 +11,7 @@ import { RouteLoading } from "@/components/RouteLoading";
 
 /** Which install screen this browser gets. No screen offers a way into the app before it runs installed. */
 export function resolveInstallScreenKind(
-  context: Pick<InstallContext, "hasSupportedInstallPath" | "shouldShowIOSOpenInSafariGate" | "shouldShowIOSAddToHomeScreenGate" | "canUseNativeInstallPrompt">,
+  context: Pick<InstallContext, "platform" | "browserKind" | "hasSupportedInstallPath" | "shouldShowIOSOpenInSafariGate" | "shouldShowIOSAddToHomeScreenGate" | "canUseNativeInstallPrompt">,
   { isInstalled = false }: { isInstalled?: boolean } = {},
 ): InstallScreenKind {
   if (isInstalled) {
@@ -26,7 +26,13 @@ export function resolveInstallScreenKind(
   if (!context.hasSupportedInstallPath) {
     return "unsupported";
   }
-  return context.canUseNativeInstallPrompt ? "prompt" : "manual";
+  if (context.canUseNativeInstallPrompt) {
+    return "prompt";
+  }
+  if (context.platform === "desktop") {
+    return context.browserKind === "safari" ? "desktop-safari" : "desktop";
+  }
+  return "manual";
 }
 
 export function InstallRouteSurface({
@@ -66,7 +72,7 @@ export function InstallRouteSurface({
   }, [copyState]);
 
   if (!hasResolvedClientInstallContext || context.isStandalone) {
-    return <RouteLoading label="Opening Fitness" variant="route" />;
+    return <RouteLoading label="Opening Fitness…" variant="route" />;
   }
 
   const kind = resolveInstallScreenKind(context, { isInstalled: installPrompt.isInstalled });

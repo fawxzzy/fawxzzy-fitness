@@ -10,7 +10,7 @@ test("root layout renders the route slot only inside the installed-app gate", ()
     "A Next.js route slot must not be serialized as both the fallback and gated content");
   assert.equal((layout.match(/\{children\}/g) ?? []).length, 1);
   assert.match(layout, /<ProtectedAppInstallGate>\{children\}<\/ProtectedAppInstallGate>/);
-  assert.match(layout, /<Suspense fallback=\{<RouteLoading label="Opening Fitness" variant="route" \/>\}>/);
+  assert.match(layout, /<Suspense fallback=\{<RouteLoading label="Opening Fitness…" variant="route" \/>\}>/);
 });
 
 test("iOS in-app browsers redirect protected app routes but leave account and auth transport routes reachable", () => {

@@ -18,6 +18,16 @@
  * Pure: no React, DOM, randomness or wall-clock dependency; the caller passes the time.
  */
 
+/** The visible words under the icon (the overlay itself is aria-hidden; the live region carries the wait's label). */
+export const LOADER_BOOT_TITLE = "Opening Fitness…";
+export const LOADER_ROUTE_TITLE = "Loading…";
+
+/** A working label always ends with the single ellipsis character: `Loading...`, `Loading.` and `Loading` all read `Loading…`. */
+export function withLoaderEllipsis(label: string): string {
+  const base = label.trim().replace(/(\.{1,3}|…)+$/u, "").trim();
+  return `${base || "Loading"}…`;
+}
+
 /** A wait shorter than this never shows the loader. */
 export const LOADER_SHOW_DELAY_MS = 150;
 /** Once shown, the loader stays at least this long (from the first fade-in frame) before it starts to leave. */

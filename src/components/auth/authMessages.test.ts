@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { LOGIN_ERROR_COPY, LOGIN_FAILURE_MESSAGES, LOGIN_INFO_COPY, RESET_PASSWORD_ERROR_COPY } from "@/lib/auth-route-feedback";
+import {
+  LOGIN_ERROR_COPY,
+  LOGIN_FAILURE_MESSAGES,
+  LOGIN_INFO_COPY,
+  LOGIN_UNKNOWN_ERROR_COPY,
+  RESET_PASSWORD_ERROR_COPY,
+} from "@/lib/auth-route-feedback";
 import { SIGNUP_ERROR_COPY } from "@/components/auth/signupFeedback";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import {
@@ -146,8 +152,14 @@ test("every allow-listed route code maps to a matrix message, so no screen falls
   assert.equal(resetRequestNoticeId("rate_limited"), "reset.rate");
   assert.equal(resetRequestNoticeId("anything"), "reset.sendfail");
   // No server credential for a username lookup: the portal's "could not send" line (FawxzzyWeb copy-matrix parity).
-  assert.equal(resetRequestNoticeId("email_required"), "reset.sendfail");
-  assert.equal(loginErrorNoticeId(LOGIN_ERROR_COPY.email_required), "reset.sendfail");
+  assert.equal(resetRequestNoticeId("email_required"), "reset.emailneeded");
+  assert.equal(loginErrorNoticeId(LOGIN_ERROR_COPY.email_required), "reset.emailneeded");
+  assert.equal(AUTH_MESSAGES["reset.emailneeded"].text, "Use your email to reset your password.");
+  // Never silent: magic_link_sent and an unknown error code each get a notice.
+  assert.equal(loginInfoNoticeId(LOGIN_INFO_COPY.magic_link_sent), "signin.linksent");
+  assert.equal(loginErrorNoticeId(LOGIN_UNKNOWN_ERROR_COPY), "signin.callback");
+  // Web's canonical reset-sent line (FawxzzyWeb copy-matrix `reset.sentuser`), word for word.
+  assert.equal(AUTH_MESSAGES["reset.sentany"].text, "If that username has an account, we sent a reset link to its email.");
   // The generic sign-up failure shows the portal's crash line and never claims the email has an account; that case
   // has its own message (owner decision 2026-11-15, Web #177 parity).
   assert.equal(signupErrorNoticeId(SIGNUP_ERROR_COPY.signup_failed), "page.crash");
@@ -188,4 +200,41 @@ test("matrix text is plain sentence case with no exclamation marks or ellipses",
     assert.match(entry.text, /[.]$/, id);
     assert.doesNotMatch(entry.text, /!|\.\.\.|…/, id);
   }
+});
+
+test("new-password step errors render on the New password screen, link problems on the request screen", () => {
+  const page = read("../../app/reset-password/page.tsx");
+  assert.match(page, /isNewPasswordStepError = Boolean\(noticeId\) && !LINK_NOTICES\.has\(noticeId as string\)/);
+  assert.match(page, /if \(!data\.user && !isNewPasswordStepError\)/);
+  assert.match(page, /return <ResetPasswordForm key=\{Date\.now\(\)\} error=\{error\} \/>;/);
+  for (const code of ["password_requirement", "passwords_must_match", "same_password", "weak_password", "failed"] as const) {
+    const id = resetPasswordErrorNoticeId(RESET_PASSWORD_ERROR_COPY[code]);
+    assert.ok(id && !["reset.expired", "reset.invalid", "reset.rate"].includes(id), code);
+  }
+});
+
+test("locked read-only fields on the sent screens carry a name and an autocomplete token", () => {
+  const forgot = read("../../app/forgot-password/ForgotPasswordFormClient.tsx");
+  assert.match(forgot, /<AuthLockedField id=\{RESET_EMAIL_INPUT_ID\} name="email" autoComplete="email"/);
+  assert.match(forgot, /<AuthLockedField id=\{RESET_USERNAME_INPUT_ID\} name="username" autoComplete="username"/);
+  const signup = read("./SignupForm.tsx");
+  assert.match(signup, /<AuthLockedField id="signup-username" name="username" autoComplete="username"/);
+  assert.match(signup, /<AuthLockedField id="signup-email" name="email" autoComplete="email"/);
+});
+
+test("the lab resend timer counts down like the real one", () => {
+  const forgot = read("../../app/forgot-password/ForgotPasswordFormClient.tsx");
+  assert.match(forgot, /previewDeadline/);
+  // No branch stops the ticking for the preview any more.
+  assert.doesNotMatch(forgot, /cooldown <= 0 \|\| previewSent/);
+});
+
+test("loader words: one boot title, one route title, always the ellipsis character", () => {
+  for (const file of ["../../app/loading.tsx", "../../app/layout.tsx", "../../app/login/LoginEntry.tsx", "../../app/signup/SignupEntry.tsx", "../install/InstallRouteSurface.tsx"]) {
+    const source = read(file);
+    assert.doesNotMatch(source, /label="Opening (Fawxzzy)?Fitness"/, file);
+    assert.doesNotMatch(source, /label="[^"]*\.\.\."/, file);
+  }
+  assert.match(read("../RouteLoading.tsx"), /label = "Loading…"/);
+  assert.doesNotMatch(read("../RouteLoading.tsx"), /Loading tab\.\.\./);
 });

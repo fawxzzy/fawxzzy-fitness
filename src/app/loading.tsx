@@ -3,7 +3,7 @@ import { RouteLoading } from "@/components/RouteLoading";
 export default function AppLoading() {
   return (
     <RouteLoading
-      label="Opening FawxzzyFitness"
+      label="Opening Fitness…"
       detail="Preparing your start screen."
       variant="boot"
       gateName="app.boot.root"

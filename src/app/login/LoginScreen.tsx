@@ -228,7 +228,7 @@ export function LoginScreen({
             {rememberedLogin ? (
               <>
                 <input type="hidden" name="email" value={rememberedEmail ?? ""} />
-                <AuthLockedField id={REMEMBERED_INPUT_ID} label={rememberedLabel} value={rememberedValue} />
+                <AuthLockedField id={REMEMBERED_INPUT_ID} name="remembered-account" autoComplete="username" label={rememberedLabel} value={rememberedValue} />
               </>
             ) : (
               <AuthAccountField label="Email or username" htmlFor={EMAIL_INPUT_ID} invalid={invalidFields.identifier}>

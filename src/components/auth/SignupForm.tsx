@@ -190,8 +190,8 @@ export function SignupForm({
         <AuthHead title={title} />
         <AuthBody aria-label="Fitness account creation" data-auth-intent="signup" data-auth-surface="credentials">
           <AuthFormFields>
-            {sent.username ? <AuthLockedField id="signup-username" label="Username" value={sent.username} /> : null}
-            <AuthLockedField id="signup-email" label="Email" value={sent.email} />
+            {sent.username ? <AuthLockedField id="signup-username" name="username" autoComplete="username" label="Username" value={sent.username} /> : null}
+            <AuthLockedField id="signup-email" name="email" autoComplete="email" label="Email" value={sent.email} />
           </AuthFormFields>
           <AuthNoticeSlot notice={notice} />
         </AuthBody>

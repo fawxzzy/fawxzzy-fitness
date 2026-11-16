@@ -59,7 +59,7 @@ test("LOADER-SPEC.md states every shared constant with the same value", () => {
     assert.ok(row, `${name} is in the spec`);
     assert.equal(Number(row.split("|")[2].trim()), value, `${name} value in the spec`);
   }
-  assert.match(spec, /rgb\(var\(--bg-0, 7 17 27\)\)/);
+  assert.match(spec, /`#060b07`/);
   assert.match(spec, /`#c8ed66`/);
   assert.match(spec, /5F1011EF2DB7A4725E991D5FB6347F3E589028669F74BC35F273E6E800F11F03/);
 });
@@ -85,10 +85,17 @@ test("the CSS keyframes and sizes are pinned to the constants", () => {
   assert.match(block, new RegExp(`clamp\\(${loader.LOADER_ICON_MIN_PX}px, min\\(${percent}vw, ${percent}vh\\), ${loader.LOADER_ICON_MAX_PX}px\\)`));
   assert.match(block, /border-radius: 22%;/);
   assert.match(block, /border: 2px solid var\(--app-loader-ring\);/);
-  // Opaque backdrop from the first paint: the page colour (--bg-0 = 7 17 27 = #07111b), also the manifest background.
-  assert.match(block, /background: rgb\(var\(--bg-0, 7 17 27\)\);/);
-  assert.match(read("src/app/globals.css"), /--bg-0: 7 17 27;/);
-  assert.match(read("src/app/manifest.ts"), /background_color: "#07111b"/);
+  // Opaque backdrop from the first paint: the portal status screen's green (#060b07 plus its top glow), the .fx-auth base.
+  assert.match(block, /background: radial-gradient\(70% 380px at 50% 0%, rgb\(32 151 78 \/ 0\.16\), transparent 72%\) no-repeat, #060b07;/);
+  assert.match(read("src/app/globals.css"), /--fx-base: #060b07;/);
+  // The words under the icon: one boot title and one route title, each with the single ellipsis character.
+  assert.equal(loader.LOADER_BOOT_TITLE, "Opening Fitness…");
+  assert.equal(loader.LOADER_ROUTE_TITLE, "Loading…");
+  assert.equal(loader.withLoaderEllipsis("Loading..."), "Loading…");
+  assert.equal(loader.withLoaderEllipsis("Opening workout"), "Opening workout…");
+  assert.equal(loader.withLoaderEllipsis("Checking where to drop you in."), "Checking where to drop you in…");
+  assert.equal(loader.withLoaderEllipsis("  "), "Loading…");
+  assert.match(block, /\.app-loader__title \{/);
 });
 
 test("the boot failsafe is pinned: a cover that scripts never take over removes itself after 8 s", () => {
@@ -126,9 +133,10 @@ test("input: the visible cover takes taps, lets them through while leaving, and 
 test("the status region is empty on the server and written only while the loader is showing", () => {
   const host = read("src/components/AppLoaderHost.tsx");
   assert.match(host, /<div ref=\{statusRef\} role="status" aria-live="polite" className="sr-only" data-app-loader-status="" \/>/);
-  assert.doesNotMatch(host, /Opening Fitness/, "no server-rendered announcement on every load");
+  assert.doesNotMatch(host, /Opening Fitness/, "no server-rendered announcement on every load (the visible title is a constant)");
+  assert.match(host, /data-app-loader-title=""/);
   // Set while showing; cleared only once idle (a fade-out that turns around keeps the text: no re-announce).
-  assert.match(host, /if \(active && frame\.visible && iconSeen\) \{\s*setAnnounced\(label\);\s*\} else if \(phase === "idle" \|\| phase === "waiting"\) \{\s*setAnnounced\(""\);/);
+  assert.match(host, /if \(active && frame\.visible && iconSeen\) \{\s*setAnnounced\(withLoaderEllipsis\(label\)\);\s*\} else if \(phase === "idle" \|\| phase === "waiting"\) \{\s*setAnnounced\(""\);/);
   assert.doesNotMatch(host, /useSyncExternalStore/);
 });
 

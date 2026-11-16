@@ -730,8 +730,10 @@ body {
   z-index: 95;
   display: grid;
   place-content: center;
-  /* The page background (--bg-0, 7 17 27 = #07111b = the manifest background), so the cover and the page are one colour. */
-  background: rgb(var(--bg-0, 7 17 27));
+  /* The portal status screen's green: the .fx-auth base (#060b07) with its soft green glow at the top, so the loader and
+     the account screens are one family (final cross-check, 2026-11-16). */
+  background: radial-gradient(70% 380px at 50% 0%, rgb(32 151 78 / 0.16), transparent 72%) no-repeat, #060b07;
+  color: rgb(241 245 242);
   pointer-events: none;
   /* 30% of the short side, 88..150 px (LOADER_ICON_SIZE_RATIO / MIN / MAX). */
   --app-loader-icon: clamp(88px, min(30vw, 30vh), 150px);
@@ -765,6 +767,21 @@ body {
   position: absolute;
   inset: -70%;
   background: radial-gradient(circle, rgb(200 237 102 / 0.16), rgb(200 237 102 / 0) 62%);
+}
+
+/* The title sits under the icon inside the stage, so it fades in with it and never moves the icon. */
+.app-loader__title {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin: 20px 0 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 /* Size is reserved by width and height on the element and here; the image is an inline data URI (no request). */

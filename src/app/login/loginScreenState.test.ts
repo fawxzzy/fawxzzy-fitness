@@ -130,3 +130,13 @@ test("login route errors show in the inline notice slot, never as a toast", asyn
   assert.match(bridge, /const INLINE_NOTICE_ROUTES = new Set\(\["\/login", "\/signup"\]\)/);
   assert.match(bridge, /if \(pathname === "\/reset-password"\) \{\s*return;/);
 });
+
+test("magic_link_sent and unknown error codes never leave the sign-in notice silent", () => {
+  assert.equal(resolveLoginRouteMessages({ infoCode: "magic_link_sent" }).info, "Check your email for the sign-in link.");
+  const unknown = resolveLoginRouteMessages({ errorCode: "totally_made_up" });
+  assert.equal(unknown.error, "Could not finish signing in. Please try again.");
+  // The URL never chooses the words.
+  assert.doesNotMatch(unknown.error ?? "", /made_up/);
+  assert.equal(resolveLoginRouteMessages({ errorCode: "" }).error, undefined);
+  assert.equal(resolveLoginRouteMessages({}).error, undefined);
+});

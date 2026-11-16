@@ -35,6 +35,7 @@ export const PasswordInput = ({fitContent,minVisibleCharacters,wrapperClassName,
 export const BottomActionSingle = ({children}:any)=><div>{children}</div>;
 export const BottomDockButton = ({loading,loadingLabel,intent,children,...props}:any)=><button {...props}>{children}</button>;
 export const LOGIN_INFO_COPY = {};
+export const LOGIN_UNKNOWN_ERROR_COPY = "";
 export const resolveLoginErrorCopy = (x:any)=>x ?? undefined;
 export const resolveLoginInfoCopy = (_x:any)=>undefined;
 // Auth Surface v2 shell pieces. The dock mirrors the real AuthDockButton: disabled while busy, submits by form id.

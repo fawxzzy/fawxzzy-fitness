@@ -1,5 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-16 - Final cross-check fixes: reset errors, desktop install, one crash card, loader words
+
+- Type: UI copy and behaviour (source)
+- WHAT changed: Errors from the New-password step (too short, not matching, same as before, too easy to guess, save failed) now show on the New password screen even when the render cannot see a session; only link problems go to the request screen. /install gives computers their own steps (install icon in the address bar; Safari on a Mac is told to open Chrome or Edge) instead of the phone copy. The in-app "Could not load" card has one line and one Try again (no error name, no "Reload app"; a second failure makes the same button reload). The reset-sent line is Web's "If that username has an account, ..."; `magic_link_sent` and unknown `/login?error=` codes now show a fixed notice; `email_required` says "Use your email to reset your password."; the lab resend timer counts down like the real one; locked read-only fields on the sent screens carry a name and autocomplete. The app loader shows a title under the icon ("Opening Fitness..." on boot, "Loading..." after) on the portal green instead of flat navy.
+- WHY it changed: The final side-by-side of Fitness, Mazer and Web found these gaps (gallery 2026-11-16).
+- Rule: A screen that owns a step shows that step's errors; copy that exists on Web is copied, not re-worded; a notice slot is never silent for a state the person can reach.
+- Failure Mode: Routing every no-session render to the request screen hid new-password errors behind the wrong title; phone copy on a computer; two competing buttons on one crash card.
+- Decision: The loader backdrop is now the portal green (#060b07 with the top glow), not the manifest navy, so the OS launch colour and the cover differ for a moment (LOADER-SPEC updated). Desktop Safari uses Mazer's "open in Chrome or Edge" steps because Fitness only runs installed.
+- Not changed: the "Try again in a minute." endings already match Web (matrix lines are identical); `EarnedInstallPrompt` stays unreachable (see PR body) and was not touched.
+- Status: Source only, headless-only, not device-checked.
+
 ## 2026-11-14 - FF-QA-004: DOM interaction tests on card primitives; stale exclusions triaged
 
 - Type: Test infrastructure (source)

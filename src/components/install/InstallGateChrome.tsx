@@ -21,17 +21,29 @@ export type InstallCopyState = "idle" | "copied" | "error";
  * - `ios-safari`: Safari has no install action, so steps only and no button.
  * - `ios-inapp`: inside another app's browser (Instagram, Gmail...): open in Safari first; the dock copies the link.
  * - `prompt`: the browser offered its install prompt: one line, one Install button.
- * - `manual`: Android/desktop without the prompt: menu steps.
+ * - `manual`: Android without the prompt: menu steps (a phone, so "your browser" menu and the home screen).
+ * - `desktop`: Chrome/Edge on a computer without the prompt: the install icon in the address bar (Mazer's words).
+ * - `desktop-safari`: Safari on a computer cannot install this app: copy the link, open it in Chrome or Edge.
  * - `unsupported`: a browser that cannot install apps: name the ones that can.
  * - `installed`: the install just finished in this tab. No way into the app from the tab: open it from the home screen.
  */
-export type InstallScreenKind = "ios-safari" | "ios-inapp" | "prompt" | "manual" | "unsupported" | "installed";
+export type InstallScreenKind =
+  | "ios-safari"
+  | "ios-inapp"
+  | "prompt"
+  | "manual"
+  | "desktop"
+  | "desktop-safari"
+  | "unsupported"
+  | "installed";
 
 export const INSTALL_SCREEN_LEADS: Record<Exclude<InstallScreenKind, "installed">, string> = {
   "ios-safari": "Add it to your home screen to use it as an app.",
   "ios-inapp": "Open this page in Safari to install.",
   prompt: "Install it for quick access, even offline.",
   manual: "Add it to your home screen to use it as an app.",
+  desktop: "Install it to use it as an app on this computer.",
+  "desktop-safari": "This browser cannot install apps. Open this page in Chrome or Edge.",
   unsupported: "Open this page in Safari, Chrome or Edge to install.",
 };
 
@@ -52,10 +64,25 @@ export const MANUAL_INSTALL_STEPS: readonly ReactNode[] = [
   "Open the app from your home screen.",
 ];
 
+// Computer steps (copy shared with Mazer's auth-surface install copy): no phone words, no home screen.
+export const DESKTOP_INSTALL_STEPS: readonly ReactNode[] = [
+  "Click the install icon at the end of the address bar.",
+  "Choose Install.",
+  "Open the app from your desktop or Start menu.",
+];
+
+export const DESKTOP_SAFARI_INSTALL_STEPS: readonly ReactNode[] = [
+  "Copy the link and open it in Chrome or Edge.",
+  "Click the install icon in the address bar.",
+  "Open the app from your desktop or Start menu.",
+];
+
 const STEPS_BY_KIND: Partial<Record<InstallScreenKind, readonly ReactNode[]>> = {
   "ios-safari": IOS_SAFARI_INSTALL_STEPS,
   "ios-inapp": IOS_IN_APP_INSTALL_STEPS,
   manual: MANUAL_INSTALL_STEPS,
+  desktop: DESKTOP_INSTALL_STEPS,
+  "desktop-safari": DESKTOP_SAFARI_INSTALL_STEPS,
 };
 
 export function InstallScreen({
@@ -84,7 +111,7 @@ export function InstallScreen({
         {steps ? <AuthInstallSteps steps={steps} /> : null}
       </AuthBody>
       <AuthLegalRow />
-      {kind === "ios-inapp" ? (
+      {kind === "ios-inapp" || kind === "desktop-safari" ? (
         <AuthDockButton type="button" onClick={onCopy}>
           {copyState === "copied" ? "Link copied" : "Copy link"}
         </AuthDockButton>
