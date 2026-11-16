@@ -1,4 +1,6 @@
 import { AppNav } from "@/components/AppNav";
+import { AccountPortalReturnRefresh } from "@/components/account/AccountPortalReturnRefresh";
+import { AuthenticatedRememberedLoginSync } from "@/components/auth/AuthenticatedRememberedLoginSync";
 import { cookies } from "next/headers";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -150,6 +152,9 @@ export default async function SettingsPage({
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
+      {/* Username and email change on account.fawxzzy.com: read them back on return, keep the remembered sign-in current. */}
+      <AccountPortalReturnRefresh />
+      <AuthenticatedRememberedLoginSync email={user.email ?? null} displayName={username || null} />
       <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}

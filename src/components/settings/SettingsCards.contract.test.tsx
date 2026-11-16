@@ -7,7 +7,6 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { BottomActionsProvider } from "../layout/bottom-actions.tsx";
 import { ToastProvider } from "../ui/ToastProvider.tsx";
 import { AccountAchievementsSection } from "./AccountAchievementsSection.tsx";
-import { AccountPasswordSection } from "./AccountPasswordSection.tsx";
 import { AppThemeSettings } from "./AppThemeSettings.tsx";
 import { DataSettingsSection } from "./DataSettingsSection.tsx";
 import { DiscordAccessSettings } from "./DiscordAccessSettings.tsx";
@@ -40,8 +39,6 @@ function source(name: string) {
 
 const settingsFiles = [
   "AccountAchievementsSection.tsx",
-  "AccountPasswordSection.tsx",
-  "AccountSettingsForm.tsx",
   "AppThemeSettings.tsx",
   "DataSettingsSection.tsx",
   "DiscordAccessSettings.tsx",
@@ -234,34 +231,6 @@ test("Discord: join link is a 44px target, the token field keeps its accessible 
   assert.doesNotMatch(html, /text-\[(?:[0-9]|10)(?:\.\d+)?px\]/);
 });
 
-test("Change password: same form wiring on a card (ids, field names, autocomplete) with an h2 and a form label", () => {
-  const html = render(<AccountPasswordSection email="a@example.com" />);
-
-  assert.match(html, /<h2[^>]*data-card-title="true"[^>]*>Change password<\/h2>/);
-  assert.match(html, /<form[^>]*id="account-password-form"[^>]*aria-label="Change password"/);
-  assert.match(html, /data-testid="account-password-form"/);
-  for (const name of ["currentPassword", "newPassword", "confirmPassword"]) {
-    assert.ok(html.includes(`name="${name}"`), name);
-  }
-  assert.match(html, /autoComplete="current-password"|autocomplete="current-password"/);
-  assert.match(html, /type="submit"/);
-});
-
-test("Account details form keeps its ids, field names and action wiring on a card", () => {
-  const formSource = source("AccountSettingsForm.tsx");
-
-  assert.match(formSource, /<SettingsCard title="Account details" headingLevel=\{2\}>/);
-  assert.match(formSource, /id=\{ACCOUNT_SETTINGS_FORM_ID\} onSubmit=\{submitEmailUpdate\}/);
-  assert.match(formSource, /id="settings-username"\s+name="username"/);
-  assert.match(formSource, /id="settings-email"\s+name="email"/);
-  assert.match(formSource, /updateAccountEmailAction\(formData\)/);
-  assert.match(formSource, /form=\{ACCOUNT_SETTINGS_FORM_ID\}/);
-  assert.match(formSource, /disabled=\{!isDirty\}/);
-  assert.match(formSource, /<SignOutButton \/>/);
-  // Autosave and name behaviour are untouched: the same dirty rule and the same success bookkeeping.
-  assert.match(formSource, /const isDirty = usernameValue\.trim\(\) !== savedUsername\.trim\(\) \|\| emailValue\.trim\(\) !== savedEmail\.trim\(\);/);
-});
-
 test("No Settings or Account file strips a card at the call site or keeps the old accordion", () => {
   for (const file of settingsFiles) {
     const text = source(file);
@@ -279,13 +248,13 @@ test("No Settings or Account file strips a card at the call site or keeps the ol
 });
 
 test("Settings cards add no behaviour to the auth-adjacent actions", () => {
-  // Presentation only: these modules are consumed, never edited, by the Settings card migration.
+  // Presentation only: the Settings card migration never edits these actions.
   const actions = readFileSync(new URL("../../app/settings/actions.ts", import.meta.url), "utf8");
   assert.match(actions, /export async function changePasswordAction/);
   assert.match(actions, /export async function updateAccountEmailAction/);
 
-  const accountForm = source("AccountSettingsForm.tsx");
-  assert.match(accountForm, /import \{ updateAccountEmailAction, type EmailUpdateState \} from "@\/app\/settings\/actions"/);
-  const passwordForm = source("AccountPasswordSection.tsx");
-  assert.match(passwordForm, /import \{ changePasswordAction, type PasswordUpdateState \} from "@\/app\/settings\/actions"/);
+  // The in-app account forms are retired (username, email and password change on account.fawxzzy.com); the actions
+  // stay for their action tests and shared helpers until a follow-up removes them.
+  const screen = readFileSync(new URL("../account/AccountScreen.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(screen, /updateAccountEmailAction|changePasswordAction/);
 });

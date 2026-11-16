@@ -9,7 +9,6 @@ import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { authNotice } from "@/components/auth/authMessages";
 import { AppRecoveryScreen } from "@/components/error/AppRecoveryScreen";
-import { ERROR_COPY } from "@/components/error/errorCopy";
 import { InstallScreen } from "@/components/install/InstallGateChrome";
 import { InstallRouteSurface } from "@/components/install/InstallRouteSurface";
 import { AuthDockButton, AuthLink, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
@@ -205,7 +204,7 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
     case "app-recovery":
       return <AppRecoveryScreen errorName="LabPreview" />;
     case "global-error":
-      return <AppRecoveryScreen errorName="LabPreview" topMessage={ERROR_COPY.globalBody} />;
+      return <AppRecoveryScreen errorName="LabPreview" />;
     case "not-found":
       return <NotFound />;
     case "curated-restore-loading":

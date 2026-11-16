@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getFitnessAccountPortalUrl,
+  getFitnessAccountSignOutUrl,
   getFitnessLoginPortalUrl,
+  getFitnessSignOutEverywhereUrl,
   getFitnessSignupPortalUrl,
   getFitnessSignupPortalUrlForSearch,
   resolveFitnessHandoffReturnPath,
@@ -126,4 +128,18 @@ test("the sign-up redirect for an opened address narrows returnTo and forwards n
   // A repeated returnTo uses the first value, still allowlisted.
   assert.equal(returnToOf("?returnTo=%2Ftoday&returnTo=%2F%2Fevil.example"), "https://fitness.fawxzzy.com/today");
   assert.equal(returnToOf("?returnTo=%2F%2Fevil.example&returnTo=%2Ftoday"), entry);
+});
+
+test("sign-out URLs: this device goes to the portal /signout, everywhere goes to the portal Account page", () => {
+  // /signout ends only this browser's portal session; no returnTo (Fitness is not on the portal allowlist).
+  assert.equal(getFitnessAccountSignOutUrl(), "https://account.fawxzzy.com/signout?app=fitness");
+  // The portal's "Sign out everywhere" is a two-step link on its Account page; there is no direct URL for it.
+  assert.equal(
+    getFitnessSignOutEverywhereUrl(),
+    "https://account.fawxzzy.com/account?app=fitness&returnTo=https%3A%2F%2Ffitness.fawxzzy.com%2Fsettings",
+  );
+  assert.equal(
+    getFitnessSignOutEverywhereUrl("/account"),
+    "https://account.fawxzzy.com/account?app=fitness&returnTo=https%3A%2F%2Ffitness.fawxzzy.com%2Faccount",
+  );
 });
