@@ -1,0 +1,9 @@
+## 2026-11-15 - Sign-out follow-ups to #275: bfcache pending reset, revoke wording, dead account actions removed
+
+- Type: Follow-up fixes (FF-DESIGN-001, lane F1); no persisted behavior changes
+- WHAT changed: (1) `SignOutButton` resets its pending state when the page is restored from the back/forward cache (`pageshow` with `persisted`, `subscribePageShowReset` in `src/lib/auth/device-sign-out.ts`). (2) Wording only: "server revoke must succeed" means the request reached the server and came back 2xx; `DELETE /auth/session-sync` answers 200 with `signOut: "failed"` in the body when the upstream revoke failed and still clears the cookies. A local sign-out throw after a good revoke recovers on retry (the next revoke answers 200, no session). (3) `changePasswordAction` and `updateAccountEmailAction` (no caller since the account screens moved to the portal) and their action tests are deleted from `src/app/settings/actions.ts` / `tests/`.
+- WHY it changed: A successful sign-out keeps "Signing out..." because the page is unloading; a bfcache restore (browser Back) otherwise shows it stuck. Dead server actions are callable endpoints with no UI.
+- Rule: Any UI state that is deliberately left "in progress" because the page is about to unload must be reset on `pageshow` with `persisted`.
+- Failure Mode: A pending label kept for an unloading page survives a bfcache restore and leaves the button disabled.
+- Evidence: `src/lib/auth/device-sign-out.test.ts`, `src/app/account/accountSurface.contract.test.ts`, `src/components/settings/SettingsCards.contract.test.tsx`; `git grep` finds no live caller of the removed actions. Shared helpers in `src/lib/password-policy.ts` and `src/lib/supabase/update-user.ts` stay (reset-password and policy tests use them).
+- Status: Source only; no persisted behavior changes; not checked on a real phone.

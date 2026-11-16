@@ -250,11 +250,9 @@ test("No Settings or Account file strips a card at the call site or keeps the ol
 test("Settings cards add no behaviour to the auth-adjacent actions", () => {
   // Presentation only: the Settings card migration never edits these actions.
   const actions = readFileSync(new URL("../../app/settings/actions.ts", import.meta.url), "utf8");
-  assert.match(actions, /export async function changePasswordAction/);
-  assert.match(actions, /export async function updateAccountEmailAction/);
-
-  // The in-app account forms are retired (username, email and password change on account.fawxzzy.com); the actions
-  // stay for their action tests and shared helpers until a follow-up removes them.
+  // The in-app account forms and their server actions are retired (username, email and password change on
+  // account.fawxzzy.com).
+  assert.doesNotMatch(actions, /changePasswordAction|updateAccountEmailAction/);
   const screen = readFileSync(new URL("../account/AccountScreen.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(screen, /updateAccountEmailAction|changePasswordAction/);
 });

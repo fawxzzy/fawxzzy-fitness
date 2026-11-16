@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AuthNoticeSlot } from "@/components/auth/AuthShell";
 import { authNotice, type AuthNotice } from "@/components/auth/authMessages";
 import { AppButton } from "@/components/ui/AppButton";
 import { getFitnessAccountSignOutUrl } from "@/lib/account-portal";
-import { DEVICE_SIGN_OUT_FAILURE_NOTICE_ID, runDeviceSignOut } from "@/lib/auth/device-sign-out";
+import { DEVICE_SIGN_OUT_FAILURE_NOTICE_ID, runDeviceSignOut, subscribePageShowReset } from "@/lib/auth/device-sign-out";
 import { getInstallContext } from "@/lib/install/getInstallContext";
 import { clearPersistedWorkoutClientState } from "@/lib/offline/client-storage";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -32,6 +32,15 @@ export function SignOutButton({ placement = "dock" }: { placement?: "dock" | "bo
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<AuthNotice | null>(null);
   const inFlight = useRef(false);
+
+  // A successful sign-out keeps "Signing out…" because the page is unloading. If the browser later restores this page
+  // from the back/forward cache (event.persisted), the old pending state would be stuck; reset it then.
+  useEffect(() => {
+    return subscribePageShowReset(() => {
+      inFlight.current = false;
+      setPending(false);
+    });
+  }, []);
 
   const handleSignOut = async () => {
     if (inFlight.current) {

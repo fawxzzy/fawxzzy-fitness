@@ -69,7 +69,9 @@ test("a failed sign-out stays on the screen with the copy-matrix notice and neve
   // The ordered flow and its failure rules are unit-tested in src/lib/auth/device-sign-out.test.ts; this pins the
   // button's wiring: the flow runs in a try, and its finally resets pending and shows account.signoutfail unless the
   // flow reported success (the page is then unloading).
-  assert.match(signOutSource, /import \{ DEVICE_SIGN_OUT_FAILURE_NOTICE_ID, runDeviceSignOut \} from "@\/lib\/auth\/device-sign-out"/);
+  assert.match(signOutSource, /import \{ DEVICE_SIGN_OUT_FAILURE_NOTICE_ID, runDeviceSignOut, subscribePageShowReset \} from "@\/lib\/auth\/device-sign-out"/);
+  // A bfcache restore after a successful sign-out must not leave "Signing out…" stuck.
+  assert.match(signOutSource, /subscribePageShowReset\(\(\) => \{\s*inFlight\.current = false;\s*setPending\(false\);/);
   assert.match(
     signOutSource,
     /signedOut = result\.ok;\s*\} finally \{\s*if \(!signedOut\) \{\s*setNotice\(authNotice\(DEVICE_SIGN_OUT_FAILURE_NOTICE_ID\)\);\s*setPending\(false\);/,
