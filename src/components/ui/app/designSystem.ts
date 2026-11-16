@@ -12,28 +12,10 @@ const withOpacity = (value: string | null | undefined, opacity: string) => {
 };
 
 export const fitnessDesignPrimitiveClassNames = {
+  // Only the ScreenScaffold header panel padding (screenContract.ts) still reads this; the screen header itself
+  // uses `screenHeaderTokens` (headerTokens.ts, DESIGN-CONTRACT.md section 15).
   header: {
     horizontalPadding: `px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] sm:px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}]`,
-    primaryRowGap: `gap-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
-    actionRailGap: `gap-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
-    trailingSlot: `min-h-[${toArbitraryValue(fitnessDesignTokens.spacing["12"])}] min-w-[${toArbitraryValue(fitnessDesignTokens.spacing["12"])}]`,
-    titleClassName: fitnessDesignTokens.typography.title,
-    titleToSecondaryGap: `mt-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}]`,
-    secondaryBlockGap: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["0.5"])}]`,
-    contentBottomGap: `pb-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
-    eyebrowClassName: fitnessDesignTokens.typography.eyebrow,
-    subtitleClassName: `${fitnessDesignTokens.typography.subtitle} text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.98")}]`,
-    metaClassName: `${fitnessDesignTokens.typography.subtitle} text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.98")}]`,
-    titleTextClassName: `text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
-  },
-  headerFamily: {
-    panelClassName: `space-y-0 rounded-[${fitnessDesignTokens.radii.xl}] border border-transparent shadow-[${toArbitraryValue(fitnessDesignTokens.shadows.glassRaised)}]`,
-    headerClassName: "",
-    titleClassName: fitnessDesignTokens.typography.title,
-    actionClassName: "",
-    actionButtonClassName: `h-[2.35rem] w-[2.35rem] rounded-[${fitnessDesignTokens.radii.pill}] bg-[${withOpacity(fitnessDesignTokens.colors.background.panel, "0.48")}] px-0 hover:bg-[${withOpacity(fitnessDesignTokens.colors.surface["1"], "0.72")}]`,
-    metaClassName: `px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
-    dividerClassName: `px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
   },
   card: {
     panelBase: `relative isolate overflow-hidden rounded-[${fitnessDesignTokens.radii.lg}] border border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] bg-[${toCompactValue(fitnessDesignTokens.colors.background.card)}] p-[${toArbitraryValue(fitnessDesignTokens.spacing["3.5"])}] shadow-[${toArbitraryValue(fitnessDesignTokens.shadows.glassBase)}] backdrop-blur-[10px]`,

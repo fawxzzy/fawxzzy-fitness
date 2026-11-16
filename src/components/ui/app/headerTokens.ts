@@ -1,22 +1,3 @@
-import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
-
-// Legacy metrics for `AppHeader`/`SharedScreenHeader`, still used by detail screens until lane H1 moves them to
-// `ScreenHeader`. Do not use on new screens.
-export const headerTokens = {
-  horizontalPadding: fitnessDesignPrimitiveClassNames.header.horizontalPadding,
-  primaryRowGap: fitnessDesignPrimitiveClassNames.header.primaryRowGap,
-  actionRailGap: fitnessDesignPrimitiveClassNames.header.actionRailGap,
-  trailingSlot: fitnessDesignPrimitiveClassNames.header.trailingSlot,
-  titleClassName: fitnessDesignPrimitiveClassNames.header.titleClassName,
-  titleToSecondaryGap: fitnessDesignPrimitiveClassNames.header.titleToSecondaryGap,
-  secondaryBlockGap: fitnessDesignPrimitiveClassNames.header.secondaryBlockGap,
-  contentBottomGap: fitnessDesignPrimitiveClassNames.header.contentBottomGap,
-  eyebrowClassName: fitnessDesignPrimitiveClassNames.header.eyebrowClassName,
-  subtitleClassName: fitnessDesignPrimitiveClassNames.header.subtitleClassName,
-  metaClassName: fitnessDesignPrimitiveClassNames.header.metaClassName,
-  titleTextClassName: fitnessDesignPrimitiveClassNames.header.titleTextClassName,
-} as const;
-
 // Header metrics for every screen (DESIGN-CONTRACT.md section 15, "Header").
 // `ScreenHeader` is the only consumer: screens never pass their own title size, padding or gap, and
 // `tests/screen-header-contract.test.mjs` fails when a raw header title class shows up outside the component.

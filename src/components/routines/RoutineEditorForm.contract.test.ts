@@ -5,7 +5,8 @@ import test from "node:test";
 const routineEditorUrl = new URL("./RoutineEditorForm.tsx", import.meta.url);
 const trainingGoalSelectorUrl = new URL("./TrainingGoalSelector.tsx", import.meta.url);
 const appButtonClassesUrl = new URL("../ui/appButtonClasses.ts", import.meta.url);
-const backButtonUrl = new URL("../ui/BackButton.tsx", import.meta.url);
+// The one Back control (ScreenHeaderBackButton) takes its 44x44 size from screenHeaderTokens.iconAction.
+const headerTokensUrl = new URL("../ui/app/headerTokens.ts", import.meta.url);
 const expandingChoiceRowUrl = new URL("../ui/ExpandingChoiceRow.tsx", import.meta.url);
 const segmentedControlUrl = new URL("../ui/SegmentedControl.tsx", import.meta.url);
 
@@ -31,15 +32,15 @@ test("training focus controls keep the same 44px touch-target floor", async () =
 });
 
 test("shared compact app buttons retain the same 44px touch-target floor", async () => {
-  const [appButtonSource, backButtonSource, expandingChoiceSource, segmentedControlSource] = await Promise.all([
+  const [appButtonSource, headerTokensSource, expandingChoiceSource, segmentedControlSource] = await Promise.all([
     readFile(appButtonClassesUrl, "utf8"),
-    readFile(backButtonUrl, "utf8"),
+    readFile(headerTokensUrl, "utf8"),
     readFile(expandingChoiceRowUrl, "utf8"),
     readFile(segmentedControlUrl, "utf8"),
   ]);
 
   assert.match(appButtonSource, /app-button-sm min-h-\[2\.75rem\]/);
-  assert.match(backButtonSource, /!h-11 !w-11 rounded-full/);
+  assert.match(headerTokensSource, /iconAction:\s*"inline-flex h-11 w-11 /);
   assert.match(expandingChoiceSource, /min-h-11 rounded-\[var\(--action-chrome-segment-radius-compact\)\]/);
   assert.match(segmentedControlSource, /min-h-11 min-w-fit/);
   assert.match(segmentedControlSource, /min-h-11 min-w-0 flex-1/);

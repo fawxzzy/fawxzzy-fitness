@@ -58,8 +58,7 @@ test("fitness design system schemas freeze the expected top-level contract shape
 test("live app primitives bridge the frozen design-system pack", () => {
   const designSystemBridge = readText("src/components/ui/app/designSystem.ts");
   const appTokens = readText("src/components/ui/app/tokens.ts");
-  const headerTokens = readText("src/components/ui/app/headerTokens.ts");
-  const standaloneHeaderFamily = readText("src/components/ui/app/standaloneHeaderFamily.ts");
+  const screenContract = readText("src/components/ui/app/screenContract.ts");
   const workoutEntrySection = readText("src/components/ui/workout-entry/EntrySection.tsx");
   const compactLogRow = readText("src/components/ui/workout-entry/CompactLogRow.tsx");
   const measurementPanel = readText("src/components/ui/measurements/MeasurementPanelV2.tsx");
@@ -71,8 +70,8 @@ test("live app primitives bridge the frozen design-system pack", () => {
   assert.ok(designSystemBridge.includes("truth-pack/fitness/design-system/tokens.v1.json"));
   assert.ok(designSystemBridge.includes("truth-pack/fitness/design-system/primitives.v1.json"));
   assert.ok(appTokens.includes("fitnessDesignPrimitiveClassNames.card"));
-  assert.ok(headerTokens.includes("fitnessDesignPrimitiveClassNames.header"));
-  assert.ok(standaloneHeaderFamily.includes("fitnessDesignPrimitiveClassNames.headerFamily"));
+  assert.ok(screenContract.includes("fitnessDesignPrimitiveClassNames.header"));
+  assert.ok(!designSystemBridge.includes("headerFamily"), "the standalone header family is gone (DESIGN-CONTRACT section 15)");
   assert.ok(workoutEntrySection.includes("appTokens.exerciseLogSectionHeaderCopy"));
   assert.ok(workoutEntrySection.includes("appTokens.exerciseLogMetricValueWarning"));
   assert.ok(compactLogRow.includes("appTokens.exerciseLogRowAction"));

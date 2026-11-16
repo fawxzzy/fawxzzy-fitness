@@ -1,9 +1,7 @@
-import { appTokens } from "@/components/ui/app/tokens";
 import { addExerciseAction } from "@/app/session/[id]/actions";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
-import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
-import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
-import { cn } from "@/lib/cn";
+import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
+import { formatAddExerciseSubtitle } from "@/lib/header-meta";
 import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
 import { getSessionPageData } from "@/app/session/[id]/queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
@@ -33,19 +31,11 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
     || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : null);
 
   return (
-    <ExerciseChooserRouteScaffold
+    <AddExerciseScaffold
       recipe="sessionAddExercise"
-      title={(
-        <RoutineDayHeaderTitle
-          leadingItems={["Add Exercise to", routine?.name ?? sessionRow.name]}
-          dayLabel={dayName}
-        />
-      )}
+      subtitle={formatAddExerciseSubtitle(dayName, routine?.name ?? sessionRow.name)}
       backHref={backHref}
-      backAriaLabel="Back to session"
-      headerAlign="center"
-      floatingHeaderRailClassName={cn(appTokens.historyFloatingHeaderRail, "relative z-30 pointer-events-auto")}
-      backButtonClassName="relative z-30 pointer-events-auto"
+      backLabel="Back to workout"
     >
       <SessionQuickAddExerciseForm
         sessionId={params.id}
@@ -58,6 +48,6 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
         backHref={backHref}
         addExerciseAction={addExerciseAction}
       />
-    </ExerciseChooserRouteScaffold>
+    </AddExerciseScaffold>
   );
 }

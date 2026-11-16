@@ -1,10 +1,9 @@
+// One ScreenHeader per entry (DESIGN-CONTRACT.md section 15): kind, title, at most one subtitle. No eyebrow, no meta.
 export type HeaderFixture = {
   id: string;
-  recipe: "todayOverview" | "routinesOverview" | "exerciseLog" | "editDay" | "viewDay";
-  eyebrow: string;
+  kind: "tab" | "detail";
   title: string;
   subtitle: string;
-  meta?: string;
   winnerNote: string;
 };
 
@@ -29,47 +28,32 @@ export type PlannedWorkoutFixture = {
 export const uiContractFixtures = {
   headers: [
     {
-      id: "today-closed-picker",
-      recipe: "todayOverview",
-      eyebrow: "Shared Header",
+      id: "today",
+      kind: "tab",
       title: "Today",
-      subtitle: "Current routine • Day 2",
-      meta: "2 strength",
-      winnerNote: "Winner: closed-picker Today header stays in the shared Today family shell.",
-    },
-    {
-      id: "today-resume",
-      recipe: "todayOverview",
-      eyebrow: "Shared Header",
-      title: "Today",
-      subtitle: "Current routine • Day 2",
-      meta: "Resume Today",
-      winnerNote: "Winner: Resume Today uses the same recipe and spacing contract as closed-picker Today.",
+      subtitle: "Day 2 · Current routine",
+      winnerNote: "Winner: a tab screen shows the title and one subtitle, nothing else.",
     },
     {
       id: "exercise-log",
-      recipe: "exerciseLog",
-      eyebrow: "Shared Header",
+      kind: "detail",
       title: "Paused Bench Press",
       subtitle: "Set 3 of 5",
-      meta: "In Session",
-      winnerNote: "Winner: session headers keep title/subtitle/meta grammar instead of merged title text.",
+      winnerNote: "Winner: a pushed screen has Back on the left and the same title grammar.",
     },
     {
       id: "editor",
-      recipe: "editDay",
-      eyebrow: "Shared Header",
-      title: "Edit Day",
-      subtitle: "Monday • 5 planned workouts",
-      winnerNote: "Winner: editor headers stop drifting from detail/session chrome.",
+      kind: "detail",
+      title: "Edit day",
+      subtitle: "Monday · 5 exercises",
+      winnerNote: "Winner: editor headers use the same detail header as every pushed screen.",
     },
     {
       id: "detail",
-      recipe: "viewDay",
-      eyebrow: "Shared Header",
-      title: "View Day",
-      subtitle: "Thursday • Strength focus",
-      winnerNote: "Winner: detail-screen title/subtitle hierarchy remains canonical.",
+      kind: "detail",
+      title: "Lower A",
+      subtitle: "Thursday · Strength",
+      winnerNote: "Winner: one line title with ellipsis, one subtitle, no eyebrow.",
     },
   ] as HeaderFixture[],
 

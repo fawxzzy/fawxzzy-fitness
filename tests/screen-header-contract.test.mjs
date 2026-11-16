@@ -108,7 +108,6 @@ const toPosix = (path) => path.split(sep).join("/");
 const RAW_H1_ALLOWED = new Map([
   ["src/components/ui/app/ScreenHeader.tsx", "the one header"],
   ["src/components/auth/AuthShell.tsx", "auth screens own their title (Auth Surface v2, section 15.1)"],
-  ["src/components/ui/app/AppHeader.tsx", "legacy header; only dev fixtures still use it"],
 ]);
 const RAW_H1_ALLOWED_DIRS = [
   ["src/app/dev/", "internal fixture and gallery pages"],
@@ -172,7 +171,6 @@ test("the live workout header is title, one day · routine line, Back and at mos
   assert.match(controls, /trailing=\{statusBadge\}/);
   const client = read("src/components/SessionPageClient.tsx");
   assert.doesNotMatch(client, /buildCurrentSessionHeaderInfoRailItems|sessionHeaderInfoItems|isExerciseOpen \?/);
-  assert.doesNotMatch(read("src/lib/header-info-rail.ts"), /buildCurrentSessionHeaderInfoRailItems/);
 });
 
 test("live workout Back closes an open exercise first, like history detail (two-step Back)", () => {
@@ -194,7 +192,110 @@ test("the old per-screen back buttons are gone", () => {
     "src/components/settings/SettingsHeaderIdentity.tsx",
     "src/components/ui/app/ScreenBackButton.tsx",
     "src/components/ui/HeaderInfoRail.tsx",
+    // Lane H3: the last legacy header pieces, deleted once nothing used them.
+    "src/components/ui/app/AppHeader.tsx",
+    "src/components/ui/app/SharedScreenHeader.tsx",
+    "src/components/ui/BackButton.tsx",
+    "src/components/ui/TopRightBackButton.tsx",
+    "src/components/ui/app/RoutineDayHeaderTitle.tsx",
+    "src/components/ui/app/standaloneHeaderFamily.ts",
+    "src/components/exercises/ExerciseChooserScreenFamily.tsx",
+    "src/components/routines/RoutineAddExerciseScaffold.tsx",
+    "src/lib/header-info-rail.ts",
   ]) {
     assert.throws(() => statSync(join(root, path)), /ENOENT/, `${path} should be deleted`);
+  }
+});
+
+// Every old header component, helper and token. Matching is on whole identifiers, so ScreenHeaderBackButton
+// (the one Back control) is not caught by `BackButton`. Dev fixtures are included: no screen, real or fixture,
+// may show the old style. A new name added here must be gone from src first.
+const BANNED_HEADER_PIECES = [
+  "AppHeader",
+  "SharedScreenHeader",
+  "BackButton",
+  "TopRightBackButton",
+  "RoutineDayHeaderTitle",
+  "standaloneHeaderFamily",
+  "headerFamily",
+  "HeaderInfoRail",
+  "RoutineEditorPageHeader",
+  "RoutinesRouteHeaderCard",
+  "ExerciseChooserRouteScaffold",
+  "RoutineAddExerciseScaffold",
+  "SessionBackButton",
+  "HistoryDetailsBackButton",
+  "ScreenBackButton",
+  "DetailHeader",
+];
+const BANNED_HEADER_PATTERN = new RegExp(`\\b(?:${BANNED_HEADER_PIECES.join("|")})\\b`);
+// A raw screen-title size outside the header: the old header title tokens or a hand-written 22px+ semibold title.
+const RAW_TITLE_CLASS_PATTERN = /headerTokens\.titleClassName|typography\.title\b|\btext-\[1\.375rem\]|\btext-\[1\.625rem\][^"]*\btruncate\b/;
+const RAW_TITLE_CLASS_ALLOWED = new Set([
+  "src/components/ui/app/headerTokens.ts",
+  "src/components/ui/app/ScreenHeader.tsx",
+]);
+
+export function findBannedHeaderUses(files, readSource) {
+  return files
+    .map(toPosix)
+    .filter((path) => {
+      const source = readSource(path).replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      if (BANNED_HEADER_PATTERN.test(source)) return true;
+      return !RAW_TITLE_CLASS_ALLOWED.has(path) && RAW_TITLE_CLASS_PATTERN.test(source);
+    });
+}
+
+test("no file in src uses an old header component, helper or a raw header title class", () => {
+  assert.deepEqual(findBannedHeaderUses(listSourceFiles("src"), read), []);
+});
+
+test("the banned-header check catches an old header, an old Back button and a raw title class (mutation guard)", () => {
+  const fake = {
+    "src/app/dev/fixture/Fake.tsx": 'import { AppHeader } from "@/components/ui/app/AppHeader";',
+    "src/app/routines/Fake.tsx": "<TopRightBackButton href=\"/routines\" />",
+    "src/components/Fake.tsx": "<BackButton href=\"/\" />",
+    "src/components/Title.tsx": '<p className="text-[1.375rem] font-semibold">Workout</p>',
+    "src/components/Fine.tsx": '<ScreenHeaderBackButton href="/" />',
+    "src/components/Commented.tsx": "// AppHeader used to live here\nexport const x = 1;",
+    "src/components/ui/app/headerTokens.ts": 'title: "truncate text-[1.375rem] font-semibold"',
+  };
+  assert.deepEqual(findBannedHeaderUses(Object.keys(fake), (path) => fake[path]), [
+    "src/app/dev/fixture/Fake.tsx",
+    "src/app/routines/Fake.tsx",
+    "src/components/Fake.tsx",
+    "src/components/Title.tsx",
+  ]);
+});
+
+test("both Add exercise routes share the one detail frame: title, day · routine subtitle, Back on the left", () => {
+  const scaffold = read("src/components/exercises/AddExerciseScaffold.tsx");
+  assert.match(scaffold, /<ScreenHeader\s+kind="detail"/);
+  assert.match(scaffold, /title = "Add exercise"/);
+  assert.match(scaffold, /back=\{<ScreenHeaderBackButton href=\{backHref\} label=\{backLabel\} \/>\}/);
+  assert.match(scaffold, /topNavMode="none"/, "no tab bar on a detail screen");
+  for (const [path, backLabel] of [
+    ["src/app/routines/[id]/edit/day/[dayId]/add-exercise/page.tsx", "Back to day"],
+    ["src/app/session/[id]/add-exercise/page.tsx", "Back to workout"],
+  ]) {
+    const source = read(path);
+    assert.match(source, /<AddExerciseScaffold\b/, path);
+    assert.match(source, /subtitle=\{formatAddExerciseSubtitle\(/, path);
+    assert.match(source, new RegExp(`backLabel="${backLabel}"`), path);
+  }
+});
+
+test("the detail-screen fixtures are fail-closed and render each route's own frame", () => {
+  const page = read("src/app/dev/detail-screens/page.tsx");
+  assert.match(page, /export const dynamic = "force-dynamic";/);
+  assert.match(page, /\}\) \{\r?\n\s*assertDevPageAvailable\(\);/, "the guard is the first statement");
+  const pageCode = page.replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.doesNotMatch(pageCode, /supabase|requireUser/i, "fixtures use static data only");
+  for (const frame of ["<CreateDayScreen", "<DaysLibraryScreen>", "<AddExerciseScaffold"]) {
+    assert.ok(page.includes(frame), `fixture renders ${frame}`);
+  }
+  const data = read("src/app/dev/detail-screens/fixtureData.ts");
+  for (const id of ["create-day", "copy-day", "days", "days-empty", "routine-add-exercise", "session-add-exercise"]) {
+    assert.ok(data.includes(`"${id}"`), `fixture id ${id}`);
   }
 });

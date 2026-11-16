@@ -9,7 +9,8 @@ import {
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "@/app/dev/mobile-regression/sessionScenarioFixtures";
 import { AppNav } from "@/components/AppNav";
-import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
+import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
+import { formatAddExerciseSubtitle } from "@/lib/header-meta";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -29,12 +30,10 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { Chip } from "@/components/ui/Chip";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { EXERCISE_PICKER_CUSTOM_EXERCISE_ID } from "@/components/ExercisePicker";
@@ -74,7 +73,6 @@ export const metadata: Metadata = {
   },
 };
 
-const CARD_HEADER_CLASS_NAME = "-mx-4 -mt-1 pb-1 sm:-mx-5";
 const SECTION_TITLE_CLASS_NAME = "text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em]";
 
 const EditDayRegressionSurface = nextDynamic(
@@ -335,31 +333,30 @@ function RegressionIndex() {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <div hidden data-mobile-regression-root="true" />
-      <ContentRail className="space-y-3 py-6">
-        <SurfaceCard>
-          <AppHeader
-            title="Mobile Regression Harness"
-            subtitle="Auth-free fixture route for deterministic captures"
-            meta="/dev/mobile-regression?screen=today&fixture=default"
-            className={CARD_HEADER_CLASS_NAME}
-          />
-          <div className="space-y-2 text-sm text-[rgb(var(--text-secondary)/0.96)]">
-            <p>Use `screen` + `fixture` or pass a direct `scenario` id. The matrix script targets this route at `375`, `393`, and `430` widths.</p>
-            <ul className="space-y-2">
-              {mobileRegressionScenarios.map((scenario) => (
-                <li key={scenario.id}>
-                  <Link
-                    href={`/dev/mobile-regression?screen=${encodeURIComponent(scenario.screen)}&fixture=${encodeURIComponent(scenario.fixture)}`}
-                    className="text-[rgb(var(--text)/0.98)] underline underline-offset-4"
-                  >
-                    {scenario.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </SurfaceCard>
-      </ContentRail>
+      <ScrollScreenWithBottomActions
+        floatingHeader={<ScreenHeader kind="tab" title="Mobile regression" subtitle="Auth-free fixtures for deterministic captures" />}
+      >
+        <ContentRail className="space-y-3 pb-6">
+          <SurfaceCard>
+            <div className="space-y-2 text-sm text-[rgb(var(--text-secondary)/0.96)]">
+              <p>Example: <code>/dev/mobile-regression?screen=today&amp;fixture=default</code>.</p>
+              <p>Use `screen` + `fixture` or pass a direct `scenario` id. The matrix script targets this route at `375`, `393`, and `430` widths.</p>
+              <ul className="space-y-2">
+                {mobileRegressionScenarios.map((scenario) => (
+                  <li key={scenario.id}>
+                    <Link
+                      href={`/dev/mobile-regression?screen=${encodeURIComponent(scenario.screen)}&fixture=${encodeURIComponent(scenario.fixture)}`}
+                      className="text-[rgb(var(--text)/0.98)] underline underline-offset-4"
+                    >
+                      {scenario.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </SurfaceCard>
+        </ContentRail>
+      </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );
 }
@@ -2678,12 +2675,11 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
   const isCustomTaxonomyFixture = scenario.id === "add-exercise-custom-taxonomy";
 
   return (
-    <ExerciseChooserRouteScaffold
+    <AddExerciseScaffold
       recipe="sessionAddExercise"
-      title={<RoutineDayHeaderTitle leadingItems={["Add Exercise to", PREVIEW_ROUTINE_NAME]} dayLabel={PREVIEW_DAY_LABEL} />}
+      subtitle={formatAddExerciseSubtitle(PREVIEW_DAY_LABEL, PREVIEW_ROUTINE_NAME)}
       backHref="/session/dev-session"
-      backAriaLabel="Back to session"
-      headerAlign="center"
+      backLabel="Back to workout"
     >
       <RegressionMarker scenario={scenario} />
       <ExerciseChooserAddFlowForm
@@ -2708,7 +2704,7 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
         successMessage="Exercise added to session."
         errorMessage="Could not add exercise."
       />
-    </ExerciseChooserRouteScaffold>
+    </AddExerciseScaffold>
   );
 }
 
