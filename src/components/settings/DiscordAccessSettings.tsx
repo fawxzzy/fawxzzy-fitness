@@ -6,7 +6,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { CardMeta } from "@/components/ui/card-system";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { useToast } from "@/components/ui/ToastProvider";
 import { cn } from "@/lib/cn";
 import { FITNESS_DISCORD_INVITE_URL } from "@/lib/legal-documents";
@@ -158,18 +158,17 @@ export function DiscordAccessSettings() {
           title="One-time key"
           meta={<CardMeta items={[expiryLabel ? `Expires ${expiryLabel}` : "Use Generate to create a key"]} />}
         >
-          <LabeledEditorField label="Verification token" className="w-full">
-            <input
-              type="text"
-              value={token ?? ""}
-              readOnly
-              aria-label="Discord verification token"
-              className={cn(
-                labeledEditorFieldControlClassName,
-                "h-12 px-4 py-3 text-center font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none placeholder:text-[rgb(var(--text-muted)/0.58)] focus-visible:!border-0 focus-visible:!ring-0",
-              )}
-            />
-          </LabeledEditorField>
+          <FormField label="Verification token">
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={token ?? ""}
+                readOnly
+                className={cn(formFieldControlClassName, "font-semibold tracking-[0.14em]")}
+              />
+            )}
+          </FormField>
           <div aria-live="polite">
             {errorMessage ? (
               <p role="alert" className="m-0 text-xs leading-5 text-[rgb(var(--danger-text-rgb)/0.96)]">{errorMessage}</p>

@@ -5,6 +5,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { CardHeader, CardStatusChip, CardChips, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -531,12 +532,10 @@ export function AppThemeSettings({
           {showThemeNameField ? (
             <SettingsCard title="Name your theme">
               <div className={appTokens.settingsFieldStack}>
-                <LabeledEditorField
-                  label="Theme name"
-                  className="w-full"
-                >
+                <FormField label="Theme name">
+                  {(control) => (
                   <input
-                    aria-label="Theme name"
+                    {...control}
                     type="text"
                     value={themeName}
                     maxLength={APP_THEME_NAME_MAX_LENGTH}
@@ -547,12 +546,10 @@ export function AppThemeSettings({
                       setSaveMessage(null);
                       setThemeName(sanitizeAppThemeName(event.target.value));
                     }}
-                    className={cn(
-                      labeledEditorFieldControlClassName,
-                      "h-14 px-[10px] py-3 text-center",
-                    )}
+                    className={formFieldControlClassName}
                   />
-                </LabeledEditorField>
+                  )}
+                </FormField>
               </div>
             </SettingsCard>
           ) : null}

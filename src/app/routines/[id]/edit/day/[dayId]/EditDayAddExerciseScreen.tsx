@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { useRouter } from "next/navigation";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -279,22 +280,22 @@ export function EditDayAddExerciseScreen({
             </button>
           </div>
           {workoutPlanDecisionMode === "save_new" ? (
-            <label className="block">
-              <span className="sr-only">Day name</span>
-              <input
-                type="text"
-                value={workoutPlanDecisionName}
-                onChange={(event) => {
-                  setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
-                  setWorkoutPlanDecisionError(null);
-                }}
-                placeholder="Day name"
-                maxLength={15}
-                className={`w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition ${workoutPlanDecisionError
-                  ? "border-[rgb(var(--danger-rgb)/0.52)]"
-                  : "border-[rgb(var(--border-strong)/0.16)] focus:border-[rgb(var(--accent)/0.32)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]"}`}
-              />
-            </label>
+            <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
+              {(control) => (
+                <input
+                  {...control}
+                  type="text"
+                  value={workoutPlanDecisionName}
+                  onChange={(event) => {
+                    setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
+                    setWorkoutPlanDecisionError(null);
+                  }}
+                  placeholder="Day name"
+                  maxLength={15}
+                  className={formFieldControlClassName}
+                />
+              )}
+            </FormField>
           ) : null}
           {workoutPlanDecisionError ? (
             <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">

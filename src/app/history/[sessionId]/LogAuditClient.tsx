@@ -40,7 +40,6 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HistorySection } from "@/components/history/HistoryShared";
 import { DetailSectionBadge, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { PillButton } from "@/components/ui/Pill";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -1754,9 +1753,10 @@ export function LogAuditClient({
                             canShowNotes={focusedHasMeaningfulSetData}
                             showNotes={false}
                             noteInput={(
-                              <label className="block">
-                                <LabeledEditorField label="Exercise notes">
-                                  <textarea
+                              <FormField label="Exercise notes">
+                                {(control) => (
+                                <textarea
+                                  {...control}
                                     ref={(element) => {
                                       if (expandedExercise) {
                                         exerciseNoteRefs.current[expandedExercise.id] = element;
@@ -1772,10 +1772,10 @@ export function LogAuditClient({
                                       autoSizeTextarea(event.currentTarget);
                                     }}
                                     rows={1}
-                                    className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
-                                  />
-                                </LabeledEditorField>
-                              </label>
+                                    className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
+                                />
+                                )}
+                              </FormField>
                             )}
                           />
                         </div>
@@ -1890,9 +1890,10 @@ export function LogAuditClient({
                             showOverview={false}
                             showProgression={false}
                             noteInput={(
-                              <label className="block">
-                                <LabeledEditorField label="Exercise notes">
-                                  <textarea
+                              <FormField label="Exercise notes">
+                                {(control) => (
+                                <textarea
+                                  {...control}
                                     ref={(element) => {
                                       if (expandedExercise) {
                                         exerciseNoteRefs.current[expandedExercise.id] = element;
@@ -1908,10 +1909,10 @@ export function LogAuditClient({
                                       autoSizeTextarea(event.currentTarget);
                                     }}
                                     rows={1}
-                                    className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
-                                  />
-                                </LabeledEditorField>
-                              </label>
+                                    className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
+                                />
+                                )}
+                              </FormField>
                             )}
                           />
                         </div>

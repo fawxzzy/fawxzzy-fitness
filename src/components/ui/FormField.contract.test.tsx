@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -91,4 +91,53 @@ test("the copy-routine name and the custom exercise name carry an invalid state"
   const read = (file: string) => readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
   assert.match(read("src/app/routines/CreateRoutineClient.tsx"), /<FormField\s+label="New routine name"\s+invalid=\{Boolean\(duplicateNameConflict\)\}\s+error=\{duplicateNameError\}/);
   assert.match(read("src/components/ExercisePicker.tsx"), /<FormField label=\{fieldLabel\} className="w-full" invalid=\{isDraftNameInvalid\}>/);
+});
+
+// Guard: a visible-labelled text/number/date/select/textarea control belongs in FormField. This scans src/ for a
+// raw <label> that wraps one, and for the legacy legend-on-border LabeledEditorField around one. Auth screens are owned
+// by Auth Surface v2 and dev fixtures are not product UI. Checkbox/radio/hidden/range/color controls are not text fields.
+const SRC_ROOT = new URL("../../", import.meta.url);
+
+function listSourceFiles(dir: URL, out: URL[] = []): URL[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const child = new URL(entry.name + (entry.isDirectory() ? "/" : ""), dir);
+    if (entry.isDirectory()) listSourceFiles(child, out);
+    else if (/\.tsx$/.test(entry.name) && !/\.test\.tsx$/.test(entry.name)) out.push(child);
+  }
+  return out;
+}
+
+const RAW_LABEL_EXEMPT_PATHS = [
+  "src/components/ui/FormField.tsx",
+  "src/components/ui/LabeledEditorField.tsx",
+  "src/components/auth/",
+  "src/app/login/",
+  "src/app/signup/",
+  "src/app/forgot-password/",
+  "src/app/reset-password/",
+  "src/app/dev/",
+];
+
+// Known legacy fields still on the old recipe; shrink this list, never grow it.
+const RAW_LABEL_KNOWN = new Set<string>([
+  "src/components/settings/AppThemeSettings.tsx",
+  "src/components/ui/measurements/MeasurementPanelV2.tsx",
+]);
+
+test("no raw <label> wrapping a text control and no LabeledEditorField around one outside FormField", () => {
+  const offenders: string[] = [];
+  for (const url of listSourceFiles(SRC_ROOT)) {
+    const rel = "src/" + url.pathname.split("/src/")[1];
+    if (RAW_LABEL_EXEMPT_PATHS.some((prefix) => rel.startsWith(prefix)) || RAW_LABEL_KNOWN.has(rel)) continue;
+    const source = readFileSync(url, "utf8");
+    for (const chunk of source.split(/<label\b/).slice(1)) {
+      const body = chunk.split("</label>")[0];
+      const control = body.match(/<(input|select|textarea)\b([^>]*)/);
+      if (!control) continue;
+      if (control[1] === "input" && /type="(checkbox|radio|hidden|range|color|file)"/.test(control[2])) continue;
+      offenders.push(`${rel}: raw <label> wraps <${control[1]}>`);
+    }
+    if (/<LabeledEditorField\b/.test(source)) offenders.push(`${rel}: uses LabeledEditorField`);
+  }
+  assert.deepEqual(offenders, [], "move these onto FormField (render function, spread control)");
 });
