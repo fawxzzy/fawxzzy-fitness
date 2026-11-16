@@ -41,6 +41,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { HistorySection } from "@/components/history/HistoryShared";
 import { DetailSectionBadge, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { PillButton } from "@/components/ui/Pill";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -1507,14 +1508,15 @@ export function LogAuditClient({
 
       {isEditing ? (
         <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
-          <label className="block">
-            <LabeledEditorField label="Day name">
-              <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-11 px-3.5 pt-3.5")} />
-            </LabeledEditorField>
-          </label>
-          <label className="block">
-            <LabeledEditorField label="Session notes">
+          <FormField label="Day name">
+            {(control) => (
+              <input {...control} value={dayName} onChange={(event) => setDayName(event.target.value)} className={formFieldControlClassName} />
+            )}
+          </FormField>
+          <FormField label="Session notes">
+            {(control) => (
               <textarea
+                {...control}
                 ref={headerSessionNotesRef}
                 value={sessionNotes}
                 onChange={(event) => {
@@ -1522,10 +1524,10 @@ export function LogAuditClient({
                   autoSizeTextarea(event.currentTarget);
                 }}
                 rows={1}
-                className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
+                className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
               />
-            </LabeledEditorField>
-          </label>
+            )}
+          </FormField>
         </div>
       ) : null}
 
