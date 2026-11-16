@@ -54,7 +54,6 @@ export default function PrivacyPolicyPage({
 
   return (
     <LegalDocumentLayout
-      eyebrow="Legal"
       title="Privacy Policy"
       lastUpdated={PRIVACY_POLICY_LAST_UPDATED}
       returnTo={returnTo}

@@ -290,7 +290,7 @@ Enforced by `tests/screen-header-contract.test.mjs`. Component: `src/components/
 ### 15.1 One header, two kinds
 
 - **tab**: the four screens reached from the top tab bar: Today, Routines, History, Settings. The tab bar stays; the header sits under it; no Back button.
-- **detail**: every pushed screen (routine overview, day, edit day, edit routine, add exercise, session, history detail, exercise detail, review, create flows, onboarding steps). No tab bar; Back on the left. Migrates in lane H1; until then those screens keep `SharedScreenHeader` / `AppHeader`.
+- **detail**: every pushed screen (routine overview, day, edit day, edit routine, add exercise, session, history detail, exercise detail, review, create flows, onboarding steps). No tab bar; Back on the left. Migrated in lane H1: routines and the create flows (H1a) and the session, history, exercise, setup, account, legal and review screens (H1b, 15.5). `SharedScreenHeader` / `AppHeader` remain only in dev fixtures and the mobile-shell dev warning.
 - Anatomy, always this order: [Back 44x44, left, detail only] [title block] [trailing slot]. Title block = the `h1` (one style: 22px / 600, left aligned, one line, ellipsis, full text in `title`) plus at most ONE muted subtitle line (14px, plain words, one line). Trailing slot = at most ONE 44x44 icon action or ONE chip. Nothing else.
 - Every screen has a title, a plain noun: `Today`, `Routines`, `History`, `Settings`, the routine / day / exercise name, `Add exercise`, `Workout`.
 - No line under the header (no hairline, no accent bar): "none" is the one choice, applied everywhere.
@@ -320,3 +320,22 @@ Judge every screen by one question: can a first-time user tell what it is and wh
 - Plain words; labels say what happens (`Save theme`, `Change password`, `Show detailed rows`), no jargon or developer copy (9.1).
 - Navigation is predictable: the tab bar only switches the four sections; it never leaves the app. The Settings `Account` row opens the shared account portal (`account.fawxzzy.com`, `getFitnessAccountPortalUrl`), with the destination named in its summary (`Opens account.fawxzzy.com`). Sign out is a quiet secondary button in the Settings body, not the dock.
 - The in-app `/account` screen (username and email edit) keeps working for direct visits but is no longer linked from navigation; it is retired once the portal offers those edits.
+
+### 15.5 The detail family: session, history, exercise, setup (H1b)
+
+Back is the one shared `ScreenHeaderBackButton` (`src/components/ui/app/ScreenHeaderBackButton.tsx`, also used by the routines screens): 44x44, chevron, top left, its accessible name says where it goes. Live workout and history detail pass `historyBehavior="history-first"` (return to where you came from, else the named screen); the others go straight to the named screen. While an exercise is open on either of those screens (opened in place, no history entry), the first Back tap closes it (`Back to workout`) and the second leaves.
+
+| Screen | Title | Subtitle | Back goes to | Trailing |
+|---|---|---|---|---|
+| Live workout (`/session/[id]`) | `Workout` | `<day> · <routine>` | Today | the offline chip, only while offline |
+| History detail (`/history/[sessionId]`) | the day name, else `Workout` | `<weekday>, <date> · <routine>` | History; with one exercise open, `Back to workout` closes it first | none |
+| Exercise detail (sheet over a screen) | the exercise name | `<equipment> · <movement>` | closes the sheet | the filter toggle |
+| Routine setup (`/onboarding`) | `Routine setup` | none (the step and `N% done` sit in the body, the step name is an `h2`) | Today | `Start over` |
+| Account (`/account`, direct visit only) | `Account` | the username (else the email) | Settings | none |
+| Terms, Privacy | the document name | none | `returnTo` when it is an in-app path, else Settings | none |
+| Optional day preview (`/review/optional-planned-day`) | `Optional workout day` | `Preview` | Routines | none |
+
+- Nothing else renders an `h1`: `tests/screen-header-contract.test.mjs` fails on a raw `<h1>` (or `as="h1"` / `titleAs="h1"`) anywhere in `src/app`, `src/components` or `src/features` outside `ScreenHeader`. Allowed: the auth shell (Auth Surface v2), the legacy `AppHeader` (dev fixtures only), `src/app/dev/**` fixtures and `src/app/api/**` HTML strings.
+- What used to sit in these headers and still matters is in the body: the history editor's day name and notes fields, the onboarding step name.
+- Segmented controls whose options are all links render as `nav` with `aria-current="page"` (not a tab list).
+- Auth: the primary dock button (Sign in and the other auth primaries) is the standard green `rgb(32 151 78)`, flat, no glow. The rest of the auth accent (kicker, focus ring, icon) is still lime and is a contract-lane follow-up.

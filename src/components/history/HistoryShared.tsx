@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { BackButton } from "@/components/ui/BackButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -12,47 +11,6 @@ import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatt
 
 /** The History header's trailing slot; the Sessions and Exercises lists portal their density toggle into it. */
 export const HISTORY_HEADER_TRAILING_SLOT_ID = "history-header-trailing";
-
-export function HistoryDetailHeader({
-  title,
-  titleClassName,
-  subtitle,
-  eyebrow = "History",
-  meta,
-  action,
-  children,
-  className,
-  actionClassName,
-  align = "left",
-}: {
-  title: ReactNode;
-  titleClassName?: string;
-  subtitle?: ReactNode;
-  eyebrow?: ReactNode;
-  meta?: ReactNode;
-  action?: ReactNode;
-  children?: ReactNode;
-  className?: string;
-  actionClassName?: string;
-  align?: "left" | "center";
-}) {
-  return (
-    <SharedScreenHeader
-      recipe="historyDetail"
-      eyebrow={eyebrow}
-      title={title}
-      titleClassName={titleClassName}
-      subtitle={subtitle}
-      action={action}
-      meta={meta}
-      align={align}
-      className={cn("pl-1", className)}
-      actionClassName={actionClassName}
-    >
-      {children}
-    </SharedScreenHeader>
-  );
-}
 
 export function HistorySection({
   title,

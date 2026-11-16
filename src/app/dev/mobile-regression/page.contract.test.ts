@@ -54,7 +54,8 @@ test("session completion uses the progression promotion receipt contract", async
 
   assert.match(source, /title="Progression Promotions"/);
   assert.match(source, /No promotions this session\./);
-  assert.match(source, /Plans: \{update\.linkedDayNames\.join\(", "\)\}/);
+  assert.match(source, /Days: \{update\.linkedDayNames\.join\(", "\)\}/);
+  assert.doesNotMatch(source, /Plans:/);
   assert.doesNotMatch(source, /Your routine has been updated for the next session\./);
   assert.doesNotMatch(source, /across \$\{update\.linkedTargetCount\} routine days/);
 });

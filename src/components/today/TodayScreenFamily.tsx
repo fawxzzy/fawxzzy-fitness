@@ -4,7 +4,6 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { cn } from "@/lib/cn";
 
@@ -25,11 +24,6 @@ export function TodayRouteScaffold({
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );
-}
-
-/** Legacy centred header; only the session screen still uses it until H1 moves it to ScreenHeader kind="detail". */
-export function TodayOverviewHeader(props: Omit<ComponentProps<typeof SharedScreenHeader>, "recipe">) {
-  return <SharedScreenHeader recipe="todayOverview" withPanel={false} {...props} />;
 }
 
 export function TodayOverviewContent({

@@ -11,7 +11,6 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
@@ -25,7 +24,6 @@ import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import { buildSessionFinishCheck, type SessionFinishCheck } from "@/lib/session-finish";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
-import { buildCurrentSessionHeaderInfoRailItems } from "@/lib/header-info-rail";
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import type { SetRow } from "@/types/db";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
@@ -103,12 +101,8 @@ export function SessionPageClient({
   performedAt,
   routineName,
   sessionDayName,
-  sessionSummaryCounts,
-  routineTrainingDays,
-  routineRestDays,
   routineCycleLengthDays,
   sessionDayIndex,
-  sessionIsRestDay = false,
   searchError,
   unitLabel,
   exercises,
@@ -133,17 +127,8 @@ export function SessionPageClient({
   performedAt: string;
   routineName: string;
   sessionDayName: string;
-  sessionSummaryCounts: {
-    strength: number;
-    cardio: number;
-    bodyweight: number;
-    unknown: number;
-  };
-  routineTrainingDays?: number | null;
-  routineRestDays?: number | null;
   routineCycleLengthDays?: number | null;
   sessionDayIndex?: number | null;
-  sessionIsRestDay?: boolean;
   searchError?: string;
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
@@ -223,56 +208,19 @@ export function SessionPageClient({
     return () => window.clearInterval(timer);
   }, [baseDurationSeconds, isSessionCompleted, performedAt]);
 
-  const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
-  const sessionHeaderInfoItems = useMemo(() => {
-    const total = exercises.length;
-    const loggedExerciseCount = exercises.filter((exercise) => exercise.loggedSetCount > 0).length;
-    const skippedExerciseCount = exercises.filter((exercise) => exercise.isSkipped).length;
-
-    return buildCurrentSessionHeaderInfoRailItems({
-      isCompleted: isSessionCompleted,
-      sessionDayIndex,
-      cycleLengthDays: routineCycleLengthDays,
-      isRestDay: sessionIsRestDay,
-      trainingDays: routineTrainingDays,
-      restDays: routineRestDays,
-      sessionExerciseCount: total,
-      loggedExerciseCount,
-      skippedExerciseCount,
-      splitSummary: {
-        total,
-        strength: sessionSummaryCounts.strength,
-        cardio: sessionSummaryCounts.cardio,
-        bodyweight: sessionSummaryCounts.bodyweight,
-        unknown: sessionSummaryCounts.unknown,
-      },
-    });
-  }, [
-    exercises,
-    isSessionCompleted,
-    routineCycleLengthDays,
-    routineRestDays,
-    routineTrainingDays,
-    sessionDayIndex,
-    sessionIsRestDay,
-    sessionSummaryCounts.bodyweight,
-    sessionSummaryCounts.cardio,
-    sessionSummaryCounts.strength,
-    sessionSummaryCounts.unknown,
-  ]);
-  const floatingHeader = !isExerciseOpen ? (
-    <ContentRail>
-      <ScreenScaffold recipe="todayOverview" className="w-full">
-        <SessionHeaderControls
-          routineName={routineName}
-          sessionDayName={sessionDayName}
-          infoItems={sessionHeaderInfoItems}
-          backHref={fallbackReturnHref ?? "/today"}
-        />
-      </ScreenScaffold>
-    </ContentRail>
-  ) : null;
+  // The header stays on screen while an exercise is open: Back is always top left (DESIGN-CONTRACT.md section 15).
+  // Opening an exercise only rewrites the URL in place, so the first Back tap closes it and the second leaves.
+  const floatingHeader = (
+    <SessionHeaderControls
+      routineName={routineName}
+      sessionDayName={sessionDayName}
+      backHref={fallbackReturnHref ?? "/today"}
+      statusBadge={<OfflineSyncBadge userId={userId} />}
+      exerciseOpen={selectedExerciseId !== null}
+      onCloseExercise={() => setSelectedExerciseId(null)}
+    />
+  );
 
   const emptyState = useMemo(
     () => (hasExercises ? null : <p className={appTokens.currentSessionEmptyState}>No exercises yet.</p>),
@@ -345,13 +293,8 @@ export function SessionPageClient({
           data-section-chrome={sessionRecipe.sectionChrome}
           data-footer-dock={sessionRecipe.footerDock}
           data-row-interaction={sessionRecipe.rowInteraction}
-          className={cn(appTokens.currentSessionSectionStack, "!gap-0", isExerciseOpen ? "pt-3" : undefined)}
+          className={cn(appTokens.currentSessionSectionStack, "!gap-0")}
         >
-          {!isExerciseOpen ? (
-            <div className="flex justify-end">
-              <OfflineSyncBadge userId={userId} />
-            </div>
-          ) : null}
           <ActionFeedbackToasts />
 
           {isSessionCompleted ? (
@@ -427,7 +370,7 @@ export function SessionPageClient({
                   </p>
                   {update.linkedDayNames.length > 1 ? (
                     <p className="mt-1 text-[11px] font-semibold text-[rgb(var(--accent)/0.92)]">
-                      Plans: {update.linkedDayNames.join(", ")}
+                      Days: {update.linkedDayNames.join(", ")}
                     </p>
                   ) : null}
                 </li>

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { SessionHeaderCard } from "@/components/ui/workout-entry/SessionHeaderCard";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
@@ -39,12 +39,7 @@ function WinnerNote({ note }: { note: string }) {
 export function UiContractAuditSurface() {
   return (
     <div className="space-y-4 pb-6">
-      <SessionHeaderCard
-        eyebrow="Dev-only"
-        title="UI Contract Audit"
-        subtitle="Deterministic fixture surface for drift checks"
-        footer="Internal inspection screen — not part of production navigation"
-      />
+      <ScreenHeader kind="tab" title="UI contract audit" subtitle="Dev-only fixture surface for drift checks" />
 
       <ContractGroup
         title="Shared headers"

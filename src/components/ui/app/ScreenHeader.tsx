@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
-import { cn } from "@/lib/cn";
 
 // The one screen header (DESIGN-CONTRACT.md section 15). Two kinds only:
 // - "tab": Today, Routines, History, Settings. The tab bar stays on screen; no Back button.
@@ -19,11 +18,10 @@ type ScreenHeaderProps = {
   back?: ReactNode;
   /** At most one 44x44 icon action or one chip. */
   trailing?: ReactNode;
-  className?: string;
   testId?: string;
 };
 
-export function ScreenHeader({ kind, title, subtitle, back, trailing, className, testId }: ScreenHeaderProps) {
+export function ScreenHeader({ kind, title, subtitle, back, trailing, testId }: ScreenHeaderProps) {
   const backNode = kind === "detail" ? back : null;
   const subtitleText = subtitle?.trim() ? subtitle.trim() : null;
 
@@ -31,7 +29,7 @@ export function ScreenHeader({ kind, title, subtitle, back, trailing, className,
     <header
       data-screen-header={kind}
       data-testid={testId}
-      className={cn(screenHeaderTokens.root, className)}
+      className={screenHeaderTokens.root}
     >
       <div className={screenHeaderTokens.row}>
         {backNode ? <div className={screenHeaderTokens.backSlot}>{backNode}</div> : null}

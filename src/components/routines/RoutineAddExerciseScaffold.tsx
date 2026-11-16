@@ -31,7 +31,6 @@ export function RoutineAddExerciseScaffold({
             kind="detail"
             title={title}
             subtitle={subtitle}
-            className="pointer-events-auto relative z-30"
             back={<ScreenHeaderBackButton href={backHref} label={backLabel} />}
           />
         )}

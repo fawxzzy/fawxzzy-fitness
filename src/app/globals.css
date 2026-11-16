@@ -2385,6 +2385,8 @@ a:focus-visible {
   --accent-strong: 190 242 100;
   --accent-divider-rgb: 160 223 56;
   --fx-ac: 160 223 56;
+  /* The primary dock button uses the app's standard green (root --accent-mint), so Sign in matches the in-app primary. */
+  --fx-primary: 32 151 78;
   --fx-base: #060b07;
   --fx-text: 241 245 242;
   --fx-danger: 255 107 120;
@@ -2828,8 +2830,8 @@ a:focus-visible {
   padding: 0 20px;
   border: 0;
   border-radius: 29px;
-  background: linear-gradient(180deg, color-mix(in srgb, rgb(var(--fx-ac)) 38%, #fff), rgb(var(--fx-ac)));
-  box-shadow: 0 0 26px rgb(var(--fx-ac) / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.5);
+  background: rgb(var(--fx-primary));
+  box-shadow: none;
   font: inherit;
   font-size: 17px;
   font-weight: 600;

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-15 (FF-DESIGN-001, header lane H1b)
+
+### WHAT
+- Session, history detail, exercise detail, routine setup, Account, Terms/Privacy and the optional-day preview use the one `ScreenHeader` (kind `detail`): plain title, one muted subtitle, Back top left (the shared `ScreenHeaderBackButton`), at most one trailing control. With an exercise open on the live workout or history detail, the first Back tap closes it and the second leaves. Old pieces removed: `SessionBackButton`, `HistoryDetailsBackButton`, `HistoryDetailHeader`, `DetailSurface`, `SettingsHeaderIdentity`, `SessionHeaderCard`, `AnchoredSelectorPanel`, `TodayOverviewHeader`, the session header info rail and the now-unused `HeaderInfoRail` component.
+- Live workout: the auto-progression card says `Days:` instead of the stale `Plans:`. The session offline snapshot no longer stores `headerInfoItems` (schema version unchanged; older snapshots still load).
+- Account is a detail screen (no tab bar); its dock button says `Save account details`. History's density toggle has a fixed label with `aria-pressed`; link-only segmented controls are a `nav` with `aria-current="page"`. Auth Sign in is the standard green.
+- `tests/screen-header-contract.test.mjs` fails on any raw `<h1>` outside `ScreenHeader` (allowlist: auth shell, legacy `AppHeader`, dev fixtures, API HTML).
+
+### WHY
+- One header grammar and one primary action per screen make every pushed screen read the same in 3 seconds (DESIGN-CONTRACT 15.5). No route, server action or database change.
+
 ## Unreleased - 2026-11-13 (FF-SESSION-005)
 
 ### WHAT

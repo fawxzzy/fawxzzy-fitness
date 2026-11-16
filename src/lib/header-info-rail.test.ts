@@ -1,22 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  buildCurrentSessionHeaderInfoRailItems,
-} from "@/lib/header-info-rail";
+import { buildRoutineTrainingRestInfoRailItems } from "@/lib/header-info-rail";
 
-test("buildCurrentSessionHeaderInfoRailItems reflects a completed session", () => {
-  const [status] = buildCurrentSessionHeaderInfoRailItems({
-    isCompleted: true,
-    sessionExerciseCount: 4,
-  });
+// The routine editor and live-session rail builders were retired with the header redesign (lanes H1a and H1b).
+test("buildRoutineTrainingRestInfoRailItems clamps counts to whole non-negative numbers", () => {
+  const [training, rest] = buildRoutineTrainingRestInfoRailItems({ trainingDays: 3.7, restDays: -2 });
 
-  assert.deepEqual(status, {
-    id: "live-session",
-    label: "Session",
-    value: "Completed",
-    tone: "success",
-    title: "Workout session is complete",
-    valuePosition: "after",
-  });
+  assert.equal(training?.id, "training-days");
+  assert.equal(training?.value, 3);
+  assert.equal(rest?.id, "rest-days");
+  assert.equal(rest?.value, 0);
+  assert.deepEqual(buildRoutineTrainingRestInfoRailItems({ trainingDays: null, restDays: undefined }).map((item) => item.value), [0, 0]);
 });

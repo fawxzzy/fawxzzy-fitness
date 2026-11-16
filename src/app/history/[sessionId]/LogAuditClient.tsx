@@ -28,19 +28,20 @@ import {
   type HistorySessionRecapItemMeta,
 } from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
-import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
-import { HistoryDetailHeader, HistorySection } from "@/components/history/HistoryShared";
+import { HistorySection } from "@/components/history/HistoryShared";
 import { DetailSectionBadge, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { PillButton } from "@/components/ui/Pill";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -123,7 +124,6 @@ const DELETE_ACTION_BUTTON_CLASS_NAME = getBottomActionButtonClassName({
   className: "!min-h-0 !h-11 !rounded-none !border-0 !px-4",
 });
 
-const SESSION_HEADER_TITLE_CLASS_NAME = "text-[0.79rem] font-semibold leading-[1.12] tracking-[-0.01em]";
 const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border-0 bg-[rgb(var(--surface-1-rgb)/0.88)] bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none]";
 const FOCUSED_PANEL_TITLE_CLASS_NAME = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const FOCUSED_PANEL_TITLE_STYLE = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
@@ -1473,69 +1473,63 @@ export function LogAuditClient({
     });
   };
 
-  const sessionHeaderWeekday = formatWeekdayShort(sessionSummary.startedAt);
-  const sessionHeaderDayLabel = [sessionSummary.dayTitle?.trim() || null, sessionHeaderWeekday].filter(Boolean).join(" \u00B7 ");
-  const sessionHeaderTitle = (
-    <span className="inline-flex min-w-0 flex-col items-start gap-1">
-      <SignatureMetaTag className="text-[11px] tracking-[0.08em]">
-        {formatDateShort(sessionSummary.startedAt).toUpperCase()}
-      </SignatureMetaTag>
-      <RoutineDayHeaderTitle
-        leadingItems={[sessionSummary.routineTitle]}
-        dayLabel={sessionHeaderDayLabel || undefined}
-        dayLabelOrder="day-first"
-      />
-    </span>
-  );
-  const sessionHeaderAction = (
-    <div className="flex items-center gap-2">
-      {!expandedExercise ? <TopRightBackButton href={backHref} ariaLabel="Back to sessions" /> : null}
-    </div>
-  );
+  // Detail header (DESIGN-CONTRACT.md section 15): the day name as the title, "Fri, Nov 6 · Routine" as the one
+  // subtitle line, Back on the left. With one exercise open, Back first returns to the whole session.
+  const sessionHeaderSubtitle = [
+    [formatWeekdayShort(sessionSummary.startedAt), formatDateShort(sessionSummary.startedAt)].filter(Boolean).join(", "),
+    sessionSummary.routineTitle?.trim() || null,
+  ].filter(Boolean).join(" · ");
 
   return (
     <>
       {floatingHeaderContainer
         ? createPortal(
-          <>
-            <HistoryDetailHeader
-              eyebrow={null}
-              title={sessionHeaderTitle}
-              titleClassName={SESSION_HEADER_TITLE_CLASS_NAME}
-              action={sessionHeaderAction}
-              align="left"
-              className={isEditing ? appTokens.historyEditorHeaderActive : undefined}
-              actionClassName="-ml-1 -mr-1 gap-0"
-            />
-            {isEditing ? (
-              <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 px-4 pb-1 pt-2">
-                <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
-                  <label className="block">
-                    <LabeledEditorField label="Day name">
-                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-11 px-3.5 pt-3.5")} />
-                    </LabeledEditorField>
-                  </label>
-                  <label className="block">
-                    <LabeledEditorField label="Session notes">
-                      <textarea
-                        ref={headerSessionNotesRef}
-                        value={sessionNotes}
-                        onChange={(event) => {
-                          setSessionNotes(event.target.value);
-                          autoSizeTextarea(event.currentTarget);
-                        }}
-                        rows={1}
-                        className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
-                      />
-                    </LabeledEditorField>
-                  </label>
-                </div>
-              </div>
-            ) : null}
-          </>,
+          <ScreenHeader
+            kind="detail"
+            title={sessionSummary.dayTitle?.trim() || "Workout"}
+            subtitle={sessionHeaderSubtitle}
+            back={(
+              <ScreenHeaderBackButton
+                href={backHref}
+                historyBehavior="history-first"
+                label={expandedExercise ? "Back to workout" : "Back to History"}
+                onClick={(event) => {
+                  if (expandedExercise) {
+                    event.preventDefault();
+                    setExpandedExerciseId(null);
+                  }
+                }}
+              />
+            )}
+          />,
           floatingHeaderContainer,
         )
         : null}
+
+      {isEditing ? (
+        <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
+          <FormField label="Day name">
+            {(control) => (
+              <input {...control} value={dayName} onChange={(event) => setDayName(event.target.value)} className={formFieldControlClassName} />
+            )}
+          </FormField>
+          <FormField label="Session notes">
+            {(control) => (
+              <textarea
+                {...control}
+                ref={headerSessionNotesRef}
+                value={sessionNotes}
+                onChange={(event) => {
+                  setSessionNotes(event.target.value);
+                  autoSizeTextarea(event.currentTarget);
+                }}
+                rows={1}
+                className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
+              />
+            )}
+          </FormField>
+        </div>
+      ) : null}
 
       {!isEditing && recapArtifact ? (
         <WorkoutRecapCard recap={recapArtifact} />

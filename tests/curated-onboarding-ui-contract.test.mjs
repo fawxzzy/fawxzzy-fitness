@@ -13,7 +13,9 @@ test("curated onboarding uses the signed-in Fitness screen and bottom-action con
 
   assert.match(shell, /AppShell/);
   assert.match(shell, /MobileScreenScaffold/);
-  assert.match(shell, /SharedScreenHeader/);
+  assert.match(shell, /<ScreenHeader\s+kind="detail"/);
+  assert.match(shell, /<ScreenHeaderBackButton href="\/today" historyBehavior="fallback-only" label="Back to Today" \/>/);
+  assert.doesNotMatch(shell, /SharedScreenHeader|TopRightBackButton|<h1/);
   assert.match(shell, /CuratedOnboardingProgress/);
   assert.match(shell, /BottomActionSingle/);
   assert.match(shell, /BottomActionSplit/);
@@ -27,8 +29,8 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   const progress = readComponent("CuratedOnboardingProgress.tsx");
   const review = readComponent("ReviewStep.tsx");
 
-  assert.match(shell, /ROUTINE_CARD_DELETE_TEXT_CLASS_NAME/);
-  assert.match(shell, /actionClassName="!left-0 !right-0/);
+  // Start over is a quiet text action in the header trailing slot (no glow underline), 44px tall.
+  assert.match(shell, /className="inline-flex min-h-11 items-center !border-0 !bg-transparent px-2 text-sm font-semibold !text-\[rgb\(var\(--danger-rgb\)\)\]"\s*>\s*Start over/);
   assert.match(shell, /canAccessCuratedStep/);
   assert.match(shell, /type: "go-to-step"/);
   assert.match(shell, /CURATED_FORM_STEP_ORDER/);
@@ -37,7 +39,7 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   assert.match(progress, /aria-label="Edit setup pages"/);
   assert.match(progress, /aria-current/);
   assert.match(progress, /steps\.length/);
-  assert.match(progress, /<h1/);
+  assert.doesNotMatch(progress, /<h1/);
   assert.match(progress, /!bg-\[rgb\(var\(--accent\)\)\]/);
   assert.match(review, /data-section-status/);
   assert.match(review, /data-answer-status/);

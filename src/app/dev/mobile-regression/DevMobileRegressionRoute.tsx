@@ -2328,7 +2328,6 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           performedAt={capturePerformedAt}
           routineName={PREVIEW_ROUTINE_NAME}
           sessionDayName={PREVIEW_DAY_LABEL}
-          sessionSummaryCounts={{ strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }}
           unitLabel="lbs"
           exercises={sessionScenarioExercises}
         initialSelectedExerciseId={mobileRegressionSelectedSessionExerciseByScenarioId[scenario.id] ?? null}
@@ -2824,7 +2823,7 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
     <AppShell className="gap-4" topNavMode="none" ambientPreset="history">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        floatingHeader={<ContentRail><div id="history-log-floating-header" /></ContentRail>}
+        floatingHeader={<div id="history-log-floating-header" />}
         className="flex flex-col gap-3"
       >
         <ContentRail>

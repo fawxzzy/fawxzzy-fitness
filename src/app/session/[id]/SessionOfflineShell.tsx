@@ -5,7 +5,6 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { readSessionCache, type SessionCacheSnapshot } from "@/lib/offline/session-cache";
@@ -32,17 +31,12 @@ export function SessionOfflineShell({
   }, [initialSnapshot, sessionId, userId]);
 
   const floatingHeader = cachedSnapshot ? (
-    <ContentRail>
-      <ScreenScaffold recipe="todayOverview" className="w-full">
-        <SessionHeaderControls
-          routineName={cachedSnapshot.routineName}
-          sessionDayName={cachedSnapshot.sessionDayName}
-          infoItems={cachedSnapshot.headerInfoItems}
-          backHref={backHref}
-          statusBadge={<OfflineSyncBadge userId={userId} label="Offline" />}
-        />
-      </ScreenScaffold>
-    </ContentRail>
+    <SessionHeaderControls
+      routineName={cachedSnapshot.routineName}
+      sessionDayName={cachedSnapshot.sessionDayName}
+      backHref={backHref}
+      statusBadge={<OfflineSyncBadge userId={userId} label="Offline" />}
+    />
   ) : null;
 
   return (

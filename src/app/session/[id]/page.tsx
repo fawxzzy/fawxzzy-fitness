@@ -11,8 +11,6 @@ import { resolveCaloriesEstimationMethod, withEstimatedCaloriesForTarget, type C
 import { isCardioExercise, isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
-import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import { buildCurrentSessionHeaderInfoRailItems } from "@/lib/header-info-rail";
 import { splitSessionHeaderTitle } from "@/lib/header-meta";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { SESSION_CACHE_SCHEMA_VERSION, type SessionCacheSnapshot } from "@/lib/offline/session-cache";
@@ -278,29 +276,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     ?? "Routine";
   const sessionDayName = mergedSessionLabel?.subtitle
     ?? (sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day"));
-  const sessionSummaryCounts = getExerciseCountSummaryFromInputs(
-    sessionExercises.map((exercise) => {
-      const canonicalExercise = exerciseById.get(exercise.exercise_id);
-      return {
-        // Keep this aligned with the shared ExerciseRow contract returned by listExercises().
-        // Taxonomy-aware summary helpers should consume canonical contract fields first,
-        // rather than screen-local assumptions about extra exercise columns.
-        measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
-        equipment: canonicalExercise?.equipment ?? null,
-        movement_pattern: canonicalExercise?.movement_pattern ?? null,
-        primary_muscle: canonicalExercise?.primary_muscle ?? null,
-        isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
-        kind: null,
-        type: null,
-        tags: null,
-        categories: null,
-      };
-    }),
-  );
-  const routineTrainingDays = routineDays.filter((day) => !day.is_rest).length;
-  const routineRestDays = routineDays.filter((day) => Boolean(day.is_rest)).length;
   const routineCycleLengthDays = routineDays.length;
-  const sessionIsRestDay = routineDays.find((day) => day.day_index === sessionRow.routine_day_index)?.is_rest ?? false;
   const requestedExerciseId = typeof searchParams?.exerciseId === "string"
     && sessionExercises.some((exercise) => exercise.id === searchParams.exerciseId)
     ? searchParams.exerciseId
@@ -574,24 +550,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       },
     };
   });
-  const sessionHeaderInfoItems = buildCurrentSessionHeaderInfoRailItems({
-    isCompleted: sessionRow.status === "completed",
-    sessionDayIndex: sessionRow.routine_day_index ?? null,
-    cycleLengthDays: routineCycleLengthDays,
-    isRestDay: sessionIsRestDay,
-    trainingDays: routineTrainingDays,
-    restDays: routineRestDays,
-    sessionExerciseCount: sessionExerciseItems.length,
-    loggedExerciseCount: sessionExerciseItems.filter((exercise) => exercise.loggedSetCount > 0).length,
-    skippedExerciseCount: sessionExerciseItems.filter((exercise) => exercise.isSkipped).length,
-    splitSummary: {
-      total: sessionExerciseItems.length,
-      strength: sessionSummaryCounts.strength,
-      cardio: sessionSummaryCounts.cardio,
-      bodyweight: sessionSummaryCounts.bodyweight,
-      unknown: sessionSummaryCounts.unknown,
-    },
-  });
   const sessionSnapshot: SessionCacheSnapshot = {
     schemaVersion: SESSION_CACHE_SCHEMA_VERSION,
     userId: user.id,
@@ -599,7 +557,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     capturedAt: new Date().toISOString(),
     routineName,
     sessionDayName,
-    headerInfoItems: sessionHeaderInfoItems,
     exercises: sessionExerciseItems.map((exercise) => ({
       id: exercise.id,
       exerciseId: exercise.exerciseId,
@@ -647,12 +604,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           performedAt={sessionRow.performed_at}
           routineName={routineName}
           sessionDayName={sessionDayName}
-          sessionSummaryCounts={sessionSummaryCounts}
-          routineTrainingDays={routineTrainingDays}
-          routineRestDays={routineRestDays}
           routineCycleLengthDays={routineCycleLengthDays}
           sessionDayIndex={sessionRow.routine_day_index ?? null}
-          sessionIsRestDay={sessionIsRestDay}
           searchError={searchParams?.error}
           unitLabel={unitLabel}
           exercises={sessionExerciseItems}

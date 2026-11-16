@@ -12,12 +12,11 @@ import {
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
-import { ROUTINE_CARD_DELETE_TEXT_CLASS_NAME } from "@/components/routines/routineCardChrome";
 import { RouteLoading } from "@/components/RouteLoading";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import {
   trackCuratedAbandoned,
   trackCuratedCompleted,
@@ -555,29 +554,22 @@ export function CuratedOnboardingShell({
     <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
       <MobileScreenScaffold
         floatingHeader={(
-          <ContentRail className="py-1 pt-3">
-            <ScreenScaffold recipe="editDay" className="w-full">
-              <SharedScreenHeader
-                recipe="editDay"
-                title="Curated Routine"
-                align="center"
-                withPanel={false}
-                action={(
-                  <div className="flex w-full items-center justify-between gap-4">
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className={ROUTINE_CARD_DELETE_TEXT_CLASS_NAME}
-                    >
-                      Start over
-                    </button>
-                    <TopRightBackButton href="/today" historyBehavior="fallback-only" ariaLabel="Resume setup later" />
-                  </div>
-                )}
-                actionClassName="!left-0 !right-0 [&>div]:w-full"
-              />
-            </ScreenScaffold>
-          </ContentRail>
+          // Detail header (DESIGN-CONTRACT.md section 15). Back saves nothing new: answers autosave as you go,
+          // so leaving resumes later. "Start over" is the one trailing action.
+          <ScreenHeader
+            kind="detail"
+            title="Routine setup"
+            back={<ScreenHeaderBackButton href="/today" historyBehavior="fallback-only" label="Back to Today" />}
+            trailing={(
+              <button
+                type="button"
+                onClick={handleReset}
+                className="inline-flex min-h-11 items-center !border-0 !bg-transparent px-2 text-sm font-semibold !text-[rgb(var(--danger-rgb))]"
+              >
+                Start over
+              </button>
+            )}
+          />
         )}
         bottomDock={(
           <div className={`${BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME} pointer-events-auto`}>
@@ -592,7 +584,6 @@ export function CuratedOnboardingShell({
                 currentStep={currentStep}
                 totalSteps={CURATED_FORM_STEP_ORDER.length}
                 progress={progressValue}
-                title={stepDefinition.title}
                 steps={CURATED_FORM_STEP_ORDER.map((stepId) => ({
                   id: stepId,
                   label: getCuratedStepDefinition(stepId).eyebrow,
@@ -604,11 +595,9 @@ export function CuratedOnboardingShell({
               />
             ) : null}
 
-            {isGenerationStep ? (
-              <h1 className="px-1 text-center text-[1.32rem] font-semibold leading-tight tracking-[-0.025em] text-[rgb(var(--text-primary))] sm:text-[1.5rem]">
-                {stepDefinition.title}
-              </h1>
-            ) : null}
+            <h2 className="px-1 text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary))]">
+              {stepDefinition.title}
+            </h2>
 
             {saveState === "error" ? (
               <p role="alert" className="px-2 text-center text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
