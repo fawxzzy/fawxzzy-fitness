@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-15T03:46:40.000Z",
+  "updatedAt": "2026-11-16T02:45:25.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -15,7 +15,7 @@
     },
     "researchCandidateImport": { "recordCount": 64, "adoptedCount": 0, "stableIdOverlapCount": 0, "sha256": "6bdeb360433a8413edda9e7f094728120f37eae2f9223e4cca00a975e1d6dca1" },
     "excludedOwnerRecords": { "recordCount": 18, "reason": "missing stable Fitness card identity or belongs to another product" },
-    "boardSync": { "at": "2026-11-15T03:46:40.000Z", "appliedEventCount": 13, "lastEventId": "882f79f5d1bd" }
+    "boardSync": { "at": "2026-11-16T02:45:25.000Z", "appliedEventCount": 29, "lastEventId": "b9faadd30c22" }
   },
   "acceptedPublicCardIds": [
     "FF-ANALYTICS-001",
@@ -48,7 +48,8 @@
     "FF-RELIABILITY-001",
     "FF-RET-005",
     "FF-DESIGN-003",
-    "FF-RELIABILITY-003"
+    "FF-RELIABILITY-003",
+    "FF-RELIABILITY-004"
   ],
   "statusMapping": {
     "fawxzzy_review": { "recordStatus": "active", "lifecycle": "review" },
@@ -142,7 +143,7 @@
     { "id": "FF-SESSION-002", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-SESSION-003", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
     { "id": "FF-SESSION-004", "status": "fixed", "updatedAt": "2026-11-06T17:20:00.000Z" },
-    { "id": "FF-SESSION-005", "status": "in_progress", "updatedAt": "2026-11-06T17:20:00.000Z" },
+    { "id": "FF-SESSION-005", "status": "review", "updatedAt": "2026-11-15T04:06:10.000Z" },
     { "id": "FF-SOC-001", "status": "fawxzzy_review", "updatedAt": "2026-07-13T04:31:19.434Z" },
     { "id": "FF-SOC-002", "status": "confirmed", "updatedAt": "2026-07-14T22:23:17.502Z",
       "card": {
@@ -252,22 +253,22 @@
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-DESIGN-001", "status": "review", "updatedAt": "2026-11-13T21:38:00.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-001", "status": "review", "updatedAt": "2026-11-16T02:45:25.000Z", "visibility": "public",
       "card": {
         "title": "Consistent cards across the app",
         "priority": "P2",
         "dependsOn": [],
-        "description": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system is merged and live on the Routines, Today, Settings, Session and History screens. Checked only in headless Chromium, on development fixtures and in a signed-in render sweep of those screens (no overflow, no console errors, no controls under 32px), not on a real phone. Still to do: the routine editor and routine creation, heatmap labels under 11px, the History filter toggle and the logger plus and minus steppers at 44px, and retiring the old exercise card once nothing uses it.",
+        "description": "Give every screen the same card look and behavior so the app feels like one product. Done: the shared card system is merged and live on the Routines, Today, Settings, Session and History screens. Checked only in headless Chromium, on development fixtures and in a signed-in render sweep of those screens (no overflow, no console errors, no controls under 32px), not on a real phone. Still to do: the routine editor and routine creation, heatmap labels under 11px, the History filter toggle and the logger plus and minus steppers at 44px, and retiring the old exercise card once nothing uses it. Board update 2026-11-16: Routines detail screens, Days library and form fields now use the one header and labelled inputs; merged, not deployed. PR #273 merged (bdcd99e9). Deployed: production build none. Checked only in headless Chromium, not on a real phone. Board update 2026-11-16: Session, history detail, exercise, setup, account and legal screens now use the one header and one Back button; merged, not deployed. PR #274 merged (654a67f7). Deployed: production build none. Checked only in headless Chromium, not on a real phone. Board update 2026-11-16: Every screen now uses the one header; the old header code is deleted and a test blocks it returning; merged, not deployed. PR #276 merged (c5c423e6). Deployed: production build none. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["Routines, Today, Settings, Session and History screens use the shared cards (merged and live).","Those screens pass a signed-in render sweep with no page overflow and no console errors (headless Chromium only).","Heatmap labels are at least 11px, and the History filter toggle and logger steppers are 44px (not yet done).","The routine editor and routine creation use the shared cards (not yet done).","The old exercise card and row are retired once no screen uses them (not yet done).","The result is checked in the installed phone app (not yet done)."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-PLATFORM-001", "status": "planning", "updatedAt": "2026-11-15T03:12:33.000Z", "visibility": "public",
+    { "id": "FF-PLATFORM-001", "status": "review", "updatedAt": "2026-11-15T05:10:16.000Z", "visibility": "public",
       "card": {
         "title": "Move to a supported framework version",
         "priority": "P2",
         "dependsOn": ["FF-QA-004"],
-        "description": "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned. Board update 2026-11-15: Migration-readiness audit note added (docs only); Excel export library swap skipped pending owner decision; Next/React migration not started PR #250 merged (676be263). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
+        "description": "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned. Board update 2026-11-15: Migration-readiness audit note added (docs only); Excel export library swap skipped pending owner decision; Next/React migration not started PR #250 merged (676be263). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Excel export now uses a maintained writer (vulnerable xlsx removed) with a cell-by-cell round-trip test; merged, not deployed; no real Excel or phone open checked; Next/React migration not started PR #257 merged (3db7fe30). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: PR 259 merged: xlsx export round-trip test covers empty string, boolean and date cells; test-only, no export bug found PR #259 merged (6da36e05). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The app runs on a supported framework version.","The framework upgrade is tested before release and rolled out without breaking sign-in or workouts.","Everyday flows are checked live after the upgrade."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
@@ -302,12 +303,12 @@
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-DESIGN-002", "status": "review", "updatedAt": "2026-11-15T02:30:18.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-002", "status": "review", "updatedAt": "2026-11-15T15:54:51.000Z", "visibility": "public",
       "card": {
         "title": "Finish the remaining screens on the shared card style",
         "priority": "P3",
         "dependsOn": ["FF-DESIGN-001"],
-        "description": "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens. Board update 2026-11-15: Partial, merged not deployed: routine chooser, editor and add-day screens on the shared card style; 'day' wording across that flow incl. server messages. Exercise picker, progression editor and stretch panel not done; one 'workout plan' string left in the day rest dock. Headless only, no phone check. PR #246 merged (4989c729). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
+        "description": "Move the last screens onto the shared card style once the main screens are settled: the routine editor and routine creation, the exercise picker, the progression editor and the stretch panel. Also raise the remaining 9 to 10px text and the controls under 32px on those screens. Board update 2026-11-15: Partial, merged not deployed: routine chooser, editor and add-day screens on the shared card style; 'day' wording across that flow incl. server messages. Exercise picker, progression editor and stretch panel not done; one 'workout plan' string left in the day rest dock. Headless only, no phone check. PR #246 merged (4989c729). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Copy lane merged: days instead of workout plans, short dock labels, plain error copy; not device-checked PR #261 merged (ff27c12e). Deployed: production build none. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The routine editor, routine creation, exercise picker, progression editor and stretch panel use the shared cards.","No text on these screens is below the app minimum size, and no control is under 32px.","The screens are checked in a signed-in render sweep and on a real phone."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
@@ -322,14 +323,23 @@
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-DESIGN-004", "status": "review", "updatedAt": "2026-11-15T03:46:40.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-004", "status": "review", "updatedAt": "2026-11-15T07:25:30.000Z", "visibility": "public",
       "card": {
         "title": "Small leftovers after the card redesign",
         "priority": "P3",
         "dependsOn": ["FF-DESIGN-001"],
-        "description": "Small items found after the card redesign: the Today offline info control has the wrong id, the History page has no top-level heading, and Finish shows minutes as 75 min instead of 1h 15m. Also still to do: 44px logger steppers and heatmap labels of at least 11px. Board update 2026-11-15: Leftovers merged, not deployed: History h1, Today offline info id fix, 44px logger steppers and History filter/search, 11px heatmap labels, Settings Account card is a real link, 3 unused components removed. SurfaceMetricGrid scroll not audited; headless only, no phone check. PR #245 merged (650254e8). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Toast bridge allow-lists codes on login and reset (crafted URL text no longer shown); Today info id and finish duration format already fixed in #245/#249; merged, not deployed; headless-only, not device-checked PR #251 merged (5de4243b). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
+        "description": "Small items found after the card redesign: the Today offline info control has the wrong id, the History page has no top-level heading, and Finish shows minutes as 75 min instead of 1h 15m. Also still to do: 44px logger steppers and heatmap labels of at least 11px. Board update 2026-11-15: Leftovers merged, not deployed: History h1, Today offline info id fix, 44px logger steppers and History filter/search, 11px heatmap labels, Settings Account card is a real link, 3 unused components removed. SurfaceMetricGrid scroll not audited; headless only, no phone check. PR #245 merged (650254e8). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Toast bridge allow-lists codes on login and reset (crafted URL text no longer shown); Today info id and finish duration format already fixed in #245/#249; merged, not deployed; headless-only, not device-checked PR #251 merged (5de4243b). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Branded not-found page and plain error-boundary copy merged; not device-checked PR #262 merged (39b6c780). Deployed: production build none. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The Today offline info control has a correct, unique id.","The History page has one top-level heading.","Finish shows long durations as 1h 15m rather than 75 min.","Logger steppers are 44px and heatmap labels are at least 11px."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
+      }
+    },
+    { "id": "FF-RELIABILITY-004", "status": "fixed", "updatedAt": "2026-11-15T18:24:52.000Z", "visibility": "public",
+      "card": {
+        "title": "End the login on the server at sign-out",
+        "priority": "P1",
+        "dependsOn": [],
+        "description": "Signing out of the app should end the login on the server, not only clear it on the phone. An old signed-in request must be rejected after sign-out. Board update 2026-11-15: Sign-out now ends the server session; merged, not deployed, production replay pending PR #263 merged (0633baba). Deployed: production build none. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Sign-out now ends the login on the server. Live in production on build pg3ri6mtm; after sign-out, an old signed-in request is rejected with no data. Portal handoff check passed. PR #263 merged (0633baba). Deployed: production build pg3ri6mtm. Checked only in headless Chromium, not on a real phone.",
+        "acceptanceCriteria": ["After sign-out an old signed-in request is rejected with no data","The fix is live in production and re-checked after deploy","Signing out on one device leaves the person signed in on their other devices"]
       }
     }
   ]
