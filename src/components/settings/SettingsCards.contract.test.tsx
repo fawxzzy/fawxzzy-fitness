@@ -185,7 +185,6 @@ test("App Theme: themes are select cards, empty slots read as one New custom the
   assert.match(themeSource, /const selectEmptySlot = \(slotId: CustomAppThemeSlotId\) => \{[\s\S]*?writeStoredAppThemeSelection\(slotId\);/);
   assert.match(themeSource, /writeStoredAppThemeLibrary\(nextSavedThemes\)/);
   assert.match(themeSource, /onSelect=\{\(\) => selectEmptySlot\(slotId\)\}/);
-  assert.match(themeSource, /aria-label="Theme name"/);
   assert.match(themeSource, /label="Theme name"/);
 });
 
@@ -207,7 +206,7 @@ test("Data: cards for snapshot, export options and preview; real radio groups; p
   assert.match(html, /<legend[^>]*>Scope<\/legend>/);
   assert.equal((html.match(/name="export-file-type"/g) ?? []).length, 3);
   assert.equal((html.match(/name="export-scope"/g) ?? []).length, 3);
-  assert.match(html, /aria-label="Export name"/);
+  assert.match(html, /<label[^>]*>Name<\/label>/);
   assert.match(html, /value="2026-05-01"/);
   assert.match(html, /value="2026-05-09"/);
 
@@ -225,8 +224,7 @@ test("Discord: join link is a 44px target, the token field keeps its accessible 
 
   assert.match(html, /<h3[^>]*>Join the Discord<\/h3>/);
   assert.match(html, /<h3[^>]*>One-time key<\/h3>/);
-  assert.match(html, /aria-label="Discord verification token"/);
-  assert.match(html, /<legend[^>]*>Verification token<\/legend>/);
+  assert.match(html, /<label[^>]*>Verification token<\/label>/);
   assert.match(html, /min-h-11/);
   assert.doesNotMatch(html, /text-\[(?:[0-9]|10)(?:\.\d+)?px\]/);
 });
