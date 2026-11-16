@@ -55,14 +55,18 @@ test("boundaries and global-error use the shared copy and keep Try again plus a 
   for (const source of [recovery, soft]) {
     assert.match(source, /ERROR_COPY\.retryLabel/);
   }
-  assert.match(soft, /ERROR_COPY\.reloadLabel/);
+  // One action only (Mazer parity): no second "Reload app" button.
+  assert.doesNotMatch(soft, /reloadLabel|Reload app/);
   assert.match(recovery, /ERROR_COPY\.homeLabel/);
   assert.match(globalError, /<AppRecoveryScreen/);
 });
 
-test("the dev-only error name suffix stays behind the production check", async () => {
+test("no error detail reaches user text", async () => {
   const soft = await read("./AppSoftErrorBoundary.tsx");
-  assert.match(soft, /process\.env\.NODE_ENV !== "production" \? ` \(\$\{error\.name\}\)` : ""/);
+  assert.doesNotMatch(soft, /\{error\.(name|message)\}|\(\$\{error\./);
+  assert.doesNotMatch(soft, /NODE_ENV/);
+  assert.match(soft, /ERROR_COPY\.boundaryTitle/);
+  assert.match(soft, /ERROR_COPY\.boundaryBody/);
   const recovery = await read("./AppRecoveryScreen.tsx");
   assert.doesNotMatch(recovery, /\{errorName\}|error\.name\}/);
 });

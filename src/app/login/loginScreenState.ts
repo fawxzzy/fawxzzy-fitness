@@ -1,5 +1,10 @@
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
-import { LOGIN_INFO_COPY, resolveLoginErrorCopy, resolveLoginInfoCopy } from "@/lib/auth-route-feedback";
+import {
+  LOGIN_INFO_COPY,
+  LOGIN_UNKNOWN_ERROR_COPY,
+  resolveLoginErrorCopy,
+  resolveLoginInfoCopy,
+} from "@/lib/auth-route-feedback";
 import { isUsernameIdentifier } from "@/lib/username-policy";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,14 +23,15 @@ export function resolveLoginRouteMessages(args: {
   verified?: string | null;
 }) {
   // Codes only: unknown `error` / `info` values resolve to nothing (see auth-route-feedback.ts).
-  const error = resolveLoginErrorCopy(args.errorCode);
+  // An unknown code never goes silent: it resolves to the fixed unknown-error line (still no URL text on screen).
+  const error =
+    resolveLoginErrorCopy(args.errorCode)
+    ?? (typeof args.errorCode === "string" && args.errorCode.trim() ? LOGIN_UNKNOWN_ERROR_COPY : undefined);
   const requiresReauth = args.errorCode === "session_expired";
   const info =
     args.verified === "1"
       ? LOGIN_INFO_COPY.confirmed
-      : args.infoCode === "magic_link_sent"
-        ? PASSWORD_LOGIN_UI_COPY.helper.default ?? undefined
-        : resolveLoginInfoCopy(args.infoCode);
+      : resolveLoginInfoCopy(args.infoCode);
 
   return {
     error,

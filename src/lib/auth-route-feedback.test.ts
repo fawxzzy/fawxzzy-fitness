@@ -34,10 +34,11 @@ test("the sign-in failure allow-list stays identical to the sentences the sign-i
 });
 
 test("login route resolves known codes and drops crafted text", () => {
-  assert.equal(resolveLoginRouteMessages({ errorCode: CRAFTED }).error, undefined);
+  // A crafted code never puts its text on screen; it gets the fixed unknown-error line instead of silence.
+  assert.equal(resolveLoginRouteMessages({ errorCode: CRAFTED }).error, "Could not finish signing in. Please try again.");
   assert.equal(resolveLoginRouteMessages({ infoCode: CRAFTED }).info, undefined);
-  assert.equal(resolveLoginRouteMessages({ errorCode: "toString" }).error, undefined);
-  assert.equal(resolveLoginRouteMessages({ errorCode: "__proto__" }).error, undefined);
+  assert.equal(resolveLoginRouteMessages({ errorCode: "toString" }).error, "Could not finish signing in. Please try again.");
+  assert.equal(resolveLoginRouteMessages({ errorCode: "__proto__" }).error, "Could not finish signing in. Please try again.");
   assert.equal(resolveLoginRouteMessages({ errorCode: "session_expired" }).requiresReauth, true);
   assert.match(resolveLoginRouteMessages({ errorCode: "rate_limited" }).error ?? "", /Too many reset requests/);
   assert.equal(resolveLoginRouteMessages({ infoCode: "reset_requested" }).info, "Reset email sent. Check your inbox.");

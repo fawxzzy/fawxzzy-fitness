@@ -24,7 +24,7 @@ export function SignupEntry({ children }: { children: ReactNode }) {
   }, []);
 
   if (state === null) {
-    return <RouteLoading label="Opening Fitness" variant="route" />;
+    return <RouteLoading label="Opening Fitness…" variant="route" />;
   }
 
   if (state.mode === "browser") {

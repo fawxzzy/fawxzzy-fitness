@@ -29,7 +29,7 @@ export function LoginEntry(props: LoginEntryProps) {
   }, [props.manualRequested]);
 
   if (displayMode === null) {
-    return <RouteLoading label="Opening Fitness" variant="route" />;
+    return <RouteLoading label="Opening Fitness…" variant="route" />;
   }
 
   if (displayMode === "browser") {

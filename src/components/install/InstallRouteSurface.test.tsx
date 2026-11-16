@@ -4,7 +4,10 @@ import { readFileSync } from "node:fs";
 import { renderToString } from "react-dom/server";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime.js";
 import { SearchParamsContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime.js";
-import { InstallRouteSurface } from "./InstallRouteSurface";
+import { renderToStaticMarkup } from "react-dom/server";
+import { getInstallContext } from "@/lib/install/getInstallContext";
+import { InstallScreen } from "./InstallGateChrome";
+import { InstallRouteSurface, resolveInstallScreenKind } from "./InstallRouteSurface";
 
 const router = {
   back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {},
@@ -58,4 +61,25 @@ test("browser-specific guidance and standalone redirect resolve only after the i
   assert.match(source, /if \(!hasResolvedClientInstallContext \|\| context\.isStandalone\)/);
   assert.match(source, /if \(context\.isStandalone\) \{\s*router\.replace\(getInstalledAppHref\(initialReturnTo \?\? "\/login"\)\)/);
   assert.doesNotMatch(source, /suppressHydrationWarning/);
+});
+
+test("computers get computer words, never the phone copy (home screen, Tap menu)", () => {
+  const phoneOnly = /home screen|Tap|Add to Home/i;
+  for (const override of ["desktop", "desktop-windows-edge", "desktop-windows-chrome", "desktop-macos-chrome"] as const) {
+    const context = getInstallContext({ override, allowOverride: true });
+    const kind = resolveInstallScreenKind(context);
+    assert.equal(kind, "desktop", override);
+    const html = renderToStaticMarkup(<InstallScreen kind={kind} />);
+    assert.match(html, /Click the install icon at the end of the address bar\./, override);
+    assert.match(html, /Install it to use it as an app on this computer\./, override);
+    assert.doesNotMatch(html.replace(/<[^>]+>/g, " "), phoneOnly, `${override} shows phone copy`);
+  }
+  const safari = resolveInstallScreenKind(getInstallContext({ override: "desktop-macos-safari", allowOverride: true }));
+  assert.equal(safari, "desktop-safari");
+  const html = renderToStaticMarkup(<InstallScreen kind={safari} />);
+  assert.match(html, /Copy the link and open it in Chrome or Edge\./);
+  assert.match(html, /Click the install icon in the address bar\./);
+  assert.doesNotMatch(html.replace(/<[^>]+>/g, " "), phoneOnly);
+  // A phone without the prompt keeps its menu steps.
+  assert.equal(resolveInstallScreenKind(getInstallContext({ override: "android", allowOverride: true })), "manual");
 });

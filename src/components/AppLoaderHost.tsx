@@ -2,12 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import {
+  LOADER_BOOT_TITLE,
+  LOADER_ROUTE_TITLE,
   LOADER_SHOW_DELAY_MS,
   LOADER_WAIT_CEILING_MS,
   createLoaderMachine,
   isBootFailsafeFired,
   resolveBootCoverExitDelayMs,
   stepLoader,
+  withLoaderEllipsis,
   type LoaderFrame,
   type LoaderMachine,
 } from "@/lib/app-loader";
@@ -55,6 +58,7 @@ export function AppLoaderHost() {
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -64,6 +68,7 @@ export function AppLoaderHost() {
 
     const stage = stageRef.current;
     const status = statusRef.current;
+    const title = titleRef.current;
     const main = document.getElementById(APP_LOADER_MAIN_ID);
     const media = typeof window.matchMedia === "function" ? window.matchMedia(REDUCED_MOTION_QUERY) : null;
     let reducedMotion = media?.matches ?? false;
@@ -133,7 +138,7 @@ export function AppLoaderHost() {
       // Set while it shows; cleared only once the loader is gone. A fade-out that turns around into the same wait keeps
       // the text, so the same label is not announced twice.
       if (active && frame.visible && iconSeen) {
-        setAnnounced(label);
+        setAnnounced(withLoaderEllipsis(label));
       } else if (phase === "idle" || phase === "waiting") {
         setAnnounced("");
       }
@@ -143,6 +148,10 @@ export function AppLoaderHost() {
         root.dataset.state = "live";
         stage?.style.removeProperty("opacity");
         stage?.style.removeProperty("animation");
+        // The server-rendered boot title gives way to the one route title once the boot is over.
+        if (title && title.textContent !== LOADER_ROUTE_TITLE) {
+          title.textContent = LOADER_ROUTE_TITLE;
+        }
       }
       const leaving = phase === "fading-out";
       if (leaving !== lastLeaving) {
@@ -256,6 +265,8 @@ export function AppLoaderHost() {
             decoding="sync"
             src={APP_LOADER_ICON_DATA_URI}
           />
+          {/* Visible words under the icon; aria-hidden with the rest of the overlay (the status region below announces). */}
+          <p ref={titleRef} className="app-loader__title" data-app-loader-title="">{LOADER_BOOT_TITLE}</p>
         </div>
       </div>
       {/* Empty on the server and until the loader is actually showing; written by the host above. */}

@@ -148,7 +148,8 @@ test("supported browsers receive concise per-context install steps", () => {
   assert.match(chromeSource, /Tap Share <AuthShareIcon \/> in Safari\./);
   assert.match(chromeSource, /Choose Add to Home Screen <AuthAddIcon \/>\./);
   assert.match(chromeSource, /aria-label="Install Fitness"/);
-  assert.match(installSource, /context\.canUseNativeInstallPrompt \? "prompt" : "manual"/);
+  assert.match(installSource, /context\.canUseNativeInstallPrompt/);
+  assert.match(installSource, /return "manual";/);
   assert.doesNotMatch(installSource, /"Open Fitness"/);
   assert.doesNotMatch(chromeSource, /"Open Fitness"/);
 });

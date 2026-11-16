@@ -158,7 +158,7 @@ export default async function RootLayout({
           <DisplayModeBootstrap />
           <MobileViewportGuard />
           <main id="app-main" className="safe-area-main relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden">
-            <Suspense fallback={<RouteLoading label="Opening Fitness" variant="route" />}>
+            <Suspense fallback={<RouteLoading label="Opening Fitness…" variant="route" />}>
               <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
             </Suspense>
           </main>

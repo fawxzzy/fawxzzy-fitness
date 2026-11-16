@@ -95,7 +95,7 @@ test("every editable Fitness account form uses the canonical field, notice slot,
 
 test("returning login says Welcome back and shows the remembered account as a locked field", () => {
   assert.match(loginSource, /rememberedLogin \? "Welcome back" : AUTH_MODE_COPY\["password-login"\]\.title/);
-  assert.match(loginSource, /<AuthLockedField id=\{REMEMBERED_INPUT_ID\} label=\{rememberedLabel\} value=\{rememberedValue\} \/>/);
+  assert.match(loginSource, /<AuthLockedField id=\{REMEMBERED_INPUT_ID\} name="remembered-account" autoComplete="username" label=\{rememberedLabel\} value=\{rememberedValue\} \/>/);
   assert.match(read("../../components/auth/authCopy.ts"), /title: "Welcome"/);
 });
 

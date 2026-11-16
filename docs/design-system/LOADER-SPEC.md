@@ -59,7 +59,7 @@ The pulse restarts at the icon edge each time the loader becomes visible.
 
 | App | Backdrop | Ring and glow |
 | --- | --- | --- |
-| Fitness | `rgb(var(--bg-0, 7 17 27))` = `#07111b` (the page colour, the manifest `background_color` and `theme_color`) | `#c8ed66`, sampled from the Fitness icon's neon ring |
+| Fitness | `#060b07` with the portal status screen's top green glow (`.fx-auth` base, 2026-11-16 cross-check; no longer the page navy) | `#c8ed66`, sampled from the Fitness icon's neon ring |
 | Mazer | `#02080f` | `#3ddbd4` |
 
 ## Behaviour contract
@@ -72,6 +72,7 @@ The pulse restarts at the icon edge each time the loader becomes visible.
   `resolveBootSplashExitDelayMs`: `0` if the stage never showed, otherwise `150 + 350 - elapsed`), then fade out over 300 ms.
 - The icon is a small inline data URI with its size reserved (`width`/`height` attributes and CSS): no request, no pop-in, no layout jump.
 - Input (Fitness): while the opaque cover is visible and not fading out it takes the taps (`pointer-events: auto`), so nothing invisible behind it can be pressed; during its exit crossfade taps pass through. It takes no focus and makes nothing `inert` (that would drop focus inside the page, and the brief requires focus to survive); the 15 s ceiling bounds how long it can block. Layers (Fitness): cover `z-index: 95`, toasts `110`, modals and sheets `120`, so a toast raised during a wait is visible and tappable above the cover. A frame that throws, or an unmount, settles the cover hidden. App chrome is never hidden or re-shown by the loader (it is covered, then uncovered).
+- Words (Fitness): a visible, `aria-hidden` title sits under the icon: `Opening Fitness…` on the boot cover, `Loading…` for every later route wait. Working labels always end with the single ellipsis character (`withLoaderEllipsis`).
 - Accessibility (Fitness): the visual overlay is `aria-hidden`; a separate polite `role="status"` live region carries the wait's
   label, empty on the server and written only while the loader is actually showing (never for a wait that does not show; during boot
   only once the icon has shown); `aria-busy` is set on `<main>` while a live wait is open.
@@ -87,5 +88,4 @@ The pulse restarts at the icon edge each time the loader becomes visible.
 Fitness's installed-app icons (`public/app/icon-192.png`, `icon-512.png`, the apple-touch and favicon outputs of
 `scripts/generate-icons.mjs`) and its link-preview image (`/brand/fitness-app-icon.png`) already come from the same artwork
 (`public/brand/fitness-app-icon-source.jpg`), and the site image is the same bytes as `icon-512.png`, so no icon asset was
-swapped. Fitness ships no iOS launch (`apple-touch-startup-image`) art; the OS paints the manifest `background_color`, which equals the
-loader backdrop, so launch screen and boot cover are the same colour.
+swapped. Fitness ships no iOS launch (`apple-touch-startup-image`) art; the OS paints the manifest `background_color` (navy `#07111b`) first, then the green cover fades in with the icon.

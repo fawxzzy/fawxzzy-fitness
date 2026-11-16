@@ -12,7 +12,7 @@ import { getRouteLoadingDiagnosticTimeoutMs, type RouteLoadingVariant } from "@/
  * `variant` no longer changes timing; it only picks the default diagnostics timeout.
  */
 export function RouteLoading({
-  label = "Loading...",
+  label = "Loading…",
   detail,
   variant = "route",
   gateName,
@@ -66,7 +66,7 @@ export function RouteLoading({
 export function RouteTabLoading() {
   return (
     <RouteLoading
-      label="Loading tab..."
+      label="Loading…"
       gateName="route.tab-loading"
       blockingReason="Waiting for the selected tab route to render."
     />

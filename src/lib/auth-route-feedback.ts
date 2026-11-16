@@ -33,7 +33,14 @@ export const LOGIN_FAILURE_MESSAGES: readonly string[] = [
 export const LOGIN_INFO_COPY = {
   confirmed: "Email verified. You can log in now.",
   reset_requested: "Reset email sent. Check your inbox.",
+  magic_link_sent: "Check your email for the sign-in link.",
 } as const;
+
+/**
+ * Shown when /login?error= carries a code that is not on the allow-list. The text is fixed here, never taken from the
+ * URL, so a crafted link still cannot choose words; the person just gets a line instead of an empty box.
+ */
+export const LOGIN_UNKNOWN_ERROR_COPY = "Could not finish signing in. Please try again.";
 
 export const RESET_PASSWORD_ERROR_COPY = {
   password_requirement: NEW_PASSWORD_REQUIREMENT,

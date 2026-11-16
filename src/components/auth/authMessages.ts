@@ -11,6 +11,7 @@ import {
   LOGIN_ERROR_COPY,
   LOGIN_FAILURE_MESSAGES,
   LOGIN_INFO_COPY,
+  LOGIN_UNKNOWN_ERROR_COPY,
   RESET_PASSWORD_ERROR_COPY,
   type LoginErrorCode,
   type ResetPasswordErrorCode,
@@ -40,7 +41,10 @@ export const AUTH_MESSAGES = {
   "signup.emailexists": { tone: "error", text: "That email already has an account.", action: "Sign in" },
   "signup.sent": { tone: "success", text: "Check {e} for a link to confirm your account." },
   "reset.sent": { tone: "success", text: "Reset link sent to {e}. It expires in 1 hour." },
-  "reset.sentany": { tone: "success", text: "If that account exists, we sent a reset link to its email." },
+  // Web's canonical line for the signed-out username request (FawxzzyWeb copy-matrix `reset.sentuser`).
+  "reset.sentany": { tone: "success", text: "If that username has an account, we sent a reset link to its email." },
+  "reset.emailneeded": { tone: "error", text: "Use your email to reset your password." },
+  "signin.linksent": { tone: "info", text: "Check your email for the sign-in link." },
   "reset.expired": { tone: "error", text: "That reset link expired. Send a new one." },
   "reset.invalid": { tone: "error", text: "That reset link is not valid. Send a new one." },
   "reset.rate": { tone: "error", text: "Too many reset requests. Wait a few minutes and try again." },
@@ -84,15 +88,16 @@ export function authNotice(id: AuthMessageId, options: { email?: string | null }
   };
 }
 
-const LOGIN_ERROR_NOTICE: Record<LoginErrorCode, AuthMessageId> = {
+const LOGIN_ERROR_NOTICE: Record<LoginErrorCode | "unknown", AuthMessageId> = {
   confirm_failed: "signin.callback",
   recovery_session_missing: "reset.expired",
   rate_limited: "reset.rate",
   send_failed: "reset.sendfail",
   session_expired: "signin.session",
   identifier_required: "signup.userinvalid",
-  // No server credential for a username lookup: the portal's line for any send that did not happen (Web parity).
-  email_required: "reset.sendfail",
+  // The username lookup has no server credential, so the reset by username cannot go out: say to use the email.
+  email_required: "reset.emailneeded",
+  unknown: "signin.callback",
 };
 
 // The fixed sign-in failure sentences (username-signin-index.ts), in LOGIN_FAILURE_MESSAGES order.
@@ -115,6 +120,9 @@ export function loginErrorNoticeId(resolvedError: string | null | undefined): Au
       return LOGIN_ERROR_NOTICE[code];
     }
   }
+  if (resolvedError === LOGIN_UNKNOWN_ERROR_COPY) {
+    return LOGIN_ERROR_NOTICE.unknown;
+  }
   const failureIndex = LOGIN_FAILURE_MESSAGES.indexOf(resolvedError);
   if (failureIndex >= 0) {
     return LOGIN_FAILURE_NOTICE[failureIndex] ?? "signin.wrong";
@@ -130,6 +138,9 @@ export function loginInfoNoticeId(resolvedInfo: string | null | undefined): Auth
   if (resolvedInfo === LOGIN_INFO_COPY.reset_requested) {
     return "reset.sentany";
   }
+  if (resolvedInfo === LOGIN_INFO_COPY.magic_link_sent) {
+    return "signin.linksent";
+  }
   return null;
 }
 
@@ -140,6 +151,9 @@ export function resetRequestNoticeId(code: string | null | undefined): AuthMessa
   }
   if (code === "identifier_required") {
     return "signup.userinvalid";
+  }
+  if (code === "email_required") {
+    return "reset.emailneeded";
   }
   return "reset.sendfail";
 }
@@ -231,6 +245,8 @@ export const AUTH_SCREEN_LABELS = [
   "Install it for quick access, even offline.",
   "Open it from your home screen.",
   "Open this page in Safari, Chrome or Edge to install.",
+  "Install it to use it as an app on this computer.",
+  "This browser cannot install apps. Open this page in Chrome or Edge.",
   "This error did not sign you out.",
   // Accessible names (screen readers only)
   "Fitness account sign in",
@@ -282,6 +298,12 @@ export const AUTH_SCREEN_LABELS = [
   ", then Add to Home Screen.",
   "in your browser.",
   "Choose Install app.",
+  // Computer steps (the same words as Mazer's install copy)
+  "Click the install icon at the end of the address bar.",
+  "Choose Install.",
+  "Open the app from your desktop or Start menu.",
+  "Copy the link and open it in Chrome or Edge.",
+  "Click the install icon in the address bar.",
 ] as const;
 
 export const AUTH_FORBIDDEN_TEXT = [

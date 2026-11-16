@@ -9,6 +9,7 @@ import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { authNotice } from "@/components/auth/authMessages";
 import { AppRecoveryScreen } from "@/components/error/AppRecoveryScreen";
+import { AppSoftErrorBoundary } from "@/components/error/AppSoftErrorBoundary";
 import { InstallScreen } from "@/components/install/InstallGateChrome";
 import { InstallRouteSurface } from "@/components/install/InstallRouteSurface";
 import { AuthDockButton, AuthLink, AuthLinks, AuthStatusScreen } from "@/components/auth/AuthShell";
@@ -48,6 +49,8 @@ const screens = [
   { id: "install-ios-inapp", label: "Install, iPhone in-app browser" },
   { id: "install-prompt", label: "Install, prompt ready" },
   { id: "install-manual", label: "Install, manual" },
+  { id: "install-desktop", label: "Install, computer (Chrome or Edge)" },
+  { id: "install-desktop-safari", label: "Install, computer (Safari)" },
   { id: "install-unsupported", label: "Install, unsupported browser" },
   { id: "install-installed", label: "Install, installed" },
   { id: "reset-password-linking", label: "Reset linking" },
@@ -57,6 +60,7 @@ const screens = [
   { id: "entry-handoff", label: "Entry handoff" },
   { id: "entry-handoff-error", label: "Entry handoff error" },
   { id: "app-recovery", label: "Could not load" },
+  { id: "soft-recovery", label: "Could not load, in-app card" },
   { id: "global-error", label: "App could not finish loading" },
   { id: "not-found", label: "Page not found" },
   { id: "curated-restore-loading", label: "Curated restore loading" },
@@ -66,6 +70,10 @@ type ScreenId = (typeof screens)[number]["id"];
 
 function isScreenId(value: string | undefined): value is ScreenId {
   return screens.some((screen) => screen.id === value);
+}
+
+function ThrowOnRender(): never {
+  throw new Error("Lab preview of the in-app error card");
 }
 
 function ScreenPicker() {
@@ -170,6 +178,10 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
       return <InstallScreen kind="prompt" />;
     case "install-manual":
       return <InstallScreen kind="manual" />;
+    case "install-desktop":
+      return <InstallScreen kind="desktop" />;
+    case "install-desktop-safari":
+      return <InstallScreen kind="desktop-safari" />;
     case "install-unsupported":
       return <InstallScreen kind="unsupported" />;
     case "install-installed":
@@ -180,11 +192,11 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
       // A same-page hash, so the preview stays put while showing the hand-off screen (fallback link after 6 s).
       return <AccountPortalRedirect href="#portal-preview" />;
     case "loading-boot":
-      return <RouteLoading label="Opening FawxzzyFitness" detail="Preparing your start screen." variant="boot" />;
+      return <RouteLoading label="Opening Fitness…" variant="boot" />;
     case "loading-route":
-      return <RouteLoading label="Loading" variant="route" />;
+      return <RouteLoading label="Loading…" variant="route" />;
     case "entry-handoff":
-      return <RouteLoading label="Checking where to drop you in." variant="route" />;
+      return <RouteLoading label="Checking your account…" variant="route" />;
     case "entry-handoff-error":
       return (
         <AuthStatusScreen
@@ -203,13 +215,15 @@ export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPagePro
       );
     case "app-recovery":
       return <AppRecoveryScreen errorName="LabPreview" />;
+    case "soft-recovery":
+      return <AppSoftErrorBoundary><ThrowOnRender /></AppSoftErrorBoundary>;
     case "global-error":
       return <AppRecoveryScreen errorName="LabPreview" />;
     case "not-found":
       return <NotFound />;
     case "curated-restore-loading":
-      return <RouteLoading label="Restoring your training setup" variant="route" />;
+      return <RouteLoading label="Restoring your training setup…" variant="route" />;
     default:
-      return <RouteLoading label="Loading" variant="route" />;
+      return <RouteLoading label="Loading…" variant="route" />;
   }
 }
