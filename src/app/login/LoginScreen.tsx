@@ -49,7 +49,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOGIN_PENDING_TIMEOUT_MS = 12000;
 
 // Route messages about a reset link open the reset request screen with their notice (never a dead end).
-const RESET_ROUTE_NOTICES: ReadonlySet<AuthMessageId> = new Set(["reset.expired", "reset.invalid", "reset.rate", "reset.sendfail", "reset.unavailable", "signup.userinvalid"]);
+const RESET_ROUTE_NOTICES: ReadonlySet<AuthMessageId> = new Set(["reset.expired", "reset.invalid", "reset.rate", "reset.sendfail", "signup.userinvalid"]);
 
 function normalizeIdentifier(value: string) {
   return value.trim().toLowerCase();

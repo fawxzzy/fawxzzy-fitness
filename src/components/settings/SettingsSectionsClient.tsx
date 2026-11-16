@@ -10,7 +10,7 @@ import { CardHeader, CardMeta, CardSurface, cardTokens } from "@/components/ui/c
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import type { HistoryAchievement } from "@/lib/history-achievements";
 import { SignOutButton } from "@/components/SignOutButton";
-import { getFitnessAccountPortalUrl } from "@/lib/account-portal";
+import { ACCOUNT_PORTAL_LINK_ATTRIBUTE, getFitnessAccountPortalUrl, getFitnessSignOutEverywhereUrl } from "@/lib/account-portal";
 
 type SettingsSectionId = Exclude<SettingsSectionKey, null>;
 
@@ -48,6 +48,28 @@ export function getSettingsPanelId(section: SettingsSectionId) {
 /** Where the Settings "Account" row goes: the shared Fawxzzy account portal, coming back to Settings. */
 export const SETTINGS_ACCOUNT_PORTAL_HREF = getFitnessAccountPortalUrl("/account", "/settings");
 
+/** "Sign out everywhere": the portal Account page, whose own link confirms and ends every session (all devices, all apps). */
+export const SETTINGS_SIGN_OUT_EVERYWHERE_HREF = getFitnessSignOutEverywhereUrl("/settings");
+
+/**
+ * The two sign-outs, kept apart: `Sign out` (this device, a button) first, then a gap, then the quiet
+ * `Sign out everywhere` link to the portal. Used by Settings and the /account screen.
+ */
+export function AccountSignOutActions({ everywhereHref }: { everywhereHref: string }) {
+  return (
+    <div className="space-y-6 pt-2" data-account-sign-out-actions="true">
+      <SignOutButton placement="body" />
+      <a
+        href={everywhereHref}
+        {...{ [ACCOUNT_PORTAL_LINK_ATTRIBUTE]: "sign-out-everywhere" }}
+        className="flex min-h-11 items-center justify-center rounded-[var(--radius-control,0.75rem)] text-sm font-medium text-[rgb(var(--text-secondary))] underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--accent))]"
+      >
+        Sign out everywhere
+      </a>
+    </div>
+  );
+}
+
 /**
  * One Settings section as a card. `Account` navigates (right chevron); the others expand a panel (down chevron).
  * When `expanded`, the card leads the body (as the panel's `h2`) and collapses the panel again.
@@ -80,7 +102,7 @@ export function SettingsSectionCard({
         meta={<CardMeta items={signedInAs ? [signedInAs, meta.summary] : [meta.summary]} />}
         headingLevel={2}
         interaction={href
-          ? { kind: "link", href }
+          ? { kind: "link", href, linkProps: { [ACCOUNT_PORTAL_LINK_ATTRIBUTE]: section } }
           : { kind: "toggle", expanded, onToggle: onToggle ?? (() => {}), controlsId: expanded ? getSettingsPanelId(section) : undefined }}
       />
     </CardSurface>
@@ -114,11 +136,7 @@ export function SettingsSectionsClient({
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
   const accountCard = <SettingsSectionCard section="account" href={SETTINGS_ACCOUNT_PORTAL_HREF} signedInAs={signedInAs} />;
-  const signOut = (
-    <div className="pt-2">
-      <SignOutButton placement="body" />
-    </div>
-  );
+  const signOut = <AccountSignOutActions everywhereHref={SETTINGS_SIGN_OUT_EVERYWHERE_HREF} />;
 
   // Collapsed: the list of section cards, then Sign out. Expanded: that section's card (tap to close) and its panel.
   if (expandedSection === null) {

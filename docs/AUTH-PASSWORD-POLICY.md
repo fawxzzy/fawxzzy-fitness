@@ -20,7 +20,11 @@ application releases. The canonical contract is in FawxzzyPlatform's
 
 ## Changing the password while signed in
 
-Settings > Account > Change password (`changePasswordAction`, `src/app/settings/actions.ts`) uses
+Fitness no longer shows a password form (2026-11-15): the Account `Password` row opens the shared portal
+(`account.fawxzzy.com/account?app=fitness`, its `Reset password`). The server action below is kept, unused by any
+screen, until it is retired in its own change.
+
+`changePasswordAction` (`src/app/settings/actions.ts`) uses
 the same ten-character rule, requires the current password, and requires the new password to
 differ from it. The current password is verified by signing in on a throwaway client, and that
 fresh session performs the write: `auth.updateUser` needs a session held by the client, and the

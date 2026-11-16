@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import "./globals.css";
-import { ERROR_COPY } from "@/components/error/errorCopy";
 import { AppRecoveryScreen } from "@/components/error/AppRecoveryScreen";
 
 export default function GlobalError({
@@ -25,7 +24,6 @@ export default function GlobalError({
           digest={error.digest}
           errorName={error.name}
           onReopen={reset}
-          topMessage={ERROR_COPY.globalBody}
         />
       </body>
     </html>

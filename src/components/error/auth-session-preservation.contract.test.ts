@@ -15,7 +15,7 @@ test("generic app errors preserve valid auth sessions", () => {
   }
 
   for (const source of [recoveryScreenSource, softBoundarySource]) {
-    assert.match(source, /ERROR_COPY.boundaryBody|This did not sign you out/);
+    assert.match(source, /ERROR_COPY\.boundaryTitle/);
     assert.match(source, /window\.location\.reload/);
   }
 });

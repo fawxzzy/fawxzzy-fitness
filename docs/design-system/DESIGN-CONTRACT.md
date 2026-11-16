@@ -168,10 +168,10 @@ Every list/screen implements the same four states with these shapes. A new scree
 
 ### 8.3 Error
 
-- Template: icon-less card, 16px heading (what failed, plain words), 14px body (what the user can do; reassurance when true: `This did not sign you out.`), actions `Retry` (primary) then `Reload app` (secondary) or a way back; 44px.
+- Template: icon-less card, 16px heading (what failed, plain words), ONE notice (what the user can do, words from the shared copy matrix), actions `Try again` (primary) then `Reload app` (secondary) or a way back; 44px.
 - Never shown to users: raw error strings (`Failed to fetch` in `mr--settings-data-export`), error class names (`(Error)`), component or route names (`app-shell`), env flags, ids, `durable ledger` / `mutation semantics` style copy. Show the generic line instead: `Could not connect. Check your connection and try again.` with Retry.
-- Route error boundary: `Something went wrong` / `This did not sign you out.` / [Retry] [Reload app] (replaces `Fitness could not load app-shell.` and `(Error)`, `dev--app-boundary-probe-crash`).
-- Not found: a branded page (app name, back to Today, same header grammar), not the framework default: `We can't find that page.` / [Back to Today] (`pub--not-found`, `real--routines-id--id-not-found-other-user-s-routine-404`). An unknown id on a detail route is a 404 everywhere; redirects that hide it (`real--exercises-exerciseid--redirect-to-history-exercises`) are violations. There is no `not-found.tsx` today.
+- Route error boundary and global error (Auth Surface v2 status screen, words from the shared copy matrix, FawxzzyWeb `status-copy.ts`): `Could not load` / one notice `Check your connection and try again.` (`page.crash`) / [Try again] in the dock, `Go to Today` link (replaces `Fitness could not load app-shell.` and `(Error)`, `dev--app-boundary-probe-crash`). `Something went wrong` is retired copy. The in-app card boundary keeps the same title and body with [Try again] [Reload app].
+- Not found: a branded page (app name, back to Today, same header grammar), not the framework default: `Page not found` / `That page does not exist.` / [Go to Today] (`pub--not-found`, `real--routines-id--id-not-found-other-user-s-routine-404`). An unknown id on a detail route is a 404 everywhere; redirects that hide it (`real--exercises-exerciseid--redirect-to-history-exercises`) are violations. `src/app/not-found.tsx` is that page.
 - Expired link (`auth-lab--reset-password-expired`): error template with the cause and the fix: `This reset link has expired.` / `Links work once and for a short time. Request a new one.` / [Request new link] primary, [Sign in] secondary. Not a 470px empty card.
 - Entry hand-off failure (`auth-lab--entry-handoff-error`): `Could not open the app.` / `Check your connection and try again.` / [Retry] primary, [Start offline] secondary, both 44px and contrast-safe.
 
@@ -318,8 +318,8 @@ Judge every screen by one question: can a first-time user tell what it is and wh
 
 - One obvious primary action per screen, in the dock on the right (C9). Back is always top left (detail screens). The same job uses the same pattern everywhere.
 - Plain words; labels say what happens (`Save theme`, `Change password`, `Show detailed rows`), no jargon or developer copy (9.1).
-- Navigation is predictable: the tab bar only switches the four sections; it never leaves the app. The Settings `Account` row opens the shared account portal (`account.fawxzzy.com`, `getFitnessAccountPortalUrl`), with the destination named in its summary (`Opens account.fawxzzy.com`). Sign out is a quiet secondary button in the Settings body, not the dock.
-- The in-app `/account` screen (username and email edit) keeps working for direct visits but is no longer linked from navigation; it is retired once the portal offers those edits.
+- Navigation is predictable: the tab bar only switches the four sections; it never leaves the app. The Settings `Account` row opens the shared account portal (`account.fawxzzy.com`, `getFitnessAccountPortalUrl`), with the destination named in its summary (`Opens account.fawxzzy.com`). Sign out is a quiet secondary button in the Settings body, not the dock: it ends the session on THIS device only (server revoke, local sign-out, then one navigation: the portal `/signout?app=fitness` in a browser tab, `/login` in the installed app), with a `Signing out…` pending state. `Sign out everywhere` is a separate quiet link below it, to the portal Account page (its two-step `Sign out everywhere`).
+- Username, email and password are changed only on the portal (`account.fawxzzy.com/account?app=fitness`; the password row goes to its `Reset password`). Fitness has no edit or password form. The `/account` route stays for direct visits as a read-only screen: Username, Email and Password rows that show the current value and link to the portal, plus the same sign-out actions. Coming back from the portal reads identity again (fresh server render, a refresh on return to the tab, and the remembered sign-in name on Settings).
 
 ### 15.5 The detail family: session, history, exercise, setup (H1b)
 
@@ -331,7 +331,7 @@ Back is the one shared `ScreenHeaderBackButton` (`src/components/ui/app/ScreenHe
 | History detail (`/history/[sessionId]`) | the day name, else `Workout` | `<weekday>, <date> · <routine>` | History; with one exercise open, `Back to workout` closes it first | none |
 | Exercise detail (sheet over a screen) | the exercise name | `<equipment> · <movement>` | closes the sheet | the filter toggle |
 | Routine setup (`/onboarding`) | `Routine setup` | none (the step and `N% done` sit in the body, the step name is an `h2`) | Today | `Start over` |
-| Account (`/account`, direct visit only) | `Account` | the username (else the email) | Settings | none |
+| Account (`/account`, direct visit only) | `Account` | none (the rows show the username and email) | Settings | none |
 | Terms, Privacy | the document name | none | `returnTo` when it is an in-app path, else Settings | none |
 | Optional day preview (`/review/optional-planned-day`) | `Optional workout day` | `Preview` | Routines | none |
 | Add exercise, routine day (`/routines/[id]/edit/day/[dayId]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the day editor (`Back to day`) | none |
@@ -342,4 +342,4 @@ Both Add exercise routes share one frame (`src/components/exercises/AddExerciseS
 - Nothing else renders an `h1`: `tests/screen-header-contract.test.mjs` fails on a raw `<h1>` (or `as="h1"` / `titleAs="h1"`) anywhere in `src/app`, `src/components` or `src/features` outside `ScreenHeader`. Allowed: the auth shell (Auth Surface v2), `src/app/dev/**` fixtures and `src/app/api/**` HTML strings.
 - What used to sit in these headers and still matters is in the body: the history editor's day name and notes fields, the onboarding step name.
 - Segmented controls whose options are all links render as `nav` with `aria-current="page"` (not a tab list).
-- Auth: the primary dock button (Sign in and the other auth primaries) is the standard green `rgb(32 151 78)`, flat, no glow. The rest of the auth accent (kicker, focus ring, icon) is still lime and is a contract-lane follow-up.
+- Auth: the primary dock button (Sign in and the other auth primaries) is the standard green `rgb(32 151 78)`, flat, no glow. The whole auth accent (kicker, focus ring, links, notice, the Account screen) is the same fixed standard green (`32 151 78`, not `var(--accent-mint)`, which the colour themes override); no lime in the `.fx-auth` or `.fx-account` tokens (`accountSurfaceParity.contract.test.ts` pins it). The Today install card (`.fx-earned`, not an auth screen) keeps its lime. Auth copy is identical to FawxzzyWeb `src/lib/auth/copy-matrix.ts`: the generic sign-up failure shows `page.crash`, a reset that could not be sent shows `reset.sendfail`.

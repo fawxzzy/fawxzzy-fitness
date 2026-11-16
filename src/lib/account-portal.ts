@@ -3,6 +3,9 @@ import { isSafeAppPath } from "@/lib/navigation-return";
 const ACCOUNT_PORTAL_ORIGIN = "https://account.fawxzzy.com";
 const FITNESS_APP_ORIGIN = "https://fitness.fawxzzy.com";
 const FITNESS_CONTEXT = "fitness";
+/** Links that leave for account.fawxzzy.com carry this attribute, so the screen knows to read identity back on return. */
+export const ACCOUNT_PORTAL_LINK_ATTRIBUTE = "data-account-portal-link";
+
 const FITNESS_HANDOFF_RETURN_PATHS = new Set(["/", "/entry", "/today"]);
 
 export function resolveFitnessHandoffReturnPath(returnTo: string | null | undefined) {
@@ -42,6 +45,25 @@ export function getFitnessAccountPortalUrl(
     url.searchParams.set("returnTo", new URL(returnTo, FITNESS_APP_ORIGIN).href);
   }
   return url.href;
+}
+
+/**
+ * The portal's sign-out page for a browser tab: it ends THIS browser's account.fawxzzy.com session (local scope,
+ * other devices and apps stay signed in) and shows the account sign-in screen. Fitness is not on the portal's
+ * `returnTo` allowlist, so no `returnTo` is sent.
+ */
+export function getFitnessAccountSignOutUrl() {
+  const url = new URL("/signout", ACCOUNT_PORTAL_ORIGIN);
+  url.searchParams.set("app", FITNESS_CONTEXT);
+  return url.href;
+}
+
+/**
+ * Where "Sign out everywhere" goes: the portal Account page, whose "Sign out everywhere" link asks to confirm and then
+ * ends the session on every device and app. The portal has no direct URL for that action, by design (two steps).
+ */
+export function getFitnessSignOutEverywhereUrl(returnTo = "/settings") {
+  return getFitnessAccountPortalUrl("/account", returnTo);
 }
 
 export function getFitnessLoginPortalUrl(returnTo?: string | null) {

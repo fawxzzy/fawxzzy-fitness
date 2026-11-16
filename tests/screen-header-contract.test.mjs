@@ -97,9 +97,9 @@ test("History uses one segmented control and the header density toggle, not a do
   }
 });
 
-test("the in-app /account route and its form stay reachable by direct visit", () => {
+test("the in-app /account route stays reachable by direct visit as a read-only screen (no edit form)", () => {
   assert.match(read("src/app/account/page.tsx"), /export default/);
-  assert.match(read("src/components/settings/AccountSettingsForm.tsx"), /export /);
+  assert.doesNotMatch(read("src/components/account/AccountScreen.tsx"), /<form|AccountSettingsForm|AccountPasswordSection/);
 });
 
 // A screen title is an <h1>. Only ScreenHeader may render one; anything else is a second, hand-styled header.
