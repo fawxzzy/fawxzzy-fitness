@@ -323,7 +323,7 @@ Judge every screen by one question: can a first-time user tell what it is and wh
 
 ### 15.5 The detail family: session, history, exercise, setup (H1b)
 
-Back is the one shared `ScreenHeaderBackButton` (`src/components/ui/app/ScreenHeaderBackButton.tsx`, also used by the routines screens): 44x44, chevron, top left, its accessible name says where it goes. Live workout and history detail pass `historyBehavior="history-first"` (return to where you came from, else the named screen); the others go straight to the named screen.
+Back is the one shared `ScreenHeaderBackButton` (`src/components/ui/app/ScreenHeaderBackButton.tsx`, also used by the routines screens): 44x44, chevron, top left, its accessible name says where it goes. Live workout and history detail pass `historyBehavior="history-first"` (return to where you came from, else the named screen); the others go straight to the named screen. While an exercise is open on either of those screens (opened in place, no history entry), the first Back tap closes it (`Back to workout`) and the second leaves.
 
 | Screen | Title | Subtitle | Back goes to | Trailing |
 |---|---|---|---|---|

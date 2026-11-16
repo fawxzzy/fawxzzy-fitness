@@ -175,6 +175,17 @@ test("the live workout header is title, one day · routine line, Back and at mos
   assert.doesNotMatch(read("src/lib/header-info-rail.ts"), /buildCurrentSessionHeaderInfoRailItems/);
 });
 
+test("live workout Back closes an open exercise first, like history detail (two-step Back)", () => {
+  const controls = read("src/components/SessionHeaderControls.tsx");
+  assert.match(controls, /onClick=\{\(event\) => handleSessionBackClick\(event, exerciseOpen, onCloseExercise\)\}/);
+  assert.match(controls, /label=\{getSessionBackLabel\(exerciseOpen\)\}/);
+  const client = read("src/components/SessionPageClient.tsx");
+  assert.match(client, /exerciseOpen=\{selectedExerciseId !== null\}/);
+  assert.match(client, /onCloseExercise=\{\(\) => setSelectedExerciseId\(null\)\}/);
+  const history = read("src/app/history/[sessionId]/LogAuditClient.tsx");
+  assert.match(history, /if \(expandedExercise\) \{\s+event\.preventDefault\(\);\s+setExpandedExerciseId\(null\);/);
+});
+
 test("the old per-screen back buttons are gone", () => {
   for (const path of [
     "src/components/SessionBackButton.tsx",

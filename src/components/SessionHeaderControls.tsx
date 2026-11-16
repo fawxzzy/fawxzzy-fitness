@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { getSessionBackLabel, handleSessionBackClick } from "@/components/sessionBackAction";
 
 /** "Lower A · QA Routine": the day first, then the routine, in plain words. */
 export function formatSessionHeaderSubtitle(sessionDayName: string, routineName: string) {
@@ -17,18 +18,30 @@ export function SessionHeaderControls({
   sessionDayName,
   backHref,
   statusBadge,
+  exerciseOpen = false,
+  onCloseExercise,
 }: {
   routineName: string;
   sessionDayName: string;
   backHref?: string;
   statusBadge?: ReactNode;
+  /** An exercise is open in place: the first Back tap closes it (sessionBackAction.ts). */
+  exerciseOpen?: boolean;
+  onCloseExercise?: () => void;
 }) {
   return (
     <ScreenHeader
       kind="detail"
       title="Workout"
       subtitle={formatSessionHeaderSubtitle(sessionDayName, routineName)}
-      back={<ScreenHeaderBackButton href={backHref ?? "/today"} historyBehavior="history-first" label="Back" />}
+      back={(
+        <ScreenHeaderBackButton
+          href={backHref ?? "/today"}
+          historyBehavior="history-first"
+          label={getSessionBackLabel(exerciseOpen)}
+          onClick={(event) => handleSessionBackClick(event, exerciseOpen, onCloseExercise)}
+        />
+      )}
       trailing={statusBadge}
     />
   );

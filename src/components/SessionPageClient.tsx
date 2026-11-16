@@ -210,12 +210,15 @@ export function SessionPageClient({
 
   const hasExercises = exercises.length > 0;
   // The header stays on screen while an exercise is open: Back is always top left (DESIGN-CONTRACT.md section 15).
+  // Opening an exercise only rewrites the URL in place, so the first Back tap closes it and the second leaves.
   const floatingHeader = (
     <SessionHeaderControls
       routineName={routineName}
       sessionDayName={sessionDayName}
       backHref={fallbackReturnHref ?? "/today"}
       statusBadge={<OfflineSyncBadge userId={userId} />}
+      exerciseOpen={selectedExerciseId !== null}
+      onCloseExercise={() => setSelectedExerciseId(null)}
     />
   );
 
