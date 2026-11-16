@@ -5,22 +5,28 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
-// Routine "Add exercise" screen: one ScreenHeader (kind="detail", Back on the left), the chooser below.
-// The session add-exercise route still uses ExerciseChooserRouteScaffold until its own lane migrates it.
-export function RoutineAddExerciseScaffold({
+// The one "Add exercise" screen frame (DESIGN-CONTRACT.md section 15), shared by the routine day editor
+// (`/routines/[id]/edit/day/[dayId]/add-exercise`) and the live workout (`/session/[id]/add-exercise`):
+// ScreenHeader kind="detail" with Back on the left, title "Add exercise", one `<day> · <routine>` subtitle,
+// no tab bar, and the exercise chooser below. Same job, same pattern on both routes.
+export function AddExerciseScaffold({
   title = "Add exercise",
   subtitle,
   backHref,
-  backLabel = "Back to day",
+  backLabel,
+  recipe = "editDay",
   children,
 }: {
   title?: string;
   subtitle?: string | null;
   backHref: string;
-  backLabel?: string;
+  /** Says where Back goes, e.g. "Back to day" or "Back to workout". */
+  backLabel: string;
+  recipe?: Extract<ScreenContractName, "editDay" | "sessionAddExercise">;
   children: ReactNode;
 }) {
   return (
@@ -36,7 +42,7 @@ export function RoutineAddExerciseScaffold({
         )}
       >
         <ContentRail className={appTokens.currentSessionContentRail}>
-          <ScreenScaffold recipe="editDay" className={cn(appTokens.routineEditorFill, "flex min-h-0 flex-1 flex-col")}>
+          <ScreenScaffold recipe={recipe} className={cn(appTokens.routineEditorFill, "flex min-h-0 flex-1 flex-col")}>
             {children}
           </ScreenScaffold>
         </ContentRail>

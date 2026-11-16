@@ -52,15 +52,11 @@ Applies to Add Exercise search result rows.
 
 - Header metadata on Add Exercise must be authoritative and live with the same source of truth as the owning day/session store.
 - If authoritative metadata cannot be guaranteed (for example, potentially stale exercise counts), omit it instead of rendering drift-prone values.
-- Add Exercise uses a compact mobile hero contract: on `< md`, remove the eyebrow row, keep `Add Exercise` + routine subtitle, and tighten header top/bottom spacing while keeping the back-button hit area unchanged.
+- Add Exercise uses the one `ScreenHeader` (kind `detail`, DESIGN-CONTRACT section 15.1): title `Add exercise`, one subtitle line `<day> · <routine>`, Back (44x44) on the left, no eyebrow.
 
 ## Compact mobile header recipe (default)
 
-Use this as the default top-header recipe for Today, in-session Today, day picker, and Add Exercise.
+Superseded by DESIGN-CONTRACT section 15: every screen uses the one `ScreenHeader` (tab or detail). No eyebrow row, one left-aligned title line, one subtitle line, at most one trailing control.
 
-- Optional eyebrow row.
-- One primary title line.
-- One compact secondary metadata line (subtitle/meta grouped into one row).
-- Right-aligned action/badge rail.
 - Mobile-first spacing and typography density; desktop/tablet can remain slightly roomier.
-- Keep non-header content (summaries, pickers, lists, warning cards) below the header divider instead of inside the identity block.
+- Keep non-header content (summaries, pickers, lists, warning cards) below the header instead of inside it.

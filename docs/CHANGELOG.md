@@ -12,6 +12,18 @@ All notable changes to this project are documented in this file.
 ### WHY
 - One place to change identity and one auth wording across Fawxzzy apps (Auth Surface v2). No route removed, no server action, database or env change.
 
+## Unreleased - 2026-11-15 (FF-DESIGN-001, header lane H3)
+
+### WHAT
+- Add exercise (routine day and live workout) is one detail screen: title `Add exercise`, subtitle `<day> · <routine>`, Back on the left (`Back to day` / `Back to workout`). The live-workout version used to show `Add Exercise to <routine> | <day>` centred, with Back on the top right.
+- Create day, Copy a day, Days (with its empty state) and both Add exercise screens have signed-out dev fixtures: `/dev/detail-screens?screen=<id>` (`&long=1` for long names). The routes render the same frame components.
+- Deleted the old header code once nothing used it: `AppHeader`, `SharedScreenHeader`, `BackButton`, `TopRightBackButton`, `RoutineDayHeaderTitle`, `standaloneHeaderFamily`, `ExerciseChooserScreenFamily`, `RoutineAddExerciseScaffold`, `RoutineEditorPageHeader`, `header-info-rail`, the legacy `headerTokens` export, `headerFamily` and four unused `header-meta` helpers. The dev fixtures use `ScreenHeader` too.
+- `tests/screen-header-contract.test.mjs` now fails CI on any of those names, or on a raw header title class, anywhere in `src`.
+- Routines, routine overview and Days empty states: the in-card action is secondary, because the dock already holds the screen's one primary. The Create day `Day name` field uses `FormField`.
+
+### WHY
+- Finishes DESIGN-CONTRACT section 15: no screen, fixtures included, keeps the old header. No route, server action, persisted name or database change.
+
 ## Unreleased - 2026-11-15 (FF-DESIGN-001, header lane H1b)
 
 ### WHAT

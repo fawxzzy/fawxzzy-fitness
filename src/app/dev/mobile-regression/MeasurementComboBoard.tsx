@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 
 const METRIC_ORDER: Array<{ key: keyof MeasurementMetrics; label: string }> = [
   { key: "reps", label: "Reps" },
@@ -96,23 +95,22 @@ export function MeasurementComboBoard({ section = "all" }: { section?: "all" | "
   return (
     <div className="space-y-3">
       <SurfaceCard>
-        <AppHeader
-          title="Measurement Combos"
-          subtitle="All primary logger field combinations with Effort visible for session context"
-          meta={`${combos.length} combinations`}
-          className="-mx-4 -mt-1 pb-1 sm:-mx-5"
-        />
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold leading-tight text-[rgb(var(--text)/0.98)]">Measurement combos</h2>
+          <p className="text-sm text-[rgb(var(--text-secondary)/0.96)]">
+            Every logger field combination, with Effort shown for session context. {combos.length} combinations.
+          </p>
+        </div>
       </SurfaceCard>
 
       {combos.map((combo) => (
         <SurfaceCard key={combo.id} data-testid={combo.id}>
-          <AppHeader
-            title={combo.title}
-            meta={Object.values(combo.activeMetrics).filter(Boolean).length === 0 ? "No primary metrics" : "Logger fields"}
-            titleAs="h2"
-            className="-mx-4 -mt-1 pb-1 sm:-mx-5"
-            titleClassName="text-[1rem] font-semibold leading-[1.1]"
-          />
+          <div className="mb-2 space-y-0.5">
+            <h2 className="text-base font-semibold leading-tight text-[rgb(var(--text)/0.98)]">{combo.title}</h2>
+            <p className="text-xs text-[rgb(var(--text-secondary)/0.96)]">
+              {Object.values(combo.activeMetrics).filter(Boolean).length === 0 ? "No primary metrics" : "Logger fields"}
+            </p>
+          </div>
           <MeasurementPanelV2
             values={valuesForCombo(combo.activeMetrics)}
             activeMetrics={combo.activeMetrics}

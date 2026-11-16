@@ -6,11 +6,9 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
@@ -37,55 +35,6 @@ export type EditorExerciseOption = {
   tags?: string[] | string | null;
   categories?: string[] | string | null;
 };
-
-export function RoutineEditorPageHeader({
-  eyebrow,
-  title,
-  subtitle,
-  meta,
-  subtitleRight,
-  action,
-  actionClassName,
-  children,
-  className,
-  recipe = "editDay",
-  align = "left",
-  withPanel = true,
-  showSeparator = true,
-}: {
-  eyebrow?: ReactNode;
-  title: ReactNode;
-  subtitle?: ReactNode;
-  meta?: ReactNode;
-  subtitleRight?: ReactNode;
-  action?: ReactNode;
-  actionClassName?: string;
-  children?: ReactNode;
-  className?: string;
-  recipe?: ScreenContractName;
-  align?: "left" | "center";
-  withPanel?: boolean;
-  showSeparator?: boolean;
-}) {
-  return (
-    <SharedScreenHeader
-      recipe={recipe}
-      eyebrow={eyebrow}
-      title={title}
-      subtitle={subtitle}
-      meta={meta}
-      subtitleRight={subtitleRight}
-      action={action}
-      align={align}
-      className={className}
-      actionClassName={actionClassName}
-      withPanel={withPanel}
-      showSeparator={showSeparator}
-    >
-      {children}
-    </SharedScreenHeader>
-  );
-}
 
 export function RoutineDetailsScreenShell({
   children,

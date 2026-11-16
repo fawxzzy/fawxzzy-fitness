@@ -106,7 +106,7 @@ function buildCapturePlan(baseUrl) {
       key: "add-exercise",
       label: "Exercise picker for routine building",
       scenarioId: "add-exercise-default",
-      sentinelText: "Add Exercise to",
+      sentinelText: "Add exercise",
     },
     {
       key: "history",

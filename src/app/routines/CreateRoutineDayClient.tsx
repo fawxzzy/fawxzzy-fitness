@@ -12,6 +12,7 @@ import {
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
 import { CardChips, CardHeader, CardMeta, CardStatusChip, CardSurface } from "@/components/ui/card-system";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ActionResult } from "@/lib/action-result";
 import { ROUTINE_COPY_NAME_MAX_LENGTH } from "@/lib/routine-copy-name";
@@ -163,22 +164,19 @@ export function CreateRoutineDayClient({
             <CardSurface as="section" aria-labelledby="create-day-setup-title">
               <CardHeader headingLevel={2} title={<span id="create-day-setup-title">Day setup</span>} />
               <div className="space-y-3 px-4 pb-4">
-                <label className="block">
-                  <span className="block text-sm font-semibold text-[rgb(var(--text-primary))]">
-                    Day name
-                  </span>
-                  <span className="block pt-0.5 text-xs text-[rgb(var(--text-secondary)/0.86)]">
-                    Optional. Leave blank to use the day number.
-                  </span>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(event) => setName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH))}
-                    placeholder="Legs, Push, Hotel Gym..."
-                    className="mt-2 min-h-11 w-full rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none transition focus:border-[rgb(var(--accent)/0.34)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]"
-                    maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                  />
-                </label>
+                <FormField label="Day name" helper="Optional. Leave blank to use the day number.">
+                  {(control) => (
+                    <input
+                      {...control}
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH))}
+                      placeholder="Legs, Push, Hotel Gym..."
+                      className={formFieldControlClassName}
+                      maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
+                    />
+                  )}
+                </FormField>
               </div>
             </CardSurface>
           ) : null}

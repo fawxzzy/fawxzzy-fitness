@@ -118,7 +118,8 @@ export function RoutinesPageClient({
                 <button
                   type="button"
                   onClick={() => setIsCreateRoutineOpen(true)}
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                  // The dock holds the screen's one primary (New Routine); the empty-state action is secondary.
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
                 >
                   Create your first routine
                 </button>
@@ -126,8 +127,8 @@ export function RoutinesPageClient({
               : (
                 <BottomDockLink
                   href={newRoutineHref ?? "/routines/new"}
-                  intent="positive"
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                  intent="toggleInactive"
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
                 >
                   Create your first routine
                 </BottomDockLink>

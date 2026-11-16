@@ -46,9 +46,9 @@
         "The standalone header variant remains visually distinct but still derives from the same title token."
       ],
       "sourceSurfaces": [
-        "src/components/ui/app/AppHeader.tsx",
-        "src/components/ui/app/SharedScreenHeader.tsx",
-        "src/components/ui/app/standaloneHeaderFamily.ts"
+        "src/components/ui/app/ScreenHeader.tsx",
+        "src/components/ui/app/headerTokens.ts",
+        "src/components/ui/app/screenContract.ts"
       ]
     },
     {

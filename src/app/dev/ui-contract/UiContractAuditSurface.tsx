@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
@@ -42,17 +42,17 @@ export function UiContractAuditSurface() {
       <ScreenHeader kind="tab" title="UI contract audit" subtitle="Dev-only fixture surface for drift checks" />
 
       <ContractGroup
-        title="Shared headers"
-        note="Canonical route-header family examples rendered from shared recipe fixtures."
+        title="Screen headers"
+        note="The two ScreenHeader kinds: tab (no Back) and detail (Back on the left)."
       >
         <div className="space-y-3">
           {uiContractFixtures.headers.map((header) => (
             <div key={header.id} className="space-y-2">
-              <SharedScreenHeader
-                recipe={header.recipe}
-                eyebrow={header.eyebrow}
+              <ScreenHeader
+                kind={header.kind}
                 title={header.title}
                 subtitle={header.subtitle}
+                back={header.kind === "detail" ? <ScreenHeaderBackButton href="/dev/ui-contract" /> : undefined}
               />
               <WinnerNote note={header.winnerNote} />
             </div>
@@ -145,7 +145,12 @@ export function UiContractAuditSurface() {
         title="View Day + rest-day variant + planned workout section variants"
         note="Deterministic planned-row states, including the required rest-day contract."
       >
-        <SharedScreenHeader recipe="viewDay" eyebrow="View Day" title={uiContractFixtures.viewDay.title} subtitle={uiContractFixtures.viewDay.subtitle} />
+        <ScreenHeader
+          kind="detail"
+          title={uiContractFixtures.viewDay.title}
+          subtitle={uiContractFixtures.viewDay.subtitle}
+          back={<ScreenHeaderBackButton href="/dev/ui-contract" />}
+        />
         <div className="space-y-2.5">
           {uiContractFixtures.plannedWorkoutVariants.map((variant) => (
             <div key={variant.id} className="space-y-1.5">
