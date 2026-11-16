@@ -20,24 +20,10 @@ application releases. The canonical contract is in FawxzzyPlatform's
 
 ## Changing the password while signed in
 
-Fitness no longer shows a password form (2026-11-15): the Account `Password` row opens the shared portal
-(`account.fawxzzy.com/account?app=fitness`, its `Reset password`). The server action below is kept, unused by any
-screen, until it is retired in its own change.
-
-`changePasswordAction` (`src/app/settings/actions.ts`) uses
-the same ten-character rule, requires the current password, and requires the new password to
-differ from it. The current password is verified by signing in on a throwaway client, and that
-fresh session performs the write: `auth.updateUser` needs a session held by the client, and the
-request-bound server client only forwards a bearer header, so `updateUser` on it fails with
-"Auth session missing" without sending a request. The account that is verified is always the signed-in
-session's own email (never a form field), a verification that proves a different account writes nothing, and
-a failed verification waits on the same latency floor as sign-in (`enforceLoginFailureFloor`) so a session
-holder gets no free fast guessing. The throwaway session is revoked with
-`scope: "local"`, so the member's own session and other devices are not touched. Other sessions
-are not signed out on a password change; that is a separate decision because sessions are shared
-with the account portal and Mazer. Every outcome is a fixed message keyed by a code; provider
-text never reaches the screen. No provider setting is needed: a fresh sign-in also satisfies the
-optional "secure password change" recency rule.
+Fitness has no change-password form or server action (the action was removed 2026-11-15): the Account `Password` row opens
+the shared portal (`account.fawxzzy.com/account?app=fitness`, its `Reset password`). The portal owns the
+current-password check and the session handling for that change. `src/lib/password-policy.ts` keeps the shared
+ten-character rule and the change-password copy codes (fixed messages; provider text never reaches a screen) for reuse.
 
 ## Verification
 
