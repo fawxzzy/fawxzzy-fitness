@@ -40,10 +40,10 @@
         }
       ],
       "invariants": [
-        "The header title remains the visual anchor and keeps balanced wrapping.",
-        "The action rail stays shrink-wrapped and never pushes the title column out of flow.",
-        "Subtitle and meta text may merge, but only when there is no right-side subtitle slot.",
-        "The standalone header variant remains visually distinct but still derives from the same title token."
+        "ScreenHeader is the one header on every screen (kind tab or detail); there is no standalone header variant.",
+        "The title is a single truncating line and stays the visual anchor; at most one muted subtitle line sits under it.",
+        "Back (detail kind only) is a 44x44 control on the left; a tab header has no Back.",
+        "At most one trailing 44x44 action or chip; no eyebrow, no centred title, no second action row."
       ],
       "sourceSurfaces": [
         "src/components/ui/app/ScreenHeader.tsx",

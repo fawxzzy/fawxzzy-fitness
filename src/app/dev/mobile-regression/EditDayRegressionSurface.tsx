@@ -246,7 +246,7 @@ export function EditDayRegressionSurface({
           return (
             <div className={appTokens.routineEditorCompactStack}>
               <AttachedCardActionStripFrame gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
-                  <button type="button" data-bottom-action-intent="toggleInactive" className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]")}>
+                  <button type="button" data-bottom-action-intent="toggleInactive" className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--border-strong)/0.18)]")}>
                     <span className="bottom-action__label">View</span>
                   </button>
                   <button type="button" data-bottom-action-intent="danger" className={INLINE_DELETE_ACTION_BUTTON_CLASS_NAME}>
