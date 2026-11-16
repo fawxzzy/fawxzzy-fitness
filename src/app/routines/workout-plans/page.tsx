@@ -1,15 +1,13 @@
 import { cookies } from "next/headers";
-import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { WorkoutPlansPageClient } from "@/app/routines/WorkoutPlansPageClient";
 import { deleteWorkoutPlanSourceAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
-import type { HeaderInfoRailItem } from "@/lib/header-info-rail";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import {
@@ -24,40 +22,6 @@ import { loadWorkoutPlanSourceList } from "@/lib/workout-plan-source-list";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
-
-function buildWorkoutPlanLibraryInfoItems(args: {
-  workoutPlanCount: number;
-  autoProgressionCount: number;
-  activeRoutineName?: string | null;
-}): HeaderInfoRailItem[] {
-  const items: HeaderInfoRailItem[] = [];
-
-  if (args.activeRoutineName?.trim()) {
-    items.push({
-      id: "active-routine",
-      label: "active",
-      value: args.activeRoutineName.trim(),
-      tone: "accent",
-    });
-  }
-
-  items.push(
-    {
-      id: "workout-plan-count",
-      label: "days",
-      value: args.workoutPlanCount,
-      tone: "accent",
-    },
-    {
-      id: "auto-progression-count",
-      label: "auto",
-      value: args.autoProgressionCount,
-      tone: "success",
-    },
-  );
-
-  return items;
-}
 
 export default async function WorkoutPlansPage() {
   const diagnostics = new LoadingDiagnosticsCollector("/routines/workout-plans");
@@ -100,7 +64,6 @@ export default async function WorkoutPlansPage() {
   const preferredRoutineId = visibleRoutines.find((routine) => routine.id === profile.active_routine_id)?.id
     ?? visibleRoutines[0]?.id
     ?? null;
-  const activeRoutineName = visibleRoutines.find((routine) => routine.id === preferredRoutineId)?.name ?? null;
   const workoutPlans = await loadWorkoutPlanSourceList({
     supabase,
     userId: user.id,
@@ -110,40 +73,17 @@ export default async function WorkoutPlansPage() {
     ? workoutPlans
     : filterQaLlelRows(workoutPlans, (plan) => [plan.title, plan.sourceRoutineName]);
   const newWorkoutPlanHref = preferredRoutineId ? `/routines/${preferredRoutineId}/new-workout-plan` : null;
-  const headerInfoItems = buildWorkoutPlanLibraryInfoItems({
-    workoutPlanCount: visibleWorkoutPlans.length,
-    autoProgressionCount: visibleWorkoutPlans.reduce(
-      (count, plan) => count + (
-        plan.recapExercises?.filter((exercise) => {
-          const label = exercise.progressionStateLabel?.trim().toLowerCase();
-          return Boolean(label && label !== "manual");
-        }).length ?? 0
-      ),
-      0,
-    ),
-    activeRoutineName,
-  });
-
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
+      {/* Pushed from Routines, so a detail screen (DESIGN-CONTRACT 15.1): Back to /routines, no tab bar. */}
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <ContentRail className="py-1">
-            <RoutinesRouteHeaderCard
-              title="Routines"
-              titleClassName="!text-[rgb(var(--accent-divider-rgb)/0.98)]"
-              subtitle={(
-                <HeaderInfoRail
-                  items={headerInfoItems}
-                  ariaLabel="Days summary"
-                  behavior="rotate-single"
-                  className="justify-center text-center"
-                />
-              )}
-            />
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title="Days"
+            back={<ScreenHeaderBackButton href="/routines" label="Back to routines" />}
+          />
         )}
       >
         <ContentRail className="space-y-3">

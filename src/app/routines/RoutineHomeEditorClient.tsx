@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
-import { useRoutineDetailsHeaderTitle } from "@/components/routines/RoutineDetailsExitGuard";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineAction } from "@/app/routines/actions";
@@ -155,8 +154,7 @@ export function RoutineHomeEditorClient(props: Props) {
   const lastSavedSnapshot = useMemo(() => buildRoutineDetailsSnapshot(lastSavedDraft), [lastSavedDraft]);
 
   const headerTitle = useMemo(() => (
-    <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
-      <RoutineEditorTitleInput
+    <RoutineEditorTitleInput
         name="name"
         value={draft.name}
         onChange={(nextValue) => {
@@ -165,17 +163,11 @@ export function RoutineHomeEditorClient(props: Props) {
             name: resolveRoutineDraftFieldValue("name", nextValue),
           }));
         }}
-        placeholder="Enter Routine Name"
-        ariaLabel="Routine Name"
+        label="Routine name"
+        placeholder="e.g. Upper / Lower"
         maxLength={15}
-        className="text-center"
-        hideLabel
-        plainShell
       />
-    </div>
   ), [draft.name]);
-
-  useRoutineDetailsHeaderTitle(headerTitle);
 
   const commitCycleInput = (currentDraft: RoutineDetailsDraft) => {
     const committedCycleLength = commitRoutineCycleLengthInput(cycleLengthInput, currentDraft.cycleLengthDays);
@@ -325,6 +317,7 @@ export function RoutineHomeEditorClient(props: Props) {
     <ContentRail className="space-y-3">
       <div className={appTokens.routineEditorSectionStack}>
         <div className="space-y-2 pt-4">
+          {headerTitle}
           <RoutineEditorFormFields
             fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
             showCycleSection

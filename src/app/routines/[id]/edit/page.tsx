@@ -56,7 +56,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 
   return (
-    <RoutineDetailsScreenShell backHref={returnHref} title={(routine as RoutineRow).name} align="center">
+    <RoutineDetailsScreenShell backHref={returnHref} title="Edit routine" subtitle={(routine as RoutineRow).name}>
       <EditRoutineAutosaveForm
         routineId={routine.id}
         existingStartDate={(routine as RoutineRow).start_date}

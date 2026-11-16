@@ -29,7 +29,7 @@ import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
-import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
@@ -2424,7 +2424,7 @@ export function ExerciseInfoSheet({
         title={exercise?.name ?? "Exercise"}
         subtitle={metadata.length > 0 ? metadata.join(" · ") : null}
         back={(
-          <ScreenBackButton
+          <ScreenHeaderBackButton
             href="/today"
             label="Back"
             onClick={(event) => {

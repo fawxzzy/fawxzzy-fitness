@@ -3,7 +3,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { AccountPasswordSection } from "@/components/settings/AccountPasswordSection";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { appTokens } from "@/components/ui/app/tokens";
 
@@ -26,7 +26,7 @@ export function AccountScreen({
             kind="detail"
             title="Account"
             subtitle={username.trim() || email.trim() || null}
-            back={<ScreenBackButton href={returnHref} historyBehavior="fallback-only" label="Back to Settings" />}
+            back={<ScreenHeaderBackButton href={returnHref} historyBehavior="fallback-only" label="Back to Settings" />}
           />
         )}
       >

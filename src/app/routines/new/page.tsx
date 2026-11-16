@@ -232,8 +232,7 @@ export default async function NewRoutinePage({
       return (
         <RoutineDetailsScreenShell
           backHref="/routines"
-          title="New Routine"
-          align="center"
+          title="New routine"
         >
           <RoutineHomeEditorClient
             routineId={draftRoutine.id}
@@ -302,8 +301,7 @@ export default async function NewRoutinePage({
   return (
     <RoutineDetailsScreenShell
       backHref="/routines"
-      title="New Routine"
-      align="center"
+      title="New routine"
     >
       <NewRoutineDraftForm
         defaults={{

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { RoutineDayKindReviewPanel } from "@/components/routines/RoutineDayKindReviewPanel";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { ScreenBackLink } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export default function OptionalPlannedDayReviewPage() {
           kind="detail"
           title="Optional workout day"
           subtitle="Preview"
-          back={<ScreenBackLink href="/routines" label="Back to Routines" />}
+          back={<ScreenHeaderBackButton href="/routines" label="Back to Routines" />}
         />
         <ContentRail className="w-full space-y-3">
           <RoutineDayKindReviewPanel />

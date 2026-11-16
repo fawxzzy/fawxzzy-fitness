@@ -108,7 +108,7 @@ const toPosix = (path) => path.split(sep).join("/");
 const RAW_H1_ALLOWED = new Map([
   ["src/components/ui/app/ScreenHeader.tsx", "the one header"],
   ["src/components/auth/AuthShell.tsx", "auth screens own their title (Auth Surface v2, section 15.1)"],
-  ["src/components/ui/app/AppHeader.tsx", "legacy header; only routines screens still use it until lane H1a moves them"],
+  ["src/components/ui/app/AppHeader.tsx", "legacy header; only dev fixtures still use it"],
 ]);
 const RAW_H1_ALLOWED_DIRS = [
   ["src/app/dev/", "internal fixture and gallery pages"],
@@ -147,7 +147,7 @@ test("detail screens render the standard detail header with Back on the left", (
   const cases = [
     ["src/components/SessionHeaderControls.tsx", /<ScreenHeader\s+kind="detail"\s+title="Workout"/],
     ["src/app/history/[sessionId]/LogAuditClient.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{sessionSummary\.dayTitle\?\.trim\(\) \|\| "Workout"\}/],
-    ["src/app/history/[sessionId]/page.tsx", /<ScreenHeader kind="detail" title="Workout" back=\{<ScreenBackButton href="\/history" label="Back to History" \/>\} \/>/],
+    ["src/app/history/[sessionId]/page.tsx", /<ScreenHeader kind="detail" title="Workout" back=\{<ScreenHeaderBackButton href="\/history" historyBehavior="history-first" label="Back to History" \/>\} \/>/],
     ["src/components/ExerciseInfoSheet.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{exercise\?\.name \?\? "Exercise"\}/],
     ["src/components/account/AccountScreen.tsx", /<ScreenHeader\s+kind="detail"\s+title="Account"/],
     ["src/features/curated-onboarding/components/CuratedOnboardingShell.tsx", /<ScreenHeader\s+kind="detail"\s+title="Routine setup"/],
@@ -157,7 +157,7 @@ test("detail screens render the standard detail header with Back on the left", (
   for (const [path, pattern] of cases) {
     const source = read(path);
     assert.match(source, pattern, path);
-    assert.match(source, /<ScreenBack(?:Button|Link)\s/, `${path}: Back uses the shared left Back control`);
+    assert.match(source, /<ScreenHeaderBackButton\s/, `${path}: Back uses the shared left Back control`);
     assert.doesNotMatch(
       source,
       /\b(?:AppHeader|SharedScreenHeader|TopRightBackButton|HeaderInfoRail|standaloneHeaderFamily|SessionBackButton|HistoryDetailsBackButton|RoutineDayHeaderTitle|DetailHeader|SignatureMetaTag)\b/,
@@ -181,6 +181,8 @@ test("the old per-screen back buttons are gone", () => {
     "src/app/history/[sessionId]/HistoryDetailsBackButton.tsx",
     "src/components/DetailSurface.tsx",
     "src/components/settings/SettingsHeaderIdentity.tsx",
+    "src/components/ui/app/ScreenBackButton.tsx",
+    "src/components/ui/HeaderInfoRail.tsx",
   ]) {
     assert.throws(() => statSync(join(root, path)), /ENOENT/, `${path} should be deleted`);
   }

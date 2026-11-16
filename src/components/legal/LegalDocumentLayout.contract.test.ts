@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const layoutSource = readFileSync(fileURLToPath(new URL("./LegalDocumentLayout.tsx", import.meta.url)), "utf8");
 
 test("legal document layout uses the one detail header with Back on the left", () => {
-  assert.match(layoutSource, /<ScreenHeader kind="detail" title=\{title\} back=\{<ScreenBackLink href=\{backHref\} label="Back" \/>\} \/>/);
+  assert.match(layoutSource, /<ScreenHeader kind="detail" title=\{title\} back=\{<ScreenHeaderBackButton href=\{backHref\} label="Back" \/>\} \/>/);
   assert.doesNotMatch(layoutSource, /\beyebrow\??:|MetricAccentBar|<h1|backgroundSize/);
   assert.doesNotMatch(layoutSource, />\s*Back\s*</);
 });

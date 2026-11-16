@@ -9,10 +9,9 @@ import { AppButton } from "@/components/ui/AppButton";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -91,18 +90,16 @@ export function RoutineEditorPageHeader({
 export function RoutineDetailsScreenShell({
   children,
   backHref,
-  title = "Routine Details",
+  title = "Routine",
   subtitle,
-  align = "left",
 }: {
   children: ReactNode;
   backHref: string;
-  title?: ReactNode;
-  subtitle?: ReactNode;
-  align?: "left" | "center";
+  title?: string;
+  subtitle?: string | null;
 }) {
   return (
-    <RoutineDetailsScreenShellClient backHref={backHref} title={title} subtitle={subtitle} align={align}>
+    <RoutineDetailsScreenShellClient backHref={backHref} title={title} subtitle={subtitle}>
       {children}
     </RoutineDetailsScreenShellClient>
   );
@@ -176,69 +173,43 @@ export function RoutineDetailsBottomActionPublisher({
   );
 }
 
+// The routine / day name field. A plain body field (C14), never an input inside the screen header.
 export function RoutineEditorTitleInput({
   name,
   value,
   onChange,
   placeholder,
-  ariaLabel,
   maxLength,
   className,
-  label = "Routine Title",
-  hideLabel = false,
-  plainShell = false,
+  label = "Name",
   invalid = false,
+  error,
 }: {
   name: string;
   value: string;
   onChange: (nextValue: string) => void;
   placeholder: string;
-  ariaLabel: string;
   maxLength?: number;
   className?: string;
   label?: string;
-  hideLabel?: boolean;
-  plainShell?: boolean;
   invalid?: boolean;
+  error?: string | null;
 }) {
-  const titleLength = Math.max((value.trim() || placeholder).length, label.length);
-  const inputWidth = `${Math.min(Math.max(titleLength + 2, 14), 32)}ch`;
-  const accentBarClassName = invalid
-    ? "bg-[linear-gradient(90deg,rgb(var(--danger-rgb)/0.18),rgb(var(--danger-rgb)/0.9),rgb(var(--danger-rgb)/0.18))] shadow-[0_0_14px_rgb(var(--danger-rgb)/0.22)]"
-    : undefined;
-
   return (
-    <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
-      <LabeledEditorField
-        label={label}
-        className={cn(
-          "mx-auto inline-block !w-fit min-w-[10rem] max-w-[min(26rem,calc(100vw-7rem))] align-middle normal-case tracking-normal",
-          hideLabel ? "[&_legend]:hidden" : "",
-          plainShell ? "!bg-transparent !shadow-none" : "",
-          plainShell ? "!rounded-none !border-transparent !shadow-none" : "",
-          invalid && !plainShell ? "!border-[rgb(var(--danger-rgb)/0.72)]" : "",
-          className,
-        )}
-        labelClassName={hideLabel ? "sr-only" : undefined}
-      >
-        <div className="flex min-w-0 flex-col items-center gap-1">
-          <input
-            name={name}
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder={placeholder}
-            aria-label={ariaLabel}
-            maxLength={maxLength}
-            className={cn(
-              labeledEditorFieldControlClassName,
-              "h-10 max-w-[calc(100vw-8rem)] px-[10px] py-0.5 text-center text-base font-semibold leading-none tracking-normal",
-            )}
-            style={{ width: inputWidth }}
-          />
-          <MetricAccentBar variant="thin" className={cn("w-full max-w-full self-stretch", accentBarClassName)} />
-        </div>
-      </LabeledEditorField>
-    </div>
+    <FormField label={label} invalid={invalid} error={error} className={className}>
+      {(control) => (
+        <input
+          {...control}
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          autoComplete="off"
+          className={cn(formFieldControlClassName, "font-semibold")}
+        />
+      )}
+    </FormField>
   );
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 
 /** "Lower A · QA Routine": the day first, then the routine, in plain words. */
@@ -28,7 +28,7 @@ export function SessionHeaderControls({
       kind="detail"
       title="Workout"
       subtitle={formatSessionHeaderSubtitle(sessionDayName, routineName)}
-      back={<ScreenBackButton href={backHref ?? "/today"} label="Back" />}
+      back={<ScreenHeaderBackButton href={backHref ?? "/today"} historyBehavior="history-first" label="Back" />}
       trailing={statusBadge}
     />
   );

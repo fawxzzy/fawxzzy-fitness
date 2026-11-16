@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { renderSignatureParts, splitRoutineSummaryParts } from "@/components/day-list/RoutineDayCardPresentation";
-import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutineHomeClient } from "@/app/routines/RoutineHomeClient";
 import {
@@ -17,7 +16,6 @@ import {
 } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
-import { buildRoutineWorkoutPlanEditorInfoRailItems } from "@/lib/header-info-rail";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
@@ -138,7 +136,6 @@ export default async function RoutineHomePage({ params }: PageProps) {
   const restDays = sortedRoutineDays.filter((day) => day.is_rest).length;
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = routine.cycle_length_days ?? totalDays;
-  const cycleSummary = `${trainingDays} training \u2022 ${restDays} rest`;
   const todayRoutineSchedule = routine.start_date && cycleLength > 0
     ? resolveRoutineScheduleForToday({
       cycleLengthDays: cycleLength,
@@ -311,50 +308,29 @@ export default async function RoutineHomePage({ params }: PageProps) {
   inSessionDayIndex = typeof resolvedInProgressDayIndex === "number" && Number.isFinite(resolvedInProgressDayIndex)
     ? resolvedInProgressDayIndex
     : null;
-  const floatingHeaderInfoItems = buildRoutineWorkoutPlanEditorInfoRailItems({
-    trainingDays,
-    restDays,
-    days: sortedRoutineDays.map((day, index) => {
-      const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
-      const canonicalDaySummary = canonicalSummaryByDayId.get(day.id);
-      return {
-        id: day.id,
-        dayIndex: dayNumber,
-        isRest: Boolean(day.is_rest),
-        isOptional: Boolean(day.is_optional),
-        isToday: index === todayRowIndex,
-        isCompleted: completedDayIndexSet.has(dayNumber),
-        isSkipped: skippedDayIndexSet.has(dayNumber),
-        isInSession: inSessionDayIndex === dayNumber,
-        autoProgressionExerciseCount: canonicalDaySummary?.runnableExercises.filter((exercise) => Boolean(exercise.progression_playbook_id)).length ?? 0,
-        splitSummary: exerciseSummaryByDayId.get(day.id) ?? null,
-      };
-    }),
-  });
-  const headerSubtitle = floatingHeaderInfoItems.length > 0 ? (
-    <HeaderInfoRail
-      items={floatingHeaderInfoItems}
-      ariaLabel="Routine cycle summary"
-      behavior="rotate-single"
-      className="justify-center text-center"
-    />
-  ) : (renderSignatureParts(splitRoutineSummaryParts(cycleSummary), "justify-center text-center") ?? cycleSummary);
+  const isActiveRoutine = profile.active_routine_id === routine.id;
+  const cycleSummary = [
+    `${trainingDays} training ${trainingDays === 1 ? "day" : "days"}`,
+    `${restDays} rest ${restDays === 1 ? "day" : "days"}`,
+  ].join(" · ");
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
         floatingHeader={(
-          <ContentRail className="py-1">
-            <RoutinesRouteHeaderCard
-              title={routine.name}
-              subtitle={headerSubtitle}
-              action={<TopRightBackButton href="/routines" ariaLabel="Back to routines" />}
-            />
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title={routine.name}
+            back={<ScreenHeaderBackButton href="/routines" label="Back to routines" historyBehavior="history-first" />}
+            trailing={isActiveRoutine ? <AppBadge tone="success">Active</AppBadge> : null}
+          />
         )}
       >
         <ContentRail className="space-y-3">
+          <p data-routine-cycle-summary="true" className="px-1 text-[13px] text-[rgb(var(--text-secondary)/0.9)]">
+            {cycleSummary}
+          </p>
           <RoutineHomeClient
             routineId={routine.id}
             routineStartDate={routine.start_date}
@@ -362,7 +338,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
             scheduleMode={routine.schedule_mode}
             routineTimeZone={routineTimeZone}
             routineReferenceDate={todayRoutineSchedule?.todayDate ?? null}
-            isActiveRoutine={profile.active_routine_id === routine.id}
+            isActiveRoutine={isActiveRoutine}
             appendRoutineDayAction={appendRoutineDayAction}
             createRoutineDayAction={createRoutineDayAction}
             deleteRoutineDayAction={deleteRoutineDayAction}

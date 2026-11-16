@@ -5,11 +5,8 @@ import {
   resolveWorkoutPlanEditDecisionAction,
 } from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
-import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
-import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
-import { appTokens } from "@/components/ui/app/tokens";
+import { RoutineAddExerciseScaffold } from "@/components/routines/RoutineAddExerciseScaffold";
 import { requireUser } from "@/lib/auth";
-import { cn } from "@/lib/cn";
 import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
 import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
@@ -83,20 +80,9 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
   });
 
   return (
-    <ExerciseChooserRouteScaffold
-      recipe="editDay"
-      title={(
-        <RoutineDayHeaderTitle
-          leadingItems={["Add to", routine.name]}
-          dayLabel={dayLabel}
-          dayLabelOrder="day-first"
-        />
-      )}
+    <RoutineAddExerciseScaffold
+      subtitle={[dayLabel, routine.name].filter(Boolean).join(" · ")}
       backHref={backHref}
-      backAriaLabel="Back to day"
-      headerAlign="center"
-      floatingHeaderRailClassName={cn(appTokens.historyFloatingHeaderRail, "relative z-30 pointer-events-auto")}
-      backButtonClassName="relative z-30 pointer-events-auto"
     >
       <EditDayAddExerciseScreen
         routineId={params.id}
@@ -117,6 +103,6 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
         requiresWorkoutPlanEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
         existingWorkoutPlanNames={existingWorkoutPlanNames}
       />
-    </ExerciseChooserRouteScaffold>
+    </RoutineAddExerciseScaffold>
   );
 }

@@ -41,7 +41,7 @@ import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
 import { HistoryRouteErrorShell } from "@/components/history/HistoryShared";
-import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 
 export const dynamic = "force-dynamic";
@@ -569,7 +569,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       <HistoryRouteScaffold
         mode="detail"
         showTopChrome={false}
-        floatingHeader={<ScreenHeader kind="detail" title="Workout" back={<ScreenBackButton href="/history" label="Back to History" />} />}
+        floatingHeader={<ScreenHeader kind="detail" title="Workout" back={<ScreenHeaderBackButton href="/history" historyBehavior="history-first" label="Back to History" />} />}
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteErrorShell

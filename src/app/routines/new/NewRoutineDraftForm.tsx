@@ -266,8 +266,7 @@ export function NewRoutineDraftForm({
     canCreate,
   });
   const routineHeaderTitle = useMemo(() => (
-    <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
-      <RoutineEditorTitleInput
+    <RoutineEditorTitleInput
         name="name"
         value={draft.name}
         onChange={(nextValue) => {
@@ -277,24 +276,12 @@ export function NewRoutineDraftForm({
             name: resolveRoutineDraftFieldValue("name", nextValue),
           }));
         }}
-        placeholder="Enter Routine Name"
-        ariaLabel="Routine Name"
+        label="Routine name"
+        placeholder="e.g. Upper / Lower"
         maxLength={15}
-        className="text-center"
-        hideLabel
-        plainShell
         invalid={isRoutineNameInvalid}
       />
-    </div>
   ), [draft.name, isRoutineNameInvalid]);
-
-  useEffect(() => {
-    if (!isUsingExitGuard) {
-      return;
-    }
-
-    exitGuard?.setHeaderTitle(routineHeaderTitle);
-  }, [exitGuard, isUsingExitGuard, routineHeaderTitle]);
 
   useEffect(() => {
     if (!isUsingExitGuard) {
@@ -436,11 +423,7 @@ export function NewRoutineDraftForm({
     <>
       <ContentRail className="space-y-3">
         <div className="space-y-2 pt-4">
-          {embedded ? (
-            <div className="px-1 pb-2">
-              {routineHeaderTitle}
-            </div>
-          ) : null}
+          {routineHeaderTitle}
           <RoutineEditorFormFields
             fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
             showCycleSection

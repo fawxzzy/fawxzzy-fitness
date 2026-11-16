@@ -9,7 +9,6 @@ import {
   RoutineDetailsDiscardConfirmationDock,
   useRoutineDetailsDirtyState,
   useRoutineDetailsExitGuard,
-  useRoutineDetailsHeaderTitle,
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
@@ -131,8 +130,7 @@ export function EditRoutineAutosaveForm(props: Props) {
   const canSave = validation.valid && isDirty && !isSaving;
   const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
   const routineHeaderTitle = useMemo(() => (
-    <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
-      <RoutineEditorTitleInput
+    <RoutineEditorTitleInput
         name="name"
         value={draft.name}
         onChange={(nextValue) => {
@@ -141,16 +139,13 @@ export function EditRoutineAutosaveForm(props: Props) {
             name: resolveRoutineDraftFieldValue("name", nextValue),
           }));
         }}
-        placeholder="Routine"
-        ariaLabel="Routine Name"
+        label="Routine name"
+        placeholder="Routine name"
         maxLength={15}
-        className="text-center"
       />
-    </div>
   ), [draft.name]);
 
   useRoutineDetailsDirtyState(isDirty);
-  useRoutineDetailsHeaderTitle(routineHeaderTitle);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -252,6 +247,7 @@ export function EditRoutineAutosaveForm(props: Props) {
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
         <RoutineEditorPageBody>
           <div className="space-y-2 pt-4">
+            {routineHeaderTitle}
             <RoutineEditorFormFields
               fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
               showCycleSection

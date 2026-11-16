@@ -32,7 +32,7 @@ import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
-import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
@@ -1488,8 +1488,9 @@ export function LogAuditClient({
             title={sessionSummary.dayTitle?.trim() || "Workout"}
             subtitle={sessionHeaderSubtitle}
             back={(
-              <ScreenBackButton
+              <ScreenHeaderBackButton
                 href={backHref}
+                historyBehavior="history-first"
                 label={expandedExercise ? "Back to workout" : "Back to History"}
                 onClick={(event) => {
                   if (expandedExercise) {

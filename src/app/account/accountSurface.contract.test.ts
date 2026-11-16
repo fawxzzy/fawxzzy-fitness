@@ -19,7 +19,7 @@ test("account screen reuses the established mobile shell, account form, and dete
   assert.match(screenSource, /ScrollScreenWithBottomActions/);
   assert.match(screenSource, /<AccountSettingsForm email=\{email\} username=\{username\} \/>/);
   assert.match(screenSource, /<ScreenHeader\s+kind="detail"\s+title="Account"/);
-  assert.match(screenSource, /<ScreenBackButton href=\{returnHref\} historyBehavior="fallback-only" label="Back to Settings" \/>/);
+  assert.match(screenSource, /<ScreenHeaderBackButton href=\{returnHref\} historyBehavior="fallback-only" label="Back to Settings" \/>/);
   assert.doesNotMatch(screenSource, /TopRightBackButton|AppHeader|standaloneHeaderFamily|SettingsHeaderIdentity|<AppNav/);
   // Navigation links to the portal now; /account stays working for direct visits until the portal edits username/email.
   assert.match(settingsSource, /getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);

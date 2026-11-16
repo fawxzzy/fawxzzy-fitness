@@ -14,7 +14,7 @@ test("curated onboarding uses the signed-in Fitness screen and bottom-action con
   assert.match(shell, /AppShell/);
   assert.match(shell, /MobileScreenScaffold/);
   assert.match(shell, /<ScreenHeader\s+kind="detail"/);
-  assert.match(shell, /<ScreenBackButton href="\/today" historyBehavior="fallback-only" label="Back to Today" \/>/);
+  assert.match(shell, /<ScreenHeaderBackButton href="\/today" historyBehavior="fallback-only" label="Back to Today" \/>/);
   assert.doesNotMatch(shell, /SharedScreenHeader|TopRightBackButton|<h1/);
   assert.match(shell, /CuratedOnboardingProgress/);
   assert.match(shell, /BottomActionSingle/);

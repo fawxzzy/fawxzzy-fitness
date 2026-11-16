@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ScreenBackLink } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import {
   FITNESS_DISCORD_INVITE_URL,
@@ -29,7 +29,7 @@ export function LegalDocumentLayout({
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[rgb(var(--app-bg))] pt-[max(var(--app-safe-top),var(--vv-top,0px))] text-[rgb(var(--text-primary)/0.96)]">
-      <ScreenHeader kind="detail" title={title} back={<ScreenBackLink href={backHref} label="Back" />} />
+      <ScreenHeader kind="detail" title={title} back={<ScreenHeaderBackButton href={backHref} label="Back" />} />
 
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 pb-12 sm:px-6 lg:px-8">
         <section className="px-1 pb-5 sm:px-4 sm:pb-7">

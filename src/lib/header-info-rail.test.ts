@@ -1,54 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildRoutineWorkoutPlanEditorInfoRailItems } from "@/lib/header-info-rail";
+import { buildRoutineTrainingRestInfoRailItems } from "@/lib/header-info-rail";
 
-test("buildRoutineWorkoutPlanEditorInfoRailItems includes totals summary with auto progression count", () => {
-  const items = buildRoutineWorkoutPlanEditorInfoRailItems({
-    trainingDays: 3,
-    restDays: 1,
-    days: [
-      {
-        dayIndex: 1,
-        isRest: false,
-        isToday: true,
-        isCompleted: false,
-        isInSession: false,
-        autoProgressionExerciseCount: 2,
-        splitSummary: { total: 5 },
-      },
-      {
-        dayIndex: 2,
-        isRest: false,
-        isToday: false,
-        isCompleted: true,
-        isInSession: false,
-        autoProgressionExerciseCount: 1,
-        splitSummary: { total: 3 },
-      },
-      {
-        dayIndex: 3,
-        isRest: false,
-        isToday: false,
-        isCompleted: false,
-        isInSession: false,
-        autoProgressionExerciseCount: 0,
-        splitSummary: { total: 2 },
-      },
-      {
-        dayIndex: 4,
-        isRest: true,
-        isToday: false,
-        isCompleted: false,
-        isInSession: false,
-        autoProgressionExerciseCount: 0,
-        splitSummary: { total: 0 },
-      },
-    ],
-    maxItems: 8,
-  });
+// The routine editor and live-session rail builders were retired with the header redesign (lanes H1a and H1b).
+test("buildRoutineTrainingRestInfoRailItems clamps counts to whole non-negative numbers", () => {
+  const [training, rest] = buildRoutineTrainingRestInfoRailItems({ trainingDays: 3.7, restDays: -2 });
 
-  const totalsItem = items.find((item) => item.id === "totals");
-  assert.ok(totalsItem);
-  assert.equal(totalsItem?.value, "3 days • 10 exercises • 3 auto");
+  assert.equal(training?.id, "training-days");
+  assert.equal(training?.value, 3);
+  assert.equal(rest?.id, "rest-days");
+  assert.equal(rest?.value, 0);
+  assert.deepEqual(buildRoutineTrainingRestInfoRailItems({ trainingDays: null, restDays: undefined }).map((item) => item.value), [0, 0]);
 });

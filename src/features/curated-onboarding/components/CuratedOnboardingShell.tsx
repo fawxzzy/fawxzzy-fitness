@@ -14,7 +14,7 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
 import { RouteLoading } from "@/components/RouteLoading";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { ScreenBackButton } from "@/components/ui/app/ScreenBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import {
@@ -559,7 +559,7 @@ export function CuratedOnboardingShell({
           <ScreenHeader
             kind="detail"
             title="Routine setup"
-            back={<ScreenBackButton href="/today" historyBehavior="fallback-only" label="Back to Today" />}
+            back={<ScreenHeaderBackButton href="/today" historyBehavior="fallback-only" label="Back to Today" />}
             trailing={(
               <button
                 type="button"

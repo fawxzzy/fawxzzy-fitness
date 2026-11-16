@@ -1,6 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SubtitleText } from "@/components/ui/text-roles";
@@ -12,30 +11,6 @@ type RoutinesPageScaffoldProps = {
 
 export function RoutinesPageScaffold({ children }: RoutinesPageScaffoldProps) {
   return <div className={appTokens.routinesOverviewPageStack}>{children}</div>;
-}
-
-export function RoutinesRouteHeaderCard({
-  title,
-  titleClassName,
-  subtitle,
-  action,
-}: {
-  title: ReactNode;
-  titleClassName?: string;
-  subtitle?: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <SharedScreenHeader
-      recipe="routinesOverview"
-      withPanel={false}
-      title={title}
-      titleClassName={titleClassName}
-      subtitle={subtitle}
-      action={action}
-      align="center"
-    />
-  );
 }
 
 export function RoutinesSectionCard({
