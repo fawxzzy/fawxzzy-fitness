@@ -21,7 +21,6 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
-import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
@@ -30,11 +29,10 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { Chip } from "@/components/ui/Chip";
@@ -2449,18 +2447,19 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <ContentRail>
-            <RoutinesRouteHeaderCard
-              title={activeRoutine.name}
-              subtitle={activeRoutine.summary}
-              action={<AppBadge tone="success">ACTIVE</AppBadge>}
-            />
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title={activeRoutine.name}
+            back={<ScreenHeaderBackButton href="/routines" label="Back to routines" />}
+            trailing={<AppBadge tone="success">Active</AppBadge>}
+          />
         )}
       >
         <ContentRail className="space-y-3">
+          <p data-routine-cycle-summary="true" className="px-1 text-[13px] text-[rgb(var(--text-secondary)/0.9)]">
+            4 training days · 1 rest day
+          </p>
           <RoutineHomeClient
             routineId={activeRoutine.id}
             routineStartDate="2026-04-21"
@@ -2497,21 +2496,19 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         floatingHeader={(
-          <ContentRail>
-            <ScreenScaffold recipe="viewDay" className="w-full">
-              <SharedScreenHeader
-                recipe="viewDay"
-                title={PREVIEW_ROUTINE_NAME}
-                subtitle={<DayTaxonomyHeaderSummary dayName={isRestFixture ? "Recovery" : isEmptyFixture ? "Travel Reset" : PREVIEW_DAY_LABEL} summary={viewDaySummary} isRest={isRestFixture} includeDayName />}
-                action={<TopRightBackButton href="/routines" ariaLabel="Back to routines" historyBehavior="fallback-only" />}
-                align="center"
-              />
-            </ScreenScaffold>
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title={isRestFixture ? "Recovery" : isEmptyFixture ? "Travel Reset" : PREVIEW_DAY_LABEL}
+            subtitle={PREVIEW_ROUTINE_NAME}
+            back={<ScreenHeaderBackButton href="/routines" label="Back to routine" />}
+          />
         )}
       >
         <ContentRail>
           <ScreenScaffold recipe="viewDay" className="w-full">
+            <div className="px-1 pb-2 text-[13px]">
+              <DayTaxonomyHeaderSummary dayName={PREVIEW_DAY_LABEL} summary={viewDaySummary} isRest={isRestFixture} />
+            </div>
             {isRestFixture || isEmptyFixture ? (
               <SharedSectionShell
                 recipe="viewDay"
@@ -2596,26 +2593,19 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         floatingHeader={fixture === "edit-exercise" ? null : (
-          <ContentRail className="py-1">
-            <ScreenScaffold recipe="editDay" className="w-full">
-              <SharedScreenHeader
-                recipe="editDay"
-                title={PREVIEW_DAY_LABEL}
-                subtitle={<DayTaxonomyHeaderSummary dayName={fixture === "empty" ? "Travel Reset" : PREVIEW_DAY_LABEL} summary={fixture === "empty" ? getRestDayExerciseCountSummaryFromInputs([], false) : { strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }} isRest={false} />}
-                action={<TopRightBackButton href="/routines" ariaLabel="Back to day" historyBehavior="fallback-only" />}
-              >
-                {fixture === "reorder" ? (
-                  <div className="w-full px-0.5">
-                    <BottomDockButton type="button" intent="toggleActive" className="w-full">Done</BottomDockButton>
-                  </div>
-                ) : null}
-              </SharedScreenHeader>
-            </ScreenScaffold>
-          </ContentRail>
+          <ScreenHeader
+            kind="detail"
+            title={fixture === "empty" ? "Travel Reset" : PREVIEW_DAY_LABEL}
+            subtitle={PREVIEW_ROUTINE_NAME}
+            back={<ScreenHeaderBackButton href="/routines" label="Back to routine" />}
+          />
         )}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <ScreenScaffold recipe="editDay" className="w-full">
+            {fixture === "reorder" ? (
+              <BottomDockButton type="button" intent="toggleActive" className="mb-3 w-full">Done</BottomDockButton>
+            ) : null}
             <EditDayRegressionSurface
               fixture={fixture}
               exercises={editDayExercises}
@@ -2643,7 +2633,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
 
 function renderCreateRoutineScenario(scenario: MobileFixtureScenario) {
   return (
-    <RoutineDetailsScreenShell backHref="/routines">
+    <RoutineDetailsScreenShell backHref="/routines" title="New routine">
       <RegressionMarker scenario={scenario} />
       <div className="pointer-events-none">
         <NewRoutineDraftForm
@@ -2665,7 +2655,7 @@ function renderCreateRoutineScenario(scenario: MobileFixtureScenario) {
 
 function renderEditRoutineScenario(scenario: MobileFixtureScenario) {
   return (
-    <RoutineDetailsScreenShell backHref="/routines">
+    <RoutineDetailsScreenShell backHref="/routines" title="Edit routine" subtitle={PREVIEW_ROUTINE_NAME}>
       <RegressionMarker scenario={scenario} />
       <div className="pointer-events-none">
         <EditRoutineAutosaveForm

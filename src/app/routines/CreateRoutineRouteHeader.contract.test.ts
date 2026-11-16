@@ -7,12 +7,13 @@ test("create routine route uses the shared editor shell while the chooser remain
   const clientSource = readFileSync(new URL("./CreateRoutineClient.tsx", import.meta.url), "utf8");
 
   assert.match(pageSource, /RoutineDetailsScreenShell/);
-  assert.match(pageSource, /title="New Routine"/);
+  assert.match(pageSource, /title="New routine"/);
   assert.match(pageSource, /NewRoutineDraftForm/);
   assert.match(pageSource, /RoutineHomeEditorClient/);
   assert.match(clientSource, /createPortal/);
   assert.match(clientSource, /role="dialog"/);
-  assert.match(clientSource, /TopRightBackButton/);
+  assert.match(clientSource, /ScreenHeaderBackButton/);
+  assert.doesNotMatch(clientSource, /TopRightBackButton/);
   assert.match(clientSource, /Build manually/);
   assert.match(clientSource, /curatedMenuOption\.label/);
   assert.match(clientSource, /loadCuratedOnboardingGateState/);

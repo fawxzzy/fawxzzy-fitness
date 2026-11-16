@@ -7,6 +7,8 @@ import { RoutineBrowseCard, type RoutineBrowseCardItem } from "./RoutineBrowseCa
 const routine: RoutineBrowseCardItem = {
   id: "r1",
   name: "Atlas Routine",
+  // Deliberately legacy strings: older builds and the offline routines cache stored "workout plans" and
+  // "sessions logged" (src/lib/routine-card-copy.ts). The card must normalize them to "days"/"sessions" (C18).
   summaryParts: ["16 exercises", "4 workout plans", "1 rest", "3 sessions logged", "Last Nov 5"],
   createdAt: "2026-11-05T12:00:00Z",
   isActive: true,

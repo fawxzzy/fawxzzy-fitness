@@ -4,11 +4,9 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { RoutineDayKindSelector, type RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
-import {
-  RoutineEditorPageHeader,
-  RoutineEditorTitleInput,
-} from "@/components/routines/RoutineEditorShared";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -17,7 +15,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
-import { getRoutineDayEditableName, resolveRoutineDaySettingsSubmitName } from "@/lib/routines";
+import { formatRoutineDayStableDisplayName, getRoutineDayEditableName, resolveRoutineDaySettingsSubmitName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { publishEditDayAdjustmentDirection, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
 import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
@@ -34,6 +32,7 @@ type Props = {
   backHref: string;
   dayIndex: number;
   name: string | null;
+  routineName?: string | null;
   startDate: string | null;
   isRest: boolean;
   isOptional: boolean;
@@ -112,6 +111,7 @@ export function EditDaySettingsAutosaveForm({
   backHref,
   dayIndex,
   name,
+  routineName = null,
   startDate,
   isRest,
   isOptional,
@@ -290,37 +290,12 @@ export function EditDaySettingsAutosaveForm({
   }, [submitAutosave]);
 
   const headerNode = (
-    <RoutineEditorPageHeader
-      title={(
-        <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
-          <RoutineEditorTitleInput
-            name="name"
-            value={draft.name}
-            onChange={(nextValue) => {
-              const nextSnapshot: typeof draft = { ...draft, name: nextValue };
-              setDraft(nextSnapshot);
-              scheduleAutosave(nextSnapshot);
-            }}
-            placeholder="Day"
-            ariaLabel="Day Name"
-            maxLength={15}
-            className="text-center"
-            hideLabel
-            plainShell
-          />
-        </div>
-      )}
-      action={(
-        <TopRightBackButton
-          href={backHref}
-          ariaLabel="Back to routines"
-          historyBehavior="history-first"
-          className="translate-y-[2px] scale-[1.03]"
-        />
-      )}
-      align="center"
-      withPanel={false}
-      showSeparator={false}
+    <ScreenHeader
+      kind="detail"
+      // The saved name, not the draft: the title must not change while the name field is being typed in.
+      title={formatRoutineDayStableDisplayName({ name, dayIndex, startDate })}
+      subtitle={routineName?.trim() || null}
+      back={<ScreenHeaderBackButton href={backHref} label="Back to routine" historyBehavior="history-first" />}
     />
   );
 
@@ -458,6 +433,18 @@ export function EditDaySettingsAutosaveForm({
           ) : null}
         </div>
       </ConfirmDestructiveModal>
+      <RoutineEditorTitleInput
+        name="name"
+        label="Day name"
+        value={draft.name}
+        onChange={(nextValue) => {
+          const nextSnapshot: typeof draft = { ...draft, name: nextValue };
+          setDraft(nextSnapshot);
+          scheduleAutosave(nextSnapshot);
+        }}
+        placeholder={`Day ${dayIndex}`}
+        maxLength={15}
+      />
       <RoutineDayKindSelector
         value={(draft.isRest ? "rest" : draft.isOptional ? "optional" : "required") satisfies RoutineDayKind}
         onChange={(kind) => {

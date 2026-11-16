@@ -230,6 +230,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           routineDayId={params.dayId}
           dayIndex={day.day_index}
           name={(day as RoutineDayRow).name}
+          routineName={(routine as RoutineRow).name}
           startDate={(routine as RoutineRow).start_date}
           isRest={(day as RoutineDayRow).is_rest}
           isOptional={Boolean((day as RoutineDayRow).is_optional)}

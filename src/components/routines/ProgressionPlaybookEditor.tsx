@@ -1926,7 +1926,7 @@ function ProgressionSettingsRailCard({
     <section className={cn(progressionSettingsRailCardClassName, "h-auto min-h-0", widthClassName)}>
       <button
         type="button"
-        className="group block h-auto w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pb-[4px] pt-[4px] text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+        className="group -my-2.5 flex min-h-11 w-full flex-col justify-center select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 py-0 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
         onClick={onClick}
         aria-expanded={isOpen}
       >
