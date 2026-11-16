@@ -221,6 +221,11 @@ const BANNED_HEADER_PIECES = [
   "HeaderInfoRail",
   "RoutineEditorPageHeader",
   "RoutinesRouteHeaderCard",
+  "HeaderInfoRailItem",
+  "HeaderInfoRailTone",
+  "buildRoutineTrainingRestInfoRailItems",
+  "buildCurrentSessionHeaderInfoRailItems",
+  "ExerciseChooserScreenFamily",
   "ExerciseChooserRouteScaffold",
   "RoutineAddExerciseScaffold",
   "SessionBackButton",
@@ -229,6 +234,8 @@ const BANNED_HEADER_PIECES = [
   "DetailHeader",
 ];
 const BANNED_HEADER_PATTERN = new RegExp(`\\b(?:${BANNED_HEADER_PIECES.join("|")})\\b`);
+// Deleted modules, caught by import path too (a hyphenated path is not an identifier).
+const BANNED_HEADER_MODULE_PATTERN = /["'][^"']*\/(?:header-info-rail|ExerciseChooserScreenFamily|AppHeader|SharedScreenHeader|TopRightBackButton|standaloneHeaderFamily|RoutineDayHeaderTitle|ui\/BackButton)["']/;
 // A raw screen-title size outside the header: the old header title tokens or a hand-written 22px+ semibold title.
 const RAW_TITLE_CLASS_PATTERN = /headerTokens\.titleClassName|typography\.title\b|\btext-\[1\.375rem\]|\btext-\[1\.625rem\][^"]*\btruncate\b/;
 const RAW_TITLE_CLASS_ALLOWED = new Set([
@@ -241,7 +248,7 @@ export function findBannedHeaderUses(files, readSource) {
     .map(toPosix)
     .filter((path) => {
       const source = readSource(path).replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
-      if (BANNED_HEADER_PATTERN.test(source)) return true;
+      if (BANNED_HEADER_PATTERN.test(source) || BANNED_HEADER_MODULE_PATTERN.test(source)) return true;
       return !RAW_TITLE_CLASS_ALLOWED.has(path) && RAW_TITLE_CLASS_PATTERN.test(source);
     });
 }
@@ -259,12 +266,22 @@ test("the banned-header check catches an old header, an old Back button and a ra
     "src/components/Fine.tsx": '<ScreenHeaderBackButton href="/" />',
     "src/components/Commented.tsx": "// AppHeader used to live here\nexport const x = 1;",
     "src/components/ui/app/headerTokens.ts": 'title: "truncate text-[1.375rem] font-semibold"',
+    "src/components/Chooser.tsx": "<ExerciseChooserScreenFamily />",
+    "src/components/Rail.tsx": "const items = buildRoutineTrainingRestInfoRailItems({});",
+    "src/components/RailType.ts": "let item: HeaderInfoRailItem;",
+    "src/components/RailImport.ts": 'import * as rail from "@/lib/header-info-rail";',
+    "src/components/ChooserImport.ts": 'import * as family from "@/components/exercises/ExerciseChooserScreenFamily";',
   };
   assert.deepEqual(findBannedHeaderUses(Object.keys(fake), (path) => fake[path]), [
     "src/app/dev/fixture/Fake.tsx",
     "src/app/routines/Fake.tsx",
     "src/components/Fake.tsx",
     "src/components/Title.tsx",
+    "src/components/Chooser.tsx",
+    "src/components/Rail.tsx",
+    "src/components/RailType.ts",
+    "src/components/RailImport.ts",
+    "src/components/ChooserImport.ts",
   ]);
 });
 
