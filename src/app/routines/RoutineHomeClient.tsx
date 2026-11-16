@@ -716,7 +716,8 @@ export function RoutineHomeClient({
                     setIsDuplicateSourceListOpen(false);
                   }}
                   disabled={isBusy}
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                  // The dock holds the screen's one primary (Add Day); the empty-state action is secondary.
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
                 >
                   {isDeleteDayPending ? "Deleting..." : isCreateDayPending ? "Adding day..." : "Add first day"}
                 </button>

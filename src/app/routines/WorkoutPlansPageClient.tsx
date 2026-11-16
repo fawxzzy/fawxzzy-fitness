@@ -77,8 +77,9 @@ export function WorkoutPlansPageClient({
             action={newWorkoutPlanHref ? (
               <BottomDockLink
                 href={newWorkoutPlanHref}
-                intent="positive"
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                // The dock already holds the screen's one primary (New Day); the empty-state copy of it is secondary.
+                intent="toggleInactive"
+                className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
               >
                 New Day
               </BottomDockLink>
