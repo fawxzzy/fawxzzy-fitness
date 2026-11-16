@@ -30,7 +30,6 @@ export type UiSystemFixture = {
   header: {
     title: string;
     subtitle: string;
-    meta: string;
     status?: string;
   };
   searchPlaceholder: string;
@@ -53,7 +52,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "Today",
       subtitle: "Upper Pull · Friday · 8 exercises",
-      meta: "Focus rail locked · no duplicate title echo",
       status: "Ready",
     },
     searchPlaceholder: "Search exercise library",
@@ -88,7 +86,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "Routines",
       subtitle: "No current routine selected",
-      meta: "Use the same shell instead of raw text",
       status: "Empty",
     },
     searchPlaceholder: "Search routines",
@@ -107,7 +104,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "View Day",
       subtitle: "Single-Arm Cable Lat Pulldown (Paused, Neutral Grip, Week 6 Test)",
-      meta: "34/36 title scale · controlled wrapping",
       status: "Dense",
     },
     searchPlaceholder: "Search by exercise, cue, or split",
@@ -142,7 +138,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "Add Exercise",
       subtitle: "Fallback media contract",
-      meta: "Reserved thumb space · no layout shift",
       status: "Fallback",
     },
     searchPlaceholder: "Search and verify thumbnail fallback",
@@ -178,7 +173,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "History",
       subtitle: "No matches for paused neutral grip",
-      meta: "Search stays usable with zero rows",
       status: "Search",
     },
     searchPlaceholder: "Search history",
@@ -197,7 +191,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "Session",
       subtitle: "Lower Push · set 3 of 5",
-      meta: "Accent reserved for active intent and progress",
       status: "Live",
     },
     searchPlaceholder: "Quick add exercise",
@@ -233,7 +226,6 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
     header: {
       title: "Dev Fixtures",
       subtitle: "Upper Pull / Upper Pull Variation / 12h 59m / 250 history items",
-      meta: "Stress values and punctuation-safe wrapping",
       status: "Stress",
     },
     searchPlaceholder: "Search weird values",

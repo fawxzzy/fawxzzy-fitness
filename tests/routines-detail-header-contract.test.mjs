@@ -14,9 +14,10 @@ const code = (path) => read(path).replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\
 
 const detailScreens = [
   "src/app/routines/[id]/page.tsx",
-  "src/app/routines/[id]/new-workout-plan/page.tsx",
+  "src/app/routines/[id]/new-workout-plan/CreateDayScreen.tsx",
+  "src/app/routines/workout-plans/DaysLibraryScreen.tsx",
   "src/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx",
-  "src/components/routines/RoutineAddExerciseScaffold.tsx",
+  "src/components/exercises/AddExerciseScaffold.tsx",
   "src/components/routines/RoutineDetailsExitGuard.tsx",
 ];
 
@@ -53,7 +54,8 @@ test("routines screens import no legacy header component", () => {
 });
 
 test("the Days library keeps its route and is a detail screen: Days title, Back to /routines, no tab bar", () => {
-  const source = code("src/app/routines/workout-plans/page.tsx");
+  assert.match(code("src/app/routines/workout-plans/page.tsx"), /<DaysLibraryScreen>/);
+  const source = code("src/app/routines/workout-plans/DaysLibraryScreen.tsx");
   assert.match(source, /<ScreenHeader\s+kind="detail"\s+title="Days"/);
   assert.match(source, /<ScreenHeaderBackButton href="\/routines"/);
   assert.doesNotMatch(source, /topChrome|AppNav|kind="tab"/);
@@ -83,6 +85,8 @@ test("routine forms use the C14 FormField recipe: no legend-on-border, no accent
   assert.match(editorForm, /<FormField label="Start date" helper="Day 1 falls on this date; the cycle repeats from it.">/);
   assert.doesNotMatch(editorForm, /Weekday Anchor/);
   assert.doesNotMatch(editorForm, /labeledEditorFieldFloatingLabelClassName/);
+  // Create day: the Day name field is the C14 recipe, not a hand-made label + input (lane H3).
+  assert.match(code("src/app/routines/CreateRoutineDayClient.tsx"), /<FormField label="Day name" helper="Optional\. Leave blank to use the day number\.">/);
   for (const file of ["src/app/routines/CreateRoutineClient.tsx", "src/components/ExercisePicker.tsx"]) {
     assert.doesNotMatch(code(file), /<LabeledEditorField\b/, `${file} still uses the legend-on-border field`);
   }

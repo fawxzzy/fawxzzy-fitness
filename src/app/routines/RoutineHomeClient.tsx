@@ -716,7 +716,10 @@ export function RoutineHomeClient({
                     setIsDuplicateSourceListOpen(false);
                   }}
                   disabled={isBusy}
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                  // The dock holds the screen's one primary: Add Day when editing, Create Routine on a draft
+                  // (publishing has no day requirement). So the empty-state action is secondary. A routine
+                  // normally never reaches zero days: creation seeds cycle-length days and delete keeps the last.
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
                 >
                   {isDeleteDayPending ? "Deleting..." : isCreateDayPending ? "Adding day..." : "Add first day"}
                 </button>

@@ -27,7 +27,7 @@ function buildPreviewUrl(target) {
 
 function buildHeaderFirstCardRhythmExpression(cardSelector) {
   return `(() => {
-    const header = document.querySelector("[data-shared-screen-header='true']");
+    const header = document.querySelector("[data-screen-header]");
     const card = document.querySelector(${JSON.stringify(cardSelector)});
     if (!(header instanceof HTMLElement) || !(card instanceof HTMLElement)) return false;
 
@@ -335,7 +335,7 @@ async function main() {
       actions: [
         { type: "navigate", url: `${BASE_URL}/history/${HISTORY_DETAIL_SESSION_ID}` },
         { type: "waitForText", text: "Back Squat", timeoutMs: 10000 },
-        { type: "waitForSelector", selector: "[data-shared-screen-header='true']", timeoutMs: 10000 },
+        { type: "waitForSelector", selector: "[data-screen-header='detail']", timeoutMs: 10000 },
         {
           type: "assertExpression",
           message: "History detail must render the summary through the detailed session wrapper.",

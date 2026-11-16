@@ -6,7 +6,7 @@ Implementation ownership:
 - mode resolver + selectors: `src/features/day-editor/mode.ts`
 - CTA dock variant resolver: `src/shared/day-cta-dock/dayCtaDockState.ts`
 - header meta resolver: `src/shared/day-header/dayHeaderSummary.ts`
-- header container geometry: shared header family via `SharedScreenHeader` / `RoutineEditorPageHeader`
+- header container geometry: the one `ScreenHeader` (kind `detail`, DESIGN-CONTRACT section 15) with `ScreenHeaderBackButton`
 
 ## Canonical modes
 

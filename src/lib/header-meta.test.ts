@@ -1,19 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatAddExerciseHeaderSubtitle, splitSessionHeaderTitle } from "./header-meta.ts";
+import { formatAddExerciseSubtitle, splitSessionHeaderTitle } from "./header-meta.ts";
 
-test("formatAddExerciseHeaderSubtitle strips stale exercise-count metadata", () => {
-  assert.equal(formatAddExerciseHeaderSubtitle("Push Day • 8 exercises"), "Push Day");
-  assert.equal(formatAddExerciseHeaderSubtitle("Leg Day • 1 exercise"), "Leg Day");
+test("formatAddExerciseSubtitle joins day and routine with a middle dot", () => {
+  assert.equal(formatAddExerciseSubtitle("Lower A", "QA Routine"), "Lower A · QA Routine");
+  assert.equal(formatAddExerciseSubtitle("  Lower A ", " QA Routine  "), "Lower A · QA Routine");
 });
 
-test("formatAddExerciseHeaderSubtitle strips taxonomy-aware metadata", () => {
-  assert.equal(formatAddExerciseHeaderSubtitle("Push Day • 8 strength"), "Push Day");
-  assert.equal(formatAddExerciseHeaderSubtitle("Conditioning • 3 cardio"), "Conditioning");
-});
-
-test("formatAddExerciseHeaderSubtitle preserves plain routine names", () => {
-  assert.equal(formatAddExerciseHeaderSubtitle("Upper Body"), "Upper Body");
+test("formatAddExerciseSubtitle skips a missing or blank part instead of leaving a dangling dot", () => {
+  assert.equal(formatAddExerciseSubtitle(null, "QA Routine"), "QA Routine");
+  assert.equal(formatAddExerciseSubtitle("Lower A", undefined), "Lower A");
+  assert.equal(formatAddExerciseSubtitle("   ", "QA Routine"), "QA Routine");
+  assert.equal(formatAddExerciseSubtitle(null, null), "");
 });
 
 test("splitSessionHeaderTitle splits merged routine/day labels", () => {

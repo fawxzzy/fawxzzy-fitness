@@ -1,11 +1,7 @@
 import { notFound } from "next/navigation";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
-import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { CreateRoutineDayClient } from "@/app/routines/CreateRoutineDayClient";
+import { CreateDayScreen } from "@/app/routines/[id]/new-workout-plan/CreateDayScreen";
 import { createRoutineDayAction, populateRoutineDayFromSourceAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
@@ -96,39 +92,32 @@ export default async function CreateWorkoutPlanPage({ params, searchParams }: Pa
     : getRoutineHomeHref(routineData.id);
 
   return (
-    <MainTabScreen topNavMode="none" ambientPreset="viewDay">
+    <>
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <ScreenHeader
-            kind="detail"
-            title={isTargetMode ? "Copy a day" : "Create day"}
-            subtitle={isTargetMode
-              ? `Into ${formatRoutineDayStableDisplayName({
-                name: targetDay?.name ?? null,
-                dayIndex: targetDay?.day_index ?? 1,
-                startDate: routineData.start_date,
-              })} · ${routineData.name}`
-              : routineData.name}
-            back={<ScreenHeaderBackButton href={backHref} />}
-          />
-        )}
+      <CreateDayScreen
+        targetDayLabel={isTargetMode && targetDay
+          ? formatRoutineDayStableDisplayName({
+            name: targetDay.name ?? null,
+            dayIndex: targetDay.day_index ?? 1,
+            startDate: routineData.start_date,
+          })
+          : null}
+        routineName={routineData.name}
+        backHref={backHref}
       >
-        <ContentRail className="space-y-3">
-          <CreateRoutineDayClient
-            routineId={routineData.id}
-            backHref={backHref}
-            routineEditHref={getRoutineEditHref(routineData.id)}
-            createRoutineDayAction={createRoutineDayAction}
-            populateRoutineDayFromSourceAction={populateRoutineDayFromSourceAction}
-            targetRoutineDayId={targetDay?.id}
-            targetDayEditHref={targetDay
-              ? getRoutineDayEditHref(routineData.id, targetDay.id, getRoutineHomeHref(routineData.id))
-              : undefined}
-            days={workoutPlanSources}
-          />
-        </ContentRail>
-      </ScrollScreenWithBottomActions>
-    </MainTabScreen>
+        <CreateRoutineDayClient
+          routineId={routineData.id}
+          backHref={backHref}
+          routineEditHref={getRoutineEditHref(routineData.id)}
+          createRoutineDayAction={createRoutineDayAction}
+          populateRoutineDayFromSourceAction={populateRoutineDayFromSourceAction}
+          targetRoutineDayId={targetDay?.id}
+          targetDayEditHref={targetDay
+            ? getRoutineDayEditHref(routineData.id, targetDay.id, getRoutineHomeHref(routineData.id))
+            : undefined}
+          days={workoutPlanSources}
+        />
+      </CreateDayScreen>
+    </>
   );
 }

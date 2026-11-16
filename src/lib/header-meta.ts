@@ -1,24 +1,11 @@
-export function formatExerciseCountMetaLabel(totalExercises: number | null | undefined) {
-  const safeTotal = Number.isFinite(totalExercises ?? null) && (totalExercises ?? 0) > 0
-    ? Math.floor(totalExercises as number)
-    : 0;
-  return `${safeTotal} exercise${safeTotal === 1 ? "" : "s"}`;
-}
+// Pure helpers for the plain-words header subtitle (DESIGN-CONTRACT.md section 15: at most one subtitle line).
 
-export function formatRoutineHeaderMeta({
-  routineName,
-  totalExercises,
-}: {
-  routineName: string;
-  totalExercises: number | null | undefined;
-}) {
-  return `${routineName} • ${formatExerciseCountMetaLabel(totalExercises)}`;
-}
-
-export function formatAddExerciseHeaderSubtitle(routineName: string) {
-  return routineName
-    .replace(/\s*•\s*\d+\s+(?:exercises?|strength|cardio|unknown)$/i, "")
-    .trim();
+/** The Add exercise screen subtitle: `<day> · <routine>`, skipping whichever part is missing or blank. */
+export function formatAddExerciseSubtitle(dayLabel: string | null | undefined, routineName: string | null | undefined) {
+  return [dayLabel, routineName]
+    .map((part) => (typeof part === "string" ? part.trim() : ""))
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function splitSessionHeaderTitle(input: string | null | undefined): { title: string; subtitle?: string } | null {
@@ -37,23 +24,4 @@ export function splitSessionHeaderTitle(input: string | null | undefined): { tit
   }
 
   return { title: maybeTitle, subtitle: maybeSubtitle };
-}
-
-export function splitWeekdayDisplayLabel(input: string | null | undefined): { weekday: string; remainder?: string } | null {
-  const value = String(input ?? "").trim();
-  if (!value) return null;
-
-  const separatorMatch = value.match(/^(.+?)\s*(?:\u00B7|\|)\s*(.+)$/);
-  if (!separatorMatch) {
-    return { weekday: value };
-  }
-
-  const weekday = separatorMatch[1]?.trim();
-  const remainder = separatorMatch[2]?.trim();
-
-  if (!weekday) {
-    return null;
-  }
-
-  return remainder ? { weekday, remainder } : { weekday };
 }

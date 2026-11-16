@@ -290,7 +290,7 @@ Enforced by `tests/screen-header-contract.test.mjs`. Component: `src/components/
 ### 15.1 One header, two kinds
 
 - **tab**: the four screens reached from the top tab bar: Today, Routines, History, Settings. The tab bar stays; the header sits under it; no Back button.
-- **detail**: every pushed screen (routine overview, day, edit day, edit routine, add exercise, session, history detail, exercise detail, review, create flows, onboarding steps). No tab bar; Back on the left. Migrated in lane H1: routines and the create flows (H1a) and the session, history, exercise, setup, account, legal and review screens (H1b, 15.5). `SharedScreenHeader` / `AppHeader` remain only in dev fixtures and the mobile-shell dev warning.
+- **detail**: every pushed screen (routine overview, day, edit day, edit routine, add exercise, session, history detail, exercise detail, review, create flows, onboarding steps). No tab bar; Back on the left. Migrated in lane H1: routines and the create flows (H1a) and the session, history, exercise, setup, account, legal and review screens (H1b, 15.5). Lane H3 moved the last screens (both Add exercise routes, the dev fixtures) and deleted the old header pieces (`AppHeader`, `SharedScreenHeader`, `BackButton`, `TopRightBackButton`, `RoutineDayHeaderTitle`, `standaloneHeaderFamily`, the info-rail helpers); `tests/screen-header-contract.test.mjs` fails if any of them, or a raw header title class, comes back anywhere in `src`, dev fixtures included.
 - Anatomy, always this order: [Back 44x44, left, detail only] [title block] [trailing slot]. Title block = the `h1` (one style: 22px / 600, left aligned, one line, ellipsis, full text in `title`) plus at most ONE muted subtitle line (14px, plain words, one line). Trailing slot = at most ONE 44x44 icon action or ONE chip. Nothing else.
 - Every screen has a title, a plain noun: `Today`, `Routines`, `History`, `Settings`, the routine / day / exercise name, `Add exercise`, `Workout`.
 - No line under the header (no hairline, no accent bar): "none" is the one choice, applied everywhere.
@@ -334,8 +334,12 @@ Back is the one shared `ScreenHeaderBackButton` (`src/components/ui/app/ScreenHe
 | Account (`/account`, direct visit only) | `Account` | the username (else the email) | Settings | none |
 | Terms, Privacy | the document name | none | `returnTo` when it is an in-app path, else Settings | none |
 | Optional day preview (`/review/optional-planned-day`) | `Optional workout day` | `Preview` | Routines | none |
+| Add exercise, routine day (`/routines/[id]/edit/day/[dayId]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the day editor (`Back to day`) | none |
+| Add exercise, live workout (`/session/[id]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the workout (`Back to workout`) | none |
 
-- Nothing else renders an `h1`: `tests/screen-header-contract.test.mjs` fails on a raw `<h1>` (or `as="h1"` / `titleAs="h1"`) anywhere in `src/app`, `src/components` or `src/features` outside `ScreenHeader`. Allowed: the auth shell (Auth Surface v2), the legacy `AppHeader` (dev fixtures only), `src/app/dev/**` fixtures and `src/app/api/**` HTML strings.
+Both Add exercise routes share one frame (`src/components/exercises/AddExerciseScaffold.tsx`). Signed-out fixtures for these and for Create day / Copy a day / Days (and its empty state): `/dev/detail-screens?screen=<id>`, add `&long=1` for long day and routine names (dev only, fail-closed).
+
+- Nothing else renders an `h1`: `tests/screen-header-contract.test.mjs` fails on a raw `<h1>` (or `as="h1"` / `titleAs="h1"`) anywhere in `src/app`, `src/components` or `src/features` outside `ScreenHeader`. Allowed: the auth shell (Auth Surface v2), `src/app/dev/**` fixtures and `src/app/api/**` HTML strings.
 - What used to sit in these headers and still matters is in the body: the history editor's day name and notes fields, the onboarding step name.
 - Segmented controls whose options are all links render as `nav` with `aria-current="page"` (not a tab list).
 - Auth: the primary dock button (Sign in and the other auth primaries) is the standard green `rgb(32 151 78)`, flat, no glow. The rest of the auth accent (kicker, focus ring, icon) is still lime and is a contract-lane follow-up.

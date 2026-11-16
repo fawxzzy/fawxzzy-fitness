@@ -47,7 +47,7 @@ function MobileScreenShellFrame({
 }: MobileScreenShellProps) {
   // Mobile shell contract:
   // All route headers must render via `floatingHeader`.
-  // Rendering `SharedScreenHeader` inside scroll content is deprecated and emits a dev warning.
+  // A `ScreenHeader` rendered inside scroll content scrolls away with it and emits a dev warning.
   const publishedBottomActions = usePublishedBottomActions();
   const dockRef = useRef<HTMLDivElement | null>(null);
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
@@ -64,11 +64,11 @@ function MobileScreenShellFrame({
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_DEBUG_MOBILE_SHELL !== "1") return;
-    const hasDeprecatedScrollHeader = Boolean(scrollContentRef.current?.querySelector("[data-shared-screen-header='true']"));
-    if (!hasDeprecatedScrollHeader) return;
+    const hasScrollingScreenHeader = Boolean(scrollContentRef.current?.querySelector("[data-screen-header]"));
+    if (!hasScrollingScreenHeader) return;
 
     console.warn(
-      "[MobileScreenShell] Detected SharedScreenHeader inside scroll content. Route headers must use the floatingHeader slot; scroll headers are deprecated.",
+      "[MobileScreenShell] Detected a ScreenHeader inside scroll content. Route headers must use the floatingHeader slot so they stay on screen.",
     );
   }, [children]);
 

@@ -5,7 +5,8 @@ import {
   resolveWorkoutPlanEditDecisionAction,
 } from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
-import { RoutineAddExerciseScaffold } from "@/components/routines/RoutineAddExerciseScaffold";
+import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
+import { formatAddExerciseSubtitle } from "@/lib/header-meta";
 import { requireUser } from "@/lib/auth";
 import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
 import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
@@ -80,9 +81,10 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
   });
 
   return (
-    <RoutineAddExerciseScaffold
-      subtitle={[dayLabel, routine.name].filter(Boolean).join(" · ")}
+    <AddExerciseScaffold
+      subtitle={formatAddExerciseSubtitle(dayLabel, routine.name)}
       backHref={backHref}
+      backLabel="Back to day"
     >
       <EditDayAddExerciseScreen
         routineId={params.id}
@@ -103,6 +105,6 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
         requiresWorkoutPlanEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
         existingWorkoutPlanNames={existingWorkoutPlanNames}
       />
-    </RoutineAddExerciseScaffold>
+    </AddExerciseScaffold>
   );
 }

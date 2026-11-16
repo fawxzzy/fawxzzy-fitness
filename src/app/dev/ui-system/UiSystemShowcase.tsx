@@ -13,7 +13,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { SkeletonCard, SkeletonThumb } from "@/components/ui/Skeleton";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
@@ -63,12 +63,11 @@ export function UiSystemShowcase({ fixtureId }: { fixtureId: UiSystemFixtureId }
         </div>
       </SurfaceCard>
 
-      <SharedScreenHeader
-        recipe="todayOverview"
+      <ScreenHeader
+        kind="tab"
         title={fixture.header.title}
         subtitle={fixture.header.subtitle}
-        meta={fixture.header.meta}
-        action={fixture.header.status ? <Chip tone="today">{fixture.header.status}</Chip> : undefined}
+        trailing={fixture.header.status ? <Chip tone="today">{fixture.header.status}</Chip> : undefined}
       />
 
       <SurfaceCard>
