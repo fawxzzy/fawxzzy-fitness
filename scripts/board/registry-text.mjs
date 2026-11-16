@@ -40,7 +40,9 @@ export function patchRegistryText(raw, before, after) {
     if (canonicalJson(old) !== canonicalJson(item)) text = replaceOnce(text, renderItem(old), renderItem(item), `work item ${item.id}`);
   }
   if (added.length) {
-    const last = renderItem(before.workItems.at(-1));
+    // Anchor on the last item as it stands in `text` now: the loop above may already have re-rendered it.
+    const lastBefore = before.workItems.at(-1);
+    const last = renderItem(after.workItems.find((item) => item.id === lastBefore.id) ?? lastBefore);
     text = replaceOnce(text, `${last}\n  ]\n}`, `${last},\n${added.map(renderItem).join(",\n")}\n  ]\n}`, "end of workItems");
   }
   if (canonicalJson(before.acceptedPublicCardIds) !== canonicalJson(after.acceptedPublicCardIds)) text = replaceOnce(text, renderAllowlist(before.acceptedPublicCardIds), renderAllowlist(after.acceptedPublicCardIds), "acceptedPublicCardIds");
