@@ -302,6 +302,19 @@ test("a second patch updates the existing provenance.boardSync line instead of a
   assert.deepEqual(JSON.parse(raw2), second.registry);
 });
 
+test("patcher handles last item changed, new item added, and both in one fold", () => {
+  const lastId = realRegistry.workItems.at(-1).id;
+  const changeLast = (reg) => { const r = structuredClone(reg); const l = r.workItems.at(-1); l.status = l.status === "review" ? "planning" : "review"; l.updatedAt = "2099-01-01T00:00:00.000Z"; return r; };
+  const addNew = (reg) => { const r = structuredClone(reg); r.workItems.push({ ...structuredClone(r.workItems[0]), id: "FF-ZZTEST-902" }); return r; };
+  const cases = { changeLast: changeLast(realRegistry), addNew: addNew(realRegistry), both: addNew(changeLast(realRegistry)) };
+  for (const [name, expected] of Object.entries(cases)) {
+    const patched = patchRegistryText(realRegistryRaw, realRegistry, expected);
+    assert.deepEqual(JSON.parse(patched), expected, name);
+    assert.equal(patched.includes("\r\n"), realRegistryRaw.includes("\r\n"), name);
+  }
+  assert.equal(cases.both.workItems.at(-2).id, lastId);
+});
+
 test("the patcher refuses text that is not in the registry's hand-written style instead of guessing", () => {
   const [a] = pickCards();
   const result = foldEvents({ registry: realRegistry, events: wrap([ev(a.id, "2099-01-01T10:00:00Z", { status: "in_progress", text: "One." })]) });
