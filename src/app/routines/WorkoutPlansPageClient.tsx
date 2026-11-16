@@ -86,8 +86,9 @@ export function WorkoutPlansPageClient({
             ) : (
               <BottomDockLink
                 href={routinesHref}
+                // Sits beside the dock's disabled New Day primary, so it stays secondary too.
                 intent="toggleInactive"
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
               >
                 Open Routines
               </BottomDockLink>
