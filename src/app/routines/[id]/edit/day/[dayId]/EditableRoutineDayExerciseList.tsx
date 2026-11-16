@@ -28,6 +28,7 @@ import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailSt
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import {
@@ -1640,25 +1641,22 @@ export function EditableRoutineDayExerciseList({
       >
         <div className="space-y-3">
           {workoutPlanDecisionStep === "save_new" ? (
-            <label className="block">
-              <span className="sr-only">Day name</span>
-              <input
-                type="text"
-                value={workoutPlanDecisionName}
-                onChange={(event) => {
-                  setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
-                  setWorkoutPlanDecisionError(null);
-                }}
-                placeholder="Day name"
-                maxLength={15}
-                className={cn(
-                  "w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition",
-                  workoutPlanDecisionError
-                    ? "border-[rgb(var(--danger-rgb)/0.52)]"
-                    : "border-[rgb(var(--border-strong)/0.16)] focus:border-[rgb(var(--accent)/0.32)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]",
-                )}
-              />
-            </label>
+            <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
+              {(control) => (
+                <input
+                  {...control}
+                  type="text"
+                  value={workoutPlanDecisionName}
+                  onChange={(event) => {
+                    setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
+                    setWorkoutPlanDecisionError(null);
+                  }}
+                  placeholder="Day name"
+                  maxLength={15}
+                  className={cn(formFieldControlClassName, "text-center")}
+                />
+              )}
+            </FormField>
           ) : null}
           {workoutPlanDecisionError ? (
             <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">

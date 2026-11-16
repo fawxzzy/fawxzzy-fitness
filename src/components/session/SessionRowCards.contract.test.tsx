@@ -200,7 +200,8 @@ test("feedback prompt: 44px effort and signal buttons, 11px text, named groups, 
   assert.match(source, /aria-label="Effort, 1 to 10"/);
   assert.match(source, /aria-label=\{`Effort \$\{value\} out of 10`\}/);
   assert.equal((source.match(/min-h-11/g) ?? []).length, 4, "header row, Rate toggle, signal chips and effort buttons");
-  assert.match(source, /h-11 w-full/, "note input");
+  assert.match(source, /<FormField label="Feedback note \(optional\)"/, "note input is labelled");
+  assert.match(source, /className=\{formFieldControlClassName\}/, "note input is the 44px FormField control");
   assert.doesNotMatch(source, /h-6 w-6|h-7 |text-\[(9|10)px\]|overflow-x-auto/);
 });
 
@@ -301,7 +302,7 @@ test("feedback prompt starts as one 44px row with a Rate toggle; the grid opens 
   assert.match(open, /aria-expanded="true"/);
   assert.match(open, />Hide</);
   assert.match(open, /aria-label="Effort 10 out of 10"/);
-  assert.match(open, /aria-label="Feedback note \(optional\)"/);
+  assert.match(open, /<label[^>]*>Feedback note \(optional\)<\/label>/);
 });
 
 test("offline session list has no info control (it needs the network) and no session-exercise id is passed as an exercise id", () => {
