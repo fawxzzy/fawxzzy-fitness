@@ -7,7 +7,8 @@ export function isValidNewPassword(value: unknown): value is string {
   return typeof value === "string" && value.length >= NEW_PASSWORD_MINIMUM;
 }
 
-// FF-ACCOUNT-003: changing the password while signed in (Settings > Account).
+// FF-ACCOUNT-003: changing the password while signed in. The screen moved to the account portal; this copy only backs
+// the dead changePasswordAction until the follow-up removes it.
 // Same new-password rule as sign-up and reset, plus proof of the current password. Every outcome is a code with fixed
 // copy, so the provider's message never reaches the screen.
 export const CHANGE_PASSWORD_COPY = {

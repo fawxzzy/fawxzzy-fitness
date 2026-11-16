@@ -51,7 +51,8 @@ test("username and email are read back after a trip to the portal", () => {
 });
 
 test("Sign out ends this device only: server revoke first, local sign-out, then ONE navigation, with a pending state", () => {
-  assert.match(signOutSource, /clearPersistedWorkoutClientState\(\)/);
+  assert.match(signOutSource, /clearLocalState: clearPersistedWorkoutClientState/);
+  assert.match(signOutSource, /await runDeviceSignOut\(\{/);
   assert.match(signOutSource, /fetch\("\/auth\/session-sync"/);
   assert.match(signOutSource, /method: "DELETE"/);
   assert.match(signOutSource, /auth\.signOut\(\{ scope: "local" \}\)/);
@@ -62,6 +63,21 @@ test("Sign out ends this device only: server revoke first, local sign-out, then 
   assert.match(signOutSource, /pending \? "Signing out…" : "Sign out"/);
   assert.match(signOutSource, /disabled=\{pending\}/);
   assert.doesNotMatch(signOutSource, /scope: "global"|"everywhere"/);
+});
+
+test("a failed sign-out stays on the screen with the copy-matrix notice and never leaves pending stuck", () => {
+  // The ordered flow and its failure rules are unit-tested in src/lib/auth/device-sign-out.test.ts; this pins the
+  // button's wiring: the flow runs in a try, and its finally resets pending and shows account.signoutfail unless the
+  // flow reported success (the page is then unloading).
+  assert.match(signOutSource, /import \{ DEVICE_SIGN_OUT_FAILURE_NOTICE_ID, runDeviceSignOut \} from "@\/lib\/auth\/device-sign-out"/);
+  assert.match(
+    signOutSource,
+    /signedOut = result\.ok;\s*\} finally \{\s*if \(!signedOut\) \{\s*setNotice\(authNotice\(DEVICE_SIGN_OUT_FAILURE_NOTICE_ID\)\);\s*setPending\(false\);/,
+  );
+  assert.match(signOutSource, /<AuthNoticeSlot notice=\{notice\}/);
+  // The flow is the only place that clears storage or navigates; nothing runs before it can fail.
+  assert.equal((signOutSource.match(/clearPersistedWorkoutClientState/g) ?? []).length, 2);
+  assert.doesNotMatch(signOutSource, /catch \{\s*\/\/ Ignore cookie cleanup failures/);
 });
 
 test("Sign out everywhere is a separate link to the portal Account page, set apart from Sign out", () => {

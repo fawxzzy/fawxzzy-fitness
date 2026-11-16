@@ -2736,9 +2736,10 @@ a:focus-visible {
   cursor: pointer;
 }
 
-/* Account screen (signed in): v2 tokens scoped to the Account screen, accent = the app's standard green. */
+/* Account screen (signed in): v2 tokens scoped to the Account screen, accent = the app's standard green, fixed like
+   .fx-auth (not var(--accent-mint), which the colour themes override) so the account surfaces match the portal. */
 .fx-account {
-  --fx-ac: var(--accent-mint);
+  --fx-ac: 32 151 78;
   --fx-danger: 255 107 120;
 }
 
@@ -3091,7 +3092,7 @@ a:focus-visible {
 /* Earned install prompt (Today): the install family as an inline card. Same icon, title, line, steps and pill
    buttons as /install, sized for a card. */
 .fx-earned {
-  --fx-ac: var(--accent-mint);
+  --fx-ac: 160 223 56;
   --fx-text: 241 245 242;
   display: flex;
   flex-direction: column;

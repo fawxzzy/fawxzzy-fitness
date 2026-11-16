@@ -5,7 +5,8 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
-// Drives the real updateAccountEmailAction (Settings > Account username/email Save) with only its external
+// Drives the real updateAccountEmailAction (no screen calls it since identity edits moved to the account portal; kept
+// until the follow-up removes the dead server actions) with only its external
 // boundaries substituted. The write goes through the real update-user helper against a stub fetch: the request-bound
 // Supabase client has no stored session, so `auth.updateUser` on it fails before any request is sent.
 const root = process.cwd();

@@ -39,7 +39,15 @@ test("installed auth uses the canonical account presentation without crossing or
   assert.match(loginEntrySource, /return <LoginScreen \{\.\.\.props\} \/>/);
   // One accent on auth screens: the standard green, no lime left (Zac 2026-11-15).
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--accent: 32 151 78;[^}]*--fx-ac: 32 151 78;/);
-  assert.doesNotMatch(globalCssSource, /160 223 56|190 242 100/);
+  // The account screen is fixed to the same green (themes override --accent-mint, so it is not used here); the lime
+  // stays only on the non-auth install card (.fx-earned).
+  const authBlock = globalCssSource.match(/\n\.fx-auth \{[^}]*\}/)?.[0] ?? "";
+  const accountBlock = globalCssSource.match(/\n\.fx-account \{[^}]*\}/)?.[0] ?? "";
+  assert.ok(authBlock && accountBlock, "the .fx-auth and .fx-account token blocks exist");
+  assert.match(accountBlock, /--fx-ac: 32 151 78;/);
+  for (const block of [authBlock, accountBlock]) {
+    assert.doesNotMatch(block, /160 223 56|190 242 100|var\(--accent-mint/);
+  }
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-base: #060b07/);
   // Sign in is the app's standard green primary, flat, with no lime gradient or glow.
   assert.match(globalCssSource, /\.fx-auth \{[^}]*--fx-primary: 32 151 78;/);

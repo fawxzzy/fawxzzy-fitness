@@ -4,7 +4,7 @@ import { decodeJwtClaims } from "@/lib/supabase/update-user";
 // normal sign-in that happens to be cookie-valid. GoTrue records how a session was authenticated in the access
 // token's `amr` claim: [{ method, timestamp }]. A recovery link verified through /auth/v1/verify yields method
 // `recovery` (some GoTrue versions label email links `otp`, so both are accepted); a password sign-in yields
-// `password`. A signed-in member changes the password with the current-password flow (changePasswordAction).
+// `password`. A signed-in member changes the password on the account portal (account.fawxzzy.com), not in Fitness.
 //
 // Verified here: the claim shape is read from real decoded tokens in tests. Assumed, not checked against the live
 // provider: that the verify redirect uses `recovery`/`otp` and that a token refresh keeps the original amr entries
