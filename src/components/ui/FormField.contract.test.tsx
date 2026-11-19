@@ -95,6 +95,19 @@ test("every FormField caller spreads the control props onto its input and sets n
   }
 });
 
+// `cn()` does not dedupe Tailwind classes: formFieldControlClassName already sets `h-11`, so a caller adding its own `h-*`
+// leaves two height utilities and the winner is stylesheet order. A growing textarea sets its height inline
+// (autoSizeTextarea), which beats the class; an `!h-*` would beat the inline height and freeze the textarea at one row.
+test("no caller adds an h-* utility next to formFieldControlClassName", () => {
+  for (const file of CALLERS) {
+    const source = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    const merged = source.match(/cn\(formFieldControlClassName,[^)]*\)/g) ?? [];
+    for (const call of merged) {
+      assert.doesNotMatch(call, /["\s]!?h-(?:auto|full|\d|\[)/, `${file}: ${call}`);
+    }
+  }
+});
+
 test("the copy-routine name and the custom exercise name carry an invalid state", () => {
   const read = (file: string) => readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
   assert.match(read("src/app/routines/CreateRoutineClient.tsx"), /<FormField\s+label="New routine name"\s+invalid=\{Boolean\(duplicateNameConflict\)\}\s+error=\{duplicateNameError\}/);

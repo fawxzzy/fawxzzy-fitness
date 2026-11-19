@@ -420,7 +420,7 @@ export function DataSettingsSection({
       </SettingsCard>
 
       <SettingsCard title="Export">
-        <FormField label="Name" className="w-full">
+        <FormField label="Export name" className="w-full">
           {(control) => (
           <input
             {...control}

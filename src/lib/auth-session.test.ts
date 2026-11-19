@@ -93,6 +93,18 @@ test("classifyAuthSessionFailure treats expired and invalid tokens as session-ex
   });
 });
 
+test("classifyAuthSessionFailure treats a revoked session (replayed signed-out cookie) as a session-expired login", () => {
+  // What the auth server answers `GET /user` with after sign-out revoked the session behind a copied access token.
+  const revoked = Object.assign(new Error("Session from session_id claim in JWT does not exist"), {
+    status: 403,
+    code: "session_not_found",
+  });
+  assert.deepEqual(classifyAuthSessionFailure(revoked), {
+    reason: "auth-session-missing",
+    loginErrorCode: SESSION_EXPIRED_LOGIN_ERROR,
+  });
+});
+
 test("classifyAuthSessionFailure ignores unrelated server failures", () => {
   assert.equal(classifyAuthSessionFailure(new Error("connection timeout talking to profiles table")), null);
   assert.equal(classifyAuthSessionFailure({ message: "unexpected server error", status: 500 }), null);

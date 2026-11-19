@@ -19,7 +19,6 @@
             "titleToSecondaryGap": "spacing.1",
             "secondaryBlockGap": "spacing.0.5",
             "contentBottomGap": "spacing.2",
-            "eyebrow": "typography.eyebrow",
             "subtitle": "typography.subtitle",
             "textPrimary": "colors.text.primary",
             "textSecondary": "colors.text.secondary",

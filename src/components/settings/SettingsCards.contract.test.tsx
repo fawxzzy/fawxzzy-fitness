@@ -188,6 +188,20 @@ test("App Theme: themes are select cards, empty slots read as one New custom the
   assert.match(themeSource, /label="Theme name"/);
 });
 
+/**
+ * The visible label is the accessible name, so it has to say the whole name ("Export name", not "Name"), and its `for` must
+ * match the `id` of an input in the same markup (that pair is what names the control; a mismatch leaves it unlabelled).
+ */
+function assertLabelPointsAtControl(html: string, labelText: string) {
+  const label = html.match(new RegExp(`<label[^>]*\\sfor="([^"]+)"[^>]*>${labelText}</label>`));
+  assert.ok(label, `a <label for> reads exactly "${labelText}"`);
+  const controls = Array.from(html.matchAll(/<input\b[^>]*>/g)).map((match) => match[0]);
+  assert.ok(
+    controls.some((tag) => tag.includes(` id="${label[1]}"`)),
+    `the input with id="${label[1]}" exists, so "${labelText}" names it`,
+  );
+}
+
 test("Data: cards for snapshot, export options and preview; real radio groups; plain copy; same requests", () => {
   const html = render(
     <DataSettingsSection
@@ -206,7 +220,7 @@ test("Data: cards for snapshot, export options and preview; real radio groups; p
   assert.match(html, /<legend[^>]*>Scope<\/legend>/);
   assert.equal((html.match(/name="export-file-type"/g) ?? []).length, 3);
   assert.equal((html.match(/name="export-scope"/g) ?? []).length, 3);
-  assert.match(html, /<label[^>]*>Name<\/label>/);
+  assertLabelPointsAtControl(html, "Export name");
   assert.match(html, /value="2026-05-01"/);
   assert.match(html, /value="2026-05-09"/);
 
@@ -219,12 +233,12 @@ test("Data: cards for snapshot, export options and preview; real radio groups; p
   assert.match(dataSource, /has-\[:focus-visible\]/, "the visually hidden radios show a focus ring on their tile");
 });
 
-test("Discord: join link is a 44px target, the token field keeps its accessible name, no sub-11px text", () => {
+test("Discord: join link is a 44px target, the token field is named by its full visible label, no sub-11px text", () => {
   const html = render(<DiscordAccessSettings />);
 
   assert.match(html, /<h3[^>]*>Join the Discord<\/h3>/);
   assert.match(html, /<h3[^>]*>One-time key<\/h3>/);
-  assert.match(html, /<label[^>]*>Verification token<\/label>/);
+  assertLabelPointsAtControl(html, "Discord verification token");
   assert.match(html, /min-h-11/);
   assert.doesNotMatch(html, /text-\[(?:[0-9]|10)(?:\.\d+)?px\]/);
 });
