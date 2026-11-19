@@ -34,6 +34,9 @@ async function reset(){
  await page.waitForTimeout(1300);
 }
 async function events(){return page.evaluate(()=>window.__events);}
+// React 19 (and the React build Next ships) owns a function `action`: it always calls preventDefault on the
+// native submit and runs the action itself, so "not blocked" means the login action received the form data.
+async function actions(){return page.evaluate(()=>window.__submissions);}
 const password='Dummy🧪Pass-123!';
 await reset();
 await page.evaluate(p=>{document.getElementById('login-email').value='dummy@example.test';document.getElementById('login-password').value=p;},password);
@@ -42,27 +45,28 @@ const delayed={enabled:await page.locator('[data-auth-primary-action]').isEnable
 await page.locator('[data-auth-primary-action]').click({timeout:1000}).catch(()=>{});
 await page.waitForTimeout(50);
 delayed.events=await events();
+delayed.actions=await actions();
 delayed.inFlightDisabled=await page.locator('[data-auth-primary-action]').isDisabled();
 await reset();
 await page.evaluate(p=>{document.getElementById('login-email').value='dummy@example.test';document.getElementById('login-password').value=p;},password);
 await page.locator('#login-password').focus();
 await page.keyboard.press('Enter');
 await page.waitForTimeout(50);
-const keyboard={events:await events(),inFlightDisabled:await page.locator('[data-auth-primary-action]').isDisabled()};
+const keyboard={events:await events(),actions:await actions(),inFlightDisabled:await page.locator('[data-auth-primary-action]').isDisabled()};
 await reset();
 await page.locator('#login-email').fill('dummy@example.test');
 await page.locator('#login-password').fill(password);
 await page.locator('[data-auth-primary-action]').click();
 await page.waitForTimeout(50);
-const normal={events:await events()};
+const normal={events:await events(),actions:await actions()};
 await reset();
 await page.locator('#login-email').fill('!!');
 await page.locator('#login-password').fill(password);
 await page.locator('[data-auth-primary-action]').click({timeout:1000}).catch(()=>{});
 await page.waitForTimeout(50);
-const invalid={events:await events(),stillEnabled:await page.locator('[data-auth-primary-action]').isEnabled()};
-const valid=e=>e.length===1&&e[0].data.email==='dummy@example.test'&&e[0].data.password===password&&e[0].preventedByHandler===false;
-const checks={delayedClick:delayed.enabled&&valid(delayed.events),delayedEnter:valid(keyboard.events),normalTyping:valid(normal.events),invalidRejected:invalid.events.length===1&&invalid.events[0].preventedByHandler===true,inFlightDisabled:delayed.inFlightDisabled&&keyboard.inFlightDisabled,passwordBytes:Buffer.from(delayed.events[0]?.data.password??'','utf8').equals(Buffer.from(password,'utf8')),noExternalRequests:external.length===0,noPageErrors:errors.length===0};
+const invalid={events:await events(),actions:await actions(),stillEnabled:await page.locator('[data-auth-primary-action]').isEnabled()};
+const valid=({events:e,actions:a})=>e.length===1&&e[0].data.email==='dummy@example.test'&&e[0].data.password===password&&a.length===1&&a[0].email==='dummy@example.test'&&a[0].password===password;
+const checks={delayedClick:delayed.enabled&&valid(delayed),delayedEnter:valid(keyboard),normalTyping:valid(normal),invalidRejected:invalid.events.length===1&&invalid.events[0].preventedByHandler===true&&invalid.actions.length===0,inFlightDisabled:delayed.inFlightDisabled&&keyboard.inFlightDisabled,passwordBytes:Buffer.from(delayed.events[0]?.data.password??'','utf8').equals(Buffer.from(password,'utf8')),noExternalRequests:external.length===0,noPageErrors:errors.length===0};
 console.log(JSON.stringify({browser:browser.version(),delayed,keyboard,normal,invalid,passwordBytesHex:Buffer.from(delayed.events[0]?.data.password??'','utf8').toString('hex'),checks,errors,external},null,2));
 await browser.close();
 if(Object.values(checks).some(x=>!x))process.exitCode=1;
