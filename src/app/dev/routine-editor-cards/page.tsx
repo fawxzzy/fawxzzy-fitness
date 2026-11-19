@@ -19,7 +19,7 @@ export default async function DevRoutineEditorCardsPage(
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
   }
 ) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   const pick = (key: string) => {

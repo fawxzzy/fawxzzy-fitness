@@ -26,7 +26,7 @@ export default async function QaShotPage(
     }>;
   }
 ) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   const files = await listShots();

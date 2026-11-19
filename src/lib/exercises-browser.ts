@@ -791,7 +791,7 @@ async function loadExerciseBrowserRoutineMeta(args: {
   profileTimeZone: string;
   client?: FitnessSupabaseClient;
 }): Promise<ExerciseBrowserRoutineMeta | null> {
-  const supabase = args.client ?? supabaseServer();
+  const supabase = args.client ?? (await supabaseServer());
   const { data } = await supabase
     .from("routines")
     .select("id, name, cycle_length_days, start_date, timezone")
@@ -854,7 +854,7 @@ async function buildExerciseBrowserFilterOptions(args: {
   scopeContext: ExerciseBrowserScopeContext;
   client?: FitnessSupabaseClient;
 }): Promise<ExerciseInfoFilterOptions> {
-  const supabase = args.client ?? supabaseServer();
+  const supabase = args.client ?? (await supabaseServer());
   const [{ data: routineRows }, { data: sessionRows }, { data: progressionRows }] = await Promise.all([
     supabase
       .from("routines")
@@ -941,7 +941,7 @@ async function buildExerciseBrowserFilterOptions(args: {
 }
 
 async function resolveExerciseBrowserScopeContext(userId: string, client?: FitnessSupabaseClient): Promise<ExerciseBrowserScopeContext> {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const { data } = await supabase
     .from("profiles")
     .select("timezone, active_routine_id")
@@ -1097,7 +1097,7 @@ async function getExercisesWithStats(
   },
 ): Promise<ExerciseBrowserRow[]> {
   noStore();
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const analyticsScope = options?.analyticsScope === "current_routine"
     ? "current_routine"
     : options?.analyticsScope === "current_cycle"

@@ -42,7 +42,7 @@ export default async function EntryPage() {
     timeoutMs: 5000,
     collector: diagnostics,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const localDevAutoEntryHref = await resolveLocalDevAutoEntryHref({
     supabase,

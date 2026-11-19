@@ -57,7 +57,7 @@ type SessionAutoPromotionUpdate = {
   linkedDayNames: string[];
 };
 
-function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
+function createLiveSessionMutationRepository(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
   return {
     async readSession(sessionId: string) {
       const { data } = await supabase
@@ -97,7 +97,7 @@ async function ensurePerformedIndex(payload: {
   sessionId: string;
   sessionExerciseId: string;
   userId: string;
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
 }): Promise<void> {
   const { sessionId, sessionExerciseId, userId, supabase } = payload;
 
@@ -143,7 +143,7 @@ function hasSelectedProgressionPlaybook(payload: Record<string, unknown>) {
 async function applyEligibleAutomaticProgressionUpdates(args: {
   sessionId: string;
   userId: string;
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
 }): Promise<SessionAutoPromotionUpdate[]> {
   const { data: session } = await args.supabase
     .from("sessions")
@@ -273,7 +273,7 @@ function isMissingSetLoggedAtColumnError(error: { message?: string } | null | un
 async function resolveClampedSessionDurationSeconds(args: {
   sessionId: string;
   userId: string;
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   reportedSeconds: number | null;
 }): Promise<number | null> {
   if (args.reportedSeconds === null) {
@@ -314,7 +314,7 @@ async function resolveClampedSessionDurationSeconds(args: {
 async function finalizeRunningExerciseTimersForSession(args: {
   sessionId: string;
   userId: string;
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   nowIso: string;
 }): Promise<ActionResult> {
   const result = await args.supabase
@@ -426,7 +426,7 @@ export async function addSetAction(payload: {
   loggedAt?: string;
 }) : Promise<ActionResult<{ set: SetRow }>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const { sessionId, sessionExerciseId, weight, reps, durationSeconds, distance, distanceUnit, calories, isWarmup, notes, weightUnit, clientLogId } = payload;
 
@@ -633,7 +633,7 @@ export async function deleteSetAction(payload: {
   setId: string;
 }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = payload.sessionId.trim();
   const sessionExerciseId = payload.sessionExerciseId.trim();
@@ -675,7 +675,7 @@ export async function deleteSetAction(payload: {
 
 export async function toggleSkipAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "");
   const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
@@ -717,7 +717,7 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
   effort: number | null;
 }): Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null; updatedAt: string | null }>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(payload.sessionId ?? "").trim();
   const sessionExerciseId = String(payload.sessionExerciseId ?? "").trim();
@@ -787,7 +787,7 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
 
 export async function quickAddExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "").trim();
   const exerciseIdentifier = String(formData.get("exerciseId") ?? "").trim();
@@ -868,7 +868,7 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
 
 export async function addExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "");
   const selectedExerciseId = String(formData.get("exerciseId") ?? "").trim();
@@ -1111,7 +1111,7 @@ export async function updateSessionExerciseTimerAction(payload: {
   command: ExerciseTimerCommand;
 }): Promise<ActionResult<{ timer: ExerciseTimerSnapshot }>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
     userId: user.id,
     sessionId: payload.sessionId,
@@ -1169,7 +1169,7 @@ export async function updateSessionExerciseTimerAction(payload: {
 
 export async function removeExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "");
   const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
@@ -1205,7 +1205,7 @@ export async function removeExerciseAction(formData: FormData): Promise<ActionRe
 
 export async function discardSessionAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "").trim();
 
@@ -1273,7 +1273,7 @@ export async function discardSessionAction(formData: FormData): Promise<ActionRe
 
 export async function updateSessionExerciseProgressionAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "").trim();
   const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "").trim();
@@ -1369,7 +1369,7 @@ export async function updateSessionExerciseProgressionAction(formData: FormData)
 
 export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string; progressionUpdates: SessionAutoPromotionUpdate[] }>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "");
   const durationValue = String(formData.get("durationSeconds") ?? "").trim();

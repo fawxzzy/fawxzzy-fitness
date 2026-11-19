@@ -43,7 +43,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/lib/supabase/update-user.test.ts tests/password-mutation-actions.test.mjs src/lib/recovery-session.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/components/error/auth-session-preservation.contract.test.ts src/components/error/errorScreens.contract.test.tsx
           node --import ./scripts/register-test-aliases.mjs --test src/components/auth/authMessages.test.ts src/lib/install/config.test.ts
-          node --import ./scripts/register-test-aliases.mjs --test src/middleware.test.ts src/lib/detail-route-guard.test.ts src/lib/next-navigation-errors.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/proxy.test.ts src/lib/detail-route-guard.test.ts src/lib/next-navigation-errors.test.ts src/lib/async-request-helpers.contract.test.ts src/lib/dev-page-guard-runtime.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/timezones.test.ts src/lib/history-local-day-boundary.test.ts src/lib/history-sessions-page-loader.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/history-consistency-heatmap.test.ts src/components/history/ConsistencyHeatmapSurface.test.tsx
           node --import ./scripts/register-test-aliases.mjs --test src/app/auth/session-sync/route.test.ts

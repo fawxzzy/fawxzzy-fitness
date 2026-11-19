@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       cycleStartDate: searchParams.get("cycleStartDate"),
     });
     const payload = await loadHistorySessionsScopePayloadForUser({
-      supabase: supabaseServer(),
+      supabase: await supabaseServer(),
       userId: user.id,
       filterState,
       showQaLlelDataOverride: resolveQaLlelVisibilityOverride(

@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies, headers, type UnsafeUnwrappedCookies, type UnsafeUnwrappedHeaders } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from "@/lib/auth-session";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { resolveServerSessionTokens, type ServerSessionTokenSnapshot } from "@/lib/auth/server-session-core";
@@ -29,9 +29,10 @@ export function createSupabaseServerClient(accessToken?: string | null) {
   });
 }
 
-export function readCurrentRequestServerSessionTokens(): ServerSessionTokenSnapshot {
-  const cookieStore = (cookies() as unknown as UnsafeUnwrappedCookies);
-  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
+// Async since Next 16 (cookies()/headers() are async only). Callers must `await`.
+export async function readCurrentRequestServerSessionTokens(): Promise<ServerSessionTokenSnapshot> {
+  const cookieStore = await cookies();
+  const requestHeaders = await headers();
 
   return resolveServerSessionTokens({
     cookieAccessToken: cookieStore.get(ACCESS_COOKIE_NAME)?.value,
@@ -45,7 +46,7 @@ export function readCurrentRequestServerSessionTokens(): ServerSessionTokenSnaps
 export async function recoverCurrentRequestServerSession(
   recoverSession: RecoverSession = recoverSupabaseSessionFromCookies,
 ) {
-  const session = readCurrentRequestServerSessionTokens();
+  const session = await readCurrentRequestServerSessionTokens();
   const recovery = await recoverSession({
     accessToken: session.accessToken,
     refreshToken: session.refreshToken,

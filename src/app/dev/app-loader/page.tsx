@@ -17,8 +17,8 @@ const WAITS_MS = [0, 60, 300, 1500, 4000] as const;
  * No Supabase client and no session. Availability is the shared dev-route guard (middleware answers 404 on
  * production hosts; the first statement below repeats it).
  */
-export default function DevAppLoaderPage() {
-  assertDevPageAvailable();
+export default async function DevAppLoaderPage() {
+  await assertDevPageAvailable();
 
   return (
     <ContentRail className="pb-24 pt-6">

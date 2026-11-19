@@ -25,7 +25,7 @@ export default async function HistoryExercisesPage() {
   const diagnostics = new LoadingDiagnosticsCollector("/history/exercises");
 
   try {
-    const browserPayload = isHistoryPreviewActiveForRequest()
+    const browserPayload = (await isHistoryPreviewActiveForRequest())
       ? {
           initialRows: getHistoryPreviewExerciseRows(),
           filterOptions: { routines: [] },

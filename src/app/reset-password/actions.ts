@@ -76,7 +76,7 @@ export async function updatePassword(newPassword: string) {
   // One token for the whole step: it is checked for proof of a recovery session here and then used, unchanged, for the
   // write (the provider verifies its signature and session on that same request). This path never refreshes or
   // rotates anything: /reset-password is a public authless path, so middleware does not refresh the cookie either.
-  const accessToken = getRequestAccessToken();
+  const accessToken = await getRequestAccessToken();
   const recovery = evaluateRecoverySessionToken(accessToken);
   if (!recovery.ok) {
     const code: ResetPasswordErrorCode = recovery.reason === "not_recovery" ? "not_recovery_session" : "session_expired";

@@ -3,8 +3,8 @@ import { BottomActionsProvider } from "@/components/layout/bottom-actions";
 import { StretchSessionPreview } from "@/app/dev/stretch-hub/StretchSessionPreview";
 import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
-export default function DevStretchSessionPreviewPage() {
-  assertDevPageAvailable();
+export default async function DevStretchSessionPreviewPage() {
+  await assertDevPageAvailable();
 
   return (
     <BottomActionsProvider>

@@ -12,7 +12,7 @@ const MAX_WAIT_MS = 8000;
 
 /** Dev-only fixture: waits `[ms]` on the server (capped) so the route loader has something to wait for. */
 export default async function DevAppLoaderWaitPage(props: { params: Promise<{ ms: string }> }) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const params = await props.params;
 
   const requested = Number.parseInt(params.ms, 10);

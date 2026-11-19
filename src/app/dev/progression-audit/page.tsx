@@ -399,7 +399,7 @@ async function buildAuditRows() {
     };
   }
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data: routineData, error: routineError } = await supabase
     .from("routines")
     .select("id, user_id, name, cycle_length_days, start_date, timezone, weight_unit, default_progression_playbook_id, default_progression_playbook_config")

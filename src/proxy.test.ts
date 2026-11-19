@@ -4,9 +4,9 @@ import { NextRequest } from "next/server.js";
 import {
   config,
   handleAuthSessionMiddleware,
-  middleware,
+  proxy,
   shouldRedirectLegacyFitnessNavigation,
-} from "@/middleware";
+} from "@/proxy";
 
 test("middleware permanently redirects legacy browser routes to the branded origin", async () => {
   for (const method of ["GET", "HEAD"]) {
@@ -15,7 +15,7 @@ test("middleware permanently redirects legacy browser routes to the branded orig
       { method },
     );
 
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     assert.equal(response.status, 308);
     assert.equal(

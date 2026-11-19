@@ -74,7 +74,7 @@ const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_LEGACY = `routine_day_id, ${ROUTI
 const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_WITH_PROGRESSION = `routine_day_id, ${ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION}`;
 
 async function reindexRoutineDaysDirect(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   routineId: string;
   userId: string;
   orderedRoutineDayIds: string[];
@@ -127,7 +127,7 @@ function omitRoutineDayDuplicateSourceColumn<T extends Record<string, unknown>>(
 }
 
 async function loadRoutineDayWithDuplicateSourceCompat(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   routineDayId: string;
   userId: string;
   routineId?: string;
@@ -136,7 +136,7 @@ async function loadRoutineDayWithDuplicateSourceCompat(args: {
 }
 
 async function loadWorkoutPlanTemplateSourceContext(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId?: string;
   workoutPlanTemplateId?: string | null;
@@ -339,7 +339,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
 }
 
 async function cloneLegacyRoutineDayExercisesIntoDestination(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   targetRoutineDayId: string;
   sourceExercises: Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"];
@@ -385,7 +385,7 @@ async function cloneLegacyRoutineDayExercisesIntoDestination(args: {
 
 export async function setActiveRoutineAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
 
   if (!routineId) {
@@ -427,7 +427,7 @@ export async function setActiveRoutineAction(formData: FormData): Promise<Action
 
 export async function loadRoutineWorkoutPlanSourcesAction(formData: FormData): Promise<LoadWorkoutPlanSourcesResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
 
   if (!routineId) {
@@ -452,7 +452,7 @@ export async function loadRoutineWorkoutPlanSourcesAction(formData: FormData): P
 
 export async function appendRoutineDayAction(formData: FormData): Promise<AppendRoutineDayResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
 
   if (!routineId) {
@@ -547,7 +547,7 @@ export async function appendRoutineDayAction(formData: FormData): Promise<Append
 
 export async function deleteRoutineDayAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
 
@@ -641,7 +641,7 @@ export async function deleteRoutineDayAction(formData: FormData): Promise<Action
 
 export async function duplicateRoutineDayAction(formData: FormData): Promise<DuplicateRoutineDayResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
   const workoutPlanTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
@@ -873,7 +873,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
 
 export async function populateRoutineDayFromSourceAction(formData: FormData): Promise<PopulateRoutineDayResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const targetRoutineDayId = String(formData.get("targetRoutineDayId") ?? "").trim();
   const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
@@ -1129,7 +1129,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
 }
 
 async function loadOwnedRoutineForCopy(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   routineId: string;
   userId: string;
 }) {
@@ -1160,7 +1160,7 @@ async function loadOwnedRoutineForCopy(args: {
 
 export async function duplicateRoutineAction(formData: FormData): Promise<CreateRoutineResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const sourceRoutineId = String(formData.get("sourceRoutineId") ?? "").trim();
   const requestedName = String(formData.get("name") ?? "").trim().slice(0, 15);
 
@@ -1420,7 +1420,7 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
 
 export async function reorderRoutineDaysAction(formData: FormData): Promise<ReorderRoutineDaysResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const orderedRoutineDayIds = String(formData.get("orderedRoutineDayIds") ?? "")
     .split(",")
@@ -1475,7 +1475,7 @@ export async function reorderRoutineDaysAction(formData: FormData): Promise<Reor
 
 export async function createRoutineDayAction(formData: FormData): Promise<CreateRoutineDayResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const creationMode = String(formData.get("creationMode") ?? "blank").trim();
   const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
@@ -1734,7 +1734,7 @@ function isStretchExerciseMetadata(exercise: {
 }
 
 async function enforceRoutineCapacityForCreate(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
 }): Promise<ActionResult> {
   const proAccess = await loadProAccessSnapshot(args.userId);
@@ -1759,7 +1759,7 @@ async function enforceRoutineCapacityForCreate(args: {
 }
 
 async function enforceRoutineAccessForCurrentTier(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
 }): Promise<ActionResult> {
@@ -1799,7 +1799,7 @@ async function enforceRoutineAccessForCurrentTier(args: {
 }
 
 async function enforceWorkoutPlanTemplateAccessForCurrentTier(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   templateId: string;
 }): Promise<ActionResult> {
@@ -1831,7 +1831,7 @@ async function enforceWorkoutPlanTemplateAccessForCurrentTier(args: {
 }
 
 async function getSavedWorkoutPlanCapacityError(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
 }) {
   const proAccess = await loadProAccessSnapshot(args.userId);
@@ -1861,7 +1861,7 @@ async function getSavedWorkoutPlanCapacityError(args: {
 
 export async function createRoutineAction(formData: FormData): Promise<CreateRoutineResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const parsed = parseRoutineForm(formData);
   if (!parsed.ok) return parsed;
   const previewDays = parseRoutinePreviewDays(formData);
@@ -1981,7 +1981,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
 
 export async function updateRoutineAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "");
   const existingStartDate = String(formData.get("existingStartDate") ?? "").trim() || null;
   const parsed = parseRoutineForm(formData);
@@ -2177,7 +2177,7 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
 
 export async function deleteRoutineAction(payload: { routineId: string }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const routineId = payload.routineId?.trim();
 
@@ -2231,7 +2231,7 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
 
 export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const requestedTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
   const requestedSourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
 

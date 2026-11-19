@@ -1,20 +1,23 @@
 import "server-only";
 
-import { headers, type UnsafeUnwrappedHeaders } from "next/headers";
+import { headers } from "next/headers";
 import {
   isHistoryPreviewAllowedHost,
   isHistoryPreviewEnabledInEnv,
 } from "@/lib/history-preview-config";
 
-function getRequestHost() {
-  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
+async function getRequestHost() {
+  const requestHeaders = await headers();
   return requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 }
 
-export function isHistoryPreviewAvailableForRequest() {
-  return isHistoryPreviewEnabledInEnv() && isHistoryPreviewAllowedHost(getRequestHost());
+// Async since Next 16 (request headers are async only). Always `await` these: an un-awaited
+// Promise is truthy, so `if (isHistoryPreviewActiveForRequest())` would fail open.
+// src/lib/async-request-helpers.contract.test.ts fails on any call site that is not awaited.
+export async function isHistoryPreviewAvailableForRequest() {
+  return isHistoryPreviewEnabledInEnv() && isHistoryPreviewAllowedHost(await getRequestHost());
 }
 
-export function isHistoryPreviewActiveForRequest() {
-  return isHistoryPreviewAvailableForRequest();
+export async function isHistoryPreviewActiveForRequest() {
+  return await isHistoryPreviewAvailableForRequest();
 }

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(buildRedirectUrl(request, buildLoginHref("manual=1")));
   }
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword(localDevCredentials);
 
   if (error || !data.session) {

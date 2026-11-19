@@ -181,10 +181,11 @@ function warnIfUnexpectedSupabaseHost(env) {
 function ensureMiddlewareManifestStub() {
   const serverDir = path.join(nextBuildRoot, "server");
   const manifestPath = path.join(serverDir, "middleware-manifest.json");
-  const hasRealMiddlewareSource = fs.existsSync(path.join(repoRoot, "middleware.ts"))
-    || fs.existsSync(path.join(repoRoot, "middleware.js"))
-    || fs.existsSync(path.join(repoRoot, "src", "middleware.ts"))
-    || fs.existsSync(path.join(repoRoot, "src", "middleware.js"));
+  // Next 16 renamed middleware to proxy (src/proxy.ts here); never stub over a real one.
+  const hasRealMiddlewareSource = ["middleware", "proxy"].some((name) =>
+    ["ts", "js"].some((ext) =>
+      fs.existsSync(path.join(repoRoot, `${name}.${ext}`))
+      || fs.existsSync(path.join(repoRoot, "src", `${name}.${ext}`))));
 
   if (hasRealMiddlewareSource || !fs.existsSync(serverDir) || fs.existsSync(manifestPath)) {
     return;

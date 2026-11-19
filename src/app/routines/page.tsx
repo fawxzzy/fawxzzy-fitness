@@ -77,7 +77,7 @@ type RoutinesBrowsePageModel = {
 
 async function loadRoutinesBrowsePageModel(args: {
   diagnostics: LoadingDiagnosticsCollector;
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   profile: Awaited<ReturnType<typeof ensureProfile>>;
   showQaLlelData: boolean;
@@ -386,7 +386,7 @@ export default async function RoutinesPage() {
     timeoutMs: 5000,
     collector: diagnostics,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const [profile, proAccess] = await Promise.all([
     diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
       blockingReason: "Waiting for routines profile bootstrap.",

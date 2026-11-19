@@ -80,7 +80,7 @@ import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-sha
 
 export const dynamic = "force-dynamic";
 
-function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
+function createLiveSessionMutationRepository(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
   return {
     async readSession(sessionId: string) {
       const { data } = await supabase
@@ -190,7 +190,7 @@ const PROGRESSION_MUTATION_EXERCISE_SELECT = "id, user_id, routine_day_id, exerc
 const LINKED_PROGRESSION_UPDATE_LIMIT = 12;
 
 async function readProgressionReviewMutationContext(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   routineDayExerciseId: string;
@@ -257,7 +257,7 @@ async function readProgressionReviewMutationContext(args: {
 }
 
 async function loadProgressionHistoryForExercise(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   exerciseId: string;
@@ -361,7 +361,7 @@ async function loadProgressionHistoryForExercise(args: {
 }
 
 async function canUseCatalogHistoryFallbackForRoutineExercise(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   exerciseId: string;
@@ -401,7 +401,7 @@ function resolveLinkedRoutineDayExerciseIds(sourceId: string, linkedIds?: string
 }
 
 async function readMutationExercisesForRoutine(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   routineDayExerciseIds: string[];
@@ -461,7 +461,7 @@ async function applyProgressionReviewCandidateAction(payload: {
   "use server";
 
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   if (payload.candidateType === "review") {
     return { ok: false, error: "Manual Review candidates are review-only for now." };
@@ -605,7 +605,7 @@ async function revertProgressionReviewCandidateAction(payload: {
   "use server";
 
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const context = await readProgressionReviewMutationContext({
     supabase,
     userId: user.id,
@@ -677,7 +677,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   "use server";
 
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const sessionId = String(formData.get("sessionId") ?? "").trim();
   const safeError = "Unable to discard the in-progress workout.";
 
@@ -788,7 +788,7 @@ export default async function TodayPage(
     },
     timeoutMs: 5000,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   let activeRoutine: RoutineRow | null = null;
   let todayRoutineDay: RoutineDayRow | null = null;

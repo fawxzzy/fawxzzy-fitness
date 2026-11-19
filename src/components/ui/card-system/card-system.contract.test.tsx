@@ -199,8 +199,8 @@ test("the card-system dev gallery is covered by the shared dev-route guard and h
 
   // Withdrawn from production by middleware (isDevOnlyPath) and by the page's own first statement; the layout repeats it.
   assert.equal(isDevOnlyPath("/dev/card-system"), true);
-  assert.match(layout, /assertDevPageAvailable\(\)/);
-  assert.match(page, /export default function DevCardSystemPage\(\) \{\s*assertDevPageAvailable\(\);/);
+  assert.match(layout, /await assertDevPageAvailable\(\)/);
+  assert.match(page, /export default async function DevCardSystemPage\(\) \{\s*await assertDevPageAvailable\(\);/);
   for (const source of [page, gallery]) {
     assert.doesNotMatch(source, /supabaseAdmin|createSupabase|service[-_ ]role|process\.env/i);
   }

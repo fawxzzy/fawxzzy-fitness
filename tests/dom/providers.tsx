@@ -26,6 +26,7 @@ export function createRouterSpy() {
     prefetch(href: string) {
       calls.prefetch.push(href);
     },
+    bfcacheId: "test",
   };
   return { router, calls };
 }

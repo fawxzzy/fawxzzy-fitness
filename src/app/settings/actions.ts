@@ -29,7 +29,7 @@ function isMissingProfileSettingsColumnError(error: { message?: string } | null 
 
 export async function updateUnitPreferencesAction(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const weightUnit = String(formData.get("weightUnit") ?? "");
   const distanceUnit = String(formData.get("distanceUnit") ?? "");
@@ -63,7 +63,7 @@ export async function updateUnitPreferencesAction(formData: FormData): Promise<{
 
 export async function updateQaLlelVisibilityAction(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const showQaLlelData = String(formData.get("showQaLlelData") ?? "") === "1";
   const cookieStore = await cookies();
 

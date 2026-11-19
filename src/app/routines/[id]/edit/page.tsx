@@ -26,7 +26,7 @@ export default async function EditRoutinePage(props: PageProps) {
   const params = await props.params;
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
     supabase,
     userId: user.id,

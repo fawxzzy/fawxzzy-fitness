@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       dateTo: typeof payload.dateTo === "string" ? payload.dateTo : null,
     };
     // One cookie-bound (RLS) client for every read; the user id always comes from the session, never the request body.
-    const supabase = supabaseServer();
+    const supabase = await supabaseServer();
     const exportPayload = await buildAccountWorkoutExportPayload({
       supabase,
       userId: user.id,

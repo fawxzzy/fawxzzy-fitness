@@ -21,7 +21,7 @@ import {
 } from "./SettingsSectionsClient.tsx";
 import type { ProAccessSnapshot } from "../../lib/billing/pro-access-snapshot.ts";
 
-const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
+const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
 function render(node: ReactElement) {
   return renderMarkup(

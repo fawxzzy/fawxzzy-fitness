@@ -44,7 +44,7 @@ function uniqueExerciseIds(exerciseIds: Array<string | null | undefined>): strin
 }
 
 export async function getExerciseIdsForCompletedSessions(userId: string): Promise<string[]> {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data, error } = await supabase
     .from("session_exercises")
     .select("exercise_id, session:sessions!inner(status)")
@@ -63,7 +63,7 @@ export async function getExerciseIdsForSession(
   sessionId: string,
   client?: FitnessSupabaseClient,
 ): Promise<string[]> {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const { data, error } = await supabase
     .from("session_exercises")
     .select("exercise_id")
@@ -83,7 +83,7 @@ export async function getExerciseIdsForSessionExercises(userId: string, sessionE
     return [];
   }
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data, error } = await supabase
     .from("session_exercises")
     .select("exercise_id")
@@ -123,7 +123,7 @@ export async function recomputeExerciseStatsForExercises(
     return;
   }
 
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   const { data: historySets, error } = await supabase
     .from("sets")
@@ -184,7 +184,7 @@ export async function recomputeExerciseStatsForExercises(
 }
 
 export async function rebuildExerciseStatsFromLoggedSessions(userId: string): Promise<string[]> {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const [completedSessionExerciseIds, existingStatsRows] = await Promise.all([
     getExerciseIdsForCompletedSessions(userId),
     supabase
@@ -217,7 +217,7 @@ export async function getExerciseStatsForExercises(
     return new Map();
   }
 
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const [{ data: statsData }, { data: latestProgressionData }, { data: latestConfiguredSetupData }] = await Promise.all([
     supabase
       .from("exercise_stats")
@@ -328,7 +328,7 @@ export async function getExerciseStatsForExercise(
 ): Promise<ExerciseStatsLookupResult> {
   noStore();
 
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   if (!options?.skipCanonicalValidation) {
     const { data: canonicalExercise, error: canonicalExerciseError } = await supabase

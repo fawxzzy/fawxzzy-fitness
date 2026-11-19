@@ -58,7 +58,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
     },
     timeoutMs: 5000,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
     supabase,
     userId: user.id,

@@ -202,7 +202,7 @@ export default async function HistoryLogDetailsPage(props: PageProps) {
   const params = await props.params;
   const diagnostics = new LoadingDiagnosticsCollector(`/history/${params.sessionId}`);
   try {
-    if (isHistoryPreviewActiveForRequest()) {
+    if (await isHistoryPreviewActiveForRequest()) {
       const previewData = getHistoryPreviewDetailPageData(params.sessionId);
       if (!previewData) {
         notFound();
@@ -231,7 +231,7 @@ export default async function HistoryLogDetailsPage(props: PageProps) {
       timeoutMs: 5000,
       collector: diagnostics,
     });
-    const supabase = supabaseServer();
+    const supabase = await supabaseServer();
     const profilePromise = ensureProfile(user.id);
     const exerciseNameMapPromise = diagnostics.measure("history.detail.exercise-names.fetch", () => getExerciseNameMap(), {
       blockingReason: "Waiting for exercise names for history detail.",

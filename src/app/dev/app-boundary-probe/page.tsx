@@ -11,7 +11,7 @@ export default async function AppBoundaryProbePage(
     }>;
   }
 ) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   return (

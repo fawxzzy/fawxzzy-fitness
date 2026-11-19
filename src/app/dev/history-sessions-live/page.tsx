@@ -49,7 +49,7 @@ export default async function DevHistorySessionsLivePage(
     }>;
   }
 ) {
-  assertDevServiceRolePageAvailable();
+  await assertDevServiceRolePageAvailable();
   const searchParams = await props.searchParams;
 
   const userId = searchParams?.userId?.trim() ?? "";

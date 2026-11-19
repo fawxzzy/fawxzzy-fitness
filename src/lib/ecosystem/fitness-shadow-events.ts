@@ -104,7 +104,9 @@ function safeToken(value: string): string {
 }
 
 function findAtlasRoot(startDir = process.cwd()): string {
-  let current = path.resolve(startDir);
+  // turbopackIgnore: a runtime path for local ATLAS receipts, not a file to bundle. Without it Turbopack
+  // traces the whole project into the server output (Next 16 build warning).
+  let current = path.resolve(/*turbopackIgnore: true*/ startDir);
 
   for (;;) {
     const stackManifest = path.join(current, "stack.yaml");
@@ -113,7 +115,7 @@ function findAtlasRoot(startDir = process.cwd()): string {
     }
 
     if (path.dirname(current) === current) {
-      return path.resolve(startDir);
+      return path.resolve(/*turbopackIgnore: true*/ startDir);
     }
 
     current = path.dirname(current);
@@ -133,8 +135,8 @@ function normalizePathForAtlas(filePath: string, atlasRoot: string): string {
 }
 
 function resolveReceiptRoot(options: FitnessShadowTelemetryOptions): { atlasRoot: string; receiptRoot: string } {
-  const atlasRoot = path.resolve(options.atlasRoot ?? findAtlasRoot());
-  const receiptRoot = path.resolve(options.receiptRoot ?? path.join(atlasRoot, "runtime", "receipts", "events"));
+  const atlasRoot = path.resolve(/*turbopackIgnore: true*/ options.atlasRoot ?? findAtlasRoot());
+  const receiptRoot = path.resolve(/*turbopackIgnore: true*/ options.receiptRoot ?? path.join(atlasRoot, "runtime", "receipts", "events"));
   return { atlasRoot, receiptRoot };
 }
 

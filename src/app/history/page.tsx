@@ -85,14 +85,14 @@ export default async function HistoryPage(
         errorCaption: "Please try again in a moment.",
       },
       load: async () => {
-        if (isHistoryPreviewActiveForRequest()) {
+        if (await isHistoryPreviewActiveForRequest()) {
           return getHistoryPreviewSessionsPageData({
             selected: searchParams?.selected,
           });
         }
 
         return diagnostics.measure<HistorySessionsPageData>("history.sessions.fetch", async () => loadHistorySessionsPageData({
-          supabase: supabaseServer(),
+          supabase: await supabaseServer(),
           userId: user.id,
           searchParams,
           showQaLlelDataOverride: resolveQaLlelVisibilityOverride(

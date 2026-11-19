@@ -9,8 +9,8 @@ import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 // prerendered fixture into production.
 export const dynamic = "force-dynamic";
 
-export default function DevLayout({ children }: { children: ReactNode }) {
-  assertDevPageAvailable();
+export default async function DevLayout({ children }: { children: ReactNode }) {
+  await assertDevPageAvailable();
 
   return children;
 }

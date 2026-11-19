@@ -52,7 +52,7 @@ export default async function LoginPage(props: LoginPageProps) {
 
   if (shouldAttemptLocalDevAutoLogin) {
     const preferredAccount = resolvePreferredLocalDevAccount(searchParams?.localAccount);
-    const localDevCredentials = getLocalDevAutoLoginCredentials(preferredAccount);
+    const localDevCredentials = await getLocalDevAutoLoginCredentials(preferredAccount);
 
     if (localDevCredentials) {
       const params = new URLSearchParams();

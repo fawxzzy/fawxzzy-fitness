@@ -1,6 +1,8 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+// Next 16: single-argument revalidateTag is gone; updateTag is the Server Action form that expires the
+// tag immediately (same read-your-own-write behaviour the one-argument call had on Next 15).
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { validateExerciseEquipment, validateExerciseName } from "@/lib/exercises";
@@ -19,7 +21,7 @@ function redirectWithMessage(returnTo: string, key: "error" | "success", message
 
 export async function createCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const returnTo = String(formData.get("returnTo") ?? "").trim();
   const rawName = String(formData.get("name") ?? "");
@@ -62,7 +64,7 @@ export async function createCustomExerciseAction(formData: FormData) {
     throw new Error(error?.message ?? "Could not create exercise");
   }
 
-  revalidateTag(`exercises:${user.id}`);
+  updateTag(`exercises:${user.id}`);
   if (returnTo) {
     revalidatePath(returnTo);
     redirectWithMessage(returnTo, "success", "Custom exercise added.", data.id);
@@ -72,7 +74,7 @@ export async function createCustomExerciseAction(formData: FormData) {
 
 export async function renameCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const returnTo = String(formData.get("returnTo") ?? "").trim();
   const exerciseId = String(formData.get("exerciseId") ?? "").trim();
@@ -90,7 +92,7 @@ export async function renameCustomExerciseAction(formData: FormData) {
     throw new Error(error.message);
   }
 
-  revalidateTag(`exercises:${user.id}`);
+  updateTag(`exercises:${user.id}`);
   if (returnTo) {
     revalidatePath(returnTo);
     redirectWithMessage(returnTo, "success", "Custom exercise renamed.", exerciseId);
@@ -98,7 +100,7 @@ export async function renameCustomExerciseAction(formData: FormData) {
 }
 export async function deleteCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const returnTo = String(formData.get("returnTo") ?? "").trim();
   const exerciseId = String(formData.get("exerciseId") ?? "").trim();
@@ -125,7 +127,7 @@ export async function deleteCustomExerciseAction(formData: FormData) {
     throw new Error(error.message);
   }
 
-  revalidateTag(`exercises:${user.id}`);
+  updateTag(`exercises:${user.id}`);
   if (returnTo) {
     revalidatePath(returnTo);
     redirectWithMessage(returnTo, "success", "Custom exercise deleted.");

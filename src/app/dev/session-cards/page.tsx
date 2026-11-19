@@ -21,8 +21,8 @@ export const metadata: Metadata = {
  * Static fixture data only (no Supabase client, no session). Availability is the shared dev-route guard: middleware
  * answers 404 for `/dev/*` on production hosts before this page runs; the first statement below repeats it.
  */
-export default function DevSessionCardsPage() {
-  assertDevPageAvailable();
+export default async function DevSessionCardsPage() {
+  await assertDevPageAvailable();
 
   return (
     <ContentRail className="pb-24 pt-6">

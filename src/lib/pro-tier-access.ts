@@ -7,7 +7,7 @@ import {
 } from "@/lib/pro-tier-limits";
 import type { supabaseServer } from "@/lib/supabase/server";
 
-type SupabaseServerClient = ReturnType<typeof supabaseServer>;
+type SupabaseServerClient = Awaited<ReturnType<typeof supabaseServer>>;
 
 export async function loadAccessibleRoutineIdsForCurrentTier(args: {
   supabase: SupabaseServerClient;

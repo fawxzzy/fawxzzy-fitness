@@ -226,7 +226,7 @@ test("the session-cards dev gallery is covered by the shared dev-route guard and
   const gallery = readSource("../../app/dev/session-cards/SessionCardsGallery.tsx");
 
   assert.equal(isDevOnlyPath("/dev/session-cards"), true);
-  assert.match(page, /export default function DevSessionCardsPage\(\) \{\s*assertDevPageAvailable\(\);/);
+  assert.match(page, /export default async function DevSessionCardsPage\(\) \{\s*await assertDevPageAvailable\(\);/);
   for (const source of [page, gallery]) {
     assert.doesNotMatch(source, /supabaseAdmin|createSupabase|service[-_ ]role|process\.env/i);
   }

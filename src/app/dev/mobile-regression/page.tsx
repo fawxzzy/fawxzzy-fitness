@@ -23,7 +23,7 @@ export default async function DevMobileRegressionPage(
     }>;
   }
 ) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";

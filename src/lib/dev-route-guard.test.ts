@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { NextRequest } from "next/server.js";
-import { middleware } from "@/middleware";
+import { proxy } from "@/proxy";
 import { assertDevPageAvailable, assertDevServiceRolePageAvailable } from "./dev-route-guard-page.ts";
 import { isNotFoundError } from "./next-navigation-errors.ts";
 import {
@@ -235,7 +235,7 @@ test("the handler response is an uncached 404 that carries no route detail and i
 test("environment values are read through literal process.env expressions", () => {
   const guardSource = read("src/lib/dev-route-guard.ts");
   const pageGuardSource = read("src/lib/dev-route-guard-page.ts");
-  const middlewareSource = read("src/middleware.ts");
+  const middlewareSource = read("src/proxy.ts");
 
   // Next inlines only the literal `process.env.NODE_ENV` expression, so no layer may alias the object.
   for (const source of [guardSource, pageGuardSource]) {
@@ -257,7 +257,7 @@ test("the dev layout repeats the shared guard and does not claim to stop its pag
   const source = read("src/app/dev/layout.tsx");
 
   assert.match(source, /from "@\/lib\/dev-route-guard-page"/);
-  assert.match(source, /assertDevPageAvailable\(\);/);
+  assert.match(source, /await assertDevPageAvailable\(\);/);
   assert.match(source, /export const dynamic = "force-dynamic";/);
   assert.doesNotMatch(source, /NODE_ENV/);
   assert.match(source, /not stop the page under it/);
@@ -268,14 +268,14 @@ test("every dev page has a production check, and the unguarded pages call the sh
   assert.ok(pages.length >= 20, String(pages.length));
 
   for (const file of pages) {
-    assert.match(read(file), /assertDev(?:ServiceRole)?PageAvailable\(\)|process\.env\.NODE_ENV === "production"/, `${file} has no production check`);
+    assert.match(read(file), /await assertDev(?:ServiceRole)?PageAvailable\(\)|process\.env\.NODE_ENV === "production"/, `${file} has no production check`);
   }
 
   for (const file of pagesWithSharedGuard) {
     const source = read(file);
 
     assert.match(source, /from "@\/lib\/dev-route-guard-page"/, file);
-    assert.match(source, /export default (?:async )?function \w+\([\s\S]*?\) \{\s*assertDevPageAvailable\(\);/, `${file} must call the guard first`);
+    assert.match(source, /export default (?:async )?function \w+\([\s\S]*?\) \{\s*await assertDevPageAvailable\(\);/, `${file} must await the guard first`);
   }
 });
 
@@ -332,7 +332,7 @@ test("any dev page or handler that reads with the service-role client, directly 
       assert.match(source, /from "@\/lib\/dev-route-guard-page"/, file);
       assert.match(
         source,
-        /export default (?:async )?function \w+\([\s\S]*?\) \{\s*assertDevServiceRolePageAvailable\(\);/,
+        /export default (?:async )?function \w+\([\s\S]*?\) \{\s*await assertDevServiceRolePageAvailable\(\);/,
         `${file} must call the strict service-role page guard first`,
       );
       // A page-local copy of a spoofable gate must not come back.
@@ -345,7 +345,7 @@ test("any dev page or handler that reads with the service-role client, directly 
   }
 });
 
-test("the strict service-role rule keeps previews and the opt-in away from admin-client reads", () => {
+test("the strict service-role rule keeps previews and the opt-in away from admin-client reads", async () => {
   const productionMode = { NODE_ENV: "production" };
 
   // Platform preview: general dev routes stay open, service-role routes need loopback.
@@ -369,14 +369,14 @@ test("the strict service-role rule keeps previews and the opt-in away from admin
   assert.ok(devServiceRoleRouteUnavailableResponse(new Request(`https://${OTHER_HOST}/x`, { headers: { host: OTHER_HOST } }), preview));
   assert.equal(devServiceRoleRouteUnavailableResponse(new Request("http://localhost:3000/x", { headers: { host: "localhost:3000" } }), preview), null);
 
-  assert.throws(() => assertDevServiceRolePageAvailable(OTHER_HOST, preview), isNotFound);
-  assert.throws(() => assertDevServiceRolePageAvailable(OTHER_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
-  assert.doesNotThrow(() => assertDevServiceRolePageAvailable(null, { NODE_ENV: "development" }));
-  assert.doesNotThrow(() => assertDevServiceRolePageAvailable("localhost:3000", preview));
-  assert.doesNotThrow(() => assertDevServiceRolePageAvailable(OTHER_HOST, { NODE_ENV: "development" }));
+  await assert.rejects(assertDevServiceRolePageAvailable(OTHER_HOST, preview), isNotFound);
+  await assert.rejects(assertDevServiceRolePageAvailable(OTHER_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
+  await assert.doesNotReject(assertDevServiceRolePageAvailable(null, { NODE_ENV: "development" }));
+  await assert.doesNotReject(assertDevServiceRolePageAvailable("localhost:3000", preview));
+  await assert.doesNotReject(assertDevServiceRolePageAvailable(OTHER_HOST, { NODE_ENV: "development" }));
 });
 
-test("a production hostname is never exempt through a development or test NODE_ENV", () => {
+test("a production hostname is never exempt through a development or test NODE_ENV", async () => {
   for (const NODE_ENV of ["development", "test"]) {
     for (const hostname of [EXTERNAL_HOST, "fawxzzy-fitness-local.vercel.app", "abc.vercel.app"]) {
       assert.equal(isDevRouteWithdrawn({ hostnames: [hostname], env: { NODE_ENV } }), true, `${NODE_ENV} ${hostname}`);
@@ -386,31 +386,31 @@ test("a production hostname is never exempt through a development or test NODE_E
     assert.equal(isDevRouteWithdrawn({ hostnames: [OTHER_HOST], env: { NODE_ENV } }), false, NODE_ENV);
   }
 
-  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "development" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "test" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "development" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "test" }), isNotFound);
   // A platform preview signal still wins over the hostname.
   assert.equal(isDevRouteWithdrawn({ hostnames: ["abc.vercel.app"], env: { NODE_ENV: "development", VERCEL_ENV: "preview" } }), false);
 });
 
-test("the shared page guard raises not-found only when the guard withdraws the route", () => {
-  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { VERCEL_ENV: "production" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable("localhost:3000", { VERCEL_ENV: "production" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "production" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable(null, { NODE_ENV: "production" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable("localhost:abc", { NODE_ENV: "production" }), isNotFound);
+test("the shared page guard raises not-found only when the guard withdraws the route", async () => {
+  await assert.rejects(assertDevPageAvailable(EXTERNAL_HOST, { VERCEL_ENV: "production" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable("localhost:3000", { VERCEL_ENV: "production" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "production" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable(null, { NODE_ENV: "production" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable("localhost:abc", { NODE_ENV: "production" }), isNotFound);
   // The opt-in does not reopen a production hostname.
-  assert.throws(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
-  assert.throws(() => assertDevPageAvailable("abc.vercel.app", { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable("abc.vercel.app", { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }), isNotFound);
   // NODE_ENV values that are not an explicit local mode fail closed.
-  assert.throws(() => assertDevPageAvailable(OTHER_HOST, {}), isNotFound);
-  assert.throws(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "Production" }), isNotFound);
+  await assert.rejects(assertDevPageAvailable(OTHER_HOST, {}), isNotFound);
+  await assert.rejects(assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "Production" }), isNotFound);
 
-  assert.doesNotThrow(() => assertDevPageAvailable("127.0.0.1:3000", { NODE_ENV: "production" }));
-  assert.doesNotThrow(() => assertDevPageAvailable("LOCALHOST:3000", { NODE_ENV: "production" }));
-  assert.doesNotThrow(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }));
-  assert.doesNotThrow(() => assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", VERCEL_ENV: "preview" }));
-  assert.doesNotThrow(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "development" }));
-  assert.doesNotThrow(() => assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "test" }));
+  await assert.doesNotReject(assertDevPageAvailable("127.0.0.1:3000", { NODE_ENV: "production" }));
+  await assert.doesNotReject(assertDevPageAvailable("LOCALHOST:3000", { NODE_ENV: "production" }));
+  await assert.doesNotReject(assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "production", HISTORY_QA_PREVIEW_ENABLED: "1" }));
+  await assert.doesNotReject(assertDevPageAvailable(EXTERNAL_HOST, { NODE_ENV: "production", VERCEL_ENV: "preview" }));
+  await assert.doesNotReject(assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "development" }));
+  await assert.doesNotReject(assertDevPageAvailable(OTHER_HOST, { NODE_ENV: "test" }));
 });
 
 test("every dev route handler returns the guard response before doing any work", () => {
@@ -557,7 +557,7 @@ const DEV_PATHS = [
 const NON_DEV_PATHS = ["/", "/login", "/today", "/devices", "/developer", "/api/app-version", "/privacy"];
 
 async function assertGuardResponse(request: NextRequest, label: string) {
-  const response = await middleware(request);
+  const response = await proxy(request);
 
   assert.equal(response.status, 404, label);
   assert.equal(response.headers.get("cache-control"), "no-store", label);
@@ -629,7 +629,7 @@ test("middleware leaves dev-only paths reachable on loopback, with the opt-in, a
   for (const { label, env, url } of reachable) {
     await withEnv(env, async () => {
       for (const pathname of DEV_PATHS) {
-        const response = await middleware(nextRequest(url(pathname)));
+        const response = await proxy(nextRequest(url(pathname)));
 
         assert.notEqual(response.status, 404, `${label} ${pathname}`);
       }
@@ -649,7 +649,7 @@ test("middleware leaves every non-dev path untouched whatever the guard decides"
     await withEnv(env, async () => {
       for (const pathname of NON_DEV_PATHS) {
         for (const request of [nextRequest(`https://${EXTERNAL_HOST}${pathname}`), new NextRequest(`https://${EXTERNAL_HOST}${pathname}`)]) {
-          const response = await middleware(request);
+          const response = await proxy(request);
           const body = response.headers.get("content-type")?.includes("json") ? await response.clone().text() : "";
 
           assert.notEqual(response.status, 404, `${JSON.stringify(env)} ${pathname}`);
@@ -660,9 +660,12 @@ test("middleware leaves every non-dev path untouched whatever the guard decides"
   }
 });
 
-test("the root middleware file is not left next to the compiled src middleware", () => {
-  // Next compiles src/middleware.ts when the app lives under src/; a second file at the
-  // repository root is ignored and only invites edits to the wrong copy.
-  assert.throws(() => statSync(path.join(repoRoot, "middleware.ts")), /ENOENT/);
-  assert.ok(statSync(path.join(repoRoot, "src", "middleware.ts")).isFile());
+test("the only proxy file is src/proxy.ts (no root copy, no leftover middleware file)", () => {
+  // Next 16 compiles src/proxy.ts (formerly src/middleware.ts) when the app lives under src/;
+  // a second file at the repository root is ignored and only invites edits to the wrong copy,
+  // and a leftover middleware.ts next to proxy.ts would be a second, deprecated entry point.
+  for (const stale of ["middleware.ts", "proxy.ts", path.join("src", "middleware.ts")]) {
+    assert.throws(() => statSync(path.join(repoRoot, stale)), /ENOENT/, stale);
+  }
+  assert.ok(statSync(path.join(repoRoot, "src", "proxy.ts")).isFile());
 });

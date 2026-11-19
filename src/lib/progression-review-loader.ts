@@ -79,7 +79,7 @@ export function getProgressionReviewTargetFingerprintForExercise(exercise: Routi
 }
 
 export async function loadProgressionHistoryForExercise(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   exerciseId: string;
@@ -185,7 +185,7 @@ export async function loadProgressionHistoryForExercise(args: {
 }
 
 export async function canUseCatalogHistoryFallbackForRoutineExercise(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   exerciseId: string;
@@ -467,7 +467,7 @@ function toProgressionHistoryScopeTier(source: ProgressionAuditHistorySource): P
 }
 
 export async function loadProgressionUpdatesDisplayData(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   fallbackWeightUnit: "lbs" | "kg";

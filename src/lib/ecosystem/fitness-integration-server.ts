@@ -28,7 +28,7 @@ export async function buildFitnessSnapshotSourceStateFromApp(
   now: Date | string,
   client?: FitnessSupabaseClient,
 ): Promise<FitnessSnapshotSourceState> {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   return buildFitnessSnapshotSourceState({
     memberId,

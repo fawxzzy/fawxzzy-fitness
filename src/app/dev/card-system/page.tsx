@@ -21,8 +21,8 @@ export const metadata: Metadata = {
  * middleware answers 404 for `/dev/*` on production hosts before this page runs; the first statement below
  * repeats it (a layout alone cannot stop its page). See `src/lib/dev-route-guard.ts`.
  */
-export default function DevCardSystemPage() {
-  assertDevPageAvailable();
+export default async function DevCardSystemPage() {
+  await assertDevPageAvailable();
 
   return (
     <ContentRail className="pb-24 pt-6">

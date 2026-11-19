@@ -53,7 +53,7 @@ export type CreateCuratedRoutineDraftResult =
   | { ok: true; routineId: string; routineName: string }
   | { ok: false; error: string; code?: CuratedGenerationFailureCode; plan?: CuratedWorkoutPlan };
 
-type SupabaseClient = ReturnType<typeof supabaseServer>;
+type SupabaseClient = Awaited<ReturnType<typeof supabaseServer>>;
 
 function logCuratedFailure(stage: string, error: unknown) {
   // Server log only. Raw exception and database text never reaches the member.
@@ -133,7 +133,7 @@ export async function generateCuratedWorkoutPlanAction(
   try {
     const user = await requireUser();
     const profile = await ensureProfile(user.id);
-    const supabase = supabaseServer();
+    const supabase = await supabaseServer();
     const signals = await loadCuratedHistorySignals({ userId: user.id, activeRoutineId: profile.active_routine_id, supabase });
     const outcome = compileCuratedWorkoutGeneration({ onboarding, signals });
     if (outcome.status === "ready") {
@@ -188,7 +188,7 @@ async function createCuratedRoutineDraft(args: {
   const { created } = args;
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   created.userId = user.id;
   created.supabase = supabase;
   const signals = await loadCuratedHistorySignals({ userId: user.id, activeRoutineId: profile.active_routine_id, supabase });

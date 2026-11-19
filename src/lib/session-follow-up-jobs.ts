@@ -288,7 +288,7 @@ export async function processSessionFollowUpJobs(args: {
   now?: Date;
 }) {
   const { supabaseServer } = await import("@/lib/supabase/server");
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const now = args.now ?? new Date();
 
   await enqueueSessionFollowUpJobs({ client: supabase, sessionId: args.sessionId, userId: args.userId });

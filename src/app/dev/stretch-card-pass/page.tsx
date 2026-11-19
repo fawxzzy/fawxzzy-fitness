@@ -4,8 +4,8 @@ import { BottomActionsProvider } from "@/components/layout/bottom-actions";
 import { StretchCardPassSurface } from "@/app/dev/stretch-hub/StretchCardPassSurface";
 import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
-export default function DevStretchCardPassPage() {
-  assertDevPageAvailable();
+export default async function DevStretchCardPassPage() {
+  await assertDevPageAvailable();
 
   return (
     <BottomActionsProvider>

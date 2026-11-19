@@ -33,7 +33,7 @@
 // deployment nor the opt-in makes them reachable.
 //
 // Layers, outermost first:
-// 1. `src/middleware.ts` answers 404 for every dev-only path before any page or handler runs
+// 1. `src/proxy.ts` (Next 16 name for middleware) answers 404 for every dev-only path before any page or handler runs
 //    (see `isDevOnlyPath`). Middleware is not sufficient on its own: the `x-middleware-subrequest`
 //    bypass class (CVE-2025-29927) let a request skip it on Next 14.2.5; it is patched in the
 //    pinned Next 14.2.35, but the handler and page guards below stay as defence in depth.

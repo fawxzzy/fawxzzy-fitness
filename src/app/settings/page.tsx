@@ -86,8 +86,8 @@ export default async function SettingsPage(
   );
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(profile, qaVisibilityOverride);
   const [exportDateRange, achievements] = await Promise.all([
-    diagnostics.measure("settings.export.date-range", () => getAccountWorkoutExportSuggestedDateRange({
-      supabase: supabaseServer(),
+    diagnostics.measure("settings.export.date-range", async () => getAccountWorkoutExportSuggestedDateRange({
+      supabase: await supabaseServer(),
       userId: user.id,
     }), {
       blockingReason: "Loading default export date range.",
@@ -98,7 +98,7 @@ export default async function SettingsPage(
     }),
     diagnostics.measure("settings.achievements.summary", async () => {
       const history = await loadHistorySessionsScopePayloadForUser({
-        supabase: supabaseServer(),
+        supabase: await supabaseServer(),
         userId: user.id,
         showQaLlelDataOverride: qaVisibilityOverride,
       });

@@ -8,7 +8,7 @@ import type {
   WorkoutPlanRow,
 } from "@/types/db";
 
-type SupabaseServerClient = ReturnType<typeof supabaseServer>;
+type SupabaseServerClient = Awaited<ReturnType<typeof supabaseServer>>;
 
 export const ROUTINE_DAY_TEMPLATE_SELECT =
   "id, user_id, routine_id, day_index, name, is_rest, is_optional, notes, duplicate_source_routine_day_id, workout_plan_template_id, workout_plan_template_edit_choice_required";
