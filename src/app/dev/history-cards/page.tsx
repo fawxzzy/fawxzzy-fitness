@@ -21,8 +21,8 @@ export const metadata: Metadata = {
  * clock. No Supabase client, no session. Availability is the shared dev-route guard (middleware answers 404 for
  * every dev path on production hosts before this page runs; the first statement repeats it).
  */
-export default function DevHistoryCardsPage() {
-  assertDevPageAvailable();
+export default async function DevHistoryCardsPage() {
+  await assertDevPageAvailable();
 
   return (
     <ContentRail className="pb-24 pt-6">

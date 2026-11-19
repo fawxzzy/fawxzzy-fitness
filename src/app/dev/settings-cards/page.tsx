@@ -27,7 +27,7 @@ export default async function DevSettingsCardsPage(
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
   }
 ) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   const section = Array.isArray(searchParams?.section) ? searchParams?.section[0] : searchParams?.section;

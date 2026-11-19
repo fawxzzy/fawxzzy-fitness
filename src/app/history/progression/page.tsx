@@ -27,8 +27,8 @@ export default async function HistoryProgressionPage(
       timeoutMs: 5000,
       collector: diagnostics,
     });
-    const data = await diagnostics.measure("history.progression.fetch", () => loadProgressionHistoryPageData({
-      supabase: supabaseServer(),
+    const data = await diagnostics.measure("history.progression.fetch", async () => loadProgressionHistoryPageData({
+      supabase: await supabaseServer(),
       userId: user.id,
       searchParams,
     }), {

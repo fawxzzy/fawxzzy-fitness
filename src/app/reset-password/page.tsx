@@ -27,7 +27,7 @@ export default async function ResetPasswordPage(props: ResetPasswordPageProps) {
     return <RecoverySessionBridge initialError={error} />;
   }
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
   const noticeId = resetPasswordErrorNoticeId(error);
 

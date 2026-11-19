@@ -8,7 +8,7 @@ import { formatRoutineDayDisplayName, getRoutineDayComputation } from "@/lib/rou
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
 
-type ServerSupabase = ReturnType<typeof supabaseServer>;
+type ServerSupabase = Awaited<ReturnType<typeof supabaseServer>>;
 
 type SessionStartContext = {
   supabase: ServerSupabase;
@@ -73,7 +73,7 @@ async function createSessionFromDay(context: SessionStartContext): Promise<Actio
 
 export async function startSessionForActiveRoutineDay(payload?: { dayIndex?: number }): Promise<ActionResult<{ sessionId: string }>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const profile = await ensureProfile(user.id);
 
   if (!profile.active_routine_id) {
@@ -126,7 +126,7 @@ export async function startSessionForActiveRoutineDay(payload?: { dayIndex?: num
 
 export async function startSessionForRoutineDay(payload: { routineId: string; dayId: string }): Promise<ActionResult<{ sessionId: string }>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   await ensureProfile(user.id);
 
   const { data: routine, error: routineError } = await supabase

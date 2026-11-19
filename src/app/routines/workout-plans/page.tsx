@@ -35,7 +35,7 @@ export default async function WorkoutPlansPage() {
     },
     timeoutMs: 5000,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
     profile,
     resolveQaLlelVisibilityOverride((await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value),

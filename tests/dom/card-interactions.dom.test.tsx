@@ -12,7 +12,7 @@ import { TodayExerciseRows, type TodayExerciseRow } from "../../src/app/today/To
 
 afterEach(() => cleanup());
 
-const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
+const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
 const routine: RoutineBrowseCardItem = {
   id: "r1",

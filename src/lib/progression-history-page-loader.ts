@@ -21,7 +21,7 @@ function toNameMap<T extends { id: string; name?: string | null }>(rows: T[] | n
 }
 
 export async function loadProgressionHistoryPageData(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   searchParams?: ProgressionHistorySearchParams;
 }): Promise<ProgressionHistoryPageData> {

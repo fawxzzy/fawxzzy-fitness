@@ -10,7 +10,7 @@ import { InstallScreen } from "./InstallGateChrome";
 import { InstallRouteSurface, resolveInstallScreenKind } from "./InstallRouteSurface";
 
 const router = {
-  back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {},
+  back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test",
 };
 
 function renderInitial(userAgent?: string, standalone = false) {

@@ -19,7 +19,7 @@ type ActionResult = {
 
 export async function deleteCompletedSessionAction(formData: FormData) {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const sessionId = String(formData.get("sessionId") ?? "").trim();
 
   if (!sessionId) {
@@ -61,7 +61,7 @@ export async function deleteCompletedSessionAction(formData: FormData) {
 
 export async function updateLogMetaAction(payload: { logId: string; dayNameOverride: string; notes: string }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const dayNameOverride = payload.dayNameOverride.trim();
@@ -91,7 +91,7 @@ export async function updateLogMetaAction(payload: { logId: string; dayNameOverr
 
 export async function updateLogExerciseNotesAction(payload: { logId: string; logExerciseId: string; notes: string }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const logExerciseId = payload.logExerciseId.trim();
@@ -118,7 +118,7 @@ export async function updateLogExerciseNotesAction(payload: { logId: string; log
 }
 
 async function ensureCompletedLogOwner(logId: string, userId: string) {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data: session } = await supabase
     .from("sessions")
     .select("id, status")
@@ -141,7 +141,7 @@ export async function addLogExerciseSetAction(payload: {
   weightUnit: "lbs" | "kg";
 }): Promise<ActionResult & { data?: { set: SetRow } }> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const logExerciseId = payload.logExerciseId.trim();
@@ -230,7 +230,7 @@ export async function updateLogExerciseSetAction(payload: {
   weightUnit: "lbs" | "kg";
 }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const logExerciseId = payload.logExerciseId.trim();
@@ -289,7 +289,7 @@ export async function updateLogExerciseSetAction(payload: {
 
 export async function deleteLogExerciseSetAction(payload: { logId: string; logExerciseId: string; setId: string }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const logExerciseId = payload.logExerciseId.trim();
@@ -324,7 +324,7 @@ export async function deleteLogExerciseSetAction(payload: { logId: string; logEx
 
 export async function addLogExerciseAction(payload: { logId: string; exerciseId: string }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const exerciseIdentifier = payload.exerciseId.trim();
@@ -375,7 +375,7 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
 
 export async function deleteLogExerciseAction(payload: { logId: string; logExerciseId: string }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const logId = payload.logId.trim();
   const logExerciseId = payload.logExerciseId.trim();

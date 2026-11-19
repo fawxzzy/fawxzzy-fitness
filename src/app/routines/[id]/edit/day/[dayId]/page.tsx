@@ -55,7 +55,7 @@ export default async function RoutineDayEditorPage(props: PageProps) {
   const searchParams = await props.searchParams;
   const params = await props.params;
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
     supabase,
     userId: user.id,

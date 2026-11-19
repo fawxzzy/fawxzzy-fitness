@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies, headers, type UnsafeUnwrappedHeaders } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
 import { SUPABASE_URL } from "@/lib/env";
@@ -49,8 +49,8 @@ async function resolveIndexedUsername(username: string, onLookupFailure?: (code:
   });
 }
 
-function getOrigin() {
-  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
+async function getOrigin() {
+  const requestHeaders = await headers();
   const origin = requestHeaders.get("origin");
   if (origin) {
     return origin;
@@ -66,14 +66,14 @@ function getOrigin() {
   return `${protocol}://${host}`;
 }
 
-function getAppOrigin() {
+async function getAppOrigin() {
   const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
 
   if (configuredOrigin) {
     return configuredOrigin.replace(/\/$/, "");
   }
 
-  return getOrigin();
+  return await getOrigin();
 }
 
 function buildLoginRedirectHref(args: {
@@ -117,7 +117,7 @@ export async function login(formData: FormData) {
     }));
   }
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.session) {
@@ -159,12 +159,12 @@ export async function signup(formData: FormData) {
     redirect(buildSignupRedirectHref({ error: "email_invalid" }));
   }
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${getAppOrigin()}/auth/confirm`,
+      emailRedirectTo: `${await getAppOrigin()}/auth/confirm`,
       data: username
         ? {
           username,
@@ -209,8 +209,8 @@ export async function requestPasswordReset(formData: FormData) {
     redirect(buildLoginRedirectHref({ error: "email_required" }));
   }
 
-  const supabase = supabaseServer();
-  const redirectTo = buildFitnessRecoveryRedirectUrl(getAppOrigin());
+  const supabase = await supabaseServer();
+  const redirectTo = buildFitnessRecoveryRedirectUrl(await getAppOrigin());
   const result = await requestResetForIdentifier({
     identifier,
     resolveUsername: resolveIndexedUsername,
@@ -243,8 +243,8 @@ export async function requestPasswordResetInline(identifier: string) {
     };
   }
 
-  const supabase = supabaseServer();
-  const redirectTo = buildFitnessRecoveryRedirectUrl(getAppOrigin());
+  const supabase = await supabaseServer();
+  const redirectTo = buildFitnessRecoveryRedirectUrl(await getAppOrigin());
   const result = await requestResetForIdentifier({
     identifier: normalizedIdentifier,
     resolveUsername: resolveIndexedUsername,

@@ -305,7 +305,7 @@ test("both Add exercise routes share the one detail frame: title, day · routine
 test("the detail-screen fixtures are fail-closed and render each route's own frame", () => {
   const page = read("src/app/dev/detail-screens/page.tsx");
   assert.match(page, /export const dynamic = "force-dynamic";/);
-  assert.match(page, /\}\) \{\r?\n\s*assertDevPageAvailable\(\);/, "the guard is the first statement");
+  assert.match(page, /\}\) \{\r?\n\s*await assertDevPageAvailable\(\);/, "the guard is the first statement");
   const pageCode = page.replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
   assert.doesNotMatch(pageCode, /supabase|requireUser/i, "fixtures use static data only");
   for (const frame of ["<CreateDayScreen", "<DaysLibraryScreen>", "<AddExerciseScaffold"]) {

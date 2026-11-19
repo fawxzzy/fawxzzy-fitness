@@ -53,7 +53,7 @@ export default async function DevHistorySessionDetailLivePage(
     }>;
   }
 ) {
-  assertDevServiceRolePageAvailable();
+  await assertDevServiceRolePageAvailable();
   const searchParams = await props.searchParams;
 
   const sessionId = searchParams?.sessionId?.trim() ?? "";

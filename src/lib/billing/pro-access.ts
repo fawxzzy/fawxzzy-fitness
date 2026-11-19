@@ -74,7 +74,7 @@ async function loadSubscriptionCancellationScheduledFor(subscriptionId: string |
 
 export async function loadProAccessSnapshot(userId: string): Promise<ProAccessSnapshot> {
   const billingConfig = getStripeBillingConfigSnapshot();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const entitlementResponse = await supabase
     .from("user_entitlements")

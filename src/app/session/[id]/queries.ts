@@ -94,7 +94,7 @@ export async function getSessionPageDataForUser(
   },
 ) {
   const diagnostics = options?.diagnostics;
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const { data: session } = diagnostics
     ? await diagnostics.measure("session.record.fetch", async () => await supabase

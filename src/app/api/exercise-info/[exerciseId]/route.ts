@@ -70,7 +70,7 @@ export async function GET(request: Request, props: { params: Promise<{ exerciseI
       return jsonError(500, "EXERCISE_INFO_MISCONFIG", "Server misconfigured.", requestId, step);
     }
 
-    const supabase = await runStep("auth", () => supabaseServer());
+    const supabase = await runStep("auth", async () => await supabaseServer());
     const {
       data: { user },
       error: authError,

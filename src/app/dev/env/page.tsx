@@ -14,8 +14,8 @@ function EnvRow({ label, value, tone }: { label: string; value: string; tone?: "
   );
 }
 
-export default function DevEnvPage() {
-  assertDevPageAvailable();
+export default async function DevEnvPage() {
+  await assertDevPageAvailable();
 
   const supabase = getSupabaseTargetDiagnostic();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "not set";

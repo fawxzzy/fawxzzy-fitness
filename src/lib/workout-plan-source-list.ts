@@ -60,7 +60,7 @@ export type WorkoutPlanSourceListItem = {
 };
 
 type LoadWorkoutPlanSourceListArgs = {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId?: string | null;
   excludeDayId?: string | null;

@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies, headers, type UnsafeUnwrappedCookies, type UnsafeUnwrappedHeaders } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
@@ -7,11 +7,13 @@ import { recoverSupabaseSessionFromCookies } from "@/lib/supabase/session-recove
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
-function getRequestAuthTokens() {
-  const cookieStore = (cookies() as unknown as UnsafeUnwrappedCookies);
+// Async since Next 16: cookies()/headers() no longer have a synchronous form. Every caller must `await`
+// (src/lib/async-request-helpers.contract.test.ts enforces it; typecheck also rejects a Promise used as a client).
+async function getRequestAuthTokens() {
+  const cookieStore = await cookies();
   const accessTokenCookie = cookieStore.get("sb-access-token")?.value;
   const refreshTokenCookie = cookieStore.get("sb-refresh-token")?.value;
-  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
+  const requestHeaders = await headers();
   const hostHeader = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").trim().toLowerCase();
   const hostname = hostHeader.split(":")[0] ?? "";
   const localhostHeaderToken = requestHeaders.get("x-atlas-access-token")?.trim() ?? "";
@@ -55,17 +57,17 @@ function createSupabaseServerClient(accessToken?: string | null) {
  * The access token this request carries (cookie, or the trusted local-dev header). For calls that must not touch
  * the refresh token: it is never rotated here, so nothing has to be written back to a cookie.
  */
-export function getRequestAccessToken() {
-  return getRequestAuthTokens().accessToken;
+export async function getRequestAccessToken() {
+  return (await getRequestAuthTokens()).accessToken;
 }
 
-export function supabaseServer() {
-  const { accessToken } = getRequestAuthTokens();
+export async function supabaseServer() {
+  const { accessToken } = await getRequestAuthTokens();
   return createSupabaseServerClient(accessToken);
 }
 
 export async function supabaseServerWithSession() {
-  const { accessToken, refreshToken } = getRequestAuthTokens();
+  const { accessToken, refreshToken } = await getRequestAuthTokens();
   const recovery = await recoverSupabaseSessionFromCookies({
     accessToken,
     refreshToken,

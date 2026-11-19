@@ -42,7 +42,7 @@ export default async function NewRoutinePage({
   const profile = await ensureProfile(user.id);
   const routineTimezoneDefault = normalizeRoutineTimezone(profile.timezone);
   const routineStartDateDefault = getTodayDateInTimeZone(routineTimezoneDefault);
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const { data: existingRoutineRows } = await supabase
     .from("routines")
     .select("name")

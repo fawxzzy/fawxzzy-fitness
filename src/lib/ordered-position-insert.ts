@@ -1,7 +1,7 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase/server";
 
-type ServerSupabase = ReturnType<typeof supabaseServer>;
+type ServerSupabase = Awaited<ReturnType<typeof supabaseServer>>;
 type OrderedTableName = "session_exercises" | "routine_day_exercises";
 type OrderedScopeColumn = "session_id" | "routine_day_id";
 

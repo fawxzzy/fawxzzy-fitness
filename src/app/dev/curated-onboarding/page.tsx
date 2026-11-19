@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DevCuratedOnboardingPage() {
-  assertDevPageAvailable();
+export default async function DevCuratedOnboardingPage() {
+  await assertDevPageAvailable();
 
   const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";
   if (process.env.NODE_ENV === "production" && !isReviewPreviewEnabled) {

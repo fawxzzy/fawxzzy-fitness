@@ -1,5 +1,5 @@
 import "server-only";
-import { headers, type UnsafeUnwrappedHeaders } from "next/headers";
+import { headers } from "next/headers";
 import { optionalEnv } from "@/lib/env";
 import {
   readConfiguredLocalDevAutoLoginCredentials,
@@ -15,8 +15,8 @@ function normalizeEmail(value: string | null) {
   return value?.trim().toLowerCase() ?? null;
 }
 
-function getRequestHostname() {
-  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
+async function getRequestHostname() {
+  const requestHeaders = await headers();
   const hostHeader = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").trim().toLowerCase();
   return hostHeader.split(":")[0] ?? "";
 }
@@ -25,12 +25,14 @@ export function isTrustedLocalDevHostname(hostname: string) {
   return isTrustedLocalDevHost(hostname);
 }
 
-export function isTrustedLocalDevRequest() {
-  return isTrustedLocalDevHostname(getRequestHostname());
+// Async since Next 16 (request headers are async only). Always `await`: an un-awaited Promise is
+// truthy and would read as a trusted local request.
+export async function isTrustedLocalDevRequest() {
+  return isTrustedLocalDevHostname(await getRequestHostname());
 }
 
-export function getLocalDevAutoLoginCredentials(preferredAccount?: LocalDevAutoLoginAccount | null) {
-  if (!isTrustedLocalDevRequest()) {
+export async function getLocalDevAutoLoginCredentials(preferredAccount?: LocalDevAutoLoginAccount | null) {
+  if (!(await isTrustedLocalDevRequest())) {
     return null;
   }
 
@@ -48,7 +50,7 @@ export async function resolveLocalDevAutoEntryHref({
   userEmail: string | null;
   userId: string;
 }) {
-  if (!isTrustedLocalDevRequest()) {
+  if (!(await isTrustedLocalDevRequest())) {
     return null;
   }
 

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  * production hosts before this page runs; the first statement repeats it). See `src/lib/dev-route-guard.ts`.
  */
 export default async function DevHistoryOverviewPage(props: { searchParams?: Promise<{ view?: string }> }) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   const data = getHistoryPreviewSessionsPageData();

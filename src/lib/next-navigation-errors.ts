@@ -1,7 +1,7 @@
 // Single home for the Next.js control-flow error checks the app needs (redirect() and notFound()
 // throw special errors that a page/action `try/catch` must rethrow). Next does not export these
 // predicates publicly, so the internal paths are pinned here once: a framework upgrade that moves
-// them breaks one file instead of every caller. Paths match Next 15.5.
+// them breaks one file instead of every caller. Paths match Next 15.5 and 16.4 (checked on the Next 16 move).
 import {
   getAccessFallbackHTTPStatus,
   isHTTPAccessFallbackError,

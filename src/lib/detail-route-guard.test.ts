@@ -3,7 +3,7 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { NextRequest } from "next/server.js";
-import { DETAIL_NOT_FOUND_REWRITE_PATH, handleAuthSessionMiddleware } from "@/middleware";
+import { DETAIL_NOT_FOUND_REWRITE_PATH, handleAuthSessionMiddleware } from "@/proxy";
 import {
   HISTORY_STATIC_SEGMENTS,
   ROUTINES_STATIC_SEGMENTS,

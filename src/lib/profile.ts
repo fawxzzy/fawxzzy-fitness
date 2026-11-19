@@ -4,7 +4,7 @@ export { ensureProfileWithClient } from "@/lib/profile-core";
 import { ensureProfileForEntryBootstrap as ensureProfileForEntryBootstrapWithImpl, ensureProfileWithClient } from "@/lib/profile-core";
 
 export async function ensureProfile(userId: string) {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   return ensureProfileWithClient(userId, supabase as never);
 }
 

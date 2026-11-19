@@ -53,7 +53,7 @@ const FIXTURE_DAY_EDIT_HREF = "/routines/fixture-routine/edit/day/fixture-day-1"
 export default async function DevDetailScreensPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  assertDevPageAvailable();
+  await assertDevPageAvailable();
   const searchParams = await props.searchParams;
 
   const screenParam = Array.isArray(searchParams?.screen) ? searchParams?.screen[0] : searchParams?.screen;

@@ -31,7 +31,7 @@ export default async function DevExerciseInfoLivePage(
     }>;
   }
 ) {
-  assertDevServiceRolePageAvailable();
+  await assertDevServiceRolePageAvailable();
   const searchParams = await props.searchParams;
 
   if (process.env.NODE_ENV === "production") {

@@ -787,7 +787,7 @@ function buildCycleLabel(startDate: string, endDate: string) {
 }
 
 async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   let query = supabase
     .from("sets")
     .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name)))")
@@ -805,7 +805,7 @@ async function loadHistoricalSetRowsForRoutine(
   routineId: string,
   client?: FitnessSupabaseClient,
 ) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   return supabase
     .from("sets")
     .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name)))")
@@ -823,7 +823,7 @@ async function loadHistoricalSetRowsForCycle(
   cycleWindow: CurrentCycleWindow,
   client?: FitnessSupabaseClient,
 ) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   return supabase
     .from("sets")
     .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name)))")
@@ -837,7 +837,7 @@ async function loadHistoricalSetRowsForCycle(
 }
 
 async function loadSkippedSessionExerciseRows(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   return supabase
     .from("session_exercises")
     .select("id, session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name))")
@@ -853,7 +853,7 @@ async function loadSkippedSessionExerciseRowsForRoutine(
   routineId: string,
   client?: FitnessSupabaseClient,
 ) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   return supabase
     .from("session_exercises")
     .select("id, session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name))")
@@ -871,7 +871,7 @@ async function loadSkippedSessionExerciseRowsForCycle(
   cycleWindow: CurrentCycleWindow,
   client?: FitnessSupabaseClient,
 ) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   return supabase
     .from("session_exercises")
     .select("id, session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name))")
@@ -885,7 +885,7 @@ async function loadSkippedSessionExerciseRowsForCycle(
 }
 
 async function loadExerciseProgressionEvents(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   return supabase
     .from("progression_events")
@@ -900,7 +900,7 @@ async function loadExerciseProgressionEventsForRoutine(
   routineId: string,
   client?: FitnessSupabaseClient,
 ) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   return supabase
     .from("progression_events")
@@ -917,7 +917,7 @@ async function loadExerciseProgressionEventsForCycle(
   cycleWindow: CurrentCycleWindow,
   client?: FitnessSupabaseClient,
 ) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   return supabase
     .from("progression_events")
@@ -930,7 +930,7 @@ async function loadExerciseProgressionEventsForCycle(
 }
 
 async function loadExerciseAnalyticsScopeContext(userId: string, client?: FitnessSupabaseClient) {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const { data } = await supabase
     .from("profiles")
     .select("timezone, active_routine_id")
@@ -1017,7 +1017,7 @@ async function resolveExerciseInfoScopeContext(
     };
   }
 
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const { data: routineData } = await supabase
     .from("routines")
     .select("name, cycle_length_days, start_date, timezone")
@@ -1049,7 +1049,7 @@ async function resolveExerciseInfoScopeContext(
 }
 
 async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string, client?: FitnessSupabaseClient): Promise<void> {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const { data: orphanRows, error: orphanError } = await supabase
     .from("session_exercises")
     .select("id, routine_day_exercise:routine_day_exercises!inner(exercise_id)")
@@ -1249,7 +1249,7 @@ async function loadPlannedSkippedHistoryDays(args: {
       return [];
     }
 
-    const supabase = args.client ?? supabaseServer();
+    const supabase = args.client ?? (await supabaseServer());
     const { data: routineDays } = await supabase
       .from("routine_days")
       .select("id, routine_id, day_index, name, is_rest")
@@ -1406,7 +1406,7 @@ async function loadExerciseInfoRoutineMetas(args: {
     return [] as ExerciseInfoRoutineMeta[];
   }
 
-  const supabase = args.client ?? supabaseServer();
+  const supabase = args.client ?? (await supabaseServer());
   const { data } = await supabase
     .from("routines")
     .select("id, name, cycle_length_days, start_date, timezone")
@@ -2369,7 +2369,7 @@ export async function getExerciseInfoBase(
   userId: string,
   client?: FitnessSupabaseClient,
 ): Promise<ExerciseInfoExercise | null> {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
 
   const { data, error } = await supabase
     .from("exercises")

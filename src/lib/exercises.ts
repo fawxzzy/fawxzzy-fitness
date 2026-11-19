@@ -298,7 +298,7 @@ export async function listExercises() {
 }
 
 async function listUserExercises(userId: string, client?: FitnessSupabaseClient): Promise<ExerciseRow[]> {
-  const supabase = client ?? supabaseServer();
+  const supabase = client ?? (await supabaseServer());
   const { data: customData, error: customError } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
     query: (columns) => supabase
       .from("exercises")

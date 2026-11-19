@@ -18,7 +18,9 @@ function toObservedDay(value: string): string {
 }
 
 function findAtlasRoot(startDir = process.cwd()): string {
-  let current = path.resolve(startDir);
+  // turbopackIgnore: a runtime path for local ATLAS receipts, not a file to bundle. Without it Turbopack
+  // traces the whole project into the server output (Next 16 build warning).
+  let current = path.resolve(/*turbopackIgnore: true*/ startDir);
 
   for (;;) {
     if (existsSync(path.join(current, "stack.yaml"))) {
@@ -27,7 +29,7 @@ function findAtlasRoot(startDir = process.cwd()): string {
 
     const parent = path.dirname(current);
     if (parent === current) {
-      return path.resolve(startDir);
+      return path.resolve(/*turbopackIgnore: true*/ startDir);
     }
 
     current = parent;

@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   return withSessionExpiredJson(async () => {
     const user = await requireUser();
-    const supabase = supabaseServer();
+    const supabase = await supabaseServer();
     const { data: session } = await supabase
       .from("sessions")
       .select("id")

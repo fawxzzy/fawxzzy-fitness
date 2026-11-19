@@ -346,7 +346,7 @@ export function buildSessionTargetsFromRows(args: {
 
 export async function getSessionTargets(sessionId: string) {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const { data: session } = await supabase
     .from("sessions")

@@ -17,7 +17,7 @@ import { ExerciseRowCard } from "../../components/workout/ExerciseRowCard.tsx";
 
 // The exercise info control mounts the info sheet (router + toast hooks), so render inside the same providers
 // the app shell supplies. Static markup only: nothing here opens the sheet.
-const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
+const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
 function renderToStaticMarkup(node: ReactElement) {
   return renderMarkup(

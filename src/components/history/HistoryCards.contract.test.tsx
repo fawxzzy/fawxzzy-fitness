@@ -320,7 +320,7 @@ test("History card sources: no sideways scroller, no rotating timers, no hand-ro
 
 test("History routes use the card components and the dev fixture is behind the dev guard", () => {
   const overview = readFileSync(new URL("../../app/dev/history-overview/page.tsx", import.meta.url), "utf8");
-  const guardIndex = overview.indexOf("assertDevPageAvailable();");
+  const guardIndex = overview.indexOf("await assertDevPageAvailable();");
   const firstUse = overview.indexOf("getHistoryPreviewSessionsPageData()");
   assert.ok(guardIndex > 0 && guardIndex < firstUse, "guard runs before any fixture data is read");
   assert.match(overview, /export const dynamic = "force-dynamic"/);

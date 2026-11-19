@@ -49,7 +49,7 @@ function revalidateRoutineEditPaths(routineId: string, dayId: string) {
 }
 
 async function enforceRoutineAccessForCurrentTier(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
 }): Promise<ActionResult> {
@@ -92,7 +92,7 @@ function selectedProgressionPlaybook(payload: Record<string, unknown>) {
 }
 
 async function getSavedWorkoutPlanCapacityError(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
 }) {
   const proAccess = await loadProAccessSnapshot(args.userId);
@@ -178,7 +178,7 @@ function parseWorkoutPlanDecisionMode(value: FormDataEntryValue | null): Workout
 }
 
 async function loadRoutineDayWorkoutPlanSyncContext(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   routineDayId: string;
@@ -240,7 +240,7 @@ async function loadRoutineDayWorkoutPlanSyncContext(args: {
 }
 
 async function insertRoutineDayExerciseWithCompat(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   routineDayId: string;
   userId: string;
   values: Record<string, unknown>;
@@ -281,7 +281,7 @@ async function insertRoutineDayExerciseWithCompat(args: {
 
 export async function updateRoutineDaySettingsAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
@@ -447,7 +447,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
 
 export async function addRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
@@ -647,7 +647,7 @@ export async function resolveWorkoutPlanEditDecisionAction(
   syncMode?: "sync";
 }> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
   const decisionMode = parseWorkoutPlanDecisionMode(formData.get("decisionMode"));
@@ -773,7 +773,7 @@ export async function loadWorkoutPlanEditDecisionStateAction(
   syncMode?: "sync";
 }> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
 
@@ -821,7 +821,7 @@ export const loadWorkoutPlanTemplateEditDecisionStateAction = loadWorkoutPlanEdi
 
 export async function updateRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
@@ -965,7 +965,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
 
 export async function reorderRoutineDayExercisesAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
@@ -1074,7 +1074,7 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
 
 export async function deleteRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");

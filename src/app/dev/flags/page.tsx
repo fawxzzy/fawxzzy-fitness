@@ -29,8 +29,8 @@ function FlagRow({
   );
 }
 
-export default function DevFlagsPage() {
-  assertDevPageAvailable();
+export default async function DevFlagsPage() {
+  await assertDevPageAvailable();
 
   const flags = listFeatureFlagDiagnostics();
 

@@ -32,7 +32,7 @@ export default async function CreateWorkoutPlanPage({ params, searchParams }: Pa
     timeoutMs: 5000,
     collector: diagnostics,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const accessResult = await loadAccessibleRoutineIdsForCurrentTier({
     supabase,
     userId: user.id,

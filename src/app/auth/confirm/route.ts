@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   const next = url.searchParams.get("next") || null;
   const isRecoveryFlow = type === "recovery" || next === "/reset-password" || next?.startsWith("/reset-password?");
 
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const failureRedirect = buildRequestScopedUrl(request, "/login");
   failureRedirect.searchParams.set("error", "confirm_failed");
   const recoverySessionMissingRedirect = buildRequestScopedUrl(request, "/login");

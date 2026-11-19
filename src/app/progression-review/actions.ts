@@ -37,7 +37,7 @@ type ProgressionReviewMutationExerciseRow = RoutineDayExerciseRow & {
 const PROGRESSION_MUTATION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
 const LINKED_PROGRESSION_UPDATE_LIMIT = 12;
 
-function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
+function createLiveSessionMutationRepository(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
   return {
     async readSession(sessionId: string) {
       const { data } = await supabase
@@ -74,7 +74,7 @@ function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabas
 }
 
 async function readProgressionReviewMutationContext(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   routineDayExerciseId: string;
@@ -158,7 +158,7 @@ function resolveLinkedRoutineDayExerciseIds(sourceId: string, linkedIds?: string
 }
 
 async function readMutationExercisesForRoutine(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
   routineDayExerciseIds: string[];
@@ -216,7 +216,7 @@ export async function applyProgressionReviewCandidateAction(payload: {
   linkedRoutineDayExerciseIds?: string[];
 }): Promise<ActionResult<ProgressionReviewApplyResult>> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
 
   if (payload.candidateType === "review") {
     return { ok: false, error: "Manual Review candidates are review-only for now." };
@@ -355,7 +355,7 @@ export async function revertProgressionReviewCandidateAction(payload: {
   linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
 }): Promise<ActionResult> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const context = await readProgressionReviewMutationContext({
     supabase,
     userId: user.id,

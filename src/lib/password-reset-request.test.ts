@@ -69,7 +69,7 @@ test("the recovery redirect is Fitness's own reset page on the app origin, with 
   assert.deepEqual([...url.searchParams.entries()], [["recovery", "1"]]);
 
   // No caller assembles its own redirect: both go through the one builder.
-  assert.equal((actions.match(/buildFitnessRecoveryRedirectUrl\(getAppOrigin\(\)\)/g) ?? []).length, 2);
+  assert.equal((actions.match(/buildFitnessRecoveryRedirectUrl\(await getAppOrigin\(\)\)/g) ?? []).length, 2);
   assert.doesNotMatch(actions, /\/reset-password\?recovery=1/);
 });
 

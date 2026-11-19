@@ -11,13 +11,13 @@ import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 
 export const dynamic = "force-dynamic";
 
-export default function DevHistoryPreviewPage() {
+export default async function DevHistoryPreviewPage() {
   if (process.env.NODE_ENV === "production") {
     notFound();
   }
 
-  const previewAvailable = isHistoryPreviewAvailableForRequest();
-  const previewActive = isHistoryPreviewActiveForRequest();
+  const previewAvailable = await isHistoryPreviewAvailableForRequest();
+  const previewActive = await isHistoryPreviewActiveForRequest();
   const previewLinks = getHistoryPreviewLinks();
 
   return (

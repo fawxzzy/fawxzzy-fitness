@@ -274,7 +274,7 @@ export function extractProgressionSourceSessionId(args: {
 }
 
 export async function recordProgressionEvent(args: {
-  supabase: ReturnType<typeof supabaseServer>;
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
   payload: ProgressionEventPayload | null;
   context: string;
 }) {

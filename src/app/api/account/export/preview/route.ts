@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = supabaseServer();
+    const supabase = await supabaseServer();
     const options: AccountWorkoutExportOptions = {
       fileType: payload.fileType,
       exportName: null,
