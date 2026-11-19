@@ -8,6 +8,7 @@ import {
   buildAccountWorkoutExportCsvTables,
   buildAccountWorkoutExportWorkbookBuffer,
   getAccountWorkoutExportContentType,
+  loadAccountWorkoutExportSettings,
   type AccountWorkoutExportFileType,
   type AccountWorkoutExportOptions,
   type AccountWorkoutExportScope,
@@ -62,8 +63,10 @@ export async function POST(request: Request) {
       dateFrom: typeof payload.dateFrom === "string" ? payload.dateFrom : null,
       dateTo: typeof payload.dateTo === "string" ? payload.dateTo : null,
     };
+    // One cookie-bound (RLS) client for every read; the user id always comes from the session, never the request body.
+    const supabase = supabaseServer();
     const exportPayload = await buildAccountWorkoutExportPayload({
-      supabase: supabaseServer(),
+      supabase,
       userId: user.id,
       options,
     });
@@ -76,6 +79,7 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": getAccountWorkoutExportContentType(options.fileType),
           "Content-Disposition": `attachment; filename="${filename}"`,
+          "Cache-Control": "private, no-store",
         },
       });
     }
@@ -87,15 +91,18 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": getAccountWorkoutExportContentType(options.fileType),
           "Content-Disposition": `attachment; filename="${filename}"`,
+          "Cache-Control": "private, no-store",
         },
       });
     }
 
-    return new NextResponse(`${JSON.stringify(buildAccountWorkoutExportJsonDocument(exportPayload), null, 2)}\n`, {
+    const settings = await loadAccountWorkoutExportSettings({ supabase, userId: user.id });
+    return new NextResponse(`${JSON.stringify(buildAccountWorkoutExportJsonDocument(exportPayload, { settings }), null, 2)}\n`, {
       status: 200,
       headers: {
         "Content-Type": getAccountWorkoutExportContentType(options.fileType),
         "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "private, no-store",
       },
     });
   } catch (error) {

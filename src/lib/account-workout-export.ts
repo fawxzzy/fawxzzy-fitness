@@ -256,7 +256,19 @@ export type AccountWorkoutExportSection = AccountWorkoutExportSectionDefinition 
   rows: AccountWorkoutExportSectionRow[];
 };
 
+/** Bump when the JSON document shape changes in a way a reader of an old file would notice. */
+export const ACCOUNT_WORKOUT_EXPORT_SCHEMA_VERSION = 1;
+
+/** The person's own non-secret app settings. Never credentials, tokens, email or billing data. */
+export type AccountWorkoutExportSettings = {
+  timezone: string | null;
+  weightUnit: "lbs" | "kg" | null;
+  distanceUnit: "mi" | "km" | null;
+};
+
 export type AccountWorkoutExportJsonDocument = {
+  schemaVersion: typeof ACCOUNT_WORKOUT_EXPORT_SCHEMA_VERSION;
+  settings: AccountWorkoutExportSettings | null;
   metadata: AccountWorkoutExportPayload["metadata"] & {
     scopeLabel: string;
     includedSections: Array<{
@@ -715,9 +727,34 @@ export async function buildAccountWorkoutExportWorkbookBuffer(payload: AccountWo
   return Buffer.from(await writeXlsxFile(sheets).toBuffer());
 }
 
-export function buildAccountWorkoutExportJsonDocument(payload: AccountWorkoutExportPayload): AccountWorkoutExportJsonDocument {
+export async function loadAccountWorkoutExportSettings(args: {
+  supabase: any;
+  userId: string;
+}): Promise<AccountWorkoutExportSettings | null> {
+  const { data } = await args.supabase
+    .from("profiles")
+    .select("timezone, preferred_weight_unit, preferred_distance_unit")
+    .eq("id", args.userId)
+    .limit(1);
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
+    return null;
+  }
+  return {
+    timezone: typeof row.timezone === "string" ? row.timezone : null,
+    weightUnit: row.preferred_weight_unit === "lbs" || row.preferred_weight_unit === "kg" ? row.preferred_weight_unit : null,
+    distanceUnit: row.preferred_distance_unit === "mi" || row.preferred_distance_unit === "km" ? row.preferred_distance_unit : null,
+  };
+}
+
+export function buildAccountWorkoutExportJsonDocument(
+  payload: AccountWorkoutExportPayload,
+  options: { settings?: AccountWorkoutExportSettings | null } = {},
+): AccountWorkoutExportJsonDocument {
   const sections = buildAccountWorkoutExportSections(payload);
   return {
+    schemaVersion: ACCOUNT_WORKOUT_EXPORT_SCHEMA_VERSION,
+    settings: options.settings ?? null,
     metadata: {
       ...payload.metadata,
       scopeLabel: getScopeLabel(payload.metadata.scope),
