@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-19 - FF-QA-004: screen-flow interaction tests, last 5 exclusions closed, one QA command
+
+- Type: Test infrastructure (source; no product behaviour change)
+- WHAT changed: Four new jsdom flow tests under `tests/dom/` (shared `providers.tsx` supplies a recording router, pathname, search params and the toast host; `dom-env.ts` gained CustomEvent, StorageEvent, HTMLFormElement, SubmitEvent and a `performance.getEntriesByType` stub): Today start/resume (`today-start`), workout set logging and the Finish sheet (`session-flow`), routine duplicate-name validation (`routine-form`), Settings Sign out (`settings-sign-out`). `npm run test:dom` runs all five DOM files. The five tests still excluded from `test:all` are back in: the three Discord tooling tests now have the three ops docs they assert (`docs/ops/FITNESS-FEEDBACK-PHASE-READINESS-REPORTS.md`, `...DISCORD-INVENTORY-NOISE-AUDITS.md`, `...DISCORD-FEEDBACK-EXPORTS.md`, written from what the scripts do: read-only, ids masked); the two Playbook tests skip the cases that need an owner-machine sibling checkout (`../playbook`, ATLAS root schema) with an explicit reason instead of failing the file (`FITNESS_PLAYBOOK_CONTRACT_PATH` overrides the contract path). New `npm run qa:suite` (`scripts/qa/run-qa-suite.mjs`) runs the hermetic `scripts/qa` tests always, and the Playwright loopback proofs only when `FITNESS_QA_BASE_URL` is a loopback origin (otherwise reported SKIPPED; `--require-browser` makes that a failure). The two Supabase-env-bound qa tests stay out on purpose.
+- WHY it changed: Existing tests did not dispatch the taps people make on Today, the session logger, the routine form or Settings; five stale exclusions were hiding drift; the qa proofs were separate commands nobody ran together.
+- Rule: A flow claim needs a test that clicks and reads the DOM; a test that cannot run off the owner machine skips with a stated reason, it is not excluded wholesale; a new `qa` proof joins `run-qa-suite.mjs`.
+- Failure Mode: React 18.3 in jsdom does not call function form actions, so the Finish tests assert the form submit event, not `saveSessionAction`; jsdom cannot spy `location.assign`, so the sign-out success redirect and the 401 redirect are not asserted; jsdom has no layout, so none of this is a device check.
+- Status: Source only, headless-only, not device-checked.
+
 ## 2026-11-16 - Final cross-check fixes: reset errors, desktop install, one crash card, loader words
 
 - Type: UI copy and behaviour (source)
