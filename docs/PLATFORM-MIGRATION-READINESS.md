@@ -33,3 +33,12 @@ Next 15.5 + React 19 in one PR behind its own card with the codemod, then Next 1
 
 ## Next step: Next 16 (deadline)
 Next 15 is in Maintenance LTS; its security releases run through 2027-01-31 (nextjs.org/support-policy, read 2026-11-19). Before then: make the sync request helpers above async, rename `middleware.ts` to `proxy.ts`, move lint to the ESLint CLI with eslint 9 flat config, and check the Turbopack production build.
+
+## Status 2026-11-19: Next 16 done in one PR
+- next / eslint-config-next 16.4.6 (pinned), eslint 9.39 (eslint 10 is out, but eslint-plugin-react / import / jsx-a11y peer only up to eslint 9). React stays 19.2.9.
+- Request helpers are async: `supabaseServer`, `getRequestAccessToken`, `readCurrentRequestServerSessionTokens`, `assertDevPageAvailable`, `assertDevServiceRolePageAvailable`, `isHistoryPreviewAvailableForRequest`, `isHistoryPreviewActiveForRequest`, `isTrustedLocalDevRequest`, `getLocalDevAutoLoginCredentials`, and `getOrigin` / `getAppOrigin` in `src/app/auth/actions.ts`. No `UnsafeUnwrapped*` cast is left. Every dev page (and `src/app/dev/layout.tsx`) awaits its guard as the first statement.
+- Missed-await proof: `src/lib/async-request-helpers.contract.test.ts` fails on any un-awaited call of those helpers or of `cookies()` / `headers()`; `src/lib/dev-page-guard-runtime.test.ts` imports every guarded `/dev` page and the layout with a stubbed `next/headers` and checks each one rejects with `notFound()` (404) for a production request with no Host, before it reads props. Both were mutation-checked (a `void assertDevPageAvailable()` fails both). Typecheck also rejects a Promise used as a Supabase client.
+- `src/middleware.ts` is now `src/proxy.ts` (official `middleware-to-proxy` codemod; function `proxy`, Node runtime). The `/dev` 404 layer and the auth session refresh are unchanged.
+- Lint runs through the ESLint CLI (`scripts/eslint-cli.mjs`, flat `eslint.config.mjs`); `next lint` and `.eslintrc.json` are gone. The React Compiler rules new in eslint-plugin-react-hooks 7 are off (153 existing sites); turning them on is a follow-up.
+- `revalidateTag(tag)` with one argument no longer exists; `src/app/actions/exercises.ts` uses `updateTag(tag)` (Server Action, expires at once, same as before).
+- Production build uses Turbopack (the Next 16 default); `next.config.mjs` has no webpack hook, and `experimental.staleTimes` and the `/sw.js` headers are unchanged.
