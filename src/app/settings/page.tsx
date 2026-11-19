@@ -46,11 +46,12 @@ function resolveBillingNotice(value: string | string[] | undefined): "success" |
   return notice === "success" || notice === "cancel" ? notice : null;
 }
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function SettingsPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const diagnostics = new LoadingDiagnosticsCollector("/settings");
   const user = await requireUser({
     gate: "settings.auth.session",
@@ -81,7 +82,7 @@ export default async function SettingsPage({
     || (Boolean(zacEmail) && normalizedEmail === zacEmail)
     || (!zacEmail && process.env.NODE_ENV !== "production");
   const qaVisibilityOverride = resolveQaLlelVisibilityOverride(
-    cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
+    (await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value,
   );
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(profile, qaVisibilityOverride);
   const [exportDateRange, achievements] = await Promise.all([

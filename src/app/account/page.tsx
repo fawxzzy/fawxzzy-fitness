@@ -4,11 +4,12 @@ import { resolveAccountReturnHref } from "@/lib/account-navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function AccountPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const user = await requireUser({
     gate: "account.auth.session",
     route: "/account",

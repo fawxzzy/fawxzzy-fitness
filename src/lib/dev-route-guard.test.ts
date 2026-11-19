@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NextRequest } from "next/server.js";
 import { middleware } from "@/middleware";
 import { assertDevPageAvailable, assertDevServiceRolePageAvailable } from "./dev-route-guard-page.ts";
+import { isNotFoundError } from "./next-navigation-errors.ts";
 import {
   devRouteUnavailableResponse,
   devServiceRoleRouteUnavailableResponse,
@@ -84,7 +85,7 @@ function nextRequest(url: string, headers: Record<string, string> = {}) {
 const EXTERNAL_HOST = "fitness.fawxzzy.com";
 const OTHER_HOST = "qa.example.test";
 const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]", "::1", "LOCALHOST"];
-const isNotFound = (error: unknown) => (error as { digest?: string }).digest === "NEXT_NOT_FOUND";
+const isNotFound = (error: unknown) => isNotFoundError(error);
 
 test("a production platform signal withdraws dev routes whatever else is set", () => {
   assert.equal(isProductionDeployment({ VERCEL_ENV: "production" }), true);

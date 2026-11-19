@@ -140,7 +140,7 @@ export function useHasBottomActions(): boolean {
 
 export function usePublishBottomActions(node: ReactNode | null) {
   const { publish, unpublish } = useBottomActions();
-  const registrationRef = useRef<BottomActionRegistration>();
+  const registrationRef = useRef<BottomActionRegistration | undefined>(undefined);
   const lastPublishedNodeRef = useRef<ReactNode | null | typeof UNPUBLISHED>(UNPUBLISHED);
 
   if (!registrationRef.current) {

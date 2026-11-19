@@ -19,14 +19,15 @@ async function listShots() {
   }
 }
 
-export default async function QaShotPage({
-  searchParams,
-}: {
-  searchParams?: {
-    file?: string;
-  };
-}) {
+export default async function QaShotPage(
+  props: {
+    searchParams?: Promise<{
+      file?: string;
+    }>;
+  }
+) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   const files = await listShots();
   const requestedFile = typeof searchParams?.file === "string" ? searchParams.file : null;

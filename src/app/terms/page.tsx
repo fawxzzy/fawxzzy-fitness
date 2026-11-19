@@ -45,11 +45,12 @@ function resolveReturnTo(value: string | string[] | undefined) {
   return candidate && candidate.startsWith("/") ? candidate : undefined;
 }
 
-export default function TermsOfServicePage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function TermsOfServicePage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const returnTo = resolveReturnTo(searchParams?.returnTo);
 
   return (

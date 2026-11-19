@@ -4,14 +4,15 @@ import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 
 export const dynamic = "force-dynamic";
 
-export default function AppBoundaryProbePage({
-  searchParams,
-}: {
-  searchParams?: {
-    crash?: string;
-  };
-}) {
+export default async function AppBoundaryProbePage(
+  props: {
+    searchParams?: Promise<{
+      crash?: string;
+    }>;
+  }
+) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">

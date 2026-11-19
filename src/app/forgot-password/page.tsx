@@ -4,9 +4,10 @@ import { buildForgotPasswordAliasTarget, type ForgotPasswordSearchParams } from 
 export const dynamic = "force-dynamic";
 
 type ForgotPasswordPageProps = {
-  searchParams?: ForgotPasswordSearchParams;
+  searchParams?: Promise<ForgotPasswordSearchParams>;
 };
 
-export default function ForgotPasswordPage({ searchParams }: ForgotPasswordPageProps) {
+export default async function ForgotPasswordPage(props: ForgotPasswordPageProps) {
+  const searchParams = await props.searchParams;
   redirect(buildForgotPasswordAliasTarget(searchParams));
 }

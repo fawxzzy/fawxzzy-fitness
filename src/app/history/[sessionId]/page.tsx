@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { isNotFoundError } from "next/dist/client/components/not-found";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
@@ -46,7 +45,7 @@ import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 
 export const dynamic = "force-dynamic";
 type PageProps = {
-  params: { sessionId: string };
+  params: Promise<{ sessionId: string }>;
 };
 
 function toClientPlainObject<T>(value: T): T {
@@ -199,7 +198,8 @@ function buildHistoryExerciseTargetSeriesSummary(args: {
   });
 }
 
-export default async function HistoryLogDetailsPage({ params }: PageProps) {
+export default async function HistoryLogDetailsPage(props: PageProps) {
+  const params = await props.params;
   const diagnostics = new LoadingDiagnosticsCollector(`/history/${params.sessionId}`);
   try {
     if (isHistoryPreviewActiveForRequest()) {
@@ -260,7 +260,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     const historyTimeZone = await loadHistoryTimeZone({ supabase, userId: user.id, profile });
     const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
       profile,
-      resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+      resolveQaLlelVisibilityOverride((await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value),
     );
 
     const session = sessionResult.data as SessionRow & {

@@ -8,16 +8,18 @@ import { isSafeAppPath } from "@/lib/navigation-return";
 import type { RoutineRow } from "@/types/db";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     returnTo?: string;
     exerciseId?: string;
-  };
+  }>;
 };
 
-export default async function SessionAddExercisePage({ params, searchParams }: PageProps) {
+export default async function SessionAddExercisePage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const {
     routine,
     sessionRow,

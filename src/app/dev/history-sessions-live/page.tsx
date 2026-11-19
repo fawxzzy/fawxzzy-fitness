@@ -36,20 +36,21 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-export default async function DevHistorySessionsLivePage({
-  searchParams,
-}: {
-  searchParams?: {
-    userId?: string;
-    accessToken?: string;
-    view?: string;
-    filters?: string;
-    q?: string;
-    tags?: string;
-    capture?: string;
-  };
-}) {
+export default async function DevHistorySessionsLivePage(
+  props: {
+    searchParams?: Promise<{
+      userId?: string;
+      accessToken?: string;
+      view?: string;
+      filters?: string;
+      q?: string;
+      tags?: string;
+      capture?: string;
+    }>;
+  }
+) {
   assertDevServiceRolePageAvailable();
+  const searchParams = await props.searchParams;
 
   const userId = searchParams?.userId?.trim() ?? "";
   const accessToken = searchParams?.accessToken?.trim() ?? "";
@@ -71,7 +72,7 @@ export default async function DevHistorySessionsLivePage({
     supabase: dataClient,
     userId,
     showQaLlelDataOverride: resolveQaLlelVisibilityOverride(
-      cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
+      (await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value,
     ),
   });
 

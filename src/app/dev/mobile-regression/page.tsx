@@ -14,16 +14,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function DevMobileRegressionPage({
-  searchParams,
-}: {
-  searchParams?: {
-    scenario?: string;
-    screen?: string;
-    fixture?: string;
-  };
-}) {
+export default async function DevMobileRegressionPage(
+  props: {
+    searchParams?: Promise<{
+      scenario?: string;
+      screen?: string;
+      fixture?: string;
+    }>;
+  }
+) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";
   if (process.env.NODE_ENV === "production" && !isReviewPreviewEnabled) {

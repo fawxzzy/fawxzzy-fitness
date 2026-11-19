@@ -399,9 +399,9 @@ export default async function RoutinesPage() {
   ]);
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
     profile,
-    resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+    resolveQaLlelVisibilityOverride((await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value),
   );
-  const draftRoutineId = cookies().get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
+  const draftRoutineId = (await cookies()).get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
 
   let pageModel: RoutinesBrowsePageModel | null = null;
   let fetchFailed = false;

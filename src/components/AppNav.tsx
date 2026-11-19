@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { MouseEvent, SVGProps } from "react";
+import type { JSX, MouseEvent, SVGProps } from "react";
 import { useEffect, useState } from "react";
 import { ContentRail } from "@/components/layout/ContentRail";
 

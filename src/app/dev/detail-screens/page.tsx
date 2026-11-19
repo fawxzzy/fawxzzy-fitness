@@ -50,12 +50,11 @@ const FIXTURE_DAY_EDIT_HREF = "/routines/fixture-routine/edit/day/fixture-day-1"
  * dev-route guard: middleware answers 404 for `/dev/*` on production hosts before this page runs; the first
  * statement below repeats it (a layout alone cannot stop its page). See `src/lib/dev-route-guard.ts`.
  */
-export default function DevDetailScreensPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
+export default async function DevDetailScreensPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   const screenParam = Array.isArray(searchParams?.screen) ? searchParams?.screen[0] : searchParams?.screen;
   const longParam = Array.isArray(searchParams?.long) ? searchParams?.long[0] : searchParams?.long;

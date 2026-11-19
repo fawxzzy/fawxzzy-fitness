@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { cookies, headers, type UnsafeUnwrappedCookies, type UnsafeUnwrappedHeaders } from "next/headers";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
@@ -8,10 +8,10 @@ import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 import { createFitnessSupabaseClient } from "@/lib/supabase/schema";
 
 function getRequestAuthTokens() {
-  const cookieStore = cookies();
+  const cookieStore = (cookies() as unknown as UnsafeUnwrappedCookies);
   const accessTokenCookie = cookieStore.get("sb-access-token")?.value;
   const refreshTokenCookie = cookieStore.get("sb-refresh-token")?.value;
-  const requestHeaders = headers();
+  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
   const hostHeader = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").trim().toLowerCase();
   const hostname = hostHeader.split(":")[0] ?? "";
   const localhostHeaderToken = requestHeaders.get("x-atlas-access-token")?.trim() ?? "";

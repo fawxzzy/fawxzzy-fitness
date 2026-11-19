@@ -8,16 +8,17 @@ import { supabaseServer } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 type ResetPasswordPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string | string[];
     recovery?: string;
-  };
+  }>;
 };
 
 // Link problems that belong on the request screen (send a new link); every other code stays on the new-password form.
 const LINK_NOTICES = new Set(["reset.expired", "reset.invalid", "reset.rate"]);
 
-export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+export default async function ResetPasswordPage(props: ResetPasswordPageProps) {
+  const searchParams = await props.searchParams;
   // `error` is an allow-listed code (auth-route-feedback.ts); anything else resolves to nothing.
   const error = resolveResetPasswordErrorCopy(searchParams?.error);
   const isRecoveryAttempt = searchParams?.recovery === "1";

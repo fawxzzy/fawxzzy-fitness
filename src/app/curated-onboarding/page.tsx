@@ -5,11 +5,12 @@ import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
-export default async function CuratedOnboardingPage({
-  searchParams,
-}: {
-  searchParams?: { draft?: string };
-}) {
+export default async function CuratedOnboardingPage(
+  props: {
+    searchParams?: Promise<{ draft?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   if (!isCuratedOnboardingEnabled()) {
     redirect("/today");
   }

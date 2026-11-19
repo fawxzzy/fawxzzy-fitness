@@ -1,4 +1,4 @@
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isRedirectError } from "@/lib/next-navigation-errors";
 import { SessionPageClient } from "@/components/SessionPageClient";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -199,18 +199,20 @@ function buildSessionCalorieEstimationExercise(args: {
 }
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     error?: string;
     exerciseId?: string;
     offlineSnapshot?: string;
     returnTo?: string;
-  };
+  }>;
 };
 
-export default async function SessionPage({ params, searchParams }: PageProps) {
+export default async function SessionPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const diagnostics = new LoadingDiagnosticsCollector(`/session/${params.id}`);
   const user = await requireUser({
     gate: "session.auth.session",
