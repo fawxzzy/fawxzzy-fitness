@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { headers, type UnsafeUnwrappedHeaders } from "next/headers";
 import { notFound } from "next/navigation";
 import {
   hostnameFromHostHeader,
@@ -13,7 +13,7 @@ import {
 // header counts as non-loopback. `host` and `env` are injectable for tests; the defaults
 // read the live request.
 export function assertDevPageAvailable(
-  host: string | null = headers().get("host"),
+  host: string | null = (headers() as unknown as UnsafeUnwrappedHeaders).get("host"),
   env: Readonly<Record<string, string | undefined>> = readDevGuardEnv(),
 ): void {
   if (isDevRouteWithdrawn({ hostnames: [hostnameFromHostHeader(host) ?? ""], env })) {
@@ -24,7 +24,7 @@ export function assertDevPageAvailable(
 // First statement of every dev page that reads with the service-role client from a
 // client-supplied user id. Stricter than assertDevPageAvailable: see isDevServiceRoleRouteWithdrawn.
 export function assertDevServiceRolePageAvailable(
-  host: string | null = headers().get("host"),
+  host: string | null = (headers() as unknown as UnsafeUnwrappedHeaders).get("host"),
   env: Readonly<Record<string, string | undefined>> = readDevGuardEnv(),
 ): void {
   if (isDevServiceRoleRouteWithdrawn({ hostnames: [hostnameFromHostHeader(host) ?? ""], env })) {

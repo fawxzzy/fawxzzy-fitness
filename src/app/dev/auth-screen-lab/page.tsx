@@ -18,9 +18,9 @@ import { RouteLoading } from "@/components/RouteLoading";
 export const dynamic = "force-dynamic";
 
 type AuthScreenLabPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     screen?: string;
-  };
+  }>;
 };
 
 const screens = [
@@ -112,10 +112,11 @@ const previewRememberedLogin = {
 
 const PREVIEW_SIGNED_IN_EMAIL = "atlas@example.com";
 
-export default function AuthScreenLabPage({ searchParams }: AuthScreenLabPageProps) {
+export default async function AuthScreenLabPage(props: AuthScreenLabPageProps) {
   if (process.env.NODE_ENV === "production") {
     notFound();
   }
+  const searchParams = await props.searchParams;
 
   if (!isScreenId(searchParams?.screen)) {
     return <ScreenPicker />;

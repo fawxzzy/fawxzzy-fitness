@@ -9,7 +9,7 @@ import { LoginEntry } from "@/app/login/LoginEntry";
 import { resolveLoginRouteMessages } from "@/app/login/loginScreenState";
 
 type LoginPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string;
     info?: string;
     localAutoAuth?: string;
@@ -18,7 +18,7 @@ type LoginPageProps = {
     returnTo?: string;
     installedApp?: string;
     verified?: string;
-  };
+  }>;
 };
 
 function resolvePreferredLocalDevAccount(value: string | undefined): LocalDevAutoLoginAccount | null {
@@ -30,7 +30,8 @@ function resolvePreferredLocalDevAccount(value: string | undefined): LocalDevAut
   return null;
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage(props: LoginPageProps) {
+  const searchParams = await props.searchParams;
   const shouldAttemptLocalDevAutoLogin = searchParams?.localAutoAuth === "1";
   const returnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams.returnTo : undefined;
 

@@ -1,5 +1,4 @@
-import { isNotFoundError } from "next/dist/client/components/not-found";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -53,11 +52,12 @@ function HistoryRouteMessage({
   );
 }
 
-export default async function HistoryPage({
-  searchParams,
-}: {
-  searchParams?: HistorySearchParams;
-}) {
+export default async function HistoryPage(
+  props: {
+    searchParams?: Promise<HistorySearchParams>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const diagnostics = new LoadingDiagnosticsCollector("/history");
   const viewParam = getSingleSearchParam(searchParams?.view);
   const initialViewMode = viewParam === "detailed" ? "detailed" : "compact";
@@ -91,12 +91,12 @@ export default async function HistoryPage({
           });
         }
 
-        return diagnostics.measure<HistorySessionsPageData>("history.sessions.fetch", () => loadHistorySessionsPageData({
+        return diagnostics.measure<HistorySessionsPageData>("history.sessions.fetch", async () => loadHistorySessionsPageData({
           supabase: supabaseServer(),
           userId: user.id,
           searchParams,
           showQaLlelDataOverride: resolveQaLlelVisibilityOverride(
-            cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
+            (await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value,
           ),
         }), {
           blockingReason: "Waiting for history sessions page data.",

@@ -65,7 +65,7 @@ export async function updateQaLlelVisibilityAction(formData: FormData): Promise<
   const user = await requireUser();
   const supabase = supabaseServer();
   const showQaLlelData = String(formData.get("showQaLlelData") ?? "") === "1";
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const { error } = await supabase
     .from("profiles")

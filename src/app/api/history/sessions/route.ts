@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       userId: user.id,
       filterState,
       showQaLlelDataOverride: resolveQaLlelVisibilityOverride(
-        cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
+        (await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value,
       ),
     });
 

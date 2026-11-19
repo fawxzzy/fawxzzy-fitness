@@ -37,7 +37,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
     collector: options.collector,
   });
   const supabase = await supabaseServerWithSession();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_COOKIE_NAME)?.value ?? null;
   const refreshToken = cookieStore.get(REFRESH_COOKIE_NAME)?.value ?? null;
   const hasSessionCookies = hasSessionCookieValues({ accessToken, refreshToken });

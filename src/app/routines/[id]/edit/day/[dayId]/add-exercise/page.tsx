@@ -20,19 +20,21 @@ import type { RoutineRow } from "@/types/db";
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
     dayId: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     exerciseId?: string;
-  };
+  }>;
 };
 
 const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date, cycle_length_days";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
-export default async function EditDayAddExercisePage({ params, searchParams }: PageProps) {
+export default async function EditDayAddExercisePage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await requireUser();
   const supabase = supabaseServer();
   const accessResult = await loadAccessibleRoutineIdsForCurrentTier({

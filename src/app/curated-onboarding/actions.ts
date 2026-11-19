@@ -1,6 +1,6 @@
 "use server";
 
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isRedirectError } from "@/lib/next-navigation-errors";
 import { createRoutineAction } from "@/app/routines/actions";
 import {
   CURATED_CREATE_FAILED_MESSAGE,

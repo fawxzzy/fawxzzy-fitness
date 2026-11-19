@@ -23,8 +23,9 @@ export const metadata: Metadata = {
  * detailed density. Availability is the shared dev-route guard (middleware answers 404 for `/dev/*` on
  * production hosts before this page runs; the first statement repeats it). See `src/lib/dev-route-guard.ts`.
  */
-export default function DevHistoryOverviewPage({ searchParams }: { searchParams?: { view?: string } }) {
+export default async function DevHistoryOverviewPage(props: { searchParams?: Promise<{ view?: string }> }) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   const data = getHistoryPreviewSessionsPageData();
   return (

@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { cookies, headers, type UnsafeUnwrappedCookies, type UnsafeUnwrappedHeaders } from "next/headers";
 import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from "@/lib/auth-session";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { resolveServerSessionTokens, type ServerSessionTokenSnapshot } from "@/lib/auth/server-session-core";
@@ -30,8 +30,8 @@ export function createSupabaseServerClient(accessToken?: string | null) {
 }
 
 export function readCurrentRequestServerSessionTokens(): ServerSessionTokenSnapshot {
-  const cookieStore = cookies();
-  const requestHeaders = headers();
+  const cookieStore = (cookies() as unknown as UnsafeUnwrappedCookies);
+  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
 
   return resolveServerSessionTokens({
     cookieAccessToken: cookieStore.get(ACCESS_COOKIE_NAME)?.value,

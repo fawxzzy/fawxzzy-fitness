@@ -16,16 +16,17 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-export default async function DevHistoryExercisesShotPage({
-  searchParams,
-}: {
-  searchParams?: {
-    userId?: string;
-    view?: string;
-    filters?: string;
-  };
-}) {
+export default async function DevHistoryExercisesShotPage(
+  props: {
+    searchParams?: Promise<{
+      userId?: string;
+      view?: string;
+      filters?: string;
+    }>;
+  }
+) {
   assertDevServiceRolePageAvailable();
+  const searchParams = await props.searchParams;
 
   if (process.env.NODE_ENV === "production") {
     return <ErrorState message="Not found." />;

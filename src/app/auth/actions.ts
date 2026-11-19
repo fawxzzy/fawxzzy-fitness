@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies, headers, type UnsafeUnwrappedHeaders } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
 import { SUPABASE_URL } from "@/lib/env";
@@ -35,7 +35,7 @@ async function resolveIndexedUsername(username: string, onLookupFailure?: (code:
   }
   return resolveUsernameEmailFromIndex({
     identifier: username,
-    clientAddress: headers().get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown",
+    clientAddress: (await headers()).get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown",
     supabaseUrl: SUPABASE_URL(),
     serviceCredential: resolveSupabaseAdminCredential(),
     onLookupFailure: (code) => {
@@ -50,7 +50,7 @@ async function resolveIndexedUsername(username: string, onLookupFailure?: (code:
 }
 
 function getOrigin() {
-  const requestHeaders = headers();
+  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
   const origin = requestHeaders.get("origin");
   if (origin) {
     return origin;
@@ -132,7 +132,7 @@ export async function login(formData: FormData) {
     }));
   }
 
-  setSessionCookies(cookies(), {
+  setSessionCookies(await cookies(), {
     accessToken: data.session.access_token,
     refreshToken: data.session.refresh_token,
   });
@@ -181,7 +181,7 @@ export async function signup(formData: FormData) {
   }
 
   if (data.session) {
-    setSessionCookies(cookies(), {
+    setSessionCookies(await cookies(), {
       accessToken: data.session.access_token,
       refreshToken: data.session.refresh_token,
     });

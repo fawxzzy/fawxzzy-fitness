@@ -36,10 +36,8 @@ function jsonError(
   );
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: { exerciseId: string } },
-) {
+export async function GET(request: Request, props: { params: Promise<{ exerciseId: string }> }) {
+  const params = await props.params;
   const exerciseId = params.exerciseId;
   const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
   const requestUrl = new URL(request.url);

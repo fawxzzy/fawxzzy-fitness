@@ -38,7 +38,7 @@ export default async function WorkoutPlansPage() {
   const supabase = supabaseServer();
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
     profile,
-    resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+    resolveQaLlelVisibilityOverride((await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value),
   );
 
   const { data: routineRows } = await diagnostics.measure("workout-plans.routines.fetch", async () => await supabase

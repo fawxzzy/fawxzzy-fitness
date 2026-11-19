@@ -51,7 +51,7 @@ export default async function NewRoutinePage({
     supabase,
     userId: user.id,
   });
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const draftRoutineId = cookieStore.get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
   const pendingWorkoutPlanChooserDayIndex = Number.parseInt(
     cookieStore.get(ROUTINE_PENDING_WORKOUT_PLAN_CHOOSER_DAY_INDEX_COOKIE_NAME)?.value?.trim() || "",

@@ -1,5 +1,4 @@
-import { isNotFoundError } from "next/dist/client/components/not-found";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { ProgressionHistorySurface } from "@/components/history/ProgressionHistorySurface";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { HistoryRouteErrorShell } from "@/components/history/HistoryShared";
@@ -12,11 +11,12 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function HistoryProgressionPage({
-  searchParams,
-}: {
-  searchParams?: ProgressionHistorySearchParams;
-}) {
+export default async function HistoryProgressionPage(
+  props: {
+    searchParams?: Promise<ProgressionHistorySearchParams>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const diagnostics = new LoadingDiagnosticsCollector("/history/progression");
 
   try {

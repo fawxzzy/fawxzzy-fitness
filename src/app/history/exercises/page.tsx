@@ -1,5 +1,4 @@
-import { isNotFoundError } from "next/dist/client/components/not-found";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";

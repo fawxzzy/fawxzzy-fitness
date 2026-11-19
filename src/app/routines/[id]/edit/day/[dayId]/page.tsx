@@ -39,19 +39,21 @@ const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date, cycle
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
     dayId: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     error?: string;
     success?: string;
     addExerciseOpen?: string;
     returnTo?: string;
-  };
+  }>;
 };
 
-export default async function RoutineDayEditorPage({ params, searchParams }: PageProps) {
+export default async function RoutineDayEditorPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await requireUser();
   const supabase = supabaseServer();
   const accessResult = await loadAccessibleRoutineIdsForCurrentTier({

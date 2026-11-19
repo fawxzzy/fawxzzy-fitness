@@ -763,15 +763,16 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   redirect("/today");
 }
 
-export default async function TodayPage({
-  searchParams,
-}: {
-  searchParams?: {
-    error?: string;
-    focus?: string;
-    shadowPlacement?: string;
-  };
-}) {
+export default async function TodayPage(
+  props: {
+    searchParams?: Promise<{
+      error?: string;
+      focus?: string;
+      shadowPlacement?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const diagnostics = new LoadingDiagnosticsCollector("/today");
   const user = await requireUser({
     gate: "today.auth.session",

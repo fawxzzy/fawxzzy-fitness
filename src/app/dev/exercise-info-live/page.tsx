@@ -21,17 +21,18 @@ type ExerciseInfoApiSuccess = {
   payload: ExerciseInfoPayload;
 };
 
-export default async function DevExerciseInfoLivePage({
-  searchParams,
-}: {
-  searchParams?: {
-    access_token?: string;
-    exerciseId?: string;
-    scrollTo?: string;
-    userId?: string;
-  };
-}) {
+export default async function DevExerciseInfoLivePage(
+  props: {
+    searchParams?: Promise<{
+      access_token?: string;
+      exerciseId?: string;
+      scrollTo?: string;
+      userId?: string;
+    }>;
+  }
+) {
   assertDevServiceRolePageAvailable();
+  const searchParams = await props.searchParams;
 
   if (process.env.NODE_ENV === "production") {
     return <ErrorState message="Not found." />;
@@ -47,7 +48,7 @@ export default async function DevExerciseInfoLivePage({
   }
 
   if (accessToken) {
-    const headerStore = headers();
+    const headerStore = await headers();
     const host = headerStore.get("host") ?? "127.0.0.1:3000";
     const protocol = host.includes("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
     const response = await fetch(`${protocol}://${host}/api/exercise-info/${encodeURIComponent(exerciseId)}`, {

@@ -34,18 +34,19 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-export default async function DevHistoryExercisesLivePage({
-  searchParams,
-}: {
-  searchParams?: {
-    userId?: string;
-    view?: string;
-    filters?: string;
-    capture?: string;
-    accessToken?: string;
-  };
-}) {
+export default async function DevHistoryExercisesLivePage(
+  props: {
+    searchParams?: Promise<{
+      userId?: string;
+      view?: string;
+      filters?: string;
+      capture?: string;
+      accessToken?: string;
+    }>;
+  }
+) {
   assertDevServiceRolePageAvailable();
+  const searchParams = await props.searchParams;
 
   const userId = searchParams?.userId?.trim() ?? "";
   const initialViewMode = searchParams?.view === "detailed" ? "detailed" : "compact";

@@ -11,8 +11,9 @@ export const metadata: Metadata = {
 const MAX_WAIT_MS = 8000;
 
 /** Dev-only fixture: waits `[ms]` on the server (capped) so the route loader has something to wait for. */
-export default async function DevAppLoaderWaitPage({ params }: { params: { ms: string } }) {
+export default async function DevAppLoaderWaitPage(props: { params: Promise<{ ms: string }> }) {
   assertDevPageAvailable();
+  const params = await props.params;
 
   const requested = Number.parseInt(params.ms, 10);
   const waitMs = Number.isFinite(requested) ? Math.min(Math.max(requested, 0), MAX_WAIT_MS) : 0;

@@ -1,5 +1,5 @@
 import "server-only";
-import { headers } from "next/headers";
+import { headers, type UnsafeUnwrappedHeaders } from "next/headers";
 import { optionalEnv } from "@/lib/env";
 import {
   readConfiguredLocalDevAutoLoginCredentials,
@@ -16,7 +16,7 @@ function normalizeEmail(value: string | null) {
 }
 
 function getRequestHostname() {
-  const requestHeaders = headers();
+  const requestHeaders = (headers() as unknown as UnsafeUnwrappedHeaders);
   const hostHeader = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").trim().toLowerCase();
   return hostHeader.split(":")[0] ?? "";
 }

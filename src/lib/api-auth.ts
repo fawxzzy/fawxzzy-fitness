@@ -1,5 +1,5 @@
 import "server-only";
-import { isRedirectError } from "next/dist/client/components/redirect.js";
+import { isRedirectError } from "@/lib/next-navigation-errors";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 

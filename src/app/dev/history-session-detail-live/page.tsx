@@ -42,18 +42,19 @@ function toClientPlainObject<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export default async function DevHistorySessionDetailLivePage({
-  searchParams,
-}: {
-  searchParams?: {
-    sessionId?: string;
-    userId?: string;
-    accessToken?: string;
-    capture?: string;
-    expandExerciseId?: string;
-  };
-}) {
+export default async function DevHistorySessionDetailLivePage(
+  props: {
+    searchParams?: Promise<{
+      sessionId?: string;
+      userId?: string;
+      accessToken?: string;
+      capture?: string;
+      expandExerciseId?: string;
+    }>;
+  }
+) {
   assertDevServiceRolePageAvailable();
+  const searchParams = await props.searchParams;
 
   const sessionId = searchParams?.sessionId?.trim() ?? "";
   const userId = searchParams?.userId?.trim() ?? "";

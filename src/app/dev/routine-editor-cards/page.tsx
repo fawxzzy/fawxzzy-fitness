@@ -14,12 +14,13 @@ export const metadata: Metadata = {
  * Static fixture data only: no Supabase client, no session. Availability is the shared dev-route guard
  * (see `src/lib/dev-route-guard.ts`); the first statement repeats it because a layout alone cannot stop its page.
  */
-export default function DevRoutineEditorCardsPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function DevRoutineEditorCardsPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   const pick = (key: string) => {
     const value = searchParams?.[key];

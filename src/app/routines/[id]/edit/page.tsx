@@ -14,14 +14,16 @@ import type { RoutineRow } from "@/types/db";
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: { id: string };
-  searchParams?: { error?: string };
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string }>;
 };
 
 const ROUTINE_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
-export default async function EditRoutinePage({ params, searchParams }: PageProps) {
+export default async function EditRoutinePage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();

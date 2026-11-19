@@ -22,12 +22,13 @@ export const metadata: Metadata = {
  * for `/dev/*` on production hosts before this page runs; the first statement below repeats it (a layout alone
  * cannot stop its page). See `src/lib/dev-route-guard.ts`.
  */
-export default function DevSettingsCardsPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function DevSettingsCardsPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
   assertDevPageAvailable();
+  const searchParams = await props.searchParams;
 
   const section = Array.isArray(searchParams?.section) ? searchParams?.section[0] : searchParams?.section;
   const plan = Array.isArray(searchParams?.plan) ? searchParams?.plan[0] : searchParams?.plan;

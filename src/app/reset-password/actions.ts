@@ -60,7 +60,7 @@ export async function establishRecoverySession(input: { accessToken: string; ref
     };
   }
 
-  setSessionCookies(cookies(), {
+  setSessionCookies(await cookies(), {
     accessToken,
     refreshToken,
   });
