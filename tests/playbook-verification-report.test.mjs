@@ -122,7 +122,8 @@ function validateNode(schemaRoot, schemaNode, value, valuePath = "$") {
   return errors;
 }
 
-test("fitness verification report validates against the ATLAS root schema", () => {
+// The ATLAS root schema lives outside this repo (two levels up) and exists only on the owner machine.
+test("fitness verification report validates against the ATLAS root schema", { skip: fs.existsSync(schemaPath) ? false : "ATLAS root schema not found at ../../schemas; owner-machine only." }, () => {
   const schema = loadJson(schemaPath);
   const report = loadJson(reportPath);
   const errors = validateNode(schema, schema, report);

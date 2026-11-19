@@ -17,6 +17,10 @@ const copied = [
   "Element",
   "Node",
   "Event",
+  "CustomEvent",
+  "StorageEvent",
+  "HTMLFormElement",
+  "SubmitEvent",
   "KeyboardEvent",
   "MouseEvent",
   "FocusEvent",
@@ -30,5 +34,9 @@ Object.defineProperty(globalThis, "window", { value: window, configurable: true,
 for (const key of copied) {
   // `navigator` is a getter on Node 22, so use defineProperty rather than assignment.
   Object.defineProperty(globalThis, key, { value: (window as unknown as Record<string, unknown>)[key], configurable: true, writable: true });
+}
+// jsdom has no Performance Timeline entries; the back-navigation hook asks for the navigation entry type.
+if (typeof window.performance.getEntriesByType !== "function") {
+  (window.performance as unknown as { getEntriesByType: () => unknown[] }).getEntriesByType = () => [];
 }
 (globalThis as unknown as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;

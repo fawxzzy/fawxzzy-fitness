@@ -34,14 +34,6 @@
       "reason": "Refuses to run without the local Fitness Supabase target; local operator tool."
     },
     {
-      "path": "tests/playbook-adoption-evidence.test.mjs",
-      "reason": "Looks for Playbook and ATLAS repo paths that exist only on the owner machine."
-    },
-    {
-      "path": "tests/playbook-verification-report.test.mjs",
-      "reason": "Reads the ATLAS root schema from a path that exists only on the owner machine."
-    },
-    {
       "path": "src/features/curated-onboarding/planning/execution/compile.test.ts",
       "reason": "Slow property test (over 90 s under load); runs in the planning-execution-command-contract workflow."
     },
@@ -52,18 +44,6 @@
     {
       "path": "src/lib/dal/planner-routine-create.test.ts",
       "reason": "Slow test (over 90 s under load); runs in the planning-execution-command and planning-persistence-adapter contract workflows."
-    },
-    {
-      "path": "scripts/check-feedback-phase-readiness.test.mjs",
-      "reason": "Triaged 2026-11-14: the operator-contract test asserts text in docs/ops/FITNESS-FEEDBACK-PHASE-READINESS-REPORTS.md, which is not in the repo (never committed). Stays excluded until that doc is written or the assertion is dropped (owner call on the Discord feedback tooling)."
-    },
-    {
-      "path": "scripts/discord-server-inventory.test.mjs",
-      "reason": "Triaged 2026-11-14: the operator-contract test asserts text in docs/ops/FITNESS-DISCORD-INVENTORY-NOISE-AUDITS.md, which is not in the repo (never committed). Stays excluded until that doc is written or the assertion is dropped (owner call on the Discord feedback tooling)."
-    },
-    {
-      "path": "scripts/export-discord-bug-reports.test.mjs",
-      "reason": "Triaged 2026-11-14: the operator-contract test asserts text in docs/ops/FITNESS-DISCORD-FEEDBACK-EXPORTS.md, which is not in the repo (never committed). Stays excluded until that doc is written or the assertion is dropped (owner call on the Discord feedback tooling)."
     },
     {
       "path": "tests/mobile-regression/build-mobile-regression-boards.test.ts",
