@@ -1523,7 +1523,7 @@ export function LogAuditClient({
                   autoSizeTextarea(event.currentTarget);
                 }}
                 rows={1}
-                className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
+                className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
               />
             )}
           </FormField>
@@ -1772,7 +1772,7 @@ export function LogAuditClient({
                                       autoSizeTextarea(event.currentTarget);
                                     }}
                                   rows={1}
-                                  className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
+                                  className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
                                 />
                                 )}
                               </FormField>
@@ -1909,7 +1909,7 @@ export function LogAuditClient({
                                       autoSizeTextarea(event.currentTarget);
                                     }}
                                   rows={1}
-                                  className={cn(formFieldControlClassName, "h-auto min-h-11 resize-none overflow-hidden py-2.5")}
+                                  className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
                                 />
                                 )}
                               </FormField>

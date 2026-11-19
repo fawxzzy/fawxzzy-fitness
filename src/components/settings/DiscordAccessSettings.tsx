@@ -158,7 +158,7 @@ export function DiscordAccessSettings() {
           title="One-time key"
           meta={<CardMeta items={[expiryLabel ? `Expires ${expiryLabel}` : "Use Generate to create a key"]} />}
         >
-          <FormField label="Verification token" className="w-full">
+          <FormField label="Discord verification token" className="w-full">
             {(control) => (
             <input
               {...control}
