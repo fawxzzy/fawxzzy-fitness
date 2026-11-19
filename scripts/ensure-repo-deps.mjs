@@ -11,8 +11,9 @@ export const DEFAULT_REQUIRED_MARKERS = [
   "node_modules/next/dist/bin/next",
   "node_modules/eslint-config-next/package.json",
   "node_modules/eslint/package.json",
-  "node_modules/eslint-plugin-react/index.js",
-  "node_modules/eslint-plugin-jsx-a11y/lib/index.js",
+  // eslint-config-next 16 may nest its plugins (eslint-plugin-react, jsx-a11y) under its own
+  // node_modules, so check its flat-config entry instead of fixed plugin paths.
+  "node_modules/eslint-config-next/dist/core-web-vitals.js",
   "node_modules/jsx-ast-utils/lib/values/expressions/index.js",
   "node_modules/typescript/package.json",
   "node_modules/typescript/lib/tsc.js",
