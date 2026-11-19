@@ -12,9 +12,10 @@ const evidencePath = path.join(exportsDir, "fitness.playbook.adoption.evidence.v
 const schemaPath = path.join(exportsDir, "repo.playbook.adoption.evidence.schema.v1.json");
 function resolvePlaybookContractPath() {
   const candidates = [
+    process.env.FITNESS_PLAYBOOK_CONTRACT_PATH,
     path.resolve(repoRoot, "..", "playbook", "exports", "playbook.contract.example.v1.json"),
     path.resolve(repoRoot, "..", "fawxzzy-playbook", "exports", "playbook.contract.example.v1.json"),
-  ];
+  ].filter(Boolean);
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -22,10 +23,13 @@ function resolvePlaybookContractPath() {
     }
   }
 
-  throw new Error(`Could not find playbook.contract.example.v1.json in any supported repo path.`);
+  // The Playbook repo is a sibling checkout that exists only on the owner machine. Without it the two
+  // cases that compare against the live contract skip (with a reason) instead of failing the whole file.
+  return null;
 }
 
 const playbookContractPath = resolvePlaybookContractPath();
+const missingContractReason = playbookContractPath ? false : "Playbook sibling repo not found (set FITNESS_PLAYBOOK_CONTRACT_PATH or check out ../playbook); owner-machine only.";
 
 function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -139,7 +143,7 @@ test("fitness adoption export validates against the repo-local schema", () => {
   assert.deepEqual(errors, []);
 });
 
-test("fitness adoption export covers the live Playbook contract ids explicitly", () => {
+test("fitness adoption export covers the live Playbook contract ids explicitly", { skip: missingContractReason }, () => {
   const evidence = loadJson(evidencePath);
   const contract = loadJson(playbookContractPath);
   const repoRole = evidence.repo.role;
@@ -210,7 +214,7 @@ test("fitness adoption export covers the live Playbook contract ids explicitly",
   }
 });
 
-test("fitness continuity posture keeps transcripts trace-only and promotable", () => {
+test("fitness continuity posture keeps transcripts trace-only and promotable", { skip: missingContractReason }, () => {
   const evidence = loadJson(evidencePath);
   const contract = loadJson(playbookContractPath);
 
