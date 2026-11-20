@@ -53,6 +53,9 @@ const pagesWithSharedGuard = [
   "src/app/dev/stretch-session-preview/page.tsx",
   "src/app/dev/curated-onboarding/page.tsx",
   "src/app/dev/mobile-regression/page.tsx",
+  "src/app/dev/mobile-regression/switch-day/page.tsx",
+  "src/app/dev/switch-day/page.tsx",
+  "src/app/dev/today-backgrounds/page.tsx",
 ];
 
 async function withEnv<T>(env: Record<string, string | undefined>, run: () => Promise<T>) {

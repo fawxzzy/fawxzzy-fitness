@@ -1,30 +1,24 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
 import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
+import { TodayEmptyDayCard } from "@/app/today/TodayEmptyDayCard";
+import { TodaySwitchDayList } from "@/app/today/TodaySwitchDayCard";
 import { TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { DayList } from "@/components/day-list/DayList";
-import {
-  ROUTINE_CONTENT_GAP_CLASS_NAME,
-  RestDayCard,
-  RoutineOverviewDayCard,
-} from "@/components/day-list/RoutineDayCardPresentation";
+import { ROUTINE_CONTENT_GAP_CLASS_NAME } from "@/components/day-list/RoutineDayCardPresentation";
 import { useHasBottomActions, usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { CardActionRow, CardEmptyState, cardTokens } from "@/components/ui/card-system";
+import { CardActionRow, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
+import { getRoutineDayEditHref, getRoutineEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
 import { formatRoutineDayStableDisplayName } from "@/lib/routines";
@@ -136,6 +130,8 @@ export function TodayDayPicker({
   startDate,
   floatingHeaderSlotId,
   switchFloatingHeaderSlotId,
+  initialPickerOpen = false,
+  initialSelectedDayIndex = null,
   progressionReviewItems = [],
   progressionStatusItems = [],
   progressionRoutineId,
@@ -153,6 +149,10 @@ export function TodayDayPicker({
   startDate: string | null;
   floatingHeaderSlotId?: string;
   switchFloatingHeaderSlotId?: string;
+  /** Open Switch Day on first render (dev previews of the picker only; the live page always starts closed). */
+  initialPickerOpen?: boolean;
+  /** Select this day on first render instead of today (dev previews only). */
+  initialSelectedDayIndex?: number | null;
   progressionReviewItems?: ProgressionReviewDisplayItem[];
   progressionStatusItems?: ProgressionStatusSurfaceItem[];
   progressionRoutineId?: string | null;
@@ -170,8 +170,8 @@ export function TodayDayPicker({
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
 }) {
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => currentDayIndex ?? days[0]?.dayIndex ?? 1);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => initialSelectedDayIndex ?? currentDayIndex ?? days[0]?.dayIndex ?? 1);
+  const [isPickerOpen, setIsPickerOpen] = useState(initialPickerOpen);
   const [selectedDayAppliedPins, setSelectedDayAppliedPins] = useState<ProgressionAppliedPin[]>([]);
   const [cardConfirmItem, setCardConfirmItem] = useState<ProgressionReviewDisplayItem | null>(null);
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
@@ -532,31 +532,30 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
-  // Deliberate rest-day card for the closed-picker, selected-rest-day case.
-  // Reuses the same shared rest-day treatment as the Routine Overview day
-  // card (RoutineOverviewDayCard) instead of leaving the body empty (the
-  // prior behavior, since getTodayDaySummaryTone returns no tone for rest
-  // days and so never rendered the plain-text summary either).
+  // The three quiet states (rest day, no exercises, no scheduled workout) share ONE card: TodayEmptyDayCard
+  // (centred title, no second line, at most one action). Rest day for the closed-picker, selected-rest-day case;
+  // getTodayDaySummaryTone returns no tone for rest days, so without it the body would be empty.
   const selectedDayRestCard = useMemo(() => {
     if (mode.dayPickerOpen || !mode.restDay || !selectedDay) {
       return null;
     }
 
-    return <RestDayCard headingLevel={2} />;
+    return <TodayEmptyDayCard kind="rest" />;
   }, [mode.dayPickerOpen, mode.restDay, selectedDay]);
+  // `noScheduledDayMessage` is a presence flag now: the card has no second line, so its text is not shown.
+  // [Edit routine] opens the routine editor (/routines/[id]/edit?returnTo=/today), where the schedule is set; back returns to Today.
   const noScheduledDayNotice = useMemo(() => {
     if (mode.dayPickerOpen || !noScheduledDayMessage?.trim()) {
       return null;
     }
 
     return (
-      <TodayDayStateCard
-        tone="neutral"
-        title="No scheduled workout today."
-        body={noScheduledDayMessage}
+      <TodayEmptyDayCard
+        kind="noSchedule"
+        actionHref={progressionRoutineId ? getRoutineEditHref(progressionRoutineId, "/today") : null}
       />
     );
-  }, [mode.dayPickerOpen, noScheduledDayMessage]);
+  }, [mode.dayPickerOpen, noScheduledDayMessage, progressionRoutineId]);
   const selectedDaySummaryNode = useMemo(() => {
     if (!mode.summaryVisible || !daySummary || !daySummaryTone) {
       return null;
@@ -571,24 +570,17 @@ export function TodayDayPicker({
     );
   }, [daySummary, daySummaryTone, mode.summaryVisible]);
   // Empty training day (no exercises, nothing invalid): say so and offer the way out. The page was blank
-  // apart from the header and Switch Day (C1 finding 3).
+  // apart from the header and Switch Day (C1 finding 3). [Edit day] opens the Edit Day editor for this day
+  // (/routines/[id]/edit/day/[dayId]) and returns to Today.
   const emptyTrainingDayCard = useMemo(() => {
     if (mode.dayPickerOpen || !mode.emptyTrainingDay || !selectedDay || noScheduledDayNotice) {
       return null;
     }
 
     return (
-      <CardEmptyState
-        title="No exercises planned"
-        body="Add exercises to this day to start a workout from Today."
-        action={progressionRoutineId ? (
-          <Link
-            href={getRoutineDayEditHref(progressionRoutineId, selectedDay.id, "/today")}
-            className={getAppButtonClassName({ variant: "secondary", size: "sm", fullWidth: true })}
-          >
-            Add exercises
-          </Link>
-        ) : undefined}
+      <TodayEmptyDayCard
+        kind="empty"
+        actionHref={progressionRoutineId ? getRoutineDayEditHref(progressionRoutineId, selectedDay.id, "/today") : null}
       />
     );
   }, [mode.dayPickerOpen, mode.emptyTrainingDay, noScheduledDayNotice, progressionRoutineId, selectedDay]);
@@ -697,31 +689,18 @@ export function TodayDayPicker({
             {mode.contentShellVisible ? (
               <div className={mode.dayPickerOpen ? ROUTINE_CONTENT_GAP_CLASS_NAME : "pt-0.5"}>
                 {mode.dayPickerOpen ? (
-                  <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
-                    {days.map((day) => {
-                      const isSelected = selectedDayIndex === day.dayIndex;
-                      return (
-                        <RoutineOverviewDayCard
-                          key={day.id}
-                          day={{
-                            ...day,
-                            splitSummary: getRestDayExerciseCountSummaryFromInputs(day.exercises, day.isRest),
-                            isToday: day.dayIndex === currentDayIndex,
-                            isCompleted: completedDayIndexSet.has(day.dayIndex),
-                            isInSession: inSessionDayIndex === day.dayIndex,
-                          }}
-                          startDate={startDate}
-                          isSelected={isSelected}
-                          showSelectedTag={isSelected}
-                          asListItem
-                          onPress={() => {
-                            setSelectedDayIndex(day.dayIndex);
-                            setIsPickerOpen(false);
-                          }}
-                        />
-                      );
-                    })}
-                  </DayList>
+                  <TodaySwitchDayList
+                    days={days}
+                    startDate={startDate}
+                    currentDayIndex={currentDayIndex}
+                    selectedDayIndex={selectedDayIndex}
+                    completedDayIndexes={completedDayIndexSet}
+                    inSessionDayIndex={inSessionDayIndex}
+                    onSelectDay={(dayIndex) => {
+                      setSelectedDayIndex(dayIndex);
+                      setIsPickerOpen(false);
+                    }}
+                  />
                 ) : null}
 
                 {selectedDayRestCard ?? selectedDaySummaryNode}
