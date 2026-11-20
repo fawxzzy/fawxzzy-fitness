@@ -150,7 +150,11 @@ export function resolveStandingPromotion(args: {
     .filter((event) => event.routine_day_exercise_id === args.routineDayExerciseId)
     .filter((event) => event.event_type === "promotion_applied" || event.event_type === "promotion_reverted")
     .map((event, index) => ({ event, index, at: toEpochMs(event.created_at) ?? 0 }))
-    .sort((left, right) => left.at - right.at || left.index - right.index);
+    // Equal timestamps: a revert can only follow a promotion, so apply before revert (the read
+    // order is newest-first, so input order alone would pop before push).
+    .sort((left, right) => left.at - right.at
+      || Number(left.event.event_type === "promotion_reverted") - Number(right.event.event_type === "promotion_reverted")
+      || left.index - right.index);
   const stack: ManualPromotionEventRow[] = [];
   for (const { event } of ordered) {
     if (event.event_type === "promotion_applied") {
@@ -165,31 +169,49 @@ export function resolveStandingPromotion(args: {
 }
 
 /**
- * Post-promotion reset. A standing promotion consumes its source workout and everything before
- * it: progress toward the NEW target counts only workouts performed after the source workout
- * (or, when that workout is not in `locateRows`, after the promotion was applied). Without this,
- * beating the target (target 10, did 12 -> 11) leaves the same workout qualifying at 11, so the
- * bar would stay full and Promote would reappear. A later promotion_reverted removes the hold.
+ * Post-promotion reset. A standing promotion consumes every workout performed before it was
+ * applied: progress toward the NEW target counts only workouts performed after the promotion's
+ * appliedAt. Without this, beating the target (target 10, did 12 -> 11) leaves the same workout
+ * qualifying at 11, so the bar would stay full and Promote would reappear. A later
+ * promotion_reverted removes the hold.
+ *
+ * ONE rule for every caller (Today loader and the Promote action) and every day of a linked
+ * promotion: the cutoff depends only on the event, never on which history rows a caller can see.
+ * (Cutting at the source workout's time made a linked day's cutoff differ between Today, which
+ * sees linked rows, and the server, which sees direct rows only.) Promote is refused while any
+ * workout is in progress, so every workout logged after a promotion starts after appliedAt.
  */
 export function resolvePromotionHoldCutoffMs(args: {
   events: ManualPromotionEventRow[];
   routineDayExerciseId: string;
-  /** Rows used only to find the source workout's performedAt (direct, fallback and linked history). */
-  locateRows: ProgressionHistorySetRow[];
 }) {
   const standing = resolveStandingPromotion({ events: args.events, routineDayExerciseId: args.routineDayExerciseId });
   if (!standing) {
     return null;
   }
 
-  const sourcePerformedAt = standing.sourceSessionId
-    ? args.locateRows
-        .filter((row) => row.sessionRecordId === standing.sourceSessionId)
-        .map((row) => toEpochMs(row.performedAt))
-        .filter((value): value is number => value !== null)
-        .sort((left, right) => right - left)[0]
-    : undefined;
-  return sourcePerformedAt ?? toEpochMs(standing.appliedAt) ?? Number.POSITIVE_INFINITY;
+  return toEpochMs(standing.appliedAt) ?? Number.POSITIVE_INFINITY;
+}
+
+/**
+ * Which event a Revert writes. Only undoing a standing promotion writes promotion_reverted (which
+ * lifts the hold); undoing anything else (a deload) writes manual_target_change so it never pops
+ * a promotion that is still in effect.
+ */
+export function resolveRevertEventType(args: {
+  events: ManualPromotionEventRow[];
+  routineDayExerciseId: string;
+}): "promotion_reverted" | "manual_target_change" {
+  const latestApply = args.events
+    .filter((event) => event.routine_day_exercise_id === args.routineDayExerciseId)
+    .filter((event) => event.event_type === "promotion_applied" || event.event_type === "deload_applied")
+    .map((event, index) => ({ event, index, at: toEpochMs(event.created_at) ?? 0 }))
+    .sort((left, right) => right.at - left.at || right.index - left.index)[0]?.event;
+  if (latestApply?.event_type !== "promotion_applied") {
+    return "manual_target_change";
+  }
+
+  return resolveStandingPromotion(args) ? "promotion_reverted" : "manual_target_change";
 }
 
 export function filterHistoryAfterPromotionHold<RowType extends Pick<ProgressionHistorySetRow, "performedAt">>(rows: RowType[], cutoffMs: number | null) {
@@ -276,6 +298,7 @@ export type ManualPromotionRepository<Row> = {
   readHistory(exercise: ManualPromotionExerciseSnapshot<Row>): Promise<ProgressionHistorySetRow[]>;
   /** The playbook candidate for exactly these rows (already filtered by the promotion hold). */
   deriveCandidate(exercise: ManualPromotionExerciseSnapshot<Row>, historyRows: ProgressionHistorySetRow[]): Promise<ProgressionReviewCandidate>;
+  /** Every promotion/deload event for the exercise (same complete read the Today loader uses). */
   readPromotionEvents(routineDayExerciseId: string): Promise<ManualPromotionEventRow[]>;
   /** Null when any linked id is missing, outside the routine, or no longer shares the source target. */
   readLinkedExercises(source: ManualPromotionExerciseSnapshot<Row>, linkedIds: string[]): Promise<ManualPromotionExerciseSnapshot<Row>[] | null>;
@@ -329,12 +352,11 @@ export async function runManualPromotion<Row>(
 
   const events = await repo.readPromotionEvents(exercise.id);
   const allHistoryRows = await repo.readHistory(exercise);
-  // Same post-promotion reset as the Today loader: a standing promotion consumes its source
-  // workout, so only newer workouts can fill the bar at the new target.
+  // Same post-promotion reset as the Today loader: a standing promotion consumes every workout
+  // before it was applied, so only newer workouts can fill the bar at the new target.
   const historyRows = filterHistoryAfterPromotionHold(allHistoryRows, resolvePromotionHoldCutoffMs({
     events,
     routineDayExerciseId: exercise.id,
-    locateRows: allHistoryRows,
   }));
   const candidate = await repo.deriveCandidate(exercise, historyRows);
   const sourceRows = candidate.sourceSession
@@ -388,32 +410,40 @@ export async function runManualPromotion<Row>(
     previousTarget: exercise.storedTarget,
     appliedTarget: gate.proposedTarget,
   }];
+  // From here the source day is promoted and recorded, so nothing below may turn the result into a
+  // failure: a linked-day problem (including a thrown read/write error) becomes a warning on an ok
+  // result, so the caller still refreshes Today and pins Revert for the source day.
+  let warning: string | undefined;
   for (const linked of linkedExercises) {
-    // A linked day changed underneath us: skip it rather than overwrite a newer target.
-    if (!(await repo.updateTargetIfUnchanged(linked, gate.proposedTarget))) {
-      continue;
-    }
-
-    const linkedRecorded = await repo.recordPromotionApplied({
-      exercise: linked,
-      fromTarget: linked.storedTarget,
-      toTarget: gate.proposedTarget,
-      reason,
-      sourceSessionId: gate.sourceSessionId,
-    });
-    if (!linkedRecorded) {
-      // Undo this linked day and leave it out of the result (like a lost race). If it cannot be
-      // put back it is promoted with no audit row: say so instead of reporting success.
-      if (!(await repo.restoreTargetIfUnchanged(linked, gate.proposedTarget))) {
-        return refuse("linked_audit_failed_unrestored");
+    try {
+      // A linked day changed underneath us: skip it rather than overwrite a newer target.
+      if (!(await repo.updateTargetIfUnchanged(linked, gate.proposedTarget))) {
+        continue;
       }
-      continue;
+
+      const linkedRecorded = await repo.recordPromotionApplied({
+        exercise: linked,
+        fromTarget: linked.storedTarget,
+        toTarget: gate.proposedTarget,
+        reason,
+        sourceSessionId: gate.sourceSessionId,
+      });
+      if (!linkedRecorded) {
+        // Undo this linked day and leave it out of the result (like a lost race). If it cannot be
+        // put back it is promoted with no audit row: say so.
+        if (!(await repo.restoreTargetIfUnchanged(linked, gate.proposedTarget))) {
+          warning = MANUAL_PROMOTION_REFUSAL_MESSAGES.linked_audit_failed_unrestored;
+        }
+        continue;
+      }
+      linkedTargets.push({
+        routineDayExerciseId: linked.id,
+        previousTarget: linked.storedTarget,
+        appliedTarget: gate.proposedTarget,
+      });
+    } catch {
+      warning ??= MANUAL_PROMOTION_LINKED_FAILED_WARNING;
     }
-    linkedTargets.push({
-      routineDayExerciseId: linked.id,
-      previousTarget: linked.storedTarget,
-      appliedTarget: gate.proposedTarget,
-    });
   }
 
   return {
@@ -422,8 +452,80 @@ export async function runManualPromotion<Row>(
       previousTarget: exercise.storedTarget,
       appliedTarget: gate.proposedTarget,
       linkedTargets: linkedTargets.length > 1 ? linkedTargets : undefined,
+      ...(warning ? { warning } : {}),
     },
   };
+}
+
+export const MANUAL_PROMOTION_LINKED_FAILED_WARNING = "Promoted this day, but a linked day could not be updated. Refresh and check its target.";
+
+// --- Revert ----------------------------------------------------------------------------------
+
+export type ProgressionRevertRepository<Row> = {
+  /** Null when any id is missing, another user's, or outside the routine. */
+  readRoutineExercises(routineDayExerciseIds: string[]): Promise<ManualPromotionExerciseSnapshot<Row>[] | null>;
+  readPromotionEvents(routineDayExerciseId: string): Promise<ManualPromotionEventRow[]>;
+  updateTargetIfUnchanged(exercise: ManualPromotionExerciseSnapshot<Row>, nextTarget: ProgressionTargetPlan): Promise<boolean>;
+  restoreTargetIfUnchanged(exercise: ManualPromotionExerciseSnapshot<Row>, appliedTarget: ProgressionTargetPlan): Promise<boolean>;
+  /** False when the event row was not written. */
+  recordRevert(args: {
+    exercise: ManualPromotionExerciseSnapshot<Row>;
+    eventType: "promotion_reverted" | "manual_target_change";
+    fromTarget: ProgressionTargetPlan;
+    toTarget: ProgressionTargetPlan;
+  }): Promise<boolean>;
+};
+
+export const PROGRESSION_REVERT_MESSAGES = {
+  not_available: "Linked progression update is no longer available.",
+  lost_race: "This target changed since it was promoted. Refresh and try again.",
+  audit_failed: "Could not save this revert, so the promoted target was kept. Try again.",
+  audit_failed_unrestored: "This revert could not be saved and the promoted target could not be put back. Refresh and check this exercise's target before changing it.",
+} as const;
+
+/**
+ * Revert of an applied target. Each day goes back with a conditional write; the event decides the
+ * hold: promotion_reverted lifts a standing promotion, so if that row cannot be written the
+ * promoted target is put back (the hold and the target always agree) and the action fails.
+ * Undoing a deload records manual_target_change and leaves any standing promotion alone.
+ */
+export async function runProgressionRevert<Row>(
+  repo: ProgressionRevertRepository<Row>,
+  targets: Array<{ routineDayExerciseId: string; previousTarget: ProgressionTargetPlan }>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const exercises = await repo.readRoutineExercises(targets.map((entry) => entry.routineDayExerciseId));
+  if (!exercises) {
+    return { ok: false, error: PROGRESSION_REVERT_MESSAGES.not_available };
+  }
+
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+  for (const entry of targets) {
+    const exercise = exerciseById.get(entry.routineDayExerciseId);
+    if (!exercise) {
+      return { ok: false, error: PROGRESSION_REVERT_MESSAGES.not_available };
+    }
+
+    const eventType = resolveRevertEventType({
+      events: await repo.readPromotionEvents(exercise.id),
+      routineDayExerciseId: exercise.id,
+    });
+    if (!(await repo.updateTargetIfUnchanged(exercise, entry.previousTarget))) {
+      return { ok: false, error: PROGRESSION_REVERT_MESSAGES.lost_race };
+    }
+
+    const recorded = await repo.recordRevert({
+      exercise,
+      eventType,
+      fromTarget: exercise.storedTarget,
+      toTarget: entry.previousTarget,
+    });
+    if (!recorded && eventType === "promotion_reverted") {
+      const restored = await repo.restoreTargetIfUnchanged(exercise, entry.previousTarget);
+      return { ok: false, error: restored ? PROGRESSION_REVERT_MESSAGES.audit_failed : PROGRESSION_REVERT_MESSAGES.audit_failed_unrestored };
+    }
+  }
+
+  return { ok: true };
 }
 
 /** Column guard for the conditional update: every target column must still hold what was read. */

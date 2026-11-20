@@ -21,8 +21,10 @@ import {
   buildManualPromotionTargetGuard,
   type ManualPromotionExerciseSnapshot,
   type ManualPromotionRepository,
+  type ProgressionRevertRepository,
 } from "@/lib/progression-manual-promotion";
 import { buildProgressionEventPayload, recordProgressionEvent } from "@/lib/progression-events";
+import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
 import type { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow } from "@/types/db";
 
@@ -89,7 +91,7 @@ export function createManualPromotionRepository(args: {
   supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
   routineId: string;
-}): ManualPromotionRepository<ProgressionReviewMutationExerciseRow> {
+}): ManualPromotionRepository<ProgressionReviewMutationExerciseRow> & ProgressionRevertRepository<ProgressionReviewMutationExerciseRow> {
   const { supabase, userId, routineId } = args;
   let fallbackWeightUnit: "lbs" | "kg" = "lbs";
   const dayIndexByDayId = new Map<string, number | null>();
@@ -202,19 +204,7 @@ export function createManualPromotionRepository(args: {
       });
     },
     async readPromotionEvents(routineDayExerciseId) {
-      const { data, error } = await supabase
-        .from("progression_events")
-        .select("event_type, routine_day_exercise_id, source_session_id, created_at")
-        .eq("user_id", userId)
-        .eq("routine_day_exercise_id", routineDayExerciseId)
-        .in("event_type", ["promotion_applied", "promotion_reverted"])
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) {
-        throw new Error("Could not verify earlier promotions.");
-      }
-
-      return data ?? [];
+      return readPromotionHoldEvents({ supabase, userId, routineDayExerciseIds: [routineDayExerciseId] });
     },
     async readLinkedExercises(source, linkedIds) {
       const result = await readMutationExercisesForRoutine({
@@ -270,6 +260,35 @@ export function createManualPromotionRepository(args: {
       } catch {
         return false;
       }
+    },
+    async readRoutineExercises(routineDayExerciseIds) {
+      const result = await readMutationExercisesForRoutine({
+        supabase,
+        userId,
+        routineId,
+        routineDayExerciseIds,
+      });
+      return result.ok && result.data ? result.data.map(toSnapshot) : null;
+    },
+    async recordRevert({ exercise, eventType, fromTarget, toTarget }) {
+      const result = await recordProgressionEvent({
+        supabase,
+        payload: buildProgressionEventPayload({
+          userId,
+          routineId,
+          routineDayExerciseId: exercise.id,
+          exerciseId: exercise.row.exercise_id,
+          eventType,
+          fromTarget,
+          toTarget,
+          reason: eventType === "promotion_reverted" ? "Reverted an applied progression target." : "Reverted an applied target change.",
+          playbookId: exercise.row.progression_playbook_id,
+          config: exercise.row.progression_playbook_config,
+          sourceSessionId: null,
+        }),
+        context: "progressionReview.revertProgressionReviewCandidateAction",
+      });
+      return result.ok;
     },
     async recordPromotionApplied({ exercise, fromTarget, toTarget, reason, sourceSessionId }) {
       const result = await recordProgressionEvent({

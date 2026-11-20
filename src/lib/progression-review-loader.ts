@@ -22,8 +22,8 @@ import { deriveProgressionProgressPercent } from "@/lib/progression-progress-per
 import {
   filterHistoryAfterPromotionHold,
   resolvePromotionHoldCutoffMs,
-  type ManualPromotionEventRow,
 } from "@/lib/progression-manual-promotion";
+import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
 import {
   buildProgressionStatusSurfaceItem,
   formatProgressionCalculationEvidence,
@@ -647,22 +647,14 @@ export async function loadProgressionUpdatesDisplayData(args: {
     fallbackHistoryRowsByExerciseId.set(meta.exerciseId, fallback);
   }
 
-  // Post-promotion reset (Manual Promote): a standing promotion_applied consumes its source
-  // workout, so the bar and Promote count only newer workouts until a promotion_reverted.
-  const { data: promotionEventsData, error: promotionEventsError } = await args.supabase
-    .from("progression_events")
-    .select("event_type, routine_day_exercise_id, source_session_id, created_at")
-    .eq("user_id", args.userId)
-    .in("routine_day_exercise_id", progressionExercises.map((exercise) => exercise.id))
-    .in("event_type", ["promotion_applied", "promotion_reverted"])
-    .order("created_at", { ascending: false })
-    .limit(1000);
-
-  if (promotionEventsError) {
-    throw promotionEventsError;
-  }
-
-  const promotionEvents = (promotionEventsData ?? []) as ManualPromotionEventRow[];
+  // Post-promotion reset (Manual Promote): a standing promotion_applied consumes every workout
+  // before it was applied, so the bar and Promote count only newer workouts until a
+  // promotion_reverted. Same complete event read as the Promote action.
+  const promotionEvents = await readPromotionHoldEvents({
+    supabase: args.supabase,
+    userId: args.userId,
+    routineDayExerciseIds: progressionExercises.map((exercise) => exercise.id),
+  });
   const readyItemEntries: ProgressionReadyUpdateCollapseEntry[] = [];
   const statusItems: ProgressionStatusDisplayItem[] = [];
   const statusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
@@ -695,16 +687,21 @@ export async function loadProgressionUpdatesDisplayData(args: {
     const promotionHoldCutoffMs = resolvePromotionHoldCutoffMs({
       events: promotionEvents,
       routineDayExerciseId: exercise.id,
-      locateRows: [...unheldDirectHistoryRows, ...unheldFallbackHistoryRows, ...unheldLinkedHistoryRows],
     });
+    const promotionHoldStanding = promotionHoldCutoffMs !== null;
     const directHistoryRows = filterHistoryAfterPromotionHold(unheldDirectHistoryRows, promotionHoldCutoffMs);
     const allFallbackHistoryRows = filterHistoryAfterPromotionHold(unheldFallbackHistoryRows, promotionHoldCutoffMs);
     const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
     const fallbackHistoryRows = canUseFallback ? allFallbackHistoryRows : [];
-    const linkedHistoryRows = filterHistoryAfterPromotionHold(unheldLinkedHistoryRows, promotionHoldCutoffMs);
-    const globalContextRows = filterHistoryAfterPromotionHold(globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [], promotionHoldCutoffMs);
+    // While a promotion stands, only this exercise's own newer workouts (direct or the unique
+    // catalog fallback, exactly what the server counts) may fill its bar: linked-day, duplicate
+    // and other-routine rows are context only and never stand in for "work at the new target".
+    const linkedHistoryRows = promotionHoldStanding ? [] : unheldLinkedHistoryRows;
+    const globalContextRows = promotionHoldStanding ? [] : globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [];
     const selectedHistoryRows = directHistoryRows.length > 0 ? directHistoryRows : fallbackHistoryRows;
-    const blockedDuplicateFallbackRows = allFallbackHistoryRows.length > 0 && !canUseFallback ? allFallbackHistoryRows : [];
+    const blockedDuplicateFallbackRows = allFallbackHistoryRows.length > 0 && !canUseFallback && !promotionHoldStanding ? allFallbackHistoryRows : [];
+    // Promoted and no workout at the new target yet: Today says so instead of "no evidence".
+    const awaitingWorkoutAfterPromotion = promotionHoldStanding && selectedHistoryRows.length === 0;
     const contextHistoryRows = selectedHistoryRows.length > 0
       ? selectedHistoryRows
       : linkedHistoryRows.length > 0
@@ -714,7 +711,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
           : globalContextRows;
     const auditHistorySource: ProgressionAuditHistorySource = directHistoryRows.length > 0
       ? "routine_day_exercise_id"
-      : allFallbackHistoryRows.length > 0 && !canUseFallback
+      : blockedDuplicateFallbackRows.length > 0
         ? "blocked_duplicate_catalog_fallback"
         : fallbackHistoryRows.length > 0
           ? "unique_catalog_exercise_id_fallback"
@@ -822,6 +819,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
         : contextHistoryRows,
       plan: effectivePlan,
       selection,
+      awaitingWorkoutAfterPromotion,
     }));
 
     if (readyItem) {
@@ -863,6 +861,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
       linkedMatchCount: linkedRoutineExerciseIds.length + 1,
       historyRows: contextHistoryRows,
       plan: effectivePlan,
+      awaitingWorkoutAfterPromotion,
     });
 
     if (statusItem) {

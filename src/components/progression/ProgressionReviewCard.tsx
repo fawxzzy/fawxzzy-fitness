@@ -551,6 +551,7 @@ export function ProgressionReviewCard({
                                       });
                                       if (result.ok && result.data) {
                                         const appliedTarget = result.data;
+                                        setActionError(appliedTarget.warning ?? null);
                                         const pin = buildProgressionAppliedPin({
                                           item: itemForAction,
                                           previousTarget: appliedTarget.previousTarget,

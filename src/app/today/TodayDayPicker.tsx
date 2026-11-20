@@ -22,6 +22,7 @@ import { BottomActionSingle, BottomActionSplit } from "@/components/layout/Canon
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { CardActionRow, CardEmptyState, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useToast } from "@/components/ui/ToastProvider";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
@@ -176,6 +177,7 @@ export function TodayDayPicker({
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
   const [cardPendingItemId, setCardPendingItemId] = useState<string | null>(null);
   const [cardActionError, setCardActionError] = useState<string | null>(null);
+  const toast = useToast();
   const [isCardActionPending, startCardActionTransition] = useTransition();
   const router = useRouter();
 
@@ -454,6 +456,11 @@ export function TodayDayPicker({
           linkedTargets: result.data.linkedTargets,
         });
         persistProgressionAppliedPins(upsertProgressionAppliedPin(readAllProgressionAppliedPins(), pin));
+        // The source day was promoted; a linked-day problem is reported, not hidden (the confirm
+        // modal that shows cardActionError closes on success, so use a toast).
+        if (result.data.warning) {
+          toast.warning(result.data.warning);
+        }
         setCardConfirmItem(null);
         setCardConfirmSelectedIds([]);
         router.refresh();
@@ -469,6 +476,7 @@ export function TodayDayPicker({
     progressionRoutineId,
     readAllProgressionAppliedPins,
     router,
+    toast,
   ]);
 
   const revertProgressionItemFromTodayCard = useCallback((pin: ProgressionAppliedPin) => {

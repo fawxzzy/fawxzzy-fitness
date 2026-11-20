@@ -11,10 +11,17 @@ import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fil
 import {
   filterHistoryAfterPromotionHold,
   resolvePromotionHoldCutoffMs,
+  MANUAL_PROMOTION_LINKED_FAILED_WARNING,
+  MANUAL_PROMOTION_REFUSAL_MESSAGES,
+  PROGRESSION_REVERT_MESSAGES,
+  resolveRevertEventType,
   resolveStandingPromotion,
   runManualPromotion,
+  runProgressionRevert,
   type ManualPromotionEventRow,
 } from "@/lib/progression-manual-promotion";
+import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
+import { PROMOTED_AWAITING_WORKOUT_DETAIL } from "@/lib/progression-status-display";
 import { createManualPromotionRepository } from "@/lib/progression-manual-promotion-repository";
 import { loadProgressionUpdatesDisplayData } from "@/lib/progression-review-loader";
 import type { ProgressionHistorySetRow, ProgressionTargetPlan } from "@/lib/progression-playbooks";
@@ -32,8 +39,9 @@ type Call = {
   payload?: Row;
   returning?: string;
   filters: Filter[];
-  order?: { column: string; ascending: boolean };
+  orders: Array<{ column: string; ascending: boolean }>;
   limit?: number;
+  range?: { from: number; to: number };
 };
 type FakeHooks = {
   /** Return true to make this call fail with a Supabase-style error. */
@@ -83,10 +91,16 @@ function createSupabaseFake(db: Record<string, Row[]>, hooks: FakeHooks = {}) {
     }
 
     let rows = table.filter((row) => matches(row, call.filters)).map((row) => structuredClone(row));
-    if (call.order) {
-      const { column, ascending } = call.order;
-      rows.sort((left, right) => String(left[column]).localeCompare(String(right[column])) * (ascending ? 1 : -1));
+    if (call.orders.length > 0) {
+      rows.sort((left, right) => {
+        for (const { column, ascending } of call.orders) {
+          const diff = String(left[column]).localeCompare(String(right[column])) * (ascending ? 1 : -1);
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      });
     }
+    if (call.range) rows = rows.slice(call.range.from, call.range.to + 1);
     if (call.limit !== undefined) rows = rows.slice(0, call.limit);
     if (call.options?.head) return { data: null, error: null, count: rows.length };
     if (single) return { data: rows[0] ?? null, error: null, count: null };
@@ -95,7 +109,7 @@ function createSupabaseFake(db: Record<string, Row[]>, hooks: FakeHooks = {}) {
 
   const supabase = {
     from(table: string) {
-      const call: Call = { table, op: "select", filters: [] };
+      const call: Call = { table, op: "select", filters: [], orders: [] };
       calls.push(call);
       const builder = {
         select(columns?: string, options?: Call["options"]) {
@@ -112,8 +126,9 @@ function createSupabaseFake(db: Record<string, Row[]>, hooks: FakeHooks = {}) {
         eq(column: string, value: unknown) { call.filters.push({ method: "eq", column, value }); return builder; },
         is(column: string, value: unknown) { call.filters.push({ method: "is", column, value }); return builder; },
         in(column: string, value: unknown[]) { call.filters.push({ method: "in", column, value }); return builder; },
-        order(column: string, options?: { ascending?: boolean }) { call.order = { column, ascending: options?.ascending ?? true }; return builder; },
+        order(column: string, options?: { ascending?: boolean }) { call.orders.push({ column, ascending: options?.ascending ?? true }); return builder; },
         limit(count: number) { call.limit = count; return builder; },
+        range(from: number, to: number) { call.range = { from, to }; return builder; },
         maybeSingle() { return Promise.resolve(execute(call, true)); },
         then<A, B>(onFulfilled?: (value: ReturnType<typeof execute>) => A, onRejected?: (reason: unknown) => B) {
           return Promise.resolve(execute(call, false)).then(onFulfilled, onRejected);
@@ -228,11 +243,21 @@ function planFor(db: Record<string, Row[]>, id = "rde-1"): ProgressionTargetPlan
   };
 }
 
-async function promote(db: Record<string, Row[]>, hooks: FakeHooks = {}, linkedIds?: string[]) {
+async function promote(db: Record<string, Row[]>, hooks: FakeHooks = {}, linkedIds?: string[], id = "rde-1") {
   const fake = createSupabaseFake(db, hooks);
   const result = await runManualPromotion(
     createManualPromotionRepository({ supabase: fake.supabase, userId: USER, routineId: ROUTINE }),
-    { routineDayExerciseId: "rde-1", expectedFromTarget: planFor(db), linkedIds },
+    { routineDayExerciseId: id, expectedFromTarget: planFor(db, id), linkedIds },
+  );
+  return { result, calls: fake.calls };
+}
+
+/** The real Revert path (runProgressionRevert + the Supabase repository). */
+async function revert(db: Record<string, Row[]>, targets: Array<{ routineDayExerciseId: string; previousTarget: ProgressionTargetPlan }>, hooks: FakeHooks = {}) {
+  const fake = createSupabaseFake(db, hooks);
+  const result = await runProgressionRevert(
+    createManualPromotionRepository({ supabase: fake.supabase, userId: USER, routineId: ROUTINE }),
+    targets,
   );
   return { result, calls: fake.calls };
 }
@@ -255,6 +280,8 @@ async function todayCard(db: Record<string, Row[]>, id = "rde-1") {
   const progress = readyItem?.progress ?? data.statusSurfaceItems.find((item) => item.id === id)?.progress ?? null;
   const fill = deriveExerciseCardProgressFill({ progressFill: progress, candidateType: readyItem?.type ?? null });
   return {
+    status: data.statusSurfaceItems.find((item) => item.id === id) ?? null,
+    statusItem: data.statusItems.find((item) => item.id === id) ?? null,
     percent: fill.progressPercent,
     canPromote: canShowProgressionCardAction({ candidateType: readyItem?.type, progressPercent: fill.progressPercent }),
     calls: fake.calls,
@@ -355,11 +382,13 @@ test("Today loader reads promotion events scoped to the user and the routine's e
   assert.deepEqual(eventsRead.filters, [
     { method: "eq", column: "user_id", value: USER },
     { method: "in", column: "routine_day_exercise_id", value: ["rde-1"] },
-    { method: "in", column: "event_type", value: ["promotion_applied", "promotion_reverted"] },
+    { method: "in", column: "event_type", value: ["promotion_applied", "promotion_reverted", "deload_applied"] },
   ]);
+  assert.deepEqual(eventsRead.orders, [{ column: "created_at", ascending: false }, { column: "id", ascending: false }]);
+  assert.deepEqual(eventsRead.range, { from: 0, to: 999 });
 });
 
-test("hold rules: revert pops the latest promotion; cutoff falls back to the event time", () => {
+test("hold rules: revert pops the latest promotion; the cutoff is always the promotion time", () => {
   const events: ManualPromotionEventRow[] = [
     { event_type: "promotion_applied", routine_day_exercise_id: "rde-1", source_session_id: "w1", created_at: "2026-11-18T13:00:00.000Z" },
     { event_type: "promotion_applied", routine_day_exercise_id: "rde-1", source_session_id: "w2", created_at: "2026-11-19T13:00:00.000Z" },
@@ -372,15 +401,14 @@ test("hold rules: revert pops the latest promotion; cutoff falls back to the eve
   assert.equal(resolveStandingPromotion({ events: [], routineDayExerciseId: "rde-1" }), null);
 
   const rows = (performedAt: string, sessionRecordId: string): ProgressionHistorySetRow => ({ sessionId: `se-${sessionRecordId}`, sessionRecordId, performedAt, setIndex: 1, reps: 10, weight: 100, weightUnit: "lbs", isWarmup: false });
-  const history = [rows("2026-11-18T12:00:00.000Z", "w1"), rows("2026-11-18T18:00:00+00:00", "w1b"), rows("2026-11-21T12:00:00.000Z", "w3")];
-  const located = resolvePromotionHoldCutoffMs({ events: events.slice(0, 1), routineDayExerciseId: "rde-1", locateRows: history });
-  assert.equal(located, Date.parse("2026-11-18T12:00:00.000Z"));
-  assert.deepEqual(filterHistoryAfterPromotionHold(history, located).map((row) => row.sessionRecordId), ["w1b", "w3"]);
-  // Source workout not in the rows (e.g. a linked day): cut at the promotion time instead.
-  const fallback = resolvePromotionHoldCutoffMs({ events: events.slice(0, 1), routineDayExerciseId: "rde-1", locateRows: [] });
-  assert.equal(fallback, Date.parse("2026-11-18T13:00:00.000Z"));
-  assert.deepEqual(filterHistoryAfterPromotionHold(history, fallback).map((row) => row.sessionRecordId), ["w1b", "w3"]);
+  const history = [rows("2026-11-18T12:00:00.000Z", "w1"), rows("2026-11-18T12:30:00+00:00", "w1b"), rows("2026-11-21T12:00:00.000Z", "w3")];
+  // One rule: the cutoff is the promotion's appliedAt, whatever rows the caller can see.
+  const cutoff = resolvePromotionHoldCutoffMs({ events: events.slice(0, 1), routineDayExerciseId: "rde-1" });
+  assert.equal(cutoff, Date.parse("2026-11-18T13:00:00.000Z"));
+  // w1b came after the source workout but before Promote: it was at the old target, so it is consumed too.
+  assert.deepEqual(filterHistoryAfterPromotionHold(history, cutoff).map((row) => row.sessionRecordId), ["w3"]);
   assert.equal(filterHistoryAfterPromotionHold(history, null).length, 3);
+  assert.equal(resolvePromotionHoldCutoffMs({ events: [{ ...events[0], created_at: "garbage" }], routineDayExerciseId: "rde-1" }), Number.POSITIVE_INFINITY);
 });
 
 // --- P1-2: a failed audit insert never reports success ------------------------------------------
@@ -449,7 +477,194 @@ test("linked day: a failed linked event insert undoes that day only; an unrecove
     fail: (call) => (call.table === "progression_events" && call.op === "insert" && ++inserts2 === 2)
       || (call.table === "routine_day_exercises" && call.op === "update" && ++updates2 === 3),
   }, ["rde-2"]);
-  assert.equal(!loud.result.ok && loud.result.code, "linked_audit_failed_unrestored");
+  // The source day IS promoted and recorded: an ok result (so Today refreshes and Revert is
+  // pinned) that carries the linked-day problem as a warning.
+  assert.equal(loud.result.ok, true);
+  assert.equal(loud.result.ok && loud.result.data.warning, MANUAL_PROMOTION_REFUSAL_MESSAGES.linked_audit_failed_unrestored);
+  assert.equal(loud.result.ok && loud.result.data.appliedTarget.repsTarget, 11);
+  assert.equal(target(db2, "rde-1"), 11);
+});
+
+test("linked day: a thrown linked write after the source day was promoted still returns ok with a warning", async () => {
+  const db = seed([exerciseRow("rde-2", { routine_day_id: "day-2", position: 1 })]);
+  let updates = 0;
+  const { result } = await promote(db, {
+    fail: (call) => call.table === "routine_day_exercises" && call.op === "update" && ++updates === 2,
+  }, ["rde-2"]);
+  assert.equal(result.ok, true);
+  assert.equal(result.ok && result.data.warning, MANUAL_PROMOTION_LINKED_FAILED_WARNING);
+  assert.equal(result.ok && result.data.linkedTargets, undefined);
+  assert.deepEqual([target(db, "rde-1"), target(db, "rde-2")], [11, 10]);
+  assert.deepEqual(db.progression_events.map((event) => event.routine_day_exercise_id), ["rde-1"]);
+
+  // A clean promotion carries no warning.
+  const clean = await promote(seed());
+  assert.equal(clean.result.ok && "warning" in clean.result.data, false);
+});
+
+// --- Review round 2 (P1): one cutoff rule for a promotion linked across days --------------------
+
+test("linked Promote across two days: both days reset, the server agrees, and a newer workout re-enables it", async () => {
+  // Reviewer probe: w1 on day A (12 reps), wB on day B (12 reps), Promote on A with B linked.
+  const db = seed([exerciseRow("rde-2", { routine_day_id: "day-2", position: 1 })]);
+  workout(db, { session: "wB", performedAt: "2026-11-18T18:00:00.000Z", reps: 12, rde: "rde-2" });
+  assert.equal((await todayCard(db, "rde-1")).canPromote, true);
+  assert.equal((await todayCard(db, "rde-2")).canPromote, true);
+
+  const linked = await promote(db, {}, ["rde-2"]);
+  assert.equal(linked.result.ok, true);
+  assert.deepEqual([target(db, "rde-1"), target(db, "rde-2")], [11, 11]);
+
+  // Both days: below full, no Promote. Day A must not be filled from day B's (consumed) workout,
+  // and day B's own pre-promotion workout must not keep its bar full.
+  for (const id of ["rde-1", "rde-2"]) {
+    const card = await todayCard(db, id);
+    assert.ok(card.percent < 100, `${id} bar must reset (got ${card.percent})`);
+    assert.equal(card.percent, 0, `${id} has no workout at the new target`);
+    assert.equal(card.canPromote, false, `${id} must not offer Promote`);
+  }
+  // The server uses the same cutoff: nothing to promote on either day.
+  const serverB = await promote(db, {}, undefined, "rde-2");
+  assert.equal(!serverB.result.ok && serverB.result.code, "bar_not_full");
+  const serverA = await promote(db, {}, undefined, "rde-1");
+  assert.equal(serverA.result.ok, false);
+  assert.deepEqual([target(db, "rde-1"), target(db, "rde-2")], [11, 11]);
+
+  // A newer workout on day B that meets the new target fills B's bar and Promote works again.
+  workout(db, { session: "wC", performedAt: "2026-11-20T12:00:00.000Z", reps: 11, rde: "rde-2" });
+  assert.deepEqual(await todayCard(db, "rde-2").then(({ percent, canPromote }) => ({ percent, canPromote })), { percent: 100, canPromote: true });
+  const again = await promote(db, {}, undefined, "rde-2");
+  assert.equal(again.result.ok, true);
+  assert.equal(target(db, "rde-2"), 12);
+});
+
+// --- Review round 2 (P3d): wording while a promotion stands --------------------------------------
+
+test("while a promotion stands with no newer workout, Today says Promoted instead of insufficient evidence", async () => {
+  const db = seed();
+  assert.equal((await promote(db)).result.ok, true);
+  const { status, statusItem } = await todayCard(db);
+  assert.ok(status, "status surface item exists");
+  assert.equal(status.readinessLabel, "Promoted");
+  assert.equal(status.readinessState, "not_ready");
+  assert.equal(status.detailLine, PROMOTED_AWAITING_WORKOUT_DETAIL);
+  assert.equal(PROMOTED_AWAITING_WORKOUT_DETAIL, "Promoted. Log a workout at the new target.");
+  assert.doesNotMatch(`${status.readinessLabel} ${status.detailLine}`, /insufficient evidence|no completed work/i);
+  assert.equal(statusItem?.label, "Promoted");
+
+  // Once a workout at the new target is logged, normal progress wording returns.
+  workout(db, { session: "w2", performedAt: "2026-11-20T12:00:00.000Z", reps: 10 });
+  const after = await todayCard(db);
+  assert.notEqual(after.status?.readinessLabel, "Promoted");
+  assert.notEqual(after.status?.detailLine, PROMOTED_AWAITING_WORKOUT_DETAIL);
+});
+
+// --- Review round 2 (P3a): Revert and the hold always agree ---------------------------------------
+
+test("revert writes promotion_reverted, lifts the hold, and the same workout can promote again", async () => {
+  const db = seed();
+  const first = await promote(db);
+  assert.equal(first.result.ok, true);
+  const previousTarget = first.result.ok ? first.result.data.previousTarget : planFor(db);
+  const undone = await revert(db, [{ routineDayExerciseId: "rde-1", previousTarget }]);
+  assert.deepEqual(undone.result, { ok: true });
+  assert.equal(target(db), 10);
+  assert.deepEqual(db.progression_events.map((event) => event.event_type), ["promotion_applied", "promotion_reverted"]);
+  // Each fake has its own clock, so both rows share one created_at: an equal-timestamp revert
+  // must still lift the promotion (newest-first read order must not pop before push).
+  assert.equal(db.progression_events[0].created_at, db.progression_events[1].created_at);
+  assert.equal((await todayCard(db)).canPromote, true);
+});
+
+test("revert of a deload records manual_target_change and leaves a standing promotion in place", async () => {
+  const db = seed();
+  assert.equal((await promote(db)).result.ok, true);
+  const promotedPlan = planFor(db);
+  // A deload applied after the promotion (what applyProgressionReviewCandidateAction writes).
+  (db.routine_day_exercises[0] as Row).target_reps = 9;
+  db.progression_events.push({ id: "deload-1", user_id: USER, routine_day_exercise_id: "rde-1", event_type: "deload_applied", source_session_id: null, created_at: "2026-11-19T10:00:01.500Z" });
+
+  const undone = await revert(db, [{ routineDayExerciseId: "rde-1", previousTarget: promotedPlan }]);
+  assert.deepEqual(undone.result, { ok: true });
+  assert.equal(target(db), 11);
+  assert.equal(db.progression_events.at(-1)?.event_type, "manual_target_change");
+  // The promotion still stands, so its consumed workout cannot fill the bar again.
+  const card = await todayCard(db);
+  assert.equal(card.percent, 0);
+  assert.equal(card.canPromote, false);
+});
+
+test("revert event insert fails: the promoted target is put back so the hold and target agree", async () => {
+  const db = seed();
+  const first = await promote(db);
+  const previousTarget = first.result.ok ? first.result.data.previousTarget : planFor(db);
+  const failed = await revert(db, [{ routineDayExerciseId: "rde-1", previousTarget }], { fail: failEventInsert });
+  assert.deepEqual(failed.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.audit_failed });
+  assert.equal(target(db), 11);
+  assert.deepEqual(db.progression_events.map((event) => event.event_type), ["promotion_applied"]);
+  assert.equal((await todayCard(db)).canPromote, false);
+
+  // The undo is conditional on the reverted values; if it fails too the error says so.
+  let updates = 0;
+  const loud = await revert(db, [{ routineDayExerciseId: "rde-1", previousTarget }], {
+    fail: (call) => failEventInsert(call, db) || (call.table === "routine_day_exercises" && call.op === "update" && ++updates === 2),
+  });
+  assert.deepEqual(loud.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.audit_failed_unrestored });
+  const restore = loud.calls.filter((call) => call.table === "routine_day_exercises" && call.op === "update")[1];
+  assert.equal(restore.payload?.target_reps, 11);
+  assert.ok(restore.filters.some((filter) => filter.method === "eq" && filter.column === "target_reps" && filter.value === 10));
+});
+
+test("revert loses the race when the target changed since it was read: nothing written", async () => {
+  const db = seed();
+  const first = await promote(db);
+  const previousTarget = first.result.ok ? first.result.data.previousTarget : planFor(db);
+  const raced = await revert(db, [{ routineDayExerciseId: "rde-1", previousTarget }], {
+    beforeUpdate: (_call, tables) => { (tables.routine_day_exercises[0] as Row).target_weight = 105; },
+  });
+  assert.deepEqual(raced.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.lost_race });
+  assert.equal(target(db), 11);
+  assert.equal(db.progression_events.length, 1);
+});
+
+test("revert event type: only undoing a standing promotion writes promotion_reverted", () => {
+  const applied = (at: string): ManualPromotionEventRow => ({ event_type: "promotion_applied", routine_day_exercise_id: "rde-1", source_session_id: "w1", created_at: at });
+  const deload = (at: string): ManualPromotionEventRow => ({ event_type: "deload_applied", routine_day_exercise_id: "rde-1", source_session_id: null, created_at: at });
+  const reverted = (at: string): ManualPromotionEventRow => ({ event_type: "promotion_reverted", routine_day_exercise_id: "rde-1", source_session_id: null, created_at: at });
+  const type = (events: ManualPromotionEventRow[]) => resolveRevertEventType({ events, routineDayExerciseId: "rde-1" });
+  assert.equal(type([applied("2026-11-19T10:00:00Z")]), "promotion_reverted");
+  assert.equal(type([applied("2026-11-19T10:00:00Z"), deload("2026-11-19T11:00:00Z")]), "manual_target_change");
+  assert.equal(type([deload("2026-11-19T09:00:00Z"), applied("2026-11-19T10:00:00Z")]), "promotion_reverted");
+  assert.equal(type([applied("2026-11-19T10:00:00Z"), reverted("2026-11-19T11:00:00Z")]), "manual_target_change");
+  assert.equal(type([]), "manual_target_change");
+});
+
+// --- Review round 2 (P3b): Today and the server read the same complete event list ----------------
+
+test("an old standing promotion behind many later promote/revert pairs holds on Today and the server alike", async () => {
+  const db = seed();
+  (db.routine_day_exercises[0] as Row).target_reps = 11;
+  const event = (id: string, eventType: string, createdAt: string, source: string | null) => ({ id, user_id: USER, routine_day_exercise_id: "rde-1", event_type: eventType, source_session_id: source, created_at: createdAt });
+  db.progression_events.push(event("e-000", "promotion_applied", "2026-11-18T13:00:00.000Z", "w1"));
+  for (let index = 1; index <= 30; index += 1) {
+    const minute = String(index).padStart(2, "0");
+    db.progression_events.push(event(`e-${minute}a`, "promotion_applied", `2026-11-18T14:${minute}:00.000Z`, "w1"));
+    db.progression_events.push(event(`e-${minute}b`, "promotion_reverted", `2026-11-18T14:${minute}:30.000Z`, null));
+  }
+  // 61 events: a 50-row window would drop the standing one on the server only.
+  assert.equal((await todayCard(db)).canPromote, false);
+  const refused = await promote(db);
+  assert.equal(refused.result.ok, false);
+  assert.equal(target(db), 11);
+
+  // Paging returns the same complete list as one big page, in a stable order.
+  const fake = createSupabaseFake(db);
+  const small = await readPromotionHoldEvents({ supabase: fake.supabase, userId: USER, routineDayExerciseIds: ["rde-1"], pageSize: 7 });
+  const large = await readPromotionHoldEvents({ supabase: fake.supabase, userId: USER, routineDayExerciseIds: ["rde-1"] });
+  assert.equal(small.length, 61);
+  assert.deepEqual(small, large);
+  assert.equal(fake.calls.filter((call) => call.table === "progression_events").length, 9 + 1);
+  assert.deepEqual(await readPromotionHoldEvents({ supabase: fake.supabase, userId: USER, routineDayExerciseIds: [] }), []);
 });
 
 // --- P2: the repository's real queries ------------------------------------------------------

@@ -18,7 +18,7 @@ import {
   type ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
 import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
-import { runManualPromotion } from "@/lib/progression-manual-promotion";
+import { runManualPromotion, runProgressionRevert } from "@/lib/progression-manual-promotion";
 import {
   createManualPromotionRepository,
   LINKED_PROGRESSION_UPDATE_LIMIT,
@@ -203,6 +203,10 @@ export async function promoteExerciseAction(payload: {
       routineDayExerciseId: payload.routineDayExerciseId,
       message: error instanceof Error ? error.message : "unknown",
     });
+    // runManualPromotion turns every failure after the source write into an ok result with a
+    // warning, so a throw here means nothing was promoted; refresh anyway so Today never shows a
+    // stale target.
+    revalidateProgressionViews(payload.routineId);
     return { ok: false, error: "Could not verify this promotion. Try again." };
   }
 
@@ -389,54 +393,27 @@ export async function revertProgressionReviewCandidateAction(payload: {
   const revertTargets = payload.linkedPreviousTargets && payload.linkedPreviousTargets.length > 0
     ? payload.linkedPreviousTargets
     : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget }];
-  const linkedExercisesResult = await readMutationExercisesForRoutine({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseIds: revertTargets.map((target) => target.routineDayExerciseId),
-  });
-
-  if (!linkedExercisesResult.ok) {
-    return { ok: false, error: linkedExercisesResult.error };
+  if (revertTargets.length > LINKED_PROGRESSION_UPDATE_LIMIT) {
+    return { ok: false, error: "Too many linked progression updates to apply at once." };
   }
 
-  const linkedExercises = linkedExercisesResult.data ?? [];
-  const linkedExerciseById = new Map(linkedExercises.map((exercise) => [exercise.id, exercise]));
-  for (const target of revertTargets) {
-    const linkedExercise = linkedExerciseById.get(target.routineDayExerciseId);
-    const currentTarget = linkedExercise ? buildProgressionReviewTargetPlan(linkedExercise) : null;
-    const { error: updateError } = await supabase
-      .from("routine_day_exercises")
-      .update(buildProgressionReviewTargetUpdate(target.previousTarget))
-      .eq("id", target.routineDayExerciseId)
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      return { ok: false, error: "Could not revert linked progression update." };
-    }
-
-    if (linkedExercise && currentTarget) {
-      await recordProgressionEvent({
-        supabase,
-        payload: buildProgressionEventPayload({
-          userId: user.id,
-          routineId: payload.routineId,
-          routineDayExerciseId: linkedExercise.id,
-          exerciseId: linkedExercise.exercise_id,
-          eventType: "promotion_reverted",
-          fromTarget: currentTarget,
-          toTarget: target.previousTarget,
-          reason: "Reverted an applied progression target.",
-          playbookId: linkedExercise.progression_playbook_id,
-          config: linkedExercise.progression_playbook_config,
-          sourceSessionId: null,
-        }),
-        context: "progressionReview.revertProgressionReviewCandidateAction",
-      });
-    }
+  let result: Awaited<ReturnType<typeof runProgressionRevert>>;
+  try {
+    result = await runProgressionRevert(
+      createManualPromotionRepository({ supabase, userId: user.id, routineId: payload.routineId }),
+      revertTargets,
+    );
+  } catch (error) {
+    console.error("[progression-review] revert failed", {
+      routineDayExerciseId: payload.routineDayExerciseId,
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    // A linked day may already be back: refresh so Today shows what is stored.
+    revalidateProgressionViews(payload.routineId);
+    return { ok: false, error: "Could not revert this progression update. Refresh and try again." };
   }
 
+  // Refresh on failure too: an earlier linked day may already be reverted.
   revalidateProgressionViews(payload.routineId);
-
-  return { ok: true };
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
