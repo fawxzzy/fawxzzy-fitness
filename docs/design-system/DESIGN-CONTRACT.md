@@ -44,6 +44,7 @@ Decisions:
 - **C2. One page colour: `--bg-0` navy.** The gallery found a flat `#06131d`-like splash and a near-black green auth shell (`#070b09` plus emerald glows in `designSystem.ts` `auth.shell*`). `--bg-0` is already the loader backdrop and manifest colour, so the auth shell and every splash use it; the auth glows may stay as a faint overlay but not as a different base colour.
 - **C3. Amber means attention, never "secondary".** Amber is for rest, needs-setup, PR and Best. It is not a button colour or a selected colour (it measured about 3:1 on dark brown, `auth-lab--entry-handoff-error`, `dev--stretch-session-preview`).
 - **C4. Selected is always green** (`current` tone plus a SELECTED chip or `aria-pressed`); the History progression tab control used amber for the active tab (`mr--history-progression-default`) and migrates to green.
+- **C6. App backdrop (Zac 2026-11-19, lane D).** Screens may opt out of the animated ambient scene for a static, token-only backdrop (`AppBackdrop`, `src/lib/ambient/app-backdrop.ts`, `.app-backdrop` in `globals.css`): CSS gradients only, aria-hidden, pointer-events none, absolute (no layout), a safe-area scrim top and bottom. Three looks are compared live on `/dev/today-backgrounds`: aurora, grid, contour. **Today ships aurora** because it is gradients only (nothing behind a card can read as a glyph, the class of artifact behind the Switch Day "+" report), it keeps text contrast highest (contour lines cross headings; grid dots read as specks), and it is the cheapest to paint. Other screens keep the ambient scene until they opt in.
 - **C5. Text on any surface meets 4.5:1** (3:1 for 18px+ or non-text UI). `toggleInactive` at 3.66:1 and disabled amber text at about 3:1 (`auth-lab--entry-handoff-error`, `real--session-id--active-workout-logger`) are violations, not styles.
 
 ## 3. Surfaces and the left bar
@@ -165,6 +166,8 @@ Every list/screen implements the same four states with these shapes. A new scree
 ### 8.2 Empty
 
 `CardEmptyState`: dashed surface, 16px heading, one plain sentence saying what is missing and why, exactly one action that fixes it (44px). Examples: `No exercises planned` / `Add exercises to this day to start a workout.` / [Add exercises]. Empty views inside a screen have the same shape, never a bare outlined box. The no-progress-history state in `real--history-progression--progression-history` is the model. Empty states with nothing to do (no sessions yet) say what will appear and where it comes from.
+
+Today exception (Zac 2026-11-19, lane D): Today's day states share one `TodayEmptyDayCard` (`src/app/today/TodayEmptyDayCard.tsx`): a small mark, a centred title and no second line. `No exercises planned` + [Edit day] (Edit Day editor, returns to Today), `Rest day` (no action), `No scheduled workout` + [Edit routine] (routine editor). The action is omitted when there is no editor to open, never a dead button.
 
 ### 8.3 Error
 
