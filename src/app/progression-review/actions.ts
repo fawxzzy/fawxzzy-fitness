@@ -375,6 +375,7 @@ export async function revertProgressionReviewCandidateAction(payload: {
   routineId: string;
   routineDayExerciseId: string;
   previousTarget: ProgressionTargetPlan;
+  appliedTarget: ProgressionTargetPlan;
   linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
 }): Promise<ActionResult> {
   const user = await requireUser();
@@ -392,7 +393,10 @@ export async function revertProgressionReviewCandidateAction(payload: {
 
   const revertTargets = payload.linkedPreviousTargets && payload.linkedPreviousTargets.length > 0
     ? payload.linkedPreviousTargets
-    : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget }];
+    : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget, appliedTarget: payload.appliedTarget }];
+  if (revertTargets.some((target) => !target.appliedTarget)) {
+    return { ok: false, error: "This target changed since it was promoted. Refresh and try again." };
+  }
   if (revertTargets.length > LINKED_PROGRESSION_UPDATE_LIMIT) {
     return { ok: false, error: "Too many linked progression updates to apply at once." };
   }

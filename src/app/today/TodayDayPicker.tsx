@@ -167,6 +167,7 @@ export function TodayDayPicker({
     routineId: string;
     routineDayExerciseId: string;
     previousTarget: ProgressionTargetPlan;
+    appliedTarget: ProgressionTargetPlan;
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
 }) {
@@ -491,9 +492,11 @@ export function TodayDayPicker({
         routineId: progressionRoutineId,
         routineDayExerciseId: pin.routineDayExerciseId,
         previousTarget: pin.previousTarget,
+        appliedTarget: pin.appliedTarget,
         linkedPreviousTargets: pin.linkedTargets?.map((target) => ({
           routineDayExerciseId: target.routineDayExerciseId,
           previousTarget: target.previousTarget,
+          appliedTarget: target.appliedTarget,
         })),
       });
 

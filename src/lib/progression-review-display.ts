@@ -64,6 +64,8 @@ export type ProgressionReviewApplyResult = {
 export type ProgressionReviewRevertTargetSnapshot = {
   routineDayExerciseId: string;
   previousTarget: ProgressionTargetPlan;
+  /** What this pin wrote: Revert refuses if the stored target no longer matches it. */
+  appliedTarget: ProgressionTargetPlan;
 };
 
 function resolveSingleValue(min?: number | null, max?: number | null) {

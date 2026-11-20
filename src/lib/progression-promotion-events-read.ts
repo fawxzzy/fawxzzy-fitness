@@ -23,8 +23,12 @@ export async function readPromotionHoldEvents(args: {
 
   const pageSize = args.pageSize ?? PROMOTION_HOLD_EVENTS_PAGE_SIZE;
   const rows: ManualPromotionEventRow[] = [];
+  // PostgREST's max-rows can cap a page below the requested size, so a short page alone does not
+  // mean the end. Advance by what actually came back; stop on an empty page, or on a page shorter
+  // than one already seen (the server's cap is at least that big, so this one is the tail).
+  let largestPage = 0;
   for (let page = 0; page < PROMOTION_HOLD_EVENTS_MAX_PAGES; page += 1) {
-    const from = page * pageSize;
+    const from = rows.length;
     const { data, error } = await args.supabase
       .from("progression_events")
       .select("event_type, routine_day_exercise_id, source_session_id, created_at")
@@ -41,9 +45,10 @@ export async function readPromotionHoldEvents(args: {
 
     const batch = (data ?? []) as ManualPromotionEventRow[];
     rows.push(...batch);
-    if (batch.length < pageSize) {
+    if (batch.length === 0 || batch.length < largestPage) {
       return rows;
     }
+    largestPage = batch.length;
   }
 
   // Fail closed rather than decide the hold from a partial list.

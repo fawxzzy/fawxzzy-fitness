@@ -95,6 +95,7 @@ export function ProgressionReviewCard({
     routineId: string;
     routineDayExerciseId: string;
     previousTarget: ProgressionTargetPlan;
+    appliedTarget: ProgressionTargetPlan;
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
   expanded?: boolean;
@@ -507,9 +508,11 @@ export function ProgressionReviewCard({
                                           routineId,
                                           routineDayExerciseId: item.id,
                                           previousTarget: applied.previousTarget,
+                                          appliedTarget: applied.appliedTarget,
                                           linkedPreviousTargets: applied.linkedTargets?.map((target) => ({
                                             routineDayExerciseId: target.routineDayExerciseId,
                                             previousTarget: target.previousTarget,
+                                            appliedTarget: target.appliedTarget,
                                           })),
                                         });
                                         if (result.ok) {

@@ -22,6 +22,7 @@ import { deriveProgressionProgressPercent } from "@/lib/progression-progress-per
 import {
   filterHistoryAfterPromotionHold,
   resolvePromotionHoldCutoffMs,
+  selectProgressionEvidenceRows,
 } from "@/lib/progression-manual-promotion";
 import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
 import {
@@ -202,17 +203,16 @@ export async function loadProgressionHistoryForExercise(args: {
     return rows;
   }
 
-  const directSessionExerciseIds = new Set(
-    [...sessionExerciseMetaById.entries()]
-      .filter(([, meta]) => meta.routineDayExerciseId === args.routineDayExerciseId)
-      .map(([sessionExerciseId]) => sessionExerciseId),
-  );
-  const directRows = rows.filter((row) => directSessionExerciseIds.has(row.sessionId));
-  if (directRows.length > 0) {
-    return directRows;
-  }
-
-  return args.allowCatalogFallback ? rows : [];
+  // Same selection as Today (loadProgressionUpdatesDisplayData): direct rows win if any exist,
+  // else this routine's rows with no routine_day_exercise_id when the exercise is unique. The
+  // caller applies the promotion hold to the result (selection never depends on it).
+  const routineDayExerciseIdOf = (row: ProgressionHistorySetRowWithRoutineDayIndex) => sessionExerciseMetaById.get(row.sessionId)?.routineDayExerciseId ?? null;
+  return selectProgressionEvidenceRows({
+    directRows: rows.filter((row) => routineDayExerciseIdOf(row) === args.routineDayExerciseId),
+    unlinkedRows: rows.filter((row) => routineDayExerciseIdOf(row) === null),
+    allowCatalogFallback: args.allowCatalogFallback ?? false,
+    holdCutoffMs: null,
+  }).rows;
 }
 
 export async function canUseCatalogHistoryFallbackForRoutineExercise(args: {
@@ -689,16 +689,24 @@ export async function loadProgressionUpdatesDisplayData(args: {
       routineDayExerciseId: exercise.id,
     });
     const promotionHoldStanding = promotionHoldCutoffMs !== null;
-    const directHistoryRows = filterHistoryAfterPromotionHold(unheldDirectHistoryRows, promotionHoldCutoffMs);
-    const allFallbackHistoryRows = filterHistoryAfterPromotionHold(unheldFallbackHistoryRows, promotionHoldCutoffMs);
     const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
-    const fallbackHistoryRows = canUseFallback ? allFallbackHistoryRows : [];
-    // While a promotion stands, only this exercise's own newer workouts (direct or the unique
-    // catalog fallback, exactly what the server counts) may fill its bar: linked-day, duplicate
-    // and other-routine rows are context only and never stand in for "work at the new target".
+    // The server's selection (selectProgressionEvidenceRows): direct vs ad hoc is decided on the
+    // UNFILTERED rows, then the hold applies. After a direct Promote the old direct rows still pick
+    // "direct", so a later ad hoc workout cannot fill the bar the server would refuse.
+    const evidence = selectProgressionEvidenceRows({
+      directRows: unheldDirectHistoryRows,
+      unlinkedRows: unheldFallbackHistoryRows,
+      allowCatalogFallback: canUseFallback,
+      holdCutoffMs: promotionHoldCutoffMs,
+    });
+    const selectedHistoryRows = evidence.rows;
+    const directHistoryRows = evidence.source === "direct" ? selectedHistoryRows : [];
+    const fallbackHistoryRows = evidence.source === "catalog_fallback" ? selectedHistoryRows : [];
+    const allFallbackHistoryRows = filterHistoryAfterPromotionHold(unheldFallbackHistoryRows, promotionHoldCutoffMs);
+    // While a promotion stands, only rows the server also counts may fill the bar: linked-day,
+    // duplicate-catalog and other-routine rows are context only and are dropped entirely.
     const linkedHistoryRows = promotionHoldStanding ? [] : unheldLinkedHistoryRows;
     const globalContextRows = promotionHoldStanding ? [] : globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [];
-    const selectedHistoryRows = directHistoryRows.length > 0 ? directHistoryRows : fallbackHistoryRows;
     const blockedDuplicateFallbackRows = allFallbackHistoryRows.length > 0 && !canUseFallback && !promotionHoldStanding ? allFallbackHistoryRows : [];
     // Promoted and no workout at the new target yet: Today says so instead of "no evidence".
     const awaitingWorkoutAfterPromotion = promotionHoldStanding && selectedHistoryRows.length === 0;

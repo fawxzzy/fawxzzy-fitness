@@ -19,6 +19,7 @@ import {
 import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import {
   buildManualPromotionTargetGuard,
+  manualPromotionRowHoldsTarget,
   type ManualPromotionExerciseSnapshot,
   type ManualPromotionRepository,
   type ProgressionRevertRepository,
@@ -260,6 +261,9 @@ export function createManualPromotionRepository(args: {
       } catch {
         return false;
       }
+    },
+    holdsTarget(exercise, target) {
+      return manualPromotionRowHoldsTarget(exercise.row, target);
     },
     async readRoutineExercises(routineDayExerciseIds) {
       const result = await readMutationExercisesForRoutine({

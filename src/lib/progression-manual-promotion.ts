@@ -9,6 +9,7 @@ import type {
 } from "@/lib/progression-playbooks";
 import { deriveProgressionProgressPercent } from "@/lib/progression-progress-percent";
 import { extractProgressionSourceSessionId, targetsDiffer } from "@/lib/progression-events";
+import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
 import type { ProgressionReviewApplyResult, ProgressionReviewLinkedTargetSnapshot } from "@/lib/progression-review-display";
 
 export const MANUAL_PROMOTION_FULL_BAR_PERCENT = 100;
@@ -223,6 +224,31 @@ export function filterHistoryAfterPromotionHold<RowType extends Pick<Progression
     const performedAt = toEpochMs(row.performedAt);
     return performedAt !== null && performedAt > cutoffMs;
   });
+}
+
+export type ProgressionEvidenceSource = "direct" | "catalog_fallback" | "none";
+
+/**
+ * The ONE evidence selection shared by the Today loader and the server (Promote, deload apply):
+ * this exercise's own rows (routine_day_exercise_id) win whenever ANY exist, even old ones;
+ * otherwise rows logged in the routine with no routine_day_exercise_id (an ad hoc add) count only
+ * when the catalog exercise is unique in the routine. The choice is made on the UNFILTERED rows,
+ * then the promotion hold is applied, so a standing promotion that consumed every direct row
+ * leaves nothing (it never falls through to ad hoc rows the server would not count).
+ */
+export function selectProgressionEvidenceRows<RowType extends Pick<ProgressionHistorySetRow, "performedAt">>(args: {
+  directRows: RowType[];
+  unlinkedRows: RowType[];
+  allowCatalogFallback: boolean;
+  holdCutoffMs: number | null;
+}): { rows: RowType[]; source: ProgressionEvidenceSource } {
+  const source: ProgressionEvidenceSource = args.directRows.length > 0
+    ? "direct"
+    : args.allowCatalogFallback && args.unlinkedRows.length > 0
+      ? "catalog_fallback"
+      : "none";
+  const chosen = source === "direct" ? args.directRows : source === "catalog_fallback" ? args.unlinkedRows : [];
+  return { rows: filterHistoryAfterPromotionHold(chosen, args.holdCutoffMs), source };
 }
 
 export function manualPromotionTargetMatches(expected: ProgressionTargetPlan | null | undefined, candidates: ProgressionTargetPlan[]) {
@@ -464,6 +490,8 @@ export const MANUAL_PROMOTION_LINKED_FAILED_WARNING = "Promoted this day, but a 
 export type ProgressionRevertRepository<Row> = {
   /** Null when any id is missing, another user's, or outside the routine. */
   readRoutineExercises(routineDayExerciseIds: string[]): Promise<ManualPromotionExerciseSnapshot<Row>[] | null>;
+  /** True while the row read for `exercise` still holds the columns `target` wrote. */
+  holdsTarget(exercise: ManualPromotionExerciseSnapshot<Row>, target: ProgressionTargetPlan): boolean;
   readPromotionEvents(routineDayExerciseId: string): Promise<ManualPromotionEventRow[]>;
   updateTargetIfUnchanged(exercise: ManualPromotionExerciseSnapshot<Row>, nextTarget: ProgressionTargetPlan): Promise<boolean>;
   restoreTargetIfUnchanged(exercise: ManualPromotionExerciseSnapshot<Row>, appliedTarget: ProgressionTargetPlan): Promise<boolean>;
@@ -488,10 +516,14 @@ export const PROGRESSION_REVERT_MESSAGES = {
  * hold: promotion_reverted lifts a standing promotion, so if that row cannot be written the
  * promoted target is put back (the hold and the target always agree) and the action fails.
  * Undoing a deload records manual_target_change and leaves any standing promotion alone.
+ *
+ * Every day must still hold the target this pin applied (`appliedTarget`): an old pin never
+ * overwrites a newer target (a later edit or promotion). All days are checked before anything is
+ * written, so a stale linked day refuses the whole revert instead of half-applying it.
  */
 export async function runProgressionRevert<Row>(
   repo: ProgressionRevertRepository<Row>,
-  targets: Array<{ routineDayExerciseId: string; previousTarget: ProgressionTargetPlan }>,
+  targets: Array<{ routineDayExerciseId: string; previousTarget: ProgressionTargetPlan; appliedTarget: ProgressionTargetPlan }>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const exercises = await repo.readRoutineExercises(targets.map((entry) => entry.routineDayExerciseId));
   if (!exercises) {
@@ -499,12 +531,20 @@ export async function runProgressionRevert<Row>(
   }
 
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+  const checked: Array<{ entry: (typeof targets)[number]; exercise: (typeof exercises)[number] }> = [];
   for (const entry of targets) {
     const exercise = exerciseById.get(entry.routineDayExerciseId);
     if (!exercise) {
       return { ok: false, error: PROGRESSION_REVERT_MESSAGES.not_available };
     }
 
+    if (!repo.holdsTarget(exercise, entry.appliedTarget)) {
+      return { ok: false, error: PROGRESSION_REVERT_MESSAGES.lost_race };
+    }
+    checked.push({ entry, exercise });
+  }
+
+  for (const { entry, exercise } of checked) {
     const eventType = resolveRevertEventType({
       events: await repo.readPromotionEvents(exercise.id),
       routineDayExerciseId: exercise.id,
@@ -557,4 +597,23 @@ const TARGET_GUARD_COLUMNS = [
 
 export function buildManualPromotionTargetGuard(row: Partial<ManualPromotionTargetGuardRow>) {
   return TARGET_GUARD_COLUMNS.map((column) => ({ column, value: row[column] ?? null }));
+}
+
+/**
+ * True when the stored row still holds exactly the columns writing `target` produced: the same
+ * column-level comparison the conditional writes use (plan-level equality would differ on
+ * representation, e.g. a single-value weight read back as min = max).
+ */
+export function manualPromotionRowHoldsTarget(row: Partial<ManualPromotionTargetGuardRow>, target: ProgressionTargetPlan) {
+  const written = buildProgressionReviewTargetUpdate(target) as Record<string, unknown>;
+  return buildManualPromotionTargetGuard(row).every(({ column, value }) => {
+    const expected = written[column] ?? null;
+    if (value === null || expected === null) {
+      return value === expected;
+    }
+
+    return typeof value === "number" || typeof expected === "number"
+      ? Number(value) === Number(expected)
+      : String(value) === String(expected);
+  });
 }

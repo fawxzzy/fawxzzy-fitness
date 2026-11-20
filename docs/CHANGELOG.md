@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 ### WHAT
 - Progression is manual-only: saving a workout never changes a routine target and the post-workout promotions sheet is gone. A Promote button appears on the Today exercise card only when its progress bar is full (100%); it promotes exactly as the playbook designs (reps phase +1 rep, load phase +increment with reps reset) and can be reverted. After Promote the bar resets: the workout that earned it no longer counts, so Promote returns only after a newer workout qualifies (Revert restores the earlier state). If the promotion cannot be recorded, the target is put back and an error is shown. The routine editor no longer has an auto-update-goals setting.
 - After Promote the bar resets on every linked day too, and the card reads "Promoted. Log a workout at the new target." until a newer workout is logged. If a linked day cannot be updated, the promoted day still saves and a warning says so. Undoing a deload no longer lifts a standing promotion.
+- Today and the server pick the same workouts for the bar: after a Promote, adding the exercise ad hoc to a later workout no longer shows a Promote the server refuses. Revert refuses if the target changed since it was promoted.
 
 ### WHY
 - Owner decision 2026-11-19: promotions must be a deliberate choice.
