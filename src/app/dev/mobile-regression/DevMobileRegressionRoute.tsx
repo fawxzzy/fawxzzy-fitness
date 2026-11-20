@@ -177,22 +177,6 @@ async function noopCopilotFeedbackAction(payload: {
   };
 }
 
-async function noopSessionSaveWithPromotion(_: unknown) {
-  "use server";
-  return {
-    ok: true as const,
-    data: {
-      sessionId: "dev-session-auto-progression-confirmation-v1",
-      progressionUpdates: [{
-        exerciseName: "Back Squat",
-        previousTarget: "4 sets x 5 reps x 225 lbs",
-        appliedTarget: "4 sets x 6 reps x 225 lbs",
-        linkedDayNames: ["Lower A", "Lower B"],
-      }],
-    },
-  };
-}
-
 async function noopAppendDayAction(_: unknown) {
   "use server";
   return { ok: true as const, routineDayId: "regression-day" };
@@ -1853,6 +1837,29 @@ const mockTodayProgressionStatusItems: ProgressionStatusSurfaceItem[] = [
       label: "Ready",
     },
   },
+  // Manual Promote (2026-11-19): a partial bar shows progress but never a Promote button.
+  {
+    id: "td-3",
+    exerciseName: "Walking Lunge",
+    dayName: "Lower",
+    dayGroupId: "day-2",
+    readinessState: "not_ready",
+    readinessLabel: "Building",
+    currentTargetLine: `Current target: ${REGRESSION_WALKING_LUNGE_TARGET}`,
+    promotionBasisLabel: "Reps then weight",
+    promotionBasisDetail: "Reps then weight: hit the top of the rep range on every set, then add load.",
+    repTargetLine: "Top of range (10 reps)",
+    latestLine: "Latest: Jun 8 | 8 / 8 reps",
+    targetLine: "Needs: 3 sets at the top of the rep range.",
+    detailLine: "Result: keep building reps at the current load.",
+    nextUpdateLine: null,
+    reason: "Building: 2 of 3 sets met the target in the latest session.",
+    progress: {
+      percent: 67,
+      state: "partial",
+      label: "2/3 sets",
+    },
+  },
 ];
 
 const mockTodayLinkedProgressionReviewItems: ProgressionReviewDisplayItem[] = [
@@ -2294,24 +2301,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
   }
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
-  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt)
-    .map((exercise) => {
-      if (scenario.id !== "session-auto-progression-confirmation" || exercise.id !== "session-ex-1") {
-        return exercise;
-      }
-
-      const sourceSet = exercise.initialSets[0];
-      const targetSetCount = exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0;
-      return {
-        ...exercise,
-        initialSets: Array.from({ length: targetSetCount }, (_, index) => ({
-          ...sourceSet,
-          id: `set-auto-progression-${index + 1}`,
-          set_index: index,
-        })),
-        loggedSetCount: targetSetCount,
-      };
-    });
+  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
   const regressionSessionId = `dev-session-${scenario.fixtureState}`;
 
   return (
@@ -2328,7 +2318,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           unitLabel="lbs"
           exercises={sessionScenarioExercises}
         initialSelectedExerciseId={mobileRegressionSelectedSessionExerciseByScenarioId[scenario.id] ?? null}
-          saveSessionAction={scenario.id === "session-auto-progression-confirmation" ? noopSessionSaveWithPromotion : noopActionResult}
+          saveSessionAction={noopActionResult}
           requestedReturnTo="/today"
               quickAddAction={<BottomDockButton type="button" intent="info">Add</BottomDockButton>}
         addSetAction={noopSetAction}

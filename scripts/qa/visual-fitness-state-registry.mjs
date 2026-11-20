@@ -46,7 +46,6 @@ const mobileRegressionInventory = [
   ["session-logger-strength-weight", "Session / logging", "session", "logger-strength-weight"],
   ["session-logger-bodyweight-reps", "Session / logging", "session", "logger-bodyweight-reps"],
   ["session-post-close-feedback", "Session / logging", "session", "post-close-feedback"],
-  ["session-auto-progression-confirmation", "Session / logging", "session", "auto-progression-confirmation"],
   ["session-logger-cardio-time", "Session / logging", "session", "logger-cardio-time"],
   ["session-logger-cardio-time-distance", "Session / logging", "session", "logger-cardio-time-distance"],
   ["session-logger-cardio-distance", "Session / logging", "session", "logger-cardio-distance"],

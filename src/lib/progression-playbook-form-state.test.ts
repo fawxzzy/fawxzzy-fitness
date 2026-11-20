@@ -83,7 +83,6 @@ test("legacy deload playbook id maps to double progression plus deload policy", 
     stallPolicy: "deload_after_stall",
     stallThreshold: 2,
     deloadPercent: 10,
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     repPromotionThreshold: "top_of_range",
   });
@@ -104,13 +103,14 @@ test("legacy fixed-load aliases restore as the Manual Review stored playbook", (
   assert.equal(areProgressionPlaybookFormStatesEqual(stateFromOldName, stateFromNewName), true);
 });
 
-test("auto-update routine goals defaults off", () => {
+test("legacy stored autoUpdateRoutineGoals is ignored and never re-serialized (progression is manual-only)", () => {
   const state = createProgressionPlaybookFormState({
     playbookId: "double_progression",
-    config: { version: 1, loadIncrement: 5 },
+    config: { version: 1, loadIncrement: 5, autoUpdateRoutineGoals: true } as never,
   });
 
-  assert.equal(state.progressionAutoUpdateRoutineGoals, false);
+  assert.equal("progressionAutoUpdateRoutineGoals" in state, false);
+  assert.equal("autoUpdateRoutineGoals" in (buildProgressionPlaybookConfigFromFormState(state) ?? {}), false);
 });
 
 test("advanced step options persist in progression config", () => {
@@ -151,7 +151,6 @@ test("advanced step options persist in progression config", () => {
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     repPromotionThreshold: "top_of_range",
   });
@@ -215,7 +214,6 @@ test("set count restores from saved config", () => {
       weight: 4,
     },
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     repPromotionThreshold: "top_of_range",
   });
@@ -247,7 +245,6 @@ test("promotion directions restore and round-trip through progression config ser
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionDirectionMap: {
       time: "straight",
       distance: "down",
@@ -282,7 +279,6 @@ test("grouped promotion directions restore and round-trip through progression co
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     promotionGroupedDirectionMap: {
       "time+distance": "down",
@@ -370,7 +366,6 @@ test("day and set progression settings round-trip through progression config ser
     effortWaveDirections,
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     repPromotionThreshold: "top_of_range",
   });
@@ -526,7 +521,6 @@ test("apply routine default can copy normalized default form values", () => {
     stallPolicy: "deload_after_stall",
     stallThreshold: 3,
     deloadPercent: 12.5,
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     repPromotionThreshold: "top_of_range",
   });
@@ -568,7 +562,6 @@ test("promotion controls round-trip through progression config serialization", (
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "reps_only",
     repPromotionThreshold: "custom",
     customRepPromotionTarget: 11,
@@ -601,7 +594,6 @@ test("routine promotion measurement family order restores and round-trips throug
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     promotionMeasurementOrderMap: {
       strength: ["time", "weight", "reps", "distance"],
@@ -634,7 +626,6 @@ test("target changes and required successful sessions round-trip through progres
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     targetMutation: "increase_load_and_reps",
     qualificationWindow: {
@@ -674,7 +665,6 @@ test("promotion session count memory round-trips through progression config seri
     dayProgressionMode: "unsynced",
     setFlow: "straight_sets",
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     promotionSessionCountMap: {
       time: 3,
@@ -782,7 +772,6 @@ test("set flow grouping restores blank time and distance defaults and round-trip
       "reps+weight": "down",
     },
     stallPolicy: "none",
-    autoUpdateRoutineGoals: false,
     promotionBasis: "weight_and_reps",
     repPromotionThreshold: "top_of_range",
   });

@@ -63,16 +63,8 @@ type SyncQueuedSetLogsAction = (payload: {
   }>;
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
-type SessionAutoPromotionUpdate = {
-  exerciseName: string;
-  previousTarget: string | null;
-  appliedTarget: string | null;
-  linkedDayNames: string[];
-};
-
 type ServerAction = (formData: FormData) => Promise<ActionResult<{
   sessionId: string;
-  progressionUpdates: SessionAutoPromotionUpdate[];
 }>>;
 type ProgressionUpdateAction = (formData: FormData) => Promise<ActionResult>;
 type CopilotFeedbackUpdateAction = (payload: {
@@ -158,7 +150,6 @@ export function SessionPageClient({
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [isSessionCompleted, setIsSessionCompleted] = useState(initialIsSessionCompleted);
-  const [completedSessionUpdates, setCompletedSessionUpdates] = useState<SessionAutoPromotionUpdate[] | null>(null);
   // Set only when Finish is tapped with planned sets still unlogged; null means the sheet is closed.
   const [finishConfirm, setFinishConfirm] = useState<SessionFinishCheck | null>(null);
   const finishFormRef = useRef<HTMLFormElement>(null);
@@ -251,7 +242,8 @@ export function SessionPageClient({
             writeInstallEarnedMoment("workout-completed");
             setSelectedExerciseId(null);
             setIsSessionCompleted(true);
-            setCompletedSessionUpdates(result.data?.progressionUpdates ?? []);
+            // Progression is manual-only (2026-11-19): saving never promotes, so return straight to Today.
+            navigateReturn();
           }
         }}
         className="w-full"
@@ -342,42 +334,6 @@ export function SessionPageClient({
             finishFormRef.current?.requestSubmit();
           }}
         />
-      ) : null}
-      {completedSessionUpdates ? (
-        <ConfirmDestructiveModal
-          open
-          title="Progression Promotions"
-          titleVariant="raw"
-          description={completedSessionUpdates.length > 0 ? undefined : "No promotions this session."}
-          confirmLabel="Continue"
-          confirmActionLabel="Continue"
-          confirmVariant="primary"
-          cancelLabel="Continue"
-          hideCancelAction
-          onCancel={navigateReturn}
-          onConfirm={navigateReturn}
-        >
-          {completedSessionUpdates.length > 0 ? (
-            <ul className="space-y-2 text-left">
-              {completedSessionUpdates.map((update) => (
-                <li
-                  key={`${update.exerciseName}-${update.appliedTarget}`}
-                  className="rounded-[0.8rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] px-3 py-2"
-                >
-                  <p className="text-[0.78rem] font-semibold text-[rgb(var(--text-primary)/0.96)]">{update.exerciseName}</p>
-                  <p className="mt-0.5 text-[0.72rem] font-medium text-[rgb(var(--text-muted)/0.9)]">
-                    {update.previousTarget ?? "Current target"} {"\u2192"} {update.appliedTarget ?? "Updated target"}
-                  </p>
-                  {update.linkedDayNames.length > 1 ? (
-                    <p className="mt-1 text-[11px] font-semibold text-[rgb(var(--accent)/0.92)]">
-                      Days: {update.linkedDayNames.join(", ")}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </ConfirmDestructiveModal>
       ) : null}
     </ScrollScreenWithBottomActions>
   );

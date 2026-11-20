@@ -30,10 +30,6 @@ import { clampSessionDurationSeconds } from "@/lib/session-duration";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
 import { SKIP_TOGGLE_PERSISTENCE_ERROR } from "@/lib/offline/skip-toggle-reconciliation";
-import { applyProgressionReviewCandidateAction } from "@/app/progression-review/actions";
-import { loadProgressionReviewItems } from "@/lib/progression-review-loader";
-import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
-import { shouldApplyAutomaticSessionPromotion } from "@/lib/session-auto-progression";
 import { resolveSetLoggedAt } from "@/lib/set-logged-at";
 import {
   applyExerciseTimerCommand,
@@ -44,19 +40,8 @@ import {
   type ExerciseTimerSnapshot,
   type ExerciseTimerStatus,
 } from "@/lib/exercise-timer";
-import { validateProgressionPlaybookSelection, type ProgressionTargetPlan } from "@/lib/progression-playbooks";
-import type { RoutineDayExerciseRow } from "@/types/db";
 
 const SHOULD_DEBUG_CANONICAL_LINKING = process.env.NODE_ENV === "development";
-const AUTO_PROGRESSION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
-
-type SessionAutoPromotionUpdate = {
-  exerciseName: string;
-  previousTarget: string | null;
-  appliedTarget: string | null;
-  linkedDayNames: string[];
-};
-
 function createLiveSessionMutationRepository(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
   return {
     async readSession(sessionId: string) {
@@ -138,118 +123,6 @@ async function ensurePerformedIndex(payload: {
 
 function hasSelectedProgressionPlaybook(payload: Record<string, unknown>) {
   return typeof payload.progression_playbook_id === "string" && payload.progression_playbook_id.length > 0;
-}
-
-async function applyEligibleAutomaticProgressionUpdates(args: {
-  sessionId: string;
-  userId: string;
-  supabase: Awaited<ReturnType<typeof supabaseServer>>;
-}): Promise<SessionAutoPromotionUpdate[]> {
-  const { data: session } = await args.supabase
-    .from("sessions")
-    .select("routine_id")
-    .eq("id", args.sessionId)
-    .eq("user_id", args.userId)
-    .maybeSingle();
-
-  if (!session?.routine_id) {
-    return [];
-  }
-
-  const routineId = session.routine_id;
-  const { data: routine } = await args.supabase
-    .from("routines")
-    .select("weight_unit")
-    .eq("id", routineId)
-    .eq("user_id", args.userId)
-    .maybeSingle();
-  const { data: routineDays } = await args.supabase
-    .from("routine_days")
-    .select("id, name, day_index")
-    .eq("routine_id", routineId)
-    .eq("user_id", args.userId);
-
-  if (!routine || !routineDays?.length) {
-    return [];
-  }
-
-  const routineDayIds = routineDays.map((day) => day.id);
-  const { data: exerciseRows } = await args.supabase
-    .from("routine_day_exercises")
-    .select(AUTO_PROGRESSION_EXERCISE_SELECT)
-    .eq("user_id", args.userId)
-    .in("routine_day_id", routineDayIds);
-  const exercises = (exerciseRows ?? []) as RoutineDayExerciseRow[];
-  if (exercises.length === 0) {
-    return [];
-  }
-
-  const exerciseIds = Array.from(new Set(exercises.map((exercise) => exercise.exercise_id)));
-  const { data: exerciseNames } = await args.supabase
-    .from("exercises")
-    .select("id, name")
-    .in("id", exerciseIds);
-  const exerciseNameByRoutineExerciseId = new Map(
-    exercises.map((exercise) => [
-      exercise.id,
-      (exerciseNames ?? []).find((candidate) => candidate.id === exercise.exercise_id)?.name ?? "Exercise",
-    ] as const),
-  );
-  const routineDayNameById = new Map(routineDays.map((day) => [day.id, day.name?.trim() || `Day ${day.day_index}`] as const));
-  const routineDayIndexById = new Map(routineDays.map((day) => [day.id, day.day_index] as const));
-
-  const readyItems = await loadProgressionReviewItems({
-    supabase: args.supabase,
-    userId: args.userId,
-    routineId,
-    fallbackWeightUnit: routine.weight_unit === "kg" ? "kg" : "lbs",
-    exercises,
-    exerciseNameByRoutineExerciseId,
-    routineDayNameById,
-    routineDayIndexById,
-  });
-  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise] as const));
-  const updates: SessionAutoPromotionUpdate[] = [];
-
-  for (const item of readyItems) {
-    const exercise = exerciseById.get(item.id);
-    const selection = exercise
-      ? validateProgressionPlaybookSelection({
-          playbookId: exercise.progression_playbook_id,
-          config: exercise.progression_playbook_config,
-        })
-      : null;
-    const autoUpdateRoutineGoals = selection && "autoUpdateRoutineGoals" in selection.config
-      ? selection.config.autoUpdateRoutineGoals
-      : false;
-    if (!shouldApplyAutomaticSessionPromotion({
-      candidateType: item.type,
-      autoUpdateRoutineGoals,
-      sourceSessionRecordId: item.sourceSession?.sessionRecordId,
-      completedSessionId: args.sessionId,
-    })) {
-      continue;
-    }
-
-    const result = await applyProgressionReviewCandidateAction({
-      routineId,
-      routineDayExerciseId: item.id,
-      candidateType: "promote",
-      linkedRoutineDayExerciseIds: item.linkedUpdate?.routineDayExerciseIds,
-    });
-    if (!result.ok || !result.data) {
-      continue;
-    }
-
-    updates.push({
-      exerciseName: item.exerciseName,
-      previousTarget: formatProgressionReviewTargetLabel(result.data.previousTarget as ProgressionTargetPlan),
-      appliedTarget: formatProgressionReviewTargetLabel(result.data.appliedTarget as ProgressionTargetPlan),
-      linkedDayNames: item.linkedUpdate?.dayNames ?? (item.dayName ? [item.dayName] : []),
-    });
-  }
-
-  return updates;
 }
 
 function isMissingExerciseTimerColumnError(error: { message?: string } | null | undefined) {
@@ -1367,7 +1240,7 @@ export async function updateSessionExerciseProgressionAction(formData: FormData)
   return { ok: true };
 }
 
-export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string; progressionUpdates: SessionAutoPromotionUpdate[] }>> {
+export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string }>> {
   const user = await requireUser();
   const supabase = await supabaseServer();
 
@@ -1420,7 +1293,6 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
   }
 
   const affectedExerciseIds = await getExerciseIdsForSession(user.id, sessionId);
-  let progressionUpdates: SessionAutoPromotionUpdate[] = [];
 
   try {
     const followUp = await processSessionFollowUpJobs({
@@ -1445,22 +1317,8 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
     });
   }
 
-  try {
-    progressionUpdates = await applyEligibleAutomaticProgressionUpdates({
-      sessionId,
-      userId: user.id,
-      supabase,
-    });
-  } catch (error) {
-    console.error("[session-auto-progression] unable to apply eligible updates after session save", {
-      sessionId,
-      userId: user.id,
-      error: error instanceof Error ? error.message : "Unknown automatic progression error",
-    });
-  }
-
   revalidatePath("/today");
   revalidateHistoryViews();
   revalidateRoutinesViews();
-  return { ok: true, data: { sessionId, progressionUpdates } };
+  return { ok: true, data: { sessionId } };
 }

@@ -568,7 +568,6 @@ export type DoubleProgressionConfig = {
   stallPolicy?: ProgressionStallPolicy;
   stallThreshold?: number;
   deloadPercent?: number;
-  autoUpdateRoutineGoals?: boolean;
 } & ProgressionPromotionConfigFields & SetFlowConfigFields & ProgressionDayConfigFields;
 
 export type FixedLoadRepRangeProgressionConfig = {
@@ -578,7 +577,6 @@ export type FixedLoadRepRangeProgressionConfig = {
   stallPolicy?: ProgressionStallPolicy;
   stallThreshold?: number;
   deloadPercent?: number;
-  autoUpdateRoutineGoals?: boolean;
 } & ProgressionPromotionConfigFields & SetFlowConfigFields & ProgressionDayConfigFields;
 
 export type DeloadAfterStallConfig = {
@@ -1006,10 +1004,6 @@ function normalizeSetFlowId(value: unknown): SetFlowId | undefined {
   return value && Object.prototype.hasOwnProperty.call(SET_FLOW_DEFINITIONS, value as PropertyKey)
     ? (value as SetFlowId)
     : undefined;
-}
-
-function normalizeAutoUpdateRoutineGoals(value: unknown) {
-  return value === true;
 }
 
 function normalizeProgressionSectionEnabled(value: unknown) {
@@ -2314,7 +2308,6 @@ export function validateProgressionPlaybookSelection(args: {
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
       deloadPercent,
-      autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
       promotionBasis: promotionConfig.promotionBasis,
       repPromotionThreshold: promotionConfig.repPromotionThreshold,
     };
@@ -2403,7 +2396,6 @@ export function validateProgressionPlaybookSelection(args: {
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
       deloadPercent,
-      autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
       promotionBasis: promotionConfig.promotionBasis,
       repPromotionThreshold: promotionConfig.repPromotionThreshold,
     };
@@ -2543,7 +2535,6 @@ export function parseProgressionPlaybookPayload(formData: FormData):
 
   const requestedStallPolicy = normalizeStallPolicy(String(formData.get("progressionStallPolicy") ?? "none").trim());
   const stallPolicy = playbookId === "deload_after_stall" ? "deload_after_stall" : requestedStallPolicy;
-  const autoUpdateRoutineGoals = formData.get("progressionAutoUpdateRoutineGoals") === "1";
   const setFlow = normalizeSetFlowId(String(formData.get("progressionSetFlow") ?? "").trim());
   const stepOverrides = parseProgressionStepOverridesFromFormData(formData);
   const setFlowSteps = parseSetFlowStepsFromFormData(formData);
@@ -2754,7 +2745,6 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       loadIncrement,
       ...(setCount !== 3 ? { setsMin: setCount, setsMax: setCount } : {}),
       stallPolicy,
-      autoUpdateRoutineGoals,
       promotionBasis: promotionConfig.promotionBasis,
       ...(hasExplicitTargetMutation || targetMutation !== "increase_load_reset_reps" ? { targetMutation } : {}),
       ...(shouldSerializeQualificationWindow ? { qualificationWindow } : {}),
@@ -2806,7 +2796,6 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     stallPolicy: "deload_after_stall",
     stallThreshold,
     deloadPercent,
-    autoUpdateRoutineGoals,
     promotionBasis: promotionConfig.promotionBasis,
     ...(hasExplicitTargetMutation || targetMutation !== "increase_load_reset_reps" ? { targetMutation } : {}),
     ...(shouldSerializeQualificationWindow ? { qualificationWindow } : {}),
