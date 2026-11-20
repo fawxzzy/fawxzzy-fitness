@@ -3,7 +3,17 @@
 import { useRef, useState } from "react";
 import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useToast } from "@/components/ui/ToastProvider";
 import { cn } from "@/lib/cn";
+import { isRedirectError } from "@/lib/next-navigation-errors";
+
+function readActionFailure(result: unknown): string | null {
+  if (typeof result !== "object" || result === null || !("ok" in result) || (result as { ok?: unknown }).ok !== false) {
+    return null;
+  }
+  const error = (result as { error?: unknown }).error;
+  return typeof error === "string" && error.trim() ? error.trim() : "";
+}
 
 export function ConfirmedServerFormButton({
   action,
@@ -24,6 +34,7 @@ export function ConfirmedServerFormButton({
   size = "sm",
   disabled = false,
   confirmVariant = "destructive",
+  failureMessage,
 }: {
   action: (formData: FormData) => unknown | Promise<unknown>;
   onBeforeSubmit?: () => void;
@@ -44,10 +55,17 @@ export function ConfirmedServerFormButton({
   size?: "sm" | "md";
   disabled?: boolean;
   confirmVariant?: "primary" | "destructive";
+  /**
+   * Opt-in failure handling: when set, an `{ ok: false }` result or a thrown action (offline, 500, server crash)
+   * closes the dialog and shows an error notice (the result's own error text first, else this message) instead of
+   * leaving the dialog open with no feedback or handing the throw to the app error screen. redirect() still navigates.
+   */
+  failureMessage?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const toast = useToast();
 
   return (
     <form
@@ -56,6 +74,12 @@ export function ConfirmedServerFormButton({
         setIsLoading(true);
         try {
           const result = await action(formData);
+          const failure = failureMessage === undefined ? null : readActionFailure(result);
+          if (failure !== null) {
+            setOpen(false);
+            toast.error(failure || failureMessage || "");
+            return;
+          }
           if (
             typeof result === "object"
             && result !== null
@@ -65,6 +89,12 @@ export function ConfirmedServerFormButton({
             setOpen(false);
             await onSuccess?.();
           }
+        } catch (error) {
+          if (failureMessage === undefined || isRedirectError(error)) {
+            throw error;
+          }
+          setOpen(false);
+          toast.error(failureMessage);
         } finally {
           setIsLoading(false);
         }
