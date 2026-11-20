@@ -1,4 +1,5 @@
 import { resolveCanonicalAppOrigin } from "@/lib/app-origin";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 export const INSTALL_BYPASS_QUERY_PARAM = "installBypass";
 export const INSTALLED_APP_QUERY_PARAM = "installedApp";
@@ -17,7 +18,7 @@ export function getCanonicalInstallUrl() {
 function normalizeLocalPath(rawPath: string | null | undefined, fallback = "/login") {
   const candidate = rawPath?.trim();
 
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
+  if (!isSafeAppPath(candidate)) {
     return fallback;
   }
 
