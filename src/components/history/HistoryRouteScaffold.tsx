@@ -49,6 +49,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
           <ScreenHeader
             kind="tab"
             title="History"
+            appMenu
             status={props.headerStatus}
             trailing={props.activeTab === "progression" ? undefined : <div id={HISTORY_HEADER_TRAILING_SLOT_ID} className="contents" />}
           />

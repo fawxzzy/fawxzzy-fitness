@@ -40,11 +40,12 @@ test("ScreenHeader has two kinds, a left-aligned single-line h1, and no centred 
 
 test("the four tab screens render the standard tab header", () => {
   const cases = [
-    ["src/app/today/page.tsx", /<ScreenHeader\s+kind="tab"\s+title="Today"/],
-    ["src/app/today/TodayDayPicker.tsx", /<ScreenHeader\s+kind="tab"\s+title="Today"/],
-    ["src/app/routines/page.tsx", /<ScreenHeader kind="tab" title="Routines"/],
-    ["src/components/history/HistoryRouteScaffold.tsx", /<ScreenHeader\s+kind="tab"\s+title="History"/],
-    ["src/components/settings/SettingsFloatingHeader.tsx", /<ScreenHeader kind="tab" title="Settings" \/>/],
+    // `appMenu`: the screen-level header shows the app menu (DESIGN-CONTRACT.md 15.6).
+    ["src/app/today/page.tsx", /<ScreenHeader\s+kind="tab"\s+appMenu\s+title="Today"/],
+    ["src/app/today/TodayDayPicker.tsx", /<ScreenHeader\s+kind="tab"\s+appMenu\s+title="Today"/],
+    ["src/app/routines/page.tsx", /<ScreenHeader kind="tab" appMenu title="Routines"/],
+    ["src/components/history/HistoryRouteScaffold.tsx", /<ScreenHeader\s+kind="tab"\s+title="History"\s+appMenu\b/],
+    ["src/components/settings/SettingsFloatingHeader.tsx", /<ScreenHeader kind="tab" appMenu title="Settings" \/>/],
   ];
   for (const [path, pattern] of cases) {
     assert.match(read(path), pattern, path);
@@ -71,10 +72,14 @@ test("Today's header is one subtitle line, with no info rail, pipes or status ch
 });
 
 test("tabs are Today / Routines / History / Settings and never leave the app", () => {
-  const nav = read("src/components/AppNav.tsx");
-  const labels = [...nav.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]);
+  // The one destination list (src/lib/app-menu.ts); AppNav.tsx only adds icons.
+  const destinations = read("src/lib/app-menu.ts");
+  const list = destinations.slice(destinations.indexOf("export const APP_MENU_DESTINATIONS"), destinations.indexOf("] as const;"));
+  const labels = [...list.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(labels, ["Today", "Routines", "History", "Settings"]);
-  assert.doesNotMatch(nav, /href: "\/account"|account\.fawxzzy\.com|getFitnessAccountPortalUrl/);
+  for (const source of [list, read("src/components/AppNav.tsx")]) {
+    assert.doesNotMatch(source, /href: "\/account"|account\.fawxzzy\.com|getFitnessAccountPortalUrl/);
+  }
 });
 
 test("the Settings Account row opens the shared account portal; Sign out sits in the body", () => {
@@ -144,7 +149,7 @@ test("the raw <h1> check catches a hand-made centred title (mutation guard)", ()
 
 test("detail screens render the standard detail header with Back on the left", () => {
   const cases = [
-    ["src/components/SessionHeaderControls.tsx", /<ScreenHeader\s+kind="detail"\s+title="Workout"/],
+    ["src/components/SessionHeaderControls.tsx", /<ScreenHeader\s+kind="detail"\s+appMenu\s+title="Workout"/],
     ["src/app/history/[sessionId]/LogAuditClient.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{sessionSummary\.dayTitle\?\.trim\(\) \|\| "Workout"\}/],
     ["src/app/history/[sessionId]/page.tsx", /<ScreenHeader kind="detail" title="Workout" back=\{<ScreenHeaderBackButton href="\/history" historyBehavior="history-first" label="Back to History" \/>\} \/>/],
     ["src/components/ExerciseInfoSheet.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{exercise\?\.name \?\? "Exercise"\}/],

@@ -158,7 +158,7 @@ function MobileScreenShellFrame({
         >
           {hasHeaderMenuOnly ? (
             <div className={screenHeaderTokens.root}>
-              <div className={cn(screenHeaderTokens.row, "justify-end")}>
+              <div className={cn(screenHeaderTokens.row, "justify-end")} data-app-notice-anchor="">
                 <ScreenHeaderMenuSlot />
               </div>
             </div>

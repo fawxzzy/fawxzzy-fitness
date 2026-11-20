@@ -12,7 +12,7 @@ export function formatSessionHeaderSubtitle(sessionDayName: string, routineName:
 
 // The live workout is a detail screen (DESIGN-CONTRACT.md section 15): title "Workout", one subtitle line
 // (day · routine), Back on the left, the inline sync status on the title line ("– Offline"), and the app menu top
-// right (from the screen shell).
+// right (`appMenu`; the button comes from the screen shell).
 // Progress counts live in the exercise list, not in the header.
 export function SessionHeaderControls({
   routineName,
@@ -33,6 +33,7 @@ export function SessionHeaderControls({
   return (
     <ScreenHeader
       kind="detail"
+      appMenu
       title="Workout"
       subtitle={formatSessionHeaderSubtitle(sessionDayName, routineName)}
       back={(

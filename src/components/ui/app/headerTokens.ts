@@ -13,10 +13,12 @@ export const screenHeaderTokens = {
   // The title line: the title, then at most one inline status ("– Offline") on the same baseline.
   titleLine: "flex min-w-0 items-baseline gap-1.5",
   // One title style: left aligned, one line, ellipsis instead of wrapping off-screen, in the app accent on every
-  // screen. It follows the theme because themes only change `--accent*`.
-  title: "truncate text-[1.375rem] font-semibold leading-7 tracking-[-0.02em] text-[rgb(var(--accent))]",
-  // The inline status after the title: muted, one line, never pushes the title off-screen.
-  status: "shrink-0 whitespace-nowrap text-sm font-medium leading-5 text-[rgb(var(--text-muted))]",
+  // screen. It follows the theme because themes only change `--accent*`. The title wins the line over the inline
+  // status (shrink-0, capped at the line width): a long status is cut with an ellipsis before the title is.
+  title: "max-w-full shrink-0 truncate text-[1.375rem] font-semibold leading-7 tracking-[-0.02em] text-[rgb(var(--accent))]",
+  // The inline status after the title: muted, one line, never pushes the title off-screen. It shrinks first and
+  // ends in an ellipsis on narrow phones (320px with Back, title and menu), so "Workout" always stays readable.
+  status: "min-w-0 truncate text-sm font-medium leading-5 text-[rgb(var(--text-muted))]",
   // At most one muted, single-line subtitle in plain words.
   subtitle: "truncate text-sm leading-5 text-[rgb(var(--text-muted))]",
   // At most one 44x44 icon action or one chip.

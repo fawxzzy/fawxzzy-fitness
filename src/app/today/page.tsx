@@ -1300,6 +1300,7 @@ export default async function TodayPage(
         ) : (
           <ScreenHeader
             kind="tab"
+            appMenu
             title="Today"
             subtitle={todayPayload.routine
               ? formatTodayHeaderSubtitle(todayPayload.routine.dayName, todayPayload.routine.name)

@@ -4,8 +4,9 @@ import { createContext, type ReactNode, useContext } from "react";
 import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
 
 // The app menu sits on the SAME line as the screen title, top right (DESIGN-CONTRACT.md section 15, "App menu").
-// The screen shell owns which screens get the menu (`headerMenu` on MobileScreenShell); every `ScreenHeader`
-// inside that shell, including headers portaled in from a client component, renders it in this slot.
+// The screen shell owns which screens get the menu (`headerMenu` on MobileScreenShell); only the screen-level
+// `ScreenHeader` that opts in with `appMenu` renders it in this slot (also when portaled in from a client component).
+// Context passes through portals, so the opt-in is what keeps sheet and dialog headers menu-free.
 const ScreenHeaderMenuContext = createContext<ReactNode>(null);
 
 export function ScreenHeaderMenuProvider({ menu, children }: { menu?: ReactNode; children: ReactNode }) {

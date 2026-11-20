@@ -2190,7 +2190,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
           headerMenu={<AppMenu activePathnameOverride="/today" />}
-          floatingHeader={<ScreenHeader kind="tab" title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
+          floatingHeader={<ScreenHeader kind="tab" appMenu title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
         >
           <ContentRail className="space-y-3">
             <ScreenScaffold recipe="todayOverview" className="w-full">
@@ -2425,7 +2425,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
           headerMenu={<AppMenu activePathnameOverride="/routines" />}
-          floatingHeader={<ScreenHeader kind="tab" title="Routines" />}
+          floatingHeader={<ScreenHeader kind="tab" appMenu title="Routines" />}
         >
           <ContentRail className="space-y-3">
             <RoutinesPageClient

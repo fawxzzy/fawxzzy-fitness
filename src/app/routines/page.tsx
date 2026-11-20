@@ -439,7 +439,7 @@ export default async function RoutinesPage() {
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
         headerMenu={<AppMenu />}
-        floatingHeader={<ScreenHeader kind="tab" title="Routines" status={<OfflineSyncBadge userId={user.id} variant="header" label={fetchFailed ? "Offline" : null} />} />}
+        floatingHeader={<ScreenHeader kind="tab" appMenu title="Routines" status={<OfflineSyncBadge userId={user.id} variant="header" label={fetchFailed ? "Offline" : null} />} />}
       >
         <ContentRail className="space-y-3">
           {fetchFailed || !pageModel ? (

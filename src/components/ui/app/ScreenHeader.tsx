@@ -6,7 +6,7 @@ import { ScreenHeaderMenuSlot } from "@/components/ui/app/ScreenHeaderMenu";
 // - "tab": Today, Routines, History, Settings. No Back button; the app menu sits top RIGHT on the title line.
 // - "detail": every pushed screen. The Back button sits on the LEFT.
 // Anatomy is fixed: [Back (detail only)] [title + inline status, at most one muted subtitle line]
-// [at most one trailing action or chip] [app menu, when the screen shell provides one].
+// [at most one trailing action or chip] [app menu: only on the screen-level header that opts in with `appMenu`].
 // No eyebrow, no centred title, no accent underline, no second action row: anything else belongs in the body.
 export type ScreenHeaderKind = "tab" | "detail";
 
@@ -22,10 +22,17 @@ type ScreenHeaderProps = {
   back?: ReactNode;
   /** At most one 44x44 icon action or one chip. */
   trailing?: ReactNode;
+  /**
+   * Opt in to the app menu (DESIGN-CONTRACT.md 15.6): only the screen-level header of a tab screen or the live
+   * workout sets this. The button itself comes from the screen shell (`headerMenu`), so a header outside such a
+   * shell still renders no menu. Sheets and dialogs never set it: React context passes through portals, so an
+   * automatic slot would put a second menu on every sheet header opened over a menu screen.
+   */
+  appMenu?: boolean;
   testId?: string;
 };
 
-export function ScreenHeader({ kind, title, subtitle, status, back, trailing, testId }: ScreenHeaderProps) {
+export function ScreenHeader({ kind, title, subtitle, status, back, trailing, appMenu = false, testId }: ScreenHeaderProps) {
   const backNode = kind === "detail" ? back : null;
   const subtitleText = subtitle?.trim() ? subtitle.trim() : null;
 
@@ -35,7 +42,8 @@ export function ScreenHeader({ kind, title, subtitle, status, back, trailing, te
       data-testid={testId}
       className={screenHeaderTokens.root}
     >
-      <div className={screenHeaderTokens.row}>
+      {/* The menu row is the notice anchor: floating notices sit just under it (PR #294 `data-app-notice-anchor`). */}
+      <div className={screenHeaderTokens.row} data-app-notice-anchor={appMenu ? "" : undefined}>
         {backNode ? <div className={screenHeaderTokens.backSlot}>{backNode}</div> : null}
         <div className={screenHeaderTokens.titleBlock}>
           <div className={screenHeaderTokens.titleLine}>
@@ -45,7 +53,7 @@ export function ScreenHeader({ kind, title, subtitle, status, back, trailing, te
           {subtitleText ? <p className={screenHeaderTokens.subtitle}>{subtitleText}</p> : null}
         </div>
         {trailing ? <div className={screenHeaderTokens.trailingSlot} data-screen-header-trailing="true">{trailing}</div> : null}
-        <ScreenHeaderMenuSlot />
+        {appMenu ? <ScreenHeaderMenuSlot /> : null}
       </div>
     </header>
   );

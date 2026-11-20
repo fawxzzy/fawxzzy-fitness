@@ -176,3 +176,121 @@ test("dock buttons are flat: no gloss gradient, no drop shadow, token colours", 
     [],
   );
 });
+
+// Review fix (PR #293): React context passes through portals, so an automatic menu slot put a second app menu on
+// every sheet header opened over a menu screen (the exercise info sheet on Today, the live workout and History).
+// The menu is opt-in: only these screen-level headers pass `appMenu`.
+const APP_MENU_HEADERS = new Set([
+  "src/app/today/TodayDayPicker.tsx",
+  "src/app/today/page.tsx",
+  "src/app/routines/page.tsx",
+  "src/components/settings/SettingsFloatingHeader.tsx",
+  "src/components/history/HistoryRouteScaffold.tsx",
+  "src/components/SessionHeaderControls.tsx",
+  "src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx",
+]);
+
+// The header itself and its menu slot define the prop; they are not call sites.
+const HEADER_DEFINITION_FILES = new Set(["src/components/ui/app/ScreenHeader.tsx", "src/components/ui/app/ScreenHeaderMenu.tsx"]);
+
+function appMenuOptInProblems(files) {
+  const problems = [];
+  for (const [path, source] of files) {
+    if (HEADER_DEFINITION_FILES.has(path)) continue;
+    // Any `appMenu` in a file that renders a ScreenHeader counts (props may contain `=>`, so no JSX parsing here).
+    const optsIn = /\bappMenu\b/.test(source);
+    if (optsIn && !APP_MENU_HEADERS.has(path)) problems.push(`${path}: only screen-level headers opt in to the app menu`);
+  }
+  return problems;
+}
+
+function screenHeaderSlotProblems(headerSource) {
+  const problems = [];
+  if (!/\{appMenu \? <ScreenHeaderMenuSlot \/> : null\}/.test(headerSource)) problems.push("menu slot is not gated on appMenu");
+  if (/appMenu = true/.test(headerSource)) problems.push("appMenu defaults to on");
+  if (!/data-app-notice-anchor=\{appMenu \? "" : undefined\}/.test(headerSource)) problems.push("menu row is not the notice anchor");
+  return problems;
+}
+
+test("the app menu is opt-in: only screen-level headers render it, never a sheet or dialog header", () => {
+  const files = listSourceFiles("src").map((path) => [path.replaceAll("\\", "/"), read(path)]).filter(([, s]) => s.includes("<ScreenHeader"));
+  assert.deepEqual(appMenuOptInProblems(files), []);
+  for (const path of ["src/app/today/TodayDayPicker.tsx", "src/app/routines/page.tsx", "src/components/SessionHeaderControls.tsx", "src/components/settings/SettingsFloatingHeader.tsx", "src/components/history/HistoryRouteScaffold.tsx"]) {
+    assert.match(read(path), /<ScreenHeader\b[^>]*?\sappMenu\b/s, `${path} opts in`);
+  }
+  const sheet = read("src/components/ExerciseInfoSheet.tsx");
+  assert.doesNotMatch(sheet, /\bappMenu\b/, "the exercise info sheet header never opts in");
+  const header = read("src/components/ui/app/ScreenHeader.tsx");
+  assert.deepEqual(screenHeaderSlotProblems(header), []);
+  // Mutation guards.
+  assert.notDeepEqual(appMenuOptInProblems([["src/components/ExerciseInfoSheet.tsx", '<ScreenHeader\n  kind="detail"\n  appMenu\n  title="x" />']]), []);
+  assert.notDeepEqual(screenHeaderSlotProblems(header.replace("{appMenu ? <ScreenHeaderMenuSlot /> : null}", "<ScreenHeaderMenuSlot />")), []);
+  assert.notDeepEqual(screenHeaderSlotProblems(header.replace("appMenu = false", "appMenu = true")), []);
+});
+
+test("notice anchor: the header menu row carries data-app-notice-anchor (PR #294 contract)", () => {
+  // PR #294 (src/lib/app-notice-anchor.ts) reads `[data-app-notice-anchor]` inside the shell and puts notices under it.
+  const header = read("src/components/ui/app/ScreenHeader.tsx");
+  assert.match(header, /<div className=\{screenHeaderTokens\.row\} data-app-notice-anchor=\{appMenu \? "" : undefined\}>/);
+  const shell = read("src/components/shared/mobile-shell/MobileScreenShell.tsx");
+  assert.match(shell, /cn\(screenHeaderTokens\.row, "justify-end"\)\} data-app-notice-anchor="">\s*<ScreenHeaderMenuSlot \/>/, "a menu-only header row is the anchor too");
+});
+
+// Review fix (PR #293): a z-index only counts inside its stacking context. `<main>` (layout.tsx, `relative z-10`)
+// capped the in-header panel below the body-level toasts (z 110), so toasts painted over the open menu (seen in real
+// Chrome). The panel is portaled to <body> and placed with `fixed`.
+function panelLayerProblems(menuSource) {
+  const problems = [];
+  if (!/\{portalTarget \? createPortal\(panel, portalTarget\) : panel\}/.test(menuSource)) problems.push("menu panel is not portaled to <body>");
+  if (!/setPortalTarget\(document\.body\)/.test(menuSource)) problems.push("portal target is not <body>");
+  if (!/panel:\s*"fixed z-\[115\] /.test(menuSource)) problems.push("panel is not fixed on layer 115");
+  if (!/panelRef\.current\?\.contains\(event\.target\)/.test(menuSource)) problems.push("a tap on the portaled panel would close the menu");
+  return problems;
+}
+
+test("layers: the open menu panel sits above toasts (110) and below sheets (120)", () => {
+  const menu = read("src/components/AppNav.tsx");
+  assert.deepEqual(panelLayerProblems(menu), []);
+  // Mutation guards.
+  assert.notDeepEqual(panelLayerProblems(menu.replace("{portalTarget ? createPortal(panel, portalTarget) : panel}", "{panel}")), []);
+  assert.notDeepEqual(panelLayerProblems(menu.replace('"fixed z-[115] ', '"absolute right-0 top-[calc(100%+4px)] z-[115] ')), []);
+  assert.notDeepEqual(panelLayerProblems(menu.replace(" || panelRef.current?.contains(event.target)", "")), []);
+  const toasts = read("src/components/ui/ToastProvider.tsx");
+  assert.match(toasts, /z-\[110\]/, "toasts stay at 110");
+  const layout = read("src/app/layout.tsx");
+  assert.match(layout, /<main id="app-main" className="[^"]*\brelative z-10\b/, "main is the stacking context the portal escapes");
+  const contract = read("docs/design-system/DESIGN-CONTRACT.md");
+  assert.match(contract, /the app menu panel is portaled to `<body>`/);
+});
+
+function destinationSourceProblems(menuSource) {
+  const problems = [];
+  if (!/APP_MENU_DESTINATIONS\.map\(/.test(menuSource)) problems.push("menu rows are not built from APP_MENU_DESTINATIONS");
+  if (/\bhref: "\/(?:today|routines|history|settings)"/.test(menuSource)) problems.push("AppNav keeps its own destination list");
+  if (/\blabel: "(?:Today|Routines|History|Settings)"/.test(menuSource)) problems.push("AppNav keeps its own labels");
+  return problems;
+}
+
+test("one destination list: AppNav builds its rows from APP_MENU_DESTINATIONS", () => {
+  const menu = read("src/components/AppNav.tsx");
+  assert.deepEqual(destinationSourceProblems(menu), []);
+  assert.notDeepEqual(destinationSourceProblems(menu.replace("APP_MENU_DESTINATIONS.map(", "LOCAL_LINKS.map(")), []);
+  assert.notDeepEqual(destinationSourceProblems(`${menu}\nconst extra = [{ href: "/today", label: "Today" }];`), []);
+});
+
+function statusTokenProblems(tokensSource) {
+  const problems = [];
+  const status = tokensSource.match(/status: "([^"]+)"/)?.[1] ?? "";
+  const title = tokensSource.match(/\btitle: "([^"]+)"/)?.[1] ?? "";
+  if (/\bshrink-0\b/.test(status)) problems.push("status cannot shrink");
+  if (!/\btruncate\b/.test(status) || !/\bmin-w-0\b/.test(status)) problems.push("status does not end in an ellipsis");
+  if (!/\bshrink-0\b/.test(title) || !/\bmax-w-full\b/.test(title)) problems.push("title does not win the line over the status");
+  return problems;
+}
+
+test("narrow phones: the inline status shrinks before the title does", () => {
+  const tokens = read("src/components/ui/app/headerTokens.ts");
+  assert.deepEqual(statusTokenProblems(tokens), []);
+  assert.notDeepEqual(statusTokenProblems(tokens.replace('status: "min-w-0 truncate', 'status: "shrink-0 whitespace-nowrap')), []);
+  assert.notDeepEqual(statusTokenProblems(tokens.replace('title: "max-w-full shrink-0 truncate', 'title: "truncate')), []);
+});
