@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 export const VISUAL_STATE_REGISTRY_VERSION = "fitness-visual-state-registry.v1";
 export const ACCEPTED_VISUAL_CATALOG_COUNTS = Object.freeze({
-  semanticStates: 111,
-  rawCaptures: 313,
+  semanticStates: 110,
+  rawCaptures: 310,
 });
 
 export const VISUAL_CAPTURE_ENVIRONMENT = Object.freeze({

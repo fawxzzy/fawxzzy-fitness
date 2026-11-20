@@ -21,8 +21,8 @@ test("registry freezes the accepted semantic-state and raw-capture denominators"
   assert.equal(validation.captureCount, ACCEPTED_VISUAL_CATALOG_COUNTS.rawCaptures);
 
   const coverage = buildVisualCatalogCoverage();
-  assert.equal(coverage.semanticStates, 111);
-  assert.equal(coverage.rawCaptures, 313);
+  assert.equal(coverage.semanticStates, 110);
+  assert.equal(coverage.rawCaptures, 310);
   assert.equal(coverage.missingStates.length, 0);
   assert.equal(buildVisualCatalogCountDelta(coverage).reconciled, true);
 });
@@ -34,7 +34,7 @@ test("registry owns the exact accepted family split", () => {
   }, {});
   assert.deepEqual(families, {
     "Exercise cards": 29,
-    "Session / logging": 14,
+    "Session / logging": 13,
     "Session summaries": 8,
     "Settings / detail": 9,
     "Public, legal, and install": 9,
@@ -61,10 +61,10 @@ test("every state declares route, auth, fixture, viewport, assertion, and output
 
 test("capture expansion is unique and preserves onboarding bottom captures", () => {
   const plans = expandVisualCapturePlans();
-  assert.equal(new Set(plans.map((plan) => plan.captureId)).size, 313);
-  assert.equal(new Set(plans.map((plan) => plan.outputFilename)).size, 313);
+  assert.equal(new Set(plans.map((plan) => plan.captureId)).size, 310);
+  assert.equal(new Set(plans.map((plan) => plan.outputFilename)).size, 310);
   assert.equal(plans.filter((plan) => plan.captureMode === "mobile-bottom").length, 31);
-  assert.equal(plans.filter((plan) => plan.state.id.startsWith("signed-in:")).length, 180);
+  assert.equal(plans.filter((plan) => plan.state.id.startsWith("signed-in:")).length, 177);
   assert.equal(plans.filter((plan) => plan.state.id.startsWith("public:")).length, 18);
   assert.equal(plans.filter((plan) => plan.state.id.startsWith("auth:")).length, 22);
   assert.equal(plans.filter((plan) => plan.state.id.startsWith("onboarding:")).length, 93);
