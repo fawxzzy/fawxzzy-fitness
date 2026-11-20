@@ -6,7 +6,7 @@ import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime.js";
 import { TodayEmptyDayCard, TODAY_EMPTY_DAY_COPY } from "./TodayEmptyDayCard";
 import { TodaySwitchDayList, type TodaySwitchDay } from "./TodaySwitchDayCard";
-import { getRoutineDayEditHref, getRoutineEditHref } from "../../lib/routine-day-navigation.ts";
+import { getRoutineDayEditHref, getRoutineEditHref, resolveRoutineEditBackHref } from "../../lib/routine-day-navigation.ts";
 
 const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
@@ -100,9 +100,14 @@ test("Switch Day selection: exactly one aria-pressed=true header button plus a v
 test("Today empty states share one card: centred title, no second line, one action to the right editor", () => {
   const routineId = "routine-1";
   const dayHref = getRoutineDayEditHref(routineId, "day-9", "/today");
-  const routineHref = getRoutineEditHref(routineId);
+  const routineHref = getRoutineEditHref(routineId, "/today");
   assert.match(dayHref, /^\/routines\/routine-1\/edit\/day\/day-9\?returnTo=%2Ftoday$/);
-  assert.equal(routineHref, "/routines/routine-1/edit");
+  assert.equal(routineHref, "/routines/routine-1/edit?returnTo=%2Ftoday");
+  assert.equal(getRoutineEditHref(routineId), "/routines/routine-1/edit", "no returnTo, plain editor href");
+  assert.equal(getRoutineEditHref(routineId, "//evil.example"), "/routines/routine-1/edit", "unsafe returnTo is dropped");
+  assert.equal(resolveRoutineEditBackHref(routineId, "/today"), "/today", "editor back returns to Today");
+  assert.equal(resolveRoutineEditBackHref(routineId, "https://evil.example"), "/routines/routine-1", "unsafe returnTo falls back to routine home");
+  assert.equal(resolveRoutineEditBackHref(routineId, null), "/routines/routine-1");
 
   const empty = render(<TodayEmptyDayCard kind="empty" actionHref={dayHref} />);
   const rest = render(<TodayEmptyDayCard kind="rest" actionHref={routineHref} />);
@@ -122,7 +127,7 @@ test("Today empty states share one card: centred title, no second line, one acti
   assert.ok(emptyAction.includes('data-today-empty-action="empty"'));
   assert.match(emptyAction, /app-button-secondary/);
   const routineAction = noSchedule.match(/<a [^>]*>Edit routine<\/a>/)?.[0] ?? "";
-  assert.ok(routineAction.includes('href="/routines/routine-1/edit"'), "Edit routine opens the routine editor");
+  assert.ok(routineAction.includes('href="/routines/routine-1/edit?returnTo=%2Ftoday"'), "Edit routine opens the routine editor and returns to Today");
   assert.ok(routineAction.includes('data-today-empty-action="noSchedule"'));
   assert.doesNotMatch(rest, /<a /, "rest day never offers an action");
   assert.doesNotMatch(empty + noSchedule, /Add exercises|Pick a day|Switch Day/);
@@ -132,7 +137,7 @@ test("Today empty states share one card: centred title, no second line, one acti
 test("TodayDayPicker wires all three empty states through TodayEmptyDayCard with the right editor hrefs", () => {
   const picker = readSource("./TodayDayPicker.tsx");
   assert.match(picker, /<TodayEmptyDayCard kind="rest" \/>/);
-  assert.match(picker, /kind="noSchedule"\s+actionHref=\{progressionRoutineId \? getRoutineEditHref\(progressionRoutineId\) : null\}/);
+  assert.match(picker, /kind="noSchedule"\s+actionHref=\{progressionRoutineId \? getRoutineEditHref\(progressionRoutineId, "\/today"\) : null\}/);
   assert.match(picker, /kind="empty"\s+actionHref=\{progressionRoutineId \? getRoutineDayEditHref\(progressionRoutineId, selectedDay\.id, "\/today"\) : null\}/);
   assert.doesNotMatch(picker, /Add exercises|<RestDayCard|<CardEmptyState|<RoutineOverviewDayCard/);
 });

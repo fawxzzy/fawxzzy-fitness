@@ -532,7 +532,7 @@ export function TodayDayPicker({
     return <TodayEmptyDayCard kind="rest" />;
   }, [mode.dayPickerOpen, mode.restDay, selectedDay]);
   // `noScheduledDayMessage` is a presence flag now: the card has no second line, so its text is not shown.
-  // [Edit routine] opens the routine editor (/routines/[id]/edit), where the schedule is set.
+  // [Edit routine] opens the routine editor (/routines/[id]/edit?returnTo=/today), where the schedule is set; back returns to Today.
   const noScheduledDayNotice = useMemo(() => {
     if (mode.dayPickerOpen || !noScheduledDayMessage?.trim()) {
       return null;
@@ -541,7 +541,7 @@ export function TodayDayPicker({
     return (
       <TodayEmptyDayCard
         kind="noSchedule"
-        actionHref={progressionRoutineId ? getRoutineEditHref(progressionRoutineId) : null}
+        actionHref={progressionRoutineId ? getRoutineEditHref(progressionRoutineId, "/today") : null}
       />
     );
   }, [mode.dayPickerOpen, noScheduledDayMessage, progressionRoutineId]);
