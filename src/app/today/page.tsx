@@ -51,6 +51,7 @@ import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } fro
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
 import {
   applyProgressionReviewCandidateAction,
+  promoteExerciseAction,
   revertProgressionReviewCandidateAction,
 } from "@/app/progression-review/actions";
 import {
@@ -887,6 +888,7 @@ export default async function TodayPage(
               progressionRoutineId={todayPayload.routine.id}
               applyProgressionReviewCandidateAction={applyProgressionReviewCandidateAction}
               revertProgressionReviewCandidateAction={revertProgressionReviewCandidateAction}
+              promoteExerciseAction={promoteExerciseAction}
             />
           )}
         </TodayOverviewContent>

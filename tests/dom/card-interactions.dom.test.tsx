@@ -9,6 +9,7 @@ import { DragHandle } from "../../src/components/ui/card-system/index.ts";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "../../src/components/routines/RoutineBrowseCard.tsx";
 import { SessionExerciseRowCard, SessionQuickLogRow } from "../../src/components/session/SessionRowCards.tsx";
 import { TodayExerciseRows, type TodayExerciseRow } from "../../src/app/today/TodayExerciseRows.tsx";
+import { ExerciseRowCard } from "../../src/components/workout/ExerciseRowCard.tsx";
 
 afterEach(() => cleanup());
 
@@ -95,7 +96,6 @@ test("Session logger: row header toggles, info does not, and quick-log Skip and 
       onToggle={() => calls.push("toggle")}
       metaItems={["Quads"]}
       targetValues={["4 sets"]}
-      progressionLabel="AUTO"
       progress={{ label: "1 / 4 sets", percent: 25 }}
       status={null}
       tone="logged"
@@ -120,6 +120,36 @@ test("Session logger: row header toggles, info does not, and quick-log Skip and 
   fireEvent.click(screen.getByRole("button", { name: "Skip: Zed Press" }));
   fireEvent.click(screen.getAllByRole("button", { name: /^Log(?! all)/ })[0]);
   assert.deepEqual(calls, ["toggle", "info", "skip", "log"]);
+});
+
+test("Promote: only a full bar with a wired seam shows the button; one tap calls the seam once and never toggles the card", () => {
+  const calls: string[] = [];
+  const row = (percent: number, promote: { onPromote: () => void; pending?: boolean } | null) => (
+    <ExerciseRowCard
+      exercise={{ name: "Zed Press" }}
+      metaItems={[]}
+      targetValues={["4 sets", "5 reps", "225 lbs"]}
+      progress={{ label: "Progression: Ready", percent, tone: percent === 100 ? "complete" : "default", promote }}
+      interaction={{ kind: "toggle", expanded: false, onToggle: () => calls.push("toggle") }}
+    />
+  );
+
+  const { rerender } = render(row(99, { onPromote: () => calls.push("promote") }));
+  assert.equal(screen.queryByRole("button", { name: /Promote/ }), null, "99% hides Promote");
+  rerender(row(100, null));
+  assert.equal(screen.queryByRole("button", { name: /Promote/ }), null, "no seam hides Promote");
+  rerender(row(100, { onPromote: () => calls.push("promote") }));
+  const promote = screen.getByRole("button", { name: "Promote Zed Press" });
+  fireEvent.click(promote);
+  assert.deepEqual(calls, ["promote"]);
+
+  rerender(row(100, { onPromote: () => calls.push("promote"), pending: true }));
+  const pending = screen.getByRole("button", { name: "Promoting Zed Press" });
+  pending.focus();
+  fireEvent.click(pending);
+  assert.equal(pending.getAttribute("aria-disabled"), "true");
+  assert.equal(document.activeElement, pending);
+  assert.deepEqual(calls, ["promote"], "a pending promote ignores taps");
 });
 
 test("Session logger: a pending quick-log is aria-disabled, keeps focus and never calls the handler", () => {

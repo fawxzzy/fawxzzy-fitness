@@ -281,11 +281,11 @@ function getCardioPromotionOptionLabel(optionId: Exclude<ProgressionPromotionUiO
 function getCardioPromotionSummary(optionId: Exclude<ProgressionPromotionUiOptionId, ProgressionPromotionBasis>) {
   switch (optionId) {
   case "time_only":
-    return "Time only: Active duration targets determine auto-promotion.";
+    return "Time only: Active duration goals decide when Promote unlocks.";
   case "distance_only":
-    return "Distance only: Active distance targets determine auto-promotion.";
+    return "Distance only: Active distance goals decide when Promote unlocks.";
   case "time_and_distance":
-    return "Time + distance: Both active cardio targets participate in auto-promotion.";
+    return "Time + distance: Both active cardio goals count toward Promote.";
   }
 }
 
@@ -348,7 +348,7 @@ export function buildProgressionPromotionUiModel(args: {
         activeMeasurements,
         visibleOptions: [{ id: "reps_only", label: "Reps only", isSelectable: false }],
         selectedOptionId: "reps_only",
-        summary: "Reps only: Active rep targets determine auto-promotion.",
+        summary: "Reps only: Active rep goals decide when Promote unlocks.",
         showsRepThresholdControls: true,
         hasDeferredCalories,
       };
@@ -357,7 +357,7 @@ export function buildProgressionPromotionUiModel(args: {
         activeMeasurements,
         visibleOptions: [{ id: "weight_only", label: "Weight only", isSelectable: false }],
         selectedOptionId: "weight_only",
-        summary: "Weight only: Active load targets determine auto-promotion.",
+        summary: "Weight only: Active load goals decide when Promote unlocks.",
         showsRepThresholdControls: false,
         hasDeferredCalories,
       };

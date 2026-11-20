@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { ExerciseRowCard } from "@/components/workout/ExerciseRowCard";
 import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
 import {
-  formatExerciseProgressionLabel,
   normalizeExerciseTargetSummary,
   splitExerciseTargetValues,
 } from "@/components/workout/exerciseRowCardValues";
@@ -130,7 +129,6 @@ export function DayDetailExerciseList({
               }}
               metaItems={metaItems}
               targetValues={splitExerciseTargetValues(summary)}
-              progressionLabel={formatExerciseProgressionLabel(item.progressionStateLabel)}
               showMedia={policy.showMedia}
               tone={isActive ? "current" : "neutral"}
               interaction={interaction}

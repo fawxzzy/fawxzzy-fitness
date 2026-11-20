@@ -61,9 +61,28 @@ test("Today rows are a list of exercise cards: li per exercise, h2 title, static
   assert.match(html, /<h2[^>]*data-card-title="true"[^>]*>Zed Press<\/h2>/);
   assert.doesNotMatch(html, /data-card-hit=/);
   assert.match(html, /Quads/);
-  assert.match(html, /4 sets/);
-  assert.match(html, /225 lbs/);
-  assert.match(html, /AUTO · SESSION/);
+  // One goal line from the shared formatter; the spoken form spells it out for screen readers.
+  assert.match(html, /data-exercise-goal="true"[^>]*><span aria-hidden="true">4 × 5 @ 225 lbs<\/span><span class="sr-only">Goal: 4 sets of 5 reps at 225 lbs<\/span>/);
+  // No progression-mode bubbles, no "Target" label block.
+  assert.doesNotMatch(html, /AUTO|SESSION|MANUAL|data-exercise-progression-label/);
+  assert.doesNotMatch(html, />Target<|data-card-stat/);
+});
+
+test("exercise card layout: thumbnail top-right and info bottom-right in one side column; text starts at the left edge", () => {
+  const html = rows([{}]);
+  const side = html.match(/<div data-card-trailing="true"[^>]*>[\s\S]*<\/div>/)?.[0] ?? "";
+
+  assert.doesNotMatch(html, /data-card-leading/, "no leading media: text starts at the left edge");
+  assert.match(side, /class="[^"]*pointer-events-none[^"]*flex-col[^"]*self-stretch[^"]*!items-end[^"]*justify-between/);
+  assert.ok(side.indexOf("data-exercise-thumb-slot") >= 0, "thumbnail lives in the side column");
+  assert.ok(side.indexOf("data-exercise-thumb-slot") < side.indexOf("data-exercise-controls"), "thumbnail above the controls");
+  assert.match(side, /data-exercise-controls="true" class="pointer-events-auto[^"]*"[^>]*>[\s\S]*aria-label="Open exercise info for Zed Press"/);
+  // No image: the controls still sit at the bottom (a spacer keeps the column split).
+  const noImage = renderToStaticMarkup(
+    <ExerciseRowCard exercise={{ name: "Bench" }} metaItems={[]} targetValues={["3 sets"]} showMedia={false} interaction={{ kind: "none" }} trailing={<button type="button">i</button>} />,
+  );
+  assert.doesNotMatch(noImage, /data-exercise-thumb-slot/);
+  assert.match(noImage, /data-card-trailing="true"[^>]*><span aria-hidden="true"><\/span><span data-exercise-controls="true"/);
 });
 
 test("Today exercise info control is a 44px card control whose name contains the exercise name", () => {
@@ -81,17 +100,30 @@ test("Today exercise info control is a 44px card control whose name contains the
 test("Today rows show logged progress as text first and keep the bar decorative", () => {
   const html = rows([{ loggedSetCount: 2 }]);
 
-  assert.match(html, /<p[^>]*>2 \/ 4 sets<\/p>/);
+  assert.match(html, /<p[^>]*><span[^>]*>2 \/ 4 sets<\/span><\/p>/);
   assert.match(html, /aria-hidden="true"[^>]*><span[^>]*style="width:50%"/);
   assert.doesNotMatch(html, /role="progressbar"/);
+  assert.doesNotMatch(html, /data-exercise-promote/, "logged sets never offer Promote");
 });
 
-test("a completed row has the success tone and a DONE chip; it is not the colour alone", () => {
+test("progress label: 'Kicker: value' splits into a quiet kicker and the value; the bar is the same 6px bar on every card", () => {
+  const html = renderToStaticMarkup(
+    <ExerciseRowCard exercise={{ name: "Bench" }} metaItems={[]} targetValues={[]} progress={{ label: "Progression: 3/4 sets", percent: 75 }} interaction={{ kind: "none" }} />,
+  );
+  assert.match(html, /<span class="text-\[rgb\(var\(--text-muted\)\/0\.98\)\]">Progression<span class="sr-only">:<\/span><\/span><span[^>]*>3\/4 sets<\/span>/);
+  assert.match(html, /aria-hidden="true" class="relative block h-1\.5 [^"]*flex-1/);
+  assert.match(rows([{ loggedSetCount: 2 }]), /aria-hidden="true" class="relative block h-1\.5 [^"]*flex-1/);
+});
+
+test("a completed row has the success tone and a check mark beside the name (with a spoken 'done'); no DONE chip", () => {
   const html = rows([{ loggedSetCount: 4 }]);
 
   assert.match(html, /data-card-tone="completed"/);
-  assert.match(html, /data-card-chip="success"[^>]*>(?:<span[^>]*>✓<\/span>)?Done</);
+  assert.match(html, /<h2[^>]*data-card-title="true"[^>]*>Zed Press<span data-exercise-done-check="true"[^>]*>[\s\S]*?<span class="sr-only">, done<\/span><\/span><\/h2>/);
+  assert.match(html, /data-exercise-done-check="true" class="[^"]*animate-exercise-done[^"]*motion-reduce:animate-none/);
+  assert.doesNotMatch(html, /data-card-chip=/);
   assert.match(html, /4 \/ 4 sets/);
+  assert.doesNotMatch(rows([{ loggedSetCount: 3 }]), /data-exercise-done-check/);
 });
 
 test("a skipped row is a compact card with a SKIPPED chip: no thumbnail, no target, no dimming", () => {
@@ -139,6 +171,7 @@ test("an empty list renders a card-system empty state; an empty rest day renders
 test("buildTodayExerciseLoggedProgress: goal sets give a fraction and percent, no goal gives a count, skipped with nothing logged gives none", () => {
   assert.deepEqual(buildTodayExerciseLoggedProgress({ loggedSetCount: 1, goalSetTarget: 4, cardState: "default" }, false), { label: "1 / 4 sets", percent: 25, tone: "default" });
   assert.deepEqual(buildTodayExerciseLoggedProgress({ loggedSetCount: 0, goalSetTarget: 4, cardState: "default" }, false), { label: "0 / 4 sets", percent: 0, tone: "default" });
+  assert.deepEqual(buildTodayExerciseLoggedProgress({ loggedSetCount: 0, goalSetTarget: 1, cardState: "default" }, false), { label: "0 / 1 set", percent: 0, tone: "default" });
   assert.deepEqual(buildTodayExerciseLoggedProgress({ loggedSetCount: 6, goalSetTarget: 4, cardState: "completed" }, false), { label: "6 / 4 sets", percent: 100, tone: "complete" });
   assert.deepEqual(buildTodayExerciseLoggedProgress({ loggedSetCount: 3, goalSetTarget: null, cardState: "default" }, false), { label: "3 logged", percent: null, tone: "default" });
   assert.equal(buildTodayExerciseLoggedProgress({ loggedSetCount: 0, goalSetTarget: null, cardState: "default" }, false), null);
@@ -213,6 +246,35 @@ test("Today wiring: picker rows are ExerciseRowCards with the progression action
   // The progression handlers are untouched: apply, revert and the confirm flow keep their names and arguments.
   assert.match(picker, /revertProgressionItemFromTodayCard\(cardAppliedPin\)/);
   assert.match(picker, /openTodayCardPromotion\(cardReadyItem\)/);
+  // Promote on the bar: only a full (100%) promote card with no pending Revert, and only when the action is wired.
+  assert.match(picker, /cardReadyItem\?\.type === "promote"\s*&& canShowCardAction\s*&& cardProgressFill\.state === "ready"/);
+  assert.match(picker, /promote: cardBarPromote && cardReadyItem \? \{\s*onPromote: \(\) => openTodayPromoteFlow\(cardReadyItem\)/);
+  assert.doesNotMatch(picker, /onPromoteExercise|SERVER-ACTION SEAM/, "the old unwired seam is gone");
+});
+
+test("Promote wiring: the real Today page passes the server action; the dev route passes only a local stub", () => {
+  const page = readSource("./page.tsx");
+  // The live caller: the manual-promote server action, imported from the progression-review actions.
+  assert.match(page, /import \{[^}]*\bpromoteExerciseAction\b[^}]*\} from "@\/app\/progression-review\/actions"/);
+  assert.match(page, /<TodayDayPicker[\s\S]*?promoteExerciseAction=\{promoteExerciseAction\}[\s\S]*?\/>/);
+
+  // The dev caller: DevMobileRegressionRoute renders the picker through a client wrapper with local stubs only.
+  const devRoute = readSource("../dev/mobile-regression/DevMobileRegressionRoute.tsx");
+  const devWrapper = readSource("../dev/mobile-regression/DevTodayPickerWithPromote.tsx");
+  assert.match(devRoute, /<DevTodayPickerWithPromote\b/);
+  assert.doesNotMatch(devRoute, /<TodayDayPicker\b/, "the dev Today scenarios use the stub wrapper");
+  assert.match(devWrapper, /^"use client";/);
+  assert.match(devWrapper, /<TodayDayPicker[\s\S]*?promoteExerciseAction=\{promoteExerciseAction\}/);
+  for (const source of [devRoute, devWrapper]) {
+    assert.doesNotMatch(source, /from "@\/app\/progression-review\/actions"/, "dev fixtures never import the server actions");
+  }
+
+  // The Promote box: confirm first, the action runs once from Promote, the pin keeps Revert working, Today refreshes.
+  const picker = readSource("./TodayDayPicker.tsx");
+  assert.match(picker, /<PromoteCelebration[\s\S]*?onConfirm=\{confirmTodayPromote\}/);
+  assert.match(picker, /await promoteExerciseAction\(\{/);
+  assert.match(picker, /upsertProgressionAppliedPin\(readAllProgressionAppliedPins\(\), pin\)[\s\S]*?phase: "done"/);
+  assert.match(picker, /toast\.error\(result\.ok \? PROGRESSION_PROMOTE_MESSAGES\.unverified : result\.error\)/);
 });
 
 test("Today no longer renders the old card engine, the 26px info overlay, or hand-rolled notice surfaces", () => {
@@ -231,12 +293,14 @@ test("no behaviour code moved: TodayStartButton, the offline cache read and the 
   assert.match(shell, /Start session requires a live connection\./);
 });
 
-test("FF-TODAY-004: an exercise without a target shows a quiet 'No target set' cue, never 'Goal missing'; targets and stretch hub stay clean", () => {
+test("FF-TODAY-004: an exercise without a goal shows a quiet 'No goal set' cue (the card never says 'Target'), never 'Goal missing'; goals and stretch hub stay clean", () => {
   const none = rows([{ targets: null }]);
-  assert.match(none, /data-exercise-no-target="true"[^>]*>No target set</);
+  assert.match(none, /data-exercise-no-target="true"[^>]*>No goal set</);
   assert.doesNotMatch(none, /Goal missing/);
-  assert.doesNotMatch(rows([{}]), /No target set/);
-  assert.doesNotMatch(rows([{ targets: null, name: "Hip Opener", slug: "stretch-hip-opener", kind: "stretch", type: "stretch", tags: ["stretch-hub"], categories: ["stretch-hub"] }]), /No target set/);
+  const cardWords = `${none.replace(/<[^>]*>/g, " ")} ${[...none.matchAll(/aria-label="([^"]*)"/g)].map((match) => match[1]).join(" ")}`;
+  assert.doesNotMatch(cardWords, /\btarget\b/i, "no 'target' in visible text or aria labels");
+  assert.doesNotMatch(rows([{}]), /No goal set/);
+  assert.doesNotMatch(rows([{ targets: null, name: "Hip Opener", slug: "stretch-hip-opener", kind: "stretch", type: "stretch", tags: ["stretch-hub"], categories: ["stretch-hub"] }]), /No goal set/);
 });
 
 test("FF-DESIGN-004: the Today info control uses the real exercise id, never the row id", () => {

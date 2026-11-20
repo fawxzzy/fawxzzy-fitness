@@ -49,7 +49,7 @@ export function buildTodayExerciseLoggedProgress(
   const tone = progressState.cardState === "completed" ? "complete" : "default";
   if (goalSetTarget !== null) {
     return {
-      label: `${loggedSetCount} / ${goalSetTarget} sets`,
+      label: `${loggedSetCount} / ${goalSetTarget} ${goalSetTarget === 1 ? "set" : "sets"}`,
       percent: Math.min(100, Math.round((Math.min(loggedSetCount, goalSetTarget) / goalSetTarget) * 100)),
       tone,
     };

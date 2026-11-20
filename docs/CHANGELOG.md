@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-20 (Exercise cards + Promote on the card)
+
+### WHAT
+- Exercise cards (Today, view-day, the day editor and the workout in progress) are one cleaner card: no chip row, the thumbnail top-right, the info button bottom-right, one goal line (`3 × 8 @ 60 kg`, `18:00 · 2 km`) and a left-anchored bar at the bottom. The card never says "Target"; an exercise with no goal reads "No goal set". The workout-in-progress card is the same card, and its sets bar is the same bar as the progression bar.
+- When the progression bar is full, Promote sits at the bar's right end. Tapping it opens the Promote box: "Ready to promote" with the old and new values side by side (and the linked days to apply to, when the exercise is on more than one day). Promote there runs the server's manual Promote; the box then reads "Progression up" with the new values, Today refreshes so the bar resets, and Revert stays available for a quick undo. A refusal (someone else changed it, the workout no longer counts) closes the box and shows the server's message once; a request that never comes back says "Could not verify this promotion. Try again."
+- The Promote button's shine runs three times and stops (it looped forever); the bar itself no longer shines.
+- Screen readers hear a failure goal as "3 sets to failure" (was "3 sets of to failure").
+- Settings and the routine editor no longer mention "auto-promotion"; the copy now says what counts toward Promote.
+
+### WHY
+- Manual Promote (2026-11-19) made promotions a deliberate tap; this puts that tap on the card itself and matches the redesigned card the owner asked for. No server rule, database or env change.
+
 ## Unreleased - 2026-11-19 (Manual Promote)
 
 ### WHAT

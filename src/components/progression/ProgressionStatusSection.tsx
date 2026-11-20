@@ -36,7 +36,7 @@ export function ProgressionStatusSection({
           Progress Status
         </p>
         <p className="text-[12px] leading-snug text-[rgb(var(--text-secondary)/0.92)]">
-          Why each exercise is ready or not ready, using the same progression rules as auto-promotion.
+          Why each exercise is ready or not ready, using the same progression rules as Promote.
         </p>
       </div>
       <ul className="space-y-2">

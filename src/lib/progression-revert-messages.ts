@@ -17,6 +17,15 @@ export const PROGRESSION_REVERT_MESSAGES = {
   failed: "Could not revert this progression update. Refresh and try again.",
 } as const;
 
+/**
+ * Manual Promote copy shared by the server action and Today. `unverified` is the answer when the promote threw
+ * (server) or never came back (client network failure): the outcome is unknown, Today refreshes and the user retries;
+ * the server's own gate refuses a repeat, so a retry never promotes twice.
+ */
+export const PROGRESSION_PROMOTE_MESSAGES = {
+  unverified: "Could not verify this promotion. Try again.",
+} as const;
+
 const TERMINAL_REVERT_ERRORS: ReadonlySet<string> = new Set([
   PROGRESSION_REVERT_MESSAGES.lost_race,
   PROGRESSION_REVERT_MESSAGES.not_available,
