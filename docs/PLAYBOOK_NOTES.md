@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-20 - Exercise cards: Promote on the card calls the real manual Promote
+
+- Type: UI wiring (source; no server rule, schema or env change)
+- WHAT changed: `TodayDayPicker` takes `promoteExerciseAction` (the real server action, passed by `src/app/today/page.tsx`). At 100% with no quick-undo pin the card bar shows Promote; a tap opens `PromoteCelebration` in its new `confirm` phase (old -> new rows from `buildPromoteStatRows`, the linked-day chooser as children), Promote there awaits the action, then the box switches to `done` ("Progression up") with the applied values. The pin is built exactly like the footer apply path so Revert still works; Today refreshes after success and after failure. The footer `CardActionRow` keeps Revert and deload. Dev routes pass a "use client" stub wrapper (`DevTodayPickerWithPromote`) and never import the server action. Card copy: "No goal set" (no "Target" anywhere on the card, including aria). Shine is finite (3 passes) and only on the Promote button. `/dev/exercise-cards` joined the strict dev-route guard list.
+- WHY it changed: #291 shipped the server gate; the card's Promote was a seam nothing called.
+- Rule: A client button that runs a server action shows a confirm step for anything that changes stored targets, sends the expected `from` value, ignores repeat taps while pending, and refreshes the server-rendered page after both success and failure so the UI never trusts its own guess.
+- Failure Mode: Wiring the action in a dev route by importing it from a client file pulls the server action into the dev bundle; dev fixtures pass a local stub through a "use client" wrapper instead (pinned by `TodayCards.contract.test.tsx`). Second: an exercise fixture named like a bundled exercise ("Back Squat") resolves a real thumbnail, and next/image cannot render under node:test; DOM fixtures use "Zed ..." names.
+- Evidence: `tests/dom/today-promote.dom.test.tsx` (open, confirm once, pending ignores taps, done + pin + refresh; lost_race and thrown request toasts; Not now; no Promote below 100%; no action keeps the footer row), `src/components/workout/PromoteCelebration.test.tsx`, `src/lib/promote-stat-rows.test.ts`, `src/app/today/TodayCards.contract.test.tsx`.
+
 ## 2026-11-19 - Manual Promote: progression is never automatic
 
 - Type: Product behaviour (source; no schema or migration change)
