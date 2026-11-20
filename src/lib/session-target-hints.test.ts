@@ -118,7 +118,7 @@ test("cardio planned target keeps duration and distance context", () => {
   });
 
   assert.equal(hint.source, "manual_target");
-  assert.equal(hint.shortLabel, "15:00 s | 2 mi");
+  assert.equal(hint.shortLabel, "15:00 | 2 mi");
   assert.equal(hint.suggestedValues.durationSeconds, 900);
   assert.equal(hint.suggestedValues.distance, 2);
   assert.equal(hint.suggestedValues.distanceUnit, "mi");
@@ -139,7 +139,7 @@ test("cardio planned target keeps calorie context when present", () => {
   });
 
   assert.equal(hint.source, "manual_target");
-  assert.equal(hint.shortLabel, "15:00 s | 2 mi | 129 cal");
+  assert.equal(hint.shortLabel, "15:00 | 2 mi | 129 cal");
   assert.equal(hint.suggestedValues.durationSeconds, 900);
   assert.equal(hint.suggestedValues.distance, 2);
   assert.equal(hint.suggestedValues.distanceUnit, "mi");
@@ -363,7 +363,7 @@ test("unsupported cardio playbook falls back to routine target", () => {
   });
 
   assert.equal(hint.source, "unsupported_playbook_fallback");
-  assert.equal(hint.shortLabel, "15:00 s | 2 mi");
+  assert.equal(hint.shortLabel, "15:00 | 2 mi");
   assert.match(hint.reason, /does not support/i);
 });
 

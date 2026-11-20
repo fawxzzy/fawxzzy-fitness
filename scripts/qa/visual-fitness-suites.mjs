@@ -338,7 +338,7 @@ export const VISUAL_FITNESS_SUITES = {
       signalLabel: "Form",
       effortValue: 8,
       noteValue: "Stride felt sloppy.",
-      expectedLogButtonText: "Log: 18:00 s | 2 km | 139 cal",
+      expectedLogButtonText: "Log: 18:00 | 2 km | 139 cal",
       expectedSummaryText: "Form | Effort 8/10",
       expectedPlaceholderText: "Optional context for form | effort 8/10",
       expectedText: [
@@ -434,7 +434,7 @@ export const VISUAL_FITNESS_SUITES = {
       signalLabel: "Bad Day",
       effortValue: 7,
       noteValue: "",
-      expectedLogButtonText: "Log: 0:45 s",
+      expectedLogButtonText: "Log: 0:45",
       expectedSummaryText: "Bad Day | Effort 7/10",
       expectedPlaceholderText: "Optional context for bad day | effort 7/10",
       expectedText: [

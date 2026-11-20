@@ -4,6 +4,7 @@ import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
+import { TodayNoticeHost } from "@/app/today/TodayNoticeHost";
 import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
@@ -18,10 +19,10 @@ import {
   TodayRouteScaffold,
 } from "@/components/today/TodayScreenFamily";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
-import { CardNotice } from "@/components/ui/card-system";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { ActionResult } from "@/lib/action-result";
+import { runBestEffortSteps } from "@/lib/best-effort-steps";
 import { buildExerciseProgressionStateLabel } from "@/lib/exercise-progression-state-label";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
@@ -29,9 +30,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 import {
   buildTodayRoutinePayloadState,
   formatTodayHeaderSubtitle,
-  getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
+import { resolveTodayNoticeMessage } from "@/lib/today-notice";
 import {
   formatRoutineDayStableDisplayName,
   getCurrentCycleOccurrenceContext,
@@ -673,16 +674,26 @@ async function revertProgressionReviewCandidateAction(payload: {
   return { ok: true };
 }
 
-async function discardInProgressSessionAction(formData: FormData): Promise<void> {
+// Failures return a result so the Discard dialog closes and shows this notice (ConfirmedServerFormButton
+// failureMessage); success still redirects to a fresh Today.
+const DISCARD_IN_PROGRESS_FAILED_MESSAGE = "Could not discard the workout. Try again.";
+
+// Every failure also revalidates Today, so a screen that is out of date (the workout was already discarded in another
+// tab, or a partial delete) re-renders from the server instead of leaving a Discard button that can only fail again.
+function discardInProgressFailed(): ActionResult {
+  revalidatePath("/today");
+  return { ok: false, error: DISCARD_IN_PROGRESS_FAILED_MESSAGE };
+}
+
+async function discardInProgressSessionAction(formData: FormData): Promise<ActionResult> {
   "use server";
 
   const user = await requireUser();
   const supabase = await supabaseServer();
   const sessionId = String(formData.get("sessionId") ?? "").trim();
-  const safeError = "Unable to discard the in-progress workout.";
 
   if (!sessionId) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
@@ -691,7 +702,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   });
 
   if (!liveSession.ok) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
@@ -701,7 +712,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .eq("user_id", user.id);
 
   if (sessionExerciseReadError) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const sessionExerciseIds = (sessionExerciseRows ?? []).map((row) => row.id);
@@ -713,7 +724,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
       .eq("user_id", user.id);
 
     if (setsDeleteError) {
-      redirect(`/today?error=${encodeURIComponent(safeError)}`);
+      return discardInProgressFailed();
     }
 
     const { error: sessionExerciseDeleteError } = await supabase
@@ -723,7 +734,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
       .eq("user_id", user.id);
 
     if (sessionExerciseDeleteError) {
-      redirect(`/today?error=${encodeURIComponent(safeError)}`);
+      return discardInProgressFailed();
     }
   }
 
@@ -735,30 +746,32 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .eq("status", "in_progress");
 
   if (sessionDeleteError) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const now = new Date();
 
-  await recordFitnessSignalForMember({
-    memberId: user.id,
-    signalType: "workout_missed",
-    reason: "session_discarded",
-    emittedAt: now,
-    payload: {
+  // The workout is gone from here on: telemetry is best-effort and can never turn this into a reported failure.
+  await runBestEffortSteps("today.discardInProgressSession", [
+    ["recordFitnessSignal", () => recordFitnessSignalForMember({
       memberId: user.id,
-      sessionId,
-      scheduledAt: now.toISOString(),
-      missReasonCode: "discarded_in_progress",
-      consecutiveMisses: 1,
-    },
-  });
-
-  await publishFitnessIntegrationStateForMember({
-    memberId: user.id,
-    reason: "session_discarded",
-    now,
-  });
+      signalType: "workout_missed",
+      reason: "session_discarded",
+      emittedAt: now,
+      payload: {
+        memberId: user.id,
+        sessionId,
+        scheduledAt: now.toISOString(),
+        missReasonCode: "discarded_in_progress",
+        consecutiveMisses: 1,
+      },
+    })],
+    ["publishFitnessIntegrationState", () => publishFitnessIntegrationStateForMember({
+      memberId: user.id,
+      reason: "session_discarded",
+      now,
+    })],
+  ]);
 
   redirect("/today");
 }
@@ -766,7 +779,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
 export default async function TodayPage(
   props: {
     searchParams?: Promise<{
-      error?: string;
+      notice?: string;
       focus?: string;
       shadowPlacement?: string;
     }>;
@@ -1254,11 +1267,7 @@ export default async function TodayPage(
     completedTodayCount,
     inProgressSessionId: inProgressSession?.id ?? null,
   };
-  const todayGlobalError = getTodayGlobalErrorMessage({
-    searchParamError: searchParams?.error,
-    hasInProgressSession: Boolean(todayPayload.inProgressSessionId),
-    fetchFailed,
-  });
+  const todayNotice = resolveTodayNoticeMessage({ notice: searchParams?.notice });
   const todaySnapshot: TodayCacheSnapshot | null =
     todayPayload.routine === null
       ? null
@@ -1438,6 +1447,7 @@ export default async function TodayPage(
                 modalTitle="Discard workout?"
                 modalConsequenceText="Current workout will be removed."
                 confirmLabel="Discard Workout"
+                failureMessage={DISCARD_IN_PROGRESS_FAILED_MESSAGE}
               />
             )}
           />
@@ -1446,7 +1456,7 @@ export default async function TodayPage(
 
       <TodayOfflineBridge snapshot={todaySnapshot} />
 
-      {todayGlobalError ? <CardNotice tone="danger">{todayGlobalError}</CardNotice> : null}
+      <TodayNoticeHost message={todayNotice} />
     </TodayRouteScaffold>
   );
 }

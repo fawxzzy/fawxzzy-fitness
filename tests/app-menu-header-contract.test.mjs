@@ -157,7 +157,7 @@ test("the header publishes --app-header-height and --app-header-menu-bottom for 
   assert.match(metrics, /APP_HEADER_MENU_BOTTOM_VAR = "--app-header-menu-bottom"/);
   const shell = read("src/components/shared/mobile-shell/MobileScreenShell.tsx");
   assert.match(shell, /syncAppHeaderMetrics\(node\)/);
-  assert.match(shell, /ref=\{headerRef\}/);
+  assert.match(shell, /ref=\{floatingHeaderRef\}\s*data-app-header="true"/);
   const contract = read("docs/design-system/DESIGN-CONTRACT.md");
   assert.match(contract, /toasts 110 < app menu panel 115/);
   assert.match(contract, /--app-header-menu-bottom/);

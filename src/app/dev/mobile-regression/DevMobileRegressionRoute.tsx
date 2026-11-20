@@ -3,6 +3,7 @@ import nextDynamic from "next/dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
+import { DevTodayDiscardButton } from "@/app/dev/mobile-regression/DevTodayDiscardButton";
 import { RegressionDayRestToggleDockControl } from "@/app/dev/mobile-regression/RegressionDayRestToggleDockControl";
 import {
   applySessionRegressionScenarioState,
@@ -2234,7 +2235,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
 
           <PublishBottomActions>
             <BottomActionSplit
-              secondary={<BottomDockButton type="button" intent="danger">Discard</BottomDockButton>}
+              secondary={<DevTodayDiscardButton />}
               primary={<TodayStartButton sessionId="dev-session" returnTo="/today" label="Resume" fullWidth className="w-full" />}
             />
           </PublishBottomActions>
@@ -2394,7 +2395,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
       isRest: false,
       splitSummary: { total: 8, strength: 6, cardio: 1, bodyweight: 1, unknown: 0 },
       recapExercises: [
-        { id: "hunt-1", name: "Treadmill Run", signatureLabel: "Cardio | Push", setLabel: "1 set", targetLabel: "3:00 s", progressionStateLabel: "AUTO • SESSION • SET" },
+        { id: "hunt-1", name: "Treadmill Run", signatureLabel: "Cardio | Push", setLabel: "1 set", targetLabel: "3:00", progressionStateLabel: "AUTO • SESSION • SET" },
         { id: "hunt-2", name: "Weighted Pull-Up", signatureLabel: "Lats, Upper Back | Pull", setLabel: "5 sets", targetLabel: "5 reps • 35 lbs", progressionStateLabel: "MANUAL" },
       ],
       remainingExerciseCount: 6,

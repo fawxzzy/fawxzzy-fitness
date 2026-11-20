@@ -7,6 +7,7 @@ import { ScreenHeaderMenuProvider, ScreenHeaderMenuSlot } from "@/components/ui/
 import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
 import { syncAppHeaderMetrics, clearAppHeaderMetrics } from "@/components/shared/mobile-shell/appHeaderMetrics";
 import { cn } from "@/lib/cn";
+import { useAppNoticeAnchor } from "@/components/shared/mobile-shell/useAppNoticeAnchor";
 
 type MobileScreenShellProps = {
   children: ReactNode;
@@ -61,7 +62,10 @@ function MobileScreenShellFrame({
   const publishedBottomActions = usePublishedBottomActions();
   const dockRef = useRef<HTMLDivElement | null>(null);
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
-  const headerRef = useRef<HTMLDivElement | null>(null);
+  const shellRef = useRef<HTMLElement | null>(null);
+  const topChromeRef = useRef<HTMLDivElement | null>(null);
+  // One ref for the header layer: the notice anchor fallback and the published header metrics.
+  const floatingHeaderRef = useRef<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
   const hasTopChrome = Boolean(topChrome);
   // A screen with the app menu but no header of its own still gets the menu, alone on the top line.
@@ -74,6 +78,8 @@ function MobileScreenShellFrame({
   const scrollBottomReserve = shouldRenderBottomDock
     ? "calc(var(--app-mobile-bottom-dock-height) + 14px)"
     : undefined;
+
+  useAppNoticeAnchor({ shellRef, topChromeRef, floatingHeaderRef, layoutKey: `${hasTopChrome}-${hasFloatingHeader}` });
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_DEBUG_MOBILE_SHELL !== "1") return;
@@ -117,7 +123,7 @@ function MobileScreenShellFrame({
   // Publish where the header ends (`--app-header-height`) and where the menu button ends
   // (`--app-header-menu-bottom`) so notices can anchor just below the menu (DESIGN-CONTRACT.md section 15).
   useLayoutEffect(() => {
-    const node = headerRef.current;
+    const node = floatingHeaderRef.current;
     if (!node) {
       return;
     }
@@ -138,6 +144,7 @@ function MobileScreenShellFrame({
 
   return (
     <section
+      ref={shellRef}
       data-mobile-screen-shell="true"
       className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-hidden", className)}
       style={{
@@ -145,10 +152,10 @@ function MobileScreenShellFrame({
         "--app-mobile-bottom-dock-height": `${dockHeight}px`,
       } as CSSProperties}
     >
-      {hasTopChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
+      {hasTopChrome ? <div ref={topChromeRef} className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
       {hasFloatingHeader ? (
         <div
-          ref={headerRef}
+          ref={floatingHeaderRef}
           data-app-header="true"
           className={cn(
             "z-20 flex-none",

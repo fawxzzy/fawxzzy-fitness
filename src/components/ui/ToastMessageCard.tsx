@@ -27,11 +27,11 @@ function resolveToneMeta(tone: ToastTone) {
 
   if (tone === "error") {
     return {
-      shellClassName: "text-rose-50",
-      railClassName: "bg-[linear-gradient(180deg,rgba(251,113,133,0.98),rgba(225,29,72,0.64))]",
+      shellClassName: "text-[rgb(var(--text-primary)/0.96)]",
+      railClassName: "bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(var(--danger-rgb)/0.6))]",
       actionClassName:
-        "border-rose-300/20 bg-rose-400/10 text-rose-50 hover:bg-rose-400/16",
-      closeClassName: "text-rose-100/72 hover:bg-rose-400/14 hover:text-rose-50",
+        "border-[rgb(var(--danger-rgb)/0.22)] bg-[rgb(var(--danger-rgb)/0.12)] text-[rgb(var(--text-primary)/0.96)] hover:bg-[rgb(var(--danger-rgb)/0.18)]",
+      closeClassName: "text-[rgb(var(--danger-rgb)/0.82)] hover:bg-[rgb(var(--danger-rgb)/0.14)] hover:text-[rgb(var(--text-primary)/0.96)]",
     };
   }
 
@@ -65,56 +65,56 @@ export function ToastMessageCard({
   const toneMeta = resolveToneMeta(tone);
   const liveRole = tone === "error" ? "alert" : "status";
 
+  // Shared floating notice (DESIGN-CONTRACT C16): the box shrink-wraps its message up to the notice stack width, so a
+  // short message sits right-anchored on one line and a long one grows left before it wraps. The text owns every
+  // pixel between the rail and the dismiss control (no nested wrappers or extra inner padding). Padding is `!` because
+  // the unlayered `.action-chrome-rail` padding (0.18rem) otherwise beats layered utilities; the opaque surface colour
+  // under the rail's 0.96 gradient stops card titles behind the notice from showing through its text.
   return (
     <section
       role={liveRole}
       aria-live={tone === "error" ? "assertive" : "polite"}
-      className={`action-chrome-rail glass-surface glass-sheen pointer-events-auto relative w-full overflow-hidden !rounded-[1rem] [--glass-blur:var(--glass-current-blur-raised)] [--glass-shadow:var(--action-chrome-shell-shadow)] px-4 py-2.5 transition-all duration-300 ${
+      data-app-notice={tone}
+      className={`action-chrome-rail glass-surface glass-sheen pointer-events-auto relative max-w-full overflow-hidden !rounded-[1rem] [--glass-blur:var(--glass-current-blur-raised)] [--glass-shadow:var(--action-chrome-shell-shadow)] !bg-[rgb(var(--surface))] !py-1.5 !pl-4 !pr-1.5 transition-all duration-300 ${
         isExiting ? "translate-x-8 opacity-0" : "-translate-x-0 opacity-100"
       } ${toneMeta.shellClassName}`}
     >
       <div aria-hidden="true" className={`absolute inset-y-2 left-0 w-[3px] rounded-r-full ${toneMeta.railClassName}`} />
 
-      <div className="relative pl-3">
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2.5">
-              <p className="min-w-0 flex-1 text-[0.9rem] font-medium leading-5 text-inherit text-white/92">
-                {message}
-              </p>
+      <div className="flex min-w-0 items-center gap-2">
+        <p className="min-w-0 flex-1 py-1 text-left text-[0.9rem] font-medium leading-5 text-inherit [overflow-wrap:anywhere]">
+          {message}
+        </p>
 
-              <button
-                type="button"
-                onClick={onDismiss}
-                aria-label="Dismiss message"
-                className={`${HIT_AREA_WIDE_CLASS_NAME} inline-flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-rgb)/0.16)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[14px] [-webkit-backdrop-filter:blur(14px)] transition-colors ${toneMeta.closeClassName}`}
-              >
-                <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5">
-                  <path
-                    d="M6 6 14 14M14 6 6 14"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeWidth="1.8"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {action ? (
-              <div className="mt-2 flex justify-start">
-                <button
-                  type="button"
-                  onClick={onAction}
-                  className={`${HIT_AREA_CLASS_NAME} inline-flex min-h-8 items-center rounded-full border px-3.5 text-[0.74rem] font-semibold tracking-[0.02em] transition-colors ${toneMeta.actionClassName}`}
-                >
-                  {action.label}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss message"
+          className={`${HIT_AREA_WIDE_CLASS_NAME} inline-flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-rgb)/0.16)] backdrop-blur-[14px] [-webkit-backdrop-filter:blur(14px)] transition-colors ${toneMeta.closeClassName}`}
+        >
+          <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5">
+            <path
+              d="M6 6 14 14M14 6 6 14"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </svg>
+        </button>
       </div>
+
+      {action ? (
+        <div className="mb-1 mt-1 flex justify-start">
+          <button
+            type="button"
+            onClick={onAction}
+            className={`${HIT_AREA_CLASS_NAME} inline-flex min-h-8 items-center rounded-full border px-3.5 text-[0.74rem] font-semibold tracking-[0.02em] transition-colors ${toneMeta.actionClassName}`}
+          >
+            {action.label}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

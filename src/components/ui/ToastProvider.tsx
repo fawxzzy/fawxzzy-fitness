@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ToastMessageCard } from "@/components/ui/ToastMessageCard";
 
 type ToastTone = "info" | "success" | "warning" | "error";
@@ -10,6 +11,8 @@ type ToastItem = {
   message: string;
   tone: ToastTone;
   isExiting?: boolean;
+  /** Set for screen-owned notices: the pathname they belong to. */
+  ownerPathname?: string | null;
   action?: {
     label: string;
     onClick: () => void;
@@ -23,21 +26,37 @@ type ToastContextValue = {
   error: (message: string, options?: ToastOptions) => void;
 };
 
-type ToastOptions = {
+export type ToastOptions = {
   durationMs?: number;
+  /** Stays until the person dismisses it (or a toast with the same id replaces it). For errors they must read. */
+  persistent?: boolean;
   id?: string;
   action?: ToastItem["action"];
+  /**
+   * A screen-owned notice (e.g. Today's persistent "That workout could not be found."): dismissed as soon as the
+   * pathname changes, so it never follows the person onto another tab.
+   */
+  dismissOnRouteChange?: boolean;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 const EXIT_ANIMATION_MS = 300;
 const DEFAULT_DURATION_MS = 2200;
+// Errors carry a reason and a next step, so they stay long enough to read (DESIGN-CONTRACT C16).
+export const ERROR_TOAST_DURATION_MS = 6000;
 const MAX_TOASTS = 3;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const dismissTimersRef = useRef<Map<string, number>>(new Map());
   const exitTimersRef = useRef<Map<string, number>>(new Map());
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  // Layout effects run before any passive effect, so a notice pushed from a child's effect on the new route is tagged
+  // with the new pathname, not the previous one.
+  useLayoutEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => () => {
     dismissTimersRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -83,7 +102,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const push = useCallback((tone: ToastTone, message: string, options?: ToastOptions) => {
     const id = options?.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const nextToast: ToastItem = { id, tone, message, isExiting: false, action: options?.action };
+    const nextToast: ToastItem = {
+      id,
+      tone,
+      message,
+      isExiting: false,
+      action: options?.action,
+      ownerPathname: options?.dismissOnRouteChange ? pathnameRef.current : undefined,
+    };
     setToasts((current) => {
       const existingIndex = current.findIndex((toast) => toast.id === id);
       if (existingIndex >= 0) {
@@ -93,8 +119,24 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       }
       return [...current, nextToast].slice(-MAX_TOASTS);
     });
-    scheduleDismiss(id, options?.durationMs ?? DEFAULT_DURATION_MS);
+    if (options?.persistent) {
+      const existing = dismissTimersRef.current.get(id);
+      if (existing) {
+        window.clearTimeout(existing);
+        dismissTimersRef.current.delete(id);
+      }
+      return;
+    }
+    scheduleDismiss(id, options?.durationMs ?? (tone === "error" ? ERROR_TOAST_DURATION_MS : DEFAULT_DURATION_MS));
   }, [scheduleDismiss]);
+
+  useEffect(() => {
+    toasts.forEach((toast) => {
+      if (toast.ownerPathname !== undefined && toast.ownerPathname !== pathname && !toast.isExiting) {
+        dismiss(toast.id);
+      }
+    });
+  }, [pathname, toasts, dismiss]);
 
   const value = useMemo<ToastContextValue>(
     () => ({
@@ -109,7 +151,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-3 top-[calc(var(--app-top-offset)+var(--app-top-chrome-content-gap,0px)+0.6rem)] z-[110] flex w-[min(calc(100%-1rem),19.5rem)] flex-col items-stretch gap-2 sm:right-4 sm:w-[19.5rem]">
+      {/* Notice stack (DESIGN-CONTRACT C16): anchored top-right just under the screen's header row via the shared
+          --app-notice-top / --app-notice-inset-x variables (MobileScreenShell keeps --app-notice-top in sync with
+          the real header). Cards shrink-wrap to their text and grow leftward up to the full gutter-to-gutter width. */}
+      <div
+        data-app-notice-stack="true"
+        className="pointer-events-none fixed left-[var(--app-notice-inset-x)] right-[var(--app-notice-inset-x)] top-[var(--app-notice-top)] z-[110] ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2"
+      >
         {toasts.map((toast) => (
           <ToastMessageCard
             key={toast.id}
