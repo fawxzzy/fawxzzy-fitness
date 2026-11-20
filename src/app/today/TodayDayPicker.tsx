@@ -18,6 +18,7 @@ import { BottomActionSingle, BottomActionSplit } from "@/components/layout/Canon
 import { CardActionRow, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { PromoteCelebration, type PromoteStatRow } from "@/components/workout/PromoteCelebration";
 import { getRoutineDayEditHref, getRoutineEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
@@ -34,6 +35,8 @@ import type {
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { PROGRESSION_PROMOTE_MESSAGES } from "@/lib/progression-revert-messages";
+import { buildPromoteStatRows } from "@/lib/promote-stat-rows";
 import { runTodayProgressionRevert } from "@/app/today/today-progression-revert";
 import {
   buildProgressionAppliedPin,
@@ -107,6 +110,81 @@ function getTodayProgressionActionSelectionError(item: Pick<ProgressionReviewDis
     : "Select at least one day to promote.";
 }
 
+/**
+ * The item as it will be pinned after an apply/promote: with more than one linked day the linked update is narrowed
+ * to the days the user kept checked (so Revert undoes exactly those).
+ */
+function narrowTodayProgressionItemToSelection(item: ProgressionReviewDisplayItem, selectedLinkedIds?: string[]): ProgressionReviewDisplayItem {
+  const linkedTargets = item.linkedUpdate?.targets ?? [];
+  if (!item.linkedUpdate || linkedTargets.length <= 1) {
+    return item;
+  }
+  const selectedLinkedTargets = linkedTargets.filter((target) => selectedLinkedIds?.includes(target.routineDayExerciseId));
+  return {
+    ...item,
+    linkedUpdate: {
+      ...item.linkedUpdate,
+      count: selectedLinkedTargets.length,
+      dayNames: selectedLinkedTargets.map((target) => target.dayName),
+      routineDayExerciseIds: selectedLinkedTargets.map((target) => target.routineDayExerciseId),
+      targets: selectedLinkedTargets,
+    },
+  };
+}
+
+/** "Apply to" checkbox list for a progression update that also matches other routine days. */
+function TodayLinkedDayChooser({
+  item,
+  selectedIds,
+  onChange,
+  disabled,
+}: {
+  item: ProgressionReviewDisplayItem;
+  selectedIds: string[];
+  onChange: (update: (current: string[]) => string[]) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] p-2 text-left">
+      <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
+        Apply to
+      </p>
+      <div className="grid gap-1">
+        {(item.linkedUpdate?.targets ?? []).map((target) => {
+          const checked = selectedIds.includes(target.routineDayExerciseId);
+          return (
+            <label
+              key={target.routineDayExerciseId}
+              className="flex items-center gap-2 rounded-[0.7rem] px-2 py-1.5 text-[12px] font-semibold text-[rgb(var(--text)/0.9)]"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                onChange={(event) => {
+                  const nextChecked = event.currentTarget.checked;
+                  onChange((current) => (
+                    nextChecked
+                      ? Array.from(new Set([...current, target.routineDayExerciseId]))
+                      : current.filter((id) => id !== target.routineDayExerciseId)
+                  ));
+                }}
+                className="h-4 w-4 accent-[rgb(var(--accent-divider-rgb))]"
+              />
+              <span>{target.dayName}</span>
+            </label>
+          );
+        })}
+      </div>
+      {selectedIds.length === 0 ? (
+        <p className="px-1 pt-1.5 text-[11px] font-semibold text-[rgb(var(--warning-rgb)/0.94)]">
+          {getTodayProgressionActionSelectionError(item)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function resolveTodayProgressionTargetDisplayPair(item: ProgressionReviewDisplayItem) {
   const current = formatProgressionReviewTargetLabel(item.currentTarget);
   const proposed = formatProgressionReviewTargetLabel(item.proposedTarget);
@@ -138,7 +216,7 @@ export function TodayDayPicker({
   progressionRoutineId,
   applyProgressionReviewCandidateAction,
   revertProgressionReviewCandidateAction,
-  onPromoteExercise,
+  promoteExerciseAction,
 }: {
   days: TodayDay[];
   currentDayIndex: number | null;
@@ -175,11 +253,17 @@ export function TodayDayPicker({
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
   /**
-   * SERVER-ACTION SEAM for the manual Promote button (decided by a separate investigation). Not passed today, so the
-   * button stays hidden in the app; when given, a card whose progression bar is full (ready, 100%) shows Promote at
-   * the bar's right end and calls this once per tap. The automatic trigger and the progression rules are untouched.
+   * Manual Promote (`promoteExerciseAction` from `src/app/progression-review/actions.ts`; dev previews pass a local
+   * stub). When given, a promote card whose bar is full (100%) shows Promote on the bar; a tap opens the Promote box
+   * (confirm), Promote there calls this once, then the box shows the new goal and Today refreshes so the bar resets.
+   * Without it the card falls back to the footer action row, which goes through the same server gate.
    */
-  onPromoteExercise?: (payload: { routineId: string | null; routineDayExerciseId: string; exerciseName: string }) => void;
+  promoteExerciseAction?: (payload: {
+    routineId: string;
+    routineDayExerciseId: string;
+    expectedFromTarget: ProgressionTargetPlan | null;
+    linkedIds?: string[];
+  }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => initialSelectedDayIndex ?? currentDayIndex ?? days[0]?.dayIndex ?? 1);
   const [isPickerOpen, setIsPickerOpen] = useState(initialPickerOpen);
@@ -188,6 +272,12 @@ export function TodayDayPicker({
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
   const [cardPendingItemId, setCardPendingItemId] = useState<string | null>(null);
   const [cardActionError, setCardActionError] = useState<string | null>(null);
+  const [promoteFlow, setPromoteFlow] = useState<{
+    item: ProgressionReviewDisplayItem;
+    phase: "confirm" | "done";
+    rows: PromoteStatRow[];
+  } | null>(null);
+  const [promoteSelectedIds, setPromoteSelectedIds] = useState<string[]>([]);
   const toast = useToast();
   const [isCardActionPending, startCardActionTransition] = useTransition();
   const router = useRouter();
@@ -434,19 +524,7 @@ export function TodayDayPicker({
     }
 
     const linkedTargets = item.linkedUpdate?.targets ?? [];
-    const selectedLinkedTargets = linkedTargets.length > 1
-      ? linkedTargets.filter((target) => selectedLinkedIds?.includes(target.routineDayExerciseId))
-      : [];
-    const itemForAction = item.linkedUpdate && linkedTargets.length > 1 ? {
-      ...item,
-      linkedUpdate: {
-        ...item.linkedUpdate,
-        count: selectedLinkedTargets.length,
-        dayNames: selectedLinkedTargets.map((target) => target.dayName),
-        routineDayExerciseIds: selectedLinkedTargets.map((target) => target.routineDayExerciseId),
-        targets: selectedLinkedTargets,
-      },
-    } satisfies ProgressionReviewDisplayItem : item;
+    const itemForAction = narrowTodayProgressionItemToSelection(item, selectedLinkedIds);
 
     setCardActionError(null);
     setCardPendingItemId(item.id);
@@ -516,6 +594,77 @@ export function TodayDayPicker({
     progressionRoutineId,
     readAllProgressionAppliedPins,
     revertProgressionReviewCandidateAction,
+    router,
+    toast,
+  ]);
+
+  const openTodayPromoteFlow = useCallback((item: ProgressionReviewDisplayItem) => {
+    setPromoteFlow({ item, phase: "confirm", rows: buildPromoteStatRows(item.currentTarget, item.proposedTarget) });
+    setPromoteSelectedIds((item.linkedUpdate?.targets ?? []).map((target) => target.routineDayExerciseId));
+  }, []);
+
+  const closeTodayPromoteFlow = useCallback(() => {
+    setPromoteFlow(null);
+    setPromoteSelectedIds([]);
+  }, []);
+
+  const confirmTodayPromote = useCallback(() => {
+    if (!promoteFlow || promoteFlow.phase !== "confirm" || !progressionRoutineId || !promoteExerciseAction) {
+      return;
+    }
+    const item = promoteFlow.item;
+    const linkedTargets = item.linkedUpdate?.targets ?? [];
+    const choosesLinkedDays = linkedTargets.length > 1;
+    if (choosesLinkedDays && promoteSelectedIds.length === 0) {
+      return;
+    }
+    const selectedLinkedIds = choosesLinkedDays ? promoteSelectedIds : undefined;
+
+    setCardPendingItemId(item.id);
+    startCardActionTransition(async () => {
+      let result: ActionResult<ProgressionReviewApplyResult>;
+      try {
+        result = await promoteExerciseAction({
+          routineId: progressionRoutineId,
+          routineDayExerciseId: item.id,
+          expectedFromTarget: item.currentTarget,
+          linkedIds: choosesLinkedDays ? selectedLinkedIds : item.linkedUpdate?.routineDayExerciseIds,
+        });
+      } catch {
+        // The request never came back (offline, server error page): the outcome is unknown, so say that and refresh.
+        result = { ok: false, error: PROGRESSION_PROMOTE_MESSAGES.unverified };
+      }
+
+      if (result.ok && result.data) {
+        // Same pin as the footer apply path, so Revert (quick undo until the workout starts) works the same way.
+        const pin = buildProgressionAppliedPin({
+          item: narrowTodayProgressionItemToSelection(item, selectedLinkedIds),
+          previousTarget: result.data.previousTarget,
+          appliedTarget: result.data.appliedTarget,
+          linkedTargets: result.data.linkedTargets,
+        });
+        persistProgressionAppliedPins(upsertProgressionAppliedPin(readAllProgressionAppliedPins(), pin));
+        if (result.data.warning) {
+          toast.warning(result.data.warning);
+        }
+        setPromoteFlow({ item, phase: "done", rows: buildPromoteStatRows(result.data.previousTarget, result.data.appliedTarget) });
+      } else {
+        // Refusals (stale goal, lost race, workout in progress, read error) come back as plain copy from the server.
+        setPromoteFlow(null);
+        setPromoteSelectedIds([]);
+        toast.error(result.ok ? PROGRESSION_PROMOTE_MESSAGES.unverified : result.error);
+      }
+
+      setCardPendingItemId(null);
+      router.refresh();
+    });
+  }, [
+    persistProgressionAppliedPins,
+    progressionRoutineId,
+    promoteExerciseAction,
+    promoteFlow,
+    promoteSelectedIds,
+    readAllProgressionAppliedPins,
     router,
     toast,
   ]);
@@ -732,7 +881,17 @@ export function TodayDayPicker({
                         candidateType: cardReadyItem?.type,
                         progressPercent: cardProgressFill.progressPercent,
                       });
-                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
+                      // A full promote bar gets Promote on the bar (opens the Promote box); Revert, a deload, or a
+                      // picker without the promote action keep the footer row.
+                      const cardBarPromote = Boolean(
+                        promoteExerciseAction
+                        && progressionRoutineId
+                        && !cardAppliedPin
+                        && cardReadyItem?.type === "promote"
+                        && canShowCardAction
+                        && cardProgressFill.state === "ready",
+                      );
+                      const cardProgressionAction = cardAppliedPin || (canShowCardAction && !cardBarPromote);
                       const cardPromoteTargetPair = cardReadyItem
                         ? resolveTodayProgressionTargetDisplayPair(cardReadyItem)
                         : null;
@@ -747,12 +906,9 @@ export function TodayDayPicker({
                               label: `Progression: ${cardProgressFill.fill.label}`,
                               percent: cardProgressFill.fill.percent,
                               tone: cardProgressFill.state === "ready" ? "complete" : "default",
-                              promote: cardProgressFill.state === "ready" && onPromoteExercise ? {
-                                onPromote: () => onPromoteExercise({
-                                  routineId: progressionRoutineId ?? null,
-                                  routineDayExerciseId: exercise.id,
-                                  exerciseName: exercise.name,
-                                }),
+                              promote: cardBarPromote && cardReadyItem ? {
+                                onPromote: () => openTodayPromoteFlow(cardReadyItem),
+                                pending: cardActionPending,
                               } : null,
                             } : null}
                             footer={cardProgressionAction ? (
@@ -846,45 +1002,34 @@ export function TodayDayPicker({
               applyProgressionItemFromTodayCard(cardConfirmItem, cardConfirmSelectedIds);
             }}
           >
-            <div className="rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] p-2 text-left">
-              <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
-                Apply to
-              </p>
-              <div className="grid gap-1">
-                {(cardConfirmItem.linkedUpdate?.targets ?? []).map((target) => {
-                  const checked = cardConfirmSelectedIds.includes(target.routineDayExerciseId);
-                  return (
-                    <label
-                      key={target.routineDayExerciseId}
-                      className="flex items-center gap-2 rounded-[0.7rem] px-2 py-1.5 text-[12px] font-semibold text-[rgb(var(--text)/0.9)]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={isCardActionPending}
-                        onChange={(event) => {
-                          const nextChecked = event.currentTarget.checked;
-                          setCardConfirmSelectedIds((current) => (
-                            nextChecked
-                              ? Array.from(new Set([...current, target.routineDayExerciseId]))
-                              : current.filter((id) => id !== target.routineDayExerciseId)
-                          ));
-                        }}
-                        className="h-4 w-4 accent-[rgb(var(--accent-divider-rgb))]"
-                      />
-                      <span>{target.dayName}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              {cardConfirmSelectedIds.length === 0 ? (
-                <p className="px-1 pt-1.5 text-[11px] font-semibold text-[rgb(var(--warning-rgb)/0.94)]">
-                  {getTodayProgressionActionSelectionError(cardConfirmItem)}
-                </p>
-              ) : null}
-            </div>
+            <TodayLinkedDayChooser
+              item={cardConfirmItem}
+              selectedIds={cardConfirmSelectedIds}
+              onChange={setCardConfirmSelectedIds}
+              disabled={isCardActionPending}
+            />
           </ConfirmDestructiveModal>
         ) : null}
+
+        <PromoteCelebration
+          open={promoteFlow !== null}
+          phase={promoteFlow?.phase ?? "confirm"}
+          exerciseName={promoteFlow?.item.exerciseName ?? ""}
+          rows={promoteFlow?.rows ?? []}
+          pending={isCardActionPending && cardPendingItemId === promoteFlow?.item.id}
+          confirmDisabled={(promoteFlow?.item.linkedUpdate?.targets.length ?? 0) > 1 && promoteSelectedIds.length === 0}
+          onConfirm={confirmTodayPromote}
+          onClose={closeTodayPromoteFlow}
+        >
+          {promoteFlow && (promoteFlow.item.linkedUpdate?.targets.length ?? 0) > 1 ? (
+            <TodayLinkedDayChooser
+              item={promoteFlow.item}
+              selectedIds={promoteSelectedIds}
+              onChange={setPromoteSelectedIds}
+              disabled={isCardActionPending}
+            />
+          ) : null}
+        </PromoteCelebration>
       </div>
     </>
   );

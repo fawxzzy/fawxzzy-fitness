@@ -34,4 +34,40 @@ test("celebration dialog: labelled modal, old -> new rows, changed rows marked, 
   assert.match(html, /data-promote-close="true" class="[^"]*min-h-11/);
   assert.match(html, /animate-promote-rise motion-reduce:animate-none/);
   assert.match(html, /animate-exercise-glint[^"]*motion-reduce:hidden/);
+  assert.match(html, /data-promote-phase="done"/);
+  assert.doesNotMatch(html, /data-promote-confirm/);
+});
+
+test("confirm phase: 'Ready to promote', Not now + Promote, linked chooser slot; pending reads Promoting... and is aria-disabled", () => {
+  const render = (extra: { pending?: boolean; confirmDisabled?: boolean }) => renderToStaticMarkup(
+    <PromoteCelebrationDialog
+      titleId="t2"
+      phase="confirm"
+      exerciseName="Back Squat"
+      rows={[{ label: "Weight", from: "225 lbs", to: "230 lbs" }]}
+      onClose={() => {}}
+      onConfirm={() => {}}
+      {...extra}
+    >
+      <p data-linked-chooser="true">Apply to</p>
+    </PromoteCelebrationDialog>,
+  );
+
+  const idle = render({});
+  assert.match(idle, /data-promote-phase="confirm"/);
+  assert.match(idle, /Ready to promote/);
+  assert.doesNotMatch(idle, /Progression up|Continue/);
+  assert.match(idle, /data-linked-chooser="true"/);
+  assert.match(idle, /data-promote-close="true"[^>]*>Not now</);
+  assert.match(idle, /data-promote-confirm="true"[^>]*>Promote</);
+  assert.doesNotMatch(idle, /aria-disabled="/);
+  assert.match(idle, /\+5 lbs/);
+
+  const pending = render({ pending: true });
+  assert.match(pending, /aria-busy="true"/);
+  assert.match(pending, /aria-disabled="true"[^>]*data-promote-confirm="true"[^>]*>Promoting\.\.\.</);
+  assert.match(pending, /disabled=""[^>]*data-promote-close="true"/, "Not now cannot close mid-promote");
+
+  assert.match(render({ confirmDisabled: true }), /aria-disabled="true"[^>]*data-promote-confirm="true"[^>]*>Promote</);
+  assert.doesNotMatch(idle + pending, /\btarget\b/i);
 });

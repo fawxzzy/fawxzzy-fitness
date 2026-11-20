@@ -89,7 +89,8 @@ const MeasurementComboBoard = nextDynamic(
   () => import("@/app/dev/mobile-regression/MeasurementComboBoard").then((mod) => mod.MeasurementComboBoard),
   { ssr: true },
 );
-const TodayDayPicker = nextDynamic(() => import("@/app/today/TodayDayPicker").then((mod) => mod.TodayDayPicker), { ssr: true });
+// Today scenarios use the real picker through a client wrapper with LOCAL Promote/Revert stubs (never the server action).
+const DevTodayPickerWithPromote = nextDynamic(() => import("@/app/dev/mobile-regression/DevTodayPickerWithPromote").then((mod) => mod.DevTodayPickerWithPromote), { ssr: true });
 const TodayExerciseRows = nextDynamic(
   () => import("@/app/today/TodayExerciseRows").then((mod) => mod.TodayExerciseRows),
   { ssr: true },
@@ -1826,7 +1827,7 @@ const mockTodayProgressionStatusItems: ProgressionStatusSurfaceItem[] = [
     readinessLabel: "Ready",
     currentTargetLine: `Current target: ${REGRESSION_BACK_SQUAT_TARGET}`,
     promotionBasisLabel: "Weight only",
-    promotionBasisDetail: "Weight only: Reps are tracked for guidance but do not affect auto-promotion.",
+    promotionBasisDetail: "Weight only: Reps are tracked for guidance but do not count toward Promote.",
     repTargetLine: "Top half of range (10+ reps)",
     latestLine: "Latest: Jun 8 | 225 lbs | 10 / 10 / 10 / 10 reps",
     targetLine: "Needs: 4 sets at the current load with top-half reps.",
@@ -2259,7 +2260,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
         floatingHeader={<div id="today-floating-header-slot" />}
       >
         <ContentRail className="space-y-3">
-          <TodayDayPicker
+          <DevTodayPickerWithPromote
             days={mockTodayDays}
             currentDayIndex={selectedDayIndex}
             completedDayIndexes={[1]}

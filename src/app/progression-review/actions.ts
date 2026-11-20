@@ -19,7 +19,7 @@ import {
 } from "@/lib/progression-playbooks";
 import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import { runManualPromotion, runProgressionRevert } from "@/lib/progression-manual-promotion";
-import { PROGRESSION_REVERT_MESSAGES } from "@/lib/progression-revert-messages";
+import { PROGRESSION_PROMOTE_MESSAGES, PROGRESSION_REVERT_MESSAGES } from "@/lib/progression-revert-messages";
 import {
   createManualPromotionRepository,
   LINKED_PROGRESSION_UPDATE_LIMIT,
@@ -208,7 +208,7 @@ export async function promoteExerciseAction(payload: {
     // warning, so a throw here means nothing was promoted; refresh anyway so Today never shows a
     // stale target.
     revalidateProgressionViews(payload.routineId);
-    return { ok: false, error: "Could not verify this promotion. Try again." };
+    return { ok: false, error: PROGRESSION_PROMOTE_MESSAGES.unverified };
   }
 
   if (!result.ok) {

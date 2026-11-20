@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
 /**
- * Promote celebration: the "stats upgrade" box shown after a manual promote succeeds. Presentation only: the caller
- * passes the before/after values it already has (from the promote result) and decides when to open it; nothing
- * here applies, saves or computes a progression.
+ * Promote box: the "stats upgrade" modal of the manual Promote flow. Two phases:
+ * - `confirm`: "Ready to promote", current -> next goal rows, optional linked-day chooser (`children`), Not now / Promote.
+ *   While `pending` the Promote button reads "Promoting..." (aria-disabled) and nothing closes the box.
+ * - `done` (default): "Progression up", before -> after rows from the promote result, Continue.
+ * Presentation only: the caller passes the values, runs the action and switches the phase; nothing here applies,
+ * saves or computes a progression.
  *
  *   ┌──────────────────────────────┐
  *   │        PROGRESSION UP        │
@@ -17,6 +20,8 @@ import { cn } from "@/lib/cn";
  *   │          [ Continue ]        │
  *   └──────────────────────────────┘
  */
+
+export type PromoteCelebrationPhase = "confirm" | "done";
 
 export type PromoteStatRow = {
   /** Stat name, for example `Reps`, `Weight`, `Time`. */
@@ -75,14 +80,31 @@ export function PromoteCelebration({
   exerciseName,
   rows,
   onClose,
+  phase = "done",
+  onConfirm,
+  pending = false,
+  confirmDisabled = false,
+  children,
 }: {
   open: boolean;
   exerciseName: string;
   rows: PromoteStatRow[];
   onClose: () => void;
+  phase?: PromoteCelebrationPhase;
+  /** Confirm phase: runs the promote. Not called while `pending` or `confirmDisabled`. */
+  onConfirm?: () => void;
+  pending?: boolean;
+  confirmDisabled?: boolean;
+  /** Confirm phase: extra content under the rows (the linked-day chooser). */
+  children?: ReactNode;
 }) {
   const titleId = useId();
-  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const primaryRef = useRef<HTMLButtonElement | null>(null);
+  const pendingRef = useRef(pending);
+
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
 
   useEffect(() => {
     if (!open) return;
@@ -91,22 +113,41 @@ export function PromoteCelebration({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        if (!pendingRef.current) onClose();
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    closeRef.current?.focus();
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open, onClose]);
 
+  // Focus the primary button when the box opens and again when it turns from confirm to done.
+  useEffect(() => {
+    if (open) primaryRef.current?.focus();
+  }, [open, phase]);
+
   if (!open || typeof document === "undefined") {
     return null;
   }
 
-  return createPortal(<PromoteCelebrationDialog titleId={titleId} exerciseName={exerciseName} rows={rows} onClose={onClose} closeRef={closeRef} />, document.body);
+  return createPortal(
+    <PromoteCelebrationDialog
+      titleId={titleId}
+      exerciseName={exerciseName}
+      rows={rows}
+      onClose={onClose}
+      primaryRef={primaryRef}
+      phase={phase}
+      onConfirm={onConfirm}
+      pending={pending}
+      confirmDisabled={confirmDisabled}
+    >
+      {children}
+    </PromoteCelebrationDialog>,
+    document.body,
+  );
 }
 
 /** The dialog body, exported for static rendering in tests (the portal needs a document). */
@@ -115,30 +156,48 @@ export function PromoteCelebrationDialog({
   exerciseName,
   rows,
   onClose,
-  closeRef,
+  primaryRef,
+  phase = "done",
+  onConfirm,
+  pending = false,
+  confirmDisabled = false,
+  children,
 }: {
   titleId: string;
   exerciseName: string;
   rows: PromoteStatRow[];
   onClose: () => void;
-  closeRef?: React.Ref<HTMLButtonElement>;
+  primaryRef?: React.Ref<HTMLButtonElement>;
+  phase?: PromoteCelebrationPhase;
+  onConfirm?: () => void;
+  pending?: boolean;
+  confirmDisabled?: boolean;
+  children?: ReactNode;
 }) {
+  const confirming = phase === "confirm";
+  const confirmBlocked = pending || confirmDisabled;
+  const close = () => {
+    if (!pending) onClose();
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       data-promote-celebration="true"
+      data-promote-phase={phase}
+      aria-busy={pending || undefined}
       className="fixed inset-0 z-[120] flex items-center justify-center p-5 pt-[max(1.25rem,var(--app-safe-top))] pb-[max(1.25rem,var(--app-safe-bottom))]"
     >
-      <div aria-hidden="true" className="fixed inset-0 bg-[rgb(var(--bg-app)/0.72)] backdrop-blur-[6px]" onClick={onClose} />
+      <div aria-hidden="true" className="fixed inset-0 bg-[rgb(var(--bg-app)/0.72)] backdrop-blur-[6px]" onClick={close} />
       <div className="relative w-full max-w-[21rem] animate-promote-rise motion-reduce:animate-none">
         {/* Outer glow ring: success colour, the "upgrade" frame. */}
         <div aria-hidden="true" className="pointer-events-none absolute -inset-px rounded-[calc(var(--card-radius)+1px)] bg-[linear-gradient(160deg,rgb(var(--success-rgb)/0.85),rgb(var(--accent)/0.25)_45%,rgb(var(--success-rgb)/0.6))] shadow-[0_0_28px_rgb(var(--success-rgb)/0.38),0_18px_48px_rgb(0_0_0/0.45)]" />
         <div className="relative overflow-hidden rounded-[var(--card-radius)] bg-[rgb(var(--surface-1-rgb)/0.97)] px-5 pb-5 pt-6 text-center">
           <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-exercise-glint bg-[linear-gradient(90deg,transparent,rgb(var(--text-primary)/0.12),transparent)] motion-reduce:hidden" />
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_at_top,rgb(var(--success-rgb)/0.28),transparent_70%)]" />
-          <p className="relative m-0 text-[11px] font-bold uppercase tracking-[0.22em] text-[rgb(var(--success-rgb))]">Progression up</p>
+          <p className="relative m-0 text-[11px] font-bold uppercase tracking-[0.22em] text-[rgb(var(--success-rgb))]">{confirming ? "Ready to promote" : "Progression up"}</p>
           <h2 id={titleId} className="relative m-0 mt-1.5 text-xl font-semibold leading-tight tracking-[-0.02em] text-[rgb(var(--text-primary))] [overflow-wrap:anywhere]">
             {exerciseName}
           </h2>
@@ -170,15 +229,43 @@ export function PromoteCelebrationDialog({
               );
             })}
           </dl>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            data-promote-close="true"
-            className="relative mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full !border !border-[rgb(var(--success-rgb)/0.6)] !bg-[rgb(var(--success-rgb)/0.22)] text-sm font-semibold !text-[rgb(var(--text-primary))] transition-colors hover:!bg-[rgb(var(--success-rgb)/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] motion-reduce:transition-none"
-          >
-            Continue
-          </button>
+          {confirming && children ? <div className="relative mt-3 text-left">{children}</div> : null}
+          {confirming ? (
+            <div className="relative mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={close}
+                disabled={pending}
+                data-promote-close="true"
+                className="inline-flex min-h-11 items-center justify-center rounded-full !border !border-[rgb(var(--border-strong)/0.28)] !bg-[rgb(var(--surface-3-rgb)/0.5)] text-sm font-semibold !text-[rgb(var(--text-secondary))] transition-colors hover:!bg-[rgb(var(--surface-3-rgb)/0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] disabled:opacity-60 motion-reduce:transition-none"
+              >
+                Not now
+              </button>
+              <button
+                ref={primaryRef}
+                type="button"
+                aria-disabled={confirmBlocked || undefined}
+                onClick={() => {
+                  if (confirmBlocked) return;
+                  onConfirm?.();
+                }}
+                data-promote-confirm="true"
+                className="inline-flex min-h-11 items-center justify-center rounded-full !border !border-[rgb(var(--success-rgb)/0.6)] !bg-[rgb(var(--success-rgb)/0.22)] text-sm font-semibold !text-[rgb(var(--text-primary))] transition-colors hover:!bg-[rgb(var(--success-rgb)/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none"
+              >
+                {pending ? "Promoting..." : "Promote"}
+              </button>
+            </div>
+          ) : (
+            <button
+              ref={primaryRef}
+              type="button"
+              onClick={onClose}
+              data-promote-close="true"
+              className="relative mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full !border !border-[rgb(var(--success-rgb)/0.6)] !bg-[rgb(var(--success-rgb)/0.22)] text-sm font-semibold !text-[rgb(var(--text-primary))] transition-colors hover:!bg-[rgb(var(--success-rgb)/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] motion-reduce:transition-none"
+            >
+              Continue
+            </button>
+          )}
         </div>
       </div>
     </div>

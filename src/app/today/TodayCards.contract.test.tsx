@@ -246,10 +246,35 @@ test("Today wiring: picker rows are ExerciseRowCards with the progression action
   // The progression handlers are untouched: apply, revert and the confirm flow keep their names and arguments.
   assert.match(picker, /revertProgressionItemFromTodayCard\(cardAppliedPin\)/);
   assert.match(picker, /openTodayCardPromotion\(cardReadyItem\)/);
-  // Promote seam: only a ready (100%) card with the optional server-action prop gets the button; nothing passes it yet.
-  assert.match(picker, /promote: cardProgressFill\.state === "ready" && onPromoteExercise \? \{/);
-  assert.match(picker, /SERVER-ACTION SEAM/);
-  assert.doesNotMatch(readSource("./TodayClientShell.tsx"), /onPromoteExercise/);
+  // Promote on the bar: only a full (100%) promote card with no pending Revert, and only when the action is wired.
+  assert.match(picker, /cardReadyItem\?\.type === "promote"\s*&& canShowCardAction\s*&& cardProgressFill\.state === "ready"/);
+  assert.match(picker, /promote: cardBarPromote && cardReadyItem \? \{\s*onPromote: \(\) => openTodayPromoteFlow\(cardReadyItem\)/);
+  assert.doesNotMatch(picker, /onPromoteExercise|SERVER-ACTION SEAM/, "the old unwired seam is gone");
+});
+
+test("Promote wiring: the real Today page passes the server action; the dev route passes only a local stub", () => {
+  const page = readSource("./page.tsx");
+  // The live caller: the manual-promote server action, imported from the progression-review actions.
+  assert.match(page, /import \{[^}]*\bpromoteExerciseAction\b[^}]*\} from "@\/app\/progression-review\/actions"/);
+  assert.match(page, /<TodayDayPicker[\s\S]*?promoteExerciseAction=\{promoteExerciseAction\}[\s\S]*?\/>/);
+
+  // The dev caller: DevMobileRegressionRoute renders the picker through a client wrapper with local stubs only.
+  const devRoute = readSource("../dev/mobile-regression/DevMobileRegressionRoute.tsx");
+  const devWrapper = readSource("../dev/mobile-regression/DevTodayPickerWithPromote.tsx");
+  assert.match(devRoute, /<DevTodayPickerWithPromote\b/);
+  assert.doesNotMatch(devRoute, /<TodayDayPicker\b/, "the dev Today scenarios use the stub wrapper");
+  assert.match(devWrapper, /^"use client";/);
+  assert.match(devWrapper, /<TodayDayPicker[\s\S]*?promoteExerciseAction=\{promoteExerciseAction\}/);
+  for (const source of [devRoute, devWrapper]) {
+    assert.doesNotMatch(source, /from "@\/app\/progression-review\/actions"/, "dev fixtures never import the server actions");
+  }
+
+  // The Promote box: confirm first, the action runs once from Promote, the pin keeps Revert working, Today refreshes.
+  const picker = readSource("./TodayDayPicker.tsx");
+  assert.match(picker, /<PromoteCelebration[\s\S]*?onConfirm=\{confirmTodayPromote\}/);
+  assert.match(picker, /await promoteExerciseAction\(\{/);
+  assert.match(picker, /upsertProgressionAppliedPin\(readAllProgressionAppliedPins\(\), pin\)[\s\S]*?phase: "done"/);
+  assert.match(picker, /toast\.error\(result\.ok \? PROGRESSION_PROMOTE_MESSAGES\.unverified : result\.error\)/);
 });
 
 test("Today no longer renders the old card engine, the 26px info overlay, or hand-rolled notice surfaces", () => {
@@ -268,12 +293,14 @@ test("no behaviour code moved: TodayStartButton, the offline cache read and the 
   assert.match(shell, /Start session requires a live connection\./);
 });
 
-test("FF-TODAY-004: an exercise without a target shows a quiet 'No target set' cue, never 'Goal missing'; targets and stretch hub stay clean", () => {
+test("FF-TODAY-004: an exercise without a goal shows a quiet 'No goal set' cue (the card never says 'Target'), never 'Goal missing'; goals and stretch hub stay clean", () => {
   const none = rows([{ targets: null }]);
-  assert.match(none, /data-exercise-no-target="true"[^>]*>No target set</);
+  assert.match(none, /data-exercise-no-target="true"[^>]*>No goal set</);
   assert.doesNotMatch(none, /Goal missing/);
-  assert.doesNotMatch(rows([{}]), /No target set/);
-  assert.doesNotMatch(rows([{ targets: null, name: "Hip Opener", slug: "stretch-hip-opener", kind: "stretch", type: "stretch", tags: ["stretch-hub"], categories: ["stretch-hub"] }]), /No target set/);
+  const cardWords = `${none.replace(/<[^>]*>/g, " ")} ${[...none.matchAll(/aria-label="([^"]*)"/g)].map((match) => match[1]).join(" ")}`;
+  assert.doesNotMatch(cardWords, /\btarget\b/i, "no 'target' in visible text or aria labels");
+  assert.doesNotMatch(rows([{}]), /No goal set/);
+  assert.doesNotMatch(rows([{ targets: null, name: "Hip Opener", slug: "stretch-hip-opener", kind: "stretch", type: "stretch", tags: ["stretch-hub"], categories: ["stretch-hub"] }]), /No goal set/);
 });
 
 test("FF-DESIGN-004: the Today info control uses the real exercise id, never the row id", () => {
