@@ -20,8 +20,20 @@ export function getRoutineHomeHref(routineId: string) {
   return `/routines/${routineId}`;
 }
 
-export function getRoutineEditHref(routineId: string) {
-  return `/routines/${routineId}/edit`;
+export function getRoutineEditHref(routineId: string, returnTo?: string | null) {
+  const href = `/routines/${routineId}/edit`;
+  const safeReturnTo = returnTo ? resolveReturnHref(returnTo, href) : null;
+
+  if (!safeReturnTo || safeReturnTo === href) {
+    return href;
+  }
+
+  return `${href}?returnTo=${encodeURIComponent(safeReturnTo)}`;
+}
+
+/** Back target of the routine editor: a safe in-app `returnTo` (e.g. Today), else the routine home. */
+export function resolveRoutineEditBackHref(routineId: string, rawReturnTo: string | null | undefined) {
+  return resolveReturnHref(decodeReturnTo(rawReturnTo), getRoutineHomeHref(routineId));
 }
 
 export function getRoutineDayCreateHref(routineId: string) {

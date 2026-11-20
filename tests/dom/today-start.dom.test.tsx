@@ -1,11 +1,13 @@
 import "./dom-env.ts";
 import assert from "node:assert/strict";
 import test, { afterEach, beforeEach } from "node:test";
+import { Component, type ReactNode } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AppProviders, createRouterSpy } from "./providers.tsx";
 import { TodayStartButton } from "../../src/app/today/TodayStartButton.tsx";
 import { ACTIVE_SESSION_HINT_KEY, readActiveSessionHint } from "../../src/lib/session-state-sync.ts";
 import { getProgressionAppliedPinsStorageKey } from "../../src/lib/progression-applied-pins.ts";
+import { SESSION_RESUME_FAILED_MESSAGE, SESSION_START_FAILED_MESSAGE } from "../../src/lib/session-action-response.ts";
 
 type FetchCall = { url: string; body: unknown };
 
@@ -146,3 +148,77 @@ test("Today: Lock In clears the pin for that day, then starts the workout", asyn
   assert.equal(window.sessionStorage.getItem(getProgressionAppliedPinsStorageKey("r1")), null);
   assert.equal(fetchCalls.length, 1);
 });
+
+// --- Transport failures (Today review 2026-11-19, HIGH): an HTML 500 or a dropped connection must not reach the app
+// error boundary (which replaced the whole app, tab bar included, with "Could not load"). The shell stays and one
+// error notice explains what happened.
+
+class ShellBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
+  state = { crashed: false };
+  static getDerivedStateFromError() {
+    return { crashed: true };
+  }
+  componentDidCatch() {}
+  render() {
+    return this.state.crashed ? <p>Could not load</p> : this.props.children;
+  }
+}
+
+function renderInShell(props: Parameters<typeof TodayStartButton>[0]) {
+  const { router, calls } = createRouterSpy();
+  render(
+    <AppProviders router={router} pathname="/today">
+      <ShellBoundary>
+        <nav aria-label="Tabs">Today Routines History Settings</nav>
+        <TodayStartButton {...props} />
+      </ShellBoundary>
+    </AppProviders>,
+  );
+  return calls;
+}
+
+function stubRawFetch(respond: () => Promise<Response>) {
+  fetchCalls = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    fetchCalls.push({ url: String(input), body: null });
+    return respond();
+  }) as typeof fetch;
+}
+
+const htmlServerError = async () =>
+  new Response("<html><body>Internal Server Error</body></html>", { status: 500, headers: { "Content-Type": "text/html" } });
+const droppedConnection = async (): Promise<Response> => {
+  throw new TypeError("Failed to fetch");
+};
+
+for (const [name, respond] of [["an HTML 500 page", htmlServerError], ["a dropped connection", droppedConnection]] as const) {
+  test(`Today: Start with ${name} keeps the app shell and shows one error notice`, async () => {
+    stubRawFetch(respond);
+    const calls = renderInShell({ routineId: "r1", dayId: "d1" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Workout" }));
+
+    const notice = await screen.findByRole("alert");
+    assert.equal(notice.textContent?.includes(SESSION_START_FAILED_MESSAGE), true);
+    assert.equal(screen.queryByText("Could not load"), null, "the error boundary did not replace the app");
+    assert.ok(screen.getByRole("navigation", { name: "Tabs" }), "the tab bar is still there");
+    assert.deepEqual(calls.push, []);
+    await waitFor(() => assert.ok(screen.getByRole("button", { name: "Start Workout" }), "the button is usable again"));
+  });
+
+  test(`Today: Resume with ${name} keeps the shell, keeps the workout hint and does not refresh`, async () => {
+    window.localStorage.setItem(ACTIVE_SESSION_HINT_KEY, JSON.stringify({ sessionId: "s-live", updatedAt: 1 }));
+    stubRawFetch(respond);
+    const calls = renderInShell({ sessionId: "s-live", label: "Resume Workout" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Resume Workout" }));
+
+    const notice = await screen.findByRole("alert");
+    assert.equal(notice.textContent?.includes(SESSION_RESUME_FAILED_MESSAGE), true);
+    assert.equal(screen.queryByText("Could not load"), null);
+    assert.ok(screen.getByRole("navigation", { name: "Tabs" }));
+    assert.deepEqual(calls.push, []);
+    assert.equal(calls.refresh, 0, "an unanswered request does not refresh the page");
+    assert.equal(readActiveSessionHint()?.sessionId, "s-live", "the workout may still be open, so its hint stays");
+  });
+}

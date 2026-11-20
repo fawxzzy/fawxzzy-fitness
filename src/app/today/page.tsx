@@ -4,6 +4,7 @@ import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
+import { TodayNoticeHost } from "@/app/today/TodayNoticeHost";
 import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
@@ -18,10 +19,10 @@ import {
   TodayRouteScaffold,
 } from "@/components/today/TodayScreenFamily";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
-import { CardNotice } from "@/components/ui/card-system";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { ActionResult } from "@/lib/action-result";
+import { runBestEffortSteps } from "@/lib/best-effort-steps";
 import { buildExerciseProgressionStateLabel } from "@/lib/exercise-progression-state-label";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
@@ -29,9 +30,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 import {
   buildTodayRoutinePayloadState,
   formatTodayHeaderSubtitle,
-  getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
+import { resolveTodayNoticeMessage } from "@/lib/today-notice";
 import {
   formatRoutineDayStableDisplayName,
   getCurrentCycleOccurrenceContext,
@@ -41,34 +42,17 @@ import {
   resolveRoutineScheduleForToday,
 } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import {
-  buildProgressionHistorySessions,
-  deriveProgressionReviewCandidate,
-  type ProgressionHistorySetRow,
-  type ProgressionTargetPlan,
-} from "@/lib/progression-playbooks";
-import {
-  getProgressionReviewTargetFingerprintForExercise,
-  loadProgressionUpdatesDisplayData,
-} from "@/lib/progression-review-loader";
-import {
-  type ProgressionReviewApplyResult,
-  type ProgressionReviewDisplayItem,
-  type ProgressionReviewLinkedTargetSnapshot,
-  type ProgressionReviewRevertTargetSnapshot,
-} from "@/lib/progression-review-display";
+import { loadProgressionUpdatesDisplayData } from "@/lib/progression-review-loader";
+import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
-import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
-import {
-  buildProgressionEventPayload,
-  extractProgressionSourceSessionId,
-  recordProgressionEvent,
-} from "@/lib/progression-events";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { toExerciseCountSummaryInput } from "@/lib/day-summary";
-import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
+import {
+  applyProgressionReviewCandidateAction,
+  revertProgressionReviewCandidateAction,
+} from "@/app/progression-review/actions";
 import {
   publishFitnessIntegrationStateForMember,
   recordFitnessSignalForMember,
@@ -160,529 +144,26 @@ function logTodayBootstrapFailure(args: {
   });
 }
 
-function buildProgressionReviewTargetPlan(exercise: RoutineDayExerciseRow): ProgressionTargetPlan {
-  return {
-    measurementType: exercise.measurement_type ?? "reps",
-    setsMin: exercise.target_sets ?? null,
-    setsMax: exercise.target_sets ?? null,
-    repsTarget: exercise.target_reps ?? null,
-    repsMin: exercise.target_reps_min ?? exercise.target_reps ?? null,
-    repsMax: exercise.target_reps_max ?? exercise.target_reps ?? null,
-    weightMin: exercise.target_weight ?? null,
-    weightMax: exercise.target_weight ?? null,
-    weightUnit: exercise.target_weight_unit ?? null,
-    durationSeconds: exercise.target_duration_seconds ?? null,
-    distance: exercise.target_distance ?? null,
-    distanceUnit: exercise.target_distance_unit ?? null,
-    calories: exercise.target_calories ?? null,
-  };
-}
+// Failures return a result so the Discard dialog closes and shows this notice (ConfirmedServerFormButton
+// failureMessage); success still redirects to a fresh Today.
+const DISCARD_IN_PROGRESS_FAILED_MESSAGE = "Could not discard the workout. Try again.";
 
-function resolveRoutineExerciseRepTarget(exercise: Pick<RoutineDayExerciseRow, "target_reps" | "target_reps_min" | "target_reps_max">) {
-  return exercise.target_reps ?? exercise.target_reps_max ?? exercise.target_reps_min ?? null;
-}
-
-type ProgressionReviewMutationExerciseRow = RoutineDayExerciseRow & {
-  routine_day_id: string;
-};
-
-const PROGRESSION_MUTATION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
-const LINKED_PROGRESSION_UPDATE_LIMIT = 12;
-
-async function readProgressionReviewMutationContext(args: {
-  supabase: Awaited<ReturnType<typeof supabaseServer>>;
-  userId: string;
-  routineId: string;
-  routineDayExerciseId: string;
-}): Promise<ActionResult<{
-  exercise: ProgressionReviewMutationExerciseRow;
-  fallbackWeightUnit: "lbs" | "kg";
-}>> {
-  const { data: exerciseRow, error: exerciseError } = await args.supabase
-    .from("routine_day_exercises")
-    .select(PROGRESSION_MUTATION_EXERCISE_SELECT)
-    .eq("id", args.routineDayExerciseId)
-    .eq("user_id", args.userId)
-    .maybeSingle();
-
-  if (exerciseError || !exerciseRow) {
-    return { ok: false, error: "Progression update is no longer available." };
-  }
-
-  const exercise = exerciseRow as ProgressionReviewMutationExerciseRow;
-  const { data: routineDay, error: routineDayError } = await args.supabase
-    .from("routine_days")
-    .select("routine_id")
-    .eq("id", exercise.routine_day_id)
-    .eq("user_id", args.userId)
-    .maybeSingle();
-
-  if (routineDayError || routineDay?.routine_id !== args.routineId) {
-    return { ok: false, error: "Progression update is not part of this routine." };
-  }
-
-  const { data: routine, error: routineError } = await args.supabase
-    .from("routines")
-    .select("weight_unit")
-    .eq("id", args.routineId)
-    .eq("user_id", args.userId)
-    .maybeSingle();
-
-  if (routineError || !routine) {
-    return { ok: false, error: "Could not verify routine settings." };
-  }
-
-  const { count: activeSessionCount, error: activeSessionError } = await args.supabase
-    .from("sessions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", args.userId)
-    .eq("routine_id", args.routineId)
-    .eq("status", "in_progress");
-
-  if (activeSessionError) {
-    return { ok: false, error: "Could not verify active session state." };
-  }
-
-  if ((activeSessionCount ?? 0) > 0) {
-    return { ok: false, error: "Finish or discard the active workout before applying progression changes." };
-  }
-
-  return {
-    ok: true,
-    data: {
-      exercise,
-      fallbackWeightUnit: routine.weight_unit === "kg" ? "kg" : "lbs",
-    },
-  };
-}
-
-async function loadProgressionHistoryForExercise(args: {
-  supabase: Awaited<ReturnType<typeof supabaseServer>>;
-  userId: string;
-  routineId: string;
-  exerciseId: string;
-  routineDayExerciseId?: string | null;
-  allowCatalogFallback?: boolean;
-}) {
-  const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
-    .from("session_exercises")
-    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(id, performed_at, status, routine_id)")
-    .eq("user_id", args.userId)
-    .eq("exercise_id", args.exerciseId)
-    .eq("session.status", "completed")
-    .eq("session.routine_id", args.routineId);
-
-  if (sessionExercisesError) {
-    throw sessionExercisesError;
-  }
-
-  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null; sessionRecordId: string | null }>();
-  for (const row of (sessionExercisesData ?? []) as Array<{
-    id: string;
-    routine_day_exercise_id?: string | null;
-    session?: { id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
-  }>) {
-    const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
-    if (!row.id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
-      continue;
-    }
-
-    sessionExerciseMetaById.set(row.id, {
-      performedAt: sessionRow.performed_at,
-      routineDayExerciseId: row.routine_day_exercise_id ?? null,
-      sessionRecordId: sessionRow.id ?? null,
-    });
-  }
-
-  const sessionExerciseIds = [...sessionExerciseMetaById.keys()];
-  const { data: setsData, error: setsError } = sessionExerciseIds.length > 0
-    ? await args.supabase
-        .from("sets")
-        .select("session_exercise_id, set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, is_warmup")
-        .eq("user_id", args.userId)
-        .in("session_exercise_id", sessionExerciseIds)
-        .order("set_index", { ascending: true })
-    : { data: [], error: null };
-
-  if (setsError) {
-    throw setsError;
-  }
-
-  const rows = ((setsData ?? []) as Array<{
-    session_exercise_id: string;
-    set_index: number;
-    weight: number | null;
-    reps: number | null;
-    weight_unit: "lbs" | "kg" | null;
-    duration_seconds: number | null;
-    distance: number | null;
-    distance_unit: FitnessDistanceUnit | null;
-    calories: number | null;
-    is_warmup: boolean;
-  }>)
-    .map((row): ProgressionHistorySetRow | null => {
-      const meta = sessionExerciseMetaById.get(row.session_exercise_id);
-      if (!meta) {
-        return null;
-      }
-
-      return {
-        sessionId: row.session_exercise_id,
-        sessionRecordId: meta.sessionRecordId,
-        performedAt: meta.performedAt,
-        setIndex: row.set_index,
-        weight: row.weight ?? null,
-        reps: row.reps ?? null,
-        weightUnit: row.weight_unit ?? null,
-        durationSeconds: row.duration_seconds ?? null,
-        distance: row.distance ?? null,
-        distanceUnit: row.distance_unit ?? null,
-        calories: row.calories ?? null,
-        isWarmup: row.is_warmup,
-      };
-    })
-    .filter((row): row is ProgressionHistorySetRow => row !== null);
-
-  if (!args.routineDayExerciseId) {
-    return rows;
-  }
-
-  const directSessionExerciseIds = new Set(
-    [...sessionExerciseMetaById.entries()]
-      .filter(([, meta]) => meta.routineDayExerciseId === args.routineDayExerciseId)
-      .map(([sessionExerciseId]) => sessionExerciseId),
-  );
-  const directRows = rows.filter((row) => directSessionExerciseIds.has(row.sessionId));
-  if (directRows.length > 0) {
-    return directRows;
-  }
-
-  return args.allowCatalogFallback ? rows : [];
-}
-
-async function canUseCatalogHistoryFallbackForRoutineExercise(args: {
-  supabase: Awaited<ReturnType<typeof supabaseServer>>;
-  userId: string;
-  routineId: string;
-  exerciseId: string;
-}) {
-  const { data: routineDays, error: routineDaysError } = await args.supabase
-    .from("routine_days")
-    .select("id")
-    .eq("user_id", args.userId)
-    .eq("routine_id", args.routineId);
-
-  if (routineDaysError) {
-    return false;
-  }
-
-  const routineDayIds = (routineDays ?? []).map((day) => day.id).filter((id): id is string => Boolean(id));
-  if (routineDayIds.length === 0) {
-    return false;
-  }
-
-  const { count, error } = await args.supabase
-    .from("routine_day_exercises")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", args.userId)
-    .eq("exercise_id", args.exerciseId)
-    .in("routine_day_id", routineDayIds);
-
-  if (error) {
-    return false;
-  }
-
-  return (count ?? 0) === 1;
-}
-
-function resolveLinkedRoutineDayExerciseIds(sourceId: string, linkedIds?: string[]) {
-  const rawIds = linkedIds && linkedIds.length > 0 ? linkedIds : [sourceId];
-  return Array.from(new Set(rawIds.filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim())));
-}
-
-async function readMutationExercisesForRoutine(args: {
-  supabase: Awaited<ReturnType<typeof supabaseServer>>;
-  userId: string;
-  routineId: string;
-  routineDayExerciseIds: string[];
-}): Promise<ActionResult<ProgressionReviewMutationExerciseRow[]>> {
-  if (args.routineDayExerciseIds.length > LINKED_PROGRESSION_UPDATE_LIMIT) {
-    return { ok: false, error: "Too many linked progression updates to apply at once." };
-  }
-
-  const { data: exerciseRows, error: exerciseError } = await args.supabase
-    .from("routine_day_exercises")
-    .select(PROGRESSION_MUTATION_EXERCISE_SELECT)
-    .eq("user_id", args.userId)
-    .in("id", args.routineDayExerciseIds);
-
-  if (exerciseError || (exerciseRows?.length ?? 0) !== args.routineDayExerciseIds.length) {
-    return { ok: false, error: "Linked progression update is no longer available." };
-  }
-
-  const exercises = (exerciseRows ?? []) as ProgressionReviewMutationExerciseRow[];
-  const routineDayIds = Array.from(new Set(exercises.map((exercise) => exercise.routine_day_id)));
-  const { data: routineDays, error: routineDaysError } = await args.supabase
-    .from("routine_days")
-    .select("id, routine_id")
-    .eq("user_id", args.userId)
-    .in("id", routineDayIds);
-
-  if (routineDaysError || (routineDays?.length ?? 0) !== routineDayIds.length) {
-    return { ok: false, error: "Could not verify linked routine days." };
-  }
-
-  const routineIdByDayId = new Map((routineDays ?? []).map((day) => [day.id, day.routine_id]));
-  if (exercises.some((exercise) => routineIdByDayId.get(exercise.routine_day_id) !== args.routineId)) {
-    return { ok: false, error: "Linked progression update is not part of this routine." };
-  }
-
-  const orderById = new Map(args.routineDayExerciseIds.map((id, index) => [id, index]));
-  return {
-    ok: true,
-    data: exercises.sort((left, right) => (orderById.get(left.id) ?? 0) - (orderById.get(right.id) ?? 0)),
-  };
-}
-
-function verifyLinkedProgressionFingerprints(args: {
-  sourceExercise: ProgressionReviewMutationExerciseRow;
-  linkedExercises: ProgressionReviewMutationExerciseRow[];
-}) {
-  const sourceFingerprint = getProgressionReviewTargetFingerprintForExercise(args.sourceExercise);
-  return args.linkedExercises.every((exercise) => getProgressionReviewTargetFingerprintForExercise(exercise) === sourceFingerprint);
-}
-
-async function applyProgressionReviewCandidateAction(payload: {
-  routineId: string;
-  routineDayExerciseId: string;
-  candidateType: ProgressionReviewDisplayItem["type"];
-  linkedRoutineDayExerciseIds?: string[];
-}): Promise<ActionResult<ProgressionReviewApplyResult>> {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = await supabaseServer();
-
-  if (payload.candidateType === "review") {
-    return { ok: false, error: "Manual Review candidates are review-only for now." };
-  }
-
-  const context = await readProgressionReviewMutationContext({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseId: payload.routineDayExerciseId,
-  });
-
-  if (!context.ok) {
-    return { ok: false, error: context.error };
-  }
-
-  if (!context.data) {
-    return { ok: false, error: "Progression update is no longer available." };
-  }
-
-  const { exercise, fallbackWeightUnit } = context.data;
-  const previousTarget = buildProgressionReviewTargetPlan(exercise);
-
-  let historyRows: ProgressionHistorySetRow[] = [];
-  try {
-    const allowCatalogFallback = await canUseCatalogHistoryFallbackForRoutineExercise({
-      supabase,
-      userId: user.id,
-      routineId: payload.routineId,
-      exerciseId: exercise.exercise_id,
-    });
-
-    historyRows = await loadProgressionHistoryForExercise({
-      supabase,
-      userId: user.id,
-      routineId: payload.routineId,
-      exerciseId: exercise.exercise_id,
-      routineDayExerciseId: exercise.id,
-      allowCatalogFallback,
-    });
-  } catch {
-    return { ok: false, error: "Could not verify completed history for this progression change." };
-  }
-
-  const candidate = deriveProgressionReviewCandidate({
-    playbookId: exercise.progression_playbook_id,
-    config: exercise.progression_playbook_config,
-    plan: previousTarget,
-    history: buildProgressionHistorySessions({
-      rows: historyRows,
-      targetSetCount: exercise.target_sets,
-      topRepTarget: resolveRoutineExerciseRepTarget(exercise),
-      limit: 8,
-    }),
-    historyRows,
-    fallbackWeightUnit,
-  });
-
-  if (candidate.type !== payload.candidateType || (candidate.type !== "promote" && candidate.type !== "deload") || !candidate.proposedTarget) {
-    return { ok: false, error: "Progression update is no longer applicable." };
-  }
-
-  const linkedRoutineDayExerciseIds = resolveLinkedRoutineDayExerciseIds(exercise.id, payload.linkedRoutineDayExerciseIds);
-  const linkedExercisesResult = await readMutationExercisesForRoutine({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseIds: linkedRoutineDayExerciseIds,
-  });
-
-  if (!linkedExercisesResult.ok) {
-    return { ok: false, error: linkedExercisesResult.error };
-  }
-
-  const linkedExercises = linkedExercisesResult.data ?? [exercise];
-  if (!verifyLinkedProgressionFingerprints({ sourceExercise: exercise, linkedExercises })) {
-    return { ok: false, error: "Linked progression targets no longer match." };
-  }
-
-  const linkedTargets: ProgressionReviewLinkedTargetSnapshot[] = [];
-  const sourceSessionId = extractProgressionSourceSessionId({
-    sourceSessionId: candidate.sourceSession?.sessionId,
-    historyRows,
-  });
-  for (const linkedExercise of linkedExercises) {
-    const linkedPreviousTarget = buildProgressionReviewTargetPlan(linkedExercise);
-    const { error: updateError } = await supabase
-      .from("routine_day_exercises")
-      .update(buildProgressionReviewTargetUpdate(candidate.proposedTarget))
-      .eq("id", linkedExercise.id)
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      return { ok: false, error: "Could not apply linked progression update." };
-    }
-
-    await recordProgressionEvent({
-      supabase,
-      payload: buildProgressionEventPayload({
-        userId: user.id,
-        routineId: payload.routineId,
-        routineDayExerciseId: linkedExercise.id,
-        exerciseId: linkedExercise.exercise_id,
-        eventType: candidate.type === "deload" ? "deload_applied" : "promotion_applied",
-        fromTarget: linkedPreviousTarget,
-        toTarget: candidate.proposedTarget,
-        reason: candidate.reason,
-        playbookId: linkedExercise.progression_playbook_id,
-        config: linkedExercise.progression_playbook_config,
-        sourceSessionId,
-      }),
-      context: "today.applyProgressionReviewCandidateAction",
-    });
-
-    linkedTargets.push({
-      routineDayExerciseId: linkedExercise.id,
-      previousTarget: linkedPreviousTarget,
-      appliedTarget: candidate.proposedTarget,
-    });
-  }
-
+// Every failure also revalidates Today, so a screen that is out of date (the workout was already discarded in another
+// tab, or a partial delete) re-renders from the server instead of leaving a Discard button that can only fail again.
+function discardInProgressFailed(): ActionResult {
   revalidatePath("/today");
-  revalidatePath(`/routines/${payload.routineId}/edit`);
-
-  return {
-    ok: true,
-    data: {
-      previousTarget,
-      appliedTarget: candidate.proposedTarget,
-      linkedTargets: linkedTargets.length > 1 ? linkedTargets : undefined,
-    },
-  };
+  return { ok: false, error: DISCARD_IN_PROGRESS_FAILED_MESSAGE };
 }
 
-async function revertProgressionReviewCandidateAction(payload: {
-  routineId: string;
-  routineDayExerciseId: string;
-  previousTarget: ProgressionTargetPlan;
-  linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
-}): Promise<ActionResult> {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = await supabaseServer();
-  const context = await readProgressionReviewMutationContext({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseId: payload.routineDayExerciseId,
-  });
-
-  if (!context.ok) {
-    return { ok: false, error: context.error };
-  }
-
-  const revertTargets = payload.linkedPreviousTargets && payload.linkedPreviousTargets.length > 0
-    ? payload.linkedPreviousTargets
-    : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget }];
-  const linkedExercisesResult = await readMutationExercisesForRoutine({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseIds: revertTargets.map((target) => target.routineDayExerciseId),
-  });
-
-  if (!linkedExercisesResult.ok) {
-    return { ok: false, error: linkedExercisesResult.error };
-  }
-
-  const linkedExercises = linkedExercisesResult.data ?? [];
-  const linkedExerciseById = new Map(linkedExercises.map((exercise) => [exercise.id, exercise]));
-  for (const target of revertTargets) {
-    const linkedExercise = linkedExerciseById.get(target.routineDayExerciseId);
-    const currentTarget = linkedExercise ? buildProgressionReviewTargetPlan(linkedExercise) : null;
-    const { error: updateError } = await supabase
-      .from("routine_day_exercises")
-      .update(buildProgressionReviewTargetUpdate(target.previousTarget))
-      .eq("id", target.routineDayExerciseId)
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      return { ok: false, error: "Could not revert linked progression update." };
-    }
-
-    if (linkedExercise && currentTarget) {
-      await recordProgressionEvent({
-        supabase,
-        payload: buildProgressionEventPayload({
-          userId: user.id,
-          routineId: payload.routineId,
-          routineDayExerciseId: linkedExercise.id,
-          exerciseId: linkedExercise.exercise_id,
-          eventType: "promotion_reverted",
-          fromTarget: currentTarget,
-          toTarget: target.previousTarget,
-          reason: "Reverted an applied progression target.",
-          playbookId: linkedExercise.progression_playbook_id,
-          config: linkedExercise.progression_playbook_config,
-          sourceSessionId: null,
-        }),
-        context: "today.revertProgressionReviewCandidateAction",
-      });
-    }
-  }
-
-  revalidatePath("/today");
-  revalidatePath(`/routines/${payload.routineId}/edit`);
-
-  return { ok: true };
-}
-
-async function discardInProgressSessionAction(formData: FormData): Promise<void> {
+async function discardInProgressSessionAction(formData: FormData): Promise<ActionResult> {
   "use server";
 
   const user = await requireUser();
   const supabase = await supabaseServer();
   const sessionId = String(formData.get("sessionId") ?? "").trim();
-  const safeError = "Unable to discard the in-progress workout.";
 
   if (!sessionId) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
@@ -691,7 +172,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   });
 
   if (!liveSession.ok) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
@@ -701,7 +182,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .eq("user_id", user.id);
 
   if (sessionExerciseReadError) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const sessionExerciseIds = (sessionExerciseRows ?? []).map((row) => row.id);
@@ -713,7 +194,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
       .eq("user_id", user.id);
 
     if (setsDeleteError) {
-      redirect(`/today?error=${encodeURIComponent(safeError)}`);
+      return discardInProgressFailed();
     }
 
     const { error: sessionExerciseDeleteError } = await supabase
@@ -723,7 +204,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
       .eq("user_id", user.id);
 
     if (sessionExerciseDeleteError) {
-      redirect(`/today?error=${encodeURIComponent(safeError)}`);
+      return discardInProgressFailed();
     }
   }
 
@@ -735,30 +216,32 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .eq("status", "in_progress");
 
   if (sessionDeleteError) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
+    return discardInProgressFailed();
   }
 
   const now = new Date();
 
-  await recordFitnessSignalForMember({
-    memberId: user.id,
-    signalType: "workout_missed",
-    reason: "session_discarded",
-    emittedAt: now,
-    payload: {
+  // The workout is gone from here on: telemetry is best-effort and can never turn this into a reported failure.
+  await runBestEffortSteps("today.discardInProgressSession", [
+    ["recordFitnessSignal", () => recordFitnessSignalForMember({
       memberId: user.id,
-      sessionId,
-      scheduledAt: now.toISOString(),
-      missReasonCode: "discarded_in_progress",
-      consecutiveMisses: 1,
-    },
-  });
-
-  await publishFitnessIntegrationStateForMember({
-    memberId: user.id,
-    reason: "session_discarded",
-    now,
-  });
+      signalType: "workout_missed",
+      reason: "session_discarded",
+      emittedAt: now,
+      payload: {
+        memberId: user.id,
+        sessionId,
+        scheduledAt: now.toISOString(),
+        missReasonCode: "discarded_in_progress",
+        consecutiveMisses: 1,
+      },
+    })],
+    ["publishFitnessIntegrationState", () => publishFitnessIntegrationStateForMember({
+      memberId: user.id,
+      reason: "session_discarded",
+      now,
+    })],
+  ]);
 
   redirect("/today");
 }
@@ -766,7 +249,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
 export default async function TodayPage(
   props: {
     searchParams?: Promise<{
-      error?: string;
+      notice?: string;
       focus?: string;
       shadowPlacement?: string;
     }>;
@@ -1254,11 +737,7 @@ export default async function TodayPage(
     completedTodayCount,
     inProgressSessionId: inProgressSession?.id ?? null,
   };
-  const todayGlobalError = getTodayGlobalErrorMessage({
-    searchParamError: searchParams?.error,
-    hasInProgressSession: Boolean(todayPayload.inProgressSessionId),
-    fetchFailed,
-  });
+  const todayNotice = resolveTodayNoticeMessage({ notice: searchParams?.notice });
   const todaySnapshot: TodayCacheSnapshot | null =
     todayPayload.routine === null
       ? null
@@ -1300,10 +779,12 @@ export default async function TodayPage(
         ) : (
           <ScreenHeader
             kind="tab"
+            appMenu
             title="Today"
             subtitle={todayPayload.routine
               ? formatTodayHeaderSubtitle(todayPayload.routine.dayName, todayPayload.routine.name)
               : "No active routine"}
+            status={<OfflineSyncBadge userId={user.id} variant="header" label={fetchFailed ? "Offline" : null} />}
           />
         )}
     >
@@ -1311,7 +792,6 @@ export default async function TodayPage(
       <TodayRouteRevalidator />
       {todayPayload.routine && hasDetailedRoutineState ? (
         <TodayOverviewContent>
-          <OfflineSyncBadge userId={user.id} />
           {recoveryShadowPlacement ? (
             <TodayRecoveryShadowPlacement
               placementId={recoveryShadowPlacement.placementId}
@@ -1400,6 +880,7 @@ export default async function TodayPage(
               routineName={todayPayload.routine.name}
               startDate={activeRoutine?.start_date ?? null}
               floatingHeaderSlotId="today-floating-header-slot"
+              headerStatus={<OfflineSyncBadge userId={user.id} variant="header" />}
               switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
               progressionReviewItems={progressionReviewItems}
               progressionStatusItems={progressionStatusItems}
@@ -1436,6 +917,7 @@ export default async function TodayPage(
                 modalTitle="Discard workout?"
                 modalConsequenceText="Current workout will be removed."
                 confirmLabel="Discard Workout"
+                failureMessage={DISCARD_IN_PROGRESS_FAILED_MESSAGE}
               />
             )}
           />
@@ -1444,7 +926,7 @@ export default async function TodayPage(
 
       <TodayOfflineBridge snapshot={todaySnapshot} />
 
-      {todayGlobalError ? <CardNotice tone="danger">{todayGlobalError}</CardNotice> : null}
+      <TodayNoticeHost message={todayNotice} />
     </TodayRouteScaffold>
   );
 }

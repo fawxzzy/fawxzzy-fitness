@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 export const VISUAL_STATE_REGISTRY_VERSION = "fitness-visual-state-registry.v1";
 export const ACCEPTED_VISUAL_CATALOG_COUNTS = Object.freeze({
-  semanticStates: 111,
-  rawCaptures: 313,
+  semanticStates: 110,
+  rawCaptures: 310,
 });
 
 export const VISUAL_CAPTURE_ENVIRONMENT = Object.freeze({
@@ -46,7 +46,6 @@ const mobileRegressionInventory = [
   ["session-logger-strength-weight", "Session / logging", "session", "logger-strength-weight"],
   ["session-logger-bodyweight-reps", "Session / logging", "session", "logger-bodyweight-reps"],
   ["session-post-close-feedback", "Session / logging", "session", "post-close-feedback"],
-  ["session-auto-progression-confirmation", "Session / logging", "session", "auto-progression-confirmation"],
   ["session-logger-cardio-time", "Session / logging", "session", "logger-cardio-time"],
   ["session-logger-cardio-time-distance", "Session / logging", "session", "logger-cardio-time-distance"],
   ["session-logger-cardio-distance", "Session / logging", "session", "logger-cardio-distance"],

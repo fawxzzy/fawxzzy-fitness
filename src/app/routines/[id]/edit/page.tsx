@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
 import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
-import { getRoutineHomeHref } from "@/lib/routine-day-navigation";
+import { getRoutineHomeHref, resolveRoutineEditBackHref } from "@/lib/routine-day-navigation";
 import { loadAccessibleRoutineIdsForCurrentTier } from "@/lib/pro-tier-access";
 import type { RoutineRow } from "@/types/db";
 
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; returnTo?: string }>;
 };
 
 const ROUTINE_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit";
@@ -54,11 +54,13 @@ export default async function EditRoutinePage(props: PageProps) {
   if (!routine) notFound();
 
   const returnHref = getRoutineHomeHref(params.id);
+  // Back honours a safe in-app returnTo (Today's "Edit routine" passes /today); autosave keeps the routine home.
+  const backHref = resolveRoutineEditBackHref(params.id, searchParams?.returnTo);
   const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 
   return (
-    <RoutineDetailsScreenShell backHref={returnHref} title="Edit routine" subtitle={(routine as RoutineRow).name}>
+    <RoutineDetailsScreenShell backHref={backHref} title="Edit routine" subtitle={(routine as RoutineRow).name}>
       <EditRoutineAutosaveForm
         routineId={routine.id}
         existingStartDate={(routine as RoutineRow).start_date}

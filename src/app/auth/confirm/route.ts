@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EmailOtpType } from "@supabase/supabase-js";
+import { resolveAuthConfirmRedirectPath } from "@/lib/auth-confirm-redirect";
 import { setSessionCookies } from "@/lib/auth-session";
 import { buildRequestScopedUrl } from "@/lib/request-origin";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(confirmedRedirect);
   }
 
-  const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/entry";
+  const redirectPath = resolveAuthConfirmRedirectPath(next, Boolean(isRecoveryFlow));
 
   const response = NextResponse.redirect(buildRequestScopedUrl(request, redirectPath));
   setSessionCookies(response.cookies, {

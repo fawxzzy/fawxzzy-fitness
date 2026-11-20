@@ -27,16 +27,6 @@ test("exercise-detail fixtures preserve the standard regression root marker cont
   assert.match(source, /<RegressionExerciseInfoSheet[\s\S]*?scenarioId=\{scenario\.id\}/);
 });
 
-test("automatic progression review fixture represents completed target work", async () => {
-  const source = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
-
-  assert.match(source, /scenario\.id !== "session-auto-progression-confirmation"/);
-  assert.match(source, /targetSetCount = exercise\.targetSetsMax \?\? exercise\.targetSetsMin/);
-  assert.match(source, /initialSets: Array\.from\(\{ length: targetSetCount \}/);
-  assert.match(source, /loggedSetCount: targetSetCount/);
-  assert.match(source, /linkedDayNames: \["Lower A", "Lower B"\]/);
-});
-
 test("history fixtures preserve selected-session identity and fixture-relative calendar framing", async () => {
   const source = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
   const historyClientSource = await readFile(new URL("../../history/HistorySessionsClient.tsx", import.meta.url), "utf8");
@@ -49,15 +39,15 @@ test("history fixtures preserve selected-session identity and fixture-relative c
   assert.match(historyClientSource, /now: calendarNow/);
 });
 
-test("session completion uses the progression promotion receipt contract", async () => {
+test("session completion never promotes: no promotions receipt, straight back to Today (manual progression, 2026-11-19)", async () => {
   const source = await readFile(new URL("../../../components/SessionPageClient.tsx", import.meta.url), "utf8");
+  const routeSource = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /title="Progression Promotions"/);
-  assert.match(source, /No promotions this session\./);
-  assert.match(source, /Days: \{update\.linkedDayNames\.join\(", "\)\}/);
-  assert.doesNotMatch(source, /Plans:/);
-  assert.doesNotMatch(source, /Your routine has been updated for the next session\./);
-  assert.doesNotMatch(source, /across \$\{update\.linkedTargetCount\} routine days/);
+  assert.doesNotMatch(source, /Progression Promotions/);
+  assert.doesNotMatch(source, /No promotions this session/);
+  assert.doesNotMatch(source, /progressionUpdates/);
+  assert.match(source, /setIsSessionCompleted\(true\);[\s\S]{0,200}navigateReturn\(\);/);
+  assert.doesNotMatch(routeSource, /session-auto-progression-confirmation/);
 });
 
 test("session completion immediately retires all live workout controls", async () => {

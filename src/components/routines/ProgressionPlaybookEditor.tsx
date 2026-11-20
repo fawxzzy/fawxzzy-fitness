@@ -3232,7 +3232,6 @@ export function ProgressionPlaybookEditor({
       progressionStallPolicy: value.progressionStallPolicy,
       progressionStallThreshold: value.progressionStallThreshold,
       progressionDeloadPercent: value.progressionDeloadPercent,
-      progressionAutoUpdateRoutineGoals: value.progressionAutoUpdateRoutineGoals,
       progressionSetFlow: derivedSetFlowId,
       progressionSetFlowTimeDirection: setFlowDirections.time,
       progressionSetFlowDistanceDirection: setFlowDirections.distance,
@@ -7306,7 +7305,6 @@ export function ProgressionPlaybookEditor({
           weight: setFlowDirections.weight,
         })}
       />
-      <input type="hidden" name="progressionAutoUpdateRoutineGoals" value="0" />
       <input type="hidden" name="progressionBarbellLoadIncrement" value={value.progressionBarbellLoadIncrement} />
       <input type="hidden" name="progressionDumbbellLoadIncrement" value={value.progressionDumbbellLoadIncrement} />
       <input type="hidden" name="progressionMachineLoadIncrement" value={value.progressionMachineLoadIncrement} />

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
@@ -437,8 +438,8 @@ export default async function RoutinesPage() {
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<ScreenHeader kind="tab" title="Routines" subtitle={fetchFailed ? "Offline" : null} />}
+        headerMenu={<AppMenu />}
+        floatingHeader={<ScreenHeader kind="tab" appMenu title="Routines" status={<OfflineSyncBadge userId={user.id} variant="header" label={fetchFailed ? "Offline" : null} />} />}
       >
         <ContentRail className="space-y-3">
           {fetchFailed || !pageModel ? (

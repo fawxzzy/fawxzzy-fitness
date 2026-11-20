@@ -66,15 +66,21 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/lib/feature-flags.test.ts src/lib/initial-experience-gate.test.ts src/lib/resolvePostLoginDestination.test.ts
           node --test tests/curated-onboarding-ui-contract.test.mjs
           node --test tests/screen-header-contract.test.mjs
+          node --test tests/app-menu-header-contract.test.mjs
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/app-menu.test.ts
           node --test tests/routines-detail-header-contract.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/normalize.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts
           node --test scripts/seed-feedback-monetization-roadmap.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/lib/api-auth.test.ts src/lib/billing/pro-access-diagnostics.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/session-action-response.test.ts src/lib/today-notice.test.ts src/lib/app-notice-anchor.test.ts src/lib/duration.test.ts src/lib/today-discard-dialog.contract.test.ts src/lib/best-effort-steps.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/navigation-return.test.ts src/lib/navigation-return.safety.test.ts src/lib/redirect-targets.safety.test.ts src/lib/account-navigation.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/today-switch-day.test.ts src/lib/ambient/app-backdrop.test.ts src/app/today/TodaySwitchDayCard.contract.test.tsx
           npm run test:project-board-owner-export
           npm run project-board:owner-export:check
           node --test tests/board-sync.test.mjs
           npm run board:check
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/progression-manual-promotion.test.ts src/lib/progression-manual-promotion-supabase.test.ts
           npm run test:card-system
           npm run test:dom
 

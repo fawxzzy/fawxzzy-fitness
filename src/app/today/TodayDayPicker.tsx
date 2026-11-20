@@ -1,29 +1,24 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
 import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
+import { TodayEmptyDayCard } from "@/app/today/TodayEmptyDayCard";
+import { TodaySwitchDayList } from "@/app/today/TodaySwitchDayCard";
 import { TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { DayList } from "@/components/day-list/DayList";
-import {
-  ROUTINE_CONTENT_GAP_CLASS_NAME,
-  RestDayCard,
-  RoutineOverviewDayCard,
-} from "@/components/day-list/RoutineDayCardPresentation";
+import { ROUTINE_CONTENT_GAP_CLASS_NAME } from "@/components/day-list/RoutineDayCardPresentation";
 import { useHasBottomActions, usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { CardActionRow, CardEmptyState, cardTokens } from "@/components/ui/card-system";
+import { CardActionRow, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
+import { useToast } from "@/components/ui/ToastProvider";
+import { getRoutineDayEditHref, getRoutineEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
 import { formatRoutineDayStableDisplayName } from "@/lib/routines";
@@ -38,13 +33,14 @@ import type {
 } from "@/lib/progression-review-display";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
+import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { runTodayProgressionRevert } from "@/app/today/today-progression-revert";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
   getProgressionAppliedPinsStorageKey,
   PROGRESSION_APPLIED_PINS_CHANGED_EVENT,
   pruneExpiredProgressionAppliedPins,
-  removeProgressionAppliedPin,
   type ProgressionAppliedPin,
   upsertProgressionAppliedPin,
 } from "@/lib/progression-applied-pins";
@@ -133,7 +129,10 @@ export function TodayDayPicker({
   routineName,
   startDate,
   floatingHeaderSlotId,
+  headerStatus,
   switchFloatingHeaderSlotId,
+  initialPickerOpen = false,
+  initialSelectedDayIndex = null,
   progressionReviewItems = [],
   progressionStatusItems = [],
   progressionRoutineId,
@@ -152,6 +151,12 @@ export function TodayDayPicker({
   startDate: string | null;
   floatingHeaderSlotId?: string;
   switchFloatingHeaderSlotId?: string;
+  /** Inline status on the Today title line ("– Offline"), see ScreenHeader `status`. */
+  headerStatus?: ReactNode;
+  /** Open Switch Day on first render (dev previews of the picker only; the live page always starts closed). */
+  initialPickerOpen?: boolean;
+  /** Select this day on first render instead of today (dev previews only). */
+  initialSelectedDayIndex?: number | null;
   progressionReviewItems?: ProgressionReviewDisplayItem[];
   progressionStatusItems?: ProgressionStatusSurfaceItem[];
   progressionRoutineId?: string | null;
@@ -160,11 +165,13 @@ export function TodayDayPicker({
     routineDayExerciseId: string;
     candidateType: ProgressionReviewDisplayItem["type"];
     linkedRoutineDayExerciseIds?: string[];
+    expectedFromTarget?: ProgressionTargetPlan | null;
   }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
   revertProgressionReviewCandidateAction?: (payload: {
     routineId: string;
     routineDayExerciseId: string;
     previousTarget: ProgressionTargetPlan;
+    appliedTarget: ProgressionTargetPlan;
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
   /**
@@ -174,13 +181,14 @@ export function TodayDayPicker({
    */
   onPromoteExercise?: (payload: { routineId: string | null; routineDayExerciseId: string; exerciseName: string }) => void;
 }) {
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => currentDayIndex ?? days[0]?.dayIndex ?? 1);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => initialSelectedDayIndex ?? currentDayIndex ?? days[0]?.dayIndex ?? 1);
+  const [isPickerOpen, setIsPickerOpen] = useState(initialPickerOpen);
   const [selectedDayAppliedPins, setSelectedDayAppliedPins] = useState<ProgressionAppliedPin[]>([]);
   const [cardConfirmItem, setCardConfirmItem] = useState<ProgressionReviewDisplayItem | null>(null);
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
   const [cardPendingItemId, setCardPendingItemId] = useState<string | null>(null);
   const [cardActionError, setCardActionError] = useState<string | null>(null);
+  const toast = useToast();
   const [isCardActionPending, startCardActionTransition] = useTransition();
   const router = useRouter();
 
@@ -448,6 +456,7 @@ export function TodayDayPicker({
         routineDayExerciseId: item.id,
         candidateType: item.type,
         linkedRoutineDayExerciseIds: linkedTargets.length > 1 ? selectedLinkedIds : item.linkedUpdate?.routineDayExerciseIds,
+        expectedFromTarget: item.currentTarget,
       });
 
       if (result.ok && result.data) {
@@ -458,6 +467,11 @@ export function TodayDayPicker({
           linkedTargets: result.data.linkedTargets,
         });
         persistProgressionAppliedPins(upsertProgressionAppliedPin(readAllProgressionAppliedPins(), pin));
+        // The source day was promoted; a linked-day problem is reported, not hidden (the confirm
+        // modal that shows cardActionError closes on success, so use a toast).
+        if (result.data.warning) {
+          toast.warning(result.data.warning);
+        }
         setCardConfirmItem(null);
         setCardConfirmSelectedIds([]);
         router.refresh();
@@ -473,6 +487,7 @@ export function TodayDayPicker({
     progressionRoutineId,
     readAllProgressionAppliedPins,
     router,
+    toast,
   ]);
 
   const revertProgressionItemFromTodayCard = useCallback((pin: ProgressionAppliedPin) => {
@@ -483,22 +498,16 @@ export function TodayDayPicker({
     setCardActionError(null);
     setCardPendingItemId(pin.routineDayExerciseId);
     startCardActionTransition(async () => {
-      const result = await revertProgressionReviewCandidateAction({
+      // Drops the pin when the revert can never work again; every failure is a toast.
+      await runTodayProgressionRevert({
+        pin,
         routineId: progressionRoutineId,
-        routineDayExerciseId: pin.routineDayExerciseId,
-        previousTarget: pin.previousTarget,
-        linkedPreviousTargets: pin.linkedTargets?.map((target) => ({
-          routineDayExerciseId: target.routineDayExerciseId,
-          previousTarget: target.previousTarget,
-        })),
+        revertAction: revertProgressionReviewCandidateAction,
+        readPins: readAllProgressionAppliedPins,
+        persistPins: persistProgressionAppliedPins,
+        refresh: () => router.refresh(),
+        notify: toast,
       });
-
-      if (result.ok) {
-        persistProgressionAppliedPins(removeProgressionAppliedPin(readAllProgressionAppliedPins(), pin.routineDayExerciseId));
-        router.refresh();
-      } else {
-        setCardActionError(result.error);
-      }
 
       setCardPendingItemId(null);
     });
@@ -508,6 +517,7 @@ export function TodayDayPicker({
     readAllProgressionAppliedPins,
     revertProgressionReviewCandidateAction,
     router,
+    toast,
   ]);
 
   const openTodayCardPromotion = useCallback((item: ProgressionReviewDisplayItem) => {
@@ -528,31 +538,30 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
-  // Deliberate rest-day card for the closed-picker, selected-rest-day case.
-  // Reuses the same shared rest-day treatment as the Routine Overview day
-  // card (RoutineOverviewDayCard) instead of leaving the body empty (the
-  // prior behavior, since getTodayDaySummaryTone returns no tone for rest
-  // days and so never rendered the plain-text summary either).
+  // The three quiet states (rest day, no exercises, no scheduled workout) share ONE card: TodayEmptyDayCard
+  // (centred title, no second line, at most one action). Rest day for the closed-picker, selected-rest-day case;
+  // getTodayDaySummaryTone returns no tone for rest days, so without it the body would be empty.
   const selectedDayRestCard = useMemo(() => {
     if (mode.dayPickerOpen || !mode.restDay || !selectedDay) {
       return null;
     }
 
-    return <RestDayCard headingLevel={2} />;
+    return <TodayEmptyDayCard kind="rest" />;
   }, [mode.dayPickerOpen, mode.restDay, selectedDay]);
+  // `noScheduledDayMessage` is a presence flag now: the card has no second line, so its text is not shown.
+  // [Edit routine] opens the routine editor (/routines/[id]/edit?returnTo=/today), where the schedule is set; back returns to Today.
   const noScheduledDayNotice = useMemo(() => {
     if (mode.dayPickerOpen || !noScheduledDayMessage?.trim()) {
       return null;
     }
 
     return (
-      <TodayDayStateCard
-        tone="neutral"
-        title="No scheduled workout today."
-        body={noScheduledDayMessage}
+      <TodayEmptyDayCard
+        kind="noSchedule"
+        actionHref={progressionRoutineId ? getRoutineEditHref(progressionRoutineId, "/today") : null}
       />
     );
-  }, [mode.dayPickerOpen, noScheduledDayMessage]);
+  }, [mode.dayPickerOpen, noScheduledDayMessage, progressionRoutineId]);
   const selectedDaySummaryNode = useMemo(() => {
     if (!mode.summaryVisible || !daySummary || !daySummaryTone) {
       return null;
@@ -567,24 +576,17 @@ export function TodayDayPicker({
     );
   }, [daySummary, daySummaryTone, mode.summaryVisible]);
   // Empty training day (no exercises, nothing invalid): say so and offer the way out. The page was blank
-  // apart from the header and Switch Day (C1 finding 3).
+  // apart from the header and Switch Day (C1 finding 3). [Edit day] opens the Edit Day editor for this day
+  // (/routines/[id]/edit/day/[dayId]) and returns to Today.
   const emptyTrainingDayCard = useMemo(() => {
     if (mode.dayPickerOpen || !mode.emptyTrainingDay || !selectedDay || noScheduledDayNotice) {
       return null;
     }
 
     return (
-      <CardEmptyState
-        title="No exercises planned"
-        body="Add exercises to this day to start a workout from Today."
-        action={progressionRoutineId ? (
-          <Link
-            href={getRoutineDayEditHref(progressionRoutineId, selectedDay.id, "/today")}
-            className={getAppButtonClassName({ variant: "secondary", size: "sm", fullWidth: true })}
-          >
-            Add exercises
-          </Link>
-        ) : undefined}
+      <TodayEmptyDayCard
+        kind="empty"
+        actionHref={progressionRoutineId ? getRoutineDayEditHref(progressionRoutineId, selectedDay.id, "/today") : null}
       />
     );
   }, [mode.dayPickerOpen, mode.emptyTrainingDay, noScheduledDayNotice, progressionRoutineId, selectedDay]);
@@ -595,16 +597,18 @@ export function TodayDayPicker({
     ? (
       <ScreenHeader
         kind="tab"
+        appMenu
         title="Today"
         subtitle={formatTodayHeaderSubtitle(
           formatRoutineDayStableDisplayName({ name: selectedDay.name, dayIndex: selectedDay.dayIndex, startDate }),
           routineName,
         )}
+        status={headerStatus}
       />
     )
     : null;
   const switchHeaderNode = selectedDay && mode.dayPickerOpen
-    ? <ScreenHeader kind="tab" title="Today" subtitle={routineName.trim() || null} />
+    ? <ScreenHeader kind="tab" appMenu title="Today" subtitle={routineName.trim() || null} status={headerStatus} />
     : null;
 
   const actionsNode = useMemo(() => {
@@ -693,31 +697,18 @@ export function TodayDayPicker({
             {mode.contentShellVisible ? (
               <div className={mode.dayPickerOpen ? ROUTINE_CONTENT_GAP_CLASS_NAME : "pt-0.5"}>
                 {mode.dayPickerOpen ? (
-                  <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
-                    {days.map((day) => {
-                      const isSelected = selectedDayIndex === day.dayIndex;
-                      return (
-                        <RoutineOverviewDayCard
-                          key={day.id}
-                          day={{
-                            ...day,
-                            splitSummary: getRestDayExerciseCountSummaryFromInputs(day.exercises, day.isRest),
-                            isToday: day.dayIndex === currentDayIndex,
-                            isCompleted: completedDayIndexSet.has(day.dayIndex),
-                            isInSession: inSessionDayIndex === day.dayIndex,
-                          }}
-                          startDate={startDate}
-                          isSelected={isSelected}
-                          showSelectedTag={isSelected}
-                          asListItem
-                          onPress={() => {
-                            setSelectedDayIndex(day.dayIndex);
-                            setIsPickerOpen(false);
-                          }}
-                        />
-                      );
-                    })}
-                  </DayList>
+                  <TodaySwitchDayList
+                    days={days}
+                    startDate={startDate}
+                    currentDayIndex={currentDayIndex}
+                    selectedDayIndex={selectedDayIndex}
+                    completedDayIndexes={completedDayIndexSet}
+                    inSessionDayIndex={inSessionDayIndex}
+                    onSelectDay={(dayIndex) => {
+                      setSelectedDayIndex(dayIndex);
+                      setIsPickerOpen(false);
+                    }}
+                  />
                 ) : null}
 
                 {selectedDayRestCard ?? selectedDaySummaryNode}
@@ -729,16 +720,19 @@ export function TodayDayPicker({
                     {selectedDay.exercises.map((exercise) => {
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
-                      const canShowCardAction = cardReadyItem?.type === "deload";
                       const cardActionPending = isCardActionPending && (
                         cardPendingItemId === cardReadyItem?.id
                         || cardPendingItemId === cardAppliedPin?.routineDayExerciseId
                       );
-                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
                       const cardProgressFill = deriveExerciseCardProgressFill({
                         progressFill: selectedDayProgressFillByExerciseId.get(exercise.id) ?? null,
                         candidateType: cardReadyItem?.type ?? null,
                       });
+                      const canShowCardAction = canShowProgressionCardAction({
+                        candidateType: cardReadyItem?.type,
+                        progressPercent: cardProgressFill.progressPercent,
+                      });
+                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
                       const cardPromoteTargetPair = cardReadyItem
                         ? resolveTodayProgressionTargetDisplayPair(cardReadyItem)
                         : null;

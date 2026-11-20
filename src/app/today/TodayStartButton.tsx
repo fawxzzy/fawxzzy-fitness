@@ -2,7 +2,12 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { ActionResult } from "@/lib/action-result";
+import {
+  readSessionActionResult,
+  runSessionAction,
+  SESSION_RESUME_FAILED_MESSAGE,
+  SESSION_START_FAILED_MESSAGE,
+} from "@/lib/session-action-response";
 import { useToast } from "@/components/ui/ToastProvider";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -17,41 +22,37 @@ import {
 } from "@/lib/progression-applied-pins";
 
 async function requestSessionStart(payload: { selectedDayIndex?: number; routineId?: string; dayId?: string }) {
-  const response = await fetch("/api/sessions/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return runSessionAction<{ sessionId: string }>(async () => {
+    const response = await fetch("/api/sessions/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  if (isSessionExpiredResponse(response.status)) {
-    redirectToLoginForExpiredSession();
-    return { ok: false, error: "Your session has expired. Sign in again." } satisfies ActionResult<{ sessionId: string }>;
-  }
+    if (isSessionExpiredResponse(response.status)) {
+      redirectToLoginForExpiredSession();
+      return { ok: false, error: "Your session has expired. Sign in again." };
+    }
 
-  const result = (await response.json()) as ActionResult<{ sessionId: string }>;
-  if (!response.ok && result.ok) {
-    return { ok: false, error: "Could not start session" } satisfies ActionResult<{ sessionId: string }>;
-  }
-  return result;
+    return readSessionActionResult<{ sessionId: string }>(response, SESSION_START_FAILED_MESSAGE);
+  }, SESSION_START_FAILED_MESSAGE);
 }
 
 async function requestSessionResume(payload: { sessionId: string; returnTo?: string }) {
-  const response = await fetch("/api/sessions/resume", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return runSessionAction<{ href: string }>(async () => {
+    const response = await fetch("/api/sessions/resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  if (isSessionExpiredResponse(response.status)) {
-    redirectToLoginForExpiredSession();
-    return { ok: false, error: "Your session has expired. Sign in again." } satisfies ActionResult<{ href: string }>;
-  }
+    if (isSessionExpiredResponse(response.status)) {
+      redirectToLoginForExpiredSession();
+      return { ok: false, error: "Your session has expired. Sign in again." };
+    }
 
-  const result = (await response.json()) as ActionResult<{ href: string }>;
-  if (!response.ok && result.ok) {
-    return { ok: false, error: "Could not resume session" } satisfies ActionResult<{ href: string }>;
-  }
-  return result;
+    return readSessionActionResult<{ href: string }>(response, SESSION_RESUME_FAILED_MESSAGE);
+  }, SESSION_RESUME_FAILED_MESSAGE);
 }
 
 export function TodayStartButton({
@@ -140,8 +141,12 @@ export function TodayStartButton({
       if (sessionId) {
         const resumeResult = await requestSessionResume({ sessionId, returnTo });
         if (!resumeResult.ok || !resumeResult.data?.href) {
+          toast.error(resumeResult.ok ? SESSION_RESUME_FAILED_MESSAGE : resumeResult.error);
+          if (!resumeResult.ok && resumeResult.unanswered) {
+            // No usable answer (offline, HTML 500): the workout may still be open, so keep the hint and the page.
+            return;
+          }
           clearActiveSessionHint(sessionId);
-          toast.error(resumeResult.ok ? "Could not resume session" : resumeResult.error);
           router.refresh();
           return;
         }
@@ -153,7 +158,7 @@ export function TodayStartButton({
 
       const result = await requestSessionStart({ selectedDayIndex, routineId, dayId });
       if (!result.ok || !result.data?.sessionId) {
-        toast.error(result.ok ? "Could not start session" : result.error);
+        toast.error(result.ok ? SESSION_START_FAILED_MESSAGE : result.error);
         return;
       }
       const sessionHref = returnTo

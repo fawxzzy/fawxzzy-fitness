@@ -20,6 +20,12 @@ import {
 import { formatProgressionReviewDisplayItem, type ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import { deriveProgressionProgressPercent } from "@/lib/progression-progress-percent";
 import {
+  filterHistoryAfterPromotionHold,
+  resolvePromotionHoldCutoffMs,
+  selectProgressionEvidenceRows,
+} from "@/lib/progression-manual-promotion";
+import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
+import {
   buildProgressionStatusSurfaceItem,
   formatProgressionCalculationEvidence,
   formatProgressionStatusDisplayItem,
@@ -50,6 +56,32 @@ export function buildProgressionReviewTargetPlan(exercise: RoutineDayExerciseRow
     distanceUnit: exercise.target_distance_unit ?? null,
     calories: exercise.target_calories ?? null,
   };
+}
+
+// Shared by the Today loader and the manual Promote action so the target written on Promote is
+// the same one the card showed (equipment/movement-aware load steps).
+export function inferProgressionStepPolicyForRoutineExercise(args: {
+  selection: ReturnType<typeof validateProgressionPlaybookSelection>;
+  plan: ProgressionTargetPlan;
+  defaultUnit: RoutineDayExerciseRow["default_unit"];
+  fallbackWeightUnit: "lbs" | "kg";
+  metadata: { equipment: string | null; movementPattern: string | null } | null;
+}) {
+  if (!args.selection) {
+    return null;
+  }
+
+  return inferProgressionStepPolicy({
+    measurementType: args.plan.measurementType,
+    equipment: args.metadata?.equipment ?? null,
+    movementPattern: args.metadata?.movementPattern ?? null,
+    defaultUnit: args.defaultUnit,
+    weightUnit: args.plan.weightUnit ?? args.fallbackWeightUnit,
+    distanceUnit: args.plan.distanceUnit === "km" ? "km" : "mi",
+    targetWeight: args.plan.weightMax ?? args.plan.weightMin ?? null,
+    exerciseOverrideValue: args.selection.config.loadIncrement,
+    stepOverrides: args.selection.config.stepOverrides ?? null,
+  });
 }
 
 export function resolveRoutineExerciseRepTarget(exercise: Pick<RoutineDayExerciseRow, "target_reps" | "target_reps_min" | "target_reps_max">) {
@@ -171,17 +203,16 @@ export async function loadProgressionHistoryForExercise(args: {
     return rows;
   }
 
-  const directSessionExerciseIds = new Set(
-    [...sessionExerciseMetaById.entries()]
-      .filter(([, meta]) => meta.routineDayExerciseId === args.routineDayExerciseId)
-      .map(([sessionExerciseId]) => sessionExerciseId),
-  );
-  const directRows = rows.filter((row) => directSessionExerciseIds.has(row.sessionId));
-  if (directRows.length > 0) {
-    return directRows;
-  }
-
-  return args.allowCatalogFallback ? rows : [];
+  // Same selection as Today (loadProgressionUpdatesDisplayData): direct rows win if any exist,
+  // else this routine's rows with no routine_day_exercise_id when the exercise is unique. The
+  // caller applies the promotion hold to the result (selection never depends on it).
+  const routineDayExerciseIdOf = (row: ProgressionHistorySetRowWithRoutineDayIndex) => sessionExerciseMetaById.get(row.sessionId)?.routineDayExerciseId ?? null;
+  return selectProgressionEvidenceRows({
+    directRows: rows.filter((row) => routineDayExerciseIdOf(row) === args.routineDayExerciseId),
+    unlinkedRows: rows.filter((row) => routineDayExerciseIdOf(row) === null),
+    allowCatalogFallback: args.allowCatalogFallback ?? false,
+    holdCutoffMs: null,
+  }).rows;
 }
 
 export async function canUseCatalogHistoryFallbackForRoutineExercise(args: {
@@ -490,7 +521,9 @@ export async function loadProgressionUpdatesDisplayData(args: {
       .map((exercise) => exercise.exercise_id)
       .filter((exerciseId): exerciseId is string => Boolean(exerciseId)),
   ));
-  const routineExerciseCountByCatalogExerciseId = progressionExercises.reduce((counts, exercise) => {
+  // Count every routine slot (not just user-facing progression ones): the server counts all routine_day_exercises
+  // with this catalog exercise in canUseCatalogHistoryFallbackForRoutineExercise, so Today must use the same set.
+  const routineExerciseCountByCatalogExerciseId = args.exercises.reduce((counts, exercise) => {
     if (exercise.exercise_id) {
       counts.set(exercise.exercise_id, (counts.get(exercise.exercise_id) ?? 0) + 1);
     }
@@ -616,6 +649,14 @@ export async function loadProgressionUpdatesDisplayData(args: {
     fallbackHistoryRowsByExerciseId.set(meta.exerciseId, fallback);
   }
 
+  // Post-promotion reset (Manual Promote): a standing promotion_applied consumes every workout
+  // before it was applied, so the bar and Promote count only newer workouts until a
+  // promotion_reverted. Same complete event read as the Promote action.
+  const promotionEvents = await readPromotionHoldEvents({
+    supabase: args.supabase,
+    userId: args.userId,
+    routineDayExerciseIds: progressionExercises.map((exercise) => exercise.id),
+  });
   const readyItemEntries: ProgressionReadyUpdateCollapseEntry[] = [];
   const statusItems: ProgressionStatusDisplayItem[] = [];
   const statusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
@@ -640,16 +681,37 @@ export async function loadProgressionUpdatesDisplayData(args: {
     });
     const plan = buildProgressionReviewTargetPlan(exercise);
     const effectivePlan = buildProgressionReviewTargetPlan(effectiveExercise);
-    const directHistoryRows = historyRowsByRoutineDayExerciseId.get(exercise.id) ?? [];
-    const allFallbackHistoryRows = fallbackHistoryRowsByExerciseId.get(exercise.exercise_id) ?? [];
-    const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
-    const fallbackHistoryRows = canUseFallback ? allFallbackHistoryRows : [];
+    const unheldDirectHistoryRows = historyRowsByRoutineDayExerciseId.get(exercise.id) ?? [];
+    const unheldFallbackHistoryRows = fallbackHistoryRowsByExerciseId.get(exercise.exercise_id) ?? [];
     const targetFingerprint = targetFingerprintByRoutineExerciseId.get(exercise.id) ?? "";
     const linkedRoutineExerciseIds = (routineExerciseIdsByFingerprint.get(targetFingerprint) ?? []).filter((id) => id !== exercise.id);
-    const linkedHistoryRows = linkedRoutineExerciseIds.flatMap((id) => historyRowsByRoutineDayExerciseId.get(id) ?? []);
-    const globalContextRows = globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [];
-    const selectedHistoryRows = directHistoryRows.length > 0 ? directHistoryRows : fallbackHistoryRows;
-    const blockedDuplicateFallbackRows = allFallbackHistoryRows.length > 0 && !canUseFallback ? allFallbackHistoryRows : [];
+    const unheldLinkedHistoryRows = linkedRoutineExerciseIds.flatMap((id) => historyRowsByRoutineDayExerciseId.get(id) ?? []);
+    const promotionHoldCutoffMs = resolvePromotionHoldCutoffMs({
+      events: promotionEvents,
+      routineDayExerciseId: exercise.id,
+    });
+    const promotionHoldStanding = promotionHoldCutoffMs !== null;
+    const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
+    // The server's selection (selectProgressionEvidenceRows): direct vs ad hoc is decided on the
+    // UNFILTERED rows, then the hold applies. After a direct Promote the old direct rows still pick
+    // "direct", so a later ad hoc workout cannot fill the bar the server would refuse.
+    const evidence = selectProgressionEvidenceRows({
+      directRows: unheldDirectHistoryRows,
+      unlinkedRows: unheldFallbackHistoryRows,
+      allowCatalogFallback: canUseFallback,
+      holdCutoffMs: promotionHoldCutoffMs,
+    });
+    const selectedHistoryRows = evidence.rows;
+    const directHistoryRows = evidence.source === "direct" ? selectedHistoryRows : [];
+    const fallbackHistoryRows = evidence.source === "catalog_fallback" ? selectedHistoryRows : [];
+    const allFallbackHistoryRows = filterHistoryAfterPromotionHold(unheldFallbackHistoryRows, promotionHoldCutoffMs);
+    // While a promotion stands, only rows the server also counts may fill the bar: linked-day,
+    // duplicate-catalog and other-routine rows are context only and are dropped entirely.
+    const linkedHistoryRows = promotionHoldStanding ? [] : unheldLinkedHistoryRows;
+    const globalContextRows = promotionHoldStanding ? [] : globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [];
+    const blockedDuplicateFallbackRows = allFallbackHistoryRows.length > 0 && !canUseFallback && !promotionHoldStanding ? allFallbackHistoryRows : [];
+    // Promoted and no workout at the new target yet: Today says so instead of "no evidence".
+    const awaitingWorkoutAfterPromotion = promotionHoldStanding && selectedHistoryRows.length === 0;
     const contextHistoryRows = selectedHistoryRows.length > 0
       ? selectedHistoryRows
       : linkedHistoryRows.length > 0
@@ -659,7 +721,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
           : globalContextRows;
     const auditHistorySource: ProgressionAuditHistorySource = directHistoryRows.length > 0
       ? "routine_day_exercise_id"
-      : allFallbackHistoryRows.length > 0 && !canUseFallback
+      : blockedDuplicateFallbackRows.length > 0
         ? "blocked_duplicate_catalog_fallback"
         : fallbackHistoryRows.length > 0
           ? "unique_catalog_exercise_id_fallback"
@@ -681,20 +743,13 @@ export async function loadProgressionUpdatesDisplayData(args: {
       playbookId: exercise.progression_playbook_id,
       config: exercise.progression_playbook_config,
     });
-    const exerciseMetadata = exerciseMetadataById.get(exercise.exercise_id ?? "");
-    const progressionStepPolicy = selection
-      ? inferProgressionStepPolicy({
-          measurementType: plan.measurementType,
-          equipment: exerciseMetadata?.equipment ?? null,
-          movementPattern: exerciseMetadata?.movementPattern ?? null,
-          defaultUnit: exercise.default_unit,
-          weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
-          distanceUnit: plan.distanceUnit === "km" ? "km" : "mi",
-          targetWeight: plan.weightMax ?? plan.weightMin ?? null,
-          exerciseOverrideValue: selection.config.loadIncrement,
-          stepOverrides: selection.config.stepOverrides ?? null,
-        })
-      : null;
+    const progressionStepPolicy = inferProgressionStepPolicyForRoutineExercise({
+      selection,
+      plan,
+      defaultUnit: exercise.default_unit,
+      fallbackWeightUnit: args.fallbackWeightUnit,
+      metadata: exerciseMetadataById.get(exercise.exercise_id ?? "") ?? null,
+    });
     const candidate = deriveProgressionReviewCandidate({
       playbookId: exercise.progression_playbook_id,
       config: exercise.progression_playbook_config,
@@ -774,6 +829,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
         : contextHistoryRows,
       plan: effectivePlan,
       selection,
+      awaitingWorkoutAfterPromotion,
     }));
 
     if (readyItem) {
@@ -815,6 +871,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
       linkedMatchCount: linkedRoutineExerciseIds.length + 1,
       historyRows: contextHistoryRows,
       plan: effectivePlan,
+      awaitingWorkoutAfterPromotion,
     });
 
     if (statusItem) {

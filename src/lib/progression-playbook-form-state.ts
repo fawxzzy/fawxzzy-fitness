@@ -299,7 +299,6 @@ export type ProgressionPlaybookFormState = {
   progressionLoadIncrement: string;
   progressionStallThreshold: string;
   progressionDeloadPercent: string;
-  progressionAutoUpdateRoutineGoals: boolean;
   progressionSetFlow: SetFlowId;
   progressionBarbellLoadIncrement: string;
   progressionDumbbellLoadIncrement: string;
@@ -523,7 +522,6 @@ export function createProgressionPlaybookFormState({
     progressionSetSettingsEnabled: defaultConfig?.setSettingsEnabled !== false,
     progressionStallThreshold: deloadConfig ? String(deloadConfig.stallThreshold) : "2",
     progressionDeloadPercent: deloadConfig ? formatNumber(deloadConfig.deloadPercent) : "10",
-    progressionAutoUpdateRoutineGoals: Boolean(selection?.id !== "deload_after_stall" && selection?.config.autoUpdateRoutineGoals),
     progressionSetFlow,
     progressionPromotionBasis: defaultConfig?.promotionBasis ?? DEFAULT_PROGRESSION_PROMOTION_BASIS,
     progressionStrengthPromotionMeasurements: [...promotionMeasurementOrderMap.strength],
@@ -557,12 +555,12 @@ export function createProgressionPlaybookFormStateForTrainingGoal(goal: Training
   case "build_muscle":
     return createProgressionPlaybookFormState({
       playbookId: "double_progression",
-      config: { version: 1, loadIncrement: 5, stallPolicy: "none", autoUpdateRoutineGoals: false, setFlow: getDefaultSetFlowForTrainingGoal(goal) },
+      config: { version: 1, loadIncrement: 5, stallPolicy: "none", setFlow: getDefaultSetFlowForTrainingGoal(goal) },
     });
   case "build_strength":
     return createProgressionPlaybookFormState({
       playbookId: "double_progression",
-      config: { version: 1, loadIncrement: 5, stallPolicy: "none", autoUpdateRoutineGoals: false, setFlow: getDefaultSetFlowForTrainingGoal(goal) },
+      config: { version: 1, loadIncrement: 5, stallPolicy: "none", setFlow: getDefaultSetFlowForTrainingGoal(goal) },
     });
   case "maintain":
   case "conditioning":
@@ -599,7 +597,6 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionLoadIncrement: state.progressionLoadIncrement,
     progressionStallThreshold: state.progressionStallThreshold,
     progressionDeloadPercent: state.progressionDeloadPercent,
-    progressionAutoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
     progressionSetFlow: state.progressionSetFlow,
     progressionBarbellLoadIncrement: state.progressionBarbellLoadIncrement,
     progressionDumbbellLoadIncrement: state.progressionDumbbellLoadIncrement,
@@ -885,7 +882,6 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       ...(serializedSetFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap: serializedSetFlowGroupedDirectionMap } : {}),
       ...(!state.progressionSetSettingsEnabled ? { setSettingsEnabled: false } : {}),
       stallPolicy: "none",
-      autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
       ...serializedPromotionConfig,
     };
   }
@@ -918,7 +914,6 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     stallPolicy: "deload_after_stall",
     stallThreshold,
     deloadPercent,
-    autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
     ...serializedPromotionConfig,
   };
 }
@@ -1055,9 +1050,4 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
     reps: state.progressionSetFlowRepDirection,
     weight: state.progressionSetFlowLoadDirection,
   })));
-  if (state.progressionAutoUpdateRoutineGoals) {
-    formData.set("progressionAutoUpdateRoutineGoals", "1");
-  } else {
-    formData.delete("progressionAutoUpdateRoutineGoals");
-  }
 }

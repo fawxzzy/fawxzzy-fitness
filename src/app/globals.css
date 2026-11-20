@@ -177,6 +177,11 @@
   --app-dock-safe-padding-bottom: clamp(2px, var(--app-safe-bottom), 6px);
   --app-fixed-bottom-bar-clearance-gap: 0px;
   --screen-gutter: 16px;
+  /* Floating notices (toasts) sit top-right just under the header row. MobileScreenShell overwrites
+     --app-notice-top on <html> with the measured bottom of the real header row; this is the fallback. */
+  --app-notice-top: calc(var(--app-top-offset, 0px) + var(--app-top-chrome-content-gap, 0px) + 0.6rem);
+  --app-notice-inset-x: var(--screen-gutter);
+  --app-notice-max-width: 26rem;
   --content-max: 430px;
   --section-gap: 12px;
   --card-radius: 24px;
@@ -320,6 +325,61 @@ body {
   overflow: hidden;
   pointer-events: none;
   isolation: isolate;
+}
+
+/* App backdrop (lane D, 2026-11-19): a static, token-only background for screens that opt in (Today first), drawn
+   instead of the animated ambient scene. CSS gradients plus one tiny inline SVG mask (contour only); no images, no animation, no
+   layout (absolute, aria-hidden, pointer-events none). Variants: aurora (default for Today), grid, contour. The scrim
+   keeps the status bar (safe-area top) and the dock zone (safe-area bottom) readable. src/lib/ambient/app-backdrop.ts. */
+.app-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  contain: strict;
+  background-color: rgb(var(--bg-0));
+}
+
+.app-backdrop > div {
+  position: absolute;
+  inset: 0;
+}
+
+.app-backdrop__base {
+  background: linear-gradient(180deg, rgb(var(--bg-1)) 0%, rgb(var(--bg-0)) 48%, rgb(var(--ambient-depth-bottom)) 100%);
+}
+
+.app-backdrop__scrim {
+  background:
+    linear-gradient(180deg, rgb(var(--bg-0) / 0.7) 0, rgb(var(--bg-0) / 0) calc(env(safe-area-inset-top, 0px) + 32px)),
+    linear-gradient(0deg, rgb(var(--bg-0) / 0.55) 0, rgb(var(--bg-0) / 0) calc(env(safe-area-inset-bottom, 0px) + 128px));
+}
+
+.app-backdrop[data-app-backdrop="aurora"] .app-backdrop__pattern {
+  background:
+    radial-gradient(120% 58% at 8% -8%, rgb(var(--accent) / 0.3), transparent 64%),
+    radial-gradient(85% 50% at 106% 38%, rgb(var(--ambient-line-cyan) / 0.11), transparent 70%),
+    radial-gradient(110% 42% at 18% 96%, rgb(var(--accent) / 0.15), transparent 72%);
+}
+
+.app-backdrop[data-app-backdrop="grid"] .app-backdrop__pattern {
+  background:
+    radial-gradient(circle, rgb(var(--ambient-line-highlight) / 0.13) 0 1px, transparent 1.6px) 0 0 / 22px 22px,
+    radial-gradient(110% 46% at 50% -10%, rgb(var(--accent) / 0.18), transparent 70%);
+  -webkit-mask-image: linear-gradient(180deg, black 0%, rgb(0 0 0 / 0.5) 46%, transparent 88%);
+  mask-image: linear-gradient(180deg, black 0%, rgb(0 0 0 / 0.5) 46%, transparent 88%);
+}
+
+.app-backdrop[data-app-backdrop="contour"] .app-backdrop__pattern {
+  background: linear-gradient(170deg, rgb(var(--accent) / 0.34) 0%, rgb(var(--ambient-line-cyan) / 0.12) 52%, transparent 92%);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180' viewBox='0 0 360 180'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Cpath d='M0 15 Q45 3 90 15 T180 15 T270 15 T360 15'/%3E%3Cpath d='M0 45 Q45 61 90 45 T180 45 T270 45 T360 45'/%3E%3Cpath d='M0 75 Q45 65 90 75 T180 75 T270 75 T360 75'/%3E%3Cpath d='M0 105 Q45 123 90 105 T180 105 T270 105 T360 105'/%3E%3Cpath d='M0 135 Q45 121 90 135 T180 135 T270 135 T360 135'/%3E%3Cpath d='M0 165 Q45 177 90 165 T180 165 T270 165 T360 165'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180' viewBox='0 0 360 180'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Cpath d='M0 15 Q45 3 90 15 T180 15 T270 15 T360 15'/%3E%3Cpath d='M0 45 Q45 61 90 45 T180 45 T270 45 T360 45'/%3E%3Cpath d='M0 75 Q45 65 90 75 T180 75 T270 75 T360 75'/%3E%3Cpath d='M0 105 Q45 123 90 105 T180 105 T270 105 T360 105'/%3E%3Cpath d='M0 135 Q45 121 90 135 T180 135 T270 135 T360 135'/%3E%3Cpath d='M0 165 Q45 177 90 165 T180 165 T270 165 T360 165'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask-size: 360px 180px;
+  mask-size: 360px 180px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
 }
 
 .app-edge-frame {
@@ -2125,6 +2185,89 @@ a:focus-visible {
   outline: 1px solid rgb(var(--border-strong) / 0.62);
   outline-offset: 2px;
   box-shadow: none;
+}
+
+/* Screen dock look (DESIGN-CONTRACT.md section 15.6, C9-C12 unchanged): inside the screen's bottom dock only
+   (`[data-app-bottom-dock]` on MobileScreenShell), dock buttons are flat: token fills, a 1px keyline, no gloss
+   gradient, no drop shadow, so the dock reads as calm as the header and the app menu. Primary = accent tint with
+   the menu's 0.62 accent keyline. Fills are opaque (surface + a tint in the ::after overlay) so list content never
+   shows through a dock button. Pressed = a slightly stronger fill and a small scale; focus = a 2px accent ring.
+   Scoped on purpose: card action rows, timers and sheets reuse `.bottom-action` and keep their own look. */
+[data-app-bottom-dock] .bottom-action {
+  --bottom-action-shadow: none;
+  --bottom-action-shadow-hover: none;
+  --bottom-action-shadow-active: none;
+}
+
+/* Fills for every dock button except destructive (C11 red stays as it is). `:where()` keeps this at the same
+   specificity as the variant rules below, so primary / secondary / toggle override it by source order. */
+[data-app-bottom-dock] .bottom-action:where(:not(.bottom-action--danger, [data-bottom-action-intent="danger"])) {
+  --bottom-action-border-color: rgb(var(--border-strong) / 0.2);
+  --bottom-action-border-color-hover: rgb(var(--border-strong) / 0.32);
+  --bottom-action-overlay-top: transparent;
+  --bottom-action-overlay-bottom: transparent;
+  --bottom-action-overlay-top-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-bottom-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-top-active: rgb(var(--text-primary) / 0.08);
+  --bottom-action-overlay-bottom-active: rgb(var(--text-primary) / 0.08);
+  background: rgb(var(--surface-muted));
+}
+
+[data-app-bottom-dock] .bottom-action::before {
+  background: none;
+}
+
+[data-app-bottom-dock] .bottom-action--primary {
+  --bottom-action-border-color: rgb(var(--accent) / 0.62);
+  --bottom-action-border-color-hover: rgb(var(--accent-strong) / 0.78);
+  --bottom-action-overlay-top: rgb(var(--accent) / 0.2);
+  --bottom-action-overlay-bottom: rgb(var(--accent) / 0.2);
+  --bottom-action-overlay-top-hover: rgb(var(--accent) / 0.26);
+  --bottom-action-overlay-bottom-hover: rgb(var(--accent) / 0.26);
+  --bottom-action-overlay-top-active: rgb(var(--accent) / 0.34);
+  --bottom-action-overlay-bottom-active: rgb(var(--accent) / 0.34);
+  color: rgb(var(--text-primary));
+}
+
+[data-app-bottom-dock] .bottom-action--secondary {
+  --bottom-action-overlay-top-hover: rgb(var(--text-primary) / 0.05);
+  --bottom-action-overlay-bottom-hover: rgb(var(--text-primary) / 0.05);
+  --bottom-action-overlay-top-active: rgb(var(--text-primary) / 0.09);
+  --bottom-action-overlay-bottom-active: rgb(var(--text-primary) / 0.09);
+  border-color: rgb(var(--border-strong) / 0.28);
+}
+
+[data-app-bottom-dock] .bottom-action[data-bottom-action-intent="toggleActive"] {
+  --bottom-action-border-color-hover: rgb(var(--selection-rgb) / 0.62);
+  --bottom-action-overlay-top: rgb(var(--selection-rgb) / 0.16);
+  --bottom-action-overlay-bottom: rgb(var(--selection-rgb) / 0.16);
+  --bottom-action-overlay-top-hover: rgb(var(--selection-rgb) / 0.22);
+  --bottom-action-overlay-bottom-hover: rgb(var(--selection-rgb) / 0.22);
+  --bottom-action-overlay-top-active: rgb(var(--selection-rgb) / 0.3);
+  --bottom-action-overlay-bottom-active: rgb(var(--selection-rgb) / 0.3);
+  border-color: rgb(var(--selection-rgb) / 0.5);
+}
+
+[data-app-bottom-dock] .bottom-action[data-bottom-action-intent="toggleInactive"] {
+  --bottom-action-overlay-top-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-bottom-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-top-active: rgb(var(--text-primary) / 0.07);
+  --bottom-action-overlay-bottom-active: rgb(var(--text-primary) / 0.07);
+}
+
+[data-app-bottom-dock] .bottom-action:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: none;
+}
+
+[data-app-bottom-dock] .bottom-action:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-app-bottom-dock] .bottom-action:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .bottom-action:disabled {

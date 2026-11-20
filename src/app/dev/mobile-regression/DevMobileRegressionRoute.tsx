@@ -3,12 +3,14 @@ import nextDynamic from "next/dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
+import { DevTodayDiscardButton } from "@/app/dev/mobile-regression/DevTodayDiscardButton";
 import { RegressionDayRestToggleDockControl } from "@/app/dev/mobile-regression/RegressionDayRestToggleDockControl";
 import {
   applySessionRegressionScenarioState,
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "@/app/dev/mobile-regression/sessionScenarioFixtures";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
 import { formatAddExerciseSubtitle } from "@/lib/header-meta";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
@@ -173,22 +175,6 @@ async function noopCopilotFeedbackAction(payload: {
       note: payload.note,
       effort: payload.effort,
       updatedAt: "2026-07-17T04:00:00.000Z",
-    },
-  };
-}
-
-async function noopSessionSaveWithPromotion(_: unknown) {
-  "use server";
-  return {
-    ok: true as const,
-    data: {
-      sessionId: "dev-session-auto-progression-confirmation-v1",
-      progressionUpdates: [{
-        exerciseName: "Back Squat",
-        previousTarget: "4 sets x 5 reps x 225 lbs",
-        appliedTarget: "4 sets x 6 reps x 225 lbs",
-        linkedDayNames: ["Lower A", "Lower B"],
-      }],
     },
   };
 }
@@ -1853,6 +1839,29 @@ const mockTodayProgressionStatusItems: ProgressionStatusSurfaceItem[] = [
       label: "Ready",
     },
   },
+  // Manual Promote (2026-11-19): a partial bar shows progress but never a Promote button.
+  {
+    id: "td-3",
+    exerciseName: "Walking Lunge",
+    dayName: "Lower",
+    dayGroupId: "day-2",
+    readinessState: "not_ready",
+    readinessLabel: "Building",
+    currentTargetLine: `Current target: ${REGRESSION_WALKING_LUNGE_TARGET}`,
+    promotionBasisLabel: "Reps then weight",
+    promotionBasisDetail: "Reps then weight: hit the top of the rep range on every set, then add load.",
+    repTargetLine: "Top of range (10 reps)",
+    latestLine: "Latest: Jun 8 | 8 / 8 reps",
+    targetLine: "Needs: 3 sets at the top of the rep range.",
+    detailLine: "Result: keep building reps at the current load.",
+    nextUpdateLine: null,
+    reason: "Building: 2 of 3 sets met the target in the latest session.",
+    progress: {
+      percent: 67,
+      state: "partial",
+      label: "2/3 sets",
+    },
+  },
 ];
 
 const mockTodayLinkedProgressionReviewItems: ProgressionReviewDisplayItem[] = [
@@ -2188,8 +2197,8 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       <MainTabScreen topNavMode="none">
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<ScreenHeader kind="tab" title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
+          headerMenu={<AppMenu activePathnameOverride="/today" />}
+          floatingHeader={<ScreenHeader kind="tab" appMenu title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
         >
           <ContentRail className="space-y-3">
             <ScreenScaffold recipe="todayOverview" className="w-full">
@@ -2233,7 +2242,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
 
           <PublishBottomActions>
             <BottomActionSplit
-              secondary={<BottomDockButton type="button" intent="danger">Discard</BottomDockButton>}
+              secondary={<DevTodayDiscardButton />}
               primary={<TodayStartButton sessionId="dev-session" returnTo="/today" label="Resume" fullWidth className="w-full" />}
             />
           </PublishBottomActions>
@@ -2246,7 +2255,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
+        headerMenu={<AppMenu activePathnameOverride="/today" />}
         floatingHeader={<div id="today-floating-header-slot" />}
       >
         <ContentRail className="space-y-3">
@@ -2258,6 +2267,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             routineName={PREVIEW_ROUTINE_NAME}
             startDate="2025-03-10"
             floatingHeaderSlotId="today-floating-header-slot"
+            headerStatus={<OfflineSyncBadge userId="dev-fixture-user" variant="header" />}
             progressionRoutineId="routine-1"
             progressionReviewItems={progressionReviewItems}
             progressionStatusItems={progressionStatusItems}
@@ -2294,24 +2304,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
   }
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
-  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt)
-    .map((exercise) => {
-      if (scenario.id !== "session-auto-progression-confirmation" || exercise.id !== "session-ex-1") {
-        return exercise;
-      }
-
-      const sourceSet = exercise.initialSets[0];
-      const targetSetCount = exercise.targetSetsMax ?? exercise.targetSetsMin ?? 0;
-      return {
-        ...exercise,
-        initialSets: Array.from({ length: targetSetCount }, (_, index) => ({
-          ...sourceSet,
-          id: `set-auto-progression-${index + 1}`,
-          set_index: index,
-        })),
-        loggedSetCount: targetSetCount,
-      };
-    });
+  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
   const regressionSessionId = `dev-session-${scenario.fixtureState}`;
 
   return (
@@ -2328,7 +2321,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           unitLabel="lbs"
           exercises={sessionScenarioExercises}
         initialSelectedExerciseId={mobileRegressionSelectedSessionExerciseByScenarioId[scenario.id] ?? null}
-          saveSessionAction={scenario.id === "session-auto-progression-confirmation" ? noopSessionSaveWithPromotion : noopActionResult}
+          saveSessionAction={noopActionResult}
           requestedReturnTo="/today"
               quickAddAction={<BottomDockButton type="button" intent="info">Add</BottomDockButton>}
         addSetAction={noopSetAction}
@@ -2392,7 +2385,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
       isRest: false,
       splitSummary: { total: 8, strength: 6, cardio: 1, bodyweight: 1, unknown: 0 },
       recapExercises: [
-        { id: "hunt-1", name: "Treadmill Run", signatureLabel: "Cardio | Push", setLabel: "1 set", targetLabel: "3:00 s", progressionStateLabel: "AUTO • SESSION • SET" },
+        { id: "hunt-1", name: "Treadmill Run", signatureLabel: "Cardio | Push", setLabel: "1 set", targetLabel: "3:00", progressionStateLabel: "AUTO • SESSION • SET" },
         { id: "hunt-2", name: "Weighted Pull-Up", signatureLabel: "Lats, Upper Back | Pull", setLabel: "5 sets", targetLabel: "5 reps • 35 lbs", progressionStateLabel: "MANUAL" },
       ],
       remainingExerciseCount: 6,
@@ -2422,8 +2415,8 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
       <MainTabScreen topNavMode="none" ambientPreset="viewDay">
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<ScreenHeader kind="tab" title="Routines" />}
+          headerMenu={<AppMenu activePathnameOverride="/routines" />}
+          floatingHeader={<ScreenHeader kind="tab" appMenu title="Routines" />}
         >
           <ContentRail className="space-y-3">
             <RoutinesPageClient
@@ -2861,7 +2854,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
+        headerMenu={<AppMenu activePathnameOverride="/settings" />}
         floatingHeader={<SettingsFloatingHeader />}
       >
         <ContentRail className={appTokens.settingsContentRail}>

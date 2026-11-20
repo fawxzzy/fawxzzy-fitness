@@ -57,11 +57,15 @@ export type ProgressionReviewApplyResult = {
   previousTarget: ProgressionTargetPlan;
   appliedTarget: ProgressionTargetPlan;
   linkedTargets?: ProgressionReviewLinkedTargetSnapshot[];
+  /** Set when the source day was promoted but a linked day could not be (shown to the user). */
+  warning?: string;
 };
 
 export type ProgressionReviewRevertTargetSnapshot = {
   routineDayExerciseId: string;
   previousTarget: ProgressionTargetPlan;
+  /** What this pin wrote: Revert refuses if the stored target no longer matches it. */
+  appliedTarget: ProgressionTargetPlan;
 };
 
 function resolveSingleValue(min?: number | null, max?: number | null) {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocumentLayout } from "@/components/legal/LegalDocumentLayout";
 import { FITNESS_PRIVATE_SUPPORT_PATH_LABEL, PRIVACY_POLICY_LAST_UPDATED } from "@/lib/legal-documents";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | FawxzzyFitness",
@@ -42,7 +43,7 @@ function BulletList({
 
 function resolveReturnTo(value: string | string[] | undefined) {
   const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate && candidate.startsWith("/") ? candidate : undefined;
+  return isSafeAppPath(candidate) ? candidate : undefined;
 }
 
 export default async function PrivacyPolicyPage(

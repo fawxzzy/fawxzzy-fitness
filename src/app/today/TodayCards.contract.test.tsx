@@ -238,9 +238,10 @@ test("Today wiring: picker rows are ExerciseRowCards with the progression action
   assert.match(picker, /<TodayExerciseCard/);
   assert.match(picker, /<CardActionRow/);
   assert.match(picker, /label=\{`Progression update for \$\{exercise\.name\}`\}/);
-  assert.match(picker, /<RoutineOverviewDayCard[\s\S]*?asListItem/);
-  assert.match(picker, /<DayList /);
-  assert.match(picker, /<CardEmptyState\s+title="No exercises planned"/);
+  // Switch Day is the shared TodaySwitchDayList (ul>li semantics pinned in TodaySwitchDayCard.contract.test.tsx).
+  assert.match(picker, /<TodaySwitchDayList\b/);
+  // The empty training day is the shared empty-day card; its one action opens the Edit Day editor and returns here.
+  assert.match(picker, /<TodayEmptyDayCard\s+kind="empty"/);
   assert.match(picker, /getRoutineDayEditHref\(progressionRoutineId, selectedDay\.id, "\/today"\)/);
   // The progression handlers are untouched: apply, revert and the confirm flow keep their names and arguments.
   assert.match(picker, /revertProgressionItemFromTodayCard\(cardAppliedPin\)/);

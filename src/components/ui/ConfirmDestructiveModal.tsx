@@ -8,8 +8,12 @@ import { BottomActionSplit, BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/comp
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { cn } from "@/lib/cn";
 
-const MODAL_BACKDROP_CLASSNAME =
-  "bg-[rgba(7,17,27,0.015)]";
+// Confirm dialogs dim and blur the screen behind them clearly enough that the box reads as the only live surface.
+export const MODAL_BACKDROP_CLASSNAME =
+  "bg-[rgb(var(--bg-app)/0.38)]";
+export const MODAL_SHELL_CONTENT_FILTER = "blur(6px) brightness(0.8) saturate(0.9)";
+export const MODAL_PANEL_CLASSNAME =
+  "rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.95)] px-5 py-5 shadow-[var(--glass-shadow-overlay)] backdrop-blur-[18px]";
 const MODAL_BOTTOM_BAR_SURFACE_CLASSNAME =
   "bg-[linear-gradient(180deg,rgba(var(--bg-app),0.28)_0%,rgba(var(--bg-app),0.86)_18%,rgba(var(--bg-app),0.97)_100%)] backdrop-blur-[14px]";
 const DELETE_MODAL_CANCEL_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
@@ -133,8 +137,8 @@ export function ConfirmDestructiveModal({
     const previousTransform = shellContent.style.transform;
     const previousWillChange = shellContent.style.willChange;
 
-    shellContent.style.filter = "blur(1.5px) brightness(0.96) saturate(0.98)";
-    shellContent.style.transform = "scale(0.992) translateZ(0)";
+    shellContent.style.filter = MODAL_SHELL_CONTENT_FILTER;
+    shellContent.style.transform = "scale(0.985) translateZ(0)";
     shellContent.style.willChange = "filter";
     shellContent.style.transition = previousTransition
       ? `${previousTransition}, filter 180ms cubic-bezier(0.22, 1, 0.36, 1)`
@@ -180,17 +184,17 @@ export function ConfirmDestructiveModal({
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-[22rem]"
+        className="relative z-10 w-full max-w-[21rem]"
       >
         <div
           className={cn(
-            "rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]",
+            MODAL_PANEL_CLASSNAME,
             usesDeleteLayout || usesAttachedFooter ? "rounded-b-none border-b-0 pb-4" : undefined,
           )}
         >
-          <h2 id={titleId} className="text-center text-[1.3125rem] font-semibold leading-tight tracking-[-0.03em] text-text">{resolvedTitle}</h2>
+          <h2 id={titleId} className="text-center text-[1.1875rem] font-semibold leading-snug tracking-[-0.02em] text-text">{resolvedTitle}</h2>
           {!usesDeleteLayout && supportingLines.length > 0 ? (
-            <div className="mt-3 space-y-1.5 text-center text-[0.82rem] font-medium leading-snug text-[rgb(var(--text-muted)/0.84)]">
+            <div className="mt-2 space-y-1.5 text-center text-[0.9rem] font-medium leading-relaxed text-[rgb(var(--text-muted)/0.9)]">
               {supportingLines.map((line, index) => (
                 <p key={`${index}-${line}`}>{line}</p>
               ))}

@@ -5,6 +5,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { HistoryOfflineBridge } from "./HistoryOfflineBridge";
 import { HistoryOfflineShell } from "./HistoryOfflineShell";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { requireUser } from "@/lib/auth";
 import {
   getHistoryPreviewSessionsPageData,
@@ -117,6 +118,7 @@ export default async function HistoryPage(
         <HistoryRouteScaffold
           mode="overview"
           activeTab="sessions"
+          headerStatus={<OfflineSyncBadge userId={user.id} variant="header" label="Offline" />}
         >
           <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
           <HistoryOfflineShell userId={user.id} />
@@ -140,6 +142,7 @@ export default async function HistoryPage(
         <HistoryRouteScaffold
           mode="overview"
           activeTab="sessions"
+          headerStatus={<OfflineSyncBadge userId={user.id} variant="header" label="Offline" />}
         >
           <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
           <HistoryOfflineShell userId={user.id} initialSnapshot={historySnapshot} />
