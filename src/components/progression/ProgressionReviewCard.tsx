@@ -37,6 +37,8 @@ import {
   upsertProgressionAppliedPin,
 } from "@/lib/progression-applied-pins";
 import type { ActionResult } from "@/lib/action-result";
+import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { shouldDropProgressionPinAfterRevert } from "@/lib/progression-revert-messages";
 import { cn } from "@/lib/cn";
 
 type AppliedProgressionState = {
@@ -88,11 +90,13 @@ export function ProgressionReviewCard({
     routineDayExerciseId: string;
     candidateType: ProgressionReviewDisplayItem["type"];
     linkedRoutineDayExerciseIds?: string[];
+    expectedFromTarget?: ProgressionReviewDisplayItem["currentTarget"];
   }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
   revertAction: (payload: {
     routineId: string;
     routineDayExerciseId: string;
     previousTarget: ProgressionTargetPlan;
+    appliedTarget: ProgressionTargetPlan;
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
   expanded?: boolean;
@@ -362,7 +366,7 @@ export function ProgressionReviewCard({
                         const applied = appliedById[item.id] ?? null;
                         const isStaleSourceDeleted = applied?.lifecycleState === "stale_source_deleted";
                         const isRevertSettling = Boolean(revertSettlingById[item.id]);
-                        const canApply = item.type === "deload";
+                        const canApply = canShowProgressionCardAction({ candidateType: item.type, progressPercent: item.progress?.percent });
                         const isItemPending = isPending && pendingItemId === item.id;
                         const targetDisplay = resolveTargetDisplayPair({ item, applied });
                         const linkedTargets = item.linkedUpdate?.targets ?? [];
@@ -505,17 +509,21 @@ export function ProgressionReviewCard({
                                           routineId,
                                           routineDayExerciseId: item.id,
                                           previousTarget: applied.previousTarget,
+                                          appliedTarget: applied.appliedTarget,
                                           linkedPreviousTargets: applied.linkedTargets?.map((target) => ({
                                             routineDayExerciseId: target.routineDayExerciseId,
                                             previousTarget: target.previousTarget,
+                                            appliedTarget: target.appliedTarget,
                                           })),
                                         });
-                                        if (result.ok) {
+                                        // A revert that can never work again also drops the pin.
+                                        if (shouldDropProgressionPinAfterRevert(result)) {
                                           clearAppliedPin(item.id);
                                           if (pathname !== "/routines") {
                                             router.refresh();
                                           }
-                                        } else {
+                                        }
+                                        if (!result.ok) {
                                           setActionError(result.error);
                                         }
                                         setPendingItemId(null);
@@ -545,9 +553,11 @@ export function ProgressionReviewCard({
                                         routineDayExerciseId: item.id,
                                         candidateType: item.type,
                                         linkedRoutineDayExerciseIds: linkedTargets.length > 1 ? selectedLinkedIds : item.linkedUpdate?.routineDayExerciseIds,
+                                        expectedFromTarget: item.currentTarget,
                                       });
                                       if (result.ok && result.data) {
                                         const appliedTarget = result.data;
+                                        setActionError(appliedTarget.warning ?? null);
                                         const pin = buildProgressionAppliedPin({
                                           item: itemForAction,
                                           previousTarget: appliedTarget.previousTarget,

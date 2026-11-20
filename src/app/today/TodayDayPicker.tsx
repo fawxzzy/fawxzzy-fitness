@@ -17,6 +17,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { CardActionRow, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useToast } from "@/components/ui/ToastProvider";
 import { getRoutineDayEditHref, getRoutineEditHref } from "@/lib/routine-day-navigation";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
@@ -32,13 +33,14 @@ import type {
 } from "@/lib/progression-review-display";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
+import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { runTodayProgressionRevert } from "@/app/today/today-progression-revert";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
   getProgressionAppliedPinsStorageKey,
   PROGRESSION_APPLIED_PINS_CHANGED_EVENT,
   pruneExpiredProgressionAppliedPins,
-  removeProgressionAppliedPin,
   type ProgressionAppliedPin,
   upsertProgressionAppliedPin,
 } from "@/lib/progression-applied-pins";
@@ -162,11 +164,13 @@ export function TodayDayPicker({
     routineDayExerciseId: string;
     candidateType: ProgressionReviewDisplayItem["type"];
     linkedRoutineDayExerciseIds?: string[];
+    expectedFromTarget?: ProgressionTargetPlan | null;
   }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
   revertProgressionReviewCandidateAction?: (payload: {
     routineId: string;
     routineDayExerciseId: string;
     previousTarget: ProgressionTargetPlan;
+    appliedTarget: ProgressionTargetPlan;
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
 }) {
@@ -177,6 +181,7 @@ export function TodayDayPicker({
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
   const [cardPendingItemId, setCardPendingItemId] = useState<string | null>(null);
   const [cardActionError, setCardActionError] = useState<string | null>(null);
+  const toast = useToast();
   const [isCardActionPending, startCardActionTransition] = useTransition();
   const router = useRouter();
 
@@ -444,6 +449,7 @@ export function TodayDayPicker({
         routineDayExerciseId: item.id,
         candidateType: item.type,
         linkedRoutineDayExerciseIds: linkedTargets.length > 1 ? selectedLinkedIds : item.linkedUpdate?.routineDayExerciseIds,
+        expectedFromTarget: item.currentTarget,
       });
 
       if (result.ok && result.data) {
@@ -454,6 +460,11 @@ export function TodayDayPicker({
           linkedTargets: result.data.linkedTargets,
         });
         persistProgressionAppliedPins(upsertProgressionAppliedPin(readAllProgressionAppliedPins(), pin));
+        // The source day was promoted; a linked-day problem is reported, not hidden (the confirm
+        // modal that shows cardActionError closes on success, so use a toast).
+        if (result.data.warning) {
+          toast.warning(result.data.warning);
+        }
         setCardConfirmItem(null);
         setCardConfirmSelectedIds([]);
         router.refresh();
@@ -469,6 +480,7 @@ export function TodayDayPicker({
     progressionRoutineId,
     readAllProgressionAppliedPins,
     router,
+    toast,
   ]);
 
   const revertProgressionItemFromTodayCard = useCallback((pin: ProgressionAppliedPin) => {
@@ -479,22 +491,16 @@ export function TodayDayPicker({
     setCardActionError(null);
     setCardPendingItemId(pin.routineDayExerciseId);
     startCardActionTransition(async () => {
-      const result = await revertProgressionReviewCandidateAction({
+      // Drops the pin when the revert can never work again; every failure is a toast.
+      await runTodayProgressionRevert({
+        pin,
         routineId: progressionRoutineId,
-        routineDayExerciseId: pin.routineDayExerciseId,
-        previousTarget: pin.previousTarget,
-        linkedPreviousTargets: pin.linkedTargets?.map((target) => ({
-          routineDayExerciseId: target.routineDayExerciseId,
-          previousTarget: target.previousTarget,
-        })),
+        revertAction: revertProgressionReviewCandidateAction,
+        readPins: readAllProgressionAppliedPins,
+        persistPins: persistProgressionAppliedPins,
+        refresh: () => router.refresh(),
+        notify: toast,
       });
-
-      if (result.ok) {
-        persistProgressionAppliedPins(removeProgressionAppliedPin(readAllProgressionAppliedPins(), pin.routineDayExerciseId));
-        router.refresh();
-      } else {
-        setCardActionError(result.error);
-      }
 
       setCardPendingItemId(null);
     });
@@ -504,6 +510,7 @@ export function TodayDayPicker({
     readAllProgressionAppliedPins,
     revertProgressionReviewCandidateAction,
     router,
+    toast,
   ]);
 
   const openTodayCardPromotion = useCallback((item: ProgressionReviewDisplayItem) => {
@@ -706,16 +713,19 @@ export function TodayDayPicker({
                     {selectedDay.exercises.map((exercise) => {
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
-                      const canShowCardAction = cardReadyItem?.type === "deload";
                       const cardActionPending = isCardActionPending && (
                         cardPendingItemId === cardReadyItem?.id
                         || cardPendingItemId === cardAppliedPin?.routineDayExerciseId
                       );
-                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
                       const cardProgressFill = deriveExerciseCardProgressFill({
                         progressFill: selectedDayProgressFillByExerciseId.get(exercise.id) ?? null,
                         candidateType: cardReadyItem?.type ?? null,
                       });
+                      const canShowCardAction = canShowProgressionCardAction({
+                        candidateType: cardReadyItem?.type,
+                        progressPercent: cardProgressFill.progressPercent,
+                      });
+                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
                       const cardPromoteTargetPair = cardReadyItem
                         ? resolveTodayProgressionTargetDisplayPair(cardReadyItem)
                         : null;

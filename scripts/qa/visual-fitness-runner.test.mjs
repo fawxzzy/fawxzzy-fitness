@@ -159,8 +159,8 @@ test("deterministic capture style is registered as a navigation init script", as
 test("catalog count ledger returns reconciled coverage", () => {
   const result = assertVisualCatalogCountLedger();
 
-  assert.equal(result.coverage.semanticStates, 111);
-  assert.equal(result.coverage.rawCaptures, 313);
+  assert.equal(result.coverage.semanticStates, 110);
+  assert.equal(result.coverage.rawCaptures, 310);
   assert.equal(result.countDelta.reconciled, true);
 });
 
@@ -400,8 +400,8 @@ test("catalog manifest records provenance and requested/resolved routes without 
   });
   assert.equal(manifest.source.commit, "a".repeat(40));
   assert.equal(manifest.environment.browserVersion, "123.0.0.0");
-  assert.equal(manifest.registry.semanticStates, 111);
-  assert.equal(manifest.registry.rawCaptures, 313);
+  assert.equal(manifest.registry.semanticStates, 110);
+  assert.equal(manifest.registry.rawCaptures, 310);
   assert.equal(manifest.capturedCount, 1);
   assert.equal(manifest.captures[0]?.requestedRoute, "/privacy");
   assert.equal(manifest.captures[0]?.resolvedRoute, "/privacy");

@@ -36,7 +36,11 @@ export type ProgressionStatusType =
   | "top_range_not_met"
   | "incomplete_sets"
   | "manual"
-  | "unsupported";
+  | "unsupported"
+  | "promoted_awaiting_workout";
+
+export const PROMOTED_AWAITING_WORKOUT_LABEL = "Promoted";
+export const PROMOTED_AWAITING_WORKOUT_DETAIL = "Promoted. Log a workout at the new target.";
 
 export type ProgressionStatusDisplayItem = {
   id: string;
@@ -219,7 +223,13 @@ function classifyStatus(args: {
   historySource?: ProgressionAuditHistorySource | null;
   plan: ProgressionTargetPlan;
   rows: ProgressionHistorySetRow[];
+  awaitingWorkoutAfterPromotion?: boolean;
 }): ProgressionStatusType {
+  // A standing Manual Promote consumed the earlier workouts: this is not missing evidence.
+  if (args.awaitingWorkoutAfterPromotion && args.rejectionReason !== "manual_method") {
+    return "promoted_awaiting_workout";
+  }
+
   const reason = args.candidate.reason.toLowerCase();
   const targetLoad = getTargetLoad(args.plan);
   const maxLoggedLoad = getMaxLoggedLoad(args.rows);
@@ -288,6 +298,8 @@ function getStatusLabel(statusType: ProgressionStatusType) {
     return "Not progression-tracked";
   case "partial_progress":
     return "Progress status";
+  case "promoted_awaiting_workout":
+    return PROMOTED_AWAITING_WORKOUT_LABEL;
   }
 }
 
@@ -333,6 +345,8 @@ function getDetailLine(args: {
     return "Result: this exercise does not use progression updates.";
   case "partial_progress":
     return "Result: logged work exists, but no update is ready yet.";
+  case "promoted_awaiting_workout":
+    return PROMOTED_AWAITING_WORKOUT_DETAIL;
   }
 }
 
@@ -368,6 +382,7 @@ function formatRepRangeLabel(plan: ProgressionTargetPlan) {
 function resolveReadinessState(args: {
   candidate: ProgressionReviewCandidate;
   rejectionReason: ProgressionAuditRejectionReason | null;
+  statusType?: ProgressionStatusType;
 }) : ProgressionStatusSurfaceState {
   if (args.candidate.type !== "none") {
     return "ready";
@@ -375,6 +390,10 @@ function resolveReadinessState(args: {
 
   if (args.rejectionReason === "manual_method") {
     return "manual";
+  }
+
+  if (args.statusType === "promoted_awaiting_workout") {
+    return "not_ready";
   }
 
   if (
@@ -480,6 +499,7 @@ export function formatProgressionCalculationEvidence(args: {
   linkedMatchCount?: number | null;
   historyRows: ProgressionHistorySetRow[];
   plan: ProgressionTargetPlan;
+  awaitingWorkoutAfterPromotion?: boolean;
 }): ProgressionCalculationEvidence {
   const statusType = args.candidate.type === "none"
     ? classifyStatus({
@@ -488,6 +508,7 @@ export function formatProgressionCalculationEvidence(args: {
       historySource: args.historySource,
       plan: args.plan,
       rows: args.historyRows,
+      awaitingWorkoutAfterPromotion: args.awaitingWorkoutAfterPromotion,
     })
     : "partial_progress";
 
@@ -516,6 +537,8 @@ export function formatProgressionStatusDisplayItem(args: {
   linkedMatchCount?: number | null;
   historyRows: ProgressionHistorySetRow[];
   plan: ProgressionTargetPlan;
+  /** A Manual Promote stands and no workout has been logged at the new target yet. */
+  awaitingWorkoutAfterPromotion?: boolean;
 }): ProgressionStatusDisplayItem | null {
   if (args.candidate.type !== "none") {
     return null;
@@ -527,6 +550,7 @@ export function formatProgressionStatusDisplayItem(args: {
     historySource: args.historySource,
     plan: args.plan,
     rows: args.historyRows,
+    awaitingWorkoutAfterPromotion: args.awaitingWorkoutAfterPromotion,
   });
   const evidence = formatProgressionCalculationEvidence({
     candidate: args.candidate,
@@ -535,6 +559,7 @@ export function formatProgressionStatusDisplayItem(args: {
     linkedMatchCount: args.linkedMatchCount,
     historyRows: args.historyRows,
     plan: args.plan,
+    awaitingWorkoutAfterPromotion: args.awaitingWorkoutAfterPromotion,
   });
   const progress = resolveStatusProgress({
     plan: args.plan,
@@ -569,6 +594,8 @@ export function buildProgressionStatusSurfaceItem(args: {
   historyRows: ProgressionHistorySetRow[];
   plan: ProgressionTargetPlan;
   selection: ProgressionPlaybookSelection | null;
+  /** A Manual Promote stands and no workout has been logged at the new target yet. */
+  awaitingWorkoutAfterPromotion?: boolean;
 }): ProgressionStatusSurfaceItem {
   const statusItem = formatProgressionStatusDisplayItem({
     id: args.id,
@@ -581,6 +608,7 @@ export function buildProgressionStatusSurfaceItem(args: {
     linkedMatchCount: args.linkedMatchCount,
     historyRows: args.historyRows,
     plan: args.plan,
+    awaitingWorkoutAfterPromotion: args.awaitingWorkoutAfterPromotion,
   });
   const evidence = formatProgressionCalculationEvidence({
     candidate: args.candidate,
@@ -589,14 +617,16 @@ export function buildProgressionStatusSurfaceItem(args: {
     linkedMatchCount: args.linkedMatchCount,
     historyRows: args.historyRows,
     plan: args.plan,
+    awaitingWorkoutAfterPromotion: args.awaitingWorkoutAfterPromotion,
   });
+  const statusType = statusItem?.statusType;
   const readinessState = resolveReadinessState({
     candidate: args.candidate,
     rejectionReason: args.rejectionReason,
+    statusType,
   });
   const currentTarget = formatProgressionReviewTargetLabel(args.plan);
   const promotionConfig = getPromotionConfig(args.selection);
-  const statusType = statusItem?.statusType;
   const progress = args.candidate.type === "none"
     ? resolveStatusProgress({
       plan: args.plan,

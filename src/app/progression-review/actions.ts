@@ -1,9 +1,11 @@
 "use server";
+import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import {
   buildProgressionReviewTargetPlan,
   canUseCatalogHistoryFallbackForRoutineExercise,
   getProgressionReviewTargetFingerprintForExercise,
+  inferProgressionStepPolicyForRoutineExercise,
   loadProgressionHistoryForExercise,
   resolveRoutineExerciseRepTarget,
 } from "@/lib/progression-review-loader";
@@ -11,9 +13,22 @@ import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-tar
 import {
   buildProgressionHistorySessions,
   deriveProgressionReviewCandidate,
+  validateProgressionPlaybookSelection,
   type ProgressionHistorySetRow,
   type ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
+import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
+import { runManualPromotion, runProgressionRevert } from "@/lib/progression-manual-promotion";
+import { PROGRESSION_REVERT_MESSAGES } from "@/lib/progression-revert-messages";
+import {
+  createManualPromotionRepository,
+  LINKED_PROGRESSION_UPDATE_LIMIT,
+  PROGRESSION_MUTATION_EXERCISE_SELECT,
+  readMutationExercisesForRoutine,
+  verifyLinkedProgressionFingerprints,
+  type ProgressionReviewMutationExerciseRow,
+} from "@/lib/progression-manual-promotion-repository";
+import { revalidateRoutinesViews } from "@/lib/revalidation";
 import {
   buildProgressionEventPayload,
   extractProgressionSourceSessionId,
@@ -30,12 +45,11 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import type { RoutineDayExerciseRow } from "@/types/db";
 
-type ProgressionReviewMutationExerciseRow = RoutineDayExerciseRow & {
-  routine_day_id: string;
-};
-
-const PROGRESSION_MUTATION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
-const LINKED_PROGRESSION_UPDATE_LIMIT = 12;
+function revalidateProgressionViews(routineId: string) {
+  revalidatePath("/today");
+  revalidatePath(`/routines/${routineId}/edit`);
+  revalidateRoutinesViews();
+}
 
 function createLiveSessionMutationRepository(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
   return {
@@ -157,56 +171,52 @@ function resolveLinkedRoutineDayExerciseIds(sourceId: string, linkedIds?: string
   return ids.slice(0, LINKED_PROGRESSION_UPDATE_LIMIT + 1);
 }
 
-async function readMutationExercisesForRoutine(args: {
-  supabase: Awaited<ReturnType<typeof supabaseServer>>;
-  userId: string;
+
+/**
+ * Manual Promote (the only way a promotion happens since 2026-11-19). The server recomputes the
+ * candidate and the bar, requires a promote candidate on a full bar, refuses during any
+ * in-progress workout, refuses a repeat for the same source workout or a stale target, and writes
+ * with a conditional update. The bar resets because the standing promotion_applied consumes its
+ * source workout (Today and this action both count only newer workouts until a revert). If the
+ * audit row cannot be written the target is put back and the action fails.
+ */
+export async function promoteExerciseAction(payload: {
   routineId: string;
-  routineDayExerciseIds: string[];
-}): Promise<ActionResult<ProgressionReviewMutationExerciseRow[]>> {
-  if (args.routineDayExerciseIds.length > LINKED_PROGRESSION_UPDATE_LIMIT) {
-    return { ok: false, error: "Too many linked progression updates to apply at once." };
+  routineDayExerciseId: string;
+  expectedFromTarget: ProgressionTargetPlan | null;
+  linkedIds?: string[];
+}): Promise<ActionResult<ProgressionReviewApplyResult>> {
+  const user = await requireUser();
+  const supabase = await supabaseServer();
+
+  let result: Awaited<ReturnType<typeof runManualPromotion>>;
+  try {
+    result = await runManualPromotion(
+      createManualPromotionRepository({ supabase, userId: user.id, routineId: payload.routineId }),
+      {
+        routineDayExerciseId: payload.routineDayExerciseId,
+        expectedFromTarget: payload.expectedFromTarget,
+        linkedIds: payload.linkedIds,
+      },
+    );
+  } catch (error) {
+    console.error("[progression-review] manual promote failed", {
+      routineDayExerciseId: payload.routineDayExerciseId,
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    // runManualPromotion turns every failure after the source write into an ok result with a
+    // warning, so a throw here means nothing was promoted; refresh anyway so Today never shows a
+    // stale target.
+    revalidateProgressionViews(payload.routineId);
+    return { ok: false, error: "Could not verify this promotion. Try again." };
   }
 
-  const { data: exerciseRows, error: exerciseError } = await args.supabase
-    .from("routine_day_exercises")
-    .select(PROGRESSION_MUTATION_EXERCISE_SELECT)
-    .eq("user_id", args.userId)
-    .in("id", args.routineDayExerciseIds);
-
-  if (exerciseError || (exerciseRows?.length ?? 0) !== args.routineDayExerciseIds.length) {
-    return { ok: false, error: "Linked progression update is no longer available." };
+  if (!result.ok) {
+    return { ok: false, error: result.error };
   }
 
-  const exercises = (exerciseRows ?? []) as ProgressionReviewMutationExerciseRow[];
-  const routineDayIds = Array.from(new Set(exercises.map((exercise) => exercise.routine_day_id)));
-  const { data: routineDays, error: routineDaysError } = await args.supabase
-    .from("routine_days")
-    .select("id, routine_id")
-    .eq("user_id", args.userId)
-    .in("id", routineDayIds);
-
-  if (routineDaysError || (routineDays?.length ?? 0) !== routineDayIds.length) {
-    return { ok: false, error: "Could not verify linked routine days." };
-  }
-
-  const routineIdByDayId = new Map((routineDays ?? []).map((day) => [day.id, day.routine_id]));
-  if (exercises.some((exercise) => routineIdByDayId.get(exercise.routine_day_id) !== args.routineId)) {
-    return { ok: false, error: "Linked progression update is not part of this routine." };
-  }
-
-  const orderById = new Map(args.routineDayExerciseIds.map((id, index) => [id, index]));
-  return {
-    ok: true,
-    data: exercises.sort((left, right) => (orderById.get(left.id) ?? 0) - (orderById.get(right.id) ?? 0)),
-  };
-}
-
-function verifyLinkedProgressionFingerprints(args: {
-  sourceExercise: ProgressionReviewMutationExerciseRow;
-  linkedExercises: ProgressionReviewMutationExerciseRow[];
-}) {
-  const sourceFingerprint = getProgressionReviewTargetFingerprintForExercise(args.sourceExercise);
-  return args.linkedExercises.every((exercise) => getProgressionReviewTargetFingerprintForExercise(exercise) === sourceFingerprint);
+  revalidateProgressionViews(payload.routineId);
+  return { ok: true, data: result.data };
 }
 
 export async function applyProgressionReviewCandidateAction(payload: {
@@ -214,7 +224,18 @@ export async function applyProgressionReviewCandidateAction(payload: {
   routineDayExerciseId: string;
   candidateType: ProgressionReviewDisplayItem["type"];
   linkedRoutineDayExerciseIds?: string[];
+  expectedFromTarget?: ProgressionTargetPlan | null;
 }): Promise<ActionResult<ProgressionReviewApplyResult>> {
+  if (payload.candidateType === "promote") {
+    // Promotions go through the manual-promote gate only (bar at 100%, idempotent, conditional write).
+    return promoteExerciseAction({
+      routineId: payload.routineId,
+      routineDayExerciseId: payload.routineDayExerciseId,
+      expectedFromTarget: payload.expectedFromTarget ?? null,
+      linkedIds: payload.linkedRoutineDayExerciseIds,
+    });
+  }
+
   const user = await requireUser();
   const supabase = await supabaseServer();
 
@@ -275,17 +296,24 @@ export async function applyProgressionReviewCandidateAction(payload: {
     fallbackWeightUnit,
   });
 
-  if (candidate.type !== payload.candidateType || (candidate.type !== "promote" && candidate.type !== "deload") || !candidate.proposedTarget) {
+  // Deload only: promote never reaches this path (see promoteExerciseAction above).
+  if (candidate.type !== payload.candidateType || candidate.type !== "deload" || !candidate.proposedTarget) {
     return { ok: false, error: "Progression update is no longer applicable." };
   }
 
   const linkedRoutineDayExerciseIds = resolveLinkedRoutineDayExerciseIds(exercise.id, payload.linkedRoutineDayExerciseIds);
-  const linkedExercisesResult = await readMutationExercisesForRoutine({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseIds: linkedRoutineDayExerciseIds,
-  });
+  let linkedExercisesResult: Awaited<ReturnType<typeof readMutationExercisesForRoutine>>;
+  try {
+    linkedExercisesResult = await readMutationExercisesForRoutine({
+      supabase,
+      userId: user.id,
+      routineId: payload.routineId,
+      routineDayExerciseIds: linkedRoutineDayExerciseIds,
+    });
+  } catch {
+    // A read error is not "missing": nothing was written, so the person can simply retry.
+    return { ok: false, error: "Could not verify linked routine days. Try again." };
+  }
 
   if (!linkedExercisesResult.ok) {
     return { ok: false, error: linkedExercisesResult.error };
@@ -320,7 +348,7 @@ export async function applyProgressionReviewCandidateAction(payload: {
         routineId: payload.routineId,
         routineDayExerciseId: linkedExercise.id,
         exerciseId: linkedExercise.exercise_id,
-        eventType: candidate.type === "deload" ? "deload_applied" : "promotion_applied",
+        eventType: "deload_applied",
         fromTarget: linkedPreviousTarget,
         toTarget: candidate.proposedTarget,
         reason: candidate.reason,
@@ -338,6 +366,8 @@ export async function applyProgressionReviewCandidateAction(payload: {
     });
   }
 
+  revalidateProgressionViews(payload.routineId);
+
   return {
     ok: true,
     data: {
@@ -352,6 +382,7 @@ export async function revertProgressionReviewCandidateAction(payload: {
   routineId: string;
   routineDayExerciseId: string;
   previousTarget: ProgressionTargetPlan;
+  appliedTarget: ProgressionTargetPlan;
   linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
 }): Promise<ActionResult> {
   const user = await requireUser();
@@ -369,53 +400,32 @@ export async function revertProgressionReviewCandidateAction(payload: {
 
   const revertTargets = payload.linkedPreviousTargets && payload.linkedPreviousTargets.length > 0
     ? payload.linkedPreviousTargets
-    : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget }];
-  const linkedExercisesResult = await readMutationExercisesForRoutine({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseIds: revertTargets.map((target) => target.routineDayExerciseId),
-  });
-
-  if (!linkedExercisesResult.ok) {
-    return { ok: false, error: linkedExercisesResult.error };
+    : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget, appliedTarget: payload.appliedTarget }];
+  if (revertTargets.some((target) => !target.appliedTarget)) {
+    // A pin without the applied target can never pass the revert guard: treat it as no longer available.
+    return { ok: false, error: PROGRESSION_REVERT_MESSAGES.lost_race };
+  }
+  if (revertTargets.length > LINKED_PROGRESSION_UPDATE_LIMIT) {
+    return { ok: false, error: "Too many linked progression updates to apply at once." };
   }
 
-  const linkedExercises = linkedExercisesResult.data ?? [];
-  const linkedExerciseById = new Map(linkedExercises.map((exercise) => [exercise.id, exercise]));
-  for (const target of revertTargets) {
-    const linkedExercise = linkedExerciseById.get(target.routineDayExerciseId);
-    const currentTarget = linkedExercise ? buildProgressionReviewTargetPlan(linkedExercise) : null;
-    const { error: updateError } = await supabase
-      .from("routine_day_exercises")
-      .update(buildProgressionReviewTargetUpdate(target.previousTarget))
-      .eq("id", target.routineDayExerciseId)
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      return { ok: false, error: "Could not revert linked progression update." };
-    }
-
-    if (linkedExercise && currentTarget) {
-      await recordProgressionEvent({
-        supabase,
-        payload: buildProgressionEventPayload({
-          userId: user.id,
-          routineId: payload.routineId,
-          routineDayExerciseId: linkedExercise.id,
-          exerciseId: linkedExercise.exercise_id,
-          eventType: "promotion_reverted",
-          fromTarget: currentTarget,
-          toTarget: target.previousTarget,
-          reason: "Reverted an applied progression target.",
-          playbookId: linkedExercise.progression_playbook_id,
-          config: linkedExercise.progression_playbook_config,
-          sourceSessionId: null,
-        }),
-        context: "progressionReview.revertProgressionReviewCandidateAction",
-      });
-    }
+  let result: Awaited<ReturnType<typeof runProgressionRevert>>;
+  try {
+    result = await runProgressionRevert(
+      createManualPromotionRepository({ supabase, userId: user.id, routineId: payload.routineId }),
+      revertTargets,
+    );
+  } catch (error) {
+    console.error("[progression-review] revert failed", {
+      routineDayExerciseId: payload.routineDayExerciseId,
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    // A linked day may already be back: refresh so Today shows what is stored.
+    revalidateProgressionViews(payload.routineId);
+    return { ok: false, error: PROGRESSION_REVERT_MESSAGES.failed };
   }
 
-  return { ok: true };
+  // Refresh on failure too: an earlier linked day may already be reverted.
+  revalidateProgressionViews(payload.routineId);
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

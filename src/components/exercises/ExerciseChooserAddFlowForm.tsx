@@ -89,7 +89,6 @@ function applyAddExerciseProgressionMethod(
     progressionStallPolicy: value.progressionStallPolicy,
     progressionStallThreshold: value.progressionStallThreshold,
     progressionDeloadPercent: value.progressionDeloadPercent,
-    progressionAutoUpdateRoutineGoals: value.progressionAutoUpdateRoutineGoals,
     progressionSetFlow: value.progressionSetFlow,
     progressionSetFlowTimeDirection: value.progressionSetFlowTimeDirection,
     progressionSetFlowDistanceDirection: value.progressionSetFlowDistanceDirection,

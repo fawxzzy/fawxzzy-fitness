@@ -554,18 +554,6 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     currentSessionSaveSetHeaderPinned: true,
   }),
   buildWorkoutFixture({
-    id: "session-auto-progression-confirmation",
-    family: "Session / logging",
-    name: "Session logger: automatic progression confirmation",
-    fixture: "auto-progression-confirmation",
-    fixtureState: "session-auto-progression-confirmation-v1",
-    lastInteractiveRowBottom: 696,
-    activeSession: true,
-    statusChips: ["logged"],
-    cardStates: [{ cardId: "logger-strength-weight", state: "completed", badgeText: "Saved" }],
-    currentSessionSaveSetHeaderPinned: true,
-  }),
-  buildWorkoutFixture({
     id: "session-logger-cardio-time",
     family: "Session / logging",
     name: "Session logger: cardio time",

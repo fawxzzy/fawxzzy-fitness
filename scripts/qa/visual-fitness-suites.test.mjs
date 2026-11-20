@@ -161,11 +161,11 @@ test("protected history detail asserts the QA copilot-note fallback", () => {
 test("registry suite adapter expands the exact full and smoke denominators", () => {
   const full = listRegistryVisualFitnessSuites();
   const smoke = listRegistryVisualFitnessSuites({ tier: "smoke" });
-  assert.equal(full.length, 313);
+  assert.equal(full.length, 310);
   assert.ok(smoke.length >= 4);
   assert.ok(smoke.length < full.length);
-  assert.equal(new Set(full.map((suite) => suite.registry.captureId)).size, 313);
-  assert.equal(new Set(full.map((suite) => suite.expectedOutputFilename)).size, 313);
+  assert.equal(new Set(full.map((suite) => suite.registry.captureId)).size, 310);
+  assert.equal(new Set(full.map((suite) => suite.expectedOutputFilename)).size, 310);
 });
 
 test("registry suite adapter preserves requested and expected resolved routes separately", () => {
