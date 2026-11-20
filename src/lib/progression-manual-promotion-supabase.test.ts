@@ -23,7 +23,7 @@ import {
 import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
 import { shouldDropProgressionPinAfterRevert } from "@/lib/progression-revert-messages";
 import { PROMOTED_AWAITING_WORKOUT_DETAIL } from "@/lib/progression-status-display";
-import { createManualPromotionRepository } from "@/lib/progression-manual-promotion-repository";
+import { createManualPromotionRepository, ProgressionMutationReadError } from "@/lib/progression-manual-promotion-repository";
 import { loadProgressionUpdatesDisplayData } from "@/lib/progression-review-loader";
 import type { ProgressionHistorySetRow, ProgressionTargetPlan } from "@/lib/progression-playbooks";
 import type { RoutineDayExerciseRow } from "@/types/db";
@@ -924,4 +924,84 @@ test("linked days must be the user's, in the same routine, with the same target"
   assert.equal(result.ok, true);
   assert.deepEqual([target(db, "rde-1"), target(db, "rde-2")], [11, 11]);
   assert.deepEqual(db.progression_events.map((event) => event.routine_day_exercise_id), ["rde-1", "rde-2"]);
+});
+
+// --- Review round 5 (P2): a database read error is never "missing" ----------------------------------
+// not_available is final (the client drops the pin), so a transient read error must throw instead; the
+// action catches it and returns PROGRESSION_REVERT_MESSAGES.failed, which keeps the pin.
+
+/** The revert action's error handling around the real repository (actions.ts catches a throw). */
+async function revertLikeAction(db: Record<string, Row[]>, targets: RevertPin[], hooks: FakeHooks = {}) {
+  const fake = createSupabaseFake(db, hooks);
+  let thrown: unknown = null;
+  let result: { ok: true } | { ok: false; error: string };
+  try {
+    result = await runProgressionRevert(
+      createManualPromotionRepository({ supabase: fake.supabase, userId: USER, routineId: ROUTINE }),
+      targets,
+    );
+  } catch (error) {
+    thrown = error;
+    result = { ok: false, error: PROGRESSION_REVERT_MESSAGES.failed };
+  }
+  return { result, thrown, calls: fake.calls };
+}
+
+for (const table of ["routine_day_exercises", "routine_days"]) {
+  test(`revert: a ${table} read that fails once keeps the pin with a retryable error, writes nothing, and a retry works`, async () => {
+    const db = seed();
+    const first = await promote(db);
+    assert.equal(first.result.ok, true);
+    const pin = first.result.ok
+      ? { routineDayExerciseId: "rde-1", previousTarget: first.result.data.previousTarget, appliedTarget: first.result.data.appliedTarget }
+      : null;
+    assert.ok(pin);
+
+    let failures = 0;
+    const flaky = await revertLikeAction(db, [pin], {
+      fail: (call) => call.table === table && call.op === "select" && failures++ === 0,
+    });
+    assert.ok(flaky.thrown instanceof ProgressionMutationReadError, "a read error throws instead of reading as missing");
+    assert.deepEqual(flaky.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.failed });
+    assert.equal(shouldDropProgressionPinAfterRevert(flaky.result), false, "the pin is kept");
+    assert.equal(flaky.calls.filter((call) => call.op !== "select").length, 0, "nothing written");
+    assert.equal(target(db), 11);
+
+    const retry = await revertLikeAction(db, [pin]);
+    assert.deepEqual(retry.result, { ok: true });
+    assert.equal(target(db), 10);
+  });
+}
+
+test("revert: a routine slot that is really gone is not_available and drops the pin", async () => {
+  const db = seed();
+  const first = await promote(db);
+  const pin = first.result.ok
+    ? { routineDayExerciseId: "rde-1", previousTarget: first.result.data.previousTarget, appliedTarget: first.result.data.appliedTarget }
+    : null;
+  assert.ok(pin);
+  db.routine_day_exercises = db.routine_day_exercises.filter((row) => row.id !== "rde-1");
+
+  const gone = await revertLikeAction(db, [pin]);
+  assert.equal(gone.thrown, null);
+  assert.deepEqual(gone.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.not_available });
+  assert.equal(shouldDropProgressionPinAfterRevert(gone.result), true);
+  assert.equal(gone.calls.filter((call) => call.op !== "select").length, 0);
+});
+
+test("promote: a read error throws (retryable) instead of refusing as not_owned; nothing written", async () => {
+  for (const table of ["routine_day_exercises", "routine_days", "routines", "exercises"]) {
+    const db = seed();
+    const fake = createSupabaseFake(db, { fail: (call) => call.table === table && call.op === "select" });
+    await assert.rejects(
+      runManualPromotion(
+        createManualPromotionRepository({ supabase: fake.supabase, userId: USER, routineId: ROUTINE }),
+        { routineDayExerciseId: "rde-1", expectedFromTarget: planFor(db) },
+      ),
+      ProgressionMutationReadError,
+      `${table} read error`,
+    );
+    assert.equal(fake.calls.filter((call) => call.op !== "select").length, 0, `${table}: nothing written`);
+    assert.equal(target(db), 10);
+  }
 });

@@ -302,12 +302,18 @@ export async function applyProgressionReviewCandidateAction(payload: {
   }
 
   const linkedRoutineDayExerciseIds = resolveLinkedRoutineDayExerciseIds(exercise.id, payload.linkedRoutineDayExerciseIds);
-  const linkedExercisesResult = await readMutationExercisesForRoutine({
-    supabase,
-    userId: user.id,
-    routineId: payload.routineId,
-    routineDayExerciseIds: linkedRoutineDayExerciseIds,
-  });
+  let linkedExercisesResult: Awaited<ReturnType<typeof readMutationExercisesForRoutine>>;
+  try {
+    linkedExercisesResult = await readMutationExercisesForRoutine({
+      supabase,
+      userId: user.id,
+      routineId: payload.routineId,
+      routineDayExerciseIds: linkedRoutineDayExerciseIds,
+    });
+  } catch {
+    // A read error is not "missing": nothing was written, so the person can simply retry.
+    return { ok: false, error: "Could not verify linked routine days. Try again." };
+  }
 
   if (!linkedExercisesResult.ok) {
     return { ok: false, error: linkedExercisesResult.error };
@@ -416,7 +422,7 @@ export async function revertProgressionReviewCandidateAction(payload: {
     });
     // A linked day may already be back: refresh so Today shows what is stored.
     revalidateProgressionViews(payload.routineId);
-    return { ok: false, error: "Could not revert this progression update. Refresh and try again." };
+    return { ok: false, error: PROGRESSION_REVERT_MESSAGES.failed };
   }
 
   // Refresh on failure too: an earlier linked day may already be reverted.

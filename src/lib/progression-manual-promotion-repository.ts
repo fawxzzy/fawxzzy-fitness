@@ -36,6 +36,18 @@ export type ProgressionReviewMutationExerciseRow = RoutineDayExerciseRow & {
 export const PROGRESSION_MUTATION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
 export const LINKED_PROGRESSION_UPDATE_LIMIT = 12;
 
+/**
+ * A database read failed (not "row missing"). Readers throw it so callers never treat a transient
+ * error as a final answer: `not_available` / `not_owned` mean only missing, another user's, or
+ * outside the routine. The actions catch it and return a retryable message.
+ */
+export class ProgressionMutationReadError extends Error {
+  constructor(what: string) {
+    super(`Could not read ${what}.`);
+    this.name = "ProgressionMutationReadError";
+  }
+}
+
 export async function readMutationExercisesForRoutine(args: {
   supabase: Awaited<ReturnType<typeof supabaseServer>>;
   userId: string;
@@ -52,7 +64,10 @@ export async function readMutationExercisesForRoutine(args: {
     .eq("user_id", args.userId)
     .in("id", args.routineDayExerciseIds);
 
-  if (exerciseError || (exerciseRows?.length ?? 0) !== args.routineDayExerciseIds.length) {
+  if (exerciseError) {
+    throw new ProgressionMutationReadError("routine exercises");
+  }
+  if ((exerciseRows?.length ?? 0) !== args.routineDayExerciseIds.length) {
     return { ok: false, error: "Linked progression update is no longer available." };
   }
 
@@ -64,7 +79,10 @@ export async function readMutationExercisesForRoutine(args: {
     .eq("user_id", args.userId)
     .in("id", routineDayIds);
 
-  if (routineDaysError || (routineDays?.length ?? 0) !== routineDayIds.length) {
+  if (routineDaysError) {
+    throw new ProgressionMutationReadError("routine days");
+  }
+  if ((routineDays?.length ?? 0) !== routineDayIds.length) {
     return { ok: false, error: "Could not verify linked routine days." };
   }
 
@@ -114,27 +132,36 @@ export function createManualPromotionRepository(args: {
         .eq("id", routineDayExerciseId)
         .eq("user_id", userId)
         .maybeSingle();
-      if (error || !exerciseRow) {
+      if (error) {
+        throw new ProgressionMutationReadError("the routine exercise");
+      }
+      if (!exerciseRow) {
         return null;
       }
 
       const row = exerciseRow as ProgressionReviewMutationExerciseRow;
-      const { data: routineDay } = await supabase
+      const { data: routineDay, error: routineDayError } = await supabase
         .from("routine_days")
         .select("routine_id, day_index")
         .eq("id", row.routine_day_id)
         .eq("user_id", userId)
         .maybeSingle();
+      if (routineDayError) {
+        throw new ProgressionMutationReadError("the routine day");
+      }
       if (!routineDay || routineDay.routine_id !== routineId) {
         return null;
       }
 
-      const { data: routine } = await supabase
+      const { data: routine, error: routineError } = await supabase
         .from("routines")
         .select("weight_unit")
         .eq("id", routineId)
         .eq("user_id", userId)
         .maybeSingle();
+      if (routineError) {
+        throw new ProgressionMutationReadError("the routine");
+      }
       if (!routine) {
         return null;
       }
@@ -175,11 +202,14 @@ export function createManualPromotionRepository(args: {
     },
     async deriveCandidate(exercise, historyRows) {
       const row = exercise.row;
-      const { data: metadata } = await supabase
+      const { data: metadata, error: metadataError } = await supabase
         .from("exercises")
         .select("equipment, movement_pattern")
         .eq("id", row.exercise_id)
         .maybeSingle();
+      if (metadataError) {
+        throw new ProgressionMutationReadError("exercise details");
+      }
       return deriveProgressionReviewCandidate({
         playbookId: row.progression_playbook_id,
         config: row.progression_playbook_config,

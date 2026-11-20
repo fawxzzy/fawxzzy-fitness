@@ -13,6 +13,8 @@ export const PROGRESSION_REVERT_MESSAGES = {
   lost_race: "This target changed after this update, so Revert is no longer available.",
   audit_failed: "Could not save this revert, so the promoted target was kept. Try again.",
   audit_failed_unrestored: "This revert could not be saved and the promoted target could not be put back. Refresh and check this exercise's target before changing it.",
+  /** A read or write threw (e.g. a transient database error): retryable, the pin stays. */
+  failed: "Could not revert this progression update. Refresh and try again.",
 } as const;
 
 const TERMINAL_REVERT_ERRORS: ReadonlySet<string> = new Set([

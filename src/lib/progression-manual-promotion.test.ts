@@ -480,4 +480,7 @@ test("Today card Revert and the review card route revert results through the pin
   assert.match(reviewCard, /if \(shouldDropProgressionPinAfterRevert\(result\)\) \{\s+clearAppliedPin\(item\.id\);/);
   const actions = await readFile(new URL("../app/progression-review/actions.ts", import.meta.url), "utf8");
   assert.doesNotMatch(actions, /changed since it was promoted/);
+  // Round 5: a thrown read/write (e.g. a transient database error) returns the retryable copy, which keeps the pin.
+  assert.match(actions, /revert failed"[\s\S]{0,400}return \{ ok: false, error: PROGRESSION_REVERT_MESSAGES\.failed \};/);
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: false, error: REVERT_MESSAGES.failed }), false);
 });
