@@ -6,7 +6,6 @@ import { CardChips, CardStatusChip } from "@/components/ui/card-system";
 import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
 import { ExerciseRowCard, type ExerciseRowCardProgress } from "@/components/workout/ExerciseRowCard";
 import {
-  formatExerciseProgressionLabel,
   normalizeExerciseTargetSummary,
   splitExerciseTargetValues,
 } from "@/components/workout/exerciseRowCardValues";
@@ -41,13 +40,16 @@ const TODAY_META_FACT_LIMIT = 2;
 
 /**
  * Planned exercise on Today (selected day rows, in-session summary, offline fallback) and the view-day list.
- * One `ExerciseRowCard` (the same card as the day editor): thumbnail, name, meta, target, progress text.
+ * One `ExerciseRowCard` (the same card as the day editor and the in-progress workout): name, meta, goal line,
+ * progress, thumbnail top-right, info control bottom-right.
  *
  * - The card is static: Today rows never navigate or expand (`interaction: none`), so there is no header button.
- * - The info control is a 44px `CardInfoButton` in the trailing slot (it was a 26px overlay button).
- * - `completed` = success tone plus a DONE chip; `skipped` = SKIPPED chip on a compact card (no media, no target).
- *   Status is a text chip, never colour alone, and the card is not dimmed (opacity lowered text contrast).
- * - `progress` is text first (`2 / 4 sets`, `Progression: 3/4 sets`); the bar is decorative.
+ * - The info control is a 44px `CardInfoButton` in the controls slot (bottom-right).
+ * - `completed` = success tone plus a check mark beside the name (", done" for screen readers);
+ *   `skipped` = SKIPPED chip on a compact card (no media, no goal). The card is never dimmed.
+ * - No progression-mode bubbles (AUTO / SESSION / MANUAL): the progress bar says what matters.
+ * - `progress` is text first (`2 / 4 sets`, `Progression: 3/4 sets`); the bar is decorative. At 100% with a wired
+ *   `progress.promote` seam the Promote button shows at the bar's right end.
  * - `footer` is the attached action strip (progression update) and renders inside the surface.
  */
 export function TodayExerciseCard({
@@ -76,7 +78,6 @@ export function TodayExerciseCard({
   });
   const metaItems = isSkipped ? [] : surface === "today" ? facts.slice(0, TODAY_META_FACT_LIMIT) : facts;
   const targetValues = isSkipped || isStretchHub ? [] : splitExerciseTargetValues(normalizeExerciseTargetSummary(exercise.targets));
-  const progressionLabel = isSkipped || isStretchHub ? null : formatExerciseProgressionLabel(exercise.progressionStateLabel);
 
   return (
     <ExerciseRowCard
@@ -90,11 +91,9 @@ export function TodayExerciseCard({
       metaItems={metaItems}
       targetValues={targetValues}
       noTargetLabel={isSkipped || isStretchHub ? null : "No target set"}
-      progressionLabel={progressionLabel}
       progress={progress}
-      chips={state === "completed" ? (
-        <CardChips><CardStatusChip status="done" /></CardChips>
-      ) : isSkipped ? (
+      completed={state === "completed"}
+      chips={isSkipped ? (
         <CardChips><CardStatusChip status="skipped" /></CardChips>
       ) : undefined}
       showMedia={policy.showMedia && !isSkipped}

@@ -34,10 +34,13 @@ test("day settings autosave submits the stored day name unless the name field wa
   assert.doesNotMatch(form, /formData\.set\("name", nextSnapshot\.name\)/);
 });
 
-test("exercise card trailing controls are stacked 44px targets and the sticky header keeps working when expanded", () => {
+test("exercise card side column: thumbnail top-right, 44px controls bottom-right, sticky header keeps working when expanded", () => {
   const card = readFileSync(here("../../workout/ExerciseRowCard.tsx"), "utf8");
 
-  assert.match(card, /trailingClassName="flex-col"/);
+  assert.match(card, /trailingClassName="pointer-events-none flex-col self-stretch !items-end justify-between gap-2 py-2"/);
+  assert.match(card, /data-exercise-controls="true" className="pointer-events-auto flex items-center gap-0\.5">\{trailing\}/);
+  assert.doesNotMatch(card, /leading=\{/, "no leading media: the thumbnail moved to the side column");
+  assert.doesNotMatch(card, /StatBlock|targetLabel|progressionLabel/);
   assert.match(card, /stickyHeader && interaction\.kind === "toggle" && interaction\.expanded/);
   assert.match(card, /allowOverflow=/);
   assert.match(card, /size=\{EXERCISE_ROW_THUMB_SIZE\}/);

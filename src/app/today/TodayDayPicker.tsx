@@ -139,6 +139,7 @@ export function TodayDayPicker({
   progressionRoutineId,
   applyProgressionReviewCandidateAction,
   revertProgressionReviewCandidateAction,
+  onPromoteExercise,
 }: {
   days: TodayDay[];
   currentDayIndex: number | null;
@@ -166,6 +167,12 @@ export function TodayDayPicker({
     previousTarget: ProgressionTargetPlan;
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
+  /**
+   * SERVER-ACTION SEAM for the manual Promote button (decided by a separate investigation). Not passed today, so the
+   * button stays hidden in the app; when given, a card whose progression bar is full (ready, 100%) shows Promote at
+   * the bar's right end and calls this once per tap. The automatic trigger and the progression rules are untouched.
+   */
+  onPromoteExercise?: (payload: { routineId: string | null; routineDayExerciseId: string; exerciseName: string }) => void;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => currentDayIndex ?? days[0]?.dayIndex ?? 1);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -746,6 +753,13 @@ export function TodayDayPicker({
                               label: `Progression: ${cardProgressFill.fill.label}`,
                               percent: cardProgressFill.fill.percent,
                               tone: cardProgressFill.state === "ready" ? "complete" : "default",
+                              promote: cardProgressFill.state === "ready" && onPromoteExercise ? {
+                                onPromote: () => onPromoteExercise({
+                                  routineId: progressionRoutineId ?? null,
+                                  routineDayExerciseId: exercise.id,
+                                  exerciseName: exercise.name,
+                                }),
+                              } : null,
                             } : null}
                             footer={cardProgressionAction ? (
                               <CardActionRow

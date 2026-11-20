@@ -67,7 +67,6 @@ export function ReorderExerciseRow({
           movementPattern: movement_pattern,
           equipment,
         }).slice(0, 2)}
-        targetLabel="Goal"
         targetValues={targetValues}
         showMedia={policy.showMedia}
         tone={isDragging ? "current" : "neutral"}

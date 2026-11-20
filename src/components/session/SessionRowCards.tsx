@@ -32,8 +32,9 @@ import { cn } from "@/lib/cn";
 
 export type SessionStatusChip = "done" | "skipped" | "added" | null;
 
+/** Text chip for skipped and added rows. A finished row has no chip: `ExerciseRowCard` draws the check beside its name. */
 function SessionStatusChips({ status }: { status: SessionStatusChip }) {
-  if (status === null) {
+  if (status === null || status === "done") {
     return null;
   }
 
@@ -56,7 +57,6 @@ export function SessionExerciseRowCard({
   onToggle,
   metaItems,
   targetValues,
-  progressionLabel,
   progress,
   status,
   tone,
@@ -72,7 +72,6 @@ export function SessionExerciseRowCard({
   onToggle: () => void;
   metaItems: string[];
   targetValues: string[];
-  progressionLabel?: string | null;
   progress?: ExerciseRowCardProgress | null;
   status: SessionStatusChip;
   tone: CardTone;
@@ -89,8 +88,8 @@ export function SessionExerciseRowCard({
       exercise={exercise}
       metaItems={metaItems}
       targetValues={targetValues}
-      progressionLabel={progressionLabel}
       progress={progress}
+      completed={status === "done"}
       chips={<SessionStatusChips status={status} />}
       showMedia={showMedia}
       tone={tone}
@@ -128,6 +127,7 @@ export function SessionHiddenRowCard({
       metaItems={[]}
       targetValues={[]}
       progress={progress}
+      completed={status === "done"}
       chips={<SessionStatusChips status={status} />}
       showMedia={false}
       tone={status === "skipped" ? "attention" : "completed"}

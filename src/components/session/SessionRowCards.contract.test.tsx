@@ -41,7 +41,6 @@ function renderRow(expanded: boolean, extra: Partial<Parameters<typeof SessionEx
       onToggle={() => {}}
       metaItems={["Quads", "Squat"]}
       targetValues={["4 sets", "5 reps", "225 lbs"]}
-      progressionLabel="AUTO"
       progress={{ label: "1 / 4 sets", percent: 25 }}
       status={null}
       tone="logged"
@@ -94,8 +93,17 @@ test("info control is a sibling 44px card control (not inside the header button)
   assert.doesNotMatch(html, /<button[^>]*data-card-hit[^>]*>[^<]*<(button|span)/, "header button has no children");
 });
 
-test("status chip: DONE and SKIPPED carry a glyph, Added is plain text, none renders no chip", () => {
-  assert.match(renderRow(false, { status: "done" }), /✓[\s\S]*Done/);
+test("status: a finished row is a check beside the name (no chip); SKIPPED keeps its glyph chip, Added is plain text, none renders no chip", () => {
+  const done = renderRow(false, { status: "done" });
+  assert.match(done, /<h2[^>]*data-card-title="true"[^>]*>Zed Press<span data-exercise-done-check="true"[^>]*>[\s\S]*?<span class="sr-only">, done<\/span><\/span><\/h2>/);
+  assert.match(done, /data-exercise-done-check="true"[^>]*motion-reduce:animate-none/);
+  assert.doesNotMatch(done, /data-card-chip=/);
+  assert.doesNotMatch(renderRow(false, { status: null }), /data-exercise-done-check/);
+  const hiddenDone = renderToStaticMarkup(
+    <SessionHiddenRowCard exercise={exercise} status="done" progress={null} action={<button type="button">Show</button>} />,
+  );
+  assert.match(hiddenDone, /data-exercise-done-check="true"/);
+  assert.doesNotMatch(hiddenDone, /data-card-chip=/);
   assert.match(renderRow(false, { status: "added" }), />Added</);
   assert.doesNotMatch(renderRow(false, { status: null }), /data-card-chip=/);
   const hidden = renderToStaticMarkup(
@@ -103,7 +111,8 @@ test("status chip: DONE and SKIPPED carry a glyph, Added is plain text, none ren
   );
   assert.match(hidden, /⊘[\s\S]*Skipped/);
   assert.match(hidden, /Unskip/);
-  assert.doesNotMatch(hidden, /data-card-leading/, "hidden row has no thumbnail");
+  assert.doesNotMatch(hidden, /data-card-leading|data-exercise-thumb-slot/, "hidden row has no thumbnail");
+  assert.doesNotMatch(hidden, /data-exercise-done-check/);
 });
 
 test("quick-log row: Skip, Log all and Log set keep their order, 44px height class and label-in-name", () => {

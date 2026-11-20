@@ -24,7 +24,6 @@ import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCar
 import { buildTodayExerciseLoggedProgress } from "@/app/today/TodayExerciseRows";
 import type { ExerciseRowCardProgress } from "@/components/workout/ExerciseRowCard";
 import {
-  formatExerciseProgressionLabel,
   normalizeExerciseTargetSummary,
   splitExerciseTargetValues,
 } from "@/components/workout/exerciseRowCardValues";
@@ -49,7 +48,6 @@ import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visib
 import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import {
   areSessionLoggerDraftStatesEqual,
-  buildSessionProgressionFeedbackSummaryLabel,
   buildSessionSavedFeedbackLabel,
   hasSavedSessionExerciseFeedback,
 } from "@/lib/session-feedback-ui";
@@ -1071,11 +1069,6 @@ export function SessionExerciseFocus({
             movementPattern: exercise.movement_pattern,
             equipment: exercise.equipment,
           }).slice(0, 2);
-          const copilotFeedbackSignal = draftState?.copilotFeedbackSignal ?? exercise.copilotFeedbackSignal ?? null;
-          const progressionStateLabel = buildSessionProgressionFeedbackSummaryLabel({
-            progressionFormState: exercise.progressionFormState ?? null,
-            copilotFeedbackSignal,
-          });
           const exerciseVisual = {
             name: exercise.name,
             slug: exercise.slug,
@@ -1092,7 +1085,6 @@ export function SessionExerciseFocus({
                 : null;
           const rowCardTone: CardTone = isExpanded && semanticTone !== "completed" ? "current" : semanticTone;
           const rowTargetValues = isStretchHub ? [] : splitExerciseTargetValues(normalizeExerciseTargetSummary(exerciseSummary));
-          const rowProgressionLabel = isStretchHub ? null : formatExerciseProgressionLabel(progressionStateLabel);
 
           const sessionPanel = (
               <>
@@ -1461,7 +1453,6 @@ export function SessionExerciseFocus({
                     onToggle={() => toggleExercise(exercise.id)}
                     metaItems={headerMetaItems}
                     targetValues={rowTargetValues}
-                    progressionLabel={rowProgressionLabel}
                     progress={rowProgress}
                     status={rowStatus}
                     tone={rowCardTone}

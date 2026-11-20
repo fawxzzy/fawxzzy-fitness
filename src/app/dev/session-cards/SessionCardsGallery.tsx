@@ -62,7 +62,6 @@ export function SessionCardsGallery() {
             onToggle={() => setExpanded((value) => !value)}
             metaItems={["Quads", "Squat"]}
             targetValues={["4 sets", "5 reps", "225 lbs"]}
-            progressionLabel="AUTO · SESSION"
             progress={{ label: "1 / 4 sets", percent: 25 }}
             status={null}
             tone="logged"

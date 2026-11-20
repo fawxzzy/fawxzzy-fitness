@@ -199,12 +199,11 @@ export function CardSystemGallery() {
         </ul>
       </Section>
 
-      <Section title="Exercise card" note="Thumbnail, name, meta, target. Info and drag handle are separate 44px controls. Tap toggles the editor panel.">
+      <Section title="Exercise card" note="Name, meta and goal line on the left; thumbnail top-right; info and drag handle bottom-right as separate 44px controls. Tap toggles the editor panel.">
         <ExerciseRowCard
           exercise={{ name: "Back Squat" }}
           metaItems={["Quads", "Squat"]}
           targetValues={["4 sets", "5 reps", "225 lbs"]}
-          progressionLabel={"AUTO · SESSION · SET"}
           interaction={{ kind: "toggle", expanded: false, onToggle: noop, controlsId: "gallery-ex-closed" }}
           trailing={<><DragHandle label="Reorder Back Squat" /><CardInfoButton label="Open exercise info for Back Squat" /></>}
         />
@@ -220,7 +219,7 @@ export function CardSystemGallery() {
         />
       </Section>
 
-      <Section title="Today exercise cards" note="Static cards: thumbnail, name, meta, target, logged progress as text. DONE and SKIPPED are chips; skipped is compact. Info is a 44px control.">
+      <Section title="Today exercise cards" note="Static cards: name, meta, goal line, logged progress as text, thumbnail top-right. Finished is a check beside the name; SKIPPED is a chip on a compact card. Info is a 44px control bottom-right.">
         <TodayExerciseRows exercises={todayRows} emptyMessage="No exercises today." />
       </Section>
 
