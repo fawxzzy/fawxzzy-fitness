@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { FloatingHeaderSlot } from "@/components/layout/FloatingHeaderRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -14,7 +14,10 @@ type HistoryOverviewRouteScaffoldProps = {
   mode: "overview";
   activeTab: "sessions" | "exercises" | "progression";
   children: ReactNode;
+  /** Show the app menu top right on the header line (default true). */
   showTopChrome?: boolean;
+  /** Inline status on the History title line ("– Offline"), see ScreenHeader `status`. */
+  headerStatus?: ReactNode;
   /** Filters that stay pinned under the segmented control (Exercises portals its search here). */
   floatingHeaderSlot?: ReactNode;
   contentRailClassName?: string;
@@ -46,6 +49,8 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
           <ScreenHeader
             kind="tab"
             title="History"
+            appMenu
+            status={props.headerStatus}
             trailing={props.activeTab === "progression" ? undefined : <div id={HISTORY_HEADER_TRAILING_SLOT_ID} className="contents" />}
           />
           <ContentRail className={cn(appTokens.historyOverviewHeaderStack, "pb-2", props.floatingHeaderRailClassName)}>
@@ -72,7 +77,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
     <MainTabScreen topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
         className={props.mode === "detail" ? "!overflow-y-hidden" : undefined}
-        topChrome={showTopChrome ? <AppNav mode="topChrome" /> : undefined}
+        headerMenu={showTopChrome ? <AppMenu /> : undefined}
         floatingHeader={floatingHeader}
       >
         <ContentRail

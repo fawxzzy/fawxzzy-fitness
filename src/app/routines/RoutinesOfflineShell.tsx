@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import { RoutinesCardList, RoutinesListItem, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
 import { SubtitleText } from "@/components/ui/text-roles";
@@ -32,7 +31,6 @@ export function RoutinesOfflineShell({
 
   return (
     <SharedDayListSection>
-      <OfflineSyncBadge userId={userId} label="Offline" />
       {cachedSnapshot ? (
         <>
           <RoutinesCardList>

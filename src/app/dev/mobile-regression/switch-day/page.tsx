@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
 import { findSwitchDayVariant, SWITCH_DAY_VARIANTS } from "@/app/dev/switch-day/switchDayFixtures";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
 import { AppBackdropOverride } from "@/components/layout/AppBackdrop";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -48,8 +48,15 @@ export default async function DevSwitchDayFullScreenPage(
       <RegressionBodyFlag />
       <div hidden data-mobile-regression-root="true" data-mobile-regression-id={`switch-day-${variant.id}`} data-mobile-regression-screen="today" />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<div id="today-floating-header-slot" />}
+        headerMenu={<AppMenu activePathnameOverride="/today" />}
+        floatingHeader={(
+          // Both header slots, as /today mounts them: the picker portals the "Today" header (with the app menu) into
+          // the switch slot while Switch Day is open, and into the day slot while it is closed.
+          <>
+            <div id="today-routine-switch-floating-header-slot" />
+            <div id="today-floating-header-slot" />
+          </>
+        )}
       >
         <ContentRail className="space-y-3">
           <TodayDayPicker
@@ -61,6 +68,7 @@ export default async function DevSwitchDayFullScreenPage(
             routineName={variant.routineName}
             startDate={variant.startDate}
             floatingHeaderSlotId="today-floating-header-slot"
+            switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
             progressionRoutineId="routine-dev"
             initialPickerOpen={searchParams.closed !== "1" && searchParams.noSchedule !== "1"}
             noScheduledDayMessage={searchParams.noSchedule === "1" ? "No scheduled workout" : null}

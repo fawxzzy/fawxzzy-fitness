@@ -11,6 +11,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { AppMenu } from "@/components/AppNav";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
@@ -207,7 +208,7 @@ export function SessionPageClient({
       routineName={routineName}
       sessionDayName={sessionDayName}
       backHref={fallbackReturnHref ?? "/today"}
-      statusBadge={<OfflineSyncBadge userId={userId} />}
+      statusBadge={<OfflineSyncBadge userId={userId} variant="header" />}
       exerciseOpen={selectedExerciseId !== null}
       onCloseExercise={() => setSelectedExerciseId(null)}
     />
@@ -276,7 +277,7 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} headerMenu={<AppMenu />} floatingHeader={floatingHeader}>
       <PublishBottomActions>{sessionActions}</PublishBottomActions>
 
       <ContentRail className={cn(appTokens.currentSessionContentRail, "!gap-0 !py-0")}>

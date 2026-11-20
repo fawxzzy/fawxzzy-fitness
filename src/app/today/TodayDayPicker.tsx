@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
@@ -129,6 +129,7 @@ export function TodayDayPicker({
   routineName,
   startDate,
   floatingHeaderSlotId,
+  headerStatus,
   switchFloatingHeaderSlotId,
   initialPickerOpen = false,
   initialSelectedDayIndex = null,
@@ -149,6 +150,8 @@ export function TodayDayPicker({
   startDate: string | null;
   floatingHeaderSlotId?: string;
   switchFloatingHeaderSlotId?: string;
+  /** Inline status on the Today title line ("– Offline"), see ScreenHeader `status`. */
+  headerStatus?: ReactNode;
   /** Open Switch Day on first render (dev previews of the picker only; the live page always starts closed). */
   initialPickerOpen?: boolean;
   /** Select this day on first render instead of today (dev previews only). */
@@ -594,16 +597,18 @@ export function TodayDayPicker({
     ? (
       <ScreenHeader
         kind="tab"
+        appMenu
         title="Today"
         subtitle={formatTodayHeaderSubtitle(
           formatRoutineDayStableDisplayName({ name: selectedDay.name, dayIndex: selectedDay.dayIndex, startDate }),
           routineName,
         )}
+        status={headerStatus}
       />
     )
     : null;
   const switchHeaderNode = selectedDay && mode.dayPickerOpen
-    ? <ScreenHeader kind="tab" title="Today" subtitle={routineName.trim() || null} />
+    ? <ScreenHeader kind="tab" appMenu title="Today" subtitle={routineName.trim() || null} status={headerStatus} />
     : null;
 
   const actionsNode = useMemo(() => {

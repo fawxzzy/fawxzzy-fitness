@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -17,7 +17,7 @@ export function TodayRouteScaffold({
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
+        headerMenu={<AppMenu />}
         floatingHeader={floatingHeader}
       >
         {children}

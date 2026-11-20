@@ -35,6 +35,11 @@ for (const key of copied) {
   // `navigator` is a getter on Node 22, so use defineProperty rather than assignment.
   Object.defineProperty(globalThis, key, { value: (window as unknown as Record<string, unknown>)[key], configurable: true, writable: true });
 }
+// next/link's prefetch-on-visible path schedules work with `self.requestIdleCallback`; Node has no `self`. Any
+// screen with a header now renders the app menu's links, so every DOM test needs it.
+if (typeof (globalThis as { self?: unknown }).self === "undefined") {
+  Object.defineProperty(globalThis, "self", { value: window, configurable: true, writable: true });
+}
 // jsdom has no Performance Timeline entries; the back-navigation hook asks for the navigation entry type.
 if (typeof window.performance.getEntriesByType !== "function") {
   (window.performance as unknown as { getEntriesByType: () => unknown[] }).getEntriesByType = () => [];
