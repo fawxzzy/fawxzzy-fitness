@@ -35,10 +35,10 @@ test("Today page's in-progress-session exercise list tells TodayExerciseRows whe
 
 test("TodayDayPicker renders a deliberate rest-day card for the closed-picker selected-rest-day case", () => {
   const source = readSource("./TodayDayPicker.tsx");
-  assert.match(source, /import \{[\s\S]*?RestDayCard,[\s\S]*?\} from "@\/components\/day-list\/RoutineDayCardPresentation";/);
+  assert.match(source, /import \{ TodayEmptyDayCard \} from "@\/app\/today\/TodayEmptyDayCard";/);
   assert.match(source, /const selectedDayRestCard = useMemo\(\(\) => \{/);
   assert.match(source, /if \(mode\.dayPickerOpen \|\| !mode\.restDay \|\| !selectedDay\) \{/);
-  assert.match(source, /return <RestDayCard headingLevel=\{2\} \/>;/);
+  assert.match(source, /return <TodayEmptyDayCard kind="rest" \/>;/);
   // The rest card takes the slot before the day summary card; the exercise rows never render beside it.
   assert.match(source, /\{selectedDayRestCard \?\? selectedDaySummaryNode\}/);
 });

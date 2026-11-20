@@ -1,5 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-19 - Lane D: Switch Day cards, one Today empty-state card, static Today backdrop
+
+- Type: UI (Today screen; no data, schema or server change)
+- WHAT changed: Switch Day uses new `TodaySwitchDayCard`/`TodaySwitchDayList` (model in `src/lib/today-switch-day.ts`): no chips or tag row, the day name plus a plain meta line and a snapshot of the first three exercise names (`and N more`), rest days a one-line `Rest day` card, selection shown by the green tone, `aria-pressed` and a check. Today's empty day, rest day and no-schedule states share `TodayEmptyDayCard` (centred title, no second line; `Edit day` opens the Edit Day editor, `Edit routine` the routine editor). Today draws a static token-only backdrop (`AppBackdrop`, aurora) instead of the animated ambient scene; other screens are unchanged. Dev previews: `/dev/switch-day` (12 variants), `/dev/mobile-regression/switch-day?variant=` (full screen), `/dev/today-backgrounds` (the three looks on the live Today screen).
+- WHY it changed: Zac's Today review (2026-11-19): tag rows made cards noisy, Day 3 showed a stray "+", empty states had redundant second lines, and the background needed to be calmer.
+- Rule: A decorative layer behind content draws no shapes that can sit in the gap between cards (gradients only by default), is aria-hidden, pointer-events none and absolute; an overflow count is words (`and 2 more`), never a bare `+N`.
+- Failure Mode: The "+" was not reproduced in code (no "+" glyph exists in the picker); the likeliest source is the ambient scene's dashed crosshair geometry showing through card gaps. The fix removes every candidate rather than one proven cause; a real-phone look is still owed. `No scheduled workout` is only reachable in dev previews today (production passes no message).
+- Status: Source only, headless-only (390x844 DPR3 standalone emulation), not device-checked.
+- Follow-up (merge with #294, review P2/P3): the three new dev pages are in the strict `pagesWithSharedGuard` list (`src/lib/dev-route-guard.test.ts`); `Edit routine` links `/routines/[id]/edit?returnTo=%2Ftoday` (`getRoutineEditHref(id, returnTo)`) and the routine editor's back button honours a safe in-app `returnTo` (`resolveRoutineEditBackHref`, falls back to the routine home; autosave still returns to the routine home). Lane D tests are also named in the CI contract step.
+
 ## 2026-11-19 - Today review lane A follow-up: discard succeeds once the rows are gone, notices stay on their screen
 
 - Type: UI behaviour and error handling (source)

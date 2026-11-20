@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { RoutineOverviewDayCard, RestDayCard, type RoutineOverviewDayCardItem } from "@/components/day-list/RoutineDayCardPresentation";
 import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
+import { TodayEmptyDayCard } from "@/app/today/TodayEmptyDayCard";
 import { TodayExerciseRows, type TodayExerciseRow } from "@/app/today/TodayExerciseRows";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
@@ -225,15 +226,11 @@ export function CardSystemGallery() {
       </Section>
 
       <Section title="Today empty and state cards" note="Rest day, empty day (with the way out), partial and blocked days, no scheduled workout.">
-        <RestDayCard headingLevel={2} />
-        <CardEmptyState
-          title="No exercises planned"
-          body="Add exercises to this day to start a workout from Today."
-          action={<span className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[rgb(var(--accent)/0.4)] px-4 text-sm font-semibold">Add exercises</span>}
-        />
+        <TodayEmptyDayCard kind="rest" />
+        <TodayEmptyDayCard kind="empty" actionHref="/routines/routine-gallery/edit/day/day-gallery?returnTo=%2Ftoday" />
         <TodayDayStateCard tone="warning" title="Some exercises will be skipped" body="Some exercises could not be loaded and will be skipped when you start this workout." />
         <TodayDayStateCard tone="blocking" title="Edit this day first" body="This day has invalid exercises. Edit the day before starting a workout." />
-        <TodayDayStateCard title="No scheduled workout today." body="Pick a day to run from Switch Day." />
+        <TodayEmptyDayCard kind="noSchedule" actionHref="/routines/routine-gallery/edit" />
       </Section>
 
       <Section title="Notices" note="Inline screen notices: status for neutral and attention, alert for danger; a glyph backs the colour.">
