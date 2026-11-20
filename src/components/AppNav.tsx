@@ -21,6 +21,37 @@ type NavLink = AppMenuDestination & { Icon: NavIcon };
 
 const NAV_PENDING_HINT_DELAY_MS = 140;
 
+let cancelPendingClickSwallow: (() => void) | null = null;
+
+// A tap outside the open menu only closes it, like a modal scrim: the click that follows the outside `pointerdown`
+// must not also press the button or link under the finger. Swallow exactly that one click (capture phase, before
+// React sees it). If no click follows (a scroll turns the touch into `pointercancel`, or the next input is a new
+// pointerdown or a key press), drop the swallow so a later, unrelated click or keyboard activation still works.
+function swallowNextClick() {
+  cancelPendingClickSwallow?.();
+  const swallow = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cancel();
+  };
+  const cancel = () => {
+    document.removeEventListener("click", swallow, true);
+    document.removeEventListener("pointercancel", cancel, true);
+    document.removeEventListener("pointerdown", cancel, true);
+    document.removeEventListener("keydown", cancel, true);
+    if (cancelPendingClickSwallow === cancel) {
+      cancelPendingClickSwallow = null;
+    }
+  };
+  // Added while the current pointerdown is being dispatched on document, so this pointerdown listener only fires for
+  // the NEXT pointerdown (DOM listeners added during dispatch to the same target are not invoked for that event).
+  document.addEventListener("click", swallow, true);
+  document.addEventListener("pointercancel", cancel, true);
+  document.addEventListener("pointerdown", cancel, true);
+  document.addEventListener("keydown", cancel, true);
+  cancelPendingClickSwallow = cancel;
+}
+
 // Icons only. The destinations themselves (href, label, order) come from `APP_MENU_DESTINATIONS` in
 // `src/lib/app-menu.ts`, the one list the active-route rules and the tests also read.
 const NAV_ICONS: Record<string, NavIcon> = {
@@ -190,6 +221,7 @@ export function AppMenu({ activePathnameOverride }: { activePathnameOverride?: s
       if (event.target instanceof Node && (rootRef.current?.contains(event.target) || panelRef.current?.contains(event.target))) {
         return;
       }
+      swallowNextClick();
       setOpen(false);
     };
 

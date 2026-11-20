@@ -12,6 +12,9 @@ import { APP_MENU_DESTINATIONS } from "../../src/lib/app-menu.ts";
 
 afterEach(() => {
   cleanup();
+  // An outside pointerdown with no click after it (fireEvent does not synthesize the click) leaves the menu's
+  // one-shot click swallow armed; a pointercancel drops it, as a scroll would, so it cannot leak into the next test.
+  fireEvent.pointerCancel(document);
 });
 
 // The app menu as the tab screens render it: inside the shell's menu provider, on the ScreenHeader title line.
@@ -100,6 +103,59 @@ test("App menu: a tap outside closes it; a tap inside does not", () => {
   assert.equal(toggle().getAttribute("aria-expanded"), "false");
 });
 
+// Review fix (PR #293): the outside tap only closes the menu; the click that follows must not press what was under it.
+function renderTabHeaderWithBodySpy(pathname = "/today") {
+  const { router } = createRouterSpy();
+  const bodyClicks: string[] = [];
+  render(
+    <AppProviders router={router} pathname={pathname}>
+      <ScreenHeaderMenuProvider menu={<AppMenu />}>
+        <ScreenHeader kind="tab" appMenu title="Today" />
+        <button type="button" onClick={() => bodyClicks.push("body")}>Body action</button>
+      </ScreenHeaderMenuProvider>
+    </AppProviders>,
+  );
+  return {
+    bodyClicks,
+    toggle: () => screen.getByRole("button", { name: /menu$/ }),
+    body: () => screen.getByRole("button", { name: "Body action" }),
+  };
+}
+
+test("App menu: a tap outside only closes it; the same tap does not press the button underneath", () => {
+  const { bodyClicks, toggle, body } = renderTabHeaderWithBodySpy();
+  fireEvent.click(toggle());
+  assert.equal(toggle().getAttribute("aria-expanded"), "true");
+
+  // One tap = pointerdown then click on the same element.
+  fireEvent.pointerDown(body());
+  assert.equal(toggle().getAttribute("aria-expanded"), "false", "the pointerdown closes the menu");
+  const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+  body().dispatchEvent(click);
+  assert.deepEqual(bodyClicks, [], "the closing tap's click is swallowed");
+  assert.equal(click.defaultPrevented, true, "a link under the finger would not navigate either");
+
+  // The next tap on the now-closed screen works normally.
+  fireEvent.pointerDown(body());
+  fireEvent.click(body());
+  assert.deepEqual(bodyClicks, ["body"]);
+});
+
+test("App menu: an outside touch that becomes a scroll (no click) does not eat a later click or key press", () => {
+  const { bodyClicks, toggle, body } = renderTabHeaderWithBodySpy();
+  fireEvent.click(toggle());
+  fireEvent.pointerDown(body());
+  fireEvent.pointerCancel(body());
+  fireEvent.click(body());
+  assert.deepEqual(bodyClicks, ["body"], "pointercancel drops the swallow");
+
+  fireEvent.click(toggle());
+  fireEvent.pointerDown(body());
+  fireEvent.keyDown(body(), { key: "Enter" });
+  fireEvent.click(body());
+  assert.deepEqual(bodyClicks, ["body", "body"], "a key press drops the swallow (keyboard activation still works)");
+});
+
 test("App menu: Escape with focus outside the menu still closes it", () => {
   const { toggle } = renderTabHeader("/routines");
   fireEvent.click(toggle());
@@ -149,10 +205,12 @@ test("ScreenHeader: inside a menu shell, a header that does not opt in gets no m
   assert.equal(sheetHeader.querySelector("[data-screen-header-menu]"), null);
   assert.equal(sheetHeader.querySelector("[data-app-notice-anchor]"), null);
   assert.equal(screen.getAllByRole("navigation", { name: "App menu", hidden: true }).length, 1);
-  // The opted-in header row is the one notice anchor (PR #294 reads `[data-app-notice-anchor]`), and it holds the button.
+  // The opted-in header's menu button slot is the one notice anchor (PR #294 reads `[data-app-notice-anchor]`): the
+  // slot, not the row, so notices sit under the button and not under the subtitle line.
   const anchors = document.querySelectorAll("[data-app-notice-anchor]");
   assert.equal(anchors.length, 1);
-  assert.ok(anchors[0].querySelector("[data-app-menu-toggle]"), "the anchor is the row with the menu button");
+  assert.ok(anchors[0].hasAttribute("data-screen-header-menu"), "the anchor is the menu button slot");
+  assert.ok(anchors[0].querySelector("[data-app-menu-toggle]"), "and it holds the menu button");
 });
 
 // The exercise info sheet's shape (ExerciseInfoSheet.tsx): a `role="dialog"` portaled to <body> with its own
