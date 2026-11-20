@@ -278,9 +278,12 @@ test("reorder wiring: day list and edit-day list announce moves, describe the ha
 
 test("the Today day picker keeps list semantics: each picker card is an li inside the ul", () => {
   const picker = readFileSync(new URL("../../../app/today/TodayDayPicker.tsx", import.meta.url), "utf8");
-  const list = picker.slice(picker.indexOf("<DayList"), picker.indexOf("</DayList>"));
+  assert.match(picker, /<TodaySwitchDayList\b/);
+  const switchDay = readFileSync(new URL("../../../app/today/TodaySwitchDayCard.tsx", import.meta.url), "utf8");
+  const list = switchDay.slice(switchDay.indexOf("<DayList"), switchDay.indexOf("</DayList>"));
 
-  assert.match(list, /<RoutineOverviewDayCard[\s\S]*?asListItem/);
+  assert.match(list, /<TodaySwitchDayCard\b/);
+  assert.match(switchDay, /<li className="min-w-0">\s*<CardSurface/);
 });
 
 test("CardHeader link interaction: one stretched anchor named by the title, right chevron, aria-current, no nested interactive", () => {
