@@ -71,6 +71,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts
           node --test scripts/seed-feedback-monetization-roadmap.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/lib/api-auth.test.ts src/lib/billing/pro-access-diagnostics.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/session-action-response.test.ts src/lib/today-notice.test.ts src/lib/app-notice-anchor.test.ts src/lib/duration.test.ts src/lib/today-discard-dialog.contract.test.ts
           npm run test:project-board-owner-export
           npm run project-board:owner-export:check
           node --test tests/board-sync.test.mjs

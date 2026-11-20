@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-19 (Today review lane A: errors and discard)
+
+### WHAT
+- Start/Resume Workout: a server error page or a dropped connection shows one error notice and keeps the app on screen (no full-screen "Could not load").
+- Today's error notice now appears and stays until dismissed; a missing or other user's workout link lands on Today with "That workout could not be found."
+- Timed targets read `18:00` instead of `18:00 s`.
+- A failed Discard closes the dialog and says "Could not discard the workout. Try again."; the confirm dialog blurs and dims the screen behind it more and has a tidier box.
+- Notices sit top-right just under the header, use the whole box for text and grow left (up to 26rem) so short messages fit on one line.
+
+### WHY
+- Findings from the 2026-11-19 Today review. No route, server data, database or env change.
+
 ## Unreleased - 2026-11-15 (FF-DESIGN-001, account lane H2)
 
 ### WHAT
