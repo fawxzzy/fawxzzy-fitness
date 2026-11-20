@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -58,7 +59,8 @@ export function ConfirmedServerFormButton({
   /**
    * Opt-in failure handling: when set, an `{ ok: false }` result or a thrown action (offline, 500, server crash)
    * closes the dialog and shows an error notice (the result's own error text first, else this message) instead of
-   * leaving the dialog open with no feedback or handing the throw to the app error screen. redirect() still navigates.
+   * leaving the dialog open with no feedback or handing the throw to the app error screen, then refreshes the route so
+   * the screen matches the server again. redirect() still navigates.
    */
   failureMessage?: string;
 }) {
@@ -66,6 +68,7 @@ export function ConfirmedServerFormButton({
   const [isLoading, setIsLoading] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
   const toast = useToast();
+  const router = useRouter();
 
   return (
     <form
@@ -78,6 +81,8 @@ export function ConfirmedServerFormButton({
           if (failure !== null) {
             setOpen(false);
             toast.error(failure || failureMessage || "");
+            // Re-read the screen: the thing may already be gone (or half gone), and a stale button can only fail again.
+            router.refresh();
             return;
           }
           if (
@@ -95,6 +100,7 @@ export function ConfirmedServerFormButton({
           }
           setOpen(false);
           toast.error(failureMessage);
+          router.refresh();
         } finally {
           setIsLoading(false);
         }

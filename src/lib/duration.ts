@@ -1,3 +1,7 @@
+/**
+ * "m:ss" clock. Minutes keep counting past an hour ("60:00", "61:01"), never "h:mm:ss": the result is prefilled into
+ * duration inputs whose parsers accept only "m:ss" or plain seconds, so it must round-trip.
+ */
 export function formatDurationClock(totalSeconds: number): string {
   const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;
   const minutes = Math.floor(safeSeconds / 60);

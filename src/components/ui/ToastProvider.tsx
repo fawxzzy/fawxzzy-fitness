@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ToastMessageCard } from "@/components/ui/ToastMessageCard";
 
 type ToastTone = "info" | "success" | "warning" | "error";
@@ -10,6 +11,8 @@ type ToastItem = {
   message: string;
   tone: ToastTone;
   isExiting?: boolean;
+  /** Set for screen-owned notices: the pathname they belong to. */
+  ownerPathname?: string | null;
   action?: {
     label: string;
     onClick: () => void;
@@ -29,6 +32,11 @@ export type ToastOptions = {
   persistent?: boolean;
   id?: string;
   action?: ToastItem["action"];
+  /**
+   * A screen-owned notice (e.g. Today's persistent "That workout could not be found."): dismissed as soon as the
+   * pathname changes, so it never follows the person onto another tab.
+   */
+  dismissOnRouteChange?: boolean;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -42,6 +50,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const dismissTimersRef = useRef<Map<string, number>>(new Map());
   const exitTimersRef = useRef<Map<string, number>>(new Map());
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  // Layout effects run before any passive effect, so a notice pushed from a child's effect on the new route is tagged
+  // with the new pathname, not the previous one.
+  useLayoutEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => () => {
     dismissTimersRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -87,7 +102,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const push = useCallback((tone: ToastTone, message: string, options?: ToastOptions) => {
     const id = options?.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const nextToast: ToastItem = { id, tone, message, isExiting: false, action: options?.action };
+    const nextToast: ToastItem = {
+      id,
+      tone,
+      message,
+      isExiting: false,
+      action: options?.action,
+      ownerPathname: options?.dismissOnRouteChange ? pathnameRef.current : undefined,
+    };
     setToasts((current) => {
       const existingIndex = current.findIndex((toast) => toast.id === id);
       if (existingIndex >= 0) {
@@ -107,6 +129,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
     scheduleDismiss(id, options?.durationMs ?? (tone === "error" ? ERROR_TOAST_DURATION_MS : DEFAULT_DURATION_MS));
   }, [scheduleDismiss]);
+
+  useEffect(() => {
+    toasts.forEach((toast) => {
+      if (toast.ownerPathname !== undefined && toast.ownerPathname !== pathname && !toast.isExiting) {
+        dismiss(toast.id);
+      }
+    });
+  }, [pathname, toasts, dismiss]);
 
   const value = useMemo<ToastContextValue>(
     () => ({

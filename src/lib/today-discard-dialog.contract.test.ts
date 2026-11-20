@@ -15,9 +15,26 @@ test("Today's discard action reports failures as a result instead of an ?error= 
   const action = page.slice(start, end);
   assert.match(action, /Promise<ActionResult>/);
   assert.doesNotMatch(action, /\/today\?error=/);
-  assert.match(action, /return \{ ok: false, error: DISCARD_IN_PROGRESS_FAILED_MESSAGE \}/);
+  assert.match(action, /return discardInProgressFailed\(\);/);
+  assert.doesNotMatch(action, /return \{ ok: false/, "every failure goes through the revalidating helper");
+  assert.match(
+    page,
+    /function discardInProgressFailed\(\): ActionResult \{\s+revalidatePath\("\/today"\);\s+return \{ ok: false, error: DISCARD_IN_PROGRESS_FAILED_MESSAGE \};/,
+  );
   assert.match(action, /redirect\("\/today"\)/, "success still lands on a fresh Today");
   assert.match(page, /failureMessage=\{DISCARD_IN_PROGRESS_FAILED_MESSAGE\}/);
+});
+
+test("telemetry after the discard delete is best-effort and runs only once the session row is gone", () => {
+  const page = read("../app/today/page.tsx");
+  const action = page.slice(page.indexOf("async function discardInProgressSessionAction"), page.indexOf("export default async function TodayPage"));
+  const deleted = action.indexOf("if (sessionDeleteError)");
+  const bestEffort = action.indexOf("await runBestEffortSteps(");
+  assert.ok(deleted > 0 && bestEffort > deleted, "telemetry starts after the delete succeeded");
+  assert.doesNotMatch(action, /await (recordFitnessSignalForMember|publishFitnessIntegrationStateForMember)\(/, "no bare awaited telemetry that can throw");
+  assert.match(action.slice(bestEffort), /recordFitnessSignalForMember\([\s\S]*publishFitnessIntegrationStateForMember\([\s\S]*redirect\("\/today"\)/);
+  const button = read("../components/destructive/ConfirmedServerFormButton.tsx");
+  assert.equal((button.match(/router\.refresh\(\)/g) ?? []).length, 2, "both failure paths refresh the route");
 });
 
 test("the discard dialog blurs and dims the screen behind it and uses tokens only", () => {

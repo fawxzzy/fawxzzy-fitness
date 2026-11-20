@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-19 - Today review lane A follow-up: discard succeeds once the rows are gone, notices stay on their screen
+
+- Type: UI behaviour and error handling (source)
+- WHAT changed: Today's discard action runs its post-delete telemetry (`recordFitnessSignalForMember`, `publishFitnessIntegrationStateForMember`) through `runBestEffortSteps` (`src/lib/best-effort-steps.ts`): each step is attempted, failures are logged and never rethrown, so the action still redirects to a fresh Today. Every discard failure now goes through `discardInProgressFailed()` (revalidates `/today`), and `ConfirmedServerFormButton` calls `router.refresh()` on both failure paths. Toasts gained `dismissOnRouteChange`; Today's persistent notice uses it, so it is dismissed when the pathname changes. Today renders only allow-listed `?notice=` codes (the free-text `?error=` path and `getTodayGlobalErrorMessage` are removed). A malformed non-UUID `/session/<id>` (Postgres 22P02) is "not found". `formatDurationClock` keeps m:ss past an hour (`60:00`).
+- WHY it changed: Review of PR #294: a throwing telemetry call after the delete reported "Could not discard the workout" for a workout that was gone, nothing refreshed, and every later Discard failed at the guard; the persistent notice followed the person to other tabs; free text from the URL could still reach Today.
+- Rule: Once a mutation has committed, follow-up work (telemetry, publishes) is best-effort and cannot change the result the person sees. A failed destructive action refreshes the screen. A screen-owned notice is scoped to its route.
+- Failure Mode: `assert.equal(element, null)` inside `waitFor` makes node:assert inspect a whole jsdom node on every retry (minutes, then "Array buffer allocation failed"); assert on a boolean instead. A ref synced in a passive effect is read stale by a child's passive effect on the same commit; sync it in a layout effect. Duration strings feed back into m:ss-only input parsers, so `h:mm:ss` would not round-trip.
+- Status: Source only, headless-only (jsdom), not device-checked.
+
 ## 2026-11-19 - Today review lane A: errors keep the app shell, notices are readable and sit under the header
 
 - Type: UI behaviour and copy (source)

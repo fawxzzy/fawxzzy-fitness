@@ -10,7 +10,8 @@ const TODAY_NOTICE_QUERY_KEYS = ["error", "notice"] as const;
  * Shows Today's server-resolved notice (`resolveTodayNoticeMessage`) as one persistent error notice, then removes
  * `?error=` / `?notice=` from the address with `history.replaceState`, which Next's router picks up without a server
  * refetch. (The old path toasted for 2.2 s and stripped the query with `router.replace`, whose re-render dropped the
- * page's inline notice, so the error was gone before anyone could read it.)
+ * page's inline notice, so the error was gone before anyone could read it.) It belongs to Today: the toast host
+ * dismisses it when the pathname changes, so it never follows the person onto another tab.
  */
 export function TodayNoticeHost({ message }: { message: string | null }) {
   const toast = useToast();
@@ -21,7 +22,7 @@ export function TodayNoticeHost({ message }: { message: string | null }) {
       return;
     }
     shownRef.current = message;
-    toast.error(message, { id: TODAY_NOTICE_TOAST_ID, persistent: true });
+    toast.error(message, { id: TODAY_NOTICE_TOAST_ID, persistent: true, dismissOnRouteChange: true });
 
     const url = new URL(window.location.href);
     let changed = false;

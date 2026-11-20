@@ -1,8 +1,7 @@
-import { getTodayGlobalErrorMessage } from "@/lib/today-page-state";
-
-// Today's one floating error notice. Other screens redirect here with an allow-listed `?notice=` code (never free
-// text), and Today's own server actions may still redirect with `?error=`. The page resolves the message on the server
-// and `TodayNoticeHost` shows it as a persistent notice, then strips the query without a server refetch.
+// Today's one floating error notice. Screens redirect here with an allow-listed `?notice=` code, never free text: the
+// legacy `?error=<text>` path is gone (anyone could put any words on Today with a crafted link, and Today's own actions
+// now return results instead). The page resolves the message on the server and `TodayNoticeHost` shows it, then
+// strips the query (including any stale `?error=`) without a server refetch.
 
 export const TODAY_NOTICE_MESSAGES = {
   "session-not-found": "That workout could not be found.",
@@ -20,27 +19,20 @@ export function buildTodayNoticeHref(code: TodayNoticeCode) {
 }
 
 /**
- * A missing session row (PostgREST "no rows", code PGRST116, or another user's id filtered out by user_id) is
- * "not found"; any other read error is a load failure, so a dropped connection never claims the workout is gone.
+ * Read errors that mean "there is no such workout": PostgREST "no rows" (PGRST116, also another user's id filtered
+ * out by user_id) and Postgres invalid_text_representation (22P02, a malformed non-UUID /session/<id>).
+ */
+const SESSION_NOT_FOUND_ERROR_CODES = new Set(["PGRST116", "22P02"]);
+
+/**
+ * A missing row or an id that cannot exist is "not found"; any other read error is a load failure, so a dropped
+ * connection never claims the workout is gone.
  */
 export function resolveMissingSessionNoticeCode(error: { code?: string | null } | null | undefined): TodayNoticeCode {
-  return !error || error.code === "PGRST116" ? "session-not-found" : "session-load-failed";
+  return !error || SESSION_NOT_FOUND_ERROR_CODES.has(error.code ?? "") ? "session-not-found" : "session-load-failed";
 }
 
-export function resolveTodayNoticeMessage(args: {
-  notice?: string | null;
-  error?: string | null;
-  hasInProgressSession: boolean;
-  fetchFailed: boolean;
-}): string | null {
+export function resolveTodayNoticeMessage(args: { notice?: string | null }): string | null {
   const notice = args.notice?.trim();
-  if (isTodayNoticeCode(notice)) {
-    return TODAY_NOTICE_MESSAGES[notice];
-  }
-
-  return getTodayGlobalErrorMessage({
-    searchParamError: args.error,
-    hasInProgressSession: args.hasInProgressSession,
-    fetchFailed: args.fetchFailed,
-  });
+  return isTodayNoticeCode(notice) ? TODAY_NOTICE_MESSAGES[notice] : null;
 }

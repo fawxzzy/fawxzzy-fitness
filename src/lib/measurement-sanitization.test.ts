@@ -124,7 +124,7 @@ test("goal and draft summaries share canonical grammar with omitted zero metrics
   );
 });
 
-test("time previews append the shared seconds suffix", async () => {
+test("time previews render as a plain m:ss clock with no seconds suffix", async () => {
   const { formatGoalInlineSummaryText } = await import("./measurement-display.ts");
 
   assert.equal(

@@ -10,6 +10,7 @@ All notable changes to this project are documented in this file.
 - Timed targets read `18:00` instead of `18:00 s`.
 - A failed Discard closes the dialog and says "Could not discard the workout. Try again."; the confirm dialog blurs and dims the screen behind it more and has a tidier box.
 - Notices sit top-right just under the header, use the whole box for text and grow left (up to 26rem) so short messages fit on one line.
+- Discard always succeeds once the workout is deleted, even if follow-up telemetry fails; a failed Discard refreshes Today. "That workout could not be found." no longer follows you to other tabs, and a malformed workout link also shows it. Today no longer shows free text from `?error=` links.
 
 ### WHY
 - Findings from the 2026-11-19 Today review. No route, server data, database or env change.

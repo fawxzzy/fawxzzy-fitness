@@ -15,22 +15,26 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 
 test("allow-listed notice codes resolve to fixed copy; unknown codes and free text never render", () => {
   assert.equal(
-    resolveTodayNoticeMessage({ notice: "session-not-found", hasInProgressSession: false, fetchFailed: false }),
+    resolveTodayNoticeMessage({ notice: "session-not-found" }),
     TODAY_NOTICE_MESSAGES["session-not-found"],
   );
-  assert.equal(resolveTodayNoticeMessage({ notice: "<b>hi</b>", hasInProgressSession: false, fetchFailed: false }), null);
-  assert.equal(resolveTodayNoticeMessage({ notice: "toString", hasInProgressSession: false, fetchFailed: false }), null);
+  assert.equal(resolveTodayNoticeMessage({ notice: "<b>hi</b>" }), null);
+  assert.equal(resolveTodayNoticeMessage({ notice: "toString" }), null);
   assert.equal(isTodayNoticeCode("__proto__"), false);
 });
 
-test("the legacy ?error= path keeps its in-progress gate", () => {
-  assert.equal(resolveTodayNoticeMessage({ error: "Unable to discard", hasInProgressSession: true, fetchFailed: false }), "Unable to discard");
-  assert.equal(resolveTodayNoticeMessage({ error: "Unable to discard", hasInProgressSession: false, fetchFailed: false }), null);
+test("the legacy free-text ?error= path is gone: Today only renders allow-listed codes", () => {
+  const page = read("../app/today/page.tsx");
+  assert.match(page, /resolveTodayNoticeMessage\(\{ notice: searchParams\?\.notice \}\)/);
+  assert.doesNotMatch(page, /searchParams\?\.error/);
+  assert.doesNotMatch(read("./today-notice.ts"), /getTodayGlobalErrorMessage|args\.error/);
 });
 
 test("a missing row is not-found; any other read error is a load failure", () => {
   assert.equal(resolveMissingSessionNoticeCode(null), "session-not-found");
   assert.equal(resolveMissingSessionNoticeCode({ code: "PGRST116" }), "session-not-found");
+  assert.equal(resolveMissingSessionNoticeCode({ code: "22P02" }), "session-not-found", "a malformed non-UUID id cannot exist");
+  assert.equal(resolveMissingSessionNoticeCode({ code: null }), "session-load-failed");
   assert.equal(resolveMissingSessionNoticeCode({ code: "08006" }), "session-load-failed");
   assert.equal(buildTodayNoticeHref("session-not-found"), "/today?notice=session-not-found");
 });

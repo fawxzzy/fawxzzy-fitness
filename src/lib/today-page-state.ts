@@ -1,15 +1,3 @@
-export function getTodayGlobalErrorMessage(args: {
-  searchParamError?: string | null;
-  hasInProgressSession: boolean;
-  fetchFailed: boolean;
-}) {
-  const error = args.searchParamError?.trim();
-  if (!error) return null;
-  if (args.fetchFailed) return null;
-  if (!args.hasInProgressSession) return null;
-  return error;
-}
-
 /**
  * The Today tab header's one subtitle line: "<day> · <routine>" in plain words (DESIGN-CONTRACT.md section 15).
  * Falls back to whichever name exists; null when neither does.
