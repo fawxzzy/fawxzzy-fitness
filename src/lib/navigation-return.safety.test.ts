@@ -32,6 +32,9 @@ const BAD_RETURN_TO: Array<[label: string, value: string | null | undefined]> = 
   ["double-encoded slashes", "%252F%252Fevil.com"],
   ["double-encoded slashes after slash", "/%252F/evil.com"],
   ["triple-encoded backslash", "/%25255Cevil.com"],
+  ["encoded backslash hidden behind a stray percent", "/%255C%25evil.com"],
+  ["encoded slash hidden behind a stray percent", "/%252F%25/evil.com"],
+  ["ten-times-encoded protocol-relative", `/%${"25".repeat(9)}2F/evil.com`],
   ["absolute https URL", "https://x"],
   ["absolute http URL", "http://evil.com/today"],
   ["javascript scheme", "javascript:alert(1)"],
@@ -65,6 +68,13 @@ const GOOD_RETURN_TO = [
   "/settings#privacy",
   "/today?tab=plan#top",
   "/exercises/bench-press",
+  "/history?q=100%25",
+  "/history?q=100%25&next=%2Ftoday",
+  "/x/Bench%20Press",
+  "/x/Bench Press",
+  "/history?q=bench press",
+  // Five levels of nested, encoded returnTo values.
+  "/a?returnTo=%2Fb%3FreturnTo%3D%252Fc%253FreturnTo%253D%25252Fd%25253FreturnTo%25253D%2525252Fe",
 ];
 
 for (const [label, value] of BAD_RETURN_TO) {

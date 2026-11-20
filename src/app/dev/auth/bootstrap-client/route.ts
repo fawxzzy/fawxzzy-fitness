@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
-import { isSafeAppPath } from "@/lib/navigation-return";
+import { renderDevBootstrapDocument } from "@/lib/dev-auth-bootstrap-document";
 
 export const dynamic = "force-dynamic";
 
@@ -13,32 +13,6 @@ function isLocalRequest(request: NextRequest) {
   const host = (forwardedHost ?? request.headers.get("host") ?? "").trim().toLowerCase();
   const hostname = host.split(":")[0] ?? "";
   return hostname === "127.0.0.1" || hostname === "localhost";
-}
-
-function renderBootstrapDocument({
-  nextPath,
-}: {
-  nextPath: string;
-}) {
-  const safeNextPath = isSafeAppPath(nextPath) ? nextPath : "/today";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="cache-control" content="no-store" />
-    <title>Bootstrapping session</title>
-  </head>
-  <body>
-    <p>Bootstrapping session…</p>
-    <script>
-      window.setTimeout(() => {
-        window.location.replace(${JSON.stringify(safeNextPath)});
-      }, 80);
-    </script>
-  </body>
-</html>`;
 }
 
 export async function GET(request: NextRequest) {
@@ -63,7 +37,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const response = new NextResponse(renderBootstrapDocument({ nextPath }), {
+  const response = new NextResponse(renderDevBootstrapDocument({ nextPath }), {
     status: 200,
     headers: {
       "cache-control": "no-store",

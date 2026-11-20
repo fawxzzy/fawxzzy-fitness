@@ -1,8 +1,12 @@
 const SAFE_PATH_BASE_ORIGIN = "https://app.invalid";
-// Backslash (browsers read it as "/"), ASCII control chars + space, DEL..NBSP, and Unicode whitespace/format chars.
+const ASCII_SPACE = 0x20;
+// Characters that can move a URL off-origin or that no in-app path needs: backslash (browsers read it as "/"),
+// C0 controls (tab/LF/CR are deleted by URL parsers, so "/<TAB>/host" becomes "//host"), DEL, C1 controls,
+// no-break space and Unicode whitespace/format characters. Plain ASCII space is handled separately: inside a
+// path segment or query it is percent-encoded by the URL parser and cannot change the origin.
 const UNSAFE_CODE_POINT_RANGES: ReadonlyArray<readonly [number, number]> = [
   [0x5c, 0x5c], // backslash
-  [0x00, 0x20], // C0 controls (tab, LF, CR, NUL...) and space
+  [0x00, 0x1f], // C0 controls (tab, LF, CR, NUL...)
   [0x7f, 0xa0], // DEL, C1 controls, no-break space
   [0x1680, 0x1680],
   [0x180e, 0x180e],
@@ -13,6 +17,8 @@ const UNSAFE_CODE_POINT_RANGES: ReadonlyArray<readonly [number, number]> = [
   [0x3000, 0x3000], // ideographic space
   [0xfeff, 0xfeff], // BOM / zero-width no-break space
 ];
+// Decoding stops once a layer no longer changes; this only bounds pathological input.
+const MAX_DECODE_LAYERS = 16;
 
 function containsUnsafePathCharacter(value: string) {
   for (let index = 0; index < value.length; index += 1) {
@@ -23,8 +29,6 @@ function containsUnsafePathCharacter(value: string) {
   }
   return false;
 }
-// How many extra percent-decoding layers are inspected (callers such as decodeReturnTo decode once more).
-const MAX_DECODE_LAYERS = 3;
 
 function getPathPart(value: string) {
   const end = value.search(/[?#]/);
@@ -36,8 +40,13 @@ function isSameOriginAppPathLayer(layer: string, checkWholeValue: boolean) {
     return false;
   }
 
-  // Raw values may not carry unsafe characters anywhere; decoded layers only matter up to the query/hash,
-  // so an encoded space inside a query value (e.g. ?q=bench%20press) stays allowed.
+  // A space straight after the leading slash ("/ /host") is the one place a lenient parser could treat
+  // whitespace as part of a separator; anywhere else ("/x/Bench Press", "?q=bench press") it is inert.
+  if (layer.charCodeAt(1) === ASCII_SPACE) {
+    return false;
+  }
+
+  // Raw values may not carry unsafe characters anywhere; decoded layers only matter up to the query/hash.
   if (containsUnsafePathCharacter(checkWholeValue ? layer : getPathPart(layer))) {
     return false;
   }
@@ -50,26 +59,39 @@ function isSameOriginAppPathLayer(layer: string, checkWholeValue: boolean) {
   }
 }
 
+// When a decoded layer is no longer valid percent-encoding (e.g. "?q=100%" from "?q=100%25"), a strict
+// decodeURIComponent throws; a lenient decoder elsewhere could still decode the ASCII escapes it contains,
+// so those (the only ones that can form "/" or "\" separators) are decoded and checked too.
+function decodeLayer(layer: string) {
+  try {
+    return decodeURIComponent(layer);
+  } catch {
+    return layer.replace(/%([0-7][0-9a-fA-F])/g, (_match, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+  }
+}
+
 /**
  * True only for a same-origin, in-app absolute path ("/today", "/routines/1/edit?x=1#y").
- * Rejects protocol-relative ("//host"), backslash ("/\host"), control/whitespace ("/\t/host"),
- * absolute URLs and schemes, and values that turn into any of those after percent-decoding
- * (up to MAX_DECODE_LAYERS layers, so "/%5Chost" and "/%252F%252Fhost" are rejected too).
+ * Rejects protocol-relative ("//host"), backslash ("/\host"), control/Unicode whitespace ("/<TAB>/host"),
+ * absolute URLs and schemes, malformed raw percent escapes, and values that turn into any of those after
+ * any number of percent-decoding passes ("/%5Chost", "/%252F%252Fhost"), because callers such as
+ * decodeReturnTo decode again. Well-formed escapes that decode to inert characters stay allowed
+ * ("/history?q=100%25", "/x/Bench%20Press", deeply nested encoded returnTo values).
  */
 export function isSafeAppPath(value: string | null | undefined): value is string {
   if (typeof value !== "string" || !isSameOriginAppPathLayer(value, true)) {
     return false;
   }
 
+  try {
+    decodeURIComponent(value);
+  } catch {
+    return false;
+  }
+
   let layer = value;
   for (let depth = 0; depth < MAX_DECODE_LAYERS; depth += 1) {
-    let decoded: string;
-    try {
-      decoded = decodeURIComponent(layer);
-    } catch {
-      return false;
-    }
-
+    const decoded = decodeLayer(layer);
     if (decoded === layer) {
       return true;
     }
@@ -81,14 +103,8 @@ export function isSafeAppPath(value: string | null | undefined): value is string
     layer = decoded;
   }
 
-  // Still changing after MAX_DECODE_LAYERS decodes: treat deep encoding as hostile.
-  try {
-    return decodeURIComponent(layer) === layer;
-  } catch {
-    return false;
-  }
+  return false;
 }
-
 export function resolveReturnHref(rawReturnTo: string | null | undefined, fallbackHref: string): string {
   return isSafeAppPath(rawReturnTo) ? rawReturnTo : fallbackHref;
 }
