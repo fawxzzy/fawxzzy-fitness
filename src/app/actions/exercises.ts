@@ -6,7 +6,13 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { validateExerciseEquipment, validateExerciseName } from "@/lib/exercises";
+import { isSafeAppPath } from "@/lib/navigation-return";
 import { supabaseServer } from "@/lib/supabase/server";
+
+function readSafeReturnTo(formData: FormData) {
+  const raw = String(formData.get("returnTo") ?? "").trim();
+  return isSafeAppPath(raw) ? raw : "";
+}
 
 function redirectWithMessage(returnTo: string, key: "error" | "success", message: string, exerciseId?: string) {
   const params = new URLSearchParams();
@@ -23,7 +29,7 @@ export async function createCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
   const supabase = await supabaseServer();
 
-  const returnTo = String(formData.get("returnTo") ?? "").trim();
+  const returnTo = readSafeReturnTo(formData);
   const rawName = String(formData.get("name") ?? "");
   const primaryMuscle = String(formData.get("primaryMuscle") ?? "").trim() || null;
   const secondaryMuscle = String(formData.get("secondaryMuscle") ?? "").trim() || null;
@@ -76,7 +82,7 @@ export async function renameCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
   const supabase = await supabaseServer();
 
-  const returnTo = String(formData.get("returnTo") ?? "").trim();
+  const returnTo = readSafeReturnTo(formData);
   const exerciseId = String(formData.get("exerciseId") ?? "").trim();
   const name = validateExerciseName(String(formData.get("name") ?? ""));
 
@@ -102,7 +108,7 @@ export async function deleteCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
   const supabase = await supabaseServer();
 
-  const returnTo = String(formData.get("returnTo") ?? "").trim();
+  const returnTo = readSafeReturnTo(formData);
   const exerciseId = String(formData.get("exerciseId") ?? "").trim();
 
   const [{ count: routineCount }, { count: sessionCount }] = await Promise.all([

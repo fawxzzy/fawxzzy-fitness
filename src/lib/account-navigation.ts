@@ -1,3 +1,5 @@
+import { isSafeAppPath } from "@/lib/navigation-return";
+
 const FITNESS_LOCAL_ORIGIN = "https://fitness.local";
 const ACCOUNT_PATH = "/account";
 export const DEFAULT_ACCOUNT_RETURN_HREF = "/settings";
@@ -11,7 +13,7 @@ function containsUnsafeNavigationCharacter(value: string) {
 }
 
 export function resolveAccountReturnHref(rawReturnTo: string | null | undefined) {
-  if (!rawReturnTo || !rawReturnTo.startsWith("/") || rawReturnTo.startsWith("//") || containsUnsafeNavigationCharacter(rawReturnTo)) {
+  if (!isSafeAppPath(rawReturnTo) || containsUnsafeNavigationCharacter(rawReturnTo)) {
     return DEFAULT_ACCOUNT_RETURN_HREF;
   }
 

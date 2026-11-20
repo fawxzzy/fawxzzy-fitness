@@ -9,7 +9,7 @@ export const ACCOUNT_PORTAL_LINK_ATTRIBUTE = "data-account-portal-link";
 const FITNESS_HANDOFF_RETURN_PATHS = new Set(["/", "/entry", "/today"]);
 
 export function resolveFitnessHandoffReturnPath(returnTo: string | null | undefined) {
-  if (!returnTo || !returnTo.startsWith("/") || returnTo.startsWith("//")) {
+  if (!isSafeAppPath(returnTo)) {
     return "/entry";
   }
 

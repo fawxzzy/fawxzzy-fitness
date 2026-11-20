@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const redirectTarget = new URL(nextPath.startsWith("/") ? nextPath : "/today", getRequestOrigin(request));
+  const redirectTarget = new URL(isSafeAppPath(nextPath) ? nextPath : "/today", getRequestOrigin(request));
   const response = NextResponse.redirect(redirectTarget, {
     headers: {
       "cache-control": "no-store",
