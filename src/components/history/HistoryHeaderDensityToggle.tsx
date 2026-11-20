@@ -43,19 +43,22 @@ export function HistoryHeaderDensityToggle({
       data-history-density-toggle={scope}
       onClick={() => onViewModeChange(showingDetails ? "compact" : "detailed")}
     >
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      {/* Never three equal bars: that is the app menu button, which sits right next to this one. Compact = a
+          bulleted list, detailed = two row cards. */}
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {showingDetails ? (
           <>
-            <path d="M4 6h16" />
-            <path d="M4 10h10" />
-            <path d="M4 15h16" />
-            <path d="M4 19h10" />
+            <rect x="4" y="4.5" width="16" height="6.5" rx="1.5" />
+            <rect x="4" y="13" width="16" height="6.5" rx="1.5" />
           </>
         ) : (
           <>
-            <path d="M4 7h16" />
-            <path d="M4 12h16" />
-            <path d="M4 17h16" />
+            <path d="M5 7h.01" />
+            <path d="M9 7h10" />
+            <path d="M5 12h.01" />
+            <path d="M9 12h10" />
+            <path d="M5 17h.01" />
+            <path d="M9 17h10" />
           </>
         )}
       </svg>

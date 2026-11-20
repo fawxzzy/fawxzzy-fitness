@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
-import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -41,9 +40,6 @@ export function HistoryOfflineShell({
 
   return (
     <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
-      <div className="flex justify-start">
-        <OfflineSyncBadge userId={userId} label="Offline" />
-      </div>
       {cachedSnapshot ? (
         <>
           <HistoryScopeSummarySurface

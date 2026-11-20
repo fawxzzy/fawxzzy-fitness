@@ -3,11 +3,16 @@
 import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BottomActionsProvider, BottomActionsSlot, usePublishedBottomActions } from "@/components/layout/bottom-actions";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
+import { ScreenHeaderMenuProvider, ScreenHeaderMenuSlot } from "@/components/ui/app/ScreenHeaderMenu";
+import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
+import { syncAppHeaderMetrics, clearAppHeaderMetrics } from "@/components/shared/mobile-shell/appHeaderMetrics";
 import { cn } from "@/lib/cn";
 
 type MobileScreenShellProps = {
   children: ReactNode;
   topChrome?: ReactNode;
+  /** The app menu: every ScreenHeader in this shell shows it top right on the title line. */
+  headerMenu?: ReactNode;
   floatingHeader?: ReactNode;
   bottomDock?: ReactNode;
   className?: string;
@@ -17,6 +22,7 @@ type MobileScreenShellProps = {
 export function MobileScreenShell({
   children,
   topChrome,
+  headerMenu,
   floatingHeader,
   bottomDock,
   className,
@@ -24,15 +30,18 @@ export function MobileScreenShell({
 }: MobileScreenShellProps) {
   return (
     <BottomActionsProvider>
-      <MobileScreenShellFrame
-        topChrome={topChrome}
-        floatingHeader={floatingHeader}
-        bottomDock={bottomDock}
-        className={className}
-        scrollClassName={scrollClassName}
-      >
-        {children}
-      </MobileScreenShellFrame>
+      <ScreenHeaderMenuProvider menu={headerMenu}>
+        <MobileScreenShellFrame
+          topChrome={topChrome}
+          headerMenu={headerMenu}
+          floatingHeader={floatingHeader}
+          bottomDock={bottomDock}
+          className={className}
+          scrollClassName={scrollClassName}
+        >
+          {children}
+        </MobileScreenShellFrame>
+      </ScreenHeaderMenuProvider>
     </BottomActionsProvider>
   );
 }
@@ -40,6 +49,7 @@ export function MobileScreenShell({
 function MobileScreenShellFrame({
   children,
   topChrome,
+  headerMenu,
   floatingHeader,
   bottomDock,
   className,
@@ -51,9 +61,12 @@ function MobileScreenShellFrame({
   const publishedBottomActions = usePublishedBottomActions();
   const dockRef = useRef<HTMLDivElement | null>(null);
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
   const hasTopChrome = Boolean(topChrome);
-  const hasFloatingHeader = Boolean(floatingHeader);
+  // A screen with the app menu but no header of its own still gets the menu, alone on the top line.
+  const hasHeaderMenuOnly = Boolean(headerMenu) && !floatingHeader;
+  const hasFloatingHeader = Boolean(floatingHeader) || hasHeaderMenuOnly;
   const hasPublishedBottomActions = Boolean(publishedBottomActions?.node);
   const shouldRenderBottomDock = Boolean(bottomDock) || hasPublishedBottomActions;
   const shouldApplyTopChromeFloatingHeaderGap = hasTopChrome && hasFloatingHeader;
@@ -101,6 +114,28 @@ function MobileScreenShellFrame({
     };
   }, [bottomDock, shouldRenderBottomDock]);
 
+  // Publish where the header ends (`--app-header-height`) and where the menu button ends
+  // (`--app-header-menu-bottom`) so notices can anchor just below the menu (DESIGN-CONTRACT.md section 15).
+  useLayoutEffect(() => {
+    const node = headerRef.current;
+    if (!node) {
+      return;
+    }
+
+    const sync = () => syncAppHeaderMetrics(node);
+    sync();
+
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
+    observer?.observe(node);
+    window.addEventListener("resize", sync);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", sync);
+      clearAppHeaderMetrics();
+    };
+  }, [hasFloatingHeader]);
+
   return (
     <section
       data-mobile-screen-shell="true"
@@ -113,13 +148,21 @@ function MobileScreenShellFrame({
       {hasTopChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
       {hasFloatingHeader ? (
         <div
+          ref={headerRef}
+          data-app-header="true"
           className={cn(
             "z-20 flex-none",
             shouldApplyTopChromeFloatingHeaderGap ? "pt-[var(--app-top-chrome-floating-header-gap,8px)]" : "",
             hasTopChrome ? "" : "pt-[var(--app-standalone-safe-top,max(var(--app-safe-top),var(--vv-top,0px)))]",
           )}
         >
-          {floatingHeader}
+          {hasHeaderMenuOnly ? (
+            <div className={screenHeaderTokens.root}>
+              <div className={cn(screenHeaderTokens.row, "justify-end")}>
+                <ScreenHeaderMenuSlot />
+              </div>
+            </div>
+          ) : floatingHeader}
         </div>
       ) : null}
 
@@ -146,7 +189,8 @@ function MobileScreenShellFrame({
       {shouldRenderBottomDock ? (
         <div
           ref={dockRef}
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-40 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.72)_0%,rgba(var(--bg-app),0.9)_14%,rgba(var(--bg-app),0.985)_100%)] backdrop-blur-[14px]"
+          data-app-bottom-dock=""
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-40 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.86)_0%,rgba(var(--bg-app),0.96)_14%,rgba(var(--bg-app),0.985)_100%)] backdrop-blur-[14px]"
         >
           {bottomDock ? bottomDock : <BottomActionsSlot />}
         </div>

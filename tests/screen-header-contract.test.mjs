@@ -168,7 +168,8 @@ test("detail screens render the standard detail header with Back on the left", (
 test("the live workout header is title, one day · routine line, Back and at most the offline chip", () => {
   const controls = read("src/components/SessionHeaderControls.tsx");
   assert.match(controls, /\.join\(" · "\)/);
-  assert.match(controls, /trailing=\{statusBadge\}/);
+  assert.match(controls, /status=\{statusBadge\}/);
+  assert.doesNotMatch(controls, /trailing=\{statusBadge\}/, "the offline state is inline on the title line, not a trailing chip");
   const client = read("src/components/SessionPageClient.tsx");
   assert.doesNotMatch(client, /buildCurrentSessionHeaderInfoRailItems|sessionHeaderInfoItems|isExerciseOpen \?/);
 });

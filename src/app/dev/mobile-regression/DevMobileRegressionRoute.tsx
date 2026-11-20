@@ -8,7 +8,8 @@ import {
   applySessionRegressionScenarioState,
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "@/app/dev/mobile-regression/sessionScenarioFixtures";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
 import { formatAddExerciseSubtitle } from "@/lib/header-meta";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
@@ -2188,7 +2189,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       <MainTabScreen topNavMode="none">
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
+          headerMenu={<AppMenu activePathnameOverride="/today" />}
           floatingHeader={<ScreenHeader kind="tab" title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
         >
           <ContentRail className="space-y-3">
@@ -2246,7 +2247,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
+        headerMenu={<AppMenu activePathnameOverride="/today" />}
         floatingHeader={<div id="today-floating-header-slot" />}
       >
         <ContentRail className="space-y-3">
@@ -2258,6 +2259,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             routineName={PREVIEW_ROUTINE_NAME}
             startDate="2025-03-10"
             floatingHeaderSlotId="today-floating-header-slot"
+            headerStatus={<OfflineSyncBadge userId="dev-fixture-user" variant="header" />}
             progressionRoutineId="routine-1"
             progressionReviewItems={progressionReviewItems}
             progressionStatusItems={progressionStatusItems}
@@ -2422,7 +2424,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
       <MainTabScreen topNavMode="none" ambientPreset="viewDay">
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
+          headerMenu={<AppMenu activePathnameOverride="/routines" />}
           floatingHeader={<ScreenHeader kind="tab" title="Routines" />}
         >
           <ContentRail className="space-y-3">
@@ -2861,7 +2863,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
+        headerMenu={<AppMenu activePathnameOverride="/settings" />}
         floatingHeader={<SettingsFloatingHeader />}
       >
         <ContentRail className={appTokens.settingsContentRail}>

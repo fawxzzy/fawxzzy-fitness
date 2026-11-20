@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
 import { cn } from "@/lib/cn";
 import { readPendingSetLogs } from "@/lib/offline/set-log-queue";
 import { readPendingSkipToggles } from "@/lib/offline/skip-toggle-queue";
@@ -10,14 +11,18 @@ type BadgeState = "offline" | "saved-local" | "syncing" | "synced" | "hidden";
 const POLL_MS = 1200;
 const SYNCED_VISIBLE_MS = 3000;
 
+// `variant="header"` is the inline title-line status ("– Offline"), passed to ScreenHeader's `status` slot
+// (DESIGN-CONTRACT.md section 15). `variant="pill"` is the older body chip, kept for any body placement.
 export function OfflineSyncBadge({
   userId,
   className,
   label,
+  variant = "pill",
 }: {
   userId: string;
   className?: string;
   label?: string | null;
+  variant?: "pill" | "header";
 }) {
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [badgeState, setBadgeState] = useState<BadgeState>("hidden");
@@ -110,6 +115,18 @@ export function OfflineSyncBadge({
           ? "Saved locally"
           : "All changes synced");
 
+  const offlineSuffix = !label && !isOnline && badgeState !== "offline" ? " | offline" : "";
+
+  if (variant === "header") {
+    return (
+      <span role="status" data-offline-sync-status={label ? "label" : badgeState} className={cn(screenHeaderTokens.status, className)}>
+        <span aria-hidden="true">– </span>
+        {text}
+        {offlineSuffix}
+      </span>
+    );
+  }
+
   return (
     <p
       className={cn(
@@ -118,7 +135,7 @@ export function OfflineSyncBadge({
       )}
     >
       {text}
-      {!label && !isOnline && badgeState !== "offline" ? " | offline" : ""}
+      {offlineSuffix}
     </p>
   );
 }

@@ -169,6 +169,11 @@
   --app-standalone-safe-top: var(--app-safe-top);
   --app-header-offset: var(--header-h);
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
+  /* Header anchor for notices (DESIGN-CONTRACT.md section 15.6). MobileScreenShell overwrites both on <html> with
+     measured values: bottom of the header block / bottom of the app menu button, from the viewport top, safe area
+     included. These fallbacks match a one-line-subtitle tab header. */
+  --app-header-height: calc(var(--app-standalone-safe-top) + 76px);
+  --app-header-menu-bottom: calc(var(--app-standalone-safe-top) + 52px);
   --app-bottom-inset: var(--app-safe-bottom);
   --app-bottom-gap-size: 0px;
   --app-bottom-gap: var(--app-bottom-gap-size);
@@ -2125,6 +2130,89 @@ a:focus-visible {
   outline: 1px solid rgb(var(--border-strong) / 0.62);
   outline-offset: 2px;
   box-shadow: none;
+}
+
+/* Screen dock look (DESIGN-CONTRACT.md section 15.6, C9-C12 unchanged): inside the screen's bottom dock only
+   (`[data-app-bottom-dock]` on MobileScreenShell), dock buttons are flat: token fills, a 1px keyline, no gloss
+   gradient, no drop shadow, so the dock reads as calm as the header and the app menu. Primary = accent tint with
+   the menu's 0.62 accent keyline. Fills are opaque (surface + a tint in the ::after overlay) so list content never
+   shows through a dock button. Pressed = a slightly stronger fill and a small scale; focus = a 2px accent ring.
+   Scoped on purpose: card action rows, timers and sheets reuse `.bottom-action` and keep their own look. */
+[data-app-bottom-dock] .bottom-action {
+  --bottom-action-shadow: none;
+  --bottom-action-shadow-hover: none;
+  --bottom-action-shadow-active: none;
+}
+
+/* Fills for every dock button except destructive (C11 red stays as it is). `:where()` keeps this at the same
+   specificity as the variant rules below, so primary / secondary / toggle override it by source order. */
+[data-app-bottom-dock] .bottom-action:where(:not(.bottom-action--danger, [data-bottom-action-intent="danger"])) {
+  --bottom-action-border-color: rgb(var(--border-strong) / 0.2);
+  --bottom-action-border-color-hover: rgb(var(--border-strong) / 0.32);
+  --bottom-action-overlay-top: transparent;
+  --bottom-action-overlay-bottom: transparent;
+  --bottom-action-overlay-top-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-bottom-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-top-active: rgb(var(--text-primary) / 0.08);
+  --bottom-action-overlay-bottom-active: rgb(var(--text-primary) / 0.08);
+  background: rgb(var(--surface-muted));
+}
+
+[data-app-bottom-dock] .bottom-action::before {
+  background: none;
+}
+
+[data-app-bottom-dock] .bottom-action--primary {
+  --bottom-action-border-color: rgb(var(--accent) / 0.62);
+  --bottom-action-border-color-hover: rgb(var(--accent-strong) / 0.78);
+  --bottom-action-overlay-top: rgb(var(--accent) / 0.2);
+  --bottom-action-overlay-bottom: rgb(var(--accent) / 0.2);
+  --bottom-action-overlay-top-hover: rgb(var(--accent) / 0.26);
+  --bottom-action-overlay-bottom-hover: rgb(var(--accent) / 0.26);
+  --bottom-action-overlay-top-active: rgb(var(--accent) / 0.34);
+  --bottom-action-overlay-bottom-active: rgb(var(--accent) / 0.34);
+  color: rgb(var(--text-primary));
+}
+
+[data-app-bottom-dock] .bottom-action--secondary {
+  --bottom-action-overlay-top-hover: rgb(var(--text-primary) / 0.05);
+  --bottom-action-overlay-bottom-hover: rgb(var(--text-primary) / 0.05);
+  --bottom-action-overlay-top-active: rgb(var(--text-primary) / 0.09);
+  --bottom-action-overlay-bottom-active: rgb(var(--text-primary) / 0.09);
+  border-color: rgb(var(--border-strong) / 0.28);
+}
+
+[data-app-bottom-dock] .bottom-action[data-bottom-action-intent="toggleActive"] {
+  --bottom-action-border-color-hover: rgb(var(--selection-rgb) / 0.62);
+  --bottom-action-overlay-top: rgb(var(--selection-rgb) / 0.16);
+  --bottom-action-overlay-bottom: rgb(var(--selection-rgb) / 0.16);
+  --bottom-action-overlay-top-hover: rgb(var(--selection-rgb) / 0.22);
+  --bottom-action-overlay-bottom-hover: rgb(var(--selection-rgb) / 0.22);
+  --bottom-action-overlay-top-active: rgb(var(--selection-rgb) / 0.3);
+  --bottom-action-overlay-bottom-active: rgb(var(--selection-rgb) / 0.3);
+  border-color: rgb(var(--selection-rgb) / 0.5);
+}
+
+[data-app-bottom-dock] .bottom-action[data-bottom-action-intent="toggleInactive"] {
+  --bottom-action-overlay-top-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-bottom-hover: rgb(var(--text-primary) / 0.04);
+  --bottom-action-overlay-top-active: rgb(var(--text-primary) / 0.07);
+  --bottom-action-overlay-bottom-active: rgb(var(--text-primary) / 0.07);
+}
+
+[data-app-bottom-dock] .bottom-action:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: none;
+}
+
+[data-app-bottom-dock] .bottom-action:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-app-bottom-dock] .bottom-action:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .bottom-action:disabled {

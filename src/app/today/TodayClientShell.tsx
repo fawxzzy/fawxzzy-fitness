@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { CardEmptyState, CardNotice } from "@/components/ui/card-system";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -138,8 +137,6 @@ export function TodayClientShell({
     <TodayOverviewContent>
       <TodayOverviewScaffold>
         <div className="flex flex-col gap-[0.625rem]">
-          <OfflineSyncBadge userId={userId} label={display.staleAt ? "Offline" : null} />
-
           <TodayExerciseRows
             exercises={display.exercises}
             emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}

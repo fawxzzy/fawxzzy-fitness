@@ -1304,6 +1304,7 @@ export default async function TodayPage(
             subtitle={todayPayload.routine
               ? formatTodayHeaderSubtitle(todayPayload.routine.dayName, todayPayload.routine.name)
               : "No active routine"}
+            status={<OfflineSyncBadge userId={user.id} variant="header" label={fetchFailed ? "Offline" : null} />}
           />
         )}
     >
@@ -1311,7 +1312,6 @@ export default async function TodayPage(
       <TodayRouteRevalidator />
       {todayPayload.routine && hasDetailedRoutineState ? (
         <TodayOverviewContent>
-          <OfflineSyncBadge userId={user.id} />
           {recoveryShadowPlacement ? (
             <TodayRecoveryShadowPlacement
               placementId={recoveryShadowPlacement.placementId}
@@ -1400,6 +1400,7 @@ export default async function TodayPage(
               routineName={todayPayload.routine.name}
               startDate={activeRoutine?.start_date ?? null}
               floatingHeaderSlotId="today-floating-header-slot"
+              headerStatus={<OfflineSyncBadge userId={user.id} variant="header" />}
               switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
               progressionReviewItems={progressionReviewItems}
               progressionStatusItems={progressionStatusItems}
