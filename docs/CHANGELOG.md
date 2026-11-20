@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-19 (Manual Promote)
+
+### WHAT
+- Progression is manual-only: saving a workout never changes a routine target and the post-workout promotions sheet is gone. A Promote button appears on the Today exercise card only when its progress bar is full (100%); it promotes exactly as the playbook designs (reps phase +1 rep, load phase +increment with reps reset) and can be reverted. The routine editor no longer has an auto-update-goals setting.
+
+### WHY
+- Owner decision 2026-11-19: promotions must be a deliberate choice.
+
 ## Unreleased - 2026-11-15 (FF-DESIGN-001, account lane H2)
 
 ### WHAT

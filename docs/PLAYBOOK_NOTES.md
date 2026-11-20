@@ -1,5 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-19 - Manual Promote: progression is never automatic
+
+- Type: Product behaviour (source; no schema or migration change)
+- WHAT changed: Finishing a workout no longer changes any routine target. Removed `applyEligibleAutomaticProgressionUpdates`, `src/lib/session-auto-progression.ts` (+ test), the `progressionUpdates` save result, the post-workout "Progression Promotions" sheet and its dev fixture, and the `autoUpdateRoutineGoals` playbook field (hidden input, form state, parse/defaults; old stored JSON is ignored). New `promoteExerciseAction` in `src/app/progression-review/actions.ts` (Today now imports the shared apply/revert actions instead of its inline copies) runs the pure gate `src/lib/progression-manual-promotion.ts`: owned exercise, no in-progress workout for the user, no standing `promotion_applied` for the same exercise and source workout (a later `promotion_reverted` re-opens it), `expectedFromTarget` equals the stored or effort-schedule target, the server-recomputed bar is 100%, the candidate is `promote`. The write is conditional on every target column (a lost race writes nothing), then `promotion_applied` is recorded with `source_session_id`. The Today card and `ProgressionReviewCard` show Promote only when the bar is 100% (`src/lib/progression-card-action.ts`); deload is unchanged.
+- WHY it changed: Zac decided promotions must be a deliberate tap on a full bar, not a side effect of saving a workout.
+- Rule: A progression target changes only through a user action that the server re-checks (ownership, live workout, bar, idempotency, stale target, conditional write). Client visibility rules are mirrored on the server, never trusted.
+- Failure Mode: A promote action that only checks the candidate type double-applies on a double tap or a second device, and an unconditional update overwrites a target another tab just changed; both are now refused (`already_applied`, `stale_target`, `lost_race`).
+- Decision: The in-progress check is user-wide (stricter than the old routine-scoped check). The deload apply path is unchanged and still computes its candidate without the step policy (follow-up).
+- Status: Source only, headless-only, not device-checked.
+
 ## 2026-11-19 - FF-QA-004: screen-flow interaction tests, last 5 exclusions closed, one QA command
 
 - Type: Test infrastructure (source; no product behaviour change)
