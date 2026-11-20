@@ -42,8 +42,7 @@ export function ScreenHeader({ kind, title, subtitle, status, back, trailing, ap
       data-testid={testId}
       className={screenHeaderTokens.root}
     >
-      {/* The menu row is the notice anchor: floating notices sit just under it (PR #294 `data-app-notice-anchor`). */}
-      <div className={screenHeaderTokens.row} data-app-notice-anchor={appMenu ? "" : undefined}>
+      <div className={screenHeaderTokens.row}>
         {backNode ? <div className={screenHeaderTokens.backSlot}>{backNode}</div> : null}
         <div className={screenHeaderTokens.titleBlock}>
           <div className={screenHeaderTokens.titleLine}>

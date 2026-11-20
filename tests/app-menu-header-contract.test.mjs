@@ -3,7 +3,7 @@
 // also run against a broken copy of the source to prove it fails.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -147,20 +147,19 @@ test("the offline state is inline on the header title line, never a body pill", 
   assert.match(badge, /role="status"/);
 });
 
-test("the header publishes --app-header-height and --app-header-menu-bottom for notices", () => {
+test("notices have one header anchor: --app-notice-top (PR #294), no second set of header variables", () => {
+  // Review fix (PR #293): `--app-header-height` / `--app-header-menu-bottom` duplicated PR #294's anchor and nothing
+  // read them. They are gone; the toast stack reads only `--app-notice-top`.
   const css = read("src/app/globals.css");
-  const rootBlock = css.slice(css.indexOf(":root {"), css.indexOf("\n}", css.indexOf(":root {")));
-  assert.match(rootBlock, /--app-header-height: calc\(/);
-  assert.match(rootBlock, /--app-header-menu-bottom: calc\(/);
-  const metrics = read("src/components/shared/mobile-shell/appHeaderMetrics.ts");
-  assert.match(metrics, /APP_HEADER_HEIGHT_VAR = "--app-header-height"/);
-  assert.match(metrics, /APP_HEADER_MENU_BOTTOM_VAR = "--app-header-menu-bottom"/);
+  assert.doesNotMatch(css, /--app-header-height|--app-header-menu-bottom/);
   const shell = read("src/components/shared/mobile-shell/MobileScreenShell.tsx");
-  assert.match(shell, /syncAppHeaderMetrics\(node\)/);
+  assert.doesNotMatch(shell, /appHeaderMetrics|syncAppHeaderMetrics/);
+  assert.match(shell, /useAppNoticeAnchor\(/);
   assert.match(shell, /ref=\{floatingHeaderRef\}\s*data-app-header="true"/);
+  assert.equal(existsSync(join(root, "src/components/shared/mobile-shell/appHeaderMetrics.ts")), false);
   const contract = read("docs/design-system/DESIGN-CONTRACT.md");
   assert.match(contract, /toasts 110 < app menu panel 115/);
-  assert.match(contract, /--app-header-menu-bottom/);
+  assert.doesNotMatch(contract, /--app-header-menu-bottom|--app-header-height/);
 });
 
 test("dock buttons are flat: no gloss gradient, no drop shadow, token colours", () => {
@@ -208,7 +207,8 @@ function screenHeaderSlotProblems(headerSource) {
   const problems = [];
   if (!/\{appMenu \? <ScreenHeaderMenuSlot \/> : null\}/.test(headerSource)) problems.push("menu slot is not gated on appMenu");
   if (/appMenu = true/.test(headerSource)) problems.push("appMenu defaults to on");
-  if (!/data-app-notice-anchor=\{appMenu \? "" : undefined\}/.test(headerSource)) problems.push("menu row is not the notice anchor");
+  // The anchor is the menu button slot (ScreenHeaderMenuSlot), not the whole row: the row also holds the subtitle.
+  if (/data-app-notice-anchor/.test(headerSource)) problems.push("the header row must not be the notice anchor (the menu slot is)");
   return problems;
 }
 
@@ -228,12 +228,17 @@ test("the app menu is opt-in: only screen-level headers render it, never a sheet
   assert.notDeepEqual(screenHeaderSlotProblems(header.replace("appMenu = false", "appMenu = true")), []);
 });
 
-test("notice anchor: the header menu row carries data-app-notice-anchor (PR #294 contract)", () => {
-  // PR #294 (src/lib/app-notice-anchor.ts) reads `[data-app-notice-anchor]` inside the shell and puts notices under it.
+test("notice anchor: the header menu button slot carries data-app-notice-anchor (PR #294 contract)", () => {
+  // PR #294 (src/lib/app-notice-anchor.ts) reads `[data-app-notice-anchor]` inside the shell and puts notices 8px under
+  // it. Review fix (PR #293): the marker sits on the 44x44 menu slot, so notices land under the button, not under the
+  // subtitle line that hangs below the title in the same row. One slot serves the ScreenHeader and the menu-only row.
+  const slot = read("src/components/ui/app/ScreenHeaderMenu.tsx");
+  assert.match(slot, /<div className=\{screenHeaderTokens\.menuSlot\} data-screen-header-menu="true" data-app-notice-anchor="">/);
   const header = read("src/components/ui/app/ScreenHeader.tsx");
-  assert.match(header, /<div className=\{screenHeaderTokens\.row\} data-app-notice-anchor=\{appMenu \? "" : undefined\}>/);
+  assert.doesNotMatch(header, /data-app-notice-anchor/);
   const shell = read("src/components/shared/mobile-shell/MobileScreenShell.tsx");
-  assert.match(shell, /cn\(screenHeaderTokens\.row, "justify-end"\)\} data-app-notice-anchor="">\s*<ScreenHeaderMenuSlot \/>/, "a menu-only header row is the anchor too");
+  assert.doesNotMatch(shell, /data-app-notice-anchor/, "the menu-only row is not a second anchor; its slot is");
+  assert.match(shell, /cn\(screenHeaderTokens\.row, "justify-end"\)\}>\s*<ScreenHeaderMenuSlot \/>/);
 });
 
 // Review fix (PR #293): a z-index only counts inside its stacking context. `<main>` (layout.tsx, `relative z-10`)

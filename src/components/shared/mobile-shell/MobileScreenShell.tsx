@@ -5,7 +5,6 @@ import { BottomActionsProvider, BottomActionsSlot, usePublishedBottomActions } f
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { ScreenHeaderMenuProvider, ScreenHeaderMenuSlot } from "@/components/ui/app/ScreenHeaderMenu";
 import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
-import { syncAppHeaderMetrics, clearAppHeaderMetrics } from "@/components/shared/mobile-shell/appHeaderMetrics";
 import { cn } from "@/lib/cn";
 import { useAppNoticeAnchor } from "@/components/shared/mobile-shell/useAppNoticeAnchor";
 
@@ -64,7 +63,7 @@ function MobileScreenShellFrame({
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
   const topChromeRef = useRef<HTMLDivElement | null>(null);
-  // One ref for the header layer: the notice anchor fallback and the published header metrics.
+  // The header layer: the notice anchor fallback when no menu button is on screen.
   const floatingHeaderRef = useRef<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
   const hasTopChrome = Boolean(topChrome);
@@ -120,28 +119,6 @@ function MobileScreenShellFrame({
     };
   }, [bottomDock, shouldRenderBottomDock]);
 
-  // Publish where the header ends (`--app-header-height`) and where the menu button ends
-  // (`--app-header-menu-bottom`) so notices can anchor just below the menu (DESIGN-CONTRACT.md section 15).
-  useLayoutEffect(() => {
-    const node = floatingHeaderRef.current;
-    if (!node) {
-      return;
-    }
-
-    const sync = () => syncAppHeaderMetrics(node);
-    sync();
-
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
-    observer?.observe(node);
-    window.addEventListener("resize", sync);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", sync);
-      clearAppHeaderMetrics();
-    };
-  }, [hasFloatingHeader]);
-
   return (
     <section
       ref={shellRef}
@@ -165,7 +142,7 @@ function MobileScreenShellFrame({
         >
           {hasHeaderMenuOnly ? (
             <div className={screenHeaderTokens.root}>
-              <div className={cn(screenHeaderTokens.row, "justify-end")} data-app-notice-anchor="">
+              <div className={cn(screenHeaderTokens.row, "justify-end")}>
                 <ScreenHeaderMenuSlot />
               </div>
             </div>

@@ -23,8 +23,10 @@ export function ScreenHeaderMenuSlot() {
     return null;
   }
 
+  // The menu button is the notice anchor (PR #294 `data-app-notice-anchor`): floating notices sit 8px under the
+  // button itself, not under the whole header row, which also holds the subtitle line below the title.
   return (
-    <div className={screenHeaderTokens.menuSlot} data-screen-header-menu="true">
+    <div className={screenHeaderTokens.menuSlot} data-screen-header-menu="true" data-app-notice-anchor="">
       {menu}
     </div>
   );
