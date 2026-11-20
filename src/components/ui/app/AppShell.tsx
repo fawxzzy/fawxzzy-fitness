@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppSoftErrorBoundary } from "@/components/error/AppSoftErrorBoundary";
 import { AppAmbientBackdrop } from "@/components/layout/AppAmbientBackdrop";
+import { AppBackdrop, useAppBackdropOverride } from "@/components/layout/AppBackdrop";
 import { AppEdgeFrame } from "@/components/layout/AppEdgeFrame";
 import { cn } from "@/lib/cn";
 import { shouldRenderLocalAppChrome } from "@/lib/ambient/route-preset";
@@ -26,6 +27,8 @@ export function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const shouldRenderLocalChrome = shouldRenderLocalAppChrome(pathname);
+  // Dev previews under /dev/mobile-regression pick the static backdrop through AppBackdropOverride (?backdrop=).
+  const backdropOverride = useAppBackdropOverride();
   const shellStyle = ({
     "--app-top-nav-safe-top": "max(env(safe-area-inset-top, 0px), var(--vv-top, 0px))",
     "--app-header-offset": topNavMode === "none" ? "0px" : "calc(var(--header-floating-gap) + var(--header-h))",
@@ -48,7 +51,9 @@ export function AppShell({
       data-top-nav-mode={topNavMode}
       style={shellStyle}
     >
-      {shouldRenderLocalChrome ? <AppAmbientBackdrop preset={ambientPreset} /> : null}
+      {shouldRenderLocalChrome
+        ? backdropOverride ? <AppBackdrop variant={backdropOverride} /> : <AppAmbientBackdrop preset={ambientPreset} />
+        : null}
       {shouldRenderLocalChrome && showEdgeFrame ? <AppEdgeFrame preset={ambientPreset} /> : null}
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
         <AppSoftErrorBoundary area="app-shell">

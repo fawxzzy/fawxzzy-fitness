@@ -322,6 +322,61 @@ body {
   isolation: isolate;
 }
 
+/* App backdrop (lane D, 2026-11-19): a static, token-only background for screens that opt in (Today first), drawn
+   instead of the animated ambient scene. CSS gradients plus one tiny inline SVG mask (contour only); no images, no animation, no
+   layout (absolute, aria-hidden, pointer-events none). Variants: aurora (default for Today), grid, contour. The scrim
+   keeps the status bar (safe-area top) and the dock zone (safe-area bottom) readable. src/lib/ambient/app-backdrop.ts. */
+.app-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  contain: strict;
+  background-color: rgb(var(--bg-0));
+}
+
+.app-backdrop > div {
+  position: absolute;
+  inset: 0;
+}
+
+.app-backdrop__base {
+  background: linear-gradient(180deg, rgb(var(--bg-1)) 0%, rgb(var(--bg-0)) 48%, rgb(var(--ambient-depth-bottom)) 100%);
+}
+
+.app-backdrop__scrim {
+  background:
+    linear-gradient(180deg, rgb(var(--bg-0) / 0.7) 0, rgb(var(--bg-0) / 0) calc(env(safe-area-inset-top, 0px) + 32px)),
+    linear-gradient(0deg, rgb(var(--bg-0) / 0.55) 0, rgb(var(--bg-0) / 0) calc(env(safe-area-inset-bottom, 0px) + 128px));
+}
+
+.app-backdrop[data-app-backdrop="aurora"] .app-backdrop__pattern {
+  background:
+    radial-gradient(120% 58% at 8% -8%, rgb(var(--accent) / 0.3), transparent 64%),
+    radial-gradient(85% 50% at 106% 38%, rgb(var(--ambient-line-cyan) / 0.11), transparent 70%),
+    radial-gradient(110% 42% at 18% 96%, rgb(var(--accent) / 0.15), transparent 72%);
+}
+
+.app-backdrop[data-app-backdrop="grid"] .app-backdrop__pattern {
+  background:
+    radial-gradient(circle, rgb(var(--ambient-line-highlight) / 0.13) 0 1px, transparent 1.6px) 0 0 / 22px 22px,
+    radial-gradient(110% 46% at 50% -10%, rgb(var(--accent) / 0.18), transparent 70%);
+  -webkit-mask-image: linear-gradient(180deg, black 0%, rgb(0 0 0 / 0.5) 46%, transparent 88%);
+  mask-image: linear-gradient(180deg, black 0%, rgb(0 0 0 / 0.5) 46%, transparent 88%);
+}
+
+.app-backdrop[data-app-backdrop="contour"] .app-backdrop__pattern {
+  background: linear-gradient(170deg, rgb(var(--accent) / 0.34) 0%, rgb(var(--ambient-line-cyan) / 0.12) 52%, transparent 92%);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180' viewBox='0 0 360 180'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Cpath d='M0 15 Q45 3 90 15 T180 15 T270 15 T360 15'/%3E%3Cpath d='M0 45 Q45 61 90 45 T180 45 T270 45 T360 45'/%3E%3Cpath d='M0 75 Q45 65 90 75 T180 75 T270 75 T360 75'/%3E%3Cpath d='M0 105 Q45 123 90 105 T180 105 T270 105 T360 105'/%3E%3Cpath d='M0 135 Q45 121 90 135 T180 135 T270 135 T360 135'/%3E%3Cpath d='M0 165 Q45 177 90 165 T180 165 T270 165 T360 165'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180' viewBox='0 0 360 180'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Cpath d='M0 15 Q45 3 90 15 T180 15 T270 15 T360 15'/%3E%3Cpath d='M0 45 Q45 61 90 45 T180 45 T270 45 T360 45'/%3E%3Cpath d='M0 75 Q45 65 90 75 T180 75 T270 75 T360 75'/%3E%3Cpath d='M0 105 Q45 123 90 105 T180 105 T270 105 T360 105'/%3E%3Cpath d='M0 135 Q45 121 90 135 T180 135 T270 135 T360 135'/%3E%3Cpath d='M0 165 Q45 177 90 165 T180 165 T270 165 T360 165'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask-size: 360px 180px;
+  mask-size: 360px 180px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+}
+
 .app-edge-frame {
   display: none;
   pointer-events: none;
