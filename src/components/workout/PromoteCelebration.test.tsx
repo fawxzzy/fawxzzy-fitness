@@ -34,6 +34,9 @@ test("celebration dialog: labelled modal, old -> new rows, changed rows marked, 
   assert.match(html, /data-promote-close="true" class="[^"]*min-h-11/);
   assert.match(html, /animate-promote-rise motion-reduce:animate-none/);
   assert.match(html, /animate-exercise-glint[^"]*motion-reduce:hidden/);
+  // 320px: the label keeps its width and the values wrap under it instead of drawing over it.
+  assert.match(html, /data-promote-row="Reps" class="grid grid-cols-\[auto_minmax\(0,1fr\)\]/);
+  assert.match(html, /<dd class="m-0 flex min-w-0 flex-wrap[^"]*whitespace-nowrap/);
   assert.match(html, /data-promote-phase="done"/);
   assert.doesNotMatch(html, /data-promote-confirm/);
 });

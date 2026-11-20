@@ -209,14 +209,14 @@ export function PromoteCelebrationDialog({
                   key={row.label}
                   data-promote-row={row.label}
                   className={cn(
-                    "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[calc(var(--card-radius)*0.6)] border px-3 py-2.5",
+                    "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-[calc(var(--card-radius)*0.6)] border px-3 py-2.5",
                     delta
                       ? "border-[rgb(var(--success-rgb)/0.45)] bg-[rgb(var(--success-rgb)/0.1)]"
                       : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-3-rgb)/0.35)]",
                   )}
                 >
                   <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-muted)/0.98)]">{row.label}</dt>
-                  <dd className="m-0 flex items-center gap-2 text-sm font-semibold tabular-nums">
+                  <dd className="m-0 flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 whitespace-nowrap text-sm font-semibold tabular-nums">
                     <span className={cn(delta ? "text-[rgb(var(--text-muted)/0.98)]" : "text-[rgb(var(--text-secondary)/0.98)]")}>{row.from}</span>
                     <span aria-hidden="true" className={cn(delta ? "text-[rgb(var(--success-rgb))]" : "text-[rgb(var(--text-muted)/0.8)]")}>→</span>
                     <span className="sr-only">to</span>
