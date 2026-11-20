@@ -72,6 +72,7 @@ jobs:
           node --test scripts/seed-feedback-monetization-roadmap.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/lib/api-auth.test.ts src/lib/billing/pro-access-diagnostics.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/session-action-response.test.ts src/lib/today-notice.test.ts src/lib/app-notice-anchor.test.ts src/lib/duration.test.ts src/lib/today-discard-dialog.contract.test.ts src/lib/best-effort-steps.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/navigation-return.test.ts src/lib/navigation-return.safety.test.ts src/lib/account-navigation.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/lib/today-switch-day.test.ts src/lib/ambient/app-backdrop.test.ts src/app/today/TodaySwitchDayCard.contract.test.tsx
           npm run test:project-board-owner-export
           npm run project-board:owner-export:check

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { devRouteUnavailableResponse } from "@/lib/dev-route-guard";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ function renderBootstrapDocument({
 }: {
   nextPath: string;
 }) {
-  const safeNextPath = nextPath.startsWith("/") ? nextPath : "/today";
+  const safeNextPath = isSafeAppPath(nextPath) ? nextPath : "/today";
 
   return `<!DOCTYPE html>
 <html lang="en">

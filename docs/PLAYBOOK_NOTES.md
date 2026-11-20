@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-19 - returnTo open-redirect hardening: one shared same-origin path check
+
+- Type: Security hardening (source; no schema, data or UI change)
+- WHAT changed: `isSafeAppPath` (`src/lib/navigation-return.ts`) now accepts only a same-origin in-app path. It rejects protocol-relative `//`, backslashes, ASCII control characters, spaces and Unicode whitespace/format characters, absolute URLs and schemes, malformed percent escapes, and any value whose `new URL(v, "https://app.invalid")` origin differs from the base or whose resolved pathname starts with `//`; the same checks run on up to three percent-decoded layers (so `/%5Cevil.com`, `/%2F/evil.com`, `%252F%252F...` fail even though `decodeReturnTo` decodes again). Encoded spaces inside a query (`?q=bench%20press`) and nested encoded `returnTo` values keep working. Call sites that re-implemented a weaker `startsWith("/")` check now use it: exercise detail redirect (`/exercises/[id]?returnTo=` was a server-side open redirect), `getExerciseInfoHref`, privacy/terms/`LegalDocumentLayout` back links, the exercise server actions' `returnTo` form field (was unvalidated before `redirect()`), install `normalizeLocalPath`, account return/portal handoff prefix checks, and the two dev auth bootstrap routes. Table tests: `src/lib/navigation-return.safety.test.ts` (with the old `navigation-return.test.ts`, now in the CI contract step).
+- WHY it changed: Review finding: `/\evil.com` and `/<TAB>/evil.com` passed the old `startsWith("/") && !startsWith("//")` test and a browser resolves both to `https://evil.com/`; the day-editor, create and routine-editor back buttons (and several other `returnTo` readers) trusted it.
+- Rule: Every `returnTo`/`next` value from a URL, form or storage goes through `isSafeAppPath` (or `resolveReturnHref`); never hand-roll a prefix check. Validate the raw value and every decoded layer, and compare the resolved origin with a fixed base.
+- Failure Mode: Browsers treat `\` as `/` and strip tab/CR/LF anywhere in a URL, so a prefix test on the raw string is not a same-origin test; a later `decodeURIComponent` reopens anything checked only in encoded form. The `scripts/qa/visual-fitness-runner.mjs` copy of the old check is QA tooling with fixed inputs and was left alone.
+- Status: Source only; unit tests plus mutation check (old check fails 28 cases); no browser or device check.
+
 ## 2026-11-19 - Lane D: Switch Day cards, one Today empty-state card, static Today backdrop
 
 - Type: UI (Today screen; no data, schema or server change)

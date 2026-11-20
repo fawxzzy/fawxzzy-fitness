@@ -9,6 +9,7 @@ import {
   FITNESS_SUPPORT_CONTACT_LABEL,
   FITNESS_SUPPORT_SENSITIVE_INFO_WARNING,
 } from "@/lib/legal-documents";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 // Legal pages are detail screens (DESIGN-CONTRACT.md section 15): Back on the left, the document name as the
 // title, no eyebrow, no accent bar, no decorative grid. The copy below the header is owned by the legal docs.
@@ -25,7 +26,7 @@ export function LegalDocumentLayout({
 }) {
   void lastUpdated;
 
-  const backHref = returnTo && returnTo.startsWith("/") ? returnTo : "/settings";
+  const backHref = isSafeAppPath(returnTo) ? returnTo : "/settings";
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[rgb(var(--app-bg))] pt-[max(var(--app-safe-top),var(--vv-top,0px))] text-[rgb(var(--text-primary)/0.96)]">
