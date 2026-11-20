@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-19T17:59:38.000Z",
+  "updatedAt": "2026-11-20T08:08:14.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -15,7 +15,7 @@
     },
     "researchCandidateImport": { "recordCount": 64, "adoptedCount": 0, "stableIdOverlapCount": 0, "sha256": "6bdeb360433a8413edda9e7f094728120f37eae2f9223e4cca00a975e1d6dca1" },
     "excludedOwnerRecords": { "recordCount": 18, "reason": "missing stable Fitness card identity or belongs to another product" },
-    "boardSync": { "at": "2026-11-19T17:59:38.000Z", "appliedEventCount": 48, "lastEventId": "a59771e73258" }
+    "boardSync": { "at": "2026-11-20T08:08:14.000Z", "appliedEventCount": 58, "lastEventId": "a616f530927b" }
   },
   "acceptedPublicCardIds": [
     "FF-ANALYTICS-001",
@@ -267,12 +267,12 @@
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
     },
-    { "id": "FF-PLATFORM-001", "status": "review", "updatedAt": "2026-11-15T05:10:16.000Z", "visibility": "public",
+    { "id": "FF-PLATFORM-001", "status": "review", "updatedAt": "2026-11-20T08:07:45.000Z", "visibility": "public",
       "card": {
         "title": "Move to a supported framework version",
         "priority": "P2",
         "dependsOn": ["FF-QA-004"],
-        "description": "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned. Board update 2026-11-15: Migration-readiness audit note added (docs only); Excel export library swap skipped pending owner decision; Next/React migration not started PR #250 merged (676be263). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Excel export now uses a maintained writer (vulnerable xlsx removed) with a cell-by-cell round-trip test; merged, not deployed; no real Excel or phone open checked; Next/React migration not started PR #257 merged (3db7fe30). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: PR 259 merged: xlsx export round-trip test covers empty string, boolean and date cells; test-only, no export bug found PR #259 merged (6da36e05). Merged, not deployed. Checked only in headless Chromium, not on a real phone.",
+        "description": "The web framework the app is built on (Next 14) is past end of support. The latest patch release (14.2.35) is live, but remaining fixes only ship in newer major versions, so a framework upgrade to Next 15.5 or 16 together with React 19 is planned. Board update 2026-11-15: PR 259 merged: xlsx export round-trip test covers empty string, boolean and date cells; test-only, no export bug found PR #259 merged (6da36e05). Merged, not deployed. Checked only in headless Chromium, not on a real phone. Board update 2026-11-19: Next 15.5 and React 19 are live in build dcb1dfa8. Headless live checks passed: sign-in, portal handoff, Resume Workout, the four main screens, data export, sign-out, dev pages closed. Not checked on a real phone. Next 15 support ends 2027-01-31, so a move to Next 16 is still needed. PR #289 merged (dcb1dfa8). Deployed: production build dcb1dfa8. Checked only in headless Chromium, not on a real phone. Board update 2026-11-20: Next 16 shipped to production and the signed-in headless checks passed (sign-in, session persistence, sign-out, portal handoff). Real phone check still open. PR #290 merged (6de3c480). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["The app runs on a supported framework version.","The framework upgrade is tested before release and rolled out without breaking sign-in or workouts.","Everyday flows are checked live after the upgrade."],
         "sourcePath": "scripts/export-project-board-owner.mjs"
       }
@@ -344,6 +344,42 @@
         "dependsOn": [],
         "description": "Signing out of the app should end the login on the server, not only clear it on the phone. An old signed-in request must be rejected after sign-out. Board update 2026-11-15: Sign-out now ends the server session; merged, not deployed, production replay pending PR #263 merged (0633baba). Deployed: production build none. Checked only in headless Chromium, not on a real phone. Board update 2026-11-15: Sign-out now ends the login on the server. Live in production on build pg3ri6mtm; after sign-out, an old signed-in request is rejected with no data. Portal handoff check passed. PR #263 merged (0633baba). Deployed: production build pg3ri6mtm. Checked only in headless Chromium, not on a real phone. Board update 2026-11-16: Sign-out now ends the session on the server: merged and live in b761e652; live check shows the old session can no longer open Today PR #263 merged (0633baba). Deployed: production build b761e652. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["After sign-out an old signed-in request is rejected with no data","The fix is live in production and re-checked after deploy","Signing out on one device leaves the person signed in on their other devices"]
+      }
+    },
+    { "id": "FF-TODAY-005", "status": "review", "updatedAt": "2026-11-20T08:07:49.000Z", "visibility": "public",
+      "card": {
+        "title": "Redesign Today exercise cards with manual Promote",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "Cleaner exercise cards (image top right, info bottom right, left-anchored progression bar, no Target wording, clearer goal) and a Promote button that appears on the bar at 100% and raises the goal, with Revert. Board update 2026-11-20: Cards and manual Promote are live. Headless checks only: no signed-in Promote on a real account yet, no phone check, and the bar reset after a promote is unproven live. PR #291 merged (ee1e3cc1), PR #292 merged (aa3e78be). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone.",
+        "acceptanceCriteria": ["Exercise cards show the image top right, info bottom right and a left-anchored progression bar with no Target wording.","Promote appears only at a full bar and raises the goal as designed.","After a promote the bar resets and Revert is offered."]
+      }
+    },
+    { "id": "FF-DESIGN-005", "status": "review", "updatedAt": "2026-11-20T08:07:55.000Z", "visibility": "public",
+      "card": {
+        "title": "Move app navigation into a top-right menu with green header titles",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "Top nav buttons move into a Mazer-style dropdown anchored top right, header titles sit top left in the app green, and error notices anchor just below the menu button. Board update 2026-11-20: Menu header live on the screens that use it. Headless only; the rest of the screens and a phone check are still open. PR #293 merged (41dd099a), PR #294 merged (f529c270). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone.",
+        "acceptanceCriteria": ["Navigation lives in a top-right dropdown on the screens that use the app header.","Header titles use the shared app green from the color scheme.","Error notices anchor just below the menu button and use the available width."]
+      }
+    },
+    { "id": "FF-TODAY-006", "status": "review", "updatedAt": "2026-11-20T08:08:01.000Z", "visibility": "public",
+      "card": {
+        "title": "Switch Day and empty or rest day cards on Today",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "Switch Day cards show an exercise snapshot with smaller Rest day cards, and empty or rest days show a centred title with an Edit day button. Board update 2026-11-20: Live. Headless only; the Switch Day sheet was not seen live because the QA account has an active workout. Phone check open. PR #295 merged (8d65c33e). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone.",
+        "acceptanceCriteria": ["Switch Day shows an exercise snapshot per day.","Rest days show as small Rest day cards.","Empty and rest days show a centred title with an Edit day button and no second line."]
+      }
+    },
+    { "id": "FF-AUTH-003", "status": "review", "updatedAt": "2026-11-20T08:08:14.000Z", "visibility": "public",
+      "card": {
+        "title": "Reject unsafe redirect targets after sign-in",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "Return paths after sign-in, account confirmation links, the legacy host redirect and the dev bootstrap are checked so only in-app paths are followed. Board update 2026-11-20: Shipped with tests for the known bypass shapes. A route-level confirm test and one QA script copy of the old check are follow-ups. PR #296 merged (77b88706). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone.",
+        "acceptanceCriteria": ["Only in-app return paths are followed after sign-in and account confirmation.","The legacy host redirect rejects unsafe targets.","The dev bootstrap escapes the path it embeds."]
       }
     }
   ]
