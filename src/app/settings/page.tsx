@@ -1,4 +1,4 @@
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
 import { AccountPortalReturnRefresh } from "@/components/account/AccountPortalReturnRefresh";
 import { AuthenticatedRememberedLoginSync } from "@/components/auth/AuthenticatedRememberedLoginSync";
 import { cookies } from "next/headers";
@@ -158,7 +158,7 @@ export default async function SettingsPage(
       <AuthenticatedRememberedLoginSync email={user.email ?? null} displayName={username || null} />
       <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
+          headerMenu={<AppMenu />}
           floatingHeader={<SettingsFloatingHeader />}
         >
           <ContentRail className={appTokens.settingsContentRail}>

@@ -68,7 +68,10 @@ for (const target of targets) {
       const email = document.querySelector('input[name="email"]');
       const username = document.querySelector('input[name="username"]');
       const title = [...document.querySelectorAll("h1, h2")].find((entry) => entry.textContent?.trim() === "Account");
-      const activeTab = document.querySelector('nav[aria-label="App tabs"] [aria-current="page"]');
+      // The top tab bar is gone (DESIGN-CONTRACT 15.6): Account is a detail screen of Settings with Back only. If an
+      // app menu is ever present here it may mark only Settings as current.
+      const legacyTabBar = document.querySelector('nav[aria-label="App tabs"]');
+      const activeMenuRow = document.querySelector('nav[aria-label="App menu"] [aria-current="page"]');
       const anchors = [...document.querySelectorAll("a[href]")].map((anchor) => new URL(anchor.getAttribute("href") ?? "", location.href));
       const rect = (entry) => entry?.getBoundingClientRect() ?? null;
       const backRect = rect(back);
@@ -82,7 +85,8 @@ for (const target of targets) {
         shellPresent: Boolean(shell),
         accountPresent: Boolean(account),
         title: title?.textContent?.trim() ?? null,
-        activeTab: activeTab?.textContent?.trim() ?? null,
+        legacyTabBar: Boolean(legacyTabBar),
+        activeMenuRow: activeMenuRow?.textContent?.trim() ?? null,
         backWidth: backRect?.width ?? 0,
         backHeight: backRect?.height ?? 0,
         saveHeight: saveRect?.height ?? 0,
@@ -103,7 +107,11 @@ for (const target of targets) {
     assert.equal(metrics.shellPresent, true, `${target.id}: measured mobile shell missing`);
     assert.equal(metrics.accountPresent, true, `${target.id}: account content missing`);
     assert.equal(metrics.title, "Account", `${target.id}: account title missing`);
-    assert.equal(metrics.activeTab, "Account", `${target.id}: Account app tab is not active`);
+    assert.equal(metrics.legacyTabBar, false, `${target.id}: the old app tab bar came back`);
+    assert.ok(
+      metrics.activeMenuRow === null || metrics.activeMenuRow === "Settings",
+      `${target.id}: app menu marks ${metrics.activeMenuRow} as current on Account (expected Settings or no menu)`,
+    );
     assert.ok(metrics.backWidth >= 44 && metrics.backHeight >= 44, `${target.id}: back control is smaller than 44px`);
     assert.ok(metrics.saveHeight >= 44 && metrics.signOutHeight >= 44, `${target.id}: bottom actions are smaller than 44px`);
     assert.equal(metrics.emailValue, "atlas.qa@example.com", `${target.id}: email identity drift`);
