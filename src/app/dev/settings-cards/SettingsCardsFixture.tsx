@@ -1,6 +1,6 @@
 "use client";
 
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
@@ -116,7 +116,7 @@ export function SettingsCardsFixture({ section, plan }: { section: string | null
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
+          headerMenu={<AppMenu />}
           floatingHeader={<SettingsFloatingHeader />}
         >
           <ContentRail className={appTokens.settingsContentRail}>

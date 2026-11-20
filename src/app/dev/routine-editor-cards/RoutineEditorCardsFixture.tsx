@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AppNav } from "@/components/AppNav";
+import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -62,7 +62,7 @@ export function RoutineEditorCardsFixture({
 }) {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
-      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />}>
+      <ScrollScreenWithBottomActions headerMenu={<AppMenu />}>
         <ContentRail className="space-y-3 pb-24 pt-4">
           {screen === "editor" ? <EditorFixture expanded={expanded} /> : null}
           {screen === "new-day" ? (

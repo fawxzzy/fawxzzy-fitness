@@ -66,6 +66,8 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/lib/feature-flags.test.ts src/lib/initial-experience-gate.test.ts src/lib/resolvePostLoginDestination.test.ts
           node --test tests/curated-onboarding-ui-contract.test.mjs
           node --test tests/screen-header-contract.test.mjs
+          node --test tests/app-menu-header-contract.test.mjs
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/app-menu.test.ts
           node --test tests/routines-detail-header-contract.test.mjs
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/normalize.test.ts
           node --import ./scripts/register-test-aliases.mjs --test src/features/curated-onboarding/planning/catalog/catalog.test.ts

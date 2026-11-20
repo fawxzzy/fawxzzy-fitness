@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SubtitleText } from "@/components/ui/text-roles";
@@ -35,12 +36,12 @@ export function SessionOfflineShell({
       routineName={cachedSnapshot.routineName}
       sessionDayName={cachedSnapshot.sessionDayName}
       backHref={backHref}
-      statusBadge={<OfflineSyncBadge userId={userId} label="Offline" />}
+      statusBadge={<OfflineSyncBadge userId={userId} variant="header" label="Offline" />}
     />
   ) : null;
 
   return (
-    <ScrollScreenWithBottomActions floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions headerMenu={<AppMenu />} floatingHeader={floatingHeader}>
       <ContentRail className="space-y-3">
         {cachedSnapshot ? (
           <>
