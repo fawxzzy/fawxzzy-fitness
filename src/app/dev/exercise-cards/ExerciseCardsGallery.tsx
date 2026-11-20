@@ -3,13 +3,14 @@
 import { useState, type ReactNode } from "react";
 import { TodayExerciseCard, type TodayExerciseCardExercise } from "@/app/today/TodayExerciseCard";
 import { SessionExerciseRowCard } from "@/components/session/SessionRowCards";
-import { PromoteCelebration, type PromoteStatRow } from "@/components/workout/PromoteCelebration";
+import { PromoteCelebration, type PromoteCelebrationPhase, type PromoteStatRow } from "@/components/workout/PromoteCelebration";
 import { cardTokens } from "@/components/ui/card-system";
 
 /**
  * Dev gallery for the exercise card redesign (CARD-SYSTEM.md section 3.3): goal line, side column (thumbnail top-right,
- * info bottom-right), progression bar at several fills, the Promote seam at 100% and the Promote celebration.
- * Static fixtures only; Promote here is a local stub that opens the celebration, it never calls the server.
+ * info bottom-right), progression bar at several fills, Promote at 100% and the Promote box (confirm, then
+ * "Progression up"). Static fixtures only: Promote here is a local stub that waits briefly and succeeds; it never calls
+ * the server. Today wires the real `promoteExerciseAction` (see TodayDayPicker.tsx).
  */
 
 const squat: TodayExerciseCardExercise = {
@@ -88,10 +89,21 @@ function progression(percent: number, label: string, promote?: () => void) {
   };
 }
 
+type PromoteFlow = { name: string; phase: PromoteCelebrationPhase };
+
 export function ExerciseCardsGallery() {
-  const [celebrating, setCelebrating] = useState<string | null>(null);
+  const [flow, setFlow] = useState<PromoteFlow | null>(null);
+  const [pending, setPending] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const openCelebration = (name: string) => () => setCelebrating(name);
+  const openPromote = (name: string, phase: PromoteCelebrationPhase = "confirm") => () => setFlow({ name, phase });
+  // Local stub for the server action: a short wait so the "Promoting..." state is visible, then success.
+  const confirmPromote = () => {
+    setPending(true);
+    window.setTimeout(() => {
+      setPending(false);
+      setFlow((current) => (current ? { ...current, phase: "done" } : current));
+    }, 700);
+  };
 
   return (
     <div className="grid gap-6" data-dev-exercise-cards="true">
@@ -103,12 +115,12 @@ export function ExerciseCardsGallery() {
         <li><TodayExerciseCard exercise={squat} progress={progression(75, "3/4 sessions")} /></li>
       </Section>
 
-      <Section title="Today: 100% with the Promote seam (stub opens the celebration)">
-        <li data-dev-promote-ready="true"><TodayExerciseCard exercise={squat} progress={progression(100, "Ready", openCelebration(squat.name))} /></li>
-        <li><TodayExerciseCard exercise={walk} progress={progression(100, "Ready", openCelebration(walk.name))} /></li>
+      <Section title="Today: 100% with Promote (opens the Promote box)">
+        <li data-dev-promote-ready="true"><TodayExerciseCard exercise={squat} progress={progression(100, "Ready", openPromote(squat.name))} /></li>
+        <li><TodayExerciseCard exercise={walk} progress={progression(100, "Ready", openPromote(walk.name))} /></li>
       </Section>
 
-      <Section title="Today: 100% with no seam wired (production today: no button)">
+      <Section title="Today: 100% with no Promote action (bar only; Today then shows the footer Promote row)">
         <li><TodayExerciseCard exercise={squat} progress={progression(100, "Ready")} /></li>
       </Section>
 
@@ -163,20 +175,36 @@ export function ExerciseCardsGallery() {
         </li>
       </Section>
 
-      <Section title="Promote celebration">
-        <li>
+      <Section title="Promote box">
+        <li className="flex flex-wrap gap-2">
           <button
             type="button"
-            data-dev-open-celebration="true"
-            onClick={openCelebration(squat.name)}
+            data-dev-open-celebration="confirm"
+            onClick={openPromote(squat.name, "confirm")}
             className="inline-flex min-h-11 items-center rounded-full border border-[rgb(var(--border-strong)/0.2)] px-4 text-sm font-semibold text-[rgb(var(--text-primary))]"
           >
-            Open the celebration
+            Open: Ready to promote
+          </button>
+          <button
+            type="button"
+            data-dev-open-celebration="done"
+            onClick={openPromote(squat.name, "done")}
+            className="inline-flex min-h-11 items-center rounded-full border border-[rgb(var(--border-strong)/0.2)] px-4 text-sm font-semibold text-[rgb(var(--text-primary))]"
+          >
+            Open: Progression up
           </button>
         </li>
       </Section>
 
-      <PromoteCelebration open={celebrating !== null} exerciseName={celebrating ?? ""} rows={celebrationRows} onClose={() => setCelebrating(null)} />
+      <PromoteCelebration
+        open={flow !== null}
+        phase={flow?.phase ?? "confirm"}
+        exerciseName={flow?.name ?? ""}
+        rows={celebrationRows}
+        pending={pending}
+        onConfirm={confirmPromote}
+        onClose={() => setFlow(null)}
+      />
     </div>
   );
 }

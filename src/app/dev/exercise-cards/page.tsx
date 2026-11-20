@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 /**
  * Dev-only gallery of the exercise card redesign (docs/design-system/CARD-SYSTEM.md section 3.3): progression fill
- * levels, the Promote seam at 100%, timed / long-name / no-image cards, completed rows and the Promote celebration.
+ * levels, Promote at 100% (local stub), timed / long-name / no-image cards, completed rows and the Promote celebration.
  * Static fixture data only (no Supabase client, no session, no server action). Availability is the shared dev-route
  * guard: middleware answers 404 for `/dev/*` on production hosts before this page runs; the first statement repeats it.
  */

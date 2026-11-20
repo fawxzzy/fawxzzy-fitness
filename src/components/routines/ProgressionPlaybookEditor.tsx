@@ -3373,10 +3373,10 @@ export function ProgressionPlaybookEditor({
   const routinePromotionMeasurementGroups = buildPromotionMeasurementGroups(routinePromotionMeasurements, routinePromotionLinks);
   const promotionSummary = promotionUiModel?.summary ?? (
     value.progressionPromotionBasis === "weight_only"
-      ? "Weight only: Reps are tracked for guidance but do not affect auto-promotion."
+      ? "Weight only: Reps are tracked for guidance but do not count toward Promote."
       : value.progressionPromotionBasis === "reps_only"
-        ? "Reps only: Weight is tracked/manual but does not affect auto-promotion."
-        : "Weight + reps: Both dimensions participate in auto-promotion."
+        ? "Reps only: Weight is tracked/manual but does not count toward Promote."
+        : "Weight + reps: Both count toward Promote."
   );
   const targetMutationUiModel: ProgressionTargetMutationUiModel = buildProgressionTargetMutationUiModel({
     context,
