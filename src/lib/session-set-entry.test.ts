@@ -131,13 +131,13 @@ test("deriveRepeatLastSetDraft preserves cardio measurement values for Apply Las
   assert.deepEqual(draft, {
     weight: "",
     reps: "",
-    duration: "13:00 s",
+    duration: "13:00",
     distance: "2.25",
     distanceUnit: "km",
     calories: "315",
     weightUnit: "lbs",
     isWarmup: false,
-    summaryText: "13:00 s • 2.3 km • 315 cal",
+    summaryText: "13:00 • 2.3 km • 315 cal",
   });
   assert.deepEqual(source, {
     weight: 0,

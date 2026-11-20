@@ -133,6 +133,6 @@ test("time previews append the shared seconds suffix", async () => {
       durationSeconds: 45,
       enabledMeasurements: { reps: false, weight: false, time: true, distance: false, calories: false },
     }),
-    "3 sets • 0:45 s",
+    "3 sets • 0:45",
   );
 });

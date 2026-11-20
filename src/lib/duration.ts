@@ -11,6 +11,10 @@ export function getDurationWholeMinutes(totalSeconds: number): number {
   return Math.floor(safeSeconds / 60);
 }
 
+/**
+ * Target/preview duration as a plain clock ("0:45", "18:00"). The colon already says minutes:seconds; a trailing
+ * unit ("18:00 s") read as eighteen hundred seconds on Today, so there is none.
+ */
 export function formatDurationPreview(totalSeconds: number): string {
-  return `${formatDurationClock(totalSeconds)} s`;
+  return formatDurationClock(totalSeconds);
 }
