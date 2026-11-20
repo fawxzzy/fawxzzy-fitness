@@ -177,6 +177,11 @@
   --app-dock-safe-padding-bottom: clamp(2px, var(--app-safe-bottom), 6px);
   --app-fixed-bottom-bar-clearance-gap: 0px;
   --screen-gutter: 16px;
+  /* Floating notices (toasts) sit top-right just under the header row. MobileScreenShell overwrites
+     --app-notice-top on <html> with the measured bottom of the real header row; this is the fallback. */
+  --app-notice-top: calc(var(--app-top-offset, 0px) + var(--app-top-chrome-content-gap, 0px) + 0.6rem);
+  --app-notice-inset-x: var(--screen-gutter);
+  --app-notice-max-width: 26rem;
   --content-max: 430px;
   --section-gap: 12px;
   --card-radius: 24px;

@@ -23,8 +23,10 @@ type ToastContextValue = {
   error: (message: string, options?: ToastOptions) => void;
 };
 
-type ToastOptions = {
+export type ToastOptions = {
   durationMs?: number;
+  /** Stays until the person dismisses it (or a toast with the same id replaces it). For errors they must read. */
+  persistent?: boolean;
   id?: string;
   action?: ToastItem["action"];
 };
@@ -32,6 +34,8 @@ type ToastOptions = {
 const ToastContext = createContext<ToastContextValue | null>(null);
 const EXIT_ANIMATION_MS = 300;
 const DEFAULT_DURATION_MS = 2200;
+// Errors carry a reason and a next step, so they stay long enough to read (DESIGN-CONTRACT C16).
+export const ERROR_TOAST_DURATION_MS = 6000;
 const MAX_TOASTS = 3;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -93,7 +97,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       }
       return [...current, nextToast].slice(-MAX_TOASTS);
     });
-    scheduleDismiss(id, options?.durationMs ?? DEFAULT_DURATION_MS);
+    if (options?.persistent) {
+      const existing = dismissTimersRef.current.get(id);
+      if (existing) {
+        window.clearTimeout(existing);
+        dismissTimersRef.current.delete(id);
+      }
+      return;
+    }
+    scheduleDismiss(id, options?.durationMs ?? (tone === "error" ? ERROR_TOAST_DURATION_MS : DEFAULT_DURATION_MS));
   }, [scheduleDismiss]);
 
   const value = useMemo<ToastContextValue>(
@@ -109,7 +121,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-3 top-[calc(var(--app-top-offset)+var(--app-top-chrome-content-gap,0px)+0.6rem)] z-[110] flex w-[min(calc(100%-1rem),19.5rem)] flex-col items-stretch gap-2 sm:right-4 sm:w-[19.5rem]">
+      {/* Notice stack (DESIGN-CONTRACT C16): anchored top-right just under the screen's header row via the shared
+          --app-notice-top / --app-notice-inset-x variables (MobileScreenShell keeps --app-notice-top in sync with
+          the real header). Cards shrink-wrap to their text and grow leftward up to the full gutter-to-gutter width. */}
+      <div
+        data-app-notice-stack="true"
+        className="pointer-events-none fixed left-[var(--app-notice-inset-x)] right-[var(--app-notice-inset-x)] top-[var(--app-notice-top)] z-[110] ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2"
+      >
         {toasts.map((toast) => (
           <ToastMessageCard
             key={toast.id}
