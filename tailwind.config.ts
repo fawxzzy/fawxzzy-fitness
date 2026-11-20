@@ -40,7 +40,8 @@ const config: Config = {
       },
       animation: {
         "exercise-done": "exercise-done-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) both, exercise-done-glow 2.4s ease-in-out 420ms 3",
-        "exercise-glint": "exercise-glint 2.8s ease-in-out infinite",
+        // Three passes, then still (no endless shine on a screen that stays open); `both` parks it invisible.
+        "exercise-glint": "exercise-glint 2.8s ease-in-out 3 both",
         "promote-rise": "promote-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },

@@ -51,6 +51,10 @@ test("the spoken form says what the symbols mean", () => {
   assert.equal(formatExerciseGoalDisplay(["4 sets", "8–10 reps"])?.spoken, "4 sets of 8 to 10 reps");
   assert.equal(formatExerciseGoalDisplay(["1 set", "18:00 s", "2 km"])?.spoken, "18 minutes, 2 km");
   assert.equal(formatExerciseGoalDisplay(["3 sets", "0:45 s"])?.spoken, "3 sets of 45 seconds");
+  // Failure reads as plain speech: "3 sets to failure", never "3 sets of to failure".
+  assert.equal(formatExerciseGoalDisplay(["3 sets", "Failure", "100 lbs"])?.spoken, "3 sets to failure at 100 lbs");
+  assert.equal(formatExerciseGoalDisplay(["1 set", "to failure"])?.spoken, "1 set to failure");
+  assert.equal(formatExerciseGoalDisplay(["Failure"])?.spoken, "to failure");
 });
 
 test("end to end from the stored goal line the cards receive", () => {

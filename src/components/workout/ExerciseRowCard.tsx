@@ -99,7 +99,7 @@ export function ExerciseRowCard({
   metaItems: string[];
   /** Goal parts as stored (`["4 sets", "5 reps", "225 lbs"]`); `formatExerciseGoalDisplay` turns them into one line. */
   targetValues: string[];
-  /** Quiet line shown instead of the goal when `targetValues` is empty (Today: "No target set"). Off by default. */
+  /** Quiet line shown instead of the goal when `targetValues` is empty (Today: "No goal set"; the card never says "Target"). Off by default. */
   noTargetLabel?: string | null;
   /** Logged-set or progression progress: a text label with an optional decorative bar and the Promote seam. */
   progress?: ExerciseRowCardProgress | null;

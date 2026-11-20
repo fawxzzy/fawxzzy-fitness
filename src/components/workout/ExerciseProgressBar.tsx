@@ -3,12 +3,12 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Promote seam (server action decided by a separate investigation). The card only draws the button and calls
- * `onPromote`; it never applies a progression, reads the database or changes the automatic trigger. The caller
- * passes a handler only once the real action exists; until then the button stays hidden.
+ * Promote button on a full bar. The card only draws the button and calls `onPromote`; it never applies a progression
+ * or reads the database. Today wires it to the manual Promote flow (`TodayDayPicker`: confirm box, then
+ * `promoteExerciseAction`); a caller without a handler gets no button.
  */
 export type ExerciseProgressPromote = {
-  /** SERVER-ACTION SEAM: wire the manual promote action here. Called once per tap; the caller owns pending state. */
+  /** Called once per tap; the caller owns pending state and the confirm step. */
   onPromote: () => void;
   /** While true the button reads "Promoting..." and ignores taps (aria-disabled keeps focus on it). */
   pending?: boolean;
@@ -79,7 +79,8 @@ export function ExerciseProgressPromoteButton({ promote, exerciseName }: { promo
 
 /**
  * Progress row shared by Today (progression) and the in-progress workout (logged sets): text first, then a
- * left-anchored 6px bar, and at 100% with a wired seam the Promote button at the bar's right end.
+ * left-anchored 6px bar, and at 100% with a wired handler the Promote button at the bar's right end. The only shine
+ * is on that button (three passes, none under reduced motion); a full bar alone stays still.
  */
 export function ExerciseProgressBar({ progress, exerciseName }: { progress: ExerciseRowCardProgress; exerciseName: string }) {
   const percent = clampProgressPercent(progress.percent);
@@ -101,11 +102,7 @@ export function ExerciseProgressBar({ progress, exerciseName }: { progress: Exer
                   : "bg-[rgb(var(--accent)/0.82)]",
               )}
               style={{ width: `${percent}%` }}
-            >
-              {complete && percent === 100 ? (
-                <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-exercise-glint bg-[linear-gradient(90deg,transparent,rgb(var(--text-primary)/0.45),transparent)] motion-reduce:hidden" />
-              ) : null}
-            </span>
+            />
           </span>
           {showPromote && progress.promote ? <ExerciseProgressPromoteButton promote={progress.promote} exerciseName={exerciseName} /> : null}
         </div>

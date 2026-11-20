@@ -90,7 +90,7 @@ export function TodayExerciseCard({
       }}
       metaItems={metaItems}
       targetValues={targetValues}
-      noTargetLabel={isSkipped || isStretchHub ? null : "No target set"}
+      noTargetLabel={isSkipped || isStretchHub ? null : "No goal set"}
       progress={progress}
       completed={state === "completed"}
       chips={isSkipped ? (

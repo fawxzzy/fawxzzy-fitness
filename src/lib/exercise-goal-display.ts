@@ -125,7 +125,9 @@ export function formatExerciseGoalDisplay(parts: readonly string[]): ExerciseGoa
     const dropsSingleSet = setCount === "1" && !isRepEffort;
     const effortVisual = effort.kind === "reps" ? effort.count ?? effort.text : effort.text;
     visual.push(dropsSingleSet ? effort.text : `${setCount} × ${effortVisual}`);
-    spoken.push(dropsSingleSet ? spokenPart(effort) : `${sets.text} of ${spokenPart(effort)}`);
+    // "3 sets to failure", never "3 sets of to failure"; every other effort reads "<sets> of <effort>".
+    const joiner = effort.kind === "failure" ? " " : " of ";
+    spoken.push(dropsSingleSet ? spokenPart(effort) : `${sets.text}${joiner}${spokenPart(effort)}`);
   } else if (sets) {
     visual.push(sets.text);
     spoken.push(sets.text);
