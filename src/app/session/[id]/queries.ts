@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { buildTodayNoticeHref, resolveMissingSessionNoticeCode } from "@/lib/today-notice";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import type { ProgressionHistorySetRow } from "@/lib/progression-playbooks";
@@ -96,7 +97,7 @@ export async function getSessionPageDataForUser(
   const diagnostics = options?.diagnostics;
   const supabase = await supabaseServer();
 
-  const { data: session } = diagnostics
+  const { data: session, error: sessionError } = diagnostics
     ? await diagnostics.measure("session.record.fetch", async () => await supabase
       .from("sessions")
       .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
@@ -118,7 +119,8 @@ export async function getSessionPageDataForUser(
       .single();
 
   if (!session) {
-    redirect("/today");
+    // Missing, deleted or another user's id: say so on Today instead of a silent bounce.
+    redirect(buildTodayNoticeHref(resolveMissingSessionNoticeCode(sessionError)));
   }
 
   const { data: routineWithProgression, error: routineWithProgressionError } = session.routine_id
