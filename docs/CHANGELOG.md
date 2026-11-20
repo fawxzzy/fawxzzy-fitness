@@ -6,9 +6,23 @@ All notable changes to this project are documented in this file.
 
 ### WHAT
 - Progression is manual-only: saving a workout never changes a routine target and the post-workout promotions sheet is gone. A Promote button appears on the Today exercise card only when its progress bar is full (100%); it promotes exactly as the playbook designs (reps phase +1 rep, load phase +increment with reps reset) and can be reverted. After Promote the bar resets: the workout that earned it no longer counts, so Promote returns only after a newer workout qualifies (Revert restores the earlier state). If the promotion cannot be recorded, the target is put back and an error is shown. The routine editor no longer has an auto-update-goals setting.
+- After Promote the bar resets on every linked day too, and the card reads "Promoted. Log a workout at the new target." until a newer workout is logged. If a linked day cannot be updated, the promoted day still saves and a warning says so. Undoing a deload no longer lifts a standing promotion.
 
 ### WHY
 - Owner decision 2026-11-19: promotions must be a deliberate choice.
+
+## Unreleased - 2026-11-19 (Today review lane A: errors and discard)
+
+### WHAT
+- Start/Resume Workout: a server error page or a dropped connection shows one error notice and keeps the app on screen (no full-screen "Could not load").
+- Today's error notice now appears and stays until dismissed; a missing or other user's workout link lands on Today with "That workout could not be found."
+- Timed targets read `18:00` instead of `18:00 s`.
+- A failed Discard closes the dialog and says "Could not discard the workout. Try again."; the confirm dialog blurs and dims the screen behind it more and has a tidier box.
+- Notices sit top-right just under the header, use the whole box for text and grow left (up to 26rem) so short messages fit on one line.
+- Discard always succeeds once the workout is deleted, even if follow-up telemetry fails; a failed Discard refreshes Today. "That workout could not be found." no longer follows you to other tabs, and a malformed workout link also shows it. Today no longer shows free text from `?error=` links.
+
+### WHY
+- Findings from the 2026-11-19 Today review. No route, server data, database or env change.
 
 ## Unreleased - 2026-11-15 (FF-DESIGN-001, account lane H2)
 
