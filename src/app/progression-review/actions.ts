@@ -1,9 +1,11 @@
 "use server";
+import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import {
   buildProgressionReviewTargetPlan,
   canUseCatalogHistoryFallbackForRoutineExercise,
   getProgressionReviewTargetFingerprintForExercise,
+  inferProgressionStepPolicyForRoutineExercise,
   loadProgressionHistoryForExercise,
   resolveRoutineExerciseRepTarget,
 } from "@/lib/progression-review-loader";
@@ -11,9 +13,18 @@ import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-tar
 import {
   buildProgressionHistorySessions,
   deriveProgressionReviewCandidate,
+  validateProgressionPlaybookSelection,
   type ProgressionHistorySetRow,
   type ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
+import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
+import {
+  buildManualPromotionTargetGuard,
+  runManualPromotion,
+  type ManualPromotionExerciseSnapshot,
+  type ManualPromotionRepository,
+} from "@/lib/progression-manual-promotion";
+import { revalidateRoutinesViews } from "@/lib/revalidation";
 import {
   buildProgressionEventPayload,
   extractProgressionSourceSessionId,
@@ -36,6 +47,12 @@ type ProgressionReviewMutationExerciseRow = RoutineDayExerciseRow & {
 
 const PROGRESSION_MUTATION_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
 const LINKED_PROGRESSION_UPDATE_LIMIT = 12;
+
+function revalidateProgressionViews(routineId: string) {
+  revalidatePath("/today");
+  revalidatePath(`/routines/${routineId}/edit`);
+  revalidateRoutinesViews();
+}
 
 function createLiveSessionMutationRepository(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
   return {
@@ -209,12 +226,249 @@ function verifyLinkedProgressionFingerprints(args: {
   return args.linkedExercises.every((exercise) => getProgressionReviewTargetFingerprintForExercise(exercise) === sourceFingerprint);
 }
 
+function createManualPromotionRepository(args: {
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
+  userId: string;
+  routineId: string;
+}): ManualPromotionRepository<ProgressionReviewMutationExerciseRow> {
+  const { supabase, userId, routineId } = args;
+  let fallbackWeightUnit: "lbs" | "kg" = "lbs";
+  const dayIndexByDayId = new Map<string, number | null>();
+  const toSnapshot = (row: ProgressionReviewMutationExerciseRow): ManualPromotionExerciseSnapshot<ProgressionReviewMutationExerciseRow> => ({
+    row,
+    id: row.id,
+    storedTarget: buildProgressionReviewTargetPlan(row),
+    effectiveTarget: buildProgressionReviewTargetPlan(applyEffortScheduleToRoutineDayExercise({
+      exercise: row,
+      routineDayIndex: dayIndexByDayId.get(row.routine_day_id) ?? null,
+    })),
+  });
+
+  return {
+    async readOwnedExercise(routineDayExerciseId) {
+      const { data: exerciseRow, error } = await supabase
+        .from("routine_day_exercises")
+        .select(PROGRESSION_MUTATION_EXERCISE_SELECT)
+        .eq("id", routineDayExerciseId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error || !exerciseRow) {
+        return null;
+      }
+
+      const row = exerciseRow as ProgressionReviewMutationExerciseRow;
+      const { data: routineDay } = await supabase
+        .from("routine_days")
+        .select("routine_id, day_index")
+        .eq("id", row.routine_day_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!routineDay || routineDay.routine_id !== routineId) {
+        return null;
+      }
+
+      const { data: routine } = await supabase
+        .from("routines")
+        .select("weight_unit")
+        .eq("id", routineId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!routine) {
+        return null;
+      }
+
+      fallbackWeightUnit = routine.weight_unit === "kg" ? "kg" : "lbs";
+      dayIndexByDayId.set(row.routine_day_id, routineDay.day_index ?? null);
+      return toSnapshot(row);
+    },
+    async hasWorkoutInProgress() {
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("status", "in_progress")
+        .limit(1);
+      if (error) {
+        throw new Error("Could not verify active session state.");
+      }
+
+      return (data?.length ?? 0) > 0;
+    },
+    async evaluate(exercise) {
+      const row = exercise.row;
+      const allowCatalogFallback = await canUseCatalogHistoryFallbackForRoutineExercise({
+        supabase,
+        userId,
+        routineId,
+        exerciseId: row.exercise_id,
+      });
+      const historyRows = await loadProgressionHistoryForExercise({
+        supabase,
+        userId,
+        routineId,
+        exerciseId: row.exercise_id,
+        routineDayExerciseId: row.id,
+        allowCatalogFallback,
+      });
+      const { data: metadata } = await supabase
+        .from("exercises")
+        .select("equipment, movement_pattern")
+        .eq("id", row.exercise_id)
+        .maybeSingle();
+      const candidate = deriveProgressionReviewCandidate({
+        playbookId: row.progression_playbook_id,
+        config: row.progression_playbook_config,
+        plan: exercise.storedTarget,
+        history: buildProgressionHistorySessions({
+          rows: historyRows,
+          targetSetCount: row.target_sets,
+          topRepTarget: resolveRoutineExerciseRepTarget(row),
+          limit: 8,
+        }),
+        historyRows,
+        fallbackWeightUnit,
+        progressionStepPolicy: inferProgressionStepPolicyForRoutineExercise({
+          selection: validateProgressionPlaybookSelection({
+            playbookId: row.progression_playbook_id,
+            config: row.progression_playbook_config,
+          }),
+          plan: exercise.storedTarget,
+          defaultUnit: row.default_unit,
+          fallbackWeightUnit,
+          metadata: metadata ? { equipment: metadata.equipment ?? null, movementPattern: metadata.movement_pattern ?? null } : null,
+        }),
+      });
+      return { candidate, historyRows };
+    },
+    async readPromotionEvents(routineDayExerciseId) {
+      const { data, error } = await supabase
+        .from("progression_events")
+        .select("event_type, routine_day_exercise_id, source_session_id, created_at")
+        .eq("user_id", userId)
+        .eq("routine_day_exercise_id", routineDayExerciseId)
+        .in("event_type", ["promotion_applied", "promotion_reverted"])
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        throw new Error("Could not verify earlier promotions.");
+      }
+
+      return data ?? [];
+    },
+    async readLinkedExercises(source, linkedIds) {
+      const result = await readMutationExercisesForRoutine({
+        supabase,
+        userId,
+        routineId,
+        routineDayExerciseIds: linkedIds,
+      });
+      if (!result.ok || !result.data) {
+        return null;
+      }
+
+      if (!verifyLinkedProgressionFingerprints({ sourceExercise: source.row, linkedExercises: result.data })) {
+        return null;
+      }
+
+      return result.data.map(toSnapshot);
+    },
+    async updateTargetIfUnchanged(exercise, nextTarget) {
+      let query = supabase
+        .from("routine_day_exercises")
+        .update(buildProgressionReviewTargetUpdate(nextTarget))
+        .eq("id", exercise.id)
+        .eq("user_id", userId);
+      for (const { column, value } of buildManualPromotionTargetGuard(exercise.row)) {
+        query = value === null ? query.is(column, null) : query.eq(column, value as never);
+      }
+
+      const { data, error } = await query.select("id");
+      if (error) {
+        throw new Error("Could not apply the promotion.");
+      }
+
+      return (data?.length ?? 0) === 1;
+    },
+    async recordPromotionApplied({ exercise, fromTarget, toTarget, reason, sourceSessionId }) {
+      await recordProgressionEvent({
+        supabase,
+        payload: buildProgressionEventPayload({
+          userId,
+          routineId,
+          routineDayExerciseId: exercise.id,
+          exerciseId: exercise.row.exercise_id,
+          eventType: "promotion_applied",
+          fromTarget,
+          toTarget,
+          reason,
+          playbookId: exercise.row.progression_playbook_id,
+          config: exercise.row.progression_playbook_config,
+          sourceSessionId,
+        }),
+        context: "progressionReview.promoteExerciseAction",
+      });
+    },
+  };
+}
+
+/**
+ * Manual Promote (the only way a promotion happens since 2026-11-19). The server recomputes the
+ * candidate and the bar, requires a promote candidate on a full bar, refuses during any
+ * in-progress workout, refuses a repeat for the same source workout or a stale target, and writes
+ * with a conditional update. The bar resets because Today recomputes it against the new target.
+ */
+export async function promoteExerciseAction(payload: {
+  routineId: string;
+  routineDayExerciseId: string;
+  expectedFromTarget: ProgressionTargetPlan | null;
+  linkedIds?: string[];
+}): Promise<ActionResult<ProgressionReviewApplyResult>> {
+  const user = await requireUser();
+  const supabase = await supabaseServer();
+
+  let result: Awaited<ReturnType<typeof runManualPromotion>>;
+  try {
+    result = await runManualPromotion(
+      createManualPromotionRepository({ supabase, userId: user.id, routineId: payload.routineId }),
+      {
+        routineDayExerciseId: payload.routineDayExerciseId,
+        expectedFromTarget: payload.expectedFromTarget,
+        linkedIds: payload.linkedIds,
+      },
+    );
+  } catch (error) {
+    console.error("[progression-review] manual promote failed", {
+      routineDayExerciseId: payload.routineDayExerciseId,
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return { ok: false, error: "Could not verify this promotion. Try again." };
+  }
+
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+
+  revalidateProgressionViews(payload.routineId);
+  return { ok: true, data: result.data };
+}
+
 export async function applyProgressionReviewCandidateAction(payload: {
   routineId: string;
   routineDayExerciseId: string;
   candidateType: ProgressionReviewDisplayItem["type"];
   linkedRoutineDayExerciseIds?: string[];
+  expectedFromTarget?: ProgressionTargetPlan | null;
 }): Promise<ActionResult<ProgressionReviewApplyResult>> {
+  if (payload.candidateType === "promote") {
+    // Promotions go through the manual-promote gate only (bar at 100%, idempotent, conditional write).
+    return promoteExerciseAction({
+      routineId: payload.routineId,
+      routineDayExerciseId: payload.routineDayExerciseId,
+      expectedFromTarget: payload.expectedFromTarget ?? null,
+      linkedIds: payload.linkedRoutineDayExerciseIds,
+    });
+  }
+
   const user = await requireUser();
   const supabase = await supabaseServer();
 
@@ -275,7 +529,8 @@ export async function applyProgressionReviewCandidateAction(payload: {
     fallbackWeightUnit,
   });
 
-  if (candidate.type !== payload.candidateType || (candidate.type !== "promote" && candidate.type !== "deload") || !candidate.proposedTarget) {
+  // Deload only: promote never reaches this path (see promoteExerciseAction above).
+  if (candidate.type !== payload.candidateType || candidate.type !== "deload" || !candidate.proposedTarget) {
     return { ok: false, error: "Progression update is no longer applicable." };
   }
 
@@ -320,7 +575,7 @@ export async function applyProgressionReviewCandidateAction(payload: {
         routineId: payload.routineId,
         routineDayExerciseId: linkedExercise.id,
         exerciseId: linkedExercise.exercise_id,
-        eventType: candidate.type === "deload" ? "deload_applied" : "promotion_applied",
+        eventType: "deload_applied",
         fromTarget: linkedPreviousTarget,
         toTarget: candidate.proposedTarget,
         reason: candidate.reason,
@@ -337,6 +592,8 @@ export async function applyProgressionReviewCandidateAction(payload: {
       appliedTarget: candidate.proposedTarget,
     });
   }
+
+  revalidateProgressionViews(payload.routineId);
 
   return {
     ok: true,
@@ -416,6 +673,8 @@ export async function revertProgressionReviewCandidateAction(payload: {
       });
     }
   }
+
+  revalidateProgressionViews(payload.routineId);
 
   return { ok: true };
 }

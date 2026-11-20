@@ -37,6 +37,7 @@ import {
   upsertProgressionAppliedPin,
 } from "@/lib/progression-applied-pins";
 import type { ActionResult } from "@/lib/action-result";
+import { canShowProgressionCardAction } from "@/lib/progression-card-action";
 import { cn } from "@/lib/cn";
 
 type AppliedProgressionState = {
@@ -88,6 +89,7 @@ export function ProgressionReviewCard({
     routineDayExerciseId: string;
     candidateType: ProgressionReviewDisplayItem["type"];
     linkedRoutineDayExerciseIds?: string[];
+    expectedFromTarget?: ProgressionReviewDisplayItem["currentTarget"];
   }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
   revertAction: (payload: {
     routineId: string;
@@ -362,7 +364,7 @@ export function ProgressionReviewCard({
                         const applied = appliedById[item.id] ?? null;
                         const isStaleSourceDeleted = applied?.lifecycleState === "stale_source_deleted";
                         const isRevertSettling = Boolean(revertSettlingById[item.id]);
-                        const canApply = item.type === "deload";
+                        const canApply = canShowProgressionCardAction({ candidateType: item.type, progressPercent: item.progress?.percent });
                         const isItemPending = isPending && pendingItemId === item.id;
                         const targetDisplay = resolveTargetDisplayPair({ item, applied });
                         const linkedTargets = item.linkedUpdate?.targets ?? [];
@@ -545,6 +547,7 @@ export function ProgressionReviewCard({
                                         routineDayExerciseId: item.id,
                                         candidateType: item.type,
                                         linkedRoutineDayExerciseIds: linkedTargets.length > 1 ? selectedLinkedIds : item.linkedUpdate?.routineDayExerciseIds,
+                                        expectedFromTarget: item.currentTarget,
                                       });
                                       if (result.ok && result.data) {
                                         const appliedTarget = result.data;

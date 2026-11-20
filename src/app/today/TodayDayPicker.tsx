@@ -38,6 +38,7 @@ import type {
 } from "@/lib/progression-review-display";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
+import { canShowProgressionCardAction } from "@/lib/progression-card-action";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
@@ -159,6 +160,7 @@ export function TodayDayPicker({
     routineDayExerciseId: string;
     candidateType: ProgressionReviewDisplayItem["type"];
     linkedRoutineDayExerciseIds?: string[];
+    expectedFromTarget?: ProgressionTargetPlan | null;
   }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
   revertProgressionReviewCandidateAction?: (payload: {
     routineId: string;
@@ -441,6 +443,7 @@ export function TodayDayPicker({
         routineDayExerciseId: item.id,
         candidateType: item.type,
         linkedRoutineDayExerciseIds: linkedTargets.length > 1 ? selectedLinkedIds : item.linkedUpdate?.routineDayExerciseIds,
+        expectedFromTarget: item.currentTarget,
       });
 
       if (result.ok && result.data) {
@@ -722,16 +725,19 @@ export function TodayDayPicker({
                     {selectedDay.exercises.map((exercise) => {
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
-                      const canShowCardAction = cardReadyItem?.type === "deload";
                       const cardActionPending = isCardActionPending && (
                         cardPendingItemId === cardReadyItem?.id
                         || cardPendingItemId === cardAppliedPin?.routineDayExerciseId
                       );
-                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
                       const cardProgressFill = deriveExerciseCardProgressFill({
                         progressFill: selectedDayProgressFillByExerciseId.get(exercise.id) ?? null,
                         candidateType: cardReadyItem?.type ?? null,
                       });
+                      const canShowCardAction = canShowProgressionCardAction({
+                        candidateType: cardReadyItem?.type,
+                        progressPercent: cardProgressFill.progressPercent,
+                      });
+                      const cardProgressionAction = cardAppliedPin || canShowCardAction;
                       const cardPromoteTargetPair = cardReadyItem
                         ? resolveTodayProgressionTargetDisplayPair(cardReadyItem)
                         : null;

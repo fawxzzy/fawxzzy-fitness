@@ -52,6 +52,32 @@ export function buildProgressionReviewTargetPlan(exercise: RoutineDayExerciseRow
   };
 }
 
+// Shared by the Today loader and the manual Promote action so the target written on Promote is
+// the same one the card showed (equipment/movement-aware load steps).
+export function inferProgressionStepPolicyForRoutineExercise(args: {
+  selection: ReturnType<typeof validateProgressionPlaybookSelection>;
+  plan: ProgressionTargetPlan;
+  defaultUnit: RoutineDayExerciseRow["default_unit"];
+  fallbackWeightUnit: "lbs" | "kg";
+  metadata: { equipment: string | null; movementPattern: string | null } | null;
+}) {
+  if (!args.selection) {
+    return null;
+  }
+
+  return inferProgressionStepPolicy({
+    measurementType: args.plan.measurementType,
+    equipment: args.metadata?.equipment ?? null,
+    movementPattern: args.metadata?.movementPattern ?? null,
+    defaultUnit: args.defaultUnit,
+    weightUnit: args.plan.weightUnit ?? args.fallbackWeightUnit,
+    distanceUnit: args.plan.distanceUnit === "km" ? "km" : "mi",
+    targetWeight: args.plan.weightMax ?? args.plan.weightMin ?? null,
+    exerciseOverrideValue: args.selection.config.loadIncrement,
+    stepOverrides: args.selection.config.stepOverrides ?? null,
+  });
+}
+
 export function resolveRoutineExerciseRepTarget(exercise: Pick<RoutineDayExerciseRow, "target_reps" | "target_reps_min" | "target_reps_max">) {
   return exercise.target_reps ?? exercise.target_reps_max ?? exercise.target_reps_min ?? null;
 }
@@ -681,20 +707,13 @@ export async function loadProgressionUpdatesDisplayData(args: {
       playbookId: exercise.progression_playbook_id,
       config: exercise.progression_playbook_config,
     });
-    const exerciseMetadata = exerciseMetadataById.get(exercise.exercise_id ?? "");
-    const progressionStepPolicy = selection
-      ? inferProgressionStepPolicy({
-          measurementType: plan.measurementType,
-          equipment: exerciseMetadata?.equipment ?? null,
-          movementPattern: exerciseMetadata?.movementPattern ?? null,
-          defaultUnit: exercise.default_unit,
-          weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
-          distanceUnit: plan.distanceUnit === "km" ? "km" : "mi",
-          targetWeight: plan.weightMax ?? plan.weightMin ?? null,
-          exerciseOverrideValue: selection.config.loadIncrement,
-          stepOverrides: selection.config.stepOverrides ?? null,
-        })
-      : null;
+    const progressionStepPolicy = inferProgressionStepPolicyForRoutineExercise({
+      selection,
+      plan,
+      defaultUnit: exercise.default_unit,
+      fallbackWeightUnit: args.fallbackWeightUnit,
+      metadata: exerciseMetadataById.get(exercise.exercise_id ?? "") ?? null,
+    });
     const candidate = deriveProgressionReviewCandidate({
       playbookId: exercise.progression_playbook_id,
       config: exercise.progression_playbook_config,
