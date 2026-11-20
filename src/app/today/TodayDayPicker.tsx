@@ -34,13 +34,13 @@ import type {
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { runTodayProgressionRevert } from "@/app/today/today-progression-revert";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
   getProgressionAppliedPinsStorageKey,
   PROGRESSION_APPLIED_PINS_CHANGED_EVENT,
   pruneExpiredProgressionAppliedPins,
-  removeProgressionAppliedPin,
   type ProgressionAppliedPin,
   upsertProgressionAppliedPin,
 } from "@/lib/progression-applied-pins";
@@ -491,24 +491,16 @@ export function TodayDayPicker({
     setCardActionError(null);
     setCardPendingItemId(pin.routineDayExerciseId);
     startCardActionTransition(async () => {
-      const result = await revertProgressionReviewCandidateAction({
+      // Drops the pin when the revert can never work again; every failure is a toast.
+      await runTodayProgressionRevert({
+        pin,
         routineId: progressionRoutineId,
-        routineDayExerciseId: pin.routineDayExerciseId,
-        previousTarget: pin.previousTarget,
-        appliedTarget: pin.appliedTarget,
-        linkedPreviousTargets: pin.linkedTargets?.map((target) => ({
-          routineDayExerciseId: target.routineDayExerciseId,
-          previousTarget: target.previousTarget,
-          appliedTarget: target.appliedTarget,
-        })),
+        revertAction: revertProgressionReviewCandidateAction,
+        readPins: readAllProgressionAppliedPins,
+        persistPins: persistProgressionAppliedPins,
+        refresh: () => router.refresh(),
+        notify: toast,
       });
-
-      if (result.ok) {
-        persistProgressionAppliedPins(removeProgressionAppliedPin(readAllProgressionAppliedPins(), pin.routineDayExerciseId));
-        router.refresh();
-      } else {
-        setCardActionError(result.error);
-      }
 
       setCardPendingItemId(null);
     });
@@ -518,6 +510,7 @@ export function TodayDayPicker({
     readAllProgressionAppliedPins,
     revertProgressionReviewCandidateAction,
     router,
+    toast,
   ]);
 
   const openTodayCardPromotion = useCallback((item: ProgressionReviewDisplayItem) => {

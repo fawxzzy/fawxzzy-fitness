@@ -521,7 +521,9 @@ export async function loadProgressionUpdatesDisplayData(args: {
       .map((exercise) => exercise.exercise_id)
       .filter((exerciseId): exerciseId is string => Boolean(exerciseId)),
   ));
-  const routineExerciseCountByCatalogExerciseId = progressionExercises.reduce((counts, exercise) => {
+  // Count every routine slot (not just user-facing progression ones): the server counts all routine_day_exercises
+  // with this catalog exercise in canUseCatalogHistoryFallbackForRoutineExercise, so Today must use the same set.
+  const routineExerciseCountByCatalogExerciseId = args.exercises.reduce((counts, exercise) => {
     if (exercise.exercise_id) {
       counts.set(exercise.exercise_id, (counts.get(exercise.exercise_id) ?? 0) + 1);
     }

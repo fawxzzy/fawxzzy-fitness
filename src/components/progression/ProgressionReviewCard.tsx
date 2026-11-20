@@ -38,6 +38,7 @@ import {
 } from "@/lib/progression-applied-pins";
 import type { ActionResult } from "@/lib/action-result";
 import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { shouldDropProgressionPinAfterRevert } from "@/lib/progression-revert-messages";
 import { cn } from "@/lib/cn";
 
 type AppliedProgressionState = {
@@ -515,12 +516,14 @@ export function ProgressionReviewCard({
                                             appliedTarget: target.appliedTarget,
                                           })),
                                         });
-                                        if (result.ok) {
+                                        // A revert that can never work again also drops the pin.
+                                        if (shouldDropProgressionPinAfterRevert(result)) {
                                           clearAppliedPin(item.id);
                                           if (pathname !== "/routines") {
                                             router.refresh();
                                           }
-                                        } else {
+                                        }
+                                        if (!result.ok) {
                                           setActionError(result.error);
                                         }
                                         setPendingItemId(null);

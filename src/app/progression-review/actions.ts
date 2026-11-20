@@ -19,6 +19,7 @@ import {
 } from "@/lib/progression-playbooks";
 import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import { runManualPromotion, runProgressionRevert } from "@/lib/progression-manual-promotion";
+import { PROGRESSION_REVERT_MESSAGES } from "@/lib/progression-revert-messages";
 import {
   createManualPromotionRepository,
   LINKED_PROGRESSION_UPDATE_LIMIT,
@@ -395,7 +396,8 @@ export async function revertProgressionReviewCandidateAction(payload: {
     ? payload.linkedPreviousTargets
     : [{ routineDayExerciseId: payload.routineDayExerciseId, previousTarget: payload.previousTarget, appliedTarget: payload.appliedTarget }];
   if (revertTargets.some((target) => !target.appliedTarget)) {
-    return { ok: false, error: "This target changed since it was promoted. Refresh and try again." };
+    // A pin without the applied target can never pass the revert guard: treat it as no longer available.
+    return { ok: false, error: PROGRESSION_REVERT_MESSAGES.lost_race };
   }
   if (revertTargets.length > LINKED_PROGRESSION_UPDATE_LIMIT) {
     return { ok: false, error: "Too many linked progression updates to apply at once." };

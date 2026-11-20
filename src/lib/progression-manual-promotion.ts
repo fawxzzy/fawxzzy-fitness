@@ -11,6 +11,7 @@ import { deriveProgressionProgressPercent } from "@/lib/progression-progress-per
 import { extractProgressionSourceSessionId, targetsDiffer } from "@/lib/progression-events";
 import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
 import type { ProgressionReviewApplyResult, ProgressionReviewLinkedTargetSnapshot } from "@/lib/progression-review-display";
+import { PROGRESSION_REVERT_MESSAGES } from "@/lib/progression-revert-messages";
 
 export const MANUAL_PROMOTION_FULL_BAR_PERCENT = 100;
 // Mirrors NON_READY_PROGRESS_PERCENT_CAP in progression-status-display.ts: a bar that is not
@@ -504,12 +505,7 @@ export type ProgressionRevertRepository<Row> = {
   }): Promise<boolean>;
 };
 
-export const PROGRESSION_REVERT_MESSAGES = {
-  not_available: "Linked progression update is no longer available.",
-  lost_race: "This target changed since it was promoted. Refresh and try again.",
-  audit_failed: "Could not save this revert, so the promoted target was kept. Try again.",
-  audit_failed_unrestored: "This revert could not be saved and the promoted target could not be put back. Refresh and check this exercise's target before changing it.",
-} as const;
+export { PROGRESSION_REVERT_MESSAGES };
 
 /**
  * Revert of an applied target. Each day goes back with a conditional write; the event decides the

@@ -3,6 +3,14 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { canShowProgressionCardAction } from "@/lib/progression-card-action";
+import { runTodayProgressionRevert } from "@/app/today/today-progression-revert";
+import { buildProgressionAppliedPin, type ProgressionAppliedPin } from "@/lib/progression-applied-pins";
+import {
+  isProgressionRevertNoLongerAvailable,
+  PROGRESSION_REVERT_MESSAGES as REVERT_MESSAGES,
+  shouldDropProgressionPinAfterRevert,
+} from "@/lib/progression-revert-messages";
+import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import {
   buildManualPromotionTargetGuard,
   deriveManualPromotionBarPercent,
@@ -375,4 +383,101 @@ test("applyProgressionReviewCandidateAction routes promote through promoteExerci
   assert.match(source, /export async function promoteExerciseAction\(/);
   assert.match(source, /createManualPromotionRepository\(\{ supabase, userId: user\.id, routineId: payload\.routineId \}\)/);
   assert.match(source, /candidateType === "promote"[\s\S]{0,200}promoteExerciseAction\(/);
+});
+
+// --- Review round 4 (P2): a Revert that can never work again drops its quick-undo pin --------------
+
+test("revert outcomes: lost_race and not_available end the pin; audit failures and other errors keep it", () => {
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: true }), true);
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: false, error: REVERT_MESSAGES.lost_race }), true);
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: false, error: REVERT_MESSAGES.not_available }), true);
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: false, error: REVERT_MESSAGES.audit_failed }), false);
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: false, error: REVERT_MESSAGES.audit_failed_unrestored }), false);
+  assert.equal(shouldDropProgressionPinAfterRevert({ ok: false, error: "Could not revert this progression update. Refresh and try again." }), false);
+  assert.equal(isProgressionRevertNoLongerAvailable(REVERT_MESSAGES.lost_race), true);
+  // The terminal copy says Revert is gone and never says "promoted": the pin may be undoing a deload.
+  for (const message of [REVERT_MESSAGES.lost_race, REVERT_MESSAGES.not_available]) {
+    assert.match(message, /no longer available/);
+    assert.doesNotMatch(message, /promot|try again/i);
+  }
+});
+
+function revertPlan(weight: number) {
+  return { measurementType: "reps" as const, setsMin: 3, setsMax: 3, repsMin: 5, repsMax: 8, weightMin: weight, weightMax: weight, weightUnit: "lbs" as const };
+}
+
+function deloadPin(id: string): ProgressionAppliedPin {
+  const item = {
+    id,
+    exerciseName: "Weighted Pull-Up",
+    dayName: "Hunt",
+    dayGroupId: "day-1",
+    type: "deload",
+    badgeLabel: "Deload",
+    summary: "Weighted Pull-Up: 35 lbs -> 25 lbs",
+    summaryParts: { exerciseName: "Weighted Pull-Up", currentTarget: "35 lbs", proposedTarget: "25 lbs", fallback: null },
+    reason: "Lower the load.",
+    actionLabel: "Deload",
+    currentTarget: revertPlan(35),
+    proposedTarget: revertPlan(25),
+    sourceSession: { sessionId: "s1", performedAt: "2026-11-18T10:00:00.000Z", isLatest: true },
+  } as ProgressionReviewDisplayItem;
+  return buildProgressionAppliedPin({ item, previousTarget: revertPlan(35), appliedTarget: revertPlan(25) });
+}
+
+async function todayRevertWith(result: { ok: true } | { ok: false; error: string }) {
+  let stored: ProgressionAppliedPin[] = [deloadPin("rde-1"), deloadPin("rde-other")];
+  const seen = { refresh: 0, warnings: [] as string[], errors: [] as string[], payloads: [] as unknown[] };
+  const returned = await runTodayProgressionRevert({
+    pin: stored[0],
+    routineId: "r1",
+    revertAction: async (payload) => {
+      seen.payloads.push(payload);
+      return result;
+    },
+    readPins: () => stored,
+    persistPins: (pins) => { stored = pins; },
+    refresh: () => { seen.refresh += 1; },
+    notify: { warning: (message) => seen.warnings.push(message), error: (message) => seen.errors.push(message) },
+  });
+  return { returned, pinIds: stored.map((pin) => pin.routineDayExerciseId), ...seen };
+}
+
+test("Today revert: lost_race drops only that pin, refreshes, and warns that Revert is no longer available", async () => {
+  const run = await todayRevertWith({ ok: false, error: REVERT_MESSAGES.lost_race });
+  assert.deepEqual(run.pinIds, ["rde-other"], "the dead pin is gone, so the card shows its real action again");
+  assert.equal(run.refresh, 1);
+  assert.deepEqual(run.warnings, [REVERT_MESSAGES.lost_race]);
+  assert.deepEqual(run.errors, []);
+  assert.deepEqual(run.payloads, [{
+    routineId: "r1",
+    routineDayExerciseId: "rde-1",
+    previousTarget: revertPlan(35),
+    appliedTarget: revertPlan(25),
+    linkedPreviousTargets: undefined,
+  }]);
+});
+
+test("Today revert: a retryable failure keeps the pin, does not refresh, and shows an error toast", async () => {
+  const run = await todayRevertWith({ ok: false, error: REVERT_MESSAGES.audit_failed });
+  assert.deepEqual(run.pinIds, ["rde-1", "rde-other"]);
+  assert.equal(run.refresh, 0);
+  assert.deepEqual(run.errors, [REVERT_MESSAGES.audit_failed]);
+  assert.deepEqual(run.warnings, []);
+});
+
+test("Today revert: success drops the pin and refreshes with no toast", async () => {
+  const run = await todayRevertWith({ ok: true });
+  assert.deepEqual(run.pinIds, ["rde-other"]);
+  assert.equal(run.refresh, 1);
+  assert.deepEqual([...run.warnings, ...run.errors], []);
+});
+
+test("Today card Revert and the review card route revert results through the pin-drop rule", async () => {
+  const picker = await readFile(new URL("../app/today/TodayDayPicker.tsx", import.meta.url), "utf8");
+  assert.match(picker, /await runTodayProgressionRevert\(\{/);
+  const reviewCard = await readFile(new URL("../components/progression/ProgressionReviewCard.tsx", import.meta.url), "utf8");
+  assert.match(reviewCard, /if \(shouldDropProgressionPinAfterRevert\(result\)\) \{\s+clearAppliedPin\(item\.id\);/);
+  const actions = await readFile(new URL("../app/progression-review/actions.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(actions, /changed since it was promoted/);
 });

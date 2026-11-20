@@ -21,6 +21,7 @@ import {
   type ManualPromotionEventRow,
 } from "@/lib/progression-manual-promotion";
 import { readPromotionHoldEvents } from "@/lib/progression-promotion-events-read";
+import { shouldDropProgressionPinAfterRevert } from "@/lib/progression-revert-messages";
 import { PROMOTED_AWAITING_WORKOUT_DETAIL } from "@/lib/progression-status-display";
 import { createManualPromotionRepository } from "@/lib/progression-manual-promotion-repository";
 import { loadProgressionUpdatesDisplayData } from "@/lib/progression-review-loader";
@@ -607,6 +608,7 @@ test("revert event insert fails: the promoted target is put back so the hold and
   const appliedTarget = first.result.ok ? first.result.data.appliedTarget : planFor(db);
   const failed = await revert(db, [{ routineDayExerciseId: "rde-1", previousTarget, appliedTarget }], { fail: failEventInsert });
   assert.deepEqual(failed.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.audit_failed });
+  assert.equal(shouldDropProgressionPinAfterRevert(failed.result), false, "a retryable failure keeps the pin");
   assert.equal(target(db), 11);
   assert.deepEqual(db.progression_events.map((event) => event.event_type), ["promotion_applied"]);
   assert.equal((await todayCard(db)).canPromote, false);
@@ -709,7 +711,7 @@ test("ad hoc add after a direct Promote: Today does not offer Promote, matching 
 });
 
 test("property: over many history shapes, Today offers Promote exactly when the server applies it", async () => {
-  type Shape = { name: string; noDirectSeed?: boolean; duplicate?: boolean; promoteFirst: boolean; later: Array<{ reps: number; rde: string | null }>; expected: boolean };
+  type Shape = { name: string; noDirectSeed?: boolean; duplicate?: boolean | "untargeted"; promoteFirst: boolean; later: Array<{ reps: number; rde: string | null }>; expected: boolean };
   const shapes: Shape[] = [
     { name: "direct only, no promotion", promoteFirst: false, later: [], expected: true },
     { name: "direct promoted, nothing newer", promoteFirst: true, later: [], expected: false },
@@ -724,12 +726,27 @@ test("property: over many history shapes, Today offers Promote exactly when the 
     { name: "no history at all", noDirectSeed: true, promoteFirst: false, later: [], expected: false },
     // The catalog fallback needs the exercise to be unique in the routine.
     { name: "ad hoc only, exercise twice in the routine", noDirectSeed: true, duplicate: true, promoteFirst: false, later: [{ reps: 12, rde: null }], expected: false },
+    // Round 4: the second slot has no targets (not a progression exercise on Today) but the server
+    // still counts it, so Today must count it too and not offer a Promote the server refuses.
+    { name: "ad hoc only, duplicate slot with no targets", noDirectSeed: true, duplicate: "untargeted", promoteFirst: false, later: [{ reps: 12, rde: null }], expected: false },
     // Rows linked to another (e.g. removed) routine slot are never this exercise's evidence.
     { name: "only rows from a removed routine slot", noDirectSeed: true, promoteFirst: false, later: [{ reps: 12, rde: "rde-gone" }], expected: false },
   ];
 
   for (const shape of shapes) {
-    const extra = shape.duplicate ? [exerciseRow("rde-2", { routine_day_id: "day-2", position: 1, target_weight: 135 })] : [];
+    const extra = shape.duplicate === "untargeted"
+      ? [exerciseRow("rde-2", {
+        routine_day_id: "day-2",
+        position: 1,
+        target_sets: null,
+        target_reps: null,
+        target_reps_min: null,
+        target_reps_max: null,
+        target_weight: null,
+        progression_playbook_id: null,
+        progression_playbook_config: null,
+      })]
+      : shape.duplicate ? [exerciseRow("rde-2", { routine_day_id: "day-2", position: 1, target_weight: 135 })] : [];
     const db = shape.noDirectSeed ? dropSeedWorkout(seed(extra)) : seed(extra);
     let laterIndex = 0;
     const addLater = (entry: { reps: number; rde: string | null }) => {
@@ -772,7 +789,11 @@ test("an old pin cannot revert a target that changed after the promotion: lost_r
 
   const stale = await revert(db, [pin]);
   assert.deepEqual(stale.result, { ok: false, error: PROGRESSION_REVERT_MESSAGES.lost_race });
-  assert.match(PROGRESSION_REVERT_MESSAGES.lost_race, /changed since it was promoted/);
+  // Round 4: the pin can never work again, so the client drops it and the copy says so (and never
+  // says "promoted": the pin may be undoing a deload).
+  assert.match(PROGRESSION_REVERT_MESSAGES.lost_race, /Revert is no longer available/);
+  assert.doesNotMatch(PROGRESSION_REVERT_MESSAGES.lost_race, /promot|refresh and try again/i);
+  assert.equal(shouldDropProgressionPinAfterRevert(stale.result), true);
   assert.equal(target(db), 12);
   assert.equal(stale.calls.filter((call) => call.op !== "select").length, 0);
   assert.deepEqual(db.progression_events.map((event) => event.event_type), ["promotion_applied"]);
