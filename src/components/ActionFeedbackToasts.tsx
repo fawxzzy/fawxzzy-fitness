@@ -7,6 +7,9 @@ import { useToast } from "@/components/ui/ToastProvider";
 // Auth Surface v2: /login, /signup and /reset-password show their allow-listed codes in the screen's one reserved
 // notice slot (authMessages.ts), never as a toast, and never show `?success=` text.
 const INLINE_NOTICE_ROUTES = new Set(["/login", "/signup"]);
+// Screens that resolve and show their own `?error=` / `?notice=` and clear the query themselves (Today:
+// TodayNoticeHost). A toast plus router.replace here would re-render the page without the param and drop its notice.
+const SCREEN_OWNED_NOTICE_ROUTES = new Set(["/today"]);
 
 export function ActionFeedbackToasts() {
   const searchParams = useSearchParams();
@@ -18,6 +21,9 @@ export function ActionFeedbackToasts() {
     // /reset-password keeps its query: the page picks the request screen or the form from the code, and a stripped
     // query would re-render the other one.
     if (pathname === "/reset-password") {
+      return;
+    }
+    if (SCREEN_OWNED_NOTICE_ROUTES.has(pathname)) {
       return;
     }
     const inlineNoticeRoute = INLINE_NOTICE_ROUTES.has(pathname);

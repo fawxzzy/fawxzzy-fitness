@@ -5,29 +5,10 @@ import {
   buildTodayRoutinePayloadState,
   deriveTodayScreenMode,
   formatTodayHeaderSubtitle,
-  getTodayGlobalErrorMessage,
   getTodayDaySummary,
   getTodayDaySummaryTone,
   resolveTodayDisplayDay,
 } from "./today-page-state.ts";
-
-test("getTodayGlobalErrorMessage hides stale redirect errors during normal browsing", () => {
-  assert.equal(
-    getTodayGlobalErrorMessage({ searchParamError: "Unable to discard", hasInProgressSession: false, fetchFailed: false }),
-    null,
-  );
-  assert.equal(
-    getTodayGlobalErrorMessage({ searchParamError: "Unable to discard", hasInProgressSession: true, fetchFailed: true }),
-    null,
-  );
-});
-
-test("getTodayGlobalErrorMessage keeps active in-progress flow errors visible", () => {
-  assert.equal(
-    getTodayGlobalErrorMessage({ searchParamError: "Unable to discard", hasInProgressSession: true, fetchFailed: false }),
-    "Unable to discard",
-  );
-});
 
 test("resolveTodayDisplayDay falls back to the calendar day when no active session exists", () => {
   const result = resolveTodayDisplayDay({
