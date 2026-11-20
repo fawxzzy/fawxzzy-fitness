@@ -124,7 +124,7 @@ test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics e
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "12:00 s | 2 mi | 250 cal");
+  assert.equal(label, "12:00 | 2 mi | 250 cal");
 });
 
 test("formatQuickLogPreviewLabel preserves steps distance units", () => {
