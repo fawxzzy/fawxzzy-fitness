@@ -49,7 +49,14 @@ export default async function DevSwitchDayFullScreenPage(
       <div hidden data-mobile-regression-root="true" data-mobile-regression-id={`switch-day-${variant.id}`} data-mobile-regression-screen="today" />
       <ScrollScreenWithBottomActions
         headerMenu={<AppMenu activePathnameOverride="/today" />}
-        floatingHeader={<div id="today-floating-header-slot" />}
+        floatingHeader={(
+          // Both header slots, as /today mounts them: the picker portals the "Today" header (with the app menu) into
+          // the switch slot while Switch Day is open, and into the day slot while it is closed.
+          <>
+            <div id="today-routine-switch-floating-header-slot" />
+            <div id="today-floating-header-slot" />
+          </>
+        )}
       >
         <ContentRail className="space-y-3">
           <TodayDayPicker
@@ -61,6 +68,7 @@ export default async function DevSwitchDayFullScreenPage(
             routineName={variant.routineName}
             startDate={variant.startDate}
             floatingHeaderSlotId="today-floating-header-slot"
+            switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
             progressionRoutineId="routine-dev"
             initialPickerOpen={searchParams.closed !== "1" && searchParams.noSchedule !== "1"}
             noScheduledDayMessage={searchParams.noSchedule === "1" ? "No scheduled workout" : null}
