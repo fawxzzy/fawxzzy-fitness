@@ -237,8 +237,11 @@ function createFakeRepo(args: {
     async hasWorkoutInProgress() {
       return Boolean(args.workoutInProgress);
     },
-    async evaluate(exercise) {
-      return { candidate: candidateFor(exercise.storedTarget, args.history), historyRows: args.history };
+    async readHistory() {
+      return args.history;
+    },
+    async deriveCandidate(exercise, historyRows) {
+      return candidateFor(exercise.storedTarget, historyRows);
     },
     async readPromotionEvents(id) {
       return events.filter((event) => event.routine_day_exercise_id === id);
@@ -262,6 +265,14 @@ function createFakeRepo(args: {
       writes.push(exercise.id);
       return true;
     },
+    async restoreTargetIfUnchanged(exercise, appliedTarget) {
+      const current = rows.get(exercise.id);
+      if (!current || JSON.stringify(current.target) !== JSON.stringify(appliedTarget)) {
+        return false;
+      }
+      current.target = exercise.storedTarget;
+      return true;
+    },
     async recordPromotionApplied({ exercise, sourceSessionId }) {
       clock += 1;
       events.push({
@@ -270,6 +281,7 @@ function createFakeRepo(args: {
         source_session_id: sourceSessionId,
         created_at: `2026-11-19T00:00:0${clock}.000Z`,
       });
+      return true;
     },
   };
 
@@ -354,15 +366,13 @@ test("run: linked days are promoted together; a linked day that lost its race is
   assert.equal(foreign.writes.length, 0);
 });
 
-// --- Server action wiring (source contract; the Supabase repository is not unit-runnable) -----
+// --- Server action wiring --------------------------------------------------------------------
+// The Supabase-backed repository runs against a recording query-builder fake in
+// progression-manual-promotion-supabase.test.ts; this only pins the action routing.
 
-test("promoteExerciseAction scopes every read and write to the signed-in user and checks all live workouts", async () => {
+test("applyProgressionReviewCandidateAction routes promote through promoteExerciseAction", async () => {
   const source = await readFile(new URL("../app/progression-review/actions.ts", import.meta.url), "utf8");
-  const repoBlock = source.slice(source.indexOf("function createManualPromotionRepository"), source.indexOf("export async function promoteExerciseAction"));
-
   assert.match(source, /export async function promoteExerciseAction\(/);
-  assert.match(repoBlock, /from\("routine_day_exercises"\)[\s\S]{0,200}\.eq\("id", routineDayExerciseId\)\s*\.eq\("user_id", userId\)/);
-  assert.match(repoBlock, /from\("sessions"\)[\s\S]{0,120}\.eq\("user_id", userId\)\s*\.eq\("status", "in_progress"\)/);
-  assert.match(repoBlock, /buildManualPromotionTargetGuard/);
+  assert.match(source, /createManualPromotionRepository\(\{ supabase, userId: user\.id, routineId: payload\.routineId \}\)/);
   assert.match(source, /candidateType === "promote"[\s\S]{0,200}promoteExerciseAction\(/);
 });

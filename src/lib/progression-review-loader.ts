@@ -20,6 +20,11 @@ import {
 import { formatProgressionReviewDisplayItem, type ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import { deriveProgressionProgressPercent } from "@/lib/progression-progress-percent";
 import {
+  filterHistoryAfterPromotionHold,
+  resolvePromotionHoldCutoffMs,
+  type ManualPromotionEventRow,
+} from "@/lib/progression-manual-promotion";
+import {
   buildProgressionStatusSurfaceItem,
   formatProgressionCalculationEvidence,
   formatProgressionStatusDisplayItem,
@@ -642,6 +647,22 @@ export async function loadProgressionUpdatesDisplayData(args: {
     fallbackHistoryRowsByExerciseId.set(meta.exerciseId, fallback);
   }
 
+  // Post-promotion reset (Manual Promote): a standing promotion_applied consumes its source
+  // workout, so the bar and Promote count only newer workouts until a promotion_reverted.
+  const { data: promotionEventsData, error: promotionEventsError } = await args.supabase
+    .from("progression_events")
+    .select("event_type, routine_day_exercise_id, source_session_id, created_at")
+    .eq("user_id", args.userId)
+    .in("routine_day_exercise_id", progressionExercises.map((exercise) => exercise.id))
+    .in("event_type", ["promotion_applied", "promotion_reverted"])
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (promotionEventsError) {
+    throw promotionEventsError;
+  }
+
+  const promotionEvents = (promotionEventsData ?? []) as ManualPromotionEventRow[];
   const readyItemEntries: ProgressionReadyUpdateCollapseEntry[] = [];
   const statusItems: ProgressionStatusDisplayItem[] = [];
   const statusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
@@ -666,14 +687,22 @@ export async function loadProgressionUpdatesDisplayData(args: {
     });
     const plan = buildProgressionReviewTargetPlan(exercise);
     const effectivePlan = buildProgressionReviewTargetPlan(effectiveExercise);
-    const directHistoryRows = historyRowsByRoutineDayExerciseId.get(exercise.id) ?? [];
-    const allFallbackHistoryRows = fallbackHistoryRowsByExerciseId.get(exercise.exercise_id) ?? [];
-    const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
-    const fallbackHistoryRows = canUseFallback ? allFallbackHistoryRows : [];
+    const unheldDirectHistoryRows = historyRowsByRoutineDayExerciseId.get(exercise.id) ?? [];
+    const unheldFallbackHistoryRows = fallbackHistoryRowsByExerciseId.get(exercise.exercise_id) ?? [];
     const targetFingerprint = targetFingerprintByRoutineExerciseId.get(exercise.id) ?? "";
     const linkedRoutineExerciseIds = (routineExerciseIdsByFingerprint.get(targetFingerprint) ?? []).filter((id) => id !== exercise.id);
-    const linkedHistoryRows = linkedRoutineExerciseIds.flatMap((id) => historyRowsByRoutineDayExerciseId.get(id) ?? []);
-    const globalContextRows = globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [];
+    const unheldLinkedHistoryRows = linkedRoutineExerciseIds.flatMap((id) => historyRowsByRoutineDayExerciseId.get(id) ?? []);
+    const promotionHoldCutoffMs = resolvePromotionHoldCutoffMs({
+      events: promotionEvents,
+      routineDayExerciseId: exercise.id,
+      locateRows: [...unheldDirectHistoryRows, ...unheldFallbackHistoryRows, ...unheldLinkedHistoryRows],
+    });
+    const directHistoryRows = filterHistoryAfterPromotionHold(unheldDirectHistoryRows, promotionHoldCutoffMs);
+    const allFallbackHistoryRows = filterHistoryAfterPromotionHold(unheldFallbackHistoryRows, promotionHoldCutoffMs);
+    const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
+    const fallbackHistoryRows = canUseFallback ? allFallbackHistoryRows : [];
+    const linkedHistoryRows = filterHistoryAfterPromotionHold(unheldLinkedHistoryRows, promotionHoldCutoffMs);
+    const globalContextRows = filterHistoryAfterPromotionHold(globalContextRowsByExerciseId.get(exercise.exercise_id) ?? [], promotionHoldCutoffMs);
     const selectedHistoryRows = directHistoryRows.length > 0 ? directHistoryRows : fallbackHistoryRows;
     const blockedDuplicateFallbackRows = allFallbackHistoryRows.length > 0 && !canUseFallback ? allFallbackHistoryRows : [];
     const contextHistoryRows = selectedHistoryRows.length > 0

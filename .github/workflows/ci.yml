@@ -75,7 +75,7 @@ jobs:
           npm run project-board:owner-export:check
           node --test tests/board-sync.test.mjs
           npm run board:check
-          node --import ./scripts/register-test-aliases.mjs --test src/lib/progression-manual-promotion.test.ts
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/progression-manual-promotion.test.ts src/lib/progression-manual-promotion-supabase.test.ts
           npm run test:card-system
           npm run test:dom
 

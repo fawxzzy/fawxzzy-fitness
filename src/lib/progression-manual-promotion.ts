@@ -24,7 +24,10 @@ export type ManualPromotionRefusalCode =
   | "bar_not_full"
   | "not_promote"
   | "lost_race"
-  | "linked_mismatch";
+  | "linked_mismatch"
+  | "audit_failed"
+  | "audit_failed_unrestored"
+  | "linked_audit_failed_unrestored";
 
 export const MANUAL_PROMOTION_REFUSAL_MESSAGES: Record<ManualPromotionRefusalCode, string> = {
   not_owned: "Progression update is no longer available.",
@@ -35,6 +38,9 @@ export const MANUAL_PROMOTION_REFUSAL_MESSAGES: Record<ManualPromotionRefusalCod
   not_promote: "This exercise is not ready to promote.",
   lost_race: "Another change updated this target first. Refresh and try again.",
   linked_mismatch: "Linked progression targets no longer match.",
+  audit_failed: "Could not save this promotion, so your target was left unchanged. Try again.",
+  audit_failed_unrestored: "This promotion could not be saved and the target could not be put back. Refresh and check this exercise's target before changing it.",
+  linked_audit_failed_unrestored: "Promoted, but a linked day could not be saved or put back. Refresh and check its target before changing it.",
 };
 
 export type ManualPromotionEventRow = {
@@ -122,6 +128,81 @@ export function hasStandingPromotionForSourceSession(args: {
   return !latestReverted || latestReverted < latestApplied;
 }
 
+function toEpochMs(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * The promotion currently in effect for an exercise: events are replayed oldest-first, each
+ * promotion_applied pushes and each promotion_reverted pops (Revert undoes the latest applied
+ * promotion), so the top of the stack is the promotion the stored target came from.
+ */
+export function resolveStandingPromotion(args: {
+  events: ManualPromotionEventRow[];
+  routineDayExerciseId: string;
+}): { sourceSessionId: string | null; appliedAt: string } | null {
+  const ordered = args.events
+    .filter((event) => event.routine_day_exercise_id === args.routineDayExerciseId)
+    .filter((event) => event.event_type === "promotion_applied" || event.event_type === "promotion_reverted")
+    .map((event, index) => ({ event, index, at: toEpochMs(event.created_at) ?? 0 }))
+    .sort((left, right) => left.at - right.at || left.index - right.index);
+  const stack: ManualPromotionEventRow[] = [];
+  for (const { event } of ordered) {
+    if (event.event_type === "promotion_applied") {
+      stack.push(event);
+    } else {
+      stack.pop();
+    }
+  }
+
+  const top = stack.at(-1);
+  return top ? { sourceSessionId: top.source_session_id, appliedAt: top.created_at } : null;
+}
+
+/**
+ * Post-promotion reset. A standing promotion consumes its source workout and everything before
+ * it: progress toward the NEW target counts only workouts performed after the source workout
+ * (or, when that workout is not in `locateRows`, after the promotion was applied). Without this,
+ * beating the target (target 10, did 12 -> 11) leaves the same workout qualifying at 11, so the
+ * bar would stay full and Promote would reappear. A later promotion_reverted removes the hold.
+ */
+export function resolvePromotionHoldCutoffMs(args: {
+  events: ManualPromotionEventRow[];
+  routineDayExerciseId: string;
+  /** Rows used only to find the source workout's performedAt (direct, fallback and linked history). */
+  locateRows: ProgressionHistorySetRow[];
+}) {
+  const standing = resolveStandingPromotion({ events: args.events, routineDayExerciseId: args.routineDayExerciseId });
+  if (!standing) {
+    return null;
+  }
+
+  const sourcePerformedAt = standing.sourceSessionId
+    ? args.locateRows
+        .filter((row) => row.sessionRecordId === standing.sourceSessionId)
+        .map((row) => toEpochMs(row.performedAt))
+        .filter((value): value is number => value !== null)
+        .sort((left, right) => right - left)[0]
+    : undefined;
+  return sourcePerformedAt ?? toEpochMs(standing.appliedAt) ?? Number.POSITIVE_INFINITY;
+}
+
+export function filterHistoryAfterPromotionHold<RowType extends Pick<ProgressionHistorySetRow, "performedAt">>(rows: RowType[], cutoffMs: number | null) {
+  if (cutoffMs === null) {
+    return rows;
+  }
+
+  return rows.filter((row) => {
+    const performedAt = toEpochMs(row.performedAt);
+    return performedAt !== null && performedAt > cutoffMs;
+  });
+}
+
 export function manualPromotionTargetMatches(expected: ProgressionTargetPlan | null | undefined, candidates: ProgressionTargetPlan[]) {
   if (!expected) {
     return false;
@@ -191,22 +272,29 @@ export type ManualPromotionRepository<Row> = {
   readOwnedExercise(routineDayExerciseId: string): Promise<ManualPromotionExerciseSnapshot<Row> | null>;
   /** Any in-progress workout for this user, not only this routine. */
   hasWorkoutInProgress(): Promise<boolean>;
-  evaluate(exercise: ManualPromotionExerciseSnapshot<Row>): Promise<{
-    candidate: ProgressionReviewCandidate;
-    historyRows: ProgressionHistorySetRow[];
-  }>;
+  /** Completed history for the exercise (direct rows, or the unique catalog fallback). */
+  readHistory(exercise: ManualPromotionExerciseSnapshot<Row>): Promise<ProgressionHistorySetRow[]>;
+  /** The playbook candidate for exactly these rows (already filtered by the promotion hold). */
+  deriveCandidate(exercise: ManualPromotionExerciseSnapshot<Row>, historyRows: ProgressionHistorySetRow[]): Promise<ProgressionReviewCandidate>;
   readPromotionEvents(routineDayExerciseId: string): Promise<ManualPromotionEventRow[]>;
   /** Null when any linked id is missing, outside the routine, or no longer shares the source target. */
   readLinkedExercises(source: ManualPromotionExerciseSnapshot<Row>, linkedIds: string[]): Promise<ManualPromotionExerciseSnapshot<Row>[] | null>;
   /** Conditional write: only succeeds while the row still holds `exercise.storedTarget`. */
   updateTargetIfUnchanged(exercise: ManualPromotionExerciseSnapshot<Row>, nextTarget: ProgressionTargetPlan): Promise<boolean>;
+  /**
+   * Undo after a failed audit insert: put the row's original target columns back, conditional on
+   * the row still holding exactly `appliedTarget` (so a newer change is never overwritten).
+   * Returns false on any error or when no row matched; never throws.
+   */
+  restoreTargetIfUnchanged(exercise: ManualPromotionExerciseSnapshot<Row>, appliedTarget: ProgressionTargetPlan): Promise<boolean>;
+  /** False when the promotion_applied row was not written (insert error or unbuildable payload). */
   recordPromotionApplied(args: {
     exercise: ManualPromotionExerciseSnapshot<Row>;
     fromTarget: ProgressionTargetPlan;
     toTarget: ProgressionTargetPlan;
     reason: string;
     sourceSessionId: string | null;
-  }): Promise<void>;
+  }): Promise<boolean>;
 };
 
 export type ManualPromotionRequest = {
@@ -239,11 +327,22 @@ export async function runManualPromotion<Row>(
     return refuse("workout_in_progress");
   }
 
-  const { candidate, historyRows } = await repo.evaluate(exercise);
+  const events = await repo.readPromotionEvents(exercise.id);
+  const allHistoryRows = await repo.readHistory(exercise);
+  // Same post-promotion reset as the Today loader: a standing promotion consumes its source
+  // workout, so only newer workouts can fill the bar at the new target.
+  const historyRows = filterHistoryAfterPromotionHold(allHistoryRows, resolvePromotionHoldCutoffMs({
+    events,
+    routineDayExerciseId: exercise.id,
+    locateRows: allHistoryRows,
+  }));
+  const candidate = await repo.deriveCandidate(exercise, historyRows);
   const sourceRows = candidate.sourceSession
     ? historyRows.filter((row) => row.sessionId === candidate.sourceSession?.sessionId)
     : historyRows;
-  const sourceSessionId = resolveManualPromotionSourceSessionId({ candidate, historyRows });
+  // Resolved against the unfiltered history: with no newer workout this is the consumed workout,
+  // so a repeat tap is refused as already_applied rather than as a generic not-ready.
+  const sourceSessionId = resolveManualPromotionSourceSessionId({ candidate, historyRows: allHistoryRows });
   const gate = evaluateManualPromotionGate({
     exerciseOwned: true,
     workoutInProgress,
@@ -253,7 +352,7 @@ export async function runManualPromotion<Row>(
     candidate,
     barPercent: deriveManualPromotionBarPercent({ candidate, plan: exercise.effectiveTarget, historyRows: sourceRows }),
     sourceSessionId,
-    events: await repo.readPromotionEvents(exercise.id),
+    events,
   });
   if (!gate.ok) {
     return gate;
@@ -270,14 +369,19 @@ export async function runManualPromotion<Row>(
     return refuse("lost_race");
   }
 
-  const reason = candidate.reason;
-  await repo.recordPromotionApplied({
+  const reason = candidate.reason.trim() || "Promoted manually from a full progress bar.";
+  const sourceRecorded = await repo.recordPromotionApplied({
     exercise,
     fromTarget: exercise.storedTarget,
     toTarget: gate.proposedTarget,
     reason,
     sourceSessionId: gate.sourceSessionId,
   });
+  if (!sourceRecorded) {
+    // No audit row means no idempotency guard: undo the target rather than report success.
+    const restored = await repo.restoreTargetIfUnchanged(exercise, gate.proposedTarget);
+    return refuse(restored ? "audit_failed" : "audit_failed_unrestored");
+  }
 
   const linkedTargets: ProgressionReviewLinkedTargetSnapshot[] = [{
     routineDayExerciseId: exercise.id,
@@ -290,13 +394,21 @@ export async function runManualPromotion<Row>(
       continue;
     }
 
-    await repo.recordPromotionApplied({
+    const linkedRecorded = await repo.recordPromotionApplied({
       exercise: linked,
       fromTarget: linked.storedTarget,
       toTarget: gate.proposedTarget,
       reason,
       sourceSessionId: gate.sourceSessionId,
     });
+    if (!linkedRecorded) {
+      // Undo this linked day and leave it out of the result (like a lost race). If it cannot be
+      // put back it is promoted with no audit row: say so instead of reporting success.
+      if (!(await repo.restoreTargetIfUnchanged(linked, gate.proposedTarget))) {
+        return refuse("linked_audit_failed_unrestored");
+      }
+      continue;
+    }
     linkedTargets.push({
       routineDayExerciseId: linked.id,
       previousTarget: linked.storedTarget,
