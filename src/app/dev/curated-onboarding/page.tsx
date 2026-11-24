@@ -68,13 +68,10 @@ const PREVIEW_HANDOFFS: Record<string, CuratedPreviewHandoff> = {
   disabled: { status: "failed", plan: null, failure: { code: "feature-disabled", message: CURATED_DISABLED_MESSAGE }, notice: null },
 };
 
-export default async function DevCuratedOnboardingPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ handoff?: string }>;
-} = {}) {
+// Props are read only after the dev guard (src/lib/dev-page-guard-runtime.test.ts passes props that throw on access).
+export default async function DevCuratedOnboardingPage(props: { searchParams?: Promise<{ handoff?: string }> } = {}) {
   await assertDevPageAvailable();
-  const handoffKey = (await searchParams)?.handoff;
+  const handoffKey = (await props.searchParams)?.handoff;
   const previewHandoff = handoffKey ? PREVIEW_HANDOFFS[handoffKey] : undefined;
 
   const isReviewPreviewEnabled = process.env.HISTORY_QA_PREVIEW_ENABLED === "1";
