@@ -154,5 +154,5 @@ specificity 0,1,1), which beats the global rule and still loses to a caller's `!
 
 Inline danger text remains in: `ProgressionPlaybookEditor`, `EditDaySettingsAutosaveForm`, `EditDayAddExerciseScreen`,
 `EditableRoutineDayExerciseList`, `RoutineEditorForm`, `DataSettingsSection`, `DiscordAccessSettings`,
-`HistoryExerciseCard`, `CuratedOnboardingShell`, `GenerationHandoffStep`, `QuestionnaireStep`, `ReviewStep`.
-Each moves to `FormField error` / `useFieldNotice` when its section is redesigned.
+`HistoryExerciseCard`.
+(The curated onboarding wizard moved in the Sign-in / onboarding lane.) Each moves to `FormField error` / `useFieldNotice` when its section is redesigned.

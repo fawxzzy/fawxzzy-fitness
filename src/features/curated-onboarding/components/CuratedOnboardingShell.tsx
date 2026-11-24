@@ -96,9 +96,9 @@ export type CuratedPreviewHandoff = {
   notice: string | null;
 };
 
-// "Build manually" and "Create editable draft" are two full labels: an even split keeps "Build manually" on one line
+// "Build manually" and "Create editable draft" are two full labels: a 0.85/1.15 split keeps both labels on one line
 // (the default 0.92fr/1.78fr split wraps it to two lines at 390px).
-const HANDOFF_SPLIT_CLASS_NAME = "!grid-cols-2";
+const HANDOFF_SPLIT_CLASS_NAME = "!grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type CompletionSource = "fresh" | "resumed";
