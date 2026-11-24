@@ -1,33 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useId, useRef } from "react";
-import { createPortal } from "react-dom";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { BottomActionSplit, BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
-import { cn } from "@/lib/cn";
+import { AppButton } from "@/components/ui/AppButton";
+import { Sheet } from "@/components/ui/Sheet";
 
-// Confirm dialogs dim and blur the screen behind them clearly enough that the box reads as the only live surface.
-export const MODAL_BACKDROP_CLASSNAME =
-  "bg-[rgb(var(--bg-app)/0.38)]";
-export const MODAL_SHELL_CONTENT_FILTER = "blur(6px) brightness(0.8) saturate(0.9)";
-export const MODAL_PANEL_CLASSNAME =
-  "rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.95)] px-5 py-5 shadow-[var(--glass-shadow-overlay)] backdrop-blur-[18px]";
-const MODAL_BOTTOM_BAR_SURFACE_CLASSNAME =
-  "bg-[linear-gradient(180deg,rgba(var(--bg-app),0.28)_0%,rgba(var(--bg-app),0.86)_18%,rgba(var(--bg-app),0.97)_100%)] backdrop-blur-[14px]";
-const DELETE_MODAL_CANCEL_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleInactive",
-  className: "!border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.22)]",
-});
-const DELETE_MODAL_CONFIRM_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "danger",
-  className: "translate-x-px focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]",
-});
-const DELETE_MODAL_PRIMARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "positive",
-  className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
-});
+// The confirm dialog (docs/ui/FOUNDATION.md "Confirm"). It renders on the shared Sheet: token scrim that dims and
+// blurs the screen, title, the object being acted on (`objectName`), the consequence, then [Cancel | Confirm] in the
+// pinned footer. Focus starts on Cancel (else Confirm); Escape and a tap on the scrim cancel.
+// The name is historic: it confirms non-destructive actions too (`confirmVariant="primary"`).
 
 function resolveConfirmTitle(title: string, confirmLabel: string) {
   const trimmedLabel = confirmLabel.trim();
@@ -42,9 +22,44 @@ function resolveConfirmActionLabel(confirmLabel: string) {
   return "Confirm";
 }
 
+const INITIAL_FOCUS_SELECTOR =
+  "[data-confirm-modal-action='cancel']:not([disabled]), [data-confirm-modal-action='confirm']:not([disabled])";
+
+export type ConfirmDestructiveModalProps = {
+  open: boolean;
+  title: string;
+  /** The thing being acted on ("Push Day", "Bench Press"). Shown prominently so the person knows what they confirm. */
+  objectName?: string;
+  consequenceText?: string;
+  description?: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  confirmActionLabel?: string;
+  contextLines?: string[];
+  details?: string;
+  bullets?: string[];
+  children?: ReactNode;
+  /** Replaces the default [Cancel | Confirm] footer (used with hideBottomActions). */
+  attachedFooter?: ReactNode;
+  isLoading?: boolean;
+  confirmDisabled?: boolean;
+  confirmVariant?: "primary" | "destructive";
+  titleVariant?: "confirm" | "raw";
+  hideBottomActions?: boolean;
+  hideCancelAction?: boolean;
+  /**
+   * Kept for callers from the History redesign (#300). The old delete layout hid supporting lines unless this was set;
+   * the Sheet confirm always shows the object name and the consequence, so it is accepted and has no effect.
+   */
+  showDetailsInDeleteLayout?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
 export function ConfirmDestructiveModal({
   open,
   title,
+  objectName,
   consequenceText,
   description,
   confirmLabel,
@@ -61,43 +76,14 @@ export function ConfirmDestructiveModal({
   titleVariant = "confirm",
   hideBottomActions = false,
   hideCancelAction = false,
-  showDetailsInDeleteLayout = false,
+  showDetailsInDeleteLayout: _showDetailsInDeleteLayout = false,
   onCancel,
   onConfirm,
-}: {
-  open: boolean;
-  title: string;
-  consequenceText?: string;
-  description?: string;
-  confirmLabel: string;
-  cancelLabel?: string;
-  confirmActionLabel?: string;
-  contextLines?: string[];
-  details?: string;
-  bullets?: string[];
-  children?: ReactNode;
-  attachedFooter?: ReactNode;
-  isLoading?: boolean;
-  confirmDisabled?: boolean;
-  confirmVariant?: "primary" | "destructive";
-  titleVariant?: "confirm" | "raw";
-  hideBottomActions?: boolean;
-  hideCancelAction?: boolean;
-  /**
-   * Opt-in: the delete layout hides every supporting line by default. Callers that name the object ("Delete Day 5?")
-   * set this so the consequence line ("Its 14 exercises are removed. This cannot be undone.") shows under the title.
-   */
-  showDetailsInDeleteLayout?: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  const titleId = useId();
-  const modalRootRef = useRef<HTMLDivElement | null>(null);
-  const modalRef = useRef<HTMLDivElement | null>(null);
-  const normalizedConfirmLabel = confirmLabel.trim().toLowerCase();
+}: ConfirmDestructiveModalProps) {
+  void _showDetailsInDeleteLayout;
   const resolvedTitle = titleVariant === "raw" ? title : resolveConfirmTitle(title, confirmLabel);
   const confirmActionLabel = confirmActionLabelOverride ?? resolveConfirmActionLabel(confirmLabel);
-  const usesDeleteLayout = normalizedConfirmLabel === "delete";
+  const trimmedObjectName = objectName?.trim() ?? "";
   const supportingLines = [
     consequenceText,
     description,
@@ -105,186 +91,77 @@ export function ConfirmDestructiveModal({
     ...(contextLines ?? []),
     ...(bullets ?? []),
   ].filter((line): line is string => typeof line === "string" && line.trim().length > 0);
-  const portalTarget = typeof document === "undefined"
-    ? null
-    : document.querySelector(".app-shell") ?? document.body;
 
-  useEffect(() => {
-    if (!open) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open, onCancel]);
-
-  useEffect(() => {
-    if (!open || !(portalTarget instanceof HTMLElement)) return;
-
-    const shellContent = Array.from(portalTarget.children).find(
-      (child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains("z-10"),
-    );
-    if (!shellContent) return;
-
-    const previousFilter = shellContent.style.filter;
-    const previousTransition = shellContent.style.transition;
-    const previousTransform = shellContent.style.transform;
-    const previousWillChange = shellContent.style.willChange;
-
-    shellContent.style.filter = MODAL_SHELL_CONTENT_FILTER;
-    shellContent.style.transform = "scale(0.985) translateZ(0)";
-    shellContent.style.willChange = "filter";
-    shellContent.style.transition = previousTransition
-      ? `${previousTransition}, filter 180ms cubic-bezier(0.22, 1, 0.36, 1)`
-      : "filter 180ms cubic-bezier(0.22, 1, 0.36, 1)";
-
-    return () => {
-      shellContent.style.filter = previousFilter;
-      shellContent.style.transition = previousTransition;
-      shellContent.style.transform = previousTransform;
-      shellContent.style.willChange = previousWillChange;
-    };
-  }, [open, portalTarget]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const focusable = modalRootRef.current?.querySelector<HTMLElement>(
-      "[data-confirm-modal-action='cancel']:not([disabled]), [data-confirm-modal-action='confirm']:not([disabled])",
-    );
-    focusable?.focus();
-  }, [open]);
-
-  if (!open || !portalTarget) return null;
-
-  const usesAttachedFooter = Boolean(attachedFooter);
-
-  return createPortal(
-    <div
-      ref={modalRootRef}
-      className={cn(
-        "fixed inset-0 z-[120] flex items-center justify-center p-4 pt-[max(1rem,var(--app-safe-top))]",
-        usesDeleteLayout ? "pb-4" : "pb-[calc(var(--app-safe-bottom)+5.5rem)]",
-      )}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+  const confirmButton = (
+    <AppButton
+      type="button"
+      variant={confirmVariant === "destructive" ? "danger" : "primary"}
+      size="md"
+      fullWidth
+      onClick={onConfirm}
+      disabled={confirmDisabled}
+      loading={isLoading}
+      data-confirm-modal-action="confirm"
     >
-      <div aria-hidden="true" className={`fixed inset-0 z-0 ${MODAL_BACKDROP_CLASSNAME}`} />
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 z-[1]"
-        onClick={onCancel}
-      />
-      <div
-        ref={modalRef}
-        className="relative z-10 w-full max-w-[21rem]"
-      >
-        <div
-          className={cn(
-            MODAL_PANEL_CLASSNAME,
-            usesDeleteLayout || usesAttachedFooter ? "rounded-b-none border-b-0 pb-4" : undefined,
-          )}
-        >
-          <h2 id={titleId} className="text-center text-[1.1875rem] font-semibold leading-snug tracking-[-0.02em] text-text">{resolvedTitle}</h2>
-          {(!usesDeleteLayout || showDetailsInDeleteLayout) && supportingLines.length > 0 ? (
-            <div className="mt-2 space-y-1.5 text-center text-[0.9rem] font-medium leading-relaxed text-[rgb(var(--text-muted)/0.9)]">
+      {confirmActionLabel}
+    </AppButton>
+  );
+
+  const footer = attachedFooter
+    ? attachedFooter
+    : hideBottomActions
+      ? null
+      : hideCancelAction
+        ? confirmButton
+        : (
+          <div className="grid grid-cols-2 gap-2">
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="md"
+              fullWidth
+              onClick={onCancel}
+              disabled={isLoading}
+              data-confirm-modal-action="cancel"
+            >
+              {cancelLabel}
+            </AppButton>
+            {confirmButton}
+          </div>
+        );
+
+  const hasBody = trimmedObjectName.length > 0 || supportingLines.length > 0 || Boolean(children);
+
+  return (
+    <Sheet
+      open={open}
+      title={resolvedTitle}
+      onClose={onCancel}
+      footer={footer}
+      showCloseButton={!footer || hideCancelAction}
+      initialFocusSelector={INITIAL_FOCUS_SELECTOR}
+      dialogProps={{ "data-confirm-modal": confirmVariant }}
+    >
+      {hasBody ? (
+        <div className="space-y-2 pb-1">
+          {trimmedObjectName ? (
+            <p
+              data-confirm-object-name=""
+              className="break-words rounded-[var(--radius-sm)] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.72)] px-3 py-2.5 text-base font-semibold leading-snug text-[rgb(var(--text-primary))]"
+            >
+              {trimmedObjectName}
+            </p>
+          ) : null}
+          {supportingLines.length > 0 ? (
+            <div className="space-y-1.5 text-[0.9375rem] font-medium leading-relaxed text-[rgb(var(--text-secondary)/0.92)]">
               {supportingLines.map((line, index) => (
                 <p key={`${index}-${line}`}>{line}</p>
               ))}
             </div>
           ) : null}
-          {!usesDeleteLayout && children ? (
-            <div className="mt-3">
-              {children}
-            </div>
-          ) : null}
-        </div>
-        {!usesDeleteLayout && usesAttachedFooter ? attachedFooter : null}
-        {usesDeleteLayout ? (
-          <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isLoading}
-              data-confirm-modal-action="cancel"
-              className={DELETE_MODAL_CANCEL_BUTTON_CLASS_NAME}
-            >
-              <span className="bottom-action__label">{cancelLabel}</span>
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={isLoading || confirmDisabled}
-              data-confirm-modal-action="confirm"
-              className={confirmVariant === "destructive" ? DELETE_MODAL_CONFIRM_BUTTON_CLASS_NAME : DELETE_MODAL_PRIMARY_BUTTON_CLASS_NAME}
-            >
-              <span className="bottom-action__label">{isLoading ? `${confirmActionLabel}...` : confirmActionLabel}</span>
-            </button>
-          </AttachedCardActionStripFrame>
-        ) : null}
-      </div>
-      {!usesDeleteLayout && !hideBottomActions ? (
-        <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-20 ${MODAL_BOTTOM_BAR_SURFACE_CLASSNAME}`}>
-          <div className="pointer-events-auto mx-auto w-full max-w-[720px] px-4">
-            <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
-              {hideCancelAction ? (
-                <BottomDockButton
-                  type="button"
-                  variant={confirmVariant}
-                  onClick={onConfirm}
-                  disabled={isLoading || confirmDisabled}
-                  loading={isLoading}
-                  loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
-                  data-confirm-modal-action="confirm"
-                >
-                  {confirmActionLabel}
-                </BottomDockButton>
-              ) : (
-                <BottomActionSplit
-                  secondary={(
-                    <BottomDockButton
-                      type="button"
-                      intent="toggleInactive"
-                      onClick={onCancel}
-                      disabled={isLoading}
-                      data-confirm-modal-action="cancel"
-                    >
-                      {cancelLabel}
-                    </BottomDockButton>
-                  )}
-                  primary={(
-                    <BottomDockButton
-                      type="button"
-                      variant={confirmVariant}
-                      onClick={onConfirm}
-                      disabled={isLoading || confirmDisabled}
-                      loading={isLoading}
-                      loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
-                      data-confirm-modal-action="confirm"
-                    >
-                      {confirmActionLabel}
-                    </BottomDockButton>
-                  )}
-                />
-              )}
-            </div>
-          </div>
+          {children ? <div className="pt-1">{children}</div> : null}
         </div>
       ) : null}
-    </div>,
-    portalTarget,
+    </Sheet>
   );
 }

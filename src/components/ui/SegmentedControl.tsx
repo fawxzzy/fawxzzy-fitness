@@ -53,6 +53,12 @@ function getNextSegmentIndex(args: {
   return currentIndex;
 }
 
+// Segmented control (docs/ui/FOUNDATION.md "SegmentedControl"): 2-5 options, one selected. Without an explicit
+// activeIntent the selected segment uses the strong accent look (accent tint + keyline, `.segmented-selected-strong`
+// in globals.css) so the choice reads at a glance; callers that pass activeIntent keep their intent styling.
+export const SEGMENTED_CONTROL_MIN_OPTIONS = 2;
+export const SEGMENTED_CONTROL_MAX_OPTIONS = 5;
+
 export function SegmentedControl({
   options,
   value,
@@ -63,9 +69,10 @@ export function SegmentedControl({
   shellClassName,
   activeClassName,
   inactiveClassName,
-  activeIntent = "info",
+  activeIntent,
   inactiveIntent = "neutral",
   fitContent = false,
+  selectedStyle,
 }: {
   options: SegmentedControlOption[];
   value: string;
@@ -79,8 +86,18 @@ export function SegmentedControl({
   activeIntent?: ActionChromeIntent;
   inactiveIntent?: ActionChromeIntent;
   fitContent?: boolean;
+  /** "strong": accent tint + keyline on the selected segment; "intent": only the activeIntent chrome. */
+  selectedStyle?: "strong" | "intent";
 }) {
   const pathname = usePathname();
+  const resolvedActiveIntent: ActionChromeIntent = activeIntent ?? "positive";
+  const usesStrongSelection = selectedStyle ? selectedStyle === "strong" : activeIntent === undefined;
+  if (
+    process.env.NODE_ENV !== "production"
+    && (options.length < SEGMENTED_CONTROL_MIN_OPTIONS || options.length > SEGMENTED_CONTROL_MAX_OPTIONS)
+  ) {
+    console.warn(`[SegmentedControl] ${ariaLabel}: ${options.length} options; use 2-5 (a Menu or list for more).`);
+  }
   const shouldPrefetchLinks = !(pathname === "/dev" || pathname?.startsWith("/dev/"));
   const itemClassName = size === "sm"
     ? cn(
@@ -120,9 +137,10 @@ export function SegmentedControl({
           isActive
             ? "text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
             : "text-[rgb(var(--text-secondary)/0.9)] shadow-none",
+          isActive && usesStrongSelection ? "segmented-selected-strong" : undefined,
           isActive ? activeClassName : inactiveClassName,
         );
-        const intent = isActive ? (option.intent ?? activeIntent) : inactiveIntent;
+        const intent = isActive ? (option.intent ?? resolvedActiveIntent) : inactiveIntent;
         const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
           const nextIndex = getNextSegmentIndex({
             key: event.key,

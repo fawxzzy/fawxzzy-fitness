@@ -25,6 +25,8 @@ type ToastContextValue = {
   success: (message: string, options?: ToastOptions) => void;
   warning: (message: string, options?: ToastOptions) => void;
   error: (message: string, options?: ToastOptions) => void;
+  /** Starts the exit of the notice with this id (no-op when it is not showing). */
+  dismiss: (id: string) => void;
 };
 
 export type ToastOptions = {
@@ -223,8 +225,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       success: (message: string, options?: ToastOptions) => push("success", message, options),
       warning: (message: string, options?: ToastOptions) => push("warning", message, options),
       error: (message: string, options?: ToastOptions) => push("error", message, options),
+      dismiss,
     }),
-    [push],
+    [push, dismiss],
   );
 
   const renderCard = (toast: ToastItem) => (
@@ -297,6 +300,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       </NoticeFlowSlotContext.Provider>
     </ToastContext.Provider>
   );
+}
+
+/** Like `useToast`, but null outside a ToastProvider (shared primitives that may render in isolation, e.g. FieldNotice). */
+export function useOptionalToast() {
+  return useContext(ToastContext);
 }
 
 export function useToast() {

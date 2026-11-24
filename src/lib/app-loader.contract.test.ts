@@ -158,7 +158,7 @@ test("a throwing frame or an early unmount can never leave the opaque cover stan
 test("toasts sit above the loader cover and below modals, so a toast raised during a wait stays visible", () => {
   const cover = Number(/\.app-loader \{[^}]*z-index: (\d+);/.exec(loaderCssBlock())?.[1]);
   const toast = Number(/data-app-notice-stack="true"[^>]*\bz-\[(\d+)\]/.exec(read("src/components/ui/ToastProvider.tsx"))?.[1]);
-  const modal = Number(/z-\[(\d+)\]/.exec(read("src/components/ui/BottomSheet.tsx"))?.[1]);
+  const modal = Number(/z-\[(\d+)\]/.exec(read("src/components/ui/Sheet.tsx"))?.[1]);
   assert.equal(cover, 95);
   assert.ok(toast > cover, `toast layer ${toast} is above the cover ${cover}`);
   assert.ok(toast < modal, `toast layer ${toast} is below modals ${modal}`);
