@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { getPreviousInAppPath } from "@/components/ui/useBackNavigation";
 import {
   SESSION_PAUSE_ARIA_LABEL,
@@ -53,22 +54,38 @@ export function SessionPauseButton({ backHref }: { backHref?: string }) {
 // one subtitle line (day · routine), the inline sync status on the title line ("– Offline"), and Pause top right.
 // No app menu and no left Back: the only ways out are Pause (back to Today, workout keeps running) and Finish.
 // Progress counts live in the exercise list, not in the header.
+// A completed workout (opened from a link after Finish) has nothing to pause: it shows the plain left Back instead,
+// and the dock shows Continue.
 export function SessionHeaderControls({
   routineName,
   sessionDayName,
   backHref,
   statusBadge,
+  completed = false,
 }: {
   routineName: string;
   sessionDayName: string;
   backHref?: string;
   statusBadge?: ReactNode;
+  completed?: boolean;
 }) {
+  const subtitle = formatSessionHeaderSubtitle(sessionDayName, routineName);
+  if (completed) {
+    return (
+      <ScreenHeader
+        kind="detail"
+        title="Workout"
+        subtitle={subtitle}
+        back={<ScreenHeaderBackButton href={resolveSessionPauseTarget(backHref)} historyBehavior="history-first" label="Back" />}
+        status={statusBadge}
+      />
+    );
+  }
   return (
     <ScreenHeader
       kind="detail"
       title="Workout"
-      subtitle={formatSessionHeaderSubtitle(sessionDayName, routineName)}
+      subtitle={subtitle}
       trailing={<SessionPauseButton backHref={backHref} />}
       status={statusBadge}
     />

@@ -201,13 +201,14 @@ export function SessionPageClient({
 
   const hasExercises = exercises.length > 0;
   // The header stays on screen while an exercise is open. No app menu here: Pause (top right) returns to Today with
-  // the workout still running, Finish (dock) ends it (sessionBackAction.ts).
+  // the workout still running, Finish (dock) ends it (sessionBackAction.ts). A completed workout shows Back instead.
   const floatingHeader = (
     <SessionHeaderControls
       routineName={routineName}
       sessionDayName={sessionDayName}
       backHref={fallbackReturnHref ?? "/today"}
       statusBadge={<OfflineSyncBadge userId={userId} variant="header" />}
+      completed={isSessionCompleted}
     />
   );
 

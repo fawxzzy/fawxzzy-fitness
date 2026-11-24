@@ -378,6 +378,7 @@ export function SetLoggerCard({
   initialSets,
   onSetsChange,
   onSetCountChange,
+  onLogRequestPendingChange,
   prefill,
   setFlowQuickLogTargets,
   fallbackQuickLogTarget,
@@ -435,6 +436,8 @@ export function SetLoggerCard({
   initialSets: SetLoggerSeedSet[];
   onSetsChange?: (sets: DisplaySet[]) => void;
   onSetCountChange?: (count: number) => void;
+  /** True while a Log set request is in flight (the parent blocks Remove from workout until it settles). */
+  onLogRequestPendingChange?: (pending: boolean) => void;
   prefill?: {
     weight?: number;
     reps?: number;
@@ -779,6 +782,18 @@ export function SetLoggerCard({
   useEffect(() => {
     onSetsChange?.(sets);
   }, [onSetsChange, sets]);
+
+  // Callers pass an inline callback, so it sits in a ref: the effect reports only real changes, and false on unmount.
+  const onLogRequestPendingChangeRef = useRef(onLogRequestPendingChange);
+  useEffect(() => {
+    onLogRequestPendingChangeRef.current = onLogRequestPendingChange;
+  }, [onLogRequestPendingChange]);
+  useEffect(() => {
+    onLogRequestPendingChangeRef.current?.(isLogRequestPending);
+  }, [isLogRequestPending]);
+  useEffect(() => () => {
+    onLogRequestPendingChangeRef.current?.(false);
+  }, []);
 
   useEffect(() => {
     if (!onSetCountChange) {
@@ -1408,10 +1423,7 @@ export function SetLoggerCard({
         candidate: result.data!.set,
         fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
       });
-      // Quiet success (2026-11-23): the new set row and progress are the feedback; only a new best earns a notice.
-      if (prToast) {
-        toast.success(`Set logged. ${prToast}`);
-      }
+      toast.success(prToast ? `Set logged. ${prToast}` : "Set logged.");
     } catch {
       const queued = await enqueueSetLog({
         userId,
@@ -1594,7 +1606,8 @@ export function SetLoggerCard({
       setSelectedWeightUnit(values.weightUnit);
     }
     setError(null);
-  }, []);
+    toast.success("Applied to current set.");
+  }, [toast]);
   async function handleDeleteSet(set: DisplaySet) {
     if (deletingSetIds.includes(set.stableId)) {
       return;
@@ -1614,6 +1627,7 @@ export function SetLoggerCard({
         latestSetsRef.current = next;
         return next;
       });
+      toast.success("Queued set removed.");
       setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
       return;
     }
@@ -1651,6 +1665,7 @@ export function SetLoggerCard({
         return;
       }
 
+      toast.success("Set removed.");
     } finally {
       setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
     }
@@ -1865,7 +1880,7 @@ export function SetLoggerCard({
           <LoggerToggleChip
             pressed={resolvedIsFailure}
             label="Failure"
-            ariaLabel="Failure target"
+            ariaLabel="Failure"
             onPress={() => {
               setIsFailure((current) => {
                 const nextValue = !current;

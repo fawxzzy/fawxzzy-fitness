@@ -21,6 +21,8 @@ import {
   type SessionFinishedExercise,
   type SessionStatusChip,
 } from "@/components/session/SessionRowCards";
+import { useIsOnline } from "@/components/session/useIsOnline";
+import { REMOVE_EXERCISE_HAS_SETS_ERROR } from "@/lib/session-live-mutation";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
 import { buildTodayExerciseLoggedProgress } from "@/app/today/TodayExerciseRows";
@@ -113,6 +115,9 @@ type SessionExerciseLocalCacheEntry = {
     effort: number | null;
   }>;
 };
+
+/** How long a Skip / Hide / Unskip waits for the swapped card to render before giving up on moving focus to it. */
+const SESSION_CARD_FOCUS_HANDOFF_MS = 10_000;
 
 const sessionExerciseLocalStateCache = new Map<string, SessionExerciseLocalCacheEntry>();
 
@@ -467,6 +472,50 @@ export function SessionExerciseFocus({
     );
   }, [exercises, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId, unitLabel]);
   const toast = useToast();
+  // Remove from workout is offered only online, before any set is logged and while no Log set request is in flight.
+  // The server re-checks the set count (removeExerciseAction); these refs let the confirm re-check the latest state.
+  const isOnline = useIsOnline();
+  const [loggerSavingIds, setLoggerSavingIds] = useState<string[]>([]);
+  const handleLoggerSavingChange = useCallback((exerciseId: string, pending: boolean) => {
+    setLoggerSavingIds((current) => {
+      const has = current.includes(exerciseId);
+      if (pending) return has ? current : [...current, exerciseId];
+      return has ? current.filter((id) => id !== exerciseId) : current;
+    });
+  }, []);
+  // Skip / Hide / Unskip swaps the card (full <-> compact), which unmounts the button that had focus. Remember where
+  // focus belongs on the new card (its restore action, or its More button) and move it there once that card renders.
+  const pendingCardFocusRef = useRef<{ exerciseId: string; target: "restore" | "more"; at: number } | null>(null);
+  const requestCardFocus = useCallback((exerciseId: string, target: "restore" | "more") => {
+    pendingCardFocusRef.current = { exerciseId, target, at: Date.now() };
+  }, []);
+  useEffect(() => {
+    const pending = pendingCardFocusRef.current;
+    if (!pending || typeof document === "undefined") {
+      return;
+    }
+    if (Date.now() - pending.at > SESSION_CARD_FOCUS_HANDOFF_MS) {
+      pendingCardFocusRef.current = null;
+      return;
+    }
+    const row = document.querySelector<HTMLElement>(`[data-session-exercise-row-id="${pending.exerciseId}"]`);
+    const selector = pending.target === "restore" ? '[data-session-restore="true"]' : '[data-session-more="true"]';
+    const target = row?.querySelector<HTMLElement>(selector);
+    if (!row || !target) {
+      return;
+    }
+    pendingCardFocusRef.current = null;
+    const active = document.activeElement;
+    // Never steal focus the person already moved somewhere else on the page.
+    if (active && active !== document.body && active.isConnected && !row.contains(active)) {
+      return;
+    }
+    target.focus();
+  });
+  const removeGuardRef = useRef({ savingIds: loggerSavingIds, rows: rowViewModelBySessionExerciseId });
+  useEffect(() => {
+    removeGuardRef.current = { savingIds: loggerSavingIds, rows: rowViewModelBySessionExerciseId };
+  }, [loggerSavingIds, rowViewModelBySessionExerciseId]);
 
   useEffect(() => {
     if (!liveProgressRef) {
@@ -816,6 +865,7 @@ export function SessionExerciseFocus({
 
     if (isGoalCompleted && !previousSkipped) {
       const nextShowWhenCompleted = previousHidden;
+      requestCardFocus(exerciseId, nextShowWhenCompleted ? "more" : "restore");
       patchRowState(exerciseId, (current) => ({
         ...current,
         showWhenCompleted: nextShowWhenCompleted,
@@ -827,6 +877,7 @@ export function SessionExerciseFocus({
     }
 
     const nextSkipped = !previousSkipped;
+    requestCardFocus(exerciseId, nextSkipped ? "restore" : "more");
     // isSkipOverrideActive marks this row's isSkipped as a locally-known,
     // authoritative value: reconcileSessionRowClientState will preserve it
     // against a stale `exercises` prop (e.g. from an unrelated timer
@@ -929,7 +980,7 @@ export function SessionExerciseFocus({
         isSkipPending: false,
       }));
     }
-  }, [onSelectedExerciseIdChange, patchRowState, selectedExerciseId, sessionId, toast, toggleSkipAction, userId]);
+  }, [onSelectedExerciseIdChange, patchRowState, requestCardFocus, selectedExerciseId, sessionId, toast, toggleSkipAction, userId]);
 
   // Remove from workout (More menu, after the confirm). Online only: it deletes the session row, so there is no offline
   // queue for it. The row collapses at once and comes back with an error notice if the server refuses.
@@ -939,6 +990,16 @@ export function SessionExerciseFocus({
     }
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       toast.error("Removing an exercise needs a connection.");
+      return;
+    }
+    const guard = removeGuardRef.current;
+    const guardRow = guard.rows.get(exerciseId);
+    if (guard.savingIds.includes(exerciseId) || guardRow?.isQuickLogPending) {
+      toast.error("A set is still saving. Try again in a moment.");
+      return;
+    }
+    if ((guardRow?.loggedSetCount ?? 0) > 0) {
+      toast.error(REMOVE_EXERCISE_HAS_SETS_ERROR);
       return;
     }
 
@@ -1009,6 +1070,7 @@ export function SessionExerciseFocus({
             fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
           });
           const setCount = baseRowViewModel.loggedSetCount;
+          const canOfferRemove = setCount === 0 && isOnline && !loggerSavingIds.includes(exercise.id);
           const resolvedTargetHint = exercise.targetHint ?? deriveSessionTargetHint({
             measurementType: exercise.measurementType ?? "reps",
             fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
@@ -1222,7 +1284,7 @@ export function SessionExerciseFocus({
                           setCount,
                         );
                       }}
-                      onRemove={setCount === 0 ? () => handleRemoveExercise(exercise.id) : undefined}
+                      onRemove={canOfferRemove ? () => handleRemoveExercise(exercise.id) : undefined}
                     />
                   )}
                   fallbackGoalLabel={exercise.goalLabel}
@@ -1244,6 +1306,9 @@ export function SessionExerciseFocus({
                   }}
                   onSetCountChange={(count) => {
                     handleSetCountChange(exercise.id, count);
+                  }}
+                  onLogRequestPendingChange={(pending) => {
+                    handleLoggerSavingChange(exercise.id, pending);
                   }}
                 />
                 {isExerciseTimerVisible && updateSessionExerciseTimerAction ? (
@@ -1313,8 +1378,8 @@ export function SessionExerciseFocus({
                     setCount,
                   );
                 }}
-                // Remove is offered only before any set is logged: once sets exist, Skip keeps them (no data loss).
-                onRemove={setCount === 0 ? () => handleRemoveExercise(exercise.id) : undefined}
+                // Remove is offered only online and before any set is logged: once sets exist, Skip keeps them (no data loss).
+                onRemove={canOfferRemove ? () => handleRemoveExercise(exercise.id) : undefined}
               onPress={async () => {
                 if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
                   return;
@@ -1409,7 +1474,7 @@ export function SessionExerciseFocus({
                     });
                     toast.success(outcome.message);
                   } else if (outcome.kind === "saved") {
-                    // Quiet success (2026-11-23): the progress bar, set count and the row's polite status announce it.
+                    toast.success("Set logged.");
                     if (outcome.result.data?.set) {
                       const savedSet = toSeedSet(outcome.result.data.set);
                       setSetSnapshotsBySessionExerciseId((current) => {
@@ -1488,6 +1553,7 @@ export function SessionExerciseFocus({
                         label={rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}
                         ariaLabel={`${rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}: ${exercise.name}`}
                         inactive={rowViewModel.isSkipPending}
+                        buttonProps={{ "data-session-restore": "true" }}
                         onPress={() => {
                           void handleSkipToggle(
                             exercise.id,

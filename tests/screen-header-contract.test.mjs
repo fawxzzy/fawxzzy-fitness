@@ -186,11 +186,17 @@ test("live workout: Pause top right is the one header exit (back to Today, worko
   assert.match(controls, /trailing=\{<SessionPauseButton backHref=\{backHref\} \/>\}/);
   assert.match(controls, /aria-label=\{SESSION_PAUSE_ARIA_LABEL\}/);
   assert.match(controls, /\bh-11 min-w-11\b/, "44px target");
-  assert.doesNotMatch(controls, /<ScreenHeaderBackButton|\bback=\{|\bappMenu\b/);
+  assert.doesNotMatch(controls, /\bappMenu\b/);
+  // The in-progress header has no left Back; only a completed workout (nothing to pause) swaps Pause for Back.
+  const completedBranch = controls.slice(controls.indexOf("if (completed) {"), controls.indexOf("trailing={<SessionPauseButton"));
+  assert.match(completedBranch, /back=\{<ScreenHeaderBackButton href=\{resolveSessionPauseTarget\(backHref\)\} historyBehavior="history-first" label="Back" \/>\}/);
+  assert.doesNotMatch(completedBranch, /SessionPauseButton|trailing=/, "a completed workout never offers Pause");
+  assert.equal((controls.match(/<ScreenHeaderBackButton/g) ?? []).length, 1, "Back appears only in the completed branch");
   const pause = read("src/components/sessionBackAction.ts");
   assert.match(pause, /SESSION_PAUSE_FALLBACK_HREF = "\/today"/);
   const client = read("src/components/SessionPageClient.tsx");
   assert.doesNotMatch(client, /onCloseExercise=|exerciseOpen=/);
+  assert.match(client, /completed=\{isSessionCompleted\}/, "the header follows the session's completed state");
   const history = read("src/app/history/[sessionId]/LogAuditClient.tsx");
   assert.match(history, /if \(expandedExercise\) \{\s+event\.preventDefault\(\);\s+setExpandedExerciseId\(null\);/);
 });

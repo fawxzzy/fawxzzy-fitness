@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  decideSessionExerciseRemoval,
   guardLiveSessionMutation,
   parseLiveSessionStatus,
+  REMOVE_EXERCISE_CHECK_ERROR,
+  REMOVE_EXERCISE_HAS_SETS_ERROR,
   type LiveSessionMutationRepository,
 } from "./session-live-mutation.ts";
 
@@ -20,6 +23,26 @@ function createRepository(args?: {
     },
   };
 }
+
+test("decideSessionExerciseRemoval refuses when any set is logged or the count is unknown", () => {
+  assert.deepEqual(decideSessionExerciseRemoval(0), { ok: true });
+  assert.deepEqual(decideSessionExerciseRemoval(1), { ok: false, error: REMOVE_EXERCISE_HAS_SETS_ERROR });
+  assert.deepEqual(decideSessionExerciseRemoval(7), { ok: false, error: REMOVE_EXERCISE_HAS_SETS_ERROR });
+  assert.deepEqual(decideSessionExerciseRemoval(null), { ok: false, error: REMOVE_EXERCISE_CHECK_ERROR });
+  assert.deepEqual(decideSessionExerciseRemoval(Number.NaN), { ok: false, error: REMOVE_EXERCISE_CHECK_ERROR });
+});
+
+test("removeExerciseAction counts the row's sets and refuses before deleting", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../app/session/[id]/actions.ts", import.meta.url), "utf8");
+  const start = source.indexOf("export async function removeExerciseAction");
+  const body = source.slice(start, source.indexOf("\nexport async function", start + 10));
+  const countAt = body.indexOf('.from("sets")');
+  const decideAt = body.indexOf("decideSessionExerciseRemoval(setCountError ? null : (loggedSetCount ?? 0))");
+  const deleteAt = body.indexOf('.from("session_exercises")');
+  assert.ok(start >= 0 && countAt > 0 && decideAt > countAt && deleteAt > decideAt, "count, decide, then delete");
+  assert.match(body, /if \(!removal\.ok\) \{\s*return removal;/);
+});
 
 test("parseLiveSessionStatus accepts only runtime-supported statuses", () => {
   assert.equal(parseLiveSessionStatus("in_progress"), "in_progress");

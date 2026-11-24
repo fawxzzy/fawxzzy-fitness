@@ -197,21 +197,40 @@ test("More menu: one sheet for Skip/Hide and Remove; Remove asks first and is of
   assert.match(rows, /<ConfirmDestructiveModal[\s\S]*title=\{`Remove \$\{exerciseName\}\?`\}[\s\S]*cancelLabel="Keep"/);
 
   const focus = readSource("../SessionExerciseFocus.tsx");
-  assert.equal((focus.match(/onRemove=\{setCount === 0 \? \(\) => handleRemoveExercise\(exercise\.id\) : undefined\}/g) ?? []).length, 2, "card bar and expanded logger");
+  assert.equal((focus.match(/onRemove=\{canOfferRemove \? \(\) => handleRemoveExercise\(exercise\.id\) : undefined\}/g) ?? []).length, 2, "card bar and expanded logger");
+  assert.match(focus, /const canOfferRemove = setCount === 0 && isOnline && !loggerSavingIds\.includes\(exercise\.id\);/, "online, no sets, no save in flight");
+  assert.match(focus, /onLogRequestPendingChange=\{\(pending\) => \{\s*handleLoggerSavingChange\(exercise\.id, pending\);/);
+  assert.match(focus, /guard\.savingIds\.includes\(exerciseId\) \|\| guardRow\?\.isQuickLogPending/, "the confirm re-checks a save in flight");
+  assert.match(focus, /toast\.error\(REMOVE_EXERCISE_HAS_SETS_ERROR\)/, "the confirm re-checks the latest set count");
   assert.match(focus, /Removing an exercise needs a connection\./);
+  assert.match(readSource("../SessionTimers.tsx"), /onLogRequestPendingChangeRef\.current\?\.\(isLogRequestPending\)/);
   assert.match(focus, /loggerLeadingAction=\{\(\s*<SessionCardMoreMenu/, "the expanded logger has the same More menu");
 });
 
-test("quiet success: show, hide, skip, set logged and set removed raise no notice; failures still do", () => {
+test("Skip / Hide / Unskip hands focus to the swapped card (restore action or More), never drops it to the page", () => {
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  assert.match(focus, /requestCardFocus\(exerciseId, nextSkipped \? "restore" : "more"\);/, "skip and unskip");
+  assert.match(focus, /requestCardFocus\(exerciseId, nextShowWhenCompleted \? "more" : "restore"\);/, "hide and show of a finished exercise");
+  assert.match(focus, /buttonProps=\{\{ "data-session-restore": "true" \}\}/, "the compact card's restore action is findable");
+  assert.ok(focus.includes(`'[data-session-restore="true"]' : '[data-session-more="true"]'`));
+  assert.match(focus, /active !== document\.body && active\.isConnected && !row\.contains\(active\)/, "never steals focus moved elsewhere");
+  assert.match(focus, /SESSION_CARD_FOCUS_HANDOFF_MS/, "a handoff that never renders (rolled back) expires");
+});
+
+test("quiet success: show, hide and skip raise no notice; set notices stay; failures still notify", () => {
   const focus = readSource("../SessionExerciseFocus.tsx");
   const timers = readSource("../SessionTimers.tsx");
   for (const source of [focus, timers]) {
-    assert.doesNotMatch(source, /toast\.success\("(Set logged\.|Set removed\.|Queued set removed\.|Applied to current set\.)"\)/);
-    assert.doesNotMatch(source, /toast\.success\([^)]*(skipped|hidden|shown|Unskipped)/i);
+    assert.doesNotMatch(source, /toast\.success\([^)]*(skipped|hidden|shown|Unskipped|change queued)/i);
+  }
+  // Zac asked for no toast on show / hide / skip only: the set notices stay.
+  assert.match(focus, /toast\.success\("Set logged\."\)/);
+  assert.match(timers, /toast\.success\(prToast \? `Set logged\. \$\{prToast\}` : "Set logged\."\)/);
+  for (const message of ["Set removed.", "Queued set removed.", "Applied to current set."]) {
+    assert.ok(timers.includes(`toast.success("${message}")`), message);
   }
   assert.match(focus, /toast\.error\(result\.error \|\| "Could not update skip state\."\)/);
   assert.match(focus, /toast\.error\(result\.error \|\| "Could not remove exercise\."\)/);
-  assert.match(timers, /if \(prToast\) \{\s*toast\.success\(`Set logged\. \$\{prToast\}`\);/, "a new best still earns a notice");
   assert.match(readSource("../SessionPageClient.tsx"), /noticesInFlow="all"/, "every workout notice renders in flow, never over a card title");
 });
 
@@ -293,6 +312,8 @@ test("set logger (Zac 2026-11-23): toggle chips, quiet secondaries, one Log set 
   assert.doesNotMatch(timers, /error \? "border-\[rgb\(var\(--danger/);
   assert.match(timers, /setError\(queued \? null : message\)/, "a queued set is not an error");
   assert.doesNotMatch(timers, /!h-6 !min-h-0|gap-1\.5 text-\[10px\] leading-tight/);
+  assert.match(timers, /ariaLabel="Failure"/, "the Failure chip's name is just its word");
+  assert.doesNotMatch(timers, /Failure target/, "no 'Target' in the logger's names");
 });
 
 test("logger controls: 44px chips with aria-pressed, Log set primary with the Promote sweep only while active, 44px trash", () => {
@@ -335,6 +356,10 @@ test("measurement panel: wrapHorizontalFields is opt-in and lays fields on a wra
   assert.ok(panel.includes("grid-cols-[repeat(auto-fit,minmax(8.25rem,1fr))]"));
   assert.ok(panel.includes("[&>*:last-child:nth-child(odd)]:col-span-full"), "an odd last field spans the row");
   assert.ok(panel.includes("min-w-0 [&>*]:!min-h-0"), "fields may shrink: no fixed rail width");
+  // The min-h-0 override reaches only each field's wrapper (direct child), never the steppers: they keep a fixed
+  // !h-11 !w-11 (44px, measured at 320 and 390 in chrome on the logger fixtures, 2026-11-23).
+  assert.doesNotMatch(panel, /\[&_[^\]]*\]:!?min-h-0|\[&_button\]:!?h-(?:[0-9]|10)\b/, "no descendant-wide min-h-0 or smaller button height");
+  assert.equal((panel.match(/className="!(?:left|right)-0 !h-11 !w-11 z-20"/g) ?? []).length, 2, "both steppers stay 44x44");
 });
 
 test("offline session shell renders the shared Today exercise rows; the legacy planned row is gone", () => {
