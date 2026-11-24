@@ -56,21 +56,21 @@ export function buildFailureToggleInfoPayload({
     return null;
   }
 
-  const repTargetLabel = state.repsMin.trim().length > 0
+  const repGoalLabel = state.repsMin.trim().length > 0
     ? state.repsMax.trim().length > 0 && state.repsMax.trim() !== state.repsMin.trim()
       ? `${state.repsMin.trim()}-${state.repsMax.trim()} reps`
       : `${state.repsMin.trim()} reps`
-    : "No rep target entered yet";
+    : "No rep goal entered yet";
 
   return {
     title: "Reps / Failure Toggle",
     summary: isFailureMode
-      ? "Till Failure turns the goal into a failure-based effort target."
-      : "Reps-Based keeps explicit rep targets active in the goal row.",
+      ? "Till Failure turns the goal into going until you cannot do another clean rep."
+      : "Reps-Based keeps a rep range in the goal row.",
     rows: [
       { label: "Selected", value: isFailureMode ? "Till Failure" : "Reps-Based" },
-      { label: "Effect", value: isFailureMode ? "Rep inputs collapse and the exercise targets effort to failure instead of a fixed rep count." : "Rep inputs stay active and progression can qualify against the rep target you enter." },
-      { label: "Current reps", value: isFailureMode ? "Rep target hidden while failure mode is on." : repTargetLabel },
+      { label: "Effect", value: isFailureMode ? "Rep inputs collapse and you go until you cannot do another clean rep, instead of a fixed rep count." : "Rep inputs stay active and progression can qualify against the rep goal you enter." },
+      { label: "Current reps", value: isFailureMode ? "Rep goal hidden while Till Failure is on." : repGoalLabel },
     ],
     sectionKey: "failure_toggle",
   };
@@ -228,7 +228,7 @@ export function ExerciseGoalForm({
     >
       <GlowSwitch
         checked={isFailureMode}
-        ariaLabel={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+        ariaLabel={isFailureMode ? "Till Failure on" : "Till Failure off"}
         onLabel="Failure"
         offLabel="Reps"
         onClick={() => {
@@ -274,7 +274,7 @@ export function ExerciseGoalForm({
             >
               <GlowSwitch
                 checked={isFailureMode}
-                ariaLabel={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+                ariaLabel={isFailureMode ? "Till Failure on" : "Till Failure off"}
                 onLabel="Failure"
                 offLabel="Reps"
                 onClick={() => {
@@ -379,7 +379,7 @@ export function ExerciseGoalForm({
         showInlineStepControls={showInlineStepControls}
         topField={{
           title: "Sets",
-          suffix: "target",
+          suffix: "goal",
           inlineLabel: "SETS",
           showEmptyValue: false,
           hasValue: setsHasValue,

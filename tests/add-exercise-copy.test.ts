@@ -13,15 +13,23 @@ const addFlowFiles = [
   "src/components/exercise-picker/list.tsx",
   "src/components/exercise-picker/custom.tsx",
   "src/components/session/ExerciseTimerSetup.tsx",
+  "src/components/ui/measurements/ExerciseGoalForm.tsx",
+  "src/components/ui/measurements/StatFieldLabel.tsx",
+  "src/components/ui/measurements/MeasurementPanelV2.tsx",
+  "src/components/routines/ExerciseProgressionEditorSurface.tsx",
   "src/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen.tsx",
 ];
 
-test("the Add exercise flow never shows the word Target to the player", () => {
+test("the Add exercise flow never shows the word target (any case) to the player", () => {
   for (const file of addFlowFiles) {
-    const source = fs.readFileSync(path.join(root, file), "utf8");
-    // Only quoted or JSX text that a person reads; identifiers such as exerciseTimerTargetSeconds are fine.
-    const visible = source.match(/"[^"\n]*\bTarget\b[^"\n]*"|>[^<>{}\n]*\bTarget\b[^<>{}\n]*</gu) ?? [];
-    assert.deepEqual(visible, [], `${file} shows "Target"`);
+    const source = fs.readFileSync(path.join(root, file), "utf8")
+      // Styling and prop values that are not shown to anyone.
+      .replace(/emphasis(?:=|\s*===\s*)"target"/gu, "")
+      .replace(/"default"\s*\|\s*"target"/gu, "");
+    // Only quoted strings and JSX text a person can read; identifiers such as exerciseTimerTargetSeconds are fine.
+    const quoted = /"[^"]*\btargets?\b[^"]*"|'[^']*\btargets?\b[^']*'|`[^`]*\btargets?\b[^`]*`|>[^<>{}]*\btargets?\b[^<>{}]*</iu;
+    const visible = source.split("\n").filter((line) => quoted.test(line));
+    assert.deepEqual(visible, [], `${file} shows "target"`);
   }
 });
 
