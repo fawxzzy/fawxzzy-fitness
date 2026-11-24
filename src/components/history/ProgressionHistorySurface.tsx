@@ -1,26 +1,47 @@
-import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppPanel } from "@/components/ui/app/AppPanel";
-import { ProgressionDashboardCards } from "@/components/history/ProgressionDashboardCards";
+import Link from "next/link";
 import { ProgressionHistoryCharts } from "@/components/history/ProgressionHistoryCharts";
-import { HistoryControlPanel, HistorySection } from "@/components/history/HistoryShared";
-import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
-import { appTokens } from "@/components/ui/app/tokens";
+import { ProgressionHistoryFilters } from "@/components/history/ProgressionHistoryFilters";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import {
+  CardChip,
+  CardEmptyState,
+  CardHeader,
+  CardMeta,
+  CardSurface,
+  StatGrid,
+  cardTokens,
+  type StatGridItem,
+} from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
-import type { ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
-import { serializeProgressionHistoryFilters } from "@/lib/progression-history-filters";
+import type { ProgressionDashboardCard, ProgressionHistoryDisplayModel, ProgressionHistoryDisplayRow } from "@/lib/progression-history-display";
 
+/**
+ * Progression tab (History redesign 2026-11-23, review items 4 and 10).
+ *
+ * Filters sit behind the shared Filters button + sheet, the summary is ONE card with a wrapping StatGrid (no tall
+ * card per number), and each ledger change is one flat card: exercise, date and change chip in the header, the goal
+ * change sentence, then step and reason. Internal ids are never printed; the source session is a link.
+ */
 
-function getBadgeTone(tone: "default" | "success" | "warning" | "destructive") {
+function chipToneForRow(tone: ProgressionHistoryDisplayRow["eventTypeTone"]) {
   switch (tone) {
     case "success":
-      return "success";
+      return "success" as const;
     case "warning":
-      return "warning";
     case "destructive":
-      return "destructive";
+      return "attention" as const;
     default:
-      return "default";
+      return "neutral" as const;
   }
+}
+
+function toStatItem(card: ProgressionDashboardCard): StatGridItem {
+  return {
+    label: card.label,
+    value: card.value,
+    tone: card.tone === "danger" ? "warning" : card.tone === "success" ? "success" : card.tone === "muted" ? "muted" : "default",
+    meta: [card.detail, card.caption].filter((line): line is string => Boolean(line?.trim())),
+  };
 }
 
 export function ProgressionHistorySurface({
@@ -28,215 +49,98 @@ export function ProgressionHistorySurface({
   chartSections,
   filters,
   filterOptions,
-  activeFilterLabels,
   hasActiveFilters,
   filteredEventCount,
   totalEventCount,
   rows,
 }: ProgressionHistoryDisplayModel) {
-  const clearHref = `/history/progression${(() => {
-    const search = serializeProgressionHistoryFilters({
-      eventType: null,
-      routineId: null,
-      exerciseId: null,
-      dateFrom: null,
-      dateTo: null,
-    }).toString();
-    return search ? `?${search}` : "";
-  })()}`;
-
   return (
-    <div className="space-y-4">
-      <HistorySection
-        title="Progression History"
-        description="Every target change the app applied, newest first."
-      >
-        <div className="space-y-3">
-          <HistoryControlPanel>
-            <form method="get" className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <FormField label="Event type">
-                  {(control) => (
-                    <select {...control} name="eventType" defaultValue={filters.eventType ?? ""} className={formFieldControlClassName}>
-                    <option value="">All event types</option>
-                    {filterOptions.eventTypes.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                  )}
-                </FormField>
+    <div data-progression-history="true" className="grid gap-2 pt-2">
+      {totalEventCount > 0 ? (
+        <ProgressionHistoryFilters filters={filters} filterOptions={filterOptions} filteredEventCount={filteredEventCount} />
+      ) : null}
 
-                <FormField label="Routine">
-                  {(control) => (
-                    <select {...control} name="routineId" defaultValue={filters.routineId ?? ""} className={formFieldControlClassName}>
-                    <option value="">All routines</option>
-                    {filterOptions.routines.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                  )}
-                </FormField>
-
-                <FormField label="Exercise">
-                  {(control) => (
-                    <select {...control} name="exerciseId" defaultValue={filters.exerciseId ?? ""} className={formFieldControlClassName}>
-                    <option value="">All exercises</option>
-                    {filterOptions.exercises.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                  )}
-                </FormField>
-
-                <FormField label="From">
-                  {(control) => (
-                    <input {...control} type="date" name="dateFrom" defaultValue={filters.dateFrom ?? ""} className={formFieldControlClassName} />
-                  )}
-                </FormField>
-
-                <FormField label="To">
-                  {(control) => (
-                    <input {...control} type="date" name="dateTo" defaultValue={filters.dateTo ?? ""} className={formFieldControlClassName} />
-                  )}
-                </FormField>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-                  {hasActiveFilters
-                    ? `Showing ${filteredEventCount} of ${totalEventCount} progression events.`
-                    : `${totalEventCount} progression events recorded.`}
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  {hasActiveFilters ? (
-                    <a
-                      href={clearHref}
-                      className="inline-flex h-11 items-center justify-center rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] px-4 text-sm font-semibold text-[rgb(var(--text-secondary)/0.92)]"
-                    >
-                      Clear filters
-                    </a>
-                  ) : null}
-                  <button
-                    type="submit"
-                    className="inline-flex h-11 items-center justify-center rounded-[0.95rem] bg-[rgb(var(--accent-strong)/0.16)] px-4 text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]"
-                  >
-                    Apply filters
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {activeFilterLabels.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {activeFilterLabels.map((label) => (
-                  <AppBadge key={label} tone="default" className="border border-[rgb(var(--border-rgb)/0.5)] bg-[rgb(var(--surface-2-rgb)/0.16)]">
-                    {label}
-                  </AppBadge>
-                ))}
-              </div>
-            ) : null}
-          </HistoryControlPanel>
-
-          {hasActiveFilters ? (
-            <p className="text-[0.74rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.9)]">
-              Showing filtered results
-            </p>
-          ) : null}
-          <ProgressionDashboardCards cards={dashboardCards} />
-          <ProgressionHistoryCharts sections={chartSections} />
-        </div>
-      </HistorySection>
-
-      <HistorySection
-        title="Event Ledger"
-        description="Applied changes only. Ready status and non-ready status rows do not write events here."
-      >
-        {rows.length > 0 ? (
-          <div className="space-y-3">
-            {rows.map((row) => (
-              <AppPanel
-                key={row.id}
-                className="px-4 py-4 sm:px-5"
-                data-progression-history-row={row.id}
-                data-progression-history-event-type={row.eventTypeValue}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <p className={cn(appTokens.historySectionTitle, "text-[0.98rem] text-[rgb(var(--text-primary)/0.96)]")}>{row.exerciseName}</p>
-                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-[rgb(var(--text-secondary)/0.88)]">
-                      {row.createdAtLabel}
-                    </p>
-                  </div>
-                  <AppBadge tone={getBadgeTone(row.eventTypeTone)} className="shrink-0">
-                    {row.eventTypeLabel}
-                  </AppBadge>
-                </div>
-
-                <div className="space-y-3 pt-3">
-                  <div className="flex flex-wrap gap-2 text-[0.8rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-                    {row.routineName ? (
-                      <span className="inline-flex rounded-full border border-[rgb(var(--border-rgb)/0.5)] px-2.5 py-1">
-                        Routine: {row.routineName}
-                      </span>
-                    ) : null}
-                    <span className="inline-flex rounded-full border border-[rgb(var(--border-rgb)/0.5)] px-2.5 py-1">
-                      Method: {row.methodLabel}
-                    </span>
-                    <span className="inline-flex rounded-full border border-[rgb(var(--border-rgb)/0.5)] px-2.5 py-1">
-                      Vector: {row.vectorLabel}
-                    </span>
-                    {row.sourceSessionId ? (
-                      <span className="inline-flex break-all rounded-full border border-[rgb(var(--border-rgb)/0.5)] px-2.5 py-1">
-                        Source session: {row.sourceSessionId}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-                      Target change
-                    </p>
-                    <p className="text-sm leading-6 text-[rgb(var(--text-primary)/0.95)]">{row.targetChangeSummary}</p>
-                    {row.stepSummary ? (
-                      <p className="text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.88)]">Step: {row.stepSummary}</p>
-                    ) : null}
-                  </div>
-
-                  {row.reason ? (
-                    <div className="space-y-1">
-                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-                        Reason
-                      </p>
-                      <p className="text-[0.84rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">{row.reason}</p>
-                    </div>
-                  ) : null}
-
-                  <p className="text-[0.76rem] leading-5 text-[rgb(var(--text-muted)/0.86)]">
-                    Recorded {row.createdAtFullLabel}
-                  </p>
-                </div>
-              </AppPanel>
-            ))}
+      {dashboardCards.length > 0 ? (
+        <CardSurface as="section" aria-label="Progression summary">
+          <CardHeader
+            title="Progression"
+            headingLevel={2}
+            meta={hasActiveFilters ? `${filteredEventCount} of ${totalEventCount} changes` : `${totalEventCount} ${totalEventCount === 1 ? "change" : "changes"} recorded`}
+          />
+          <div className={cardTokens.body}>
+            <StatGrid items={dashboardCards.map(toStatItem)} />
           </div>
+        </CardSurface>
+      ) : null}
+
+      <ProgressionHistoryCharts sections={chartSections} />
+
+      <section aria-labelledby="progression-ledger-heading" className="grid gap-2">
+        <h2 id="progression-ledger-heading" className="px-1 pt-2 text-[11px] font-semibold uppercase leading-4 tracking-[0.12em] text-[rgb(var(--text-secondary)/0.92)]">
+          Changes · {rows.length}
+        </h2>
+        {rows.length > 0 ? (
+          <ul className="grid gap-2">
+            {rows.map((row) => (
+              <li key={row.id}>
+                <CardSurface
+                  as="article"
+                  data-progression-history-row={row.id}
+                  data-progression-history-event-type={row.eventTypeValue}
+                >
+                  <CardHeader
+                    title={row.exerciseName}
+                    headingLevel={3}
+                    meta={<CardMeta flush items={[row.createdAtLabel, ...(row.routineName ? [row.routineName] : [])]} />}
+                    trailing={<CardChip tone={chipToneForRow(row.eventTypeTone)}>{row.eventTypeLabel}</CardChip>}
+                  />
+                  <div className={cn(cardTokens.body, "grid gap-2")}>
+                    <p className="text-sm leading-6 text-[rgb(var(--text-primary)/0.95)]">{row.targetChangeSummary}</p>
+                    {row.stepSummary || row.reason ? (
+                      <dl className="grid gap-1 text-[0.84rem] leading-5">
+                        {row.stepSummary ? (
+                          <div className="flex min-w-0 gap-2">
+                            <dt className="shrink-0 text-[rgb(var(--text-muted))]">Step</dt>
+                            <dd className="min-w-0 break-words text-[rgb(var(--text-secondary))]">{row.stepSummary}</dd>
+                          </div>
+                        ) : null}
+                        {row.reason ? (
+                          <div className="flex min-w-0 gap-2">
+                            <dt className="shrink-0 text-[rgb(var(--text-muted))]">Why</dt>
+                            <dd className="min-w-0 break-words text-[rgb(var(--text-secondary))]">{row.reason}</dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    ) : null}
+                    <CardMeta flush items={[row.methodLabel, row.vectorLabel, `Recorded ${row.createdAtFullLabel}`]} />
+                    {row.sourceSessionId ? (
+                      <Link
+                        href={`/history/${row.sourceSessionId}`}
+                        className={cn(getAppButtonClassName({ variant: "tertiary", size: "sm" }), "justify-self-start")}
+                      >
+                        Open session
+                      </Link>
+                    ) : null}
+                  </div>
+                </CardSurface>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <AppPanel className="px-4 py-5 sm:px-5">
-            <p className={appTokens.historyRouteMessageTitle}>
-              {totalEventCount === 0
-                ? "No progression history yet."
-                : hasActiveFilters
-                  ? "No progression events match these filters."
-                  : "No progression history yet."}
-            </p>
-            <p className={appTokens.historyRouteMessageCaption}>
-              {totalEventCount === 0
-                ? "Applied promotions, deloads, reverts, and manual target changes will appear here once they are recorded."
-                : hasActiveFilters
-                  ? "Try clearing one or more filters to see the rest of the durable event ledger."
-                  : "Applied promotions, deloads, reverts, and manual target changes will appear here once they are recorded."}
-            </p>
-          </AppPanel>
+          <CardEmptyState
+            headingLevel={3}
+            title={totalEventCount > 0 && hasActiveFilters ? "No changes match" : "No progression yet"}
+            body={totalEventCount > 0 && hasActiveFilters
+              ? "Remove a filter to see the rest of your changes."
+              : "Promotions, deloads, reverts and manual goal changes show here once the app applies them."}
+            action={totalEventCount > 0 && hasActiveFilters ? (
+              <Link href="/history/progression" className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
+                Clear filters
+              </Link>
+            ) : undefined}
+          />
         )}
-      </HistorySection>
+      </section>
     </div>
   );
 }

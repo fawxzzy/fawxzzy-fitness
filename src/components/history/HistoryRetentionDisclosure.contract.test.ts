@@ -59,9 +59,11 @@ test("History no longer owns Achievements presentation", () => {
 });
 
 test("History timeline filters expose one clear-all control and hide unrelated summaries", () => {
-  assert.match(historyClientSource, /aria-label="Clear all History filters"/);
-  assert.match(historyClientSource, /<FilterSection title="Session Date"/);
-  assert.match(historyClientSource, /<FilterSection title="Month"/);
+  // History redesign 2026-11-23: filters moved into the shared Filters sheet; its footer and the chip row own Clear all.
+  assert.match(historyClientSource, /<HistoryFilterBar/);
+  assert.match(historyClientSource, /onClearAll=\{clearAllFilters\}/);
+  assert.match(historyClientSource, /title: "Session date"/);
+  assert.match(historyClientSource, /title: "Month"/);
   assert.match(historyClientSource, /hasSpecificTimelineFilter/);
   assert.match(historyClientSource, /showWorkoutStreak = shouldShowHistoryWorkoutStreak\(\{/);
   assert.match(historyClientSource, /sessions: filteredSessions/);

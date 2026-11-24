@@ -1,7 +1,7 @@
+import { HistoryLoadErrorState } from "@/components/history/HistoryLoadErrorState";
 import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
-import { appTokens } from "@/components/ui/app/tokens";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { HistoryOfflineBridge } from "./HistoryOfflineBridge";
 import { HistoryOfflineShell } from "./HistoryOfflineShell";
@@ -36,21 +36,6 @@ function getSingleSearchParam(value: string | string[] | null | undefined) {
 function getHistoryDaySearchParam(value: string | string[] | null | undefined) {
   const dayValue = getSingleSearchParam(value)?.trim();
   return dayValue && /^\d{4}-\d{2}-\d{2}$/.test(dayValue) ? dayValue : undefined;
-}
-
-function HistoryRouteMessage({
-  title,
-  caption,
-}: {
-  title: string;
-  caption: string;
-}) {
-  return (
-    <section className={appTokens.historyRouteMessage}>
-      <p className={appTokens.historyRouteMessageTitle}>{title}</p>
-      <p className={appTokens.historyRouteMessageCaption}>{caption}</p>
-    </section>
-  );
 }
 
 export default async function HistoryPage(
@@ -197,10 +182,7 @@ export default async function HistoryPage(
         activeTab="sessions"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <HistoryRouteMessage
-          title="Unable to render session history right now."
-          caption="Please try again in a moment."
-        />
+        <HistoryLoadErrorState title="Could not load sessions" />
       </HistoryRouteScaffold>
     );
   }

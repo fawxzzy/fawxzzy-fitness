@@ -191,7 +191,7 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
     {
       label: "Regressions",
       value: String(regressionCount),
-      valueTone: regressionCount > 0 ? "danger" : "muted",
+      valueTone: regressionCount > 0 ? "warning" : "muted",
     },
     {
       label: "Watch",

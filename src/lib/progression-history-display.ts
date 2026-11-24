@@ -442,7 +442,7 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
     },
     {
       id: "manual-target-changes",
-      label: "Manual target changes",
+      label: "Manual goal changes",
       value: String(summary.manualTargetChangesCount),
       detail: countLabel(summary.manualTargetChangesCount, "manual change"),
       caption: null,
@@ -490,7 +490,7 @@ export function buildProgressionHistoryDisplayRow(args: {
       ? `To ${toTargetLabel}`
       : fromTargetLabel
         ? `From ${fromTargetLabel}`
-        : "Target changed";
+        : "Goal changed";
 
   return {
     id: args.event.id,

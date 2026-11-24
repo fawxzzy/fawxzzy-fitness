@@ -26,6 +26,9 @@ const SIGNAL_CHIPS: Record<string, { label: string; tone: CardChipTone }> = {
   REG: { label: "Regression", tone: "attention" },
   WATCH: { label: "Watch", tone: "attention" },
   MANUAL: { label: "Manual", tone: "neutral" },
+  // Same word and tone as the shared status vocabulary (`cardStatusChips.skipped`), so a skipped exercise never reads
+  // as an empty one (History review item 9).
+  SKIPPED: { label: "Skipped", tone: "attention" },
 };
 
 export function resolveHistorySignalChip(code: string): { label: string; tone: CardChipTone } {
@@ -83,7 +86,7 @@ export function HistoryDetailExerciseCard({
   metaItems?: string[];
   /** A second meta line (browser: rank, sessions, PRs, last performed). */
   factItems?: string[];
-  /** Signal codes turned into status chips (`PR`, `BEST`, `PROMO`, `REG`, `WATCH`, `MANUAL`). */
+  /** Signal codes turned into status chips (`PR`, `BEST`, `PROMO`, `REG`, `WATCH`, `MANUAL`, `SKIPPED`). */
   signalCodes?: string[];
   tone?: CardTone;
   expanded?: boolean;

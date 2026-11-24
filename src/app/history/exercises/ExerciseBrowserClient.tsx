@@ -1,17 +1,16 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { HistoryFilterBar, type HistoryActiveFilterChip, type HistoryFilterGroup } from "@/components/history/HistoryFilterBar";
 import { HistoryHeaderDensityToggle } from "@/components/history/HistoryHeaderDensityToggle";
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { PillButton } from "@/components/ui/Pill";
+import { AppButton } from "@/components/ui/AppButton";
+import { CardEmptyState } from "@/components/ui/card-system";
+import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import {
@@ -36,9 +35,6 @@ import { getStretchHubMetaItems, isStretchHubExercise } from "@/lib/stretch-libr
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
 
 const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
-const FILTER_SECTION_STACK_CLASS_NAME = "space-y-1";
-const FILTER_SECTION_HEADER_CLASS_NAME = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]";
-const FILTER_SECTION_RAIL_CLASS_NAME = "hide-scrollbar -mx-1.5 max-w-none overflow-x-auto overflow-y-visible px-1.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
 type HistoryFilterTagGroup = "primary_muscle" | "secondary_muscle" | "movement" | "equipment" | "other";
 
 type ExerciseBrowserClientProps = {
@@ -114,63 +110,6 @@ function buildExerciseHeaderMetaItems(row: ExerciseBrowserRow) {
   return Array.from(new Set(items));
 }
 
-function orderSelectedFirst<T>(options: T[], isSelected: (option: T) => boolean) {
-  const selected: T[] = [];
-  const unselected: T[] = [];
-  for (const option of options) {
-    if (isSelected(option)) {
-      selected.push(option);
-    } else {
-      unselected.push(option);
-    }
-  }
-
-  return [...selected, ...unselected];
-}
-
-function FilterSection({
-  title,
-  showClear = false,
-  onClear,
-  children,
-}: {
-  title: string;
-  showClear?: boolean;
-  onClear?: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className={FILTER_SECTION_STACK_CLASS_NAME}>
-      <div className={FILTER_SECTION_HEADER_CLASS_NAME}>
-        <p className={appTokens.exercisePickerFilterGroupLabel}>{title}</p>
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
-      <HorizontalScrollHint
-        scrollClassName={FILTER_SECTION_RAIL_CLASS_NAME}
-        contentClassName="flex min-w-max flex-nowrap gap-1.5 pt-0"
-      >
-          {showClear && onClear ? (
-            <button
-              type="button"
-              onClick={onClear}
-              className={cn(
-                appTokens.exercisePickerFilterClearButton,
-                "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-              )}
-            >
-              Clear
-            </button>
-          ) : null}
-          {children}
-      </HorizontalScrollHint>
-      <div className="px-[4px] pt-0.5">
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
-    </div>
-  );
-}
-
 function HistoryExerciseFilters({
   query,
   onQueryChange,
@@ -201,179 +140,136 @@ function HistoryExerciseFilters({
     ? routineOptions.find((routine) => routine.id === normalizedFilterState.routineId) ?? null
     : defaultRoutineOption;
   const selectedCycleStartDate = normalizedFilterState.cycleStartDate;
-  const orderedRoutineOptions = orderSelectedFirst(routineOptions, (routine) => routine.id === selectedRoutine?.id);
-  const orderedCycleOptions = orderSelectedFirst(selectedRoutine?.cycleOptions ?? [], (cycle) => cycle.startDate === selectedCycleStartDate);
 
   const applyFilterState = (nextState: Partial<ExerciseInfoFilterState>) => {
     onFilterStateChange(normalizeExerciseInfoFilterState(nextState));
   };
-
-  const handleRoutineScopeSelect = () => {
-    if (normalizedFilterState.analyticsScope !== "all_time") {
-      return;
-    }
-
-    const nextRoutine = selectedRoutine ?? defaultRoutineOption;
-    if (!nextRoutine) {
-      return;
-    }
-
-    applyFilterState({
-      analyticsScope: "current_routine",
-      routineId: nextRoutine.id,
-      cycleStartDate: null,
-    });
-  };
+  const resetScope = () => onFilterStateChange(createDefaultExerciseInfoFilterState());
+  const isRoutineScope = normalizedFilterState.analyticsScope !== "all_time";
+  const cycleOptions = selectedRoutine?.cycleOptions ?? [];
 
   const handleRoutineSelect = (routine: ExerciseInfoRoutineFilterOption) => {
-    if (
-      normalizedFilterState.analyticsScope === "current_routine"
-      && normalizedFilterState.routineId === routine.id
-    ) {
-      return;
-    }
-
-    if (
-      normalizedFilterState.analyticsScope === "current_cycle"
-      && normalizedFilterState.routineId === routine.id
-      && Boolean(normalizedFilterState.cycleStartDate)
-    ) {
-      return;
-    }
-
     if (normalizedFilterState.analyticsScope === "current_cycle") {
       const nextCycle = routine.cycleOptions[0] ?? null;
       if (nextCycle) {
-        applyFilterState({
-          analyticsScope: "current_cycle",
-          routineId: routine.id,
-          cycleStartDate: nextCycle.startDate,
-        });
+        applyFilterState({ analyticsScope: "current_cycle", routineId: routine.id, cycleStartDate: nextCycle.startDate });
         return;
       }
     }
-
-    applyFilterState({
-      analyticsScope: "current_routine",
-      routineId: routine.id,
-      cycleStartDate: null,
-    });
+    applyFilterState({ analyticsScope: "current_routine", routineId: routine.id, cycleStartDate: null });
   };
 
-  const filterExtraContent = (
-    <>
-      {routineOptions.length > 0 ? (
-        <FilterSection
-          title="Scope"
-          showClear={normalizedFilterState.analyticsScope !== "all_time"}
-          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
-        >
-          <PillButton
-            type="button"
-            active={normalizedFilterState.analyticsScope !== "all_time"}
-            className={cn(
-              "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-              normalizedFilterState.analyticsScope !== "all_time"
-                ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-                : undefined,
-            )}
-            onClick={handleRoutineScopeSelect}
-          >
-            Routine
-          </PillButton>
-        </FilterSection>
-      ) : null}
+  const tagLabelByValue = new Map<string, string>();
+  for (const group of groups) {
+    for (const tag of group.tags) {
+      tagLabelByValue.set(tag.value, tag.label);
+    }
+  }
+  const toggleTag = (value: string) => {
+    onTagsChange(selectedTags.includes(value) ? selectedTags.filter((tag) => tag !== value) : [...selectedTags, value]);
+  };
 
-      {normalizedFilterState.analyticsScope !== "all_time" && orderedRoutineOptions.length > 0 ? (
-        <FilterSection
-          title="Routine"
-          showClear
-          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
-        >
-          {orderedRoutineOptions.map((routine) => {
-            const isSelected = selectedRoutine?.id === routine.id;
-            return (
-              <PillButton
-                key={routine.id}
-                type="button"
-                active={isSelected}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
-                )}
-                onClick={() => handleRoutineSelect(routine)}
-              >
-                {routine.title}
-              </PillButton>
-            );
-          })}
-        </FilterSection>
-      ) : null}
+  const sheetGroups: HistoryFilterGroup[] = [];
+  if (routineOptions.length > 0) {
+    sheetGroups.push({
+      key: "scope",
+      title: "Show",
+      options: [
+        { key: "all_time", label: "All sessions", selected: !isRoutineScope, onSelect: resetScope },
+        {
+          key: "routine",
+          label: "One routine",
+          selected: isRoutineScope,
+          onSelect: () => {
+            const nextRoutine = selectedRoutine ?? defaultRoutineOption;
+            if (!isRoutineScope && nextRoutine) {
+              applyFilterState({ analyticsScope: "current_routine", routineId: nextRoutine.id, cycleStartDate: null });
+            }
+          },
+        },
+      ],
+    });
+  }
+  if (isRoutineScope && routineOptions.length > 0) {
+    sheetGroups.push({
+      key: "routine",
+      title: "Routine",
+      options: routineOptions.map((routine) => ({
+        key: routine.id,
+        label: routine.title,
+        selected: selectedRoutine?.id === routine.id,
+        onSelect: () => handleRoutineSelect(routine),
+      })),
+    });
+  }
+  if (isRoutineScope && selectedRoutine && cycleOptions.length > 0) {
+    sheetGroups.push({
+      key: "cycle",
+      title: "Cycle",
+      collapsedLimit: 6,
+      options: cycleOptions.map((cycle) => {
+        const isSelected = cycle.startDate === selectedCycleStartDate;
+        return {
+          key: cycle.startDate,
+          label: cycle.label,
+          selected: isSelected,
+          onSelect: () => applyFilterState(isSelected
+            ? { analyticsScope: "current_routine", routineId: selectedRoutine.id, cycleStartDate: null }
+            : { analyticsScope: "current_cycle", routineId: selectedRoutine.id, cycleStartDate: cycle.startDate }),
+        };
+      }),
+    });
+  }
+  for (const group of groups) {
+    sheetGroups.push({
+      key: `tag-${group.key}`,
+      title: group.label,
+      collapsedLimit: 10,
+      options: group.tags.map((tag) => ({
+        key: tag.value,
+        label: tag.label,
+        selected: selectedTags.includes(tag.value),
+        onSelect: () => toggleTag(tag.value),
+      })),
+    });
+  }
 
-      {normalizedFilterState.analyticsScope !== "all_time" && selectedRoutine?.cycleOptions.length ? (
-        <FilterSection
-          title="Cycle"
-          showClear={Boolean(selectedCycleStartDate)}
-          onClear={() => applyFilterState({
-            analyticsScope: "current_routine",
-            routineId: selectedRoutine.id,
-            cycleStartDate: null,
-          })}
-        >
-          {orderedCycleOptions.map((cycle) => {
-            const isSelected = cycle.startDate === selectedCycleStartDate;
-            return (
-              <PillButton
-                key={cycle.startDate}
-                type="button"
-                active={isSelected}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
-                )}
-                onClick={() => applyFilterState({
-                  analyticsScope: "current_cycle",
-                  routineId: selectedRoutine.id,
-                  cycleStartDate: cycle.startDate,
-                })}
-              >
-                {cycle.label}
-              </PillButton>
-            );
-          })}
-        </FilterSection>
-      ) : null}
-    </>
-  );
+  const activeChips: HistoryActiveFilterChip[] = [];
+  if (isRoutineScope) {
+    const selectedCycle = cycleOptions.find((cycle) => cycle.startDate === selectedCycleStartDate);
+    const routineLabel = selectedRoutine?.title ?? "One routine";
+    activeChips.push({
+      key: "scope",
+      label: selectedCycle ? `${routineLabel} · ${selectedCycle.label}` : routineLabel,
+      onRemove: resetScope,
+    });
+  }
+  for (const tag of selectedTags) {
+    activeChips.push({
+      key: `tag-${tag}`,
+      label: tagLabelByValue.get(tag) ?? tag.slice(tag.indexOf(":") + 1),
+      onRemove: () => onTagsChange(selectedTags.filter((value) => value !== tag)),
+    });
+  }
 
   return (
-    <ExerciseSearchFilters
+    <HistoryFilterBar
       query={query}
       onQueryChange={onQueryChange}
-      selectedTags={selectedTags}
-      onTagsChange={onTagsChange}
-      groups={groups}
+      searchPlaceholder="Search exercises…"
+      searchLabel="Search exercises"
+      activeFilterCount={activeChips.length}
+      activeChips={activeChips}
+      onClearAll={() => {
+        onQueryChange("");
+        onTagsChange([]);
+        resetScope();
+      }}
+      groups={sheetGroups}
       resultCount={resultCount}
-      filterLabel="Filters"
-      defaultFilterOpen={initialOpen}
-      className={cn(appTokens.historyExerciseFilterStack, DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME)}
-      filterClassName="space-y-1.5"
-      filterButtonClassName={appTokens.historyExerciseFilterButton}
-      filterPanelClassName={cn(
-        appTokens.historyExerciseFilterPanel,
-        "!overflow-visible !bg-[rgb(var(--surface-1-rgb))] !backdrop-blur-none",
-      )}
-      filterHorizontalRailOverrideClassName="-mx-1.5 px-1.5"
-      filterCompactDensity="tight"
-      searchInputClassName={appTokens.historyExerciseSearchInput}
-      clearButtonClassName={appTokens.exercisePickerSearchClearButton}
-      searchPlaceholder="Search exercises"
       resultSingularLabel="exercise"
       resultPluralLabel="exercises"
-      clearSearchAriaLabel="Clear exercise search"
-      toggleFiltersAriaLabel="Toggle exercise filters"
-      chromeVariant="history"
-      filterExtraContent={filterExtraContent}
+      initialSheetOpen={initialOpen}
     />
   );
 }
@@ -434,6 +330,7 @@ export function ExerciseBrowserClient({
   }));
   const [lastVisibleScopedRows, setLastVisibleScopedRows] = useState<ExerciseBrowserRow[]>(initialRows);
   const [isScopeLoading, setIsScopeLoading] = useState(false);
+  const toastError = useToast().error;
   const deferredQuery = useDeferredValue(query);
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const filterKey = useMemo(() => buildFilterStateKey(normalizedFilterState), [normalizedFilterState]);
@@ -488,6 +385,8 @@ export function ExerciseBrowserClient({
           filterState: normalizedFilterState,
           error,
         });
+        // Errors only go through the in-flow notice (History review item 0c); the list keeps the last results.
+        toastError("Could not load that filter. Showing your last results.");
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -496,7 +395,7 @@ export function ExerciseBrowserClient({
       });
 
     return () => controller.abort();
-  }, [filterKey, normalizedFilterState, rowsByFilterKey]);
+  }, [filterKey, normalizedFilterState, rowsByFilterKey, toastError]);
 
   useEffect(() => {
     if (normalizedFilterState.analyticsScope === "all_time") {
@@ -668,14 +567,52 @@ export function ExerciseBrowserClient({
         : null}
 
       <div className={cn(appTokens.historyExerciseResultsViewport, "pt-2")}>
-        <ul className={appTokens.historyExerciseResults}>
-          {filteredRows.map((row) => (
-            <li key={row.exerciseId}>
-              <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
-            </li>
-          ))}
-        </ul>
-        {isScopeLoading ? <div className="px-1 pt-2 text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.72)]">Updating scope...</div> : null}
+        {filteredRows.length > 0 ? (
+          <ul className={appTokens.historyExerciseResults}>
+            {filteredRows.map((row) => (
+              <li key={row.exerciseId}>
+                <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
+              </li>
+            ))}
+          </ul>
+        ) : isScopeLoading ? null : (
+          <div data-history-list-state={scopedRows.length > 0 ? "filtered-empty" : "empty"}>
+            {scopedRows.length > 0 ? (
+              <CardEmptyState
+                headingLevel={2}
+                title="No exercises match"
+                body="Try a different search or remove a filter."
+                action={(
+                  <AppButton
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setQuery("");
+                      setSelectedTags([]);
+                      setFilterState(createDefaultExerciseInfoFilterState());
+                    }}
+                  >
+                    Clear filters
+                  </AppButton>
+                )}
+              />
+            ) : (
+              <CardEmptyState
+                headingLevel={2}
+                title="No exercises yet"
+                body="Exercises show here once you log sets for them in a workout."
+              />
+            )}
+          </div>
+        )}
+        {isScopeLoading ? (
+          <div role="status" aria-label="Loading exercises" aria-busy="true" data-history-scope-loading="true" className="grid gap-2 pt-2">
+            {[0, 1].map((index) => (
+              <div key={index} className="h-[4.5rem] animate-pulse rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.42)] motion-reduce:animate-none" />
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <ExerciseInfo

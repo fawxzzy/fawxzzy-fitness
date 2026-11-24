@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { CardEmptyState } from "@/components/ui/card-system";
+import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { readHistoryCache, type HistoryCacheSnapshot } from "@/lib/offline/history-cache";
@@ -28,6 +29,19 @@ export function HistoryOfflineShell({
     });
   }, [initialSnapshot, userId]);
 
+  // Offline is explained once, in the in-flow notice under the header (History review item 7), with the saved time.
+  const showWarning = useToast().warning;
+  const shownNoticeRef = useRef<string | null>(null);
+  const savedAtLabel = cachedSnapshot?.capturedAt ? formatOfflineSavedAt(cachedSnapshot.capturedAt) : null;
+  useEffect(() => {
+    const notice = savedAtLabel
+      ? `You're offline. Showing History saved ${savedAtLabel}.`
+      : "You're offline. History opens once you reconnect.";
+    if (shownNoticeRef.current === notice) return;
+    shownNoticeRef.current = notice;
+    showWarning(notice, { id: "history-offline", persistent: true, dismissOnRouteChange: true });
+  }, [savedAtLabel, showWarning]);
+
   const weeklyProgressByWeekStart = useMemo(
     () => new Map((cachedSnapshot?.weeklyProgressByWeek ?? []).map((summary) => [summary.weekStart, summary])),
     [cachedSnapshot?.weeklyProgressByWeek],
@@ -39,7 +53,7 @@ export function HistoryOfflineShell({
   );
 
   return (
-    <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
+    <div data-history-offline="true" className={cn(appTokens.historyBrowserStack, "!gap-2 pt-2")}>
       {cachedSnapshot ? (
         <>
           <HistoryScopeSummarySurface
@@ -60,7 +74,7 @@ export function HistoryOfflineShell({
                   className="bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
                 />
               </div>
-              <ul className={appTokens.historyBrowserList}>
+              <ul className="grid gap-2">
                 {cachedSnapshot.sessionItems.map((session, index, items) => {
                   const previousSession = items[index + 1] ?? null;
                   const previousFilteredSession = index > 0 ? items[index - 1] : null;
@@ -76,7 +90,7 @@ export function HistoryOfflineShell({
                   return (
                     <li
                       key={session.id}
-                      className={cn(startsNewWeekGroup && historicalWeeklySummary ? "space-y-2.5 pt-6" : undefined)}
+                      className={cn(startsNewWeekGroup && historicalWeeklySummary ? "grid gap-2 pt-4" : undefined)}
                     >
                       {startsNewWeekGroup && historicalWeeklySummary ? (
                         <>
@@ -104,22 +118,26 @@ export function HistoryOfflineShell({
               </ul>
             </>
           ) : (
-            <SharedSectionShell
-              recipe="historyDetail"
-              listState={<p className={appTokens.historyBrowserEmptyState}>No completed sessions in this cached history snapshot yet.</p>}
+            <CardEmptyState
+              headingLevel={2}
+              title="No saved sessions"
+              body="Sessions you finish show here once you are back online."
             />
           )}
         </>
       ) : (
-        <SharedSectionShell
-          recipe="historyDetail"
-          listState={(
-            <p className={appTokens.historyBrowserEmptyState}>
-              No cached history available yet.
-            </p>
-          )}
+        <CardEmptyState
+          headingLevel={2}
+          title="No saved History yet"
+          body="History you open while online is saved on this device, so it shows here next time you are offline."
         />
       )}
     </div>
   );
+}
+
+function formatOfflineSavedAt(capturedAt: string) {
+  const date = new Date(capturedAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }

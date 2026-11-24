@@ -13,7 +13,6 @@ import {
   updateLogMetaAction,
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
@@ -28,20 +27,26 @@ import {
   type HistorySessionRecapItemMeta,
 } from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
-import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { PickerListViewport } from "@/components/ui/PickerListViewport";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
-import { HistorySection } from "@/components/history/HistoryShared";
-import { DetailSectionBadge, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
+import { DetailSectionBadge, DetailSectionBlocks } from "@/components/ui/DetailSectionList";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
-import { PillButton } from "@/components/ui/Pill";
+import { AppButton } from "@/components/ui/AppButton";
+import {
+  CardChip,
+  CardEmptyState,
+  CardHeader,
+  CardMeta,
+  CardSurface,
+  StatGrid,
+  cardTokens,
+  type StatGridItem,
+} from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type MetricDatum } from "@/components/ui/MetricItem";
@@ -124,9 +129,6 @@ const DELETE_ACTION_BUTTON_CLASS_NAME = getBottomActionButtonClassName({
 });
 
 const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border-0 bg-[rgb(var(--surface-1-rgb)/0.88)] bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none]";
-const FOCUSED_PANEL_TITLE_CLASS_NAME = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
-const FOCUSED_PANEL_TITLE_STYLE = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
-const FOCUSED_SUBSECTION_TITLE_CLASS_NAME = "text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 
 function formatWeekdayShort(value: string) {
   const date = new Date(value);
@@ -341,7 +343,7 @@ function buildLoggedMeasurementSeriesSummary(sets: EditableSet[], defaultUnit: s
     ),
   ].filter((value): value is string => Boolean(value));
 
-  return metricParts.length > 0 ? metricParts.join(" • ") : null;
+  return metricParts.length > 0 ? metricParts.join(" · ") : null;
 }
 
 function scoreEditableSet(set: EditableSet) {
@@ -504,11 +506,14 @@ function buildLoggedSessionRecapItemMeta(args: {
       const targetSeriesSummary = exercise.targetSeriesSummary?.trim()
         || progressionSummary?.currentTargetLabel?.trim()
         || null;
-      const valueParts = [
-        `${sets.length} ${sets.length === 1 ? "set" : "sets"}`,
-        targetSeriesSummary ? `Target: ${targetSeriesSummary}` : null,
-        loggedSeriesSummary ? `Logged: ${loggedSeriesSummary}` : null,
-      ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+      // Never "Target" in UI copy (Zac 2026-11-23); a skipped exercise says so instead of reading "0 sets".
+      const valueParts = exercise.is_skipped
+        ? ["Skipped"]
+        : [
+          `${sets.length} ${sets.length === 1 ? "set" : "sets"}`,
+          targetSeriesSummary ? `Goal ${targetSeriesSummary}` : null,
+          loggedSeriesSummary ? `Logged ${loggedSeriesSummary}` : null,
+        ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
       const signals = [
         prExerciseNames.has(exerciseName) ? "pr" : null,
         (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
@@ -522,7 +527,7 @@ function buildLoggedSessionRecapItemMeta(args: {
 
       return {
         exerciseName,
-        value: valueParts.length > 0 ? valueParts.join(" | ") : null,
+        value: valueParts.length > 0 ? valueParts.join(" · ") : null,
         signals,
         tagLabels,
       } satisfies HistorySessionRecapItemMeta;
@@ -561,16 +566,16 @@ function resolveExerciseTargetSetCount(exercise: AuditExercise, loggedSetCount: 
 }
 
 function buildLoggedSetCountBadge(loggedSetCount: number, targetSetCount: number) {
-  if (targetSetCount > 0) {
-    return `${loggedSetCount}/${targetSetCount}`;
+  if (targetSetCount > 0 && targetSetCount !== loggedSetCount) {
+    return `${loggedSetCount} of ${targetSetCount}`;
   }
 
   return String(loggedSetCount);
 }
 
-/** The set count badge is a bare `3/4` or `3`; as card meta it reads `3/4 sets` / `1 set`. */
+/** The set count badge is `2 of 4` or `3`; as card meta it reads `2 of 4 sets` / `1 set`. */
 function formatLoggedSetCountMeta(countLabel: string) {
-  return countLabel.includes("/") || countLabel !== "1" ? `${countLabel} sets` : `${countLabel} set`;
+  return countLabel.includes(" of ") || countLabel !== "1" ? `${countLabel} sets` : `${countLabel} set`;
 }
 
 function buildSignalTagItems(args: {
@@ -702,7 +707,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
 
   if (args.progressionSummary?.currentTargetLabel) {
     summaryMetrics.push({
-      label: "Current",
+      label: "Goal",
       value: args.progressionSummary.currentTargetLabel,
     });
   } else if (args.progressionSummary?.promotionCount) {
@@ -727,7 +732,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
   if (args.exercise.measurement_type === "reps") {
     const orderedSummaryMetrics = [
       summaryMetrics.find((metric) => metric.label === "Best"),
-      summaryMetrics.find((metric) => metric.label === "Current"),
+      summaryMetrics.find((metric) => metric.label === "Goal"),
       summaryMetrics.find((metric) => metric.label === "Sets"),
       summaryMetrics.find((metric) => metric.label === "Completion" || metric.label === "PR"),
       {
@@ -813,7 +818,7 @@ function buildFocusedExerciseSetListMeta(args: {
   }
 
   if (args.isEditing) {
-    return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets | Tap a set to edit`;
+    return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets · Tap a set to edit`;
   }
 
   return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets logged`;
@@ -835,6 +840,10 @@ function buildCollapsedExerciseCardBadgeItems(args: {
   };
 }
 
+/**
+ * Recap card (History review item 13): the share text is what Copy and Share send, so it is not printed again as a
+ * monospace block; the card shows the headline numbers, the top efforts as name/value rows and PR/streak lines.
+ */
 function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
   const toast = useToast();
   const prExerciseNames = new Set(recap.prMoments.map((name) => name.trim()).filter(Boolean));
@@ -844,7 +853,7 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
       await navigator.clipboard.writeText(recap.shareText);
       toast.success("Recap copied.");
     } catch {
-      toast.error("Could not copy recap.");
+      toast.error("Could not copy the recap. Try again.");
     }
   }
 
@@ -859,77 +868,52 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      toast.error("Could not share recap.");
+      toast.error("Could not share the recap. Try again.");
     }
   }
 
   return (
-    <HistorySection title="Recap">
-      <div className="space-y-3 rounded-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.32)] px-3 py-3">
-        <div>
-          <p className="text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{recap.title}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-muted)/0.86)]">
-            {recap.metrics.map((metric, index) => (
-              <span key={`${metric.label}-${metric.value}`} className="inline-flex items-center gap-2">
-                {index > 0 ? <SignatureDot /> : null}
-                {metric.label}: {metric.value}
-              </span>
-            ))}
-          </div>
-        </div>
-
+    <CardSurface data-history-recap-card="true" showRail={false}>
+      <CardHeader
+        headingLevel={2}
+        title="Recap"
+        meta={recap.metrics.length > 0 ? <CardMeta items={recap.metrics.map((metric) => `${metric.label} ${metric.value}`)} /> : undefined}
+      />
+      <div className="grid gap-3 px-4 pb-4">
         {recap.topEfforts.length > 0 ? (
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
-              {prExerciseNames.size > 0 ? (
-                <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
-                  <span>Legend</span>
-                  <DetailSectionBadge label="PR" />
-                </div>
-              ) : null}
-            </div>
-            {recap.topEfforts.map((effort) => (
-              <p key={`${effort.exerciseName}-${effort.value}`} className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.96)]">
-                <span
-                  className={cn(
-                    "font-semibold text-[rgb(var(--text-primary)/0.94)]",
-                    prExerciseNames.has(effort.exerciseName.trim()) ? "text-[rgb(var(--success-rgb)/0.96)]" : undefined,
-                  )}
+          <ul aria-label="Top efforts" className="m-0 grid list-none gap-0 p-0">
+            {recap.topEfforts.map((effort) => {
+              const isPr = prExerciseNames.has(effort.exerciseName.trim());
+              return (
+                <li
+                  key={`${effort.exerciseName}-${effort.value}`}
+                  className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t border-[rgb(var(--border-strong)/0.1)] py-2 first:border-t-0"
                 >
-                  {effort.exerciseName}
-                </span>
-                {prExerciseNames.has(effort.exerciseName.trim()) ? (
-                  <span className="ml-2 inline-flex">
-                    <DetailSectionBadge label="PR" />
+                  <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm font-semibold leading-snug text-[rgb(var(--text-primary)/0.96)]">
+                    <span className="min-w-0 break-words">{effort.exerciseName}</span>
+                    {isPr ? <CardChip tone="success">PR</CardChip> : null}
                   </span>
-                ) : null}
-                {" | "}
-                {effort.value}
-              </p>
-            ))}
-          </div>
-        ) : null}
-
-        {recap.prMoments.length > 0 ? (
-          <p className="rounded-[0.85rem] border border-[rgb(var(--success-rgb)/0.18)] bg-[rgb(var(--success-rgb)/0.1)] px-2.5 py-2 text-xs font-semibold text-[rgb(var(--success-rgb)/0.95)]">
-            PRs: {recap.prMoments.join(", ")}
-          </p>
+                  <span className="text-right text-sm font-medium tabular-nums leading-snug text-[rgb(var(--text-secondary)/0.95)]">{effort.value}</span>
+                </li>
+              );
+            })}
+          </ul>
         ) : null}
 
         {recap.streakCallout ? (
-          <p className="rounded-[0.85rem] border border-[rgb(var(--accent-divider-rgb)/0.2)] px-2.5 py-2 text-xs font-semibold text-[rgb(var(--text-primary)/0.92)]">
-            Streak: {recap.streakCallout}
+          <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">
+            <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">Streak</span>
+            {" Â· "}
+            {recap.streakCallout}
           </p>
         ) : null}
 
-        <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
-        <div className="flex flex-wrap justify-end gap-2">
-          <PillButton type="button" hitSlop onClick={copyRecap}>Copy recap</PillButton>
-          <PillButton type="button" active hitSlop onClick={shareRecap}>Share recap</PillButton>
+        <div className="grid grid-cols-2 gap-2">
+          <AppButton type="button" variant="secondary" size="sm" onClick={copyRecap}>Copy recap</AppButton>
+          <AppButton type="button" variant="primary" size="sm" onClick={shareRecap}>Share recap</AppButton>
         </div>
       </div>
-    </HistorySection>
+    </CardSurface>
   );
 }
 
@@ -940,10 +924,11 @@ function buildFocusedProgressionMetrics(progressionSummary: ExerciseProgressionL
 
   const regressionCount = progressionSummary.deloadCount + progressionSummary.revertCount;
   const metrics: Array<MetricDatum | null> = [
-    progressionSummary.currentTargetLabel ? { label: "Current", value: progressionSummary.currentTargetLabel } : null,
-    progressionSummary.firstTargetLabel ? { label: "Started", value: progressionSummary.firstTargetLabel } : null,
+    progressionSummary.currentTargetLabel ? { label: "Goal now", value: progressionSummary.currentTargetLabel } : null,
+    progressionSummary.firstTargetLabel ? { label: "First goal", value: progressionSummary.firstTargetLabel } : null,
     { label: "Promotions", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
-    regressionCount > 0 ? { label: "Regressions", value: `${regressionCount}`, valueTone: "danger" } : null,
+    // Amber like the REGRESSION chip: a step back is attention, not an error (History review item 12).
+    regressionCount > 0 ? { label: "Regressions", value: `${regressionCount}`, valueTone: "warning" } : null,
     (progressionSummary.watchCount ?? 0) > 0 ? { label: "Watch", value: `${progressionSummary.watchCount ?? 0}`, valueTone: "warning" } : null,
     progressionSummary.manualChangeCount > 0 ? { label: "Manual", value: `${progressionSummary.manualChangeCount}`, valueTone: "warning" } : null,
     progressionSummary.latestChangeSummary || progressionSummary.latestEventLabel
@@ -954,80 +939,115 @@ function buildFocusedProgressionMetrics(progressionSummary: ExerciseProgressionL
   return metrics.filter((item): item is MetricDatum => item !== null);
 }
 
+function toStatGridItems(metrics: MetricDatum[]): StatGridItem[] {
+  return metrics
+    .filter((metric) => metric.value.trim().length > 0 || metric.valueNode)
+    .map((metric) => ({
+      label: metric.label,
+      value: metric.valuePrefix ? `${metric.valuePrefix} ${metric.value}` : metric.value,
+      valueNode: metric.valueNode,
+      tone: metric.valueTone,
+      meta: [metric.delta, metric.timeframe, metric.trend].filter((line): line is string => typeof line === "string" && line.trim().length > 0),
+    }));
+}
+
+/**
+ * One titled card in the session detail (Overview, Progression, Sets, Notes). Content flows with the page: no
+ * inner scroller and no sideways metric rail (History review items 1 and 5), so nothing is clipped at 320px.
+ */
+function HistoryDetailPanel({
+  title,
+  meta,
+  panel,
+  children,
+}: {
+  title: string;
+  meta?: string | null;
+  panel: string;
+  children: ReactNode;
+}) {
+  return (
+    <CardSurface showRail={false} data-history-detail-panel={panel}>
+      <CardHeader headingLevel={3} title={title} meta={meta ? <CardMeta items={[meta]} /> : undefined} />
+      <div className={cn(cardTokens.body, "pb-4")}>{children}</div>
+    </CardSurface>
+  );
+}
+
+const SESSION_NOTES_PREVIEW_CHARS = 220;
+const SESSION_NOTES_PREVIEW_LINES = 4;
+
+/** Session notes, capped at four lines with a 44px "Show all" toggle so a long note never pushes the exercises away. */
+function SessionNotesCard({ notes }: { notes: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = notes.length > SESSION_NOTES_PREVIEW_CHARS || notes.split("\n").length > SESSION_NOTES_PREVIEW_LINES;
+  const bodyId = "history-session-notes-body";
+
+  return (
+    <CardSurface showRail={false} data-history-session-notes="true">
+      <CardHeader headingLevel={2} title="Session notes" />
+      <div className={cn(cardTokens.body, isLong ? "pb-1" : "pb-4")}>
+        <p
+          id={bodyId}
+          className={cn(
+            "m-0 whitespace-pre-wrap break-words text-sm leading-relaxed text-[rgb(var(--text-primary)/0.94)] [text-wrap:pretty]",
+            isLong && !expanded ? "line-clamp-4" : undefined,
+          )}
+        >
+          {notes}
+        </p>
+        {isLong ? (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={bodyId}
+            onClick={() => setExpanded((current) => !current)}
+            className="inline-flex min-h-11 items-center !border-0 !bg-transparent px-0 text-sm font-semibold !text-[rgb(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]"
+          >
+            {expanded ? "Show less" : "Show all"}
+          </button>
+        ) : null}
+      </div>
+    </CardSurface>
+  );
+}
+
 function FocusedExerciseContextPanels({
   overviewMetrics,
   overviewSections,
   progressionSummary,
-  notesValue,
-  notesContextLabel,
-  isEditing,
-  canEditNotes,
-  canShowNotes,
-  noteInput,
   showOverview = true,
   showProgression = true,
-  showNotes = true,
 }: {
   overviewMetrics?: MetricDatum[];
   overviewSections?: HistorySessionDetailSection[];
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
-  notesValue: string;
-  notesContextLabel?: string | null;
-  isEditing: boolean;
-  canEditNotes: boolean;
-  canShowNotes: boolean;
-  noteInput?: ReactNode;
   showOverview?: boolean;
   showProgression?: boolean;
-  showNotes?: boolean;
 }) {
-  const hasNotes = notesValue.trim().length > 0;
-  const shouldRenderNotes = showNotes && canShowNotes && (isEditing ? canEditNotes && Boolean(noteInput) : hasNotes);
-  const resolvedOverviewMetrics = (overviewMetrics ?? []).filter((item) => item.value.trim().length > 0);
+  const overviewItems = toStatGridItems(overviewMetrics ?? []);
   const resolvedOverviewSections = (overviewSections ?? []).filter((section) => section.items.length > 0);
-  const progressionMetrics = buildFocusedProgressionMetrics(progressionSummary);
+  const progressionItems = toStatGridItems(buildFocusedProgressionMetrics(progressionSummary));
 
   return (
-    <div className="space-y-2">
-      {showOverview && (resolvedOverviewMetrics.length > 0 || resolvedOverviewSections.length > 0) ? (
-        <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
-          <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Overview</h3>
-          {resolvedOverviewMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={resolvedOverviewMetrics} className="justify-center" scrollable /> : null}
-          {resolvedOverviewSections.length > 0 ? (
-            <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-              <DetailSectionBlocks sections={resolvedOverviewSections} titleClassName={FOCUSED_SUBSECTION_TITLE_CLASS_NAME} />
-            </div>
-          ) : null}
-        </AppPanel>
-      ) : null}
-
-      {showProgression && (progressionMetrics.length > 0 || progressionSummary) ? (
-        <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
-          <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Progression</h3>
-          {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} className="justify-center" scrollable /> : null}
-        </AppPanel>
-      ) : null}
-
-      {shouldRenderNotes ? (
-        <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
-          <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Notes</h3>
-          <div className="px-2 py-1">
-            {notesContextLabel ? (
-              <p className="pb-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
-                {notesContextLabel}
-              </p>
+    <>
+      {showOverview && (overviewItems.length > 0 || resolvedOverviewSections.length > 0) ? (
+        <HistoryDetailPanel title="Overview" panel="overview">
+          <div className="grid gap-3">
+            {overviewItems.length > 0 ? <StatGrid items={overviewItems} /> : null}
+            {resolvedOverviewSections.length > 0 ? (
+              <DetailSectionBlocks sections={resolvedOverviewSections} titleClassName={cardTokens.statLabel} />
             ) : null}
-            {isEditing
-              ? noteInput
-              : (
-                <p className={cn(appTokens.detailBodyText, "whitespace-pre-wrap text-[12.5px] leading-[1.5] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
-                  {notesValue}
-                </p>
-              )}
           </div>
-        </AppPanel>
+        </HistoryDetailPanel>
       ) : null}
-    </div>
+
+      {showProgression && progressionItems.length > 0 ? (
+        <HistoryDetailPanel title="Progression" panel="progression">
+          <StatGrid items={progressionItems} />
+        </HistoryDetailPanel>
+      ) : null}
+    </>
   );
 }
 
@@ -1063,16 +1083,15 @@ export function LogAuditClient({
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(initialExpandedExerciseId);
-  const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [setToDelete, setSetToDelete] = useState<{ exerciseId: string; setId: string; label: string } | null>(null);
+  const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string; setCount: number } | null>(null);
+  const [setToDelete, setSetToDelete] = useState<{ exerciseId: string; setId: string; position: number; exerciseName: string } | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
   const [editableSets, setEditableSets] = useState<Record<string, EditableSet[]>>(
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])),
   );
   const [floatingHeaderContainer, setFloatingHeaderContainer] = useState<HTMLElement | null>(null);
-  const [exerciseViewportHeight, setExerciseViewportHeight] = useState<number | null>(null);
-  const exerciseViewportRef = useRef<HTMLDivElement | null>(null);
+  const detailTopRef = useRef<HTMLDivElement | null>(null);
   const headerSessionNotesRef = useRef<HTMLTextAreaElement | null>(null);
   const exerciseNoteRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
@@ -1170,103 +1189,26 @@ export function LogAuditClient({
     return [];
   }, [displayExercises, editableSets, expandedExercise, focusedRecapItemMeta, focusedSessionSummary]);
 
-  const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
-  const focusedExerciseDisplayNotes = expandedExercise
-    ? resolveExerciseDisplayNotesValue({
-        exercise: expandedExercise,
-        draftNotesValue: exerciseNotes[expandedExercise.id] ?? expandedExercise.notes ?? "",
-      })
-    : "";
-  const focusedExerciseNotesContextLabel = expandedExercise
-    ? resolveExerciseDisplayNotesContextLabel({
-        exercise: expandedExercise,
-        draftNotesValue: exerciseNotes[expandedExercise.id] ?? expandedExercise.notes ?? "",
-      })
-    : null;
-  const isFocusedSetExpanded = Boolean(expandedSetId);
-  const focusedHasMeaningfulSetData = expandedExercise
-    ? countMeaningfulSetData(editableSets[expandedExercise.id] ?? []) > 0
-    : false;
-
-  const exerciseViewportMeta = useMemo(() => {
-    if (expandedExercise) {
-      return {
-        caption: null,
-        prNames: focusedSessionSummary.prExerciseNames ?? [],
-      };
-    }
-
-    return {
-      caption: null,
-      prNames: sessionSummary.prExerciseNames ?? [],
-    };
-  }, [expandedExercise, focusedSessionSummary.prExerciseNames, sessionSummary.prExerciseNames]);
-
   useEffect(() => {
     if (expandedExerciseId && !expandedExercise) {
       setExpandedExerciseId(null);
     }
   }, [expandedExercise, expandedExerciseId]);
 
-  useLayoutEffect(() => {
-    const node = exerciseViewportRef.current;
-    if (!node || typeof window === "undefined") {
-      return;
-    }
-
-    const syncViewportHeight = () => {
-      const nextViewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const computedStyle = window.getComputedStyle(node);
-      const dockHeightValue = computedStyle.getPropertyValue("--bottom-actions-height");
-      const fallbackDockHeightValue = computedStyle.getPropertyValue("--app-mobile-bottom-dock-height");
-      const dockHeight = Number.parseFloat(dockHeightValue) || Number.parseFloat(fallbackDockHeightValue) || 0;
-      const topOffset = node.getBoundingClientRect().top;
-      const dockGap = dockHeight > 0 ? 12 : 4;
-      const availableHeight = Math.max(0, Math.floor(nextViewportHeight - topOffset - dockHeight - dockGap));
-      setExerciseViewportHeight(availableHeight > 0 ? availableHeight : null);
-    };
-
-    syncViewportHeight();
-
-    window.addEventListener("resize", syncViewportHeight);
-    window.visualViewport?.addEventListener("resize", syncViewportHeight);
-    const layoutObserver = typeof ResizeObserver === "undefined"
-      ? null
-      : new ResizeObserver(() => {
-          syncViewportHeight();
-        });
-
-    if (layoutObserver) {
-      layoutObserver.observe(node);
-      if (node.parentElement) {
-        layoutObserver.observe(node.parentElement);
-      }
-    }
-
-    return () => {
-      window.removeEventListener("resize", syncViewportHeight);
-      window.visualViewport?.removeEventListener("resize", syncViewportHeight);
-      layoutObserver?.disconnect();
-    };
-  }, [displayExercises.length, expandedExercise, expandedExerciseId, expandedSetId, isEditing, sessionNotes]);
-
+  // Opening or closing one exercise swaps what the page shows, so bring the top of the detail back into view.
+  const hasMountedRef = useRef(false);
   useEffect(() => {
-    const node = exerciseViewportRef.current;
-    if (!node) {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
       return;
     }
-
-    const scrollRegion = node.querySelector("[data-history-exercise-scroll-region='true']");
-    if (!(scrollRegion instanceof HTMLElement)) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      scrollRegion.scrollTo({ top: 0, behavior: "instant" });
-    });
-
-    return () => window.cancelAnimationFrame(frame);
+    detailTopRef.current?.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior });
   }, [expandedExerciseId]);
+
+  const toggleExpandedExercise = useCallback((exerciseId: string) => {
+    setExpandedSetId(null);
+    setExpandedExerciseId((current) => (current === exerciseId ? null : exerciseId));
+  }, []);
 
   useLayoutEffect(() => {
     if (!isEditing) return;
@@ -1346,6 +1288,14 @@ export function LogAuditClient({
     setIsEditing(true);
   }, []);
 
+  const deleteSessionName = sessionSummary.dayTitle?.trim() || initialDayName.trim() || "this session";
+  const deleteSessionDate = formatDateShort(sessionSummary.startedAt);
+  const deleteSessionConsequence = [
+    deleteSessionDate ? `Removes the ${deleteSessionDate} session` : "Removes this session",
+    exercises.length > 0 ? ` and its ${exercises.length === 1 ? "1 exercise" : `${exercises.length} exercises`}` : "",
+    ". This cannot be undone.",
+  ].join("");
+
   const actionsNode = useMemo(() => {
     if (isEditing) {
       return (
@@ -1365,11 +1315,15 @@ export function LogAuditClient({
             hiddenFields={{ sessionId: logId }}
             size="md"
             triggerLabel="Delete"
-            triggerAriaLabel="Delete log"
+            triggerAriaLabel={`Delete ${deleteSessionName}`}
             triggerIntent="danger"
-            modalTitle="Delete log?"
-            details={`${sessionSummary.routineTitle} - ${formatDateShort(sessionSummary.startedAt)}`}
+            // Named confirm (History review item 3): the title is the session and the line says what goes with it.
+            modalTitle={`Delete ${deleteSessionName}?`}
+            modalTitleVariant="raw"
+            showDetailsInDeleteLayout
+            modalConsequenceText={deleteSessionConsequence}
             confirmLabel="Delete"
+            failureMessage="Could not delete this session. Try again."
           />
         )}
         primary={(
@@ -1383,7 +1337,7 @@ export function LogAuditClient({
         )}
       />
     );
-  }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId, sessionSummary.routineTitle, sessionSummary.startedAt]);
+  }, [deleteSessionConsequence, deleteSessionName, handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId]);
 
   usePublishBottomActions(actionsNode);
 
@@ -1472,12 +1426,33 @@ export function LogAuditClient({
     });
   };
 
-  // Detail header (DESIGN-CONTRACT.md section 15): the day name as the title, "Fri, Nov 6 · Routine" as the one
+  // Detail header (DESIGN-CONTRACT.md section 15): the day name as the title, "Fri, Nov 6 Â· Routine" as the one
   // subtitle line, Back on the left. With one exercise open, Back first returns to the whole session.
   const sessionHeaderSubtitle = [
     [formatWeekdayShort(sessionSummary.startedAt), formatDateShort(sessionSummary.startedAt)].filter(Boolean).join(", "),
     sessionSummary.routineTitle?.trim() || null,
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(" Â· ");
+  const prExerciseNames = expandedExercise ? (focusedSessionSummary.prExerciseNames ?? []) : (sessionSummary.prExerciseNames ?? []);
+  const renderExerciseNoteInput = (exerciseId: string) => (
+    <FormField label="Exercise notes">
+      {(control) => (
+        <textarea
+          {...control}
+          ref={(element) => {
+            exerciseNoteRefs.current[exerciseId] = element;
+          }}
+          value={exerciseNotes[exerciseId] ?? ""}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setExerciseNotes((current) => ({ ...current, [exerciseId]: nextValue }));
+            autoSizeTextarea(event.currentTarget);
+          }}
+          rows={1}
+          className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
+        />
+      )}
+    </FormField>
+  );
 
   return (
     <>
@@ -1505,284 +1480,183 @@ export function LogAuditClient({
         )
         : null}
 
-      {isEditing ? (
-        <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
-          <FormField label="Day name">
-            {(control) => (
-              <input {...control} value={dayName} onChange={(event) => setDayName(event.target.value)} className={formFieldControlClassName} />
-            )}
-          </FormField>
-          <FormField label="Session notes">
-            {(control) => (
-              <textarea
-                {...control}
-                ref={headerSessionNotesRef}
-                value={sessionNotes}
-                onChange={(event) => {
-                  setSessionNotes(event.target.value);
-                  autoSizeTextarea(event.currentTarget);
-                }}
-                rows={1}
-                className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
-              />
-            )}
-          </FormField>
-        </div>
-      ) : null}
-
-      {!isEditing && recapArtifact ? (
-        <WorkoutRecapCard recap={recapArtifact} />
-      ) : null}
-
-      {!isEditing && sessionNotes.trim().length > 0 ? (
-        <HistorySection title="Session notes">
-          <p className={appTokens.detailBodyText}>{sessionNotes}</p>
-        </HistorySection>
-      ) : null}
-
-      <div
-        ref={exerciseViewportRef}
-        className={cn(
-          "relative left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 md:left-auto md:w-auto md:max-w-none md:translate-x-0",
-          isEditing ? "mt-5" : "mt-3",
-        )}
-      >
-        <div
-          className="sticky bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.75rem)] relative flex min-h-0 w-full flex-col overflow-hidden border-0 bg-transparent md:static md:rounded-[1.5rem]"
-          style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
-        >
-          {exerciseViewportMeta.caption ? (
-            <div className="px-4 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">
-              {exerciseViewportMeta.caption}
+      {/*
+        One page scroller (History review item 1): the summary, notes, exercises and recap flow in the screen's own
+        scroll with 8px gaps. The old layout pinned a measured-height box with its own scroll region inside the page,
+        which clipped content and trapped the scroll on phones.
+      */}
+      <div ref={detailTopRef} data-history-detail-flow="true" className="grid min-w-0 scroll-mt-28 gap-2">
+        {isEditing ? (
+          <CardSurface showRail={false} data-history-detail-editor="true">
+            <CardHeader headingLevel={2} title="Edit session" meta={<CardMeta items={["Changes save when you tap Save"]} />} />
+            <div className={cn(cardTokens.body, "grid gap-2 pb-4")}>
+              <FormField label="Day name">
+                {(control) => (
+                  <input {...control} value={dayName} onChange={(event) => setDayName(event.target.value)} className={formFieldControlClassName} />
+                )}
+              </FormField>
+              <FormField label="Session notes">
+                {(control) => (
+                  <textarea
+                    {...control}
+                    ref={headerSessionNotesRef}
+                    value={sessionNotes}
+                    onChange={(event) => {
+                      setSessionNotes(event.target.value);
+                      autoSizeTextarea(event.currentTarget);
+                    }}
+                    rows={1}
+                    className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
+                  />
+                )}
+              </FormField>
             </div>
+          </CardSurface>
+        ) : null}
+
+        {!isEditing && !expandedExercise ? (
+          <HistorySessionCard
+            session={focusedSessionSummary}
+            viewMode="detailed"
+            className="mt-0"
+            prExerciseNames={prExerciseNames}
+            detailedMetrics={focusedDetailedMetrics}
+            detailedSections={focusedDetailedSections}
+            detailedHeaderMode="hidden"
+          />
+        ) : null}
+
+        {!isEditing && !expandedExercise && sessionNotes.trim().length > 0 ? (
+          <SessionNotesCard notes={sessionNotes.trim()} />
+        ) : null}
+
+        <section aria-labelledby="history-detail-exercises-heading" data-history-exercise-list="true" className="grid min-w-0 gap-2">
+          <h2
+            id="history-detail-exercises-heading"
+            className={cn(cardTokens.statLabel, expandedExercise ? "sr-only" : "px-1 pt-2")}
+          >
+            {`Exercises Â· ${displayExercises.length}`}
+          </h2>
+
+          {displayExercises.length === 0 ? (
+            <CardEmptyState
+              headingLevel={3}
+              title="No exercises in this session"
+              body="It was saved without any exercises, so there are no sets to show. Delete it from the bar below if you do not need it."
+            />
           ) : null}
-          <div className="relative min-h-0 flex-1">
-            <div
-              aria-hidden="true"
-              className={appTokens.exercisePickerViewportMobileFadeTop}
-            />
-            <div
-              aria-hidden="true"
-              className={appTokens.exercisePickerViewportMobileFadeBottom}
-            />
-            <PickerListViewport
-              plainOnMobile
-              showFade={false}
-              className="h-full min-h-0 !border-0 !bg-transparent !p-0"
-              viewportClassName={cn(
-                "hide-scrollbar h-full min-h-0 overscroll-contain !pr-0",
-                expandedExercise ? "px-0 pb-1" : "px-0 pb-2",
-                "overflow-hidden",
-              )}
-            >
-              <div
-                data-history-exercise-shell="true"
-                className="grid h-full min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden pb-1"
-              >
-              {expandedExercise ? (
-                  null
-                ) : !isEditing ? (
-                  <div className="sticky top-0 z-20 min-w-0 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
-                    <HistorySessionCard
-                      session={focusedSessionSummary}
-                      viewMode="detailed"
-                      className="mt-0"
-                      prExerciseNames={exerciseViewportMeta.prNames}
-                      detailedMetrics={focusedDetailedMetrics}
-                      detailedSections={focusedDetailedSections}
-                      detailedHeaderMode="hidden"
-                    />
-                  </div>
+
+          {visibleExercises.map((exercise) => {
+            const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
+            const setsForExercise = editableSets[exercise.id] ?? [];
+            const editableNotesValue = exerciseNotes[exercise.id] ?? exercise.notes ?? "";
+            const displayNotesValue = resolveExerciseDisplayNotesValue({
+              exercise,
+              draftNotesValue: editableNotesValue,
+            });
+            const notesContextLabel = resolveExerciseDisplayNotesContextLabel({
+              exercise,
+              draftNotesValue: editableNotesValue,
+            });
+            const isExpanded = expandedExerciseId === exercise.id;
+            const isSkipped = Boolean(exercise.is_skipped);
+            const bestSet = findBestEditableSet(setsForExercise);
+            const isSessionBestExercise = focusedSessionSummary.bestLift?.exerciseName?.trim() === name;
+            const bestSummary = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : "";
+            const expandedSet = setsForExercise.find((set) => set.id === expandedSetId) ?? null;
+            const hasPrInSession = (sessionSummary.prExerciseNames ?? []).includes(name);
+            const targetSetCount = resolveExerciseTargetSetCount(exercise, setsForExercise.length);
+            const countBadgeLabel = buildLoggedSetCountBadge(setsForExercise.length, targetSetCount);
+            const canExpandExercise = hasExpandableExerciseContent({
+              sets: setsForExercise,
+              notesValue: displayNotesValue,
+              progressionSummary: exercise.progressionSummary ?? null,
+              isEditing,
+            });
+            const setListMeta = buildFocusedExerciseSetListMeta({
+              setCount: setsForExercise.length,
+              targetSetCount,
+              isEditing,
+            });
+            const collapsedCardBadgeItems = buildCollapsedExerciseCardBadgeItems({
+              badgeCountLabel: countBadgeLabel,
+              hasPrInSession,
+              isBest: isSessionBestExercise,
+              progressionSummary: exercise.progressionSummary ?? null,
+            });
+            const timerSignalItem = exercise.exercise_timer_enabled
+              ? `Timer ${formatExerciseTimerClock(exercise.exercise_timer_elapsed_seconds ?? 0)}${exercise.exercise_timer_status === "completed" ? " complete" : ""}`
+              : null;
+            const recoveryInsight = buildRecoveryTimingInsight(setsForExercise.map((set) => set.source));
+            const expandedSetPosition = expandedSet ? setsForExercise.findIndex((set) => set.id === expandedSet.id) + 1 : 0;
+            const showNotesPanel = isExpanded && !expandedSet && (isEditing ? true : displayNotesValue.trim().length > 0);
+
+            return (
+              <article key={exercise.id} data-history-exercise-id={exercise.id} className="grid min-w-0 gap-2">
+                {!(isEditing && isExpanded && expandedSet) ? (
+                  <HistoryDetailExerciseCard
+                    exercise={{
+                      name,
+                      slug: exercise.exercise_slug ?? null,
+                      image_path: exercise.exercise_image_path ?? null,
+                      image_icon_path: exercise.exercise_image_icon_path ?? null,
+                      image_howto_path: exercise.exercise_image_howto_path ?? null,
+                    }}
+                    // Skipped and empty read differently (History review item 9): a skipped exercise says so in a chip and
+                    // in the meta line; one with no sets says "No sets logged" instead of a made-up summary.
+                    summary={isSkipped ? "" : bestSummary}
+                    summaryLabel="Top set"
+                    metaItems={[
+                      isSkipped ? "Skipped" : setsForExercise.length === 0 ? "No sets logged" : formatLoggedSetCountMeta(collapsedCardBadgeItems.countLabel),
+                      ...(timerSignalItem ? [timerSignalItem] : []),
+                      ...(recoveryInsight ? [recoveryInsight.label] : []),
+                    ]}
+                    signalCodes={[...(isSkipped ? ["SKIPPED"] : []), ...collapsedCardBadgeItems.signalItems]}
+                    onPress={canExpandExercise ? () => toggleExpandedExercise(exercise.id) : undefined}
+                    expanded={isExpanded}
+                    controlsId={`history-exercise-detail-${exercise.id}`}
+                    showLeadingVisual={surfacePolicy.showMedia}
+                  />
                 ) : null}
-                <div className="mx-1 min-h-0 min-w-0 overflow-hidden px-1 pb-2">
-                  <div
-                    className={cn(
-                      appTokens.exercisePickerFilterPanel,
-                      "flex h-full min-h-0 flex-col p-2",
-                    )}
-                  >
-                    <div
-                      data-history-exercise-scroll-region="true"
-                      className={cn(
-                        "hide-scrollbar min-h-0 flex-1 overscroll-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                        expandedExercise ? "h-full overflow-hidden" : "overflow-y-auto px-0 pb-1 pt-0.5",
-                      )}
-                    >
-                      {!expandedExercise && displayExercises.length === 0 ? (
-                        <p className={appTokens.historyEmptyState}>
-                          No exercises logged for this session yet.
-                        </p>
-                      ) : null}
-                      <div className={cn(expandedExercise ? "flex h-full min-h-0 flex-col" : "space-y-[0.5rem] px-0")}>
-                  {visibleExercises.map((exercise) => {
-          const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
-          const setsForExercise = editableSets[exercise.id] ?? [];
-          const editableNotesValue = exerciseNotes[exercise.id] ?? exercise.notes ?? "";
-          const displayNotesValue = resolveExerciseDisplayNotesValue({
-            exercise,
-            draftNotesValue: editableNotesValue,
-          });
-          const isExpanded = expandedExerciseId === exercise.id;
-          const bestSet = findBestEditableSet(setsForExercise);
-          const isSessionBestExercise = focusedSessionSummary.bestLift?.exerciseName?.trim() === name;
-          const bestSummary = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : "No measurements";
-          const expandedSet = setsForExercise.find((set) => set.id === expandedSetId) ?? null;
-          const hasPrInSession = (sessionSummary.prExerciseNames ?? []).includes(name);
-          const targetSetCount = resolveExerciseTargetSetCount(exercise, setsForExercise.length);
-          const countBadgeLabel = buildLoggedSetCountBadge(setsForExercise.length, targetSetCount);
-          const canExpandExercise = hasExpandableExerciseContent({
-            sets: setsForExercise,
-            notesValue: displayNotesValue,
-            progressionSummary: exercise.progressionSummary ?? null,
-            isEditing,
-          });
-          const setListMeta = buildFocusedExerciseSetListMeta({
-            setCount: setsForExercise.length,
-            targetSetCount,
-            isEditing,
-          });
-          const collapsedCardBadgeItems = buildCollapsedExerciseCardBadgeItems({
-            badgeCountLabel: countBadgeLabel,
-            hasPrInSession,
-            isBest: isSessionBestExercise,
-            progressionSummary: exercise.progressionSummary ?? null,
-          });
-          const timerSignalItem = exercise.exercise_timer_enabled
-            ? `Timer ${formatExerciseTimerClock(exercise.exercise_timer_elapsed_seconds ?? 0)}${exercise.exercise_timer_status === "completed" ? " complete" : ""}`
-            : null;
-          const recoveryInsight = buildRecoveryTimingInsight(setsForExercise.map((set) => set.source));
-          return (
-            <article
-              key={exercise.id}
-              className={cn(
-                isExpanded ? "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden space-y-0" : appTokens.historyExerciseDisclosureStack,
-              )}
-            >
-              {!(isEditing && isExpanded && expandedSet) ? (
-                <HistoryDetailExerciseCard
-                  exercise={{
-                    name,
-                    slug: exercise.exercise_slug ?? null,
-                    image_path: exercise.exercise_image_path ?? null,
-                    image_icon_path: exercise.exercise_image_icon_path ?? null,
-                    image_howto_path: exercise.exercise_image_howto_path ?? null,
-                  }}
-                  summary={bestSummary}
-                  summaryLabel={bestSet ? "Top Set" : "Session"}
-                  metaItems={[
-                    formatLoggedSetCountMeta(collapsedCardBadgeItems.countLabel),
-                    ...(timerSignalItem ? [timerSignalItem] : []),
-                    ...(recoveryInsight ? [recoveryInsight.label] : []),
-                  ]}
-                  signalCodes={collapsedCardBadgeItems.signalItems}
-                  onPress={canExpandExercise ? () => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id)) : undefined}
-                  expanded={isExpanded}
-                  showLeadingVisual={surfacePolicy.showMedia}
-                />
-              ) : null}
 
-              {isExpanded ? (
-                <div className={cn(appTokens.historyExerciseDisclosureBody, "flex h-full min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 pt-0")}>
-                  {isEditing && !expandedSet ? (
-                    <AttachedQuickActionStrip
-                      rowContract={{
-                        label: "Add Set",
-                        skipLabel: "Delete",
-                        skipActionIntent: "danger",
-                        skipActionClassName: cn("!border-r !border-r-[rgb(255,120,120,0.16)]", DELETE_ACTION_BUTTON_CLASS_NAME),
-                        actionRowClassName: "",
-                        quickLogActionClassName: "",
-                        isSkipPending: false,
-                        isQuickLogPending: false,
-                        isQuickLogDisabled: false,
-                        isSkipDisabled: false,
-                        quickLogDisabledMessage: "Add Set",
-                      }}
-                      className="mt-2 overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)] [grid-template-columns:72px_minmax(0,1fr)]"
-                      onPress={() => handleAddSet(exercise)}
-                      onSkip={() => setExerciseToDelete({ id: exercise.id, name })}
-                    />
-                  ) : null}
-
-                  {isEditing && expandedSet ? (
-                    <div className={cn("w-full shrink-0", SET_CARD_SHELL_CLASS_NAME)}>
-                      <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId(null)}>
-                        <LoggedSetSummaryRow
-                          label={formatSetPositionLabel(setsForExercise.findIndex((set) => set.id === expandedSet.id) + 1)}
-                          summary={buildMeasurementSummary(expandedSet, exercise.default_unit)}
-                          summaryItems={buildLoggedSetSummaryItems(expandedSet, exercise.default_unit)}
-                          action={<div className="flex h-full items-end justify-end pb-0.5"><ChevronDownIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>}
-                          contentAlign="center"
-                          actionClassName="self-stretch items-end justify-end pb-0.5"
-                          className="rounded-none border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.2)] bg-transparent shadow-none"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        data-bottom-action-intent="danger"
-                        className={DELETE_ACTION_BUTTON_CLASS_NAME}
-                        disabled={expandedSet.id.startsWith("temp-")}
-                        onClick={() => {
-                          setSetToDelete({
-                            exerciseId: exercise.id,
-                            setId: expandedSet.id,
-                            label: `${name} - ${formatSetPositionLabel(setsForExercise.findIndex((set) => set.id === expandedSet.id) + 1)}`,
-                          });
+                {isExpanded ? (
+                  <div id={`history-exercise-detail-${exercise.id}`} className="grid min-w-0 gap-2">
+                    {isEditing && !expandedSet ? (
+                      <AttachedQuickActionStrip
+                        rowContract={{
+                          label: "Add set",
+                          skipLabel: "Delete",
+                          skipActionIntent: "danger",
+                          skipActionClassName: cn("!border-r !border-r-[rgb(255,120,120,0.16)]", DELETE_ACTION_BUTTON_CLASS_NAME),
+                          actionRowClassName: "",
+                          quickLogActionClassName: "",
+                          isSkipPending: false,
+                          isQuickLogPending: false,
+                          isQuickLogDisabled: false,
+                          isSkipDisabled: false,
+                          quickLogDisabledMessage: "Add set",
                         }}
+                        className="overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)] [grid-template-columns:72px_minmax(0,1fr)]"
+                        onPress={() => handleAddSet(exercise)}
+                        onSkip={() => setExerciseToDelete({ id: exercise.id, name, setCount: setsForExercise.length })}
+                      />
+                    ) : null}
+
+                    {!expandedSet ? (
+                      <FocusedExerciseContextPanels
+                        overviewMetrics={focusedDetailedMetrics}
+                        overviewSections={focusedDetailedSections}
+                        progressionSummary={exercise.progressionSummary ?? null}
+                      />
+                    ) : null}
+
+                    {isEditing && expandedSet ? (
+                      <HistoryDetailPanel
+                        title={`${formatSetPositionLabel(expandedSetPosition)} Â· ${name}`}
+                        meta={buildMeasurementSummary(expandedSet, exercise.default_unit)}
+                        panel="set-editor"
                       >
-                        <span className="bottom-action__label">Delete</span>
-                      </button>
-                    </div>
-                  ) : null}
-
-                  <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-                    <div
-                      data-history-exercise-scroll-region="true"
-                      className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
-                    >
-                      {expandedExercise && !expandedSet ? (
-                        <div className="px-0 pb-2 pt-2">
-                          <FocusedExerciseContextPanels
-                            overviewMetrics={focusedDetailedMetrics}
-                            overviewSections={focusedDetailedSections}
-                            progressionSummary={expandedExercise.progressionSummary ?? null}
-                            notesValue={focusedExerciseDisplayNotes}
-                            notesContextLabel={focusedExerciseNotesContextLabel}
-                            isEditing={isEditing}
-                            canEditNotes={!isFocusedSetExpanded}
-                            canShowNotes={focusedHasMeaningfulSetData}
-                            showNotes={false}
-                            noteInput={(
-                              <FormField label="Exercise notes">
-                                {(control) => (
-                                <textarea
-                                  {...control}
-                                  ref={(element) => {
-                                      if (expandedExercise) {
-                                        exerciseNoteRefs.current[expandedExercise.id] = element;
-                                      }
-                                    }}
-                                    value={focusedExerciseNotes}
-                                    onChange={(event) => {
-                                      const nextValue = event.target.value;
-                                      if (!expandedExercise) {
-                                        return;
-                                      }
-                                      setExerciseNotes((current) => ({ ...current, [expandedExercise.id]: nextValue }));
-                                      autoSizeTextarea(event.currentTarget);
-                                    }}
-                                  rows={1}
-                                  className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
-                                />
-                                )}
-                              </FormField>
-                            )}
-                          />
-                        </div>
-                      ) : null}
-
-                      {expandedSet && isEditing ? (
-                        <div className="px-0 pb-0 pt-2">
+                        <div className="grid gap-3">
                           <ModifyMeasurements
                             values={expandedSet.values}
                             activeMetrics={expandedSet.activeMetrics}
@@ -1811,20 +1685,34 @@ export function LogAuditClient({
                               };
                             })}
                             onChange={(patch) => updateEditableSet(exercise.id, expandedSet.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
-                            layoutMode="horizontal-scroll"
                           />
+                          <div className="grid grid-cols-2 gap-2">
+                            <AppButton
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              disabled={expandedSet.id.startsWith("temp-")}
+                              onClick={() => {
+                                setSetToDelete({
+                                  exerciseId: exercise.id,
+                                  setId: expandedSet.id,
+                                  position: expandedSetPosition,
+                                  exerciseName: name,
+                                });
+                              }}
+                            >
+                              Delete set
+                            </AppButton>
+                            <AppButton type="button" variant="secondary" size="sm" onClick={() => setExpandedSetId(null)}>
+                              Done
+                            </AppButton>
+                          </div>
                         </div>
-                      ) : (
-                        <div className={cn(appTokens.currentSessionLoggerSetList, "overflow-hidden rounded-none border-0 bg-transparent px-0 py-2")}>
-                          {setsForExercise.length > 0 ? (
-                            <div className={appTokens.currentSessionLoggerSetListHeader}>
-                              <p className={appTokens.currentSessionLoggerSetListTitle}>Logged Sets</p>
-                              {setListMeta ? (
-                                <p className={cn(appTokens.currentSessionLoggerSetListMeta, "text-right")}>{setListMeta}</p>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
+                      </HistoryDetailPanel>
+                    ) : (
+                      <HistoryDetailPanel title="Sets" meta={setListMeta} panel="sets">
+                        {setsForExercise.length > 0 ? (
+                          <ul className="m-0 grid list-none gap-1.5 p-0 text-sm">
                             {setsForExercise.map((set, index) => {
                               const setSummaryText = buildMeasurementSummary(set, exercise.default_unit);
                               const setLabel = formatSetPositionLabel(index + 1);
@@ -1835,9 +1723,7 @@ export function LogAuditClient({
                                 progressionSummary: null,
                               });
                               const setAction = isEditing
-                                ? (expandedSetId === set.id
-                                  ? <div className="flex h-full items-end justify-end pb-0.5"><ChevronDownIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>
-                                  : <div className="flex h-full items-end justify-end pb-0.5"><ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>)
+                                ? <div className="flex h-full items-center justify-end"><ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>
                                 : renderMetaTags(setTagItems);
                               const rowNode = (
                                 <LoggedSetSummaryRow
@@ -1846,7 +1732,7 @@ export function LogAuditClient({
                                   summaryItems={setSummaryItems}
                                   contentAlign="center"
                                   action={setAction}
-                                  actionClassName="self-stretch items-end justify-end"
+                                  actionClassName="self-stretch items-center justify-end"
                                   className={cn(
                                     isEditing ? appTokens.historySetSummaryInteractive : undefined,
                                     "rounded-none border-0 bg-transparent shadow-none",
@@ -1860,8 +1746,9 @@ export function LogAuditClient({
                                     {isEditing ? (
                                       <button
                                         type="button"
-                                        className="block w-full text-left"
-                                        onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}
+                                        aria-label={`Edit ${setLabel.toLowerCase()} of ${name}`}
+                                        className="block min-h-11 w-full text-left"
+                                        onClick={() => setExpandedSetId(set.id)}
                                       >
                                         {rowNode}
                                       </button>
@@ -1873,78 +1760,49 @@ export function LogAuditClient({
                               );
                             })}
                           </ul>
-                        </div>
-                      )}
+                        ) : (
+                          <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">
+                            {isSkipped
+                              ? "Skipped in this session, so no sets were logged."
+                              : isEditing
+                                ? "No sets yet. Tap Add set to log one."
+                                : "No sets were logged for this exercise."}
+                          </p>
+                        )}
+                      </HistoryDetailPanel>
+                    )}
 
-                      {expandedExercise && !expandedSet ? (
-                        <div className="px-0 pb-2 pt-1.5">
-                          <FocusedExerciseContextPanels
-                            overviewMetrics={focusedDetailedMetrics}
-                            overviewSections={focusedDetailedSections}
-                            progressionSummary={expandedExercise.progressionSummary ?? null}
-                            notesValue={focusedExerciseDisplayNotes}
-                            notesContextLabel={focusedExerciseNotesContextLabel}
-                            isEditing={isEditing}
-                            canEditNotes={!isFocusedSetExpanded}
-                            canShowNotes={focusedHasMeaningfulSetData}
-                            showOverview={false}
-                            showProgression={false}
-                            noteInput={(
-                              <FormField label="Exercise notes">
-                                {(control) => (
-                                <textarea
-                                  {...control}
-                                  ref={(element) => {
-                                      if (expandedExercise) {
-                                        exerciseNoteRefs.current[expandedExercise.id] = element;
-                                      }
-                                    }}
-                                    value={focusedExerciseNotes}
-                                    onChange={(event) => {
-                                      const nextValue = event.target.value;
-                                      if (!expandedExercise) {
-                                        return;
-                                      }
-                                      setExerciseNotes((current) => ({ ...current, [expandedExercise.id]: nextValue }));
-                                      autoSizeTextarea(event.currentTarget);
-                                    }}
-                                  rows={1}
-                                  className={cn(formFieldControlClassName, "min-h-11 resize-none overflow-hidden py-2.5")}
-                                />
-                                )}
-                              </FormField>
-                            )}
-                          />
-                        </div>
-                      ) : null}
+                    {showNotesPanel ? (
+                      <HistoryDetailPanel title="Notes" meta={notesContextLabel} panel="exercise-notes">
+                        {isEditing
+                          ? renderExerciseNoteInput(exercise.id)
+                          : (
+                            <p className="m-0 whitespace-pre-wrap break-words text-sm leading-relaxed text-[rgb(var(--text-primary)/0.94)] [text-wrap:pretty]">
+                              {displayNotesValue}
+                            </p>
+                          )}
+                      </HistoryDetailPanel>
+                    ) : null}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </section>
 
-                      {setsForExercise.length === 0 ? (
-                        <p className={appTokens.historyEmptyState}>
-                          No sets logged for this exercise yet.
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </article>
-          );
-        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </PickerListViewport>
-          </div>
-        </div>
+        {!isEditing && !expandedExercise && recapArtifact ? (
+          <WorkoutRecapCard recap={recapArtifact} />
+        ) : null}
       </div>
-
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
-        title="Delete exercise?"
-        details={exerciseToDelete?.name}
+        title={exerciseToDelete ? `Delete ${exerciseToDelete.name}?` : "Delete exercise?"}
+        titleVariant="raw"
+        showDetailsInDeleteLayout
+        consequenceText={exerciseToDelete
+          ? `${exerciseToDelete.setCount === 1 ? "Its 1 set is" : `Its ${exerciseToDelete.setCount} sets are`} removed from this session. This cannot be undone.`
+          : undefined}
         confirmLabel="Delete"
         onCancel={() => setExerciseToDelete(null)}
         onConfirm={() => {
@@ -1954,8 +1812,10 @@ export function LogAuditClient({
       />
       <ConfirmDestructiveModal
         open={setToDelete !== null}
-        title="Delete set?"
-        details={setToDelete?.label}
+        title={setToDelete ? `Delete set ${setToDelete.position} of ${setToDelete.exerciseName}?` : "Delete set?"}
+        titleVariant="raw"
+        showDetailsInDeleteLayout
+        consequenceText="This cannot be undone."
         confirmLabel="Delete"
         onCancel={() => setSetToDelete(null)}
         onConfirm={() => {

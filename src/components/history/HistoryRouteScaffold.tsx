@@ -75,8 +75,8 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
+      {/* The detail screen scrolls like every other screen (History review item 1): no locked outer scroller. */}
       <ScrollScreenWithBottomActions
-        className={props.mode === "detail" ? "!overflow-y-hidden" : undefined}
         headerMenu={showTopChrome ? <AppMenu /> : undefined}
         floatingHeader={floatingHeader}
       >

@@ -215,9 +215,8 @@ export function HistoryCalendarSurface({
 
   return (
     <HistorySection
-      title={<span className="block w-full text-center">Calendar</span>}
+      title="Calendar"
       className="!border-0 !bg-transparent !p-0"
-      headerAlign="center"
     >
       {content}
     </HistorySection>
