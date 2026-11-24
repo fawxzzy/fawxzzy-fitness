@@ -54,7 +54,8 @@ test("an error replaces the helper, backs aria-describedby, marks the control ar
 
 test("FormField routes its error through FieldNotice instead of rendering danger text", () => {
   const source = readFileSync(new URL("./FormField.tsx", import.meta.url), "utf8");
-  assert.match(source, /<FieldNotice error=\{typeof error === "string" \? error : null\} id=\{fieldNoticeId\(controlId\)\} \/>/);
+  assert.match(source, /error\?: string \| null;/);
+  assert.match(source, /<FieldNotice error=\{error \?\? null\} id=\{fieldNoticeId\(controlId\)\} \/>/);
   assert.doesNotMatch(source, /className="[^"]*text-\[rgb\(var\(--danger-rgb\)\)\]/);
 });
 

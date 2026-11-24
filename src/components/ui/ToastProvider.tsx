@@ -56,6 +56,26 @@ const NoticeFlowSlotContext = createContext<((node: HTMLElement | null) => void)
 export function useNoticeFlowSlotRef() {
   return useContext(NoticeFlowSlotContext);
 }
+
+type SheetNoticeSlotRegistry = { register: (node: HTMLElement) => void; unregister: (node: HTMLElement) => void };
+const SheetNoticeSlotContext = createContext<SheetNoticeSlotRegistry | null>(null);
+
+/**
+ * Callback ref for an open Sheet's own notice slot (between its title row and body). While any sheet slot is mounted,
+ * EVERY notice renders in the top-most one: the screen's slots and the floating stack (z 110) sit under the sheet
+ * (z 120) and its scrim, so a notice raised from a sheet form would otherwise be invisible. Sheets register only
+ * while open (not while animating out); slots stack, so a nested sheet takes over and hands back on close.
+ */
+export function useSheetNoticeSlotRef() {
+  const registry = useContext(SheetNoticeSlotContext);
+  const nodeRef = useRef<HTMLElement | null>(null);
+  return useCallback((node: HTMLElement | null) => {
+    if (!registry) return;
+    if (nodeRef.current && nodeRef.current !== node) registry.unregister(nodeRef.current);
+    nodeRef.current = node;
+    if (node) registry.register(node);
+  }, [registry]);
+}
 /**
  * Where a screen shell puts its notice slot. "under-header" (default): in flow between the header and the scroll area.
  * "above-dock": an overlay pinned just above the bottom dock, out of flow, so a notice never moves a card (the workout
@@ -88,6 +108,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     flowSlotRef.current = node;
     setFlowSlotState(node);
   }, []);
+  const [sheetSlots, setSheetSlots] = useState<HTMLElement[]>([]);
+  const sheetSlotRegistry = useMemo<SheetNoticeSlotRegistry>(() => ({
+    register: (node) => setSheetSlots((current) => (current.includes(node) ? current : [...current, node])),
+    unregister: (node) => setSheetSlots((current) => current.filter((slot) => slot !== node)),
+  }), []);
   const dismissTimersRef = useRef<Map<string, number>>(new Map());
   const exitTimersRef = useRef<Map<string, number>>(new Map());
   const pathname = usePathname();
@@ -252,14 +277,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const flowToasts = flowSlot ? toasts.filter(isFlowToast) : [];
   const floatingToasts = flowSlot ? toasts.filter((toast) => !isFlowToast(toast)) : toasts;
   const dockToast = isDockOverlay ? flowToasts[flowToasts.length - 1] : undefined;
+  const sheetSlot = sheetSlots[sheetSlots.length - 1] ?? null;
 
   return (
     <ToastContext.Provider value={value}>
       <NoticeFlowSlotContext.Provider value={setFlowSlot}>
+      <SheetNoticeSlotContext.Provider value={sheetSlotRegistry}>
         {children}
+        {/* A sheet is open: every notice renders inside the top sheet, in flow under its title, so it is never hidden
+            under the sheet layer. The screen's own slots and the floating stack stay empty meanwhile. */}
+        {sheetSlot && toasts.length > 0
+          ? createPortal(
+            <div data-app-notice-sheet-stack="true" className="px-4 pb-2">
+              <div className="ml-auto flex max-w-full flex-col items-end gap-2">
+                {toasts.map(renderCard)}
+              </div>
+            </div>,
+            sheetSlot,
+          )
+          : null}
         {/* Above-dock notice: portalled into the shell's overlay slot (absolute, just above the bottom dock), so it never
             moves a card. One at a time, centred; a tap on the notice (outside its buttons) dismisses it, as does X. */}
-        {flowSlot && isDockOverlay && dockToast
+        {!sheetSlot && flowSlot && isDockOverlay && dockToast
           ? createPortal(
             <div data-app-notice-dock-stack="true" className="px-[var(--app-notice-inset-x)]">
               <div
@@ -278,7 +317,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           : null}
         {/* In-flow error notices: portalled into the shell's slot under the header (right-anchored, wraps to two
             lines at 320px). 8px above (the anchor gap) and below keep it off the header and the first card. */}
-        {flowSlot && !isDockOverlay && flowToasts.length > 0
+        {!sheetSlot && flowSlot && !isDockOverlay && flowToasts.length > 0
           ? createPortal(
             <div data-app-notice-flow-stack="true" className="px-[var(--app-notice-inset-x)] pb-2 pt-2">
               <div className="ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2">
@@ -295,8 +334,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           data-app-notice-stack="true"
           className="pointer-events-none fixed left-[var(--app-notice-inset-x)] right-[var(--app-notice-inset-x)] top-[var(--app-notice-top)] z-[110] ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2"
         >
-          {floatingToasts.map(renderCard)}
+          {sheetSlot ? null : floatingToasts.map(renderCard)}
         </div>
+      </SheetNoticeSlotContext.Provider>
       </NoticeFlowSlotContext.Provider>
     </ToastContext.Provider>
   );

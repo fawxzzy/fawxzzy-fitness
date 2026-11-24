@@ -56,6 +56,8 @@ export type ConfirmDestructiveModalProps = {
   onConfirm: () => void;
 };
 
+const noopClose = () => {};
+
 export function ConfirmDestructiveModal({
   open,
   title,
@@ -136,7 +138,9 @@ export function ConfirmDestructiveModal({
     <Sheet
       open={open}
       title={resolvedTitle}
-      onClose={onCancel}
+      // While the confirm is in flight, Escape and a scrim tap do nothing (Cancel is disabled too), so the dialog cannot
+      // vanish under a running delete.
+      onClose={isLoading ? noopClose : onCancel}
       footer={footer}
       showCloseButton={!footer || hideCancelAction}
       initialFocusSelector={INITIAL_FOCUS_SELECTOR}

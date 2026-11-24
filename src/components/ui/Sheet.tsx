@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { overlayChromeClassNames } from "@/components/ui/OverlayChrome";
+import { useSheetNoticeSlotRef } from "@/components/ui/ToastProvider";
 import { EyebrowText, SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
@@ -47,8 +48,9 @@ export const SHEET_SCRIM_CLASSNAME = "fixed inset-0 z-0 !border-0 !bg-[rgb(var(-
 export const SHEET_PANEL_CLASSNAME =
   "flex max-h-[min(calc(100dvh-var(--app-safe-top)-0.5rem),48rem)] w-full max-w-[min(640px,100vw-0.75rem)] min-w-0 flex-col rounded-t-[calc(var(--radius-xl)+2px)] shadow-[0_-18px_44px_rgba(0,0,0,0.34)]";
 const SHEET_TITLE_CLASSNAME = "min-w-0 flex-1 text-[1.25rem] font-semibold leading-7 tracking-[-0.02em]";
+// Colours use `[button&]:` so they beat the unlayered global `button, [type="button"]` rule (FOUNDATION.md cascade trap).
 const SHEET_CLOSE_BUTTON_CLASSNAME =
-  "-mr-1.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgb(var(--text-secondary))] transition-colors hover:bg-[rgb(var(--surface-2)/0.7)] hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] [-webkit-tap-highlight-color:transparent]";
+  "-mr-1.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors [button&]:border-0 [button&]:bg-transparent [button&]:text-[rgb(var(--text-secondary))] [button&]:hover:bg-[rgb(var(--surface-2)/0.7)] [button&]:hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] [-webkit-tap-highlight-color:transparent]";
 const SHEET_FOOTER_CLASSNAME =
   "shrink-0 border-t border-[rgb(var(--border-strong)/0.12)] px-4 pt-3 pb-[max(0.75rem,var(--app-safe-bottom))]";
 
@@ -134,6 +136,7 @@ export function Sheet({
   const [isRendered, setIsRendered] = useState(open);
   const shouldRender = open || isRendered;
   const reduceMotion = useReducedMotion();
+  const noticeSlotRef = useSheetNoticeSlotRef();
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -278,6 +281,9 @@ export function Sheet({
                 </button>
               ) : null}
             </div>
+            {/* Notices raised while this sheet is open land here (ToastProvider), in flow under the title, never under
+                the sheet layer. Registered only while open; empty = 0px. */}
+            <div ref={isPresent ? noticeSlotRef : undefined} data-sheet-notice-slot="" className="shrink-0" />
             {children !== undefined && children !== null && children !== false ? (
               <div className={cn(overlayChromeClassNames.body, footer ? "pb-3" : undefined, contentClassName)}>{children}</div>
             ) : null}

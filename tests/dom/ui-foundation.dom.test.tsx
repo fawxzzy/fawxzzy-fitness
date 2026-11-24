@@ -1,7 +1,9 @@
 import "./dom-env.ts";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test, { afterEach } from "node:test";
 import { useState } from "react";
+import { useToast } from "../../src/components/ui/ToastProvider.tsx";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AppProviders, createRouterSpy } from "./providers.tsx";
 import { AppButton } from "../../src/components/ui/AppButton.tsx";
@@ -255,4 +257,158 @@ test("FormField: an error goes to the in-flow notice (no red text), and clearing
 
   fireEvent.click(screen.getByRole("button", { name: "Fix" }));
   await waitFor(() => assert.ok(document.querySelector('[data-app-notice="error"]') === null, "the notice is dismissed"));
+});
+
+function SheetFieldHarness() {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      <Sheet open title="New routine" onClose={() => {}}>
+        <FormField label="New routine name" invalid={Boolean(error)} error={error}>
+          {(control) => <input {...control} defaultValue="Push Day" />}
+        </FormField>
+        <button type="button" onClick={() => setError("A routine with this name already exists.")}>Save</button>
+      </Sheet>
+    </>
+  );
+}
+
+test("Sheet: a notice raised from inside an open sheet renders inside the sheet, not under its layer", async () => {
+  withProviders(<SheetFieldHarness />);
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => assert.ok(document.querySelector('[data-app-notice="error"]') !== null, "the notice shows"));
+  const notice = document.querySelector('[data-app-notice="error"]');
+  assert.ok(notice?.textContent?.includes("A routine with this name already exists."));
+  assert.ok(notice?.closest("[data-sheet]") !== null, "the notice is inside the sheet panel");
+  assert.ok(notice?.closest("[data-sheet-notice-slot]") !== null, "in the sheet's notice slot under the title");
+});
+
+function ToastAfterCloseHarness() {
+  const [open, setOpen] = useState(true);
+  const toast = useToast();
+  return (
+    <>
+      <Sheet open={open} title="Choose a day" onClose={() => setOpen(false)}>
+        <p>Push Day</p>
+      </Sheet>
+      <button type="button" onClick={() => toast.success("Saved.")}>Notify</button>
+    </>
+  );
+}
+
+test("Sheet: once the sheet closes, notices go back to the screen (the slot is handed back)", async () => {
+  withProviders(<ToastAfterCloseHarness />);
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => assert.ok(document.querySelector("[data-sheet-root]") === null));
+  fireEvent.click(screen.getByRole("button", { name: "Notify" }));
+  await waitFor(() => assert.ok(document.querySelector("[data-app-notice]") !== null, "the notice shows"));
+  assert.ok(document.querySelector("[data-app-notice]")?.closest("[data-sheet]") === null, "not in a closed sheet");
+});
+
+function FocusReturnHarness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>Open day picker</button>
+      <Sheet open={open} title="Choose a day" onClose={() => setOpen(false)}>
+        <p>Push Day</p>
+      </Sheet>
+    </>
+  );
+}
+
+test("Sheet: focus returns to the opener after close", async () => {
+  render(<FocusReturnHarness />);
+  const opener = screen.getByRole("button", { name: "Open day picker" });
+  opener.focus();
+  fireEvent.click(opener);
+  const dialog = screen.getByRole("dialog", { name: "Choose a day" });
+  await waitFor(() => assert.ok(dialog.contains(document.activeElement), "focus moves into the sheet"));
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => assert.ok(document.activeElement === opener, "focus is back on the opener"));
+});
+
+function StackedSheetsHarness() {
+  const [lower, setLower] = useState(true);
+  const [upper, setUpper] = useState(true);
+  return (
+    <>
+      <Sheet open={lower} title="Lower" onClose={() => setLower(false)} />
+      <Sheet open={upper} title="Upper" onClose={() => setUpper(false)} />
+    </>
+  );
+}
+
+test("Sheet: the scroll lock holds while any stacked sheet is open and is released by the last one", async () => {
+  document.body.style.overflow = "";
+  render(<StackedSheetsHarness />);
+  assert.equal(document.body.style.overflow, "hidden");
+  fireEvent.keyDown(document, { key: "Escape" });
+  await waitFor(() => assert.ok(screen.queryAllByRole("dialog", { name: "Upper" }).length === 0));
+  assert.equal(document.body.style.overflow, "hidden", "the lower sheet still holds the lock");
+  fireEvent.keyDown(document, { key: "Escape" });
+  await waitFor(() => assert.ok(screen.queryAllByRole("dialog").length === 0));
+  await waitFor(() => assert.equal(document.body.style.overflow, "", "the last sheet releases the lock"));
+});
+
+test("Sheet: a scrim tap closes the sheet", () => {
+  let closes = 0;
+  render(<SheetHarness onClose={() => { closes += 1; }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Close Choose a day" }));
+  assert.equal(closes, 1);
+  assert.ok(screen.queryAllByRole("dialog").length === 0, "the sheet is closing");
+});
+
+test("Confirm: while isLoading, a double tap on Confirm, Cancel, Escape and a scrim tap do nothing", () => {
+  const events: string[] = [];
+  render(
+    <ConfirmDestructiveModal
+      open
+      isLoading
+      title="Delete routine"
+      objectName="Push Pull Legs"
+      confirmLabel="Delete"
+      onCancel={() => events.push("cancel")}
+      onConfirm={() => events.push("confirm")}
+    />,
+  );
+  const confirm = document.querySelector<HTMLButtonElement>("[data-confirm-modal-action='confirm']");
+  assert.ok(confirm && confirm.disabled && confirm.getAttribute("aria-busy") === "true");
+  fireEvent.click(confirm);
+  fireEvent.click(confirm);
+  const cancel = document.querySelector<HTMLButtonElement>("[data-confirm-modal-action='cancel']");
+  assert.ok(cancel && cancel.disabled);
+  fireEvent.click(cancel);
+  fireEvent.keyDown(document, { key: "Escape" });
+  const scrim = document.querySelector<HTMLButtonElement>("[data-sheet-root] > button");
+  assert.ok(scrim);
+  fireEvent.click(scrim);
+  assert.deepEqual(events, []);
+  assert.ok(screen.getByRole("dialog", { name: "Confirm delete" }));
+});
+
+function cssRule(css: string, selector: string) {
+  const start = css.indexOf(`${selector} {`);
+  assert.ok(start >= 0, `missing ${selector}`);
+  return css.slice(start, css.indexOf("}", start));
+}
+
+test("AppButton looks: primary is an accent fill, secondary a grey keyline surface, quiet has no keyline or fill", () => {
+  const css = readFileSync(new URL("../../src/app/globals.css", import.meta.url), "utf8");
+  const primary = cssRule(css, ".action-chrome.app-button-primary");
+  assert.match(primary, /--action-chrome-border-color: rgb\(var\(--accent-strong\) \/ 0\.8\d\)/);
+  assert.match(primary, /linear-gradient\(rgb\(var\(--accent\) \/ 0\.42\)/);
+  const secondary = cssRule(css, ".action-chrome.app-button-secondary");
+  assert.match(secondary, /--action-chrome-border-color: rgb\(var\(--text-secondary\) \/ 0\.34\)/);
+  assert.match(secondary, /background: rgb\(var\(--surface-3-rgb\)/);
+  const quiet = cssRule(css, ".action-chrome.app-button-tertiary");
+  assert.match(quiet, /--action-chrome-border-color: transparent;/);
+  assert.match(quiet, /background: transparent;/);
+  assert.match(quiet, /--action-chrome-text-color: rgb\(var\(--text-secondary\)\);/);
+  const pressed = cssRule(css, ".action-chrome.app-button-tertiary:active:not(:disabled)");
+  assert.match(pressed, /text-decoration: none;/);
+  // The markers the CSS keys on stay on the rendered classes.
+  assert.match(getAppButtonClassName({ variant: "primary" }), /\bapp-button-primary\b/);
+  assert.match(getAppButtonClassName({ variant: "secondary" }), /\bapp-button-secondary\b/);
+  assert.match(getAppButtonClassName({ variant: "quiet" }), /\bapp-button-tertiary\b/);
 });

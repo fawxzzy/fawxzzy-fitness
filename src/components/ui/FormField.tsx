@@ -37,7 +37,8 @@ export function FormField({
   className?: string;
   shellClassName?: string;
   helper?: ReactNode;
-  error?: ReactNode;
+  /** The error text. It goes to the shared notice, so it must be a plain string (a ReactNode could not be shown). */
+  error?: string | null;
   invalid?: boolean;
 }) {
   const generatedId = useId();
@@ -66,7 +67,7 @@ export function FormField({
         {children(control)}
       </div>
       {/* Always mounted, so clearing the error also dismisses its notice. */}
-      <FieldNotice error={typeof error === "string" ? error : null} id={fieldNoticeId(controlId)} />
+      <FieldNotice error={error ?? null} id={fieldNoticeId(controlId)} />
       {hasError ? (
         // Announced by the notice; this copy only backs aria-describedby, so it is visually hidden.
         <p id={messageId} className="sr-only" data-form-field-error="">{error}</p>
