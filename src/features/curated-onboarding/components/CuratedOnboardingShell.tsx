@@ -13,6 +13,9 @@ import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDock
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
 import { RouteLoading } from "@/components/RouteLoading";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useFieldNotice } from "@/components/ui/FieldNotice";
+import { Menu } from "@/components/ui/Menu";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
@@ -62,6 +65,7 @@ import type {
   CuratedIntakeResponse,
   CuratedIntakeResponses,
   CuratedOnboardingData,
+  CuratedGenerationStatus,
   CuratedOnboardingState,
   CuratedStepId,
 } from "../types.ts";
@@ -78,7 +82,23 @@ type CuratedOnboardingShellProps = {
   userName: string;
   requestedDraftId?: string | null;
   previewOnly?: boolean;
+  /**
+   * Dev QA only (needs `previewOnly`): open straight on the generation hand-off page with a fixed outcome, so the
+   * ready, blocked, failed and create-notice screens can be captured without the server actions.
+   */
+  previewHandoff?: CuratedPreviewHandoff;
 };
+
+export type CuratedPreviewHandoff = {
+  status: CuratedGenerationStatus;
+  plan: CuratedWorkoutPlan | null;
+  failure: CuratedHandoffFailure | null;
+  notice: string | null;
+};
+
+// "Build manually" and "Create editable draft" are two full labels: a 0.85/1.15 split keeps both labels on one line
+// (the default 0.92fr/1.78fr split wraps it to two lines at 390px).
+const HANDOFF_SPLIT_CLASS_NAME = "!grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type CompletionSource = "fresh" | "resumed";
@@ -114,7 +134,9 @@ export function CuratedOnboardingShell({
   userName,
   requestedDraftId,
   previewOnly = false,
+  previewHandoff,
 }: CuratedOnboardingShellProps) {
+  const previewHandoffRef = useRef(previewOnly ? previewHandoff : undefined);
   const router = useRouter();
   const [state, dispatch] = useReducer(curatedOnboardingReducer, undefined, () => createCuratedOnboardingState());
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -124,6 +146,8 @@ export function CuratedOnboardingShell({
   const [generatedPlan, setGeneratedPlan] = useState<CuratedWorkoutPlan | null>(null);
   const [failure, setFailure] = useState<CuratedHandoffFailure | null>(null);
   const [createNotice, setCreateNotice] = useState<string | null>(null);
+  const [confirmStartOver, setConfirmStartOver] = useState(false);
+  const saveNotice = useFieldNotice("curated-onboarding:save", { persistent: true });
   const [isCreatingDraft, startCreatingDraft] = useTransition();
   const journeyTrackedRef = useRef(false);
   const completionTrackedRef = useRef(false);
@@ -144,6 +168,24 @@ export function CuratedOnboardingShell({
   }, [completionSource]);
 
   useEffect(() => {
+    const handoffPreview = previewHandoffRef.current;
+    if (handoffPreview) {
+      const base = withCuratedIdentity(createCuratedOnboardingState(), userEmail, userName);
+      dispatch({
+        type: "hydrate",
+        state: {
+          ...base,
+          draft: { ...base.draft, stepId: "generation-handoff" },
+          lifecycle: { ...base.lifecycle, intakeStatus: "completed", generationStatus: handoffPreview.status, completedAt: nowIso() },
+        },
+      });
+      setGeneratedPlan(handoffPreview.plan);
+      setFailure(handoffPreview.failure);
+      setCreateNotice(handoffPreview.notice);
+      setHasHydrated(true);
+      return;
+    }
+
     const savedState = loadCuratedOnboardingState(userId);
 
     if (savedState) {
@@ -212,6 +254,17 @@ export function CuratedOnboardingShell({
       }
     };
   }, [hasHydrated, state, userId]);
+
+  // A failed autosave is reported in the in-flow notice (never red text on the page) and clears when a save works.
+  const reportSaveNotice = saveNotice.report;
+  const clearSaveNotice = saveNotice.clear;
+  useEffect(() => {
+    if (saveState === "error") {
+      reportSaveNotice("Changes could not be saved. Try again before leaving this page.");
+    } else if (saveState === "saved") {
+      clearSaveNotice();
+    }
+  }, [clearSaveNotice, reportSaveNotice, saveState]);
 
   useEffect(() => {
     if (!hasHydrated || state.lifecycle.intakeStatus !== "completed" || completionTrackedRef.current) {
@@ -326,6 +379,8 @@ export function CuratedOnboardingShell({
   }
 
   function handleReset() {
+    setConfirmStartOver(false);
+    saveNotice.clear();
     resetCuratedOnboardingProgress(userId);
     journeyTrackedRef.current = false;
     completionTrackedRef.current = false;
@@ -478,7 +533,7 @@ export function CuratedOnboardingShell({
     <BottomDockButton
       type="button"
       intent="positive"
-      disabled={previewOnly || !generatedPlan || state.lifecycle.generationStatus !== "ready"}
+      disabled={(previewOnly && !previewHandoff) || !generatedPlan || state.lifecycle.generationStatus !== "ready"}
       loading={generationIsLoading}
       loadingLabel={isCreatingDraft ? "Creating editable draft" : "Building routine"}
       onClick={handleCreateDraft}
@@ -500,9 +555,10 @@ export function CuratedOnboardingShell({
   const bottomActions = isGenerationStep ? (
     failure ? (
       handoffActions.primary === "build-manually" ? (
-        <BottomActionSplit secondary={editSetupButton("toggleInactive")} primary={primaryManualLink} />
+        <BottomActionSplit className={HANDOFF_SPLIT_CLASS_NAME} secondary={editSetupButton("toggleInactive")} primary={primaryManualLink} />
       ) : (
         <BottomActionSplit
+          className={HANDOFF_SPLIT_CLASS_NAME}
           secondary={manualRoutineLink}
           primary={handoffActions.primary === "try-again" ? (
             <BottomDockButton type="button" intent="positive" onClick={handleRetryGeneration}>
@@ -512,7 +568,7 @@ export function CuratedOnboardingShell({
         />
       )
     ) : createNotice ? (
-      <BottomActionSplit secondary={manualRoutineLink} primary={createDraftButton} />
+      <BottomActionSplit className={HANDOFF_SPLIT_CLASS_NAME} secondary={manualRoutineLink} primary={createDraftButton} />
     ) : (
       <BottomActionSingle>{createDraftButton}</BottomActionSingle>
     )
@@ -561,13 +617,10 @@ export function CuratedOnboardingShell({
             title="Routine setup"
             back={<ScreenHeaderBackButton href="/today" historyBehavior="fallback-only" label="Back to Today" />}
             trailing={(
-              <button
-                type="button"
-                onClick={handleReset}
-                className="inline-flex min-h-11 items-center !border-0 !bg-transparent px-2 text-sm font-semibold !text-[rgb(var(--danger-rgb))]"
-              >
-                Start over
-              </button>
+              <Menu
+                label="Setup options"
+                items={[{ id: "start-over", label: "Start over", tone: "danger", onSelect: () => setConfirmStartOver(true) }]}
+              />
             )}
           />
         )}
@@ -588,6 +641,11 @@ export function CuratedOnboardingShell({
                   id: stepId,
                   label: getCuratedStepDefinition(stepId).eyebrow,
                   available: canAccessCuratedStep(stepId, state.draft.data),
+                  status: getCuratedIntakeSection(stepId)
+                    ? getMissingRequiredQuestionIds(stepId, state.draft.data.intakeResponses).length > 0
+                      ? "needs-answers"
+                      : "complete"
+                    : null,
                 }))}
                 onStepSelect={(stepId: CuratedStepId) => {
                   dispatch({ type: "go-to-step", stepId, at: nowIso() });
@@ -595,14 +653,11 @@ export function CuratedOnboardingShell({
               />
             ) : null}
 
-            <h2 className="px-1 text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary))]">
-              {stepDefinition.title}
-            </h2>
-
-            {saveState === "error" ? (
-              <p role="alert" className="px-2 text-center text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
-                Changes could not be saved. Try again before leaving this page.
-              </p>
+            {/* The progress card already names the page; repeat it as a heading only when the title says more. */}
+            {isGenerationStep || stepDefinition.title !== stepDefinition.eyebrow ? (
+              <h2 className="px-1 text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary))]">
+                {stepDefinition.title}
+              </h2>
             ) : null}
 
             {missingRequestedDraft ? (
@@ -623,6 +678,15 @@ export function CuratedOnboardingShell({
           </ScreenScaffold>
         </ContentRail>
       </MobileScreenScaffold>
+      <ConfirmDestructiveModal
+        open={confirmStartOver}
+        title="Start over"
+        objectName="Routine setup"
+        consequenceText="This clears every answer saved on this device and returns to the first page."
+        confirmLabel="Start over"
+        onCancel={() => setConfirmStartOver(false)}
+        onConfirm={handleReset}
+      />
     </AppShell>
   );
 }
