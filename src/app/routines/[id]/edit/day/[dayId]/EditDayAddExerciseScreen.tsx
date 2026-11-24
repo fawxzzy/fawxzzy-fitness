@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -10,7 +10,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { ProgressionPlaybookId } from "@/lib/progression-playbooks";
 import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
-import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
+import { useFieldNotice } from "@/components/ui/FieldNotice";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
@@ -88,9 +88,20 @@ export function EditDayAddExerciseScreen({
   const [workoutPlanDecisionOpen, setWorkoutPlanDecisionOpen] = useState(false);
   const [workoutPlanDecisionMode, setWorkoutPlanDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
   const [workoutPlanDecisionName, setWorkoutPlanDecisionName] = useState("");
-  const [workoutPlanDecisionError, setWorkoutPlanDecisionError] = useState<string | null>(null);
+  const [workoutPlanDecisionError, setWorkoutPlanDecisionErrorState] = useState<string | null>(null);
   // Errors from the shared-day choice go through the in-flow notice system (shown in the sheet), never as red text.
-  useFieldErrorNotice(workoutPlanDecisionError, { id: "add-exercise-plan-decision" });
+  // The notice is reported on every call, not only when the message text changes, so the same error repeated after
+  // the 6 s notice has gone shows again.
+  const { report: reportDecisionNotice, clear: clearDecisionNotice } = useFieldNotice("add-exercise-plan-decision");
+  const setWorkoutPlanDecisionError = (message: string | null) => {
+    setWorkoutPlanDecisionErrorState(message);
+    if (message) {
+      reportDecisionNotice(message);
+    } else {
+      clearDecisionNotice();
+    }
+  };
+  useEffect(() => clearDecisionNotice, [clearDecisionNotice]);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [activeWorkoutPlanId, setActiveWorkoutPlanId] = useState<string | null>(workoutPlanId);
   const [requiresWorkoutPlanDecision, setRequiresWorkoutPlanDecision] = useState(requiresWorkoutPlanEditDecision);

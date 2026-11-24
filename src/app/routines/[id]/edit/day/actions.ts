@@ -561,6 +561,8 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
   };
   const selectedProgression = selectedProgressionPlaybook(parsedPayload.payload);
   let error = null;
+  // The plan-template row THIS call inserted (sync path only), so a later failure can undo exactly it.
+  let insertedTemplateExerciseId: string | null = null;
 
   if (shouldSyncTemplate && templateSyncContext.routineDay.workout_plan_template_id) {
     const templateInsertPayload = {
@@ -578,6 +580,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     if (templateInsertResult.error) {
       error = templateInsertResult.error;
     } else {
+      insertedTemplateExerciseId = templateInsertResult.data.id;
       for (const linkedRoutineDayId of templateSyncContext.linkedRoutineDayIds) {
         const linkedInsertPayload = {
           user_id: user.id,
@@ -608,6 +611,22 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
       selectedProgression,
     });
     error = insertResult.error;
+  }
+
+  if (error && insertedTemplateExerciseId) {
+    // The plan row and any day rows already linked to it were written before a later linked-day insert failed. Undo
+    // exactly this call's rows (by the id returned from this call's insert, scoped to the member) so no half-synced
+    // plan is left pointing at an exercise that is about to be deleted (there is no foreign key to stop that).
+    await supabase
+      .from("routine_day_exercises")
+      .delete()
+      .eq("workout_plan_template_exercise_id", insertedTemplateExerciseId)
+      .eq("user_id", user.id);
+    await supabase
+      .from("workout_plan_template_exercises")
+      .delete()
+      .eq("id", insertedTemplateExerciseId)
+      .eq("user_id", user.id);
   }
 
   if (error && createdCustomExerciseId) {

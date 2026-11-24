@@ -378,3 +378,38 @@ test("routine add: a plan shared by several days only syncs the template when th
   assert.deepEqual(await sync.addRoutineDayExerciseAction(routineFields({ workoutPlanTemplateSyncMode: "sync" })), { ok: true });
   assert.deepEqual(sync.inserts.map((entry) => entry.routineDayId), ["day-1", "day-2"]);
 });
+
+test("routine add: a failed linked-day insert after the plan row was written undoes this call's plan row and linked rows, then the custom exercise", async () => {
+  const day = { id: "day-1", workout_plan_template_id: "plan-1" };
+  const other = { id: "day-2", workout_plan_template_id: "plan-1" };
+  const respond = (call) => {
+    if (call.table === "workout_plan_template_exercises" && call.op === "insert") return { data: { id: "tpl-ex-9" }, error: null };
+    if (call.table === "exercises" && call.op === "insert") return { data: { id: "custom-9" }, error: null };
+    return undefined;
+  };
+  const args = {
+    respond,
+    dayResult: { data: day, error: null },
+    daysResult: { data: [day, other], error: null },
+    // The first linked day is written, the second fails.
+    insertResults: [{ data: { id: "row-1" }, error: null }, { data: null, error: { message: "linked insert failed" } }],
+  };
+
+  const custom = loadRoutineAction(args);
+  const result = await custom.addRoutineDayExerciseAction(routineCustomFields({ workoutPlanTemplateSyncMode: "sync" }));
+  assert.deepEqual(result, { ok: false, error: "linked insert failed" });
+  const deletes = custom.calls.filter((call) => call.op === "delete");
+  assert.deepEqual(deletes.map((call) => call.table), ["routine_day_exercises", "workout_plan_template_exercises", "exercises"], "plan rows go before the exercise they point at");
+  assert.deepEqual(deletes[0].filters.filter(([name]) => name === "eq"), [["eq", "workout_plan_template_exercise_id", "tpl-ex-9"], ["eq", "user_id", "user-1"]]);
+  assert.deepEqual(deletes[1].filters.filter(([name]) => name === "eq"), [["eq", "id", "tpl-ex-9"], ["eq", "user_id", "user-1"]]);
+
+  // The same cleanup applies with a library exercise (a generic error): the plan row is undone, no exercise is deleted.
+  const library = loadRoutineAction({ ...args, insertResults: [{ data: { id: "row-1" }, error: null }, { data: null, error: { message: "linked insert failed" } }] });
+  assert.deepEqual(await library.addRoutineDayExerciseAction(routineFields({ workoutPlanTemplateSyncMode: "sync" })), { ok: false, error: "linked insert failed" });
+  assert.deepEqual(library.calls.filter((call) => call.op === "delete").map((call) => call.table), ["routine_day_exercises", "workout_plan_template_exercises"]);
+
+  // A failure before any plan row exists deletes no plan rows.
+  const noPlan = loadRoutineAction({ ...args, respond: (call) => (call.table === "workout_plan_template_exercises" && call.op === "insert" ? { data: null, error: { message: "plan insert failed" } } : undefined) });
+  assert.deepEqual(await noPlan.addRoutineDayExerciseAction(routineFields({ workoutPlanTemplateSyncMode: "sync" })), { ok: false, error: "plan insert failed" });
+  assert.equal(noPlan.calls.some((call) => call.op === "delete"), false);
+});
