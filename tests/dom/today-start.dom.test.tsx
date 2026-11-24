@@ -76,7 +76,8 @@ test("Today: a failed start shows the error and does not navigate", async () => 
 
   assert.ok(await screen.findByText("No routine day is active."));
   assert.deepEqual(calls.push, []);
-  assert.ok(screen.getByRole("button", { name: "Start Workout" }), "the button is usable again");
+  // The error notice fires inside the start transition; the busy state clears when the transition ends, a tick later.
+  assert.ok(await screen.findByRole("button", { name: "Start Workout" }), "the button is usable again");
 });
 
 test("Today: a failed resume clears the stale hint, shows the error and refreshes the page", async () => {
