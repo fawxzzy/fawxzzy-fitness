@@ -89,7 +89,7 @@ function getMetricArrowToneClassName(value: string) {
         }
       }
       if (sawIncrease && !sawDecrease) return "text-[rgb(var(--success-rgb)/0.94)]";
-      if (sawDecrease && !sawIncrease) return "text-[rgb(255,116,116)]";
+      if (sawDecrease && !sawIncrease) return "text-[rgb(var(--danger-rgb))]";
       if (!sawIncrease && !sawDecrease) return "text-[rgb(var(--accent-yellow-on)/0.96)]";
     }
   }
@@ -98,7 +98,7 @@ function getMetricArrowToneClassName(value: string) {
     return "text-[rgb(var(--accent-yellow-on)/0.96)]";
   }
   if (/\b(reduced|removed|regression|regressed|revert|reverted|deload|decreased|down|below|slipped)\b/.test(normalized)) {
-    return "text-[rgb(255,116,116)]";
+    return "text-[rgb(var(--danger-rgb))]";
   }
   if (/\b(increased|added|promotion|promoted|improved|up|new best|pr)\b/.test(normalized)) {
     return "text-[rgb(var(--success-rgb)/0.94)]";
@@ -421,7 +421,7 @@ function resolveMetricValueToneClassName(tone: MetricDatum["valueTone"]) {
     case "success":
       return "text-[rgb(var(--success-rgb)/0.94)]";
     case "danger":
-      return "text-[rgb(255,116,116)]";
+      return "text-[rgb(var(--danger-rgb))]";
     case "warning":
       return "text-[rgb(var(--accent-yellow-on)/0.96)]";
     case "muted":

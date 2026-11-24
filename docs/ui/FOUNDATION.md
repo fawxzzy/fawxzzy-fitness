@@ -111,7 +111,7 @@ path), so one implementation serves every screen.
 | Hand-rolled kebab popover | `Menu` |
 | `Pill`, `PillButton`, `AppBadge` | `Chip`, `ChipButton` |
 | `<p className="text-[rgb(var(--danger-rgb))]">{error}</p>` | `FormField error` or `useFieldNotice().report` |
-| `--accent-red`, `--danger-text-rgb` | `--danger-rgb` |
+| `--accent-red`, `--danger-text-rgb`, `rgb(255,116,116)` | `--danger-rgb` |
 | `--accent-mint`, `--accent-blue`, `--accent-purple` | `--accent` / `--success-rgb` |
 | `z-[120]` literals | `--z-sheet` |
 
@@ -120,6 +120,10 @@ path), so one implementation serves every screen.
 - Routines: the Add Day modal (`RoutineHomeClient`) and the New routine chooser (`CreateRoutineClient`) are Sheets.
 - `ConfirmDestructiveModal` and `BottomSheet` run on `Sheet`.
 - The toast dismiss is a real 44x44 target.
+- `StatGrid`, `MetricItem` and `ExerciseInfoSheet` decrease/regression text uses `--danger-rgb` instead of the
+  hard-coded `rgb(255,116,116)`.
+- `showDetailsInDeleteLayout` (added by the History redesign) is still accepted by `ConfirmDestructiveModal`; the Sheet
+  confirm always shows the consequence, so it has no effect.
 
 ## Still to migrate (owned by later section lanes)
 
