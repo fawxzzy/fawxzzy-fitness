@@ -3,7 +3,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getSessionStartErrorMessage } from "@/lib/runnable-day";
-import { createSessionAtomicallyFromDay } from "@/lib/session-start-activation";
+import { createSessionAtomicallyFromDay, type StartedSession } from "@/lib/session-start-activation";
 import { formatRoutineDayDisplayName, getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
@@ -20,7 +20,7 @@ type SessionStartContext = {
   context: string;
 };
 
-async function createSessionFromDay(context: SessionStartContext): Promise<ActionResult<{ sessionId: string }>> {
+async function createSessionFromDay(context: SessionStartContext): Promise<ActionResult<StartedSession>> {
   const { supabase, userId, routineId, routineName, routineStartDate, day, context: logContext } = context;
 
   const { data: templateExercises, error: templateError } = await supabase
@@ -124,7 +124,7 @@ export async function startSessionForActiveRoutineDay(payload?: { dayIndex?: num
   });
 }
 
-export async function startSessionForRoutineDay(payload: { routineId: string; dayId: string }): Promise<ActionResult<{ sessionId: string }>> {
+export async function startSessionForRoutineDay(payload: { routineId: string; dayId: string }): Promise<ActionResult<StartedSession>> {
   const user = await requireUser();
   const supabase = await supabaseServer();
   await ensureProfile(user.id);

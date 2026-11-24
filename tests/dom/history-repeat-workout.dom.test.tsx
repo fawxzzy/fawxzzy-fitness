@@ -10,6 +10,8 @@ import {
   REPEAT_WORKOUT_IN_PROGRESS_MESSAGE,
   REPEAT_WORKOUT_NO_DAY_MESSAGE,
   REPEAT_WORKOUT_OFFLINE_MESSAGE,
+  REPEAT_WORKOUT_ROUTINE_INACTIVE_MESSAGE,
+  getRepeatWorkoutAvailability,
 } from "../../src/lib/repeat-workout.ts";
 
 // History session detail "Repeat workout": posts the finished session's id, opens the NEW session, routes to a live
@@ -149,6 +151,25 @@ test("Repeat workout: an ad-hoc workout shows a disabled button with the plain r
   const button = screen.getByRole("button", { name: "Repeat workout" }) as HTMLButtonElement;
   assert.equal(button.disabled, true);
   assert.ok(screen.getByText(REPEAT_WORKOUT_NO_DAY_MESSAGE));
+  assert.notEqual(button.getAttribute("aria-describedby"), null, "the reason is attached to the button");
+  fireEvent.click(button);
+  assert.equal(fetchCalls.length, 0);
+  assert.deepEqual(calls.push, []);
+});
+
+test("Repeat workout: a workout from an inactive routine shows the switch-routine reason on a disabled button and never sends", () => {
+  stubFetch(() => ({ status: 200, json: { ok: true, data: { sessionId: "s-new", resumed: false } } }));
+  // The page derives the card props from the session row and the profile's active routine, exactly like this.
+  const availability = getRepeatWorkoutAvailability({ routine_id: "r-old", routine_day_index: 1 }, "r-current");
+  assert.equal(availability.available, false);
+  const calls = renderCard(
+    availability.available ? { available: true } : { available: false, unavailableReason: availability.reason },
+  );
+
+  const button = screen.getByRole("button", { name: "Repeat workout" }) as HTMLButtonElement;
+  assert.equal(button.disabled, true);
+  assert.ok(screen.getByText("This workout belongs to a routine that isn't active. Switch to it in Routines to repeat it."));
+  assert.ok(screen.getByText(REPEAT_WORKOUT_ROUTINE_INACTIVE_MESSAGE));
   assert.notEqual(button.getAttribute("aria-describedby"), null, "the reason is attached to the button");
   fireEvent.click(button);
   assert.equal(fetchCalls.length, 0);

@@ -553,7 +553,7 @@ export default async function HistoryLogDetailsPage(props: PageProps) {
           recapArtifact={toClientPlainObject(recapArtifact)}
           backHref={backHref}
           exercises={clientExercises}
-          repeatWorkout={getRepeatWorkoutAvailability(sessionRow)}
+          repeatWorkout={getRepeatWorkoutAvailability(sessionRow, profile.active_routine_id)}
         />
       </HistoryRouteScaffold>
     );

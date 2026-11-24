@@ -10,7 +10,7 @@ import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurf
 import { RepeatWorkoutCard } from "@/components/history/RepeatWorkoutCard";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
-import { REPEAT_WORKOUT_NO_DAY_MESSAGE } from "@/lib/repeat-workout";
+import { REPEAT_WORKOUT_NO_DAY_MESSAGE, REPEAT_WORKOUT_ROUTINE_INACTIVE_MESSAGE } from "@/lib/repeat-workout";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
 import { getHistoryPreviewExerciseRows, getHistoryPreviewSessionsPageData } from "@/lib/history-preview-fixtures";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
@@ -114,9 +114,10 @@ export function HistoryCardsGallery() {
         <HistoryDetailExerciseCard exercise={{ name: "Plank" }} summary="1:00" summaryLabel="Top Set" metaItems={["3/3 sets"]} />
       </Section>
 
-      <Section title="Repeat workout (session detail)" note="Starts a new workout for the same day with current goals. A workout with no routine day shows the reason and a disabled button.">
+      <Section title="Repeat workout (session detail)" note="Starts a new workout for the same day with current goals. A workout with no routine day, or from a routine that is not active, shows the reason and a disabled button.">
         <RepeatWorkoutCard sessionId="preview-session" dayLabel="Push Day" available />
         <RepeatWorkoutCard sessionId="preview-adhoc" dayLabel="Workout" available={false} unavailableReason={REPEAT_WORKOUT_NO_DAY_MESSAGE} />
+        <RepeatWorkoutCard sessionId="preview-inactive" dayLabel="Push Day" available={false} unavailableReason={REPEAT_WORKOUT_ROUTINE_INACTIVE_MESSAGE} />
       </Section>
 
       <Section title="Exercise browser rows" note="Header opens the exercise. Compact and detailed.">
