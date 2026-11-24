@@ -1,23 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { updateQaLlelVisibilityAction } from "@/app/settings/actions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
+import { useIsOnline } from "@/components/session/useIsOnline";
 import { SettingsCard } from "@/components/settings/SettingsCard";
-import { CardMeta, StatBlock } from "@/components/ui/card-system";
+import { SettingsLoadState } from "@/components/settings/SettingsLoadState";
+import { SettingsSwitchCard } from "@/components/settings/SettingsSwitchCard";
+import { AppButton } from "@/components/ui/AppButton";
+import { CardMeta, CardNotice, StatBlock } from "@/components/ui/card-system";
+import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
+import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { buildAccountStorageSnapshot } from "@/lib/account-storage-model";
 import { cn } from "@/lib/cn";
+import {
+  DEFAULT_EXPORT_PREFERENCES,
+  readStoredExportPreferences,
+  writeStoredExportPreferences,
+  type ExportFileType,
+  type ExportScope,
+} from "@/lib/export-preferences";
 import { resolveShowQaLlelDataPreference } from "@/lib/qa-data-visibility";
 import type { ProfileRow } from "@/types/db";
 
-type ExportFileType = "csv" | "json" | "xlsx";
-type ExportScope = "all" | "history" | "routines";
+type SaveQaVisibilityResult = { ok: true } | { ok: false; error: string };
 type ExportPreview = {
   fileType: ExportFileType;
   scope: ExportScope;
@@ -66,6 +73,11 @@ type ExportPreview = {
 };
 
 const NETWORK_ERROR_COPY = "Could not reach the server. Check your connection and try again.";
+
+/** The server action, behind a function so a test can hand the section its own save. */
+function saveQaVisibilityWithServerAction(formData: FormData): Promise<SaveQaVisibilityResult> {
+  return updateQaLlelVisibilityAction(formData);
+}
 
 const FILE_TYPE_OPTIONS: Array<{ value: ExportFileType; label: string }> = [
   { value: "xlsx", label: "Excel (.xlsx)" },
@@ -147,12 +159,15 @@ export function DataSettingsSection({
   showQaLlelData,
   initialExportDateFrom,
   initialExportDateTo,
+  saveQaVisibility = saveQaVisibilityWithServerAction,
 }: {
   canAccessQaLlelUi: boolean;
   userKind: ProfileRow["user_kind"];
   showQaLlelData?: boolean | null;
   initialExportDateFrom: string;
   initialExportDateTo: string;
+  /** Stores the QA visibility choice. Defaults to the server action; tests pass their own. */
+  saveQaVisibility?: (formData: FormData) => Promise<SaveQaVisibilityResult>;
 }) {
   const initialShowQaLlelData = useMemo(() => resolveShowQaLlelDataPreference({
     show_qa_llel_data: showQaLlelData ?? null,
@@ -160,8 +175,12 @@ export function DataSettingsSection({
   }), [showQaLlelData, userKind]);
   const [qaVisible, setQaVisible] = useState(initialShowQaLlelData);
   const [savedQaVisible, setSavedQaVisible] = useState(initialShowQaLlelData);
-  const [exportType, setExportType] = useState<ExportFileType>("csv");
-  const [exportScope, setExportScope] = useState<ExportScope>("all");
+  const [exportType, setExportType] = useState<ExportFileType>(DEFAULT_EXPORT_PREFERENCES.fileType);
+  const [exportScope, setExportScope] = useState<ExportScope>(DEFAULT_EXPORT_PREFERENCES.scope);
+  // The saved export choices load after hydration (localStorage is not on the server), then every change is stored.
+  const [exportPrefsLoaded, setExportPrefsLoaded] = useState(false);
+  const [previewAttempt, setPreviewAttempt] = useState(0);
+  const isOnline = useIsOnline();
   const [exportName, setExportName] = useState("");
   const [dateFrom, setDateFrom] = useState(initialExportDateFrom);
   const [dateTo, setDateTo] = useState(initialExportDateTo);
@@ -171,6 +190,9 @@ export function DataSettingsSection({
   const [exportPreviewError, setExportPreviewError] = useState<string | null>(null);
   const [isLoadingExportPreview, setIsLoadingExportPreview] = useState(true);
   const toast = useToast();
+  // A failed load is announced once in the in-flow notice (never red text in the card); Retry sends it again.
+  useFieldErrorNotice(exportPreviewError, { id: "export-preview-error" });
+  const retryPreview = useCallback(() => setPreviewAttempt((attempt) => attempt + 1), []);
 
   const storageSnapshot = useMemo(() => (
     exportPreview ? buildAccountStorageSnapshot(exportPreview) : null
@@ -218,6 +240,22 @@ export function DataSettingsSection({
   }, [exportPreview, storageSnapshot]);
 
   useEffect(() => {
+    const stored = readStoredExportPreferences();
+    setExportType(stored.fileType);
+    setExportScope(stored.scope);
+    setExportPrefsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!exportPrefsLoaded) return;
+    writeStoredExportPreferences({ fileType: exportType, scope: exportScope });
+  }, [exportPrefsLoaded, exportScope, exportType]);
+
+  useEffect(() => {
+    // Wait for the saved choices, and for a connection: offline there is nothing to ask the server.
+    if (!exportPrefsLoaded || !isOnline) {
+      return;
+    }
     const controller = new AbortController();
 
     async function loadExportPreview() {
@@ -262,14 +300,15 @@ export function DataSettingsSection({
     void loadExportPreview();
 
     return () => controller.abort();
-  }, [dateFrom, dateTo, exportScope, exportType]);
+  }, [dateFrom, dateTo, exportPrefsLoaded, exportScope, exportType, isOnline, previewAttempt]);
 
-  const saveQaVisibility = (nextQaVisible: boolean) => {
+  const changeQaVisibility = (nextQaVisible: boolean) => {
+    setQaVisible(nextQaVisible);
     startQaVisibilitySave(async () => {
       const formData = new FormData();
       formData.set("showQaLlelData", nextQaVisible ? "1" : "0");
 
-      const result = await updateQaLlelVisibilityAction(formData);
+      const result = await saveQaVisibility(formData);
       if (!result.ok) {
         setQaVisible(savedQaVisible);
         toast.error(result.error, { id: "qa-visibility-error" });
@@ -323,49 +362,38 @@ export function DataSettingsSection({
     });
   };
 
+  // What a card shows in place of its data: loading, offline, or failed (the failure text itself is in the notice).
+  const renderUnavailable = (subject: string) => {
+    if (isLoadingExportPreview && isOnline) {
+      return <SettingsLoadState kind="loading">Loading {subject}...</SettingsLoadState>;
+    }
+    if (!isOnline) {
+      return <SettingsLoadState kind="offline">You are offline. Reconnect to load your {subject}.</SettingsLoadState>;
+    }
+    return (
+      <SettingsLoadState kind="error" onRetry={retryPreview}>
+        Could not load your {subject}.
+      </SettingsLoadState>
+    );
+  };
+
   return (
     <div className="space-y-3">
-      <PublishBottomActions>
-        {canAccessQaLlelUi ? (
-          <BottomActionSplit
-            secondary={(
-              <button
-                type="button"
-                className={getAppButtonClassName({ variant: qaVisible ? "secondary" : "tertiary", fullWidth: true })}
-                disabled={isSavingQaVisible}
-                onClick={() => {
-                  const nextQaVisible = !qaVisible;
-                  setQaVisible(nextQaVisible);
-                  saveQaVisibility(nextQaVisible);
-                }}
-              >
-                {isSavingQaVisible ? "Saving..." : qaVisible ? "Hide QA" : "Show QA"}
-              </button>
-            )}
-            primary={(
-              <button
-                type="button"
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-                disabled={isExporting}
-                onClick={runExport}
-              >
-                {isExporting ? "Preparing..." : "Export"}
-              </button>
-            )}
-          />
-        ) : (
-          <BottomActionSingle>
-            <button
-              type="button"
-              className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-              disabled={isExporting}
-              onClick={runExport}
-            >
-              {isExporting ? "Preparing..." : "Export"}
-            </button>
-          </BottomActionSingle>
-        )}
-      </PublishBottomActions>
+      {!isOnline ? (
+        <CardNotice tone="attention">You are offline. Your snapshot and export need a connection.</CardNotice>
+      ) : null}
+
+      {canAccessQaLlelUi ? (
+        <SettingsSwitchCard
+          title="QA data"
+          meta={<CardMeta items={[qaVisible ? "Shown in History and totals" : "Hidden from History and totals"]} />}
+          checked={qaVisible}
+          ariaLabel="Show QA data"
+          saving={isSavingQaVisible}
+          onChange={changeQaVisibility}
+          data-settings-qa-switch="true"
+        />
+      ) : null}
 
       <SettingsCard
         title="Stored snapshot"
@@ -381,11 +409,9 @@ export function DataSettingsSection({
           />
         )}
       >
-        {isLoadingExportPreview ? (
-          <p className="m-0 text-sm text-[rgb(var(--text-secondary)/0.95)]" role="status">Loading stored snapshot...</p>
-        ) : exportPreviewError ? (
-          <p className="m-0 text-sm text-[rgb(var(--danger-text-rgb)/0.96)]" role="alert">{exportPreviewError}</p>
-        ) : storageSnapshot ? (
+        {!storageSnapshot ? (
+          renderUnavailable("stored snapshot")
+        ) : (
           <>
             {storageSections.map((section) => (
               <div key={section.title} className="space-y-2">
@@ -416,7 +442,7 @@ export function DataSettingsSection({
               ))}
             </ul>
           </>
-        ) : null}
+        )}
       </SettingsCard>
 
       <SettingsCard title="Export">
@@ -433,7 +459,7 @@ export function DataSettingsSection({
           )}
         </FormField>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
           <FormField label="From">
             {(control) => (
               <input
@@ -460,14 +486,16 @@ export function DataSettingsSection({
 
         <OptionTiles legend="Type" name="export-file-type" options={FILE_TYPE_OPTIONS} value={exportType} onChange={setExportType} />
         <OptionTiles legend="Scope" name="export-scope" options={SCOPE_OPTIONS} value={exportScope} onChange={setExportScope} />
+
+        <AppButton type="button" variant="primary" fullWidth loading={isExporting} disabled={!isOnline} onClick={runExport}>
+          Export
+        </AppButton>
       </SettingsCard>
 
       <SettingsCard title="Export preview" meta={<CardMeta items={[getExportFormatNote(exportType)]} />}>
-        {isLoadingExportPreview ? (
-          <p className="m-0 text-sm text-[rgb(var(--text-secondary)/0.95)]" role="status">Loading preview...</p>
-        ) : exportPreviewError ? (
-          <p className="m-0 text-sm text-[rgb(var(--danger-text-rgb)/0.96)]" role="alert">{exportPreviewError}</p>
-        ) : exportPreview ? (
+        {!exportPreview ? (
+          renderUnavailable("preview")
+        ) : (
           <>
             <div className="grid gap-3 sm:grid-cols-3">
               <StatBlock label="Scope" values={[exportPreview.scopeLabel]} />
@@ -492,7 +520,7 @@ export function DataSettingsSection({
               ))}
             </ul>
           </>
-        ) : null}
+        )}
       </SettingsCard>
     </div>
   );

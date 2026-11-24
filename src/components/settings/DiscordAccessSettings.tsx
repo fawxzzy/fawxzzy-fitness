@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { useIsOnline } from "@/components/session/useIsOnline";
 import { SettingsCard } from "@/components/settings/SettingsCard";
+import { AppButton } from "@/components/ui/AppButton";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { CardMeta } from "@/components/ui/card-system";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -41,10 +41,10 @@ function formatExpiry(expiresAt: string | null) {
 export function DiscordAccessSettings() {
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("Copy");
   const [isGenerating, startGenerateTransition] = useTransition();
   const toast = useToast();
+  const isOnline = useIsOnline();
 
   useEffect(() => {
     if (copyLabel !== "Copied") {
@@ -59,7 +59,6 @@ export function DiscordAccessSettings() {
 
   const generateToken = () => {
     startGenerateTransition(async () => {
-      setErrorMessage(null);
       setCopyLabel("Copy");
 
       try {
@@ -77,7 +76,6 @@ export function DiscordAccessSettings() {
             "error" in result && typeof result.error === "string"
               ? result.error
               : "Unable to generate a Discord token right now.";
-          setErrorMessage(nextError);
           setToken(null);
           setExpiresAt(null);
           toast.error(nextError, { id: "discord-access-generate-error" });
@@ -89,7 +87,6 @@ export function DiscordAccessSettings() {
         toast.success("Discord verification token ready.", { id: "discord-access-generated" });
       } catch {
         const nextError = "Unable to generate a Discord token right now.";
-        setErrorMessage(nextError);
         setToken(null);
         setExpiresAt(null);
         toast.error(nextError, { id: "discord-access-generate-error" });
@@ -112,54 +109,27 @@ export function DiscordAccessSettings() {
   };
 
   return (
-    <>
-      <PublishBottomActions>
-        <BottomActionSplit
-          secondary={(
-            <BottomDockButton
-              type="button"
-              intent={copyLabel === "Copied" ? "toggleActive" : "info"}
-              onClick={() => void copyToken()}
-              disabled={!token}
-            >
-              {copyLabel}
-            </BottomDockButton>
-          )}
-          primary={(
-            <BottomDockButton
-              type="button"
-              intent={token ? "info" : "positive"}
-              onClick={generateToken}
-              disabled={isGenerating}
-              loading={isGenerating}
-            >
-              {isGenerating ? "Generating..." : "Generate"}
-            </BottomDockButton>
-          )}
-        />
-      </PublishBottomActions>
-
-      <div className="space-y-3">
-        <SettingsCard
-          title="Join the Discord"
-          meta={<CardMeta items={["Community, support, beta notes and launch updates"]} />}
+    <div className="space-y-3">
+      <SettingsCard
+        title="Join the Discord"
+        meta={<CardMeta items={["Community, support, beta notes and launch updates"]} />}
+      >
+        <a
+          href={FITNESS_DISCORD_INVITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={getAppButtonClassName({ variant: "secondary", fullWidth: true, className: "min-h-11" })}
         >
-          <a
-            href={FITNESS_DISCORD_INVITE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-md)] border border-[rgb(var(--accent)/0.4)] px-4 text-sm font-semibold text-[rgb(var(--accent)/0.98)] transition-colors hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]"
-          >
-            Join Fawxzzy Fitness Discord
-          </a>
-        </SettingsCard>
+          Join Fawxzzy Fitness Discord
+        </a>
+      </SettingsCard>
 
-        <SettingsCard
-          title="One-time key"
-          meta={<CardMeta items={[expiryLabel ? `Expires ${expiryLabel}` : "Use Generate to create a key"]} />}
-        >
-          <FormField label="Discord verification token" className="w-full">
-            {(control) => (
+      <SettingsCard
+        title="One-time key"
+        meta={<CardMeta items={[expiryLabel ? `Expires ${expiryLabel}` : "Use Generate to create a key"]} />}
+      >
+        <FormField label="Discord verification token" className="w-full">
+          {(control) => (
             <input
               {...control}
               type="text"
@@ -167,15 +137,35 @@ export function DiscordAccessSettings() {
               readOnly
               className={cn(formFieldControlClassName, "text-center font-semibold tracking-[0.14em]")}
             />
-            )}
-          </FormField>
-          <div aria-live="polite">
-            {errorMessage ? (
-              <p role="alert" className="m-0 text-xs leading-5 text-[rgb(var(--danger-text-rgb)/0.96)]">{errorMessage}</p>
-            ) : null}
-          </div>
-        </SettingsCard>
-      </div>
-    </>
+          )}
+        </FormField>
+        <div className="grid grid-cols-2 gap-2">
+          <AppButton
+            type="button"
+            variant={copyLabel === "Copied" ? "primary" : "secondary"}
+            fullWidth
+            onClick={() => void copyToken()}
+            disabled={!token}
+          >
+            {copyLabel}
+          </AppButton>
+          <AppButton
+            type="button"
+            variant={token ? "secondary" : "primary"}
+            fullWidth
+            onClick={generateToken}
+            disabled={!isOnline}
+            loading={isGenerating}
+          >
+            Generate
+          </AppButton>
+        </div>
+        {!isOnline ? (
+          <p className="m-0 text-xs leading-snug text-[rgb(var(--text-secondary)/0.95)]" role="status">
+            You are offline. Reconnect to generate a key.
+          </p>
+        ) : null}
+      </SettingsCard>
+    </div>
   );
 }
