@@ -3118,26 +3118,33 @@ a:focus-visible {
   color: rgb(var(--fx-ac) / 0.95);
 }
 
+/* The divider sits outside the second link box (absolute, in the margin the link reserves for it), so the keyboard
+   focus ring hugs the link itself and never wraps the divider or the gap. */
 .fx-links > * + *::before,
 .fx-legal > * + *::before {
   content: "";
-  display: inline-block;
+  position: absolute;
+  top: 50%;
   width: 2px;
   border-radius: 2px;
-  vertical-align: -2px;
+  transform: translateY(-50%);
+}
+
+.fx-links > * + * {
+  margin-left: 34px;
 }
 
 .fx-links > * + *::before {
+  left: -18px;
   height: 15px;
-  margin: 0 16px;
   background: rgb(var(--fx-ac) / 0.6);
 }
 
 /* 44px hit areas as real boxes: the links row and the legal row are each 44px tall and stack with no gap, and every
    link fills its row (inline-flex, min-height 44px), so two neighbouring rows can never overlap (the earlier invisible
    ::after reached 11px past a 24px / 20px text line and overlapped the row below at 390 and 320). Inside a row the
-   second link owns the separator and its 16px / 14px margins (the divider is its ::before), so two links in one row
-   touch edge to edge and never overlap. */
+   second link reserves the separator gap as its own margin (34px / 30px) and draws the divider in it, so two links in
+   one row touch edge to edge and never overlap. */
 .fx-notice__act::after {
   content: "";
   position: absolute;
@@ -3186,9 +3193,13 @@ a:focus-visible {
   color: rgb(var(--fx-text) / 0.6);
 }
 
+.fx-legal > * + * {
+  margin-left: 30px;
+}
+
 .fx-legal > * + *::before {
+  left: -16px;
   height: 13px;
-  margin: 0 14px;
   background: rgb(var(--fx-ac) / 0.5);
 }
 

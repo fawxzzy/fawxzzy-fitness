@@ -75,7 +75,47 @@ test("no rgba(var(--token), a) anywhere: the app tokens are space-separated trip
   assert.deepEqual(offenders, [], "use rgb(var(--token)/alpha)");
 });
 
-test("the shared exercise title never defaults to the word Target", () => {
+// An undefined custom property inside rgb(var(--x)/a) makes the whole declaration invalid, so the surface draws nothing
+// (the same silent failure as the comma form). Known offenders that predate F1 are listed so the scan can only shrink;
+// fixing one means removing its entry (a fix changes how that surface looks, so each needs its own capture pass).
+const KNOWN_UNDEFINED_TOKENS = new Set([
+  "--surface-2-soft@src/app/dev/mobile-regression/EditDayRegressionSurface.tsx",
+  "--surface-2-soft@src/components/stretch/StretchLibraryPanel.tsx",
+  "--surface-2-soft@src/components/ui/PickerListViewport.tsx",
+  "--surface-3@src/components/stretch/StretchLibraryPanel.tsx",
+  "--accent-warning@src/app/dev/progression-audit/page.tsx",
+  "--accent-warning@src/app/dev/progression-scenarios/page.tsx",
+  "--accent-rgb@src/app/dev/progression-scenarios/page.tsx",
+  "--border-rgb@src/components/ExerciseInfoSheet.tsx",
+  "--border-rgb@src/components/history/ProgressionHistoryCharts.tsx",
+  "--surface-0-rgb@src/components/session/sessionLoggerModel.tsx",
+  "--surface-0-rgb@src/features/curated-onboarding/components/QuestionnaireStep.tsx",
+]);
+
+test("no new rgb(var(--token)/a) reads a custom property that nothing defines", () => {
+  const files = walk(SRC).filter((file) => /\.(tsx?|css)$/.test(file) && !/\.test\.tsx?$/.test(file));
+  const defined = new Set<string>();
+  for (const file of files) {
+    const source = read(file);
+    for (const match of source.matchAll(/(--[a-z0-9-]+)\s*:/gi)) defined.add(match[1]);
+    for (const match of source.matchAll(/["'](--[a-z0-9-]+)["']\s*:/gi)) defined.add(match[1]);
+    for (const match of source.matchAll(/\[(--[a-z0-9-]+):/gi)) defined.add(match[1]);
+  }
+  assert.ok(defined.size > 100, "found the token definitions");
+  assert.ok(defined.has("--surface-2") && defined.has("--bg-app"));
+
+  const offenders: string[] = [];
+  for (const file of files) {
+    const source = read(file);
+    for (const match of source.matchAll(/rgb\(var\((--[a-z0-9-]+)\)\s*\//gi)) {
+      const key = `${match[1]}@${relative(ROOT, file).split(sep).join("/")}`;
+      if (!defined.has(match[1]) && !KNOWN_UNDEFINED_TOKENS.has(key) && !offenders.includes(key)) offenders.push(key);
+    }
+  }
+  assert.deepEqual(offenders, [], "define the token or use an existing one (--surface-2, --surface-3-rgb, --border ...)");
+});
+
+test("the shared exercise title never defaults to the word Target, and no live component shows the Title Case heading", () => {
   const source = read(join(SRC, "components", "workout", "ExerciseCardStandardTitle.tsx"));
   assert.match(source, /rightTitle = null,/);
   assert.doesNotMatch(source, /Current Target/);

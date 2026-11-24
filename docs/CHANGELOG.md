@@ -6,10 +6,11 @@ All notable changes to this project are documented in this file.
 
 ### WHAT
 - The sign-in, install, privacy, terms and error screens keep their link rows as real 44px boxes. The old invisible tap areas reached past a 24px / 20px text line and overlapped the row below at 390 and 320; now "Create account | Reset password" and "Privacy | Terms" are separate 44px rows that never overlap.
+- The keyboard focus ring on the second sign-in / legal link now hugs the link; its divider sits outside the ring.
 - The in-app error card ("Could not load" on one area of a screen) is the same card as the rest of the app with the one primary button.
 - The app's loading placeholders (`Skeleton*`) and "nothing here yet" card (`EmptyState`) sit on the shared card tokens and stop pulsing under reduced motion; the History loading rows use them.
 - `/review/optional-planned-day` (nothing linked to it) now opens Routines. `/exercises/[exerciseId]` keeps redirecting to History exercises.
-- Seven surfaces (the exercise info sheet footer, the progression review card, the exercise row header, the list menu, the toast rail, the swipe rail and the sticky log shell) had colours written as `rgba(var(--token), a)`, which is invalid CSS because the tokens are space-separated; they now use `rgb(var(--token)/a)` and actually draw their fade or tint.
+- Six live surfaces (the exercise info sheet footer, the progression review card, the exercise row header, the list menu, the toast rail and the sticky log shell) had colours written as `rgba(var(--token), a)`, which is invalid CSS because the tokens are space-separated; they now use `rgb(var(--token)/a)` and actually draw their fade or tint. The swipe rail's shell class strings were unused and read an undefined `--surface-2-soft` token, so they were removed; a test now also fails on any new `rgb(var(--x)/a)` whose token nothing defines.
 - The unused shared exercise title no longer defaults to a "Current Target" heading (the word is not shown anywhere).
 
 ### WHY

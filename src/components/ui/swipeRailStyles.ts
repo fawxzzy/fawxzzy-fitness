@@ -1,5 +1,5 @@
-import { cn } from "@/lib/cn";
-
+// Gesture tuning for the swipe-to-reveal row. (The rail's old shell and slot class strings were unused and drew
+// nothing: they read an undefined `--surface-2-soft` token, so they were removed in the F1 states sweep.)
 export const swipeRailInteractionTokens = {
   mobileTrailingWidth: 112,
   desktopTrailingWidth: 208,
@@ -10,22 +10,3 @@ export const swipeRailInteractionTokens = {
   closeRatioWhenOpen: 0.42,
   leadingOverscroll: 20,
 } as const;
-
-export const swipeRailShellClassName = "grid h-full w-full items-stretch overflow-hidden rounded-[inherit] border border-border/28 bg-[linear-gradient(180deg,rgb(var(--surface-2-soft)/0.96),rgb(var(--surface-2-soft)/0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgb(var(--bg)/0.08)]";
-
-export function getSwipeRailShellClassName({
-  columnCount,
-  isVisible,
-}: {
-  columnCount: 1 | 2;
-  isVisible: boolean;
-}) {
-  return cn(
-    swipeRailShellClassName,
-    columnCount === 2 ? "grid-cols-2 divide-x divide-border/30" : "grid-cols-1",
-    "transition-opacity duration-200",
-    isVisible ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
-  );
-}
-
-export const swipeRailSlotBaseClassName = "!h-full min-h-0 w-full items-center justify-center rounded-none border-0 bg-transparent px-0";
