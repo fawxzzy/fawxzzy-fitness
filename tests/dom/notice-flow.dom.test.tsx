@@ -13,13 +13,13 @@ afterEach(() => {
   cleanup();
 });
 
-function Harness({ withSlot }: { withSlot: boolean }) {
+function Harness({ withSlot, tones }: { withSlot: boolean; tones?: "all" }) {
   const slotRef = useNoticeFlowSlotRef();
   const toast = useToast();
   return (
     <div>
       <header>Header</header>
-      {withSlot ? <div ref={slotRef} data-testid="slot" /> : null}
+      {withSlot ? <div ref={slotRef} data-testid="slot" data-app-notice-flow-tones={tones} /> : null}
       <main>First card</main>
       <button onClick={() => toast.error("Could not discard the workout. Try again.", { persistent: true })}>fail</button>
       <button onClick={() => toast.success("Saved", { persistent: true })}>ok</button>
@@ -27,11 +27,11 @@ function Harness({ withSlot }: { withSlot: boolean }) {
   );
 }
 
-function mount(withSlot: boolean) {
+function mount(withSlot: boolean, tones?: "all") {
   const { router } = createRouterSpy();
   return render(
     <AppProviders router={router}>
-      <Harness withSlot={withSlot} />
+      <Harness withSlot={withSlot} tones={tones} />
     </AppProviders>,
   );
 }
@@ -65,6 +65,17 @@ test("with a shell slot, non-error notices still float", async () => {
   const status = await screen.findByText("Saved");
   assert.ok(floatingStack().contains(status));
   assert.equal(screen.getByTestId("slot").textContent, "");
+});
+
+test("a slot that opts into every tone (the workout screen) renders success notices in flow too", async () => {
+  mount(true, "all");
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "ok" }));
+  });
+
+  const status = await screen.findByText("Saved");
+  assert.ok(screen.getByTestId("slot").contains(status), "the success notice is in flow, never over a card title");
+  assert.equal(floatingStack().textContent, "");
 });
 
 test("without a slot (screens outside the shell), errors fall back to the floating stack", async () => {

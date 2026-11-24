@@ -13,9 +13,15 @@ type ScrollScreenWithBottomActionsProps = {
   headerMenu?: ReactNode;
   floatingHeader?: ReactNode;
   bottomDock?: ReactNode;
+  /**
+   * Which notices render in flow under the header (content moves down) instead of floating over it. Default
+   * "errors": only error notices. "all": every tone, for dense screens where a floating notice covers a card title
+   * (the workout screen, 2026-11-23).
+   */
+  noticesInFlow?: "errors" | "all";
 };
 
-export function ScrollScreenWithBottomActions({ children, className, topChrome, headerMenu, floatingHeader, bottomDock }: ScrollScreenWithBottomActionsProps) {
+export function ScrollScreenWithBottomActions({ children, className, topChrome, headerMenu, floatingHeader, bottomDock, noticesInFlow }: ScrollScreenWithBottomActionsProps) {
   const wrappedChildren = topChrome || floatingHeader || headerMenu
     ? children
     : <StandaloneScreenSafeArea>{children}</StandaloneScreenSafeArea>;
@@ -27,6 +33,7 @@ export function ScrollScreenWithBottomActions({ children, className, topChrome, 
       headerMenu={headerMenu}
       floatingHeader={floatingHeader}
       bottomDock={bottomDock}
+      noticesInFlow={noticesInFlow}
     >
       {wrappedChildren}
     </MobileScreenScaffold>

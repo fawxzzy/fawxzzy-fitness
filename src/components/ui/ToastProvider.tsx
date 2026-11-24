@@ -177,8 +177,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       isExiting={toast.isExiting}
     />
   );
-  const flowToasts = flowSlot ? toasts.filter((toast) => toast.tone === "error") : [];
-  const floatingToasts = flowSlot ? toasts.filter((toast) => toast.tone !== "error") : toasts;
+  // The shell says which tones go in flow (data-app-notice-flow-tones, fixed per screen): errors by default, every tone
+  // on screens that opt in (the workout screen), so no notice covers a card title there.
+  const flowAllTones = flowSlot?.getAttribute("data-app-notice-flow-tones") === "all";
+  const isFlowToast = (toast: ToastItem) => flowAllTones || toast.tone === "error";
+  const flowToasts = flowSlot ? toasts.filter(isFlowToast) : [];
+  const floatingToasts = flowSlot ? toasts.filter((toast) => !isFlowToast(toast)) : toasts;
 
   return (
     <ToastContext.Provider value={value}>
