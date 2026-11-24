@@ -157,6 +157,8 @@ export const APP_THEME_PRESETS: Record<AppThemePreset, AppThemeSettings> = {
   test: TEST_APP_THEME,
 };
 export const APP_THEME_CHANGE_EVENT = "atlas:app-theme-change";
+/** Fired after the saved theme choice (which theme is selected) changes in this tab, so a screen can show it live. */
+export const APP_THEME_SELECTION_CHANGE_EVENT = "atlas:app-theme-selection-change";
 
 const MIN_BUTTON_RADIUS = 10;
 const MAX_BUTTON_RADIUS = 28;
@@ -710,11 +712,21 @@ export function writeStoredAppThemeSelection(selection: AppThemeSelectionId, sto
   }
 
   resolvedStorage.setItem(APP_THEME_SELECTION_STORAGE_KEY, selection);
+  dispatchAppThemeSelectionChange(storage);
 }
 
 export function clearStoredAppThemeSelection(storage?: StorageLike | null) {
   const resolvedStorage = getBrowserStorage(storage);
   resolvedStorage?.removeItem(APP_THEME_SELECTION_STORAGE_KEY);
+  dispatchAppThemeSelectionChange(storage);
+}
+
+function dispatchAppThemeSelectionChange(storage?: StorageLike | null) {
+  // Only the browser's own storage announces a change; a storage passed in (tests, tools) stays silent.
+  if (storage || typeof window === "undefined" || typeof window.dispatchEvent !== "function") {
+    return;
+  }
+  window.dispatchEvent(new Event(APP_THEME_SELECTION_CHANGE_EVENT));
 }
 
 export function readStoredAppTheme(storage?: StorageLike | null) {

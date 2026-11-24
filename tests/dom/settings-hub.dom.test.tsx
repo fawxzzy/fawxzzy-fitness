@@ -97,3 +97,14 @@ test("Hub: going offline shows a plain notice that says what still works, and co
   });
   await waitFor(() => assert.equal(screen.queryByText(/You are offline/), null));
 });
+
+test("Hub: the theme chip follows a theme change made while Settings is open", async () => {
+  writeStoredAppThemeSelection("default");
+  renderHub();
+  await waitFor(() => assert.ok(within(sectionCard("App Theme")).getByText("Default theme")));
+
+  act(() => {
+    writeStoredAppThemeSelection("rose");
+  });
+  await waitFor(() => assert.ok(within(sectionCard("App Theme")).getByText("Rose Circuit")));
+});

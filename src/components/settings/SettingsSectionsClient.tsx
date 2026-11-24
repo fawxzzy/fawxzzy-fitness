@@ -10,6 +10,7 @@ import { useSettingsScreenState, type SettingsSectionKey } from "@/components/se
 import { useIsOnline } from "@/components/session/useIsOnline";
 import { CardChip, CardChips, CardHeader, CardMeta, CardNotice, CardSurface, cardTokens } from "@/components/ui/card-system";
 import {
+  APP_THEME_SELECTION_CHANGE_EVENT,
   getAppThemePresetLabel,
   isAppThemePreset,
   readStoredAppThemeLibrary,
@@ -122,17 +123,35 @@ export function SettingsSectionCard({
 }
 
 /** The name of the theme in use on this device, read after hydration (storage is not available on the server). */
+function readActiveThemeLabel(): string {
+  const selection = readStoredAppThemeSelection();
+  if (!selection) {
+    return getAppThemePresetLabel("default");
+  }
+  if (isAppThemePreset(selection)) {
+    return getAppThemePresetLabel(selection);
+  }
+  return readStoredAppThemeLibrary().find((slot) => slot.id === selection)?.name ?? getAppThemePresetLabel("default");
+}
+
+// The theme in use, read after mount (it lives in this device's storage) and again whenever the theme changes, so the
+// chip stays right while the Theme section is open. The selection change has its own event.
 function useActiveThemeLabel(): string | null {
   const [label, setLabel] = useState<string | null>(null);
   useEffect(() => {
-    const selection = readStoredAppThemeSelection();
-    if (!selection) {
-      setLabel(getAppThemePresetLabel("default"));
-    } else if (isAppThemePreset(selection)) {
-      setLabel(getAppThemePresetLabel(selection));
-    } else {
-      setLabel(readStoredAppThemeLibrary().find((slot) => slot.id === selection)?.name ?? getAppThemePresetLabel("default"));
-    }
+    let timer: number | undefined;
+    const refresh = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setLabel(readActiveThemeLabel()), 0);
+    };
+    setLabel(readActiveThemeLabel());
+    window.addEventListener(APP_THEME_SELECTION_CHANGE_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(APP_THEME_SELECTION_CHANGE_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
   }, []);
   return label;
 }

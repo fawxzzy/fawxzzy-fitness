@@ -7,7 +7,7 @@ import { SettingsCard } from "@/components/settings/SettingsCard";
 import { SettingsLoadState } from "@/components/settings/SettingsLoadState";
 import { SettingsSwitchCard } from "@/components/settings/SettingsSwitchCard";
 import { AppButton } from "@/components/ui/AppButton";
-import { CardMeta, CardNotice, StatBlock } from "@/components/ui/card-system";
+import { CardMeta, StatBlock } from "@/components/ui/card-system";
 import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -379,10 +379,6 @@ export function DataSettingsSection({
 
   return (
     <div className="space-y-3">
-      {!isOnline ? (
-        <CardNotice tone="attention">You are offline. Your snapshot and export need a connection.</CardNotice>
-      ) : null}
-
       {canAccessQaLlelUi ? (
         <SettingsSwitchCard
           title="QA data"

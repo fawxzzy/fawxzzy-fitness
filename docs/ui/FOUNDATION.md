@@ -153,6 +153,6 @@ specificity 0,1,1), which beats the global rule and still loses to a caller's `!
 ## Still to migrate (owned by later section lanes)
 
 Inline danger text remains in: `ProgressionPlaybookEditor`, `EditDaySettingsAutosaveForm`, `EditDayAddExerciseScreen`,
-`EditableRoutineDayExerciseList`, `RoutineEditorForm`, `DataSettingsSection`, `DiscordAccessSettings`,
+`EditableRoutineDayExerciseList`, `RoutineEditorForm`,
 `HistoryExerciseCard`, `CuratedOnboardingShell`, `GenerationHandoffStep`, `QuestionnaireStep`, `ReviewStep`.
 Each moves to `FormField error` / `useFieldNotice` when its section is redesigned.
