@@ -18,6 +18,8 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
+import { RepeatWorkoutCard } from "@/components/history/RepeatWorkoutCard";
+import type { RepeatWorkoutAvailability } from "@/lib/repeat-workout";
 import { computeSessionCompletion, resolvePlannedSetCount } from "@/lib/session-analytics";
 import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
 import {
@@ -949,6 +951,7 @@ export function LogAuditClient({
   recapArtifact,
   backHref,
   initialExpandedExerciseId = null,
+  repeatWorkout,
 }: {
   logId: string;
   initialDayName: string;
@@ -960,6 +963,7 @@ export function LogAuditClient({
   recapArtifact?: WorkoutRecapArtifact | null;
   backHref: string;
   initialExpandedExerciseId?: string | null;
+  repeatWorkout?: RepeatWorkoutAvailability;
 }) {
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("history-detail", "compact");
   const router = useRouter();
@@ -1400,6 +1404,15 @@ export function LogAuditClient({
 
         {!isEditing && !expandedExercise && sessionNotes.trim().length > 0 ? (
           <SessionNotesCard notes={sessionNotes.trim()} />
+        ) : null}
+
+        {!isEditing && !expandedExercise && repeatWorkout ? (
+          <RepeatWorkoutCard
+            sessionId={logId}
+            dayLabel={sessionSummary.dayTitle?.trim() || initialDayName}
+            available={repeatWorkout.available}
+            unavailableReason={repeatWorkout.available ? undefined : repeatWorkout.reason}
+          />
         ) : null}
 
         <section aria-labelledby="history-detail-exercises-heading" data-history-exercise-list="true" className="grid min-w-0 gap-2">

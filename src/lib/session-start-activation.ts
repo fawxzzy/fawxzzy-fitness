@@ -21,6 +21,9 @@ import {
 
 export type RunnableExerciseForSessionStart = CanonicalDayExercise;
 
+/** `existing` is set only when the start RPC returned an already-live session instead of creating a new one. */
+export type StartedSession = { sessionId: string; existing?: true };
+
 type SessionStartExecutor = (args: SessionStartFromDayArgsV1) => Promise<SessionStartFromDayResultV1>;
 
 export function buildSessionStartExerciseIntents(args: {
@@ -94,7 +97,7 @@ export async function createSessionAtomicallyFromDay(
     context: string;
   },
   execute: SessionStartExecutor = startSessionFromDayAtomicV1,
-): Promise<ActionResult<{ sessionId: string }>> {
+): Promise<ActionResult<StartedSession>> {
   const exercises = buildSessionStartExerciseIntents({
     runnableExercises: args.runnableExercises,
     context: args.context,
@@ -112,5 +115,9 @@ export async function createSessionAtomicallyFromDay(
     return { ok: false, error: result.error };
   }
 
-  return { ok: true, data: { sessionId: result.sessionId } };
+  // `existing` is only set when the RPC found a live session for this day and returned it instead of creating one.
+  return {
+    ok: true,
+    data: result.outcome === "existing" ? { sessionId: result.sessionId, existing: true } : { sessionId: result.sessionId },
+  };
 }

@@ -204,7 +204,7 @@ test("middleware leaves discord verify api public without session cookies", asyn
 });
 
 test("middleware answers an expired session on the session JSON endpoints with 401 JSON, not a login redirect", async () => {
-  for (const pathname of ["/api/sessions/start", "/api/sessions/resume"]) {
+  for (const pathname of ["/api/sessions/start", "/api/sessions/resume", "/api/sessions/repeat"]) {
     const request = new NextRequest(`https://example.com${pathname}`, {
       method: "POST",
       headers: { cookie: "sb-access-token=old-access; sb-refresh-token=bad-refresh" },
@@ -234,8 +234,11 @@ test("middleware answers an expired session on the session JSON endpoints with 4
 });
 
 test("middleware answers a session JSON request with no cookies at all with 401 JSON", async () => {
-  const request = new NextRequest("https://example.com/api/sessions/start", { method: "POST" });
-  const response = await handleAuthSessionMiddleware(request);
-  assert.equal(response.status, 401);
-  assert.equal((await response.json()).code, "session_expired");
+  for (const pathname of ["/api/sessions/start", "/api/sessions/repeat"]) {
+    const request = new NextRequest(`https://example.com${pathname}`, { method: "POST" });
+    const response = await handleAuthSessionMiddleware(request);
+    assert.equal(response.status, 401, pathname);
+    assert.equal(response.headers.get("location"), null, pathname);
+    assert.equal((await response.json()).code, "session_expired", pathname);
+  }
 });

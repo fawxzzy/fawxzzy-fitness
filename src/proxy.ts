@@ -65,7 +65,7 @@ function getLoginReturnTo(request: NextRequest) {
 }
 
 // Fetch-driven JSON endpoints answer an expired session with 401 JSON; a redirect would hand the client login HTML.
-export const SESSION_JSON_API_PATHS = ["/api/sessions/start", "/api/sessions/resume"];
+export const SESSION_JSON_API_PATHS = ["/api/sessions/start", "/api/sessions/resume", "/api/sessions/repeat"];
 
 export function isSessionJsonApiPath(pathname: string) {
   return SESSION_JSON_API_PATHS.includes(pathname);

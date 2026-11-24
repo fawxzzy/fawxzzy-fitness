@@ -7,8 +7,10 @@ import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
+import { RepeatWorkoutCard } from "@/components/history/RepeatWorkoutCard";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
+import { REPEAT_WORKOUT_NO_DAY_MESSAGE, REPEAT_WORKOUT_ROUTINE_INACTIVE_MESSAGE } from "@/lib/repeat-workout";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
 import { getHistoryPreviewExerciseRows, getHistoryPreviewSessionsPageData } from "@/lib/history-preview-fixtures";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
@@ -110,6 +112,12 @@ export function HistoryCardsGallery() {
         <HistoryDetailExerciseCard exercise={{ name: "Back Squat" }} summary="5 reps | 245 lbs" summaryLabel="Top Set" metaItems={["4/4 sets", "Timer 0:30 complete", "Typical rest 1:45"]} signalCodes={["PR", "BEST", "PROMO"]} onPress={() => {}} expanded={false} />
         <HistoryDetailExerciseCard exercise={{ name: "Walking Lunge With Dumbbells And A Deliberately Long Name" }} summary="10 reps | 40 lbs" summaryLabel="Top Set" metaItems={["3/3 sets"]} signalCodes={["PR", "WATCH"]} onPress={() => {}} expanded />
         <HistoryDetailExerciseCard exercise={{ name: "Plank" }} summary="1:00" summaryLabel="Top Set" metaItems={["3/3 sets"]} />
+      </Section>
+
+      <Section title="Repeat workout (session detail)" note="Starts a new workout for the same day with current goals. A workout with no routine day, or from a routine that is not active, shows the reason and a disabled button.">
+        <RepeatWorkoutCard sessionId="preview-session" dayLabel="Push Day" available />
+        <RepeatWorkoutCard sessionId="preview-adhoc" dayLabel="Workout" available={false} unavailableReason={REPEAT_WORKOUT_NO_DAY_MESSAGE} />
+        <RepeatWorkoutCard sessionId="preview-inactive" dayLabel="Push Day" available={false} unavailableReason={REPEAT_WORKOUT_ROUTINE_INACTIVE_MESSAGE} />
       </Section>
 
       <Section title="Exercise browser rows" note="Header opens the exercise. Compact and detailed.">
