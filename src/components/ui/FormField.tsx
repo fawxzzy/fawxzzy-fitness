@@ -65,12 +65,11 @@ export function FormField({
       <div className={cn(formFieldShellClassName, isInvalid ? formFieldInvalidShellClassName : null, shellClassName)}>
         {children(control)}
       </div>
+      {/* Always mounted, so clearing the error also dismisses its notice. */}
+      <FieldNotice error={typeof error === "string" ? error : null} id={fieldNoticeId(controlId)} />
       {hasError ? (
-        <>
-          {/* Announced by the notice; this copy only backs aria-describedby, so it is visually hidden. */}
-          <p id={messageId} className="sr-only" data-form-field-error="">{error}</p>
-          <FieldNotice error={typeof error === "string" ? error : null} id={fieldNoticeId(controlId)} />
-        </>
+        // Announced by the notice; this copy only backs aria-describedby, so it is visually hidden.
+        <p id={messageId} className="sr-only" data-form-field-error="">{error}</p>
       ) : helper ? (
         <p id={messageId} className="mt-1 px-1 text-xs text-[rgb(var(--text-muted))]">{helper}</p>
       ) : null}

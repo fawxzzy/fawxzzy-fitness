@@ -1,6 +1,6 @@
 "use client";
 
-import { HIT_AREA_CLASS_NAME, HIT_AREA_WIDE_CLASS_NAME } from "@/components/ui/hitArea";
+import { HIT_AREA_CLASS_NAME } from "@/components/ui/hitArea";
 
 type ToastTone = "info" | "success" | "warning" | "error";
 
@@ -90,17 +90,25 @@ export function ToastMessageCard({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss message"
-          className={`${HIT_AREA_WIDE_CLASS_NAME} inline-flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-rgb)/0.16)] backdrop-blur-[14px] [-webkit-backdrop-filter:blur(14px)] transition-colors ${toneMeta.closeClassName}`}
+          data-toast-dismiss=""
+          // A real 44x44 box (the card is overflow-hidden, which clipped the old ::before hit layer to the card edge);
+          // the visible 28px circle sits inside it, and -my-1.5 keeps the card height unchanged.
+          className={`group -my-1.5 inline-flex h-11 w-11 shrink-0 self-center items-center justify-center rounded-full !border-0 !bg-transparent !shadow-none focus-visible:outline-none ${toneMeta.closeClassName} hover:!bg-transparent`}
         >
-          <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5">
-            <path
-              d="M6 6 14 14M14 6 6 14"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="1.8"
-            />
-          </svg>
+          <span
+            aria-hidden="true"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-rgb)/0.16)] backdrop-blur-[14px] transition-colors [-webkit-backdrop-filter:blur(14px)] group-hover:bg-[rgb(var(--surface-rgb)/0.3)] group-focus-visible:ring-2 group-focus-visible:ring-[var(--button-focus-ring)]"
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true" className="h-3.5 w-3.5">
+              <path
+                d="M6 6 14 14M14 6 6 14"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="1.8"
+              />
+            </svg>
+          </span>
         </button>
       </div>
 

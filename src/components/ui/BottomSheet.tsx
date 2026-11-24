@@ -14,8 +14,10 @@ type BottomSheetProps = {
   description?: ReactNode;
   contentClassName?: string;
   footer?: ReactNode;
+  /** Small label above the title. None by default (the old generic "Sheet" eyebrow is gone); null also means none. */
+  eyebrow?: string | null;
 };
 
-export function BottomSheet(props: BottomSheetProps) {
-  return <Sheet {...props} />;
+export function BottomSheet({ eyebrow, ...props }: BottomSheetProps) {
+  return <Sheet {...props} eyebrow={eyebrow ?? undefined} />;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -41,7 +41,9 @@ export type SheetProps = {
 
 export const SHEET_Z_INDEX_CLASS_NAME = "z-[120]";
 // Token-only scrim: the app background at 62% plus a 6px blur, so the sheet reads as the only live surface.
-export const SHEET_SCRIM_CLASSNAME = "fixed inset-0 z-0 bg-[rgb(var(--bg-app)/0.62)] backdrop-blur-[6px]";
+// The scrim is a <button>: the global button surface would paint it opaque and hide the screen behind the sheet, so
+// every surface utility is `!` (cn() does not dedupe Tailwind classes; same fix as PR #299 on BottomSheet).
+export const SHEET_SCRIM_CLASSNAME = "fixed inset-0 z-0 !border-0 !bg-[rgb(var(--bg-app)/0.62)] !shadow-none backdrop-blur-[6px]";
 export const SHEET_PANEL_CLASSNAME =
   "flex max-h-[min(calc(100dvh-var(--app-safe-top)-0.5rem),48rem)] w-full max-w-[min(640px,100vw-0.75rem)] min-w-0 flex-col rounded-t-[calc(var(--radius-xl)+2px)] shadow-[0_-18px_44px_rgba(0,0,0,0.34)]";
 const SHEET_TITLE_CLASSNAME = "min-w-0 flex-1 text-[1.25rem] font-semibold leading-7 tracking-[-0.02em]";
@@ -90,6 +92,13 @@ function popSheet(token: symbol) {
 
 function isTopSheet(token: symbol) {
   return openSheetStack[openSheetStack.length - 1] === token;
+}
+
+// While AnimatePresence plays the exit, the closing sheet is still in the DOM. It must stop being a dialog at once:
+// no role, aria-hidden and inert, so screen readers, focus and `queryByRole("dialog")` see it gone immediately.
+function SheetPresence({ children }: { children: (isPresent: boolean) => ReactNode }) {
+  const isPresent = useIsPresent();
+  return <>{children(isPresent)}</>;
 }
 
 export function SheetCloseIcon() {
@@ -208,7 +217,15 @@ export function Sheet({
   return createPortal(
     <AnimatePresence initial={false} onExitComplete={() => setIsRendered(false)}>
       {open ? (
-        <div className={cn("fixed inset-0 flex items-end justify-center", SHEET_Z_INDEX_CLASS_NAME)} role="presentation" data-sheet-root="">
+        <SheetPresence key="sheet">{(isPresent) => (
+        <div
+          className={cn("fixed inset-0 flex items-end justify-center", SHEET_Z_INDEX_CLASS_NAME, isPresent ? undefined : "pointer-events-none")}
+          role="presentation"
+          aria-hidden={isPresent ? undefined : true}
+          inert={isPresent ? undefined : true}
+          data-sheet-root=""
+          data-sheet-state={isPresent ? "open" : "closing"}
+        >
           <motion.button
             type="button"
             tabIndex={-1}
@@ -223,8 +240,8 @@ export function Sheet({
           <motion.div
             {...dialogProps}
             ref={sheetRef}
-            role="dialog"
-            aria-modal="true"
+            role={isPresent ? "dialog" : undefined}
+            aria-modal={isPresent ? "true" : undefined}
             aria-labelledby={titleId}
             aria-describedby={description ? descriptionId : undefined}
             tabIndex={-1}
@@ -267,6 +284,7 @@ export function Sheet({
             {footer ? <div className={SHEET_FOOTER_CLASSNAME} data-sheet-footer="">{footer}</div> : null}
           </motion.div>
         </div>
+        )}</SheetPresence>
       ) : null}
     </AnimatePresence>,
     document.body,
