@@ -69,7 +69,7 @@ export function AccountScreen({
                 </li>
               ))}
             </ul>
-            <AccountSignOutActions everywhereHref={ACCOUNT_SCREEN_SIGN_OUT_EVERYWHERE_HREF} />
+            <AccountSignOutActions everywhereHref={ACCOUNT_SCREEN_SIGN_OUT_EVERYWHERE_HREF} signedInAs={username.trim() || email.trim() || undefined} />
           </div>
         </ContentRail>
       </ScrollScreenWithBottomActions>

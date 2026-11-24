@@ -18,7 +18,7 @@ test("Achievements are a Settings section card and remain deep-linkable", () => 
   assert.match(stateSource, /"achievements"/);
   assert.match(sectionsSource, /case "achievements":\s*return \{ title: "Achievements"/);
   assert.match(sectionsSource, /<AccountAchievementsSection achievements=\{achievements\} \/>/);
-  assert.match(sectionsSource, /<SettingsSectionCard section=\{section\} onToggle=\{\(\) => setExpandedSection\(section\)\} \/>/);
+  assert.match(sectionsSource, /<SettingsSectionCard section=\{section\} status=\{statusBySection\[section\]\} onToggle=\{\(\) => setExpandedSection\(section\)\} \/>/);
   assert.match(settingsPageSource, /section === "achievements"/);
   assert.match(settingsPageSource, /loadHistorySessionsScopePayloadForUser/);
   assert.match(achievementsSource, /data-account-achievements-section="true"/);
@@ -28,7 +28,7 @@ test("Account opens the shared account portal (account.fawxzzy.com); Sign out st
   assert.match(sectionsSource, /SETTINGS_ACCOUNT_PORTAL_HREF = getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);
   assert.match(sectionsSource, /href=\{SETTINGS_ACCOUNT_PORTAL_HREF\}/);
   assert.doesNotMatch(sectionsSource, /getAccountRouteHref/, "Settings no longer links to the in-app /account screen");
-  assert.match(sectionsSource, /<SignOutButton placement="body" \/>/);
+  assert.match(sectionsSource, /<SignOutButton placement="body" signedInAs=\{signedInAs\} \/>/);
   assert.doesNotMatch(sectionsSource, /useRouter/);
   assert.doesNotMatch(sectionsSource, /SettingsExternalTrigger/);
   assert.doesNotMatch(sectionsSource, /<PublishBottomActions>\s*<SignOutButton/);
