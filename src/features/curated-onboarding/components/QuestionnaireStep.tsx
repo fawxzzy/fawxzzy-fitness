@@ -1,3 +1,4 @@
+import { Chip } from "@/components/ui/Chip";
 import { cn } from "@/lib/cn";
 import {
   getArrayResponse,
@@ -45,8 +46,7 @@ function TextQuestion({
   onResponseChange: (questionId: string, value: CuratedIntakeResponse) => void;
 }) {
   const sharedClassName = cn(
-    "w-full border-0 border-b bg-transparent px-0 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none transition-colors placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]",
-    incomplete ? "border-[rgb(var(--danger-rgb)/0.82)]" : "border-[rgb(var(--border-strong)/0.34)]",
+    "min-h-11 w-full border-0 border-b border-[rgb(var(--border-strong)/0.34)] bg-transparent px-0 py-2.5 text-base text-[rgb(var(--text-primary))] outline-none transition-colors placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]",
   );
 
   if (question.type === "long-text") {
@@ -160,12 +160,7 @@ function ChoiceQuestion({
           aria-label={`${question.label} other response`}
           aria-invalid={incomplete || undefined}
           aria-describedby={incomplete ? errorId : undefined}
-          className={cn(
-            "mt-1 w-full border-0 border-b bg-transparent px-0 py-2.5 text-sm text-[rgb(var(--text-primary))] outline-none placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]",
-            incomplete
-              ? "border-[rgb(var(--danger-rgb)/0.82)]"
-              : "border-[rgb(var(--border-strong)/0.34)]",
-          )}
+          className="mt-1 min-h-11 w-full border-0 border-b border-[rgb(var(--border-strong)/0.34)] bg-transparent px-0 py-2.5 text-base text-[rgb(var(--text-primary))] outline-none placeholder:text-[rgb(var(--text-muted)/0.62)] focus:border-[rgb(var(--accent))]"
         />
       ) : null}
     </div>
@@ -196,18 +191,16 @@ function AcknowledgmentQuestion({
       aria-describedby={incomplete ? errorId : undefined}
       onClick={() => onResponseChange(question.id, !selected)}
       className={cn(
-        "flex w-full items-start gap-3 rounded-xl !border px-2.5 py-2.5 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,box-shadow]",
+        "flex min-h-11 w-full items-start gap-3 rounded-xl !border px-2.5 py-2.5 text-left text-[13px] font-medium leading-5 transition-[border-color,background-color,box-shadow]",
         selected
           ? "!border-[rgb(var(--accent)/0.72)] !bg-[rgb(var(--accent)/0.18)] !text-[rgb(var(--text-primary))] !shadow-[0_0_0_1px_rgb(var(--accent)/0.12),0_8px_18px_rgb(var(--accent)/0.08)]"
-          : incomplete
-            ? "!border-[rgb(var(--danger-rgb)/0.42)] !bg-[rgb(var(--danger-rgb)/0.07)] !text-[rgb(var(--text-secondary))]"
-            : "!border-transparent !bg-transparent !text-[rgb(var(--text-secondary))] hover:!border-[rgb(var(--border-strong)/0.18)] hover:!bg-[rgb(var(--surface-0-rgb)/0.38)]",
+          : "!border-transparent !bg-transparent !text-[rgb(var(--text-secondary))] hover:!border-[rgb(var(--border-strong)/0.18)] hover:!bg-[rgb(var(--surface-0-rgb)/0.38)]",
       )}
     >
       <ChoiceIndicator selected={selected} multiple />
       <span>
         {question.label}
-        {question.required ? <span className="ml-1 text-[rgb(var(--warning-rgb))]">*</span> : null}
+        {question.required ? <span className="sr-only"> (required)</span> : null}
       </span>
     </button>
   );
@@ -248,14 +241,20 @@ export function QuestionnaireStep({
               data-curated-question-card={question.id}
               data-curated-question={question.id}
               data-question-status={incomplete ? "incomplete" : "complete"}
-              className={cn("!p-0", incomplete && "border-[rgb(var(--danger-rgb)/0.48)]")}
+              className="!p-0"
             >
-              <div className={cn("space-y-3 px-4 py-4", incomplete && "bg-[rgb(var(--danger-rgb)/0.035)]")}>
+              <div className="space-y-3 px-4 py-4">
                 {question.type !== "acknowledgment" ? (
-                  <p id={promptId} className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
-                    {question.label}
-                    {question.required ? <span className="ml-1 text-[rgb(var(--warning-rgb))]">*</span> : null}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p id={promptId} className="min-w-0 text-sm font-semibold leading-5 text-[rgb(var(--text-primary))]">
+                      {question.label}
+                    </p>
+                    {incomplete ? (
+                      <Chip tone="attention" id={errorId} data-question-required="true">
+                        Required
+                      </Chip>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 {question.type === "short-text" || question.type === "long-text" ? (
@@ -286,12 +285,10 @@ export function QuestionnaireStep({
                   />
                 )}
 
-                {incomplete ? (
-                  <p id={errorId} role="alert" className="text-[11px] font-medium text-[rgb(var(--danger-rgb))]">
-                    {question.type === "acknowledgment"
-                      ? "Required acknowledgment - incomplete"
-                      : "Required - incomplete"}
-                  </p>
+                {incomplete && question.type === "acknowledgment" ? (
+                  <Chip tone="attention" id={errorId} data-question-required="true">
+                    Required
+                  </Chip>
                 ) : null}
               </div>
             </CuratedInfoCard>

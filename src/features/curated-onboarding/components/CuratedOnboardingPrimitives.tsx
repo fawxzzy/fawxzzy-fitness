@@ -8,7 +8,7 @@ const infoToneClassNames: Record<Tone, string> = {
   default: "border-[rgb(var(--border-strong)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.34)]",
   accent: "border-[rgb(var(--accent)/0.34)] bg-[linear-gradient(100deg,rgb(var(--accent)/0.12),rgb(var(--surface-1-rgb)/0.42)_48%,rgb(var(--surface-1-rgb)/0.28))] before:bg-[rgb(var(--accent))]",
   warning: "border-[rgb(var(--warning-rgb)/0.34)] bg-[rgb(var(--warning-rgb)/0.08)] before:bg-[rgb(var(--warning-rgb))]",
-  danger: "border-[rgb(var(--danger-rgb)/0.38)] bg-[rgb(var(--danger-rgb)/0.09)] before:bg-[rgb(var(--danger-rgb))]",
+  danger: "border-[rgb(var(--border-strong)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.34)] before:bg-[rgb(var(--danger-rgb))]",
 };
 
 export function CuratedInfoCard({
