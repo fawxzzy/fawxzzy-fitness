@@ -79,7 +79,8 @@ test("Discord: a failed key request goes to the notice, leaves no red text in th
   await screen.findByText("Too many keys. Try again later.");
   assert.equal(container.querySelectorAll("[data-card-surface] [role='alert']").length, 0);
   assert.equal(container.querySelectorAll("[data-card-surface] [class*='danger-text']").length, 0);
-  assert.equal((screen.getByRole("button", { name: "Generate" }) as HTMLButtonElement).disabled, false);
+  // The notice lands a moment before the pending transition ends, so wait for the button to come back.
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: "Generate" }) as HTMLButtonElement).disabled, false));
   assert.equal((screen.getByLabelText("Discord verification token") as HTMLInputElement).value, "");
 });
 
