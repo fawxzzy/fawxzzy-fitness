@@ -1,10 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { SettingsCard } from "@/components/settings/SettingsCard";
+import { AppButton } from "@/components/ui/AppButton";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { CardChip, CardMeta, CardNotice, StatBlock } from "@/components/ui/card-system";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
@@ -147,7 +146,7 @@ export function ProAccessSettings({
         ? "Pro Active"
         : "Included Pro Active"
       : "Upgrade to Pro";
-  const buttonIntent = canManageBilling || canStartCheckout ? "positive" : "info";
+  const isActionable = canManageBilling || canStartCheckout;
   const heroSummary = getProHeroSummary(snapshot);
   const heroDescription = getProHeroDescription(snapshot);
   const featureSummary = getProValueSummary(snapshot);
@@ -207,18 +206,6 @@ export function ProAccessSettings({
 
   return (
     <>
-      <PublishBottomActions>
-        <BottomDockButton
-          type="button"
-          intent={buttonIntent}
-          onClick={startAction}
-          disabled={!canStartCheckout && !canManageBilling}
-          loading={isSubmitting}
-        >
-          {buttonLabel}
-        </BottomDockButton>
-      </PublishBottomActions>
-
       <div className="space-y-3">
         {billingNotice === "success" ? (
           <CardNotice>
@@ -251,6 +238,16 @@ export function ProAccessSettings({
             <StatBlock label="Billing" values={[getBillingStateLabel(snapshot)]} />
             <StatBlock label="Status" values={[getAccessStateLabel(snapshot)]} />
           </div>
+          <AppButton
+            type="button"
+            variant={isActionable ? "primary" : "secondary"}
+            fullWidth
+            onClick={startAction}
+            disabled={!isActionable}
+            loading={isSubmitting}
+          >
+            {buttonLabel}
+          </AppButton>
         </SettingsCard>
 
         <SettingsCard title={featureSummary.title}>
