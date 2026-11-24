@@ -610,6 +610,16 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     error = insertResult.error;
   }
 
+  if (error && createdCustomExerciseId) {
+    // Every failed insert (including the progression-schema message below) must not leave the new custom exercise behind.
+    await supabase
+      .from("exercises")
+      .delete()
+      .eq("id", createdCustomExerciseId)
+      .eq("user_id", user.id)
+      .eq("is_global", false);
+  }
+
   if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgression) {
     return {
       ok: false,
@@ -621,14 +631,6 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
   }
 
   if (error) {
-    if (createdCustomExerciseId) {
-      await supabase
-        .from("exercises")
-        .delete()
-        .eq("id", createdCustomExerciseId)
-        .eq("user_id", user.id)
-        .eq("is_global", false);
-    }
     return { ok: false, error: error.message };
   }
 
