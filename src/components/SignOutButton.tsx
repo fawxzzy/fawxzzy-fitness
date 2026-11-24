@@ -5,6 +5,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AuthNoticeSlot } from "@/components/auth/AuthShell";
 import { authNotice, type AuthNotice } from "@/components/auth/authMessages";
 import { AppButton } from "@/components/ui/AppButton";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { getFitnessAccountSignOutUrl } from "@/lib/account-portal";
 import { DEVICE_SIGN_OUT_FAILURE_NOTICE_ID, runDeviceSignOut, subscribePageShowReset } from "@/lib/auth/device-sign-out";
 import { getInstallContext } from "@/lib/install/getInstallContext";
@@ -28,8 +29,16 @@ export function resolveSignOutDestination(isStandalone: boolean) {
  * The order and the failure rules live in `runDeviceSignOut`: the server revoke must succeed before anything local is
  * cleared or the page moves; on any failure the person stays here, signed in, with `account.signoutfail`.
  */
-export function SignOutButton({ placement = "dock" }: { placement?: "dock" | "body" } = {}) {
+export function SignOutButton({
+  placement = "dock",
+  signedInAs,
+}: {
+  placement?: "dock" | "body";
+  /** Who is signed in (username or email). Named in the confirm sheet so the person knows which account this ends. */
+  signedInAs?: string;
+} = {}) {
   const [pending, setPending] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [notice, setNotice] = useState<AuthNotice | null>(null);
   const inFlight = useRef(false);
 
@@ -47,6 +56,9 @@ export function SignOutButton({ placement = "dock" }: { placement?: "dock" | "bo
       return;
     }
     inFlight.current = true;
+    // The confirm sheet closes as soon as the person confirms: the button behind it carries "Signing out…", and a
+    // failed revoke lands on the in-flow notice below the button, so a slow request can never trap an open sheet.
+    setConfirmOpen(false);
     setPending(true);
     setNotice(null);
     let signedOut = false;
@@ -89,13 +101,23 @@ export function SignOutButton({ placement = "dock" }: { placement?: "dock" | "bo
           type="button"
           variant="secondary"
           fullWidth
-          onClick={handleSignOut}
+          onClick={() => setConfirmOpen(true)}
           disabled={pending}
           data-settings-sign-out="true"
           data-sign-out-state={pending ? "pending" : notice ? "failed" : "ready"}
         >
           {label}
         </AppButton>
+        <ConfirmDestructiveModal
+          open={confirmOpen}
+          title="Sign out"
+          confirmLabel="Sign out"
+          confirmVariant="primary"
+          objectName={signedInAs}
+          consequenceText="This signs out this device only. Your other devices stay signed in."
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => void handleSignOut()}
+        />
       </div>
     );
   }

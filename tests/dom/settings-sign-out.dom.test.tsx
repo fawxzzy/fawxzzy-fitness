@@ -31,9 +31,20 @@ function renderSignOut() {
   const { router } = createRouterSpy();
   render(
     <AppProviders router={router} pathname="/settings">
-      <SignOutButton placement="body" />
+      <SignOutButton placement="body" signedInAs="zac@example.com" />
     </AppProviders>,
   );
+}
+
+// Signing out is a two-step action: the button opens the confirm sheet, Confirm does the sign-out.
+function openConfirm() {
+  fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+  return screen.getByRole("dialog");
+}
+
+function confirmSignOut() {
+  const dialog = openConfirm();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Confirm" }));
 }
 
 test("Settings: Sign out asks the server to revoke this device once, and a second tap while pending is ignored", async () => {
@@ -42,7 +53,7 @@ test("Settings: Sign out asks the server to revoke this device once, and a secon
 
   const button = screen.getByRole("button", { name: "Sign out" });
   assert.equal(button.getAttribute("data-sign-out-state"), "ready");
-  fireEvent.click(button);
+  confirmSignOut();
 
   await waitFor(() => assert.equal(screen.getByRole("button", { name: "Signing out…" }).hasAttribute("disabled"), true));
   fireEvent.click(screen.getByRole("button", { name: "Signing out…" }));
@@ -56,7 +67,7 @@ test("Settings: a failed revoke keeps the person signed in on the screen with an
   const { requests, pending } = stubRevoke();
   renderSignOut();
 
-  fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+  confirmSignOut();
   await waitFor(() => assert.equal(requests.length, 1));
   pending[0].resolve(503);
 
@@ -67,7 +78,7 @@ test("Settings: a failed revoke keeps the person signed in on the screen with an
   assert.equal(button.getAttribute("data-sign-out-state"), "failed");
 
   // Retrying sends a fresh request and clears the old error while it is in flight.
-  fireEvent.click(button);
+  confirmSignOut();
   await waitFor(() => assert.equal(requests.length, 2));
   assert.equal(screen.queryByRole("alert"), null);
 });
@@ -78,8 +89,31 @@ test("Settings: a network error on revoke is also a failure, never a silent sign
   }) as typeof fetch;
   renderSignOut();
 
-  fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+  confirmSignOut();
 
   assert.ok(await screen.findByText("Could not sign out. Try again."));
   assert.equal(screen.getByRole("button", { name: "Sign out" }).hasAttribute("disabled"), false);
+});
+
+test("Settings: Sign out opens a confirm sheet that names who is signed in and sends nothing until Confirm", async () => {
+  const { requests } = stubRevoke();
+  renderSignOut();
+
+  const dialog = openConfirm();
+  assert.ok(within(dialog).getByText("Confirm sign out"));
+  assert.equal(dialog.querySelector("[data-confirm-object-name]")?.textContent, "zac@example.com");
+  assert.ok(within(dialog).getByText(/this device only/i));
+  assert.equal(requests.length, 0);
+});
+
+test("Settings: Cancel closes the confirm sheet and keeps the person signed in", async () => {
+  const { requests } = stubRevoke();
+  renderSignOut();
+
+  const dialog = openConfirm();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+  await waitFor(() => assert.equal(screen.queryByRole("dialog"), null));
+  assert.equal(requests.length, 0);
+  assert.equal(screen.getByRole("button", { name: "Sign out" }).getAttribute("data-sign-out-state"), "ready");
 });

@@ -1,4 +1,4 @@
-import { CardChip, CardChips, CardHeader, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
+import { CardChip, CardChips, CardHeader, CardMeta, CardNotice, CardSurface, cardTokens } from "@/components/ui/card-system";
 import type { HistoryAchievement } from "@/lib/history-achievements";
 
 export function AccountAchievementsSection({ achievements }: { achievements: HistoryAchievement[] }) {
@@ -12,6 +12,7 @@ export function AccountAchievementsSection({ achievements }: { achievements: His
           {unlockedCount}/{achievements.length} earned
         </p>
       </div>
+      {unlockedCount === 0 ? <CardNotice>Finish a workout to earn your first milestone.</CardNotice> : null}
       <ul className={cardTokens.list}>
         {achievements.map((achievement) => (
           <li key={achievement.id}>

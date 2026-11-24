@@ -1,12 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { ProAccessSettings } from "@/components/settings/ProAccessSettings";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
-import { CardHeader, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
+import { useIsOnline } from "@/components/session/useIsOnline";
+import { CardChip, CardChips, CardHeader, CardMeta, CardNotice, CardSurface, cardTokens } from "@/components/ui/card-system";
+import {
+  APP_THEME_SELECTION_CHANGE_EVENT,
+  getAppThemePresetLabel,
+  isAppThemePreset,
+  readStoredAppThemeLibrary,
+  readStoredAppThemeSelection,
+} from "@/lib/app-theme";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import type { HistoryAchievement } from "@/lib/history-achievements";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -55,10 +64,10 @@ export const SETTINGS_SIGN_OUT_EVERYWHERE_HREF = getFitnessSignOutEverywhereUrl(
  * The two sign-outs, kept apart: `Sign out` (this device, a button) first, then a gap, then the quiet
  * `Sign out everywhere` link to the portal. Used by Settings and the /account screen.
  */
-export function AccountSignOutActions({ everywhereHref }: { everywhereHref: string }) {
+export function AccountSignOutActions({ everywhereHref, signedInAs }: { everywhereHref: string; signedInAs?: string }) {
   return (
     <div className="space-y-6 pt-2" data-account-sign-out-actions="true">
-      <SignOutButton placement="body" />
+      <SignOutButton placement="body" signedInAs={signedInAs} />
       <a
         href={everywhereHref}
         {...{ [ACCOUNT_PORTAL_LINK_ATTRIBUTE]: "sign-out-everywhere" }}
@@ -81,6 +90,7 @@ export function SettingsSectionCard({
   href,
   onToggle,
   signedInAs,
+  status,
 }: {
   section: SettingsSectionId;
   expanded?: boolean;
@@ -89,6 +99,8 @@ export function SettingsSectionCard({
   /** Expand or collapse (everything else). */
   onToggle?: () => void;
   signedInAs?: string;
+  /** A live one-word state for the section (plan, achievements earned, current theme), shown as a chip. */
+  status?: string | null;
 }) {
   const meta = getSettingsSectionMeta(section);
   if (!meta) {
@@ -101,12 +113,47 @@ export function SettingsSectionCard({
         title={meta.title}
         meta={<CardMeta items={signedInAs ? [signedInAs, meta.summary] : [meta.summary]} />}
         headingLevel={2}
+        chips={status ? <CardChips><CardChip tone={expanded ? "current" : "neutral"}>{status}</CardChip></CardChips> : undefined}
         interaction={href
           ? { kind: "link", href, linkProps: { [ACCOUNT_PORTAL_LINK_ATTRIBUTE]: section } }
           : { kind: "toggle", expanded, onToggle: onToggle ?? (() => {}), controlsId: expanded ? getSettingsPanelId(section) : undefined }}
       />
     </CardSurface>
   );
+}
+
+/** The name of the theme in use on this device, read after hydration (storage is not available on the server). */
+function readActiveThemeLabel(): string {
+  const selection = readStoredAppThemeSelection();
+  if (!selection) {
+    return getAppThemePresetLabel("default");
+  }
+  if (isAppThemePreset(selection)) {
+    return getAppThemePresetLabel(selection);
+  }
+  return readStoredAppThemeLibrary().find((slot) => slot.id === selection)?.name ?? getAppThemePresetLabel("default");
+}
+
+// The theme in use, read after mount (it lives in this device's storage) and again whenever the theme changes, so the
+// chip stays right while the Theme section is open. The selection change has its own event.
+function useActiveThemeLabel(): string | null {
+  const [label, setLabel] = useState<string | null>(null);
+  useEffect(() => {
+    let timer: number | undefined;
+    const refresh = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setLabel(readActiveThemeLabel()), 0);
+    };
+    setLabel(readActiveThemeLabel());
+    window.addEventListener(APP_THEME_SELECTION_CHANGE_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(APP_THEME_SELECTION_CHANGE_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+  return label;
 }
 
 export function SettingsSectionsClient({
@@ -134,21 +181,35 @@ export function SettingsSectionsClient({
   achievements: HistoryAchievement[];
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
+  const isOnline = useIsOnline();
+  const themeLabel = useActiveThemeLabel();
+  const earnedCount = achievements.filter((achievement) => achievement.unlocked).length;
+  const statusBySection: Partial<Record<SettingsSectionId, string | null>> = {
+    achievements: `${earnedCount} of ${achievements.length}`,
+    pro: proAccess.accessState === "pro" ? "Pro" : "Free",
+    theme: themeLabel,
+  };
+  const offlineNotice = !isOnline ? (
+    <CardNotice tone="attention">
+      You are offline. Theme and saved choices still work; billing, export and Discord keys need a connection.
+    </CardNotice>
+  ) : null;
 
   const accountCard = <SettingsSectionCard section="account" href={SETTINGS_ACCOUNT_PORTAL_HREF} signedInAs={signedInAs} />;
-  const signOut = <AccountSignOutActions everywhereHref={SETTINGS_SIGN_OUT_EVERYWHERE_HREF} />;
+  const signOut = <AccountSignOutActions everywhereHref={SETTINGS_SIGN_OUT_EVERYWHERE_HREF} signedInAs={signedInAs} />;
 
   // Collapsed: the list of section cards, then Sign out. Expanded: that section's card (tap to close) and its panel.
   if (expandedSection === null) {
     return (
       <div className="space-y-3">
+        {offlineNotice}
         <ul className={cardTokens.list}>
           {SETTINGS_SECTION_ORDER.map((section) => (
             <li key={section}>
               {section === "account" ? (
                 accountCard
               ) : (
-                <SettingsSectionCard section={section} onToggle={() => setExpandedSection(section)} />
+                <SettingsSectionCard section={section} status={statusBySection[section]} onToggle={() => setExpandedSection(section)} />
               )}
             </li>
           ))}
@@ -168,8 +229,9 @@ export function SettingsSectionsClient({
           {signOut}
         </>
       ) : (
-        <SettingsSectionCard section={expandedSection} expanded onToggle={() => setExpandedSection(null)} />
+        <SettingsSectionCard section={expandedSection} expanded status={statusBySection[expandedSection]} onToggle={() => setExpandedSection(null)} />
       )}
+      {offlineNotice}
       {expandedSection === "achievements" ? <AccountAchievementsSection achievements={achievements} /> : null}
       {expandedSection === "pro" ? <ProAccessSettings snapshot={proAccess} billingNotice={billingNotice} /> : null}
       {expandedSection === "data" ? (

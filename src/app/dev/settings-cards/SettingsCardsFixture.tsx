@@ -46,6 +46,18 @@ const PRO_PLAN: ProAccessSnapshot = {
   renewsAt: "2026-12-02T14:00:00.000Z",
 };
 
+const ENDING_PLAN: ProAccessSnapshot = { ...PRO_PLAN, cancellationScheduledFor: "2026-12-02T14:00:00.000Z" };
+const UNCONFIGURED_PLAN: ProAccessSnapshot = { ...FREE_PLAN, checkoutConfigured: false };
+const LONG_NAME = "a-very-long-account-name.with.many.parts+fitness@a-long-email-provider.example.com";
+
+type PreviewState = "ok" | "error" | "slow";
+
+// Which answer the fixture gives the export preview request: read from the page URL when the request is made.
+function readFixturePreviewState(): PreviewState {
+  const value = new URLSearchParams(window.location.search).get("preview");
+  return value === "error" || value === "slow" ? value : "ok";
+}
+
 function buildPreview(body: { fileType?: string; scope?: string }) {
   const scope = body.scope === "history" || body.scope === "routines" ? body.scope : "all";
   const scopeLabel = scope === "history" ? "History" : scope === "routines" ? "Routines" : "All";
@@ -99,6 +111,16 @@ if (typeof window !== "undefined" && !(window as unknown as { __settingsFixtureF
   window.fetch = async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (url.endsWith("/api/account/export/preview")) {
+      const fixturePreviewState = readFixturePreviewState();
+      if (fixturePreviewState === "slow") {
+        return new Promise<Response>(() => {});
+      }
+      if (fixturePreviewState === "error") {
+        return new Response(JSON.stringify({ ok: false, error: "Preview is unavailable." }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
       const body = typeof init?.body === "string" ? JSON.parse(init.body) : {};
       return new Response(JSON.stringify({ ok: true, preview: buildPreview(body) }), {
         status: 200,
@@ -109,7 +131,19 @@ if (typeof window !== "undefined" && !(window as unknown as { __settingsFixtureF
   };
 }
 
-export function SettingsCardsFixture({ section, plan }: { section: string | null; plan: "free" | "pro" }) {
+export function SettingsCardsFixture({
+  section,
+  plan,
+  qaSwitch = false,
+  noneEarned = false,
+  longName = false,
+}: {
+  section: string | null;
+  plan: "free" | "pro" | "ending" | "unconfigured";
+  qaSwitch?: boolean;
+  noneEarned?: boolean;
+  longName?: boolean;
+}) {
   const initialExpandedSection: SettingsSectionKey = SECTION_KEYS.find((key) => key === section) ?? null;
 
   return (
@@ -124,14 +158,14 @@ export function SettingsCardsFixture({ section, plan }: { section: string | null
               <SettingsSectionsClient
                 userKind="human"
                 userNumber={null}
-                canAccessQaVisibilitySetting={false}
+                canAccessQaVisibilitySetting={qaSwitch}
                 showQaLlelData={false}
                 initialExportDateFrom="2026-05-01"
                 initialExportDateTo="2026-05-09"
-                proAccess={plan === "pro" ? PRO_PLAN : FREE_PLAN}
+                proAccess={plan === "pro" ? PRO_PLAN : plan === "ending" ? ENDING_PLAN : plan === "unconfigured" ? UNCONFIGURED_PLAN : FREE_PLAN}
                 billingNotice={null}
-                achievements={ACHIEVEMENTS}
-                signedInAs="dev-fixture"
+                achievements={noneEarned ? ACHIEVEMENTS.map((achievement) => ({ ...achievement, unlocked: false })) : ACHIEVEMENTS}
+                signedInAs={longName ? LONG_NAME : "dev-fixture"}
               />
             </div>
           </ContentRail>

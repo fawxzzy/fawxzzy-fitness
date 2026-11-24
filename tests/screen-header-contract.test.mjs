@@ -86,7 +86,7 @@ test("the Settings Account row opens the shared account portal; Sign out sits in
   const sections = read("src/components/settings/SettingsSectionsClient.tsx");
   assert.match(sections, /getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);
   assert.doesNotMatch(sections, /href="\/account"|getAccountRouteHref/);
-  assert.match(sections, /<SignOutButton placement="body" \/>/);
+  assert.match(sections, /<SignOutButton placement="body" signedInAs=\{signedInAs\} \/>/);
 
   const settingsPage = read("src/app/settings/page.tsx");
   assert.doesNotMatch(settingsPage, /<SignOutButton(?![^>]*placement="body")/, "no Sign out in the dock");
