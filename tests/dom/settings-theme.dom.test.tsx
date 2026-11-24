@@ -117,6 +117,21 @@ test("Theme: saving without a name reports through the notice, not as red text i
   assert.equal(document.querySelectorAll("[data-card-surface] [role='alert']").length, 0);
 });
 
+test("Theme: the saved notice is not removed by the exit timer of the notice it replaced", async () => {
+  renderTheme();
+  await waitFor(() => assert.ok(themeCard("Default theme")));
+  fireEvent.click(within(themeCard("New custom theme")).getByRole("button", { pressed: false }));
+  fireEvent.change(screen.getAllByRole("slider")[0], { target: { value: "20" } });
+  fireEvent.change(await screen.findByLabelText("Theme name"), { target: { value: "Dawn" } });
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: "Save theme" }) as HTMLButtonElement).disabled, false));
+  fireEvent.click(screen.getByRole("button", { name: "Save theme" }));
+  await screen.findByText("\"Dawn\" saved.");
+
+  // Save dismisses the previous notice (same id) and then shows the new one; the old exit timer used to remove the new one.
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  assert.ok(screen.queryByText("\"Dawn\" saved."), "the notice is still showing after the exit animation window");
+});
+
 test("Theme: a theme with unsaved edits says so", async () => {
   seedCustomTheme();
   renderTheme();

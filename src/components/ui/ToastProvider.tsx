@@ -151,6 +151,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       dismissTimersRef.current.delete(id);
     }
 
+    // Repeated dismisses (typing in a field clears its notice on every keystroke) must not leave an earlier exit timer
+    // running that nobody can cancel: it would remove a notice shown later with the same id.
+    const earlierExit = exitTimersRef.current.get(id);
+    if (earlierExit) {
+      window.clearTimeout(earlierExit);
+    }
+
     setToasts((current) => current.map((toast) => (toast.id === id ? { ...toast, isExiting: true } : toast)));
     const exitTimer = window.setTimeout(() => remove(id), EXIT_ANIMATION_MS);
     exitTimersRef.current.set(id, exitTimer);
@@ -175,6 +182,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       action: options?.action,
       ownerPathname: options?.dismissOnRouteChange ? pathnameRef.current : undefined,
     };
+    // A notice with this id may be mid-exit (dismiss then show again with the same id, e.g. Save): its exit timer would
+    // remove the new notice, so the replacement takes it over.
+    const pendingExit = exitTimersRef.current.get(id);
+    if (pendingExit) {
+      window.clearTimeout(pendingExit);
+      exitTimersRef.current.delete(id);
+    }
     if (isDockOverlaySlot(flowSlotRef.current)) {
       // One notice at a time: the new one replaces whatever is showing (an error included: this is the next action).
       dismissTimersRef.current.forEach((timer, timerId) => {
