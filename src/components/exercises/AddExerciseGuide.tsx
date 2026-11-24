@@ -10,7 +10,7 @@ import { Sheet } from "@/components/ui/Sheet";
 export const ADD_EXERCISE_GUIDE_ROWS = {
   warmup: {
     term: "Warm-up",
-    body: "While you log a workout you can mark a set as a warm-up. It is saved with the workout, but it does not count toward your goal or your progression.",
+    body: "While you log a workout you can mark a set as a warm-up. It is saved with the workout, but it is left out when your progression is worked out.",
   },
   failure: {
     term: "Till Failure",

@@ -573,12 +573,12 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
     );
 });
 
-export function EmptyExerciseRow({ onClearFilters }: { onClearFilters?: () => void }) {
+export function EmptyExerciseRow({ onClearFilters, libraryEmpty = false }: { onClearFilters?: () => void; libraryEmpty?: boolean }) {
   return (
     <li>
       <ExerciseCard
-        title="No exercises match your filters"
-        subtitle="Clear search or remove a filter to widen the library."
+        title={libraryEmpty ? "No exercises yet" : "No exercises match your filters"}
+        subtitle={libraryEmpty ? "Use Custom Exercise above to create your first one." : "Clear search or remove a filter to widen the library."}
         variant="compact"
         state="empty"
         leadingVisual={(

@@ -12,6 +12,8 @@ import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
 import {
   detailScreenFixtureDays,
   detailScreenFixtureExercises,
+  detailScreenFixtureManyExercises,
+  detailScreenFixtureStats,
   isDetailScreenFixtureId,
   resolveDetailScreenFixtureNames,
 } from "@/app/dev/detail-screens/fixtureData";
@@ -84,6 +86,10 @@ export default async function DevDetailScreensPage(props: {
   if (!isDetailScreenFixtureId(screen)) {
     notFound();
   }
+  const fixtureExercises = flag("empty")
+    ? []
+    : flag("many") ? detailScreenFixtureManyExercises() : [...detailScreenFixtureExercises];
+  const fixtureStats = flag("stats") ? detailScreenFixtureStats() : [];
   const names = resolveDetailScreenFixtureNames(longParam === "1");
   const days = detailScreenFixtureDays(names.routineName);
 
@@ -136,12 +142,13 @@ export default async function DevDetailScreensPage(props: {
             routineDayId="fixture-day-1"
             dayIndex={1}
             cycleLengthDays={4}
-            exercises={[...detailScreenFixtureExercises]}
+            exercises={fixtureExercises}
             weightUnit="lbs"
-            addExerciseAction={noopActionResult}
+            addExerciseAction={flag("fail") ? failActionResult : noopActionResult}
             resolveWorkoutPlanDecisionAction={noopActionResult}
-            loadWorkoutPlanDecisionStateAction={noopActionResult}
-            exerciseStats={[]}
+            loadWorkoutPlanDecisionStateAction={flag("decision") ? decisionStateActionResult : noopActionResult}
+            existingWorkoutPlanNames={flag("decision") ? ["Lower A", "Upper B"] : []}
+            exerciseStats={fixtureStats}
             backHref={FIXTURE_DAY_EDIT_HREF}
           />
         </AddExerciseScaffold>
@@ -156,11 +163,11 @@ export default async function DevDetailScreensPage(props: {
         >
           <SessionQuickAddExerciseForm
             sessionId="fixture-session"
-            exercises={[...detailScreenFixtureExercises]}
+            exercises={fixtureExercises}
             weightUnit="lbs"
-            exerciseStats={[]}
+            exerciseStats={fixtureStats}
             backHref="/session/fixture-session"
-            addExerciseAction={noopActionResult}
+            addExerciseAction={flag("fail") ? failActionResult : noopActionResult}
           />
         </AddExerciseScaffold>
       );

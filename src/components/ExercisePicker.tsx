@@ -1236,6 +1236,7 @@ export function ExercisePicker({
       ))}
       {filteredExercises.length === 0 ? (
         <EmptyExerciseRow
+          libraryEmpty={uniqueExercises.length === 0}
           onClearFilters={search.trim().length > 0 || selectedTags.length > 0
             ? () => {
               setSearch("");

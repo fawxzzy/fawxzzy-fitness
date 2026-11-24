@@ -322,6 +322,7 @@ export function ExerciseChooserAddFlowForm({
                   type="submit"
                   form={formId}
                   intent="positive"
+                  disabled={!selectedExercise && !isCustomExerciseSelected}
                   loading={isSubmitting}
                   loadingLabel="Adding exercise"
                   onClick={(event) => {
