@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -31,6 +31,7 @@ import {
   type ProgressionPlaybookId,
   type TrainingGoalId,
 } from "@/lib/progression-playbooks";
+import { AddExerciseGuide } from "@/components/exercises/AddExerciseGuide";
 import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { seedProgressionDraftWithStepValue } from "@/lib/progression-step-seeding";
 import { isStretchHubExercise } from "@/lib/stretch-library";
@@ -41,10 +42,6 @@ type HandledActionResult = ActionResult & {
 
 function resolveExerciseDistanceUnit(defaultUnit: string | null | undefined) {
   return normalizeFitnessDistanceUnit(defaultUnit, "mi");
-}
-
-function hasTextValue(value: string | null | undefined) {
-  return typeof value === "string" && value.trim().length > 0;
 }
 
 type AddExerciseProgressionMethodId = Exclude<ProgressionPlaybookId, "deload_after_stall"> | "";
@@ -201,6 +198,11 @@ export function ExerciseChooserAddFlowForm({
   const [progressionDraft, setProgressionDraft] = useState(seededExerciseProgression);
   const [hasCustomizedProgression, setHasCustomizedProgression] = useState(false);
   const [selectedTrainingFocus, setSelectedTrainingFocus] = useState<TrainingGoalId | "">("");
+  // The submit button lives in the bottom dock (outside the <form>), so useFormStatus cannot see it: track it here.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // `<form action>` runs as a React transition, so a pending flag set inside it lands in the same render as its reset and
+  // never shows. Submit from onSubmit (an urgent event) instead, and guard with a ref so a second tap cannot start a second add.
+  const submitInFlightRef = useRef(false);
   const shouldShowProgression = !isStretchHubExercise(selectedExercise);
   useEffect(() => {
     if (hasCustomizedProgression) {
@@ -252,19 +254,32 @@ export function ExerciseChooserAddFlowForm({
   return (
     <>
       <form
-        action={async (formData) => {
-          const result = await addExerciseAction(formData);
-          if (result.handled) {
+        onSubmit={async (event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          if (submitInFlightRef.current) {
             return;
           }
-          toastActionResult(toast, result, {
-            success: successMessage,
-            error: errorMessage,
-          });
+          submitInFlightRef.current = true;
+          setIsSubmitting(true);
+          try {
+            const result = await addExerciseAction(new FormData(event.currentTarget));
+            if (result.handled) {
+              return;
+            }
+            toastActionResult(toast, result, {
+              success: successMessage,
+              error: errorMessage,
+            });
 
-          if (result.ok) {
-            router.push(backHref);
-            router.refresh();
+            if (result.ok) {
+              router.push(backHref);
+              router.refresh();
+            }
+          } catch {
+            toast.error(errorMessage, { id: "add-exercise-submit" });
+          } finally {
+            submitInFlightRef.current = false;
+            setIsSubmitting(false);
           }
         }}
         id={formId}
@@ -306,7 +321,7 @@ export function ExerciseChooserAddFlowForm({
                   type="button"
                   intent="info"
                   onClick={onToggleLastSelection}
-                  disabled={!canToggleLastSelection}
+                  disabled={!canToggleLastSelection || isSubmitting}
                 >
                   {didApplyLastSelection ? "Clear Last" : "Use Last"}
                 </BottomDockButton>
@@ -316,6 +331,9 @@ export function ExerciseChooserAddFlowForm({
                   type="submit"
                   form={formId}
                   intent="positive"
+                  disabled={!selectedExercise && !isCustomExerciseSelected}
+                  loading={isSubmitting}
+                  loadingLabel="Adding exercise"
                   onClick={(event) => {
                     if (isCustomExerciseSelected && customExerciseError) {
                       event.preventDefault();
@@ -329,15 +347,16 @@ export function ExerciseChooserAddFlowForm({
                     toast.error(goalValidation.message || "Finish the missing goal fields before adding this exercise.", { id: "exercise-goal-validation" });
                   }}
                 >
-                  Confirm
+                  Add Exercise
                 </BottomDockButton>
               )}
             />
           )}
-          goalExtraContent={shouldShowProgression || additionalGoalExtraContent ? ({ selectedExercise: activeExercise, goalState, effectiveGoalModality }) => {
+          goalExtraContent={({ selectedExercise: activeExercise, goalState, effectiveGoalModality }) => {
             return (
-              <>
+              <div className="space-y-2">
                 {additionalGoalExtraContent}
+                {shouldShowProgression ? <AddExerciseGuide showTimer={Boolean(additionalGoalExtraContent)} /> : null}
                 {shouldShowProgression ? (
                   <ExerciseProgressionEditorSurface
                     draft={progressionDraft}
@@ -373,21 +392,12 @@ export function ExerciseChooserAddFlowForm({
                     infoDockPlacement="above-bottom-actions"
                   />
                 ) : null}
-              </>
+              </div>
             );
-          } : null}
-          goalDockViewportMode={shouldShowProgression ? ({ goalState }) => {
-            const hasEnteredMeasurementValue = (
-              hasTextValue(goalState.repsMin)
-              || hasTextValue(goalState.repsMax)
-              || hasTextValue(goalState.weight)
-              || hasTextValue(goalState.duration)
-              || hasTextValue(goalState.distance)
-              || hasTextValue(goalState.calories)
-            );
-            const isManualProgression = !progressionDraft.progressionPlaybookId;
-            return !hasEnteredMeasurementValue || isManualProgression ? "compact" : "default";
-          } : "default"}
+          }}
+          // One panel height for every Add exercise entry: it always has to fit the goal fields, the timer row (workout)
+          // and the "How this works" row without hiding them below the fold.
+          goalDockViewportMode="default"
           footerSlot={null}
         />
       </form>

@@ -26,7 +26,7 @@ export function buildUseLastInfoPayload(args: {
     title: args.didApplyLast ? "Clear Last Setup" : "Use Last Setup",
     summary: args.didApplyLast
       ? "Clear removes the copied last setup and returns the exercise to a fresh starting draft."
-      : "Use copies the most recent target setup for this exercise into the current add flow.",
+      : "Use copies the most recent goal setup for this exercise into the current add flow.",
     rows: [
       { label: "Current action", value: args.didApplyLast ? "Clear copied setup" : "Apply last setup" },
       { label: "Source", value: usesCompletedHistory ? "Latest completed history" : "Latest saved routine setup" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -10,7 +10,9 @@ import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { ProgressionPlaybookId } from "@/lib/progression-playbooks";
 import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
+import { useFieldNotice } from "@/components/ui/FieldNotice";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
 
 type ExerciseOption = {
@@ -86,7 +88,20 @@ export function EditDayAddExerciseScreen({
   const [workoutPlanDecisionOpen, setWorkoutPlanDecisionOpen] = useState(false);
   const [workoutPlanDecisionMode, setWorkoutPlanDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
   const [workoutPlanDecisionName, setWorkoutPlanDecisionName] = useState("");
-  const [workoutPlanDecisionError, setWorkoutPlanDecisionError] = useState<string | null>(null);
+  const [workoutPlanDecisionError, setWorkoutPlanDecisionErrorState] = useState<string | null>(null);
+  // Errors from the shared-day choice go through the in-flow notice system (shown in the sheet), never as red text.
+  // The notice is reported on every call, not only when the message text changes, so the same error repeated after
+  // the 6 s notice has gone shows again.
+  const { report: reportDecisionNotice, clear: clearDecisionNotice } = useFieldNotice("add-exercise-plan-decision");
+  const setWorkoutPlanDecisionError = (message: string | null) => {
+    setWorkoutPlanDecisionErrorState(message);
+    if (message) {
+      reportDecisionNotice(message);
+    } else {
+      clearDecisionNotice();
+    }
+  };
+  useEffect(() => clearDecisionNotice, [clearDecisionNotice]);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [activeWorkoutPlanId, setActiveWorkoutPlanId] = useState<string | null>(workoutPlanId);
   const [requiresWorkoutPlanDecision, setRequiresWorkoutPlanDecision] = useState(requiresWorkoutPlanEditDecision);
@@ -254,32 +269,19 @@ export function EditDayAddExerciseScreen({
         }}
       >
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              className={`min-h-11 rounded-[0.95rem] border px-3 py-2 text-sm font-semibold transition ${workoutPlanDecisionMode === "update_existing"
-                ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
-                : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.56)] text-[rgb(var(--text-secondary)/0.88)]"}`}
-              onClick={() => {
-                setWorkoutPlanDecisionMode("update_existing");
-                setWorkoutPlanDecisionError(null);
-              }}
-            >
-              Update Day
-            </button>
-            <button
-              type="button"
-              className={`min-h-11 rounded-[0.95rem] border px-3 py-2 text-sm font-semibold transition ${workoutPlanDecisionMode === "save_new"
-                ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
-                : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.56)] text-[rgb(var(--text-secondary)/0.88)]"}`}
-              onClick={() => {
-                setWorkoutPlanDecisionMode("save_new");
-                setWorkoutPlanDecisionError(null);
-              }}
-            >
-              Save New Day
-            </button>
-          </div>
+          <SegmentedControl
+            ariaLabel="How to add this exercise to the shared day"
+            size="sm"
+            value={workoutPlanDecisionMode}
+            options={[
+              { label: "Update Day", value: "update_existing" },
+              { label: "Save New Day", value: "save_new" },
+            ]}
+            onChange={(next) => {
+              setWorkoutPlanDecisionMode(next === "save_new" ? "save_new" : "update_existing");
+              setWorkoutPlanDecisionError(null);
+            }}
+          />
           {workoutPlanDecisionMode === "save_new" ? (
             <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
               {(control) => (
@@ -297,11 +299,6 @@ export function EditDayAddExerciseScreen({
                 />
               )}
             </FormField>
-          ) : null}
-          {workoutPlanDecisionError ? (
-            <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">
-              {workoutPlanDecisionError}
-            </p>
           ) : null}
         </div>
       </ConfirmDestructiveModal>

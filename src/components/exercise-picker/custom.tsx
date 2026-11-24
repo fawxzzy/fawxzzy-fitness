@@ -418,7 +418,7 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
               name="Custom Exercise"
               metadataItems={["Create one not in library"]}
               nameClassName="text-[0.96rem] font-semibold text-[rgb(var(--text)/0.98)]"
-              metadataClassName="!flex-nowrap text-[11px] text-[rgb(var(--accent-strong)/0.88)]"
+              metadataClassName="!flex-nowrap text-[length:var(--type-caption)] text-[rgb(var(--accent-strong)/0.88)]"
               emphasizeLeadMetadata
               metadataLeadClassName="text-[rgb(var(--accent-strong)/0.98)]"
               showUnderline
@@ -447,17 +447,17 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
               <>
                 <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
                   <span className="min-w-0 max-w-full whitespace-nowrap text-[0.9rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]">
-                    Current Target
+                    Your Goal
                   </span>
                   <MetricAccentBar variant="thin" className="w-full opacity-75" />
                 </span>
-                <span className={cn("min-w-0 whitespace-normal break-words text-[11px] tracking-[0.01em] leading-[1.18]", targetSummaryToneClassName)}>
+                <span className={cn("min-w-0 whitespace-normal break-words text-[length:var(--type-caption)] tracking-[0.01em] leading-[1.18]", targetSummaryToneClassName)}>
                   {targetSummaryText}
                 </span>
               </>
             ) : undefined}
             nameClassName="text-[0.95rem] font-semibold text-[rgb(var(--text)/0.98)]"
-            metadataClassName="max-w-full gap-x-2 gap-y-1.5 text-[11px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
+            metadataClassName="max-w-full gap-x-2 gap-y-1.5 text-[length:var(--type-caption)] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
             emphasizeLeadMetadata
             metadataLeadClassName="text-[rgb(var(--accent-strong)/0.98)]"
             showTitleUnderline
@@ -494,7 +494,7 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
               <div
                 id={draftHelperId}
                 className={cn(
-                  "min-w-0 text-[11px] leading-[1.22]",
+                  "min-w-0 text-[length:var(--type-caption)] leading-[1.22]",
                   draftHelperToneClassName,
                 )}
               >

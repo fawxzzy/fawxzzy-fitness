@@ -205,7 +205,7 @@ export function ExerciseSearchFilters({
         <button
           type="button"
           onClick={() => onTagsChange([])}
-          className={cn(appTokens.exercisePickerFilterClearButton, "!border-[rgb(var(--accent-yellow-on)/0.58)] px-2 py-1 text-[11px]")}
+          className={cn(appTokens.exercisePickerFilterClearButton, "!border-[rgb(var(--accent-yellow-on)/0.58)] px-2 py-1 text-[length:var(--type-caption)]")}
         >
           Clear all
         </button>
@@ -219,7 +219,7 @@ export function ExerciseSearchFilters({
             key={tag.value}
             type="button"
             active
-            className="shrink-0 whitespace-nowrap px-2 py-1 text-[11px] !border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+            className="shrink-0 whitespace-nowrap px-2 py-1 text-[length:var(--type-caption)] !border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
             onClick={() => onTagsChange(selectedTags.filter((value) => value !== tag.value))}
           >
             {tag.label}
