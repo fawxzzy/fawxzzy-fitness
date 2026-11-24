@@ -480,6 +480,9 @@ test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close a
   assert.match(handle, /aria-controls="session-exercise-panel-se-1"/);
   assert.match(handle, /aria-label="Open Zed Press logger"/);
   assert.match(handle, /before:h-11/, "44px tall target");
+  // A centred 44px area reached 12px up into Log set / Log all (real-browser elementFromPoint, 2026-11-24): grow it down.
+  assert.match(handle, /before:-top-1/, "the target starts at the bar's bottom edge and grows down");
+  assert.doesNotMatch(handle, /before:top-1\/2/, "not centred on the pill");
   assert.match(handle, /\bw-16\b/, "64px wide target");
   assert.match(collapsed, /data-session-expand-handle-direction="down"/);
   assert.ok(collapsed.indexOf("footer-stub") < collapsed.indexOf("data-session-expand-handle="), "the handle is on the bottom edge, after the bar");
@@ -509,9 +512,9 @@ test("logger chips (Zac 2026-11-24): a plain caption for the pressed chip(s) and
   const base = { warmup: false, failure: false, timer: false, hasMarkChips: true };
   assert.equal(describeLoggerChips(base), "Tap a chip to mark the next set");
   assert.equal(describeLoggerChips({ ...base, warmup: true }), "Warm-up: not counted for progression");
-  assert.equal(describeLoggerChips({ ...base, failure: true }), "Failure: tagged, counts as a normal set");
+  assert.equal(describeLoggerChips({ ...base, failure: true }), "Failure: a tag only. Enter reps reached");
   assert.equal(describeLoggerChips({ ...base, timer: true }), "Timer: shown on this card");
-  assert.equal(describeLoggerChips({ ...base, warmup: true, timer: true }), "Warm-up: not counted for progression · Timer on");
+  assert.equal(describeLoggerChips({ ...base, warmup: true, timer: true }), "Warm-up: not counted for progression", "the mark only, so it stays one line");
   assert.equal(describeLoggerChips({ ...base, hasMarkChips: false }), null, "nothing to say on a timer-only logger with the timer off");
   for (const caption of Object.values(LOGGER_CHIP_CAPTIONS)) {
     assert.doesNotMatch(caption, /target/i, "never the word Target");

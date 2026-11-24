@@ -258,7 +258,7 @@ test("Session: the chip caption says what the pressed chip does and the Log set 
   assert.match(logButton(), /^Log warm-up set/);
 
   fireEvent.click(within(panelOf("a") as HTMLElement).getByRole("button", { name: "Failure" }));
-  await waitFor(() => assert.equal(caption(), "Failure: tagged, counts as a normal set"));
+  await waitFor(() => assert.equal(caption(), "Failure: a tag only. Enter reps reached"));
   assert.match(logButton(), /^Log failure set/);
   assert.doesNotMatch(panelOf("a")?.textContent ?? "", /Target/, "plain words, never Target");
 

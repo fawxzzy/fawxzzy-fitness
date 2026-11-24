@@ -6,8 +6,10 @@
 //   recovery-timing.ts). It still counts in the card's set count, the weekly set count and the exercise PR records
 //   (exercise-stats.ts reads every set), so the caption only claims progression.
 // - Failure saves the set with the note marker FAILURE_NOTE_SENTINEL and tags it "Failure" in the set list. Nothing
-//   else reads that marker: it counts like any other set everywhere.
-// - Timer shows or hides the exercise timer on this card; it does not change the set.
+//   else reads that marker: it counts like any other set everywhere. Pressing it clears the reps field (SessionTimers),
+//   and blank reps save as 0, so the caption asks for the reps reached.
+// - Timer shows or hides the exercise timer on this card; it does not change the set. With Warm-up or Failure also
+//   pressed the caption names only the mark (one line at 320px); the open timer is its own visible section.
 
 export type LoggerChipState = {
   warmup: boolean;
@@ -20,16 +22,15 @@ export type LoggerChipState = {
 export const LOGGER_CHIP_CAPTIONS = {
   idle: "Tap a chip to mark the next set",
   warmup: "Warm-up: not counted for progression",
-  failure: "Failure: tagged, counts as a normal set",
+  failure: "Failure: a tag only. Enter reps reached",
   timerOnly: "Timer: shown on this card",
-  timerSuffix: "Timer on",
 } as const;
 
 /** The one-line caption under the chip row: describes only the pressed chip(s). Null when there is nothing to say. */
 export function describeLoggerChips(state: LoggerChipState): string | null {
   const mark = state.warmup ? LOGGER_CHIP_CAPTIONS.warmup : state.failure ? LOGGER_CHIP_CAPTIONS.failure : null;
   if (mark) {
-    return state.timer ? `${mark} · ${LOGGER_CHIP_CAPTIONS.timerSuffix}` : mark;
+    return mark;
   }
   if (state.timer) {
     return LOGGER_CHIP_CAPTIONS.timerOnly;

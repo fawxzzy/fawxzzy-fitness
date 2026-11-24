@@ -24,7 +24,6 @@ import { getDurationWholeMinutes } from "@/lib/duration";
 import { formatDurationShort } from "@/lib/formatting";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { cn } from "@/lib/cn";
-import { HIT_AREA_CLASS_NAME } from "@/components/ui/hitArea";
 
 /**
  * Current-session cards (docs/design-system/CARD-SYSTEM.md section 7.4). Presentation only: every handler,
@@ -162,8 +161,13 @@ export function SessionExerciseRowCard({
 /**
  * The grab handle on a session card's bottom edge: a thin pill bent into a shallow V that points down while the card
  * is closed and flips to point up while it is open. Same toggle as the header; aria-expanded mirrors it. The visible
- * pill is small, the target is 44px tall (HIT_AREA) and 64px wide, centred, clear of the action bar buttons above.
+ * pill is small; the target is 64px wide and 44px tall, grown downward from 4px above the pill (the row sits 4px
+ * under the action bar) so it never takes a tap from Log set / Log all above it, and ends inside the 8px gap below the
+ * card (`SESSION_HANDLE_HIT_AREA`).
  */
+// 44px tall target that starts 4px above the pill (the bar's bottom edge) and grows down, not centred like HIT_AREA.
+const SESSION_HANDLE_HIT_AREA = "relative before:absolute before:inset-x-0 before:-top-1 before:h-11 before:content-['']";
+
 export function SessionCardExpandHandle({
   expanded,
   controlsId,
@@ -176,7 +180,7 @@ export function SessionCardExpandHandle({
   onToggle: () => void;
 }) {
   return (
-    <div data-session-expand-handle-row="true" className="-mt-1 flex justify-center pb-1">
+    <div data-session-expand-handle-row="true" className="mt-1 flex justify-center pb-1">
       <button
         type="button"
         data-session-expand-handle="true"
@@ -185,8 +189,8 @@ export function SessionCardExpandHandle({
         aria-label={expanded ? `Close ${exerciseName} logger` : `Open ${exerciseName} logger`}
         onClick={onToggle}
         className={cn(
-          HIT_AREA_CLASS_NAME,
-          "inline-flex h-5 w-16 items-center justify-center rounded-full text-[rgb(var(--text-muted)/0.9)] transition-colors hover:text-[rgb(var(--text-secondary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]",
+          SESSION_HANDLE_HIT_AREA,
+          "inline-flex h-5 w-16 items-center justify-center rounded-full !border-0 !bg-transparent !shadow-none text-[rgb(var(--text-muted)/0.9)] transition-colors hover:text-[rgb(var(--text-secondary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]",
         )}
       >
         <svg

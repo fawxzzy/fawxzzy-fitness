@@ -239,8 +239,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     />
   );
   // The shell says which tones go in flow (data-app-notice-flow-tones, fixed per screen): errors by default, every tone
-  // on screens that opt in (the workout screen), so no notice covers a card title there.
-  // An above-dock slot takes every tone.
+  // on screens that opt in with noticesInFlow="all". An above-dock slot (the workout screen) takes every tone, one at a
+  // time, out of flow, so a notice never moves a card.
   const flowAllTones = isDockOverlay || flowSlot?.getAttribute("data-app-notice-flow-tones") === "all";
   const isFlowToast = (toast: ToastItem) => flowAllTones || toast.tone === "error";
   const flowToasts = flowSlot ? toasts.filter(isFlowToast) : [];
