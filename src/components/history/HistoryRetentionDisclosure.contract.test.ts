@@ -70,3 +70,19 @@ test("History timeline filters expose one clear-all control and hide unrelated s
   assert.match(historyClientSource, /summary=\{displayedWorkoutStreak\}/);
   assert.match(historyClientSource, /!effectiveSelectedDayKey && !hasCycleTimelineFilter \? \(/);
 });
+
+test("History screens carry no mis-encoded separators (a UTF-8 middle dot read as Latin-1 shows as \"Â·\")", () => {
+  const files = [
+    "../../app/history/HistorySessionsClient.tsx",
+    "../../app/history/[sessionId]/LogAuditClient.tsx",
+    "../../app/history/exercises/ExerciseBrowserClient.tsx",
+    "./HistoryFilterBar.tsx",
+    "./ProgressionHistorySurface.tsx",
+    "./ProgressionHistoryFilters.tsx",
+    "./HistoryLoadErrorState.tsx",
+  ];
+  for (const file of files) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.equal(/\u00c2[\u00a0-\u00bf]|\u00e2\u20ac/.test(source), false, `${file} has mojibake`);
+  }
+});

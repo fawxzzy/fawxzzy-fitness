@@ -22,9 +22,7 @@ import { computeSessionCompletion, resolvePlannedSetCount } from "@/lib/session-
 import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
 import {
   HistorySessionCard,
-  buildRecapOnlyHistorySessionDetailSections,
   type HistorySessionDetailSection,
-  type HistorySessionRecapItemMeta,
 } from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -284,68 +282,6 @@ function buildMeasurementSummary(set: EditableSet, defaultUnit: string | null) {
   });
 }
 
-function formatSeriesNumber(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
-}
-
-function formatLoggedMetricSeries(values: string[], unitLabel?: string | null) {
-  const cleanedValues = values.map((value) => value.trim()).filter(Boolean);
-  if (cleanedValues.length === 0) {
-    return null;
-  }
-
-  return `${cleanedValues.join(" / ")}${unitLabel ? ` ${unitLabel}` : ""}`;
-}
-
-function buildLoggedMeasurementSeriesSummary(sets: EditableSet[], defaultUnit: string | null) {
-  const meaningfulSets = sets.filter(hasMeaningfulSetData);
-  if (meaningfulSets.length === 0) {
-    return null;
-  }
-
-  const weightUnit = meaningfulSets.find((set) => parsePositiveNumber(set.values.weight) > 0)?.values.weightUnit ?? "lbs";
-  const distanceUnit = resolveFocusedDistanceUnit(meaningfulSets, defaultUnit);
-  const metricParts = [
-    formatLoggedMetricSeries(
-      meaningfulSets
-        .map((set) => parsePositiveNumber(set.values.reps))
-        .filter((value) => value > 0)
-        .map((value) => formatSeriesNumber(value)),
-      "reps",
-    ),
-    formatLoggedMetricSeries(
-      meaningfulSets
-        .map((set) => parsePositiveNumber(set.values.weight))
-        .filter((value) => value > 0)
-        .map((value) => formatSeriesNumber(value)),
-      weightUnit,
-    ),
-    formatLoggedMetricSeries(
-      meaningfulSets
-        .map((set) => parseDurationInput(set.values.duration) ?? 0)
-        .filter((value) => value > 0)
-        .map((value) => formatDurationClock(value)),
-      null,
-    ),
-    formatLoggedMetricSeries(
-      meaningfulSets
-        .map((set) => parsePositiveNumber(set.values.distance))
-        .filter((value) => value > 0)
-        .map((value) => formatSeriesNumber(value)),
-      distanceUnit,
-    ),
-    formatLoggedMetricSeries(
-      meaningfulSets
-        .map((set) => parsePositiveNumber(set.values.calories))
-        .filter((value) => value > 0)
-        .map((value) => formatSeriesNumber(value)),
-      "cal",
-    ),
-  ].filter((value): value is string => Boolean(value));
-
-  return metricParts.length > 0 ? metricParts.join(" · ") : null;
-}
-
 function scoreEditableSet(set: EditableSet) {
   const weight = set.values.weight.trim() ? Number(set.values.weight) : 0;
   const reps = set.values.reps.trim() ? Number(set.values.reps) : 0;
@@ -484,56 +420,6 @@ function buildLoggedSessionSummary(args: {
   } satisfies SessionSummary;
 }
 
-function buildLoggedSessionRecapItemMeta(args: {
-  exercises: AuditExercise[];
-  editableSets: Record<string, EditableSet[]>;
-  exerciseNameMap: Record<string, string>;
-  sessionSummary: SessionSummary;
-}): HistorySessionRecapItemMeta[] {
-  const prExerciseNames = new Set((args.sessionSummary.prExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
-  const bestExerciseName = args.sessionSummary.bestLift?.exerciseName?.trim() || null;
-
-  return args.exercises
-    .map((exercise): HistorySessionRecapItemMeta | null => {
-      const exerciseName = exercise.exercise_name?.trim() || args.exerciseNameMap[exercise.exercise_id] || "";
-      if (!exerciseName) {
-        return null;
-      }
-
-      const progressionSummary = exercise.progressionSummary ?? null;
-      const sets = args.editableSets[exercise.id] ?? [];
-      const loggedSeriesSummary = buildLoggedMeasurementSeriesSummary(sets, exercise.default_unit);
-      const targetSeriesSummary = exercise.targetSeriesSummary?.trim()
-        || progressionSummary?.currentTargetLabel?.trim()
-        || null;
-      // Never "Target" in UI copy (Zac 2026-11-23); a skipped exercise says so instead of reading "0 sets".
-      const valueParts = exercise.is_skipped
-        ? ["Skipped"]
-        : [
-          `${sets.length} ${sets.length === 1 ? "set" : "sets"}`,
-          targetSeriesSummary ? `Goal ${targetSeriesSummary}` : null,
-          loggedSeriesSummary ? `Logged ${loggedSeriesSummary}` : null,
-        ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
-      const signals = [
-        prExerciseNames.has(exerciseName) ? "pr" : null,
-        (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
-        ((progressionSummary?.deloadCount ?? 0) + (progressionSummary?.revertCount ?? 0)) > 0 ? "regression" : null,
-        (progressionSummary?.watchCount ?? 0) > 0 ? "watch" : null,
-      ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
-      const tagLabels = [
-        bestExerciseName === exerciseName ? "BEST" : null,
-        (progressionSummary?.manualChangeCount ?? 0) > 0 ? "MANUAL" : null,
-      ].filter((value): value is string => Boolean(value));
-
-      return {
-        exerciseName,
-        value: valueParts.length > 0 ? valueParts.join(" · ") : null,
-        signals,
-        tagLabels,
-      } satisfies HistorySessionRecapItemMeta;
-    })
-    .filter((item): item is HistorySessionRecapItemMeta => Boolean(item));
-}
 
 function formatMetricCount(value: number) {
   return Math.max(0, Math.round(value)).toLocaleString();
@@ -903,7 +789,7 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
         {recap.streakCallout ? (
           <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">
             <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">Streak</span>
-            {" Â· "}
+            {" · "}
             {recap.streakCallout}
           </p>
         ) : null}
@@ -1144,33 +1030,17 @@ export function LogAuditClient({
     }) ?? undefined;
   }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary.prExerciseNames]);
 
-  const focusedRecapItemMeta = useMemo(() => {
-    if (expandedExercise) {
-      return [];
-    }
-
-    return buildLoggedSessionRecapItemMeta({
-      exercises: displayExercises,
-      editableSets,
-      exerciseNameMap,
-      sessionSummary: focusedSessionSummary,
-    });
-  }, [displayExercises, editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary]);
-
+  // History redesign 2026-11-23 (review item 1/13): the per-exercise recap is not repeated in the summary card. The
+  // exercise cards directly below already carry each exercise's sets, top set and PR / Best chips, and the repeated
+  // centred recap pushed the exercise list off the first screen.
   const focusedDetailedSections = useMemo(() => {
     if (!expandedExercise) {
-      const recapSections = buildRecapOnlyHistorySessionDetailSections(
-        focusedSessionSummary,
-        focusedSessionSummary.prExerciseNames ?? [],
-        focusedRecapItemMeta,
-      );
       // FF-SESSION-005: session-level observed rest, derived from set timestamps only (separate from the exercise timer).
       const recoverySummary = buildSessionRecoverySummary(
         displayExercises.map((exercise) => (editableSets[exercise.id] ?? []).map((set) => set.source)),
       );
       return recoverySummary
         ? [
-            ...recapSections,
             {
               title: "Rest",
               items: [{
@@ -1183,11 +1053,11 @@ export function LogAuditClient({
               layout: "inline",
             } satisfies HistorySessionDetailSection,
           ]
-        : recapSections;
+        : [];
     }
 
     return [];
-  }, [displayExercises, editableSets, expandedExercise, focusedRecapItemMeta, focusedSessionSummary]);
+  }, [displayExercises, editableSets, expandedExercise]);
 
   useEffect(() => {
     if (expandedExerciseId && !expandedExercise) {
@@ -1426,12 +1296,12 @@ export function LogAuditClient({
     });
   };
 
-  // Detail header (DESIGN-CONTRACT.md section 15): the day name as the title, "Fri, Nov 6 Â· Routine" as the one
+  // Detail header (DESIGN-CONTRACT.md section 15): the day name as the title, "Fri, Nov 6 · Routine" as the one
   // subtitle line, Back on the left. With one exercise open, Back first returns to the whole session.
   const sessionHeaderSubtitle = [
     [formatWeekdayShort(sessionSummary.startedAt), formatDateShort(sessionSummary.startedAt)].filter(Boolean).join(", "),
     sessionSummary.routineTitle?.trim() || null,
-  ].filter(Boolean).join(" Â· ");
+  ].filter(Boolean).join(" · ");
   const prExerciseNames = expandedExercise ? (focusedSessionSummary.prExerciseNames ?? []) : (sessionSummary.prExerciseNames ?? []);
   const renderExerciseNoteInput = (exerciseId: string) => (
     <FormField label="Exercise notes">
@@ -1535,7 +1405,7 @@ export function LogAuditClient({
             id="history-detail-exercises-heading"
             className={cn(cardTokens.statLabel, expandedExercise ? "sr-only" : "px-1 pt-2")}
           >
-            {`Exercises Â· ${displayExercises.length}`}
+            {`Exercises · ${displayExercises.length}`}
           </h2>
 
           {displayExercises.length === 0 ? (
@@ -1652,7 +1522,7 @@ export function LogAuditClient({
 
                     {isEditing && expandedSet ? (
                       <HistoryDetailPanel
-                        title={`${formatSetPositionLabel(expandedSetPosition)} Â· ${name}`}
+                        title={`${formatSetPositionLabel(expandedSetPosition)} · ${name}`}
                         meta={buildMeasurementSummary(expandedSet, exercise.default_unit)}
                         panel="set-editor"
                       >
