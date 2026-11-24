@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SubtitleText } from "@/components/ui/text-roles";
@@ -31,17 +30,18 @@ export function SessionOfflineShell({
     });
   }, [initialSnapshot, sessionId, userId]);
 
-  const floatingHeader = cachedSnapshot ? (
+  // Always a header (even before the cache loads) so Pause is the way back to Today; no app menu on the workout.
+  const floatingHeader = (
     <SessionHeaderControls
-      routineName={cachedSnapshot.routineName}
-      sessionDayName={cachedSnapshot.sessionDayName}
+      routineName={cachedSnapshot?.routineName ?? ""}
+      sessionDayName={cachedSnapshot?.sessionDayName ?? ""}
       backHref={backHref}
       statusBadge={<OfflineSyncBadge userId={userId} variant="header" label="Offline" />}
     />
-  ) : null;
+  );
 
   return (
-    <ScrollScreenWithBottomActions headerMenu={<AppMenu />} floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions floatingHeader={floatingHeader} noticesInFlow="all">
       <ContentRail className="space-y-3">
         {cachedSnapshot ? (
           <>

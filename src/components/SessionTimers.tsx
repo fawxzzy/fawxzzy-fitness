@@ -21,15 +21,14 @@ import {
 } from "@/lib/offline/set-log-reconciliation";
 import { buildSessionDraftStorageKey, isOfflineSnapshotStale } from "@/lib/offline/client-storage";
 import { useToast } from "@/components/ui/ToastProvider";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import {
-  GlowSwitch,
-  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
-  GLOW_SWITCH_STANDARD_CLASS_NAME,
-  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
-} from "@/components/ui/GlowSwitch";
+  LoggedSetDeleteButton,
+  LoggerPrimaryLogButton,
+  LoggerSecondaryButton,
+  LoggerToggleChip,
+} from "@/components/session/SetLoggerControls";
 import { appTokens } from "@/components/ui/app/tokens";
-import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
@@ -50,7 +49,6 @@ import {
   removeDeletedSetIdentityKeys,
 } from "@/lib/session-deleted-set-identities";
 import { deriveSimpleSessionPrToast } from "@/lib/session-set-entry";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import {
   resolveSetFlowQuickLogTarget,
@@ -416,6 +414,7 @@ export function SetLoggerCard({
   showProgressionControls: _showProgressionControls = true,
   updateProgressionAction: _updateProgressionAction,
   bottomDockCenter: _bottomDockCenter,
+  loggerLeadingAction,
   fallbackGoalLabel,
   onDraftStateChange,
   reportDraftState = true,
@@ -489,6 +488,8 @@ export function SetLoggerCard({
   showProgressionControls?: boolean;
   updateProgressionAction?: (formData: FormData) => Promise<ActionResult>;
   bottomDockCenter?: ReactNode;
+  /** Card-level control placed first in the logger's secondary row (the session's More menu: Skip/Hide/Remove). */
+  loggerLeadingAction?: ReactNode;
   fallbackGoalLabel?: string | null;
   onDraftStateChange?: (draftState: SessionLoggerDraftState) => void;
   reportDraftState?: boolean;
@@ -531,6 +532,7 @@ export function SetLoggerCard({
   const [sets, setSets] = useState<DisplaySet[]>(() => initialSets.map(toDisplaySet));
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(() => initialSets.map(toDisplaySet));
   const [deletingSetIds, setDeletingSetIds] = useState<string[]>([]);
+  const [confirmDeleteSet, setConfirmDeleteSet] = useState<{ set: DisplaySet; index: number } | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const [copilotSignalState, setCopilotSignalState] = useState<SessionCopilotFeedbackSignal | null>(
@@ -1318,7 +1320,8 @@ export function SetLoggerCard({
         return next;
       });
       const message = queued ? "Offline: set queued for sync." : "Offline: unable to save set locally.";
-      setError(message);
+      // A queued set is saved locally, not an invalid value: no outline marker for it.
+      setError(queued ? null : message);
       if (queued) {
         toast.success(message);
       } else {
@@ -1381,7 +1384,8 @@ export function SetLoggerCard({
           return next;
         });
         const message = queued ? "Could not reach server. Set queued for sync." : (!result.ok ? result.error : "Could not log set.");
-        setError(message);
+        // A queued set is saved locally, not an invalid value: no outline marker for it.
+        setError(queued ? null : message);
         if (queued) {
           toast.success(message);
         } else {
@@ -1404,7 +1408,10 @@ export function SetLoggerCard({
         candidate: result.data!.set,
         fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
       });
-      toast.success(prToast ? `Set logged. ${prToast}` : "Set logged.");
+      // Quiet success (2026-11-23): the new set row and progress are the feedback; only a new best earns a notice.
+      if (prToast) {
+        toast.success(`Set logged. ${prToast}`);
+      }
     } catch {
       const queued = await enqueueSetLog({
         userId,
@@ -1441,7 +1448,8 @@ export function SetLoggerCard({
         return next;
       });
       const message = queued ? "Request failed. Set queued for sync." : "Could not log set.";
-      setError(message);
+      // A queued set is saved locally, not an invalid value: no outline marker for it.
+      setError(queued ? null : message);
       if (queued) {
         toast.success(message);
       } else {
@@ -1586,8 +1594,7 @@ export function SetLoggerCard({
       setSelectedWeightUnit(values.weightUnit);
     }
     setError(null);
-    toast.success("Applied to current set.");
-  }, [toast]);
+  }, []);
   async function handleDeleteSet(set: DisplaySet) {
     if (deletingSetIds.includes(set.stableId)) {
       return;
@@ -1607,7 +1614,6 @@ export function SetLoggerCard({
         latestSetsRef.current = next;
         return next;
       });
-      toast.success("Queued set removed.");
       setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
       return;
     }
@@ -1645,7 +1651,6 @@ export function SetLoggerCard({
         return;
       }
 
-      toast.success("Set removed.");
     } finally {
       setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
     }
@@ -1697,13 +1702,8 @@ export function SetLoggerCard({
   }, [applyHintValues, applyLastRow, didApplyLastTarget, isEditedFromCurrentTarget, resetLoggerMeasurementInputs]);
   const remainingTargetSetCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - sets.length);
   const showLastTargetAction = !isLastTargetButtonDisabled;
-  const showLogAllAction = remainingTargetSetCount > 0;
-  const loggerActionCount = Number(showLastTargetAction) + Number(showLogAllAction) + 1;
-  const loggerActionGridClassName = loggerActionCount === 1
-    ? "grid-cols-1"
-    : loggerActionCount === 2
-      ? (showLastTargetAction ? "grid-cols-[74px_minmax(0,1fr)]" : "grid-cols-[80px_minmax(0,1fr)]")
-      : "grid-cols-[74px_80px_minmax(0,1fr)]";
+  // One remaining set: Log set already does it, so Log all only appears for two or more (same rule as the card bar).
+  const showLogAllAction = remainingTargetSetCount > 1;
   const handleLogAll = useCallback(async () => {
     const remainingCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - latestSetsRef.current.length);
     if (logRequestInFlightRef.current || remainingCount === 0) {
@@ -1718,76 +1718,40 @@ export function SetLoggerCard({
       }
     }
   }, [handleLogSet, targetSetsMax, targetSetsMin]);
+  // Logger actions (Zac 2026-11-23): quiet secondaries on one row (Use last / Resync / Clear last, Log all), then the
+  // one primary Log set. Inside the logger box, padded; every control is a 44px+ target.
   const attachedLoggerActionStrip = useMemo(
     () => (
-      <AttachedCardActionStripFrame
-        className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.3)] bg-[rgb(var(--surface-1-rgb)/0.18)]"
-        gridClassName={loggerActionGridClassName}
-      >
-        {showLastTargetAction ? (
-          <button
-            type="button"
-            onClick={handleToggleLastTarget}
-            data-bottom-action-intent="info"
-            className={getAttachedCardActionButtonClassName({
-              intent: "info",
-              className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.2)]",
-            })}
-          >
-            <span className="bottom-action__label">{lastTargetButtonLabel}</span>
-          </button>
-        ) : null}
-        {showLogAllAction ? (
-          <button
-            type="button"
-            onClick={() => { void handleLogAll(); }}
-            disabled={isSaveDisabled}
-            data-bottom-action-intent="positive"
-            className={cn(
-              getAttachedCardActionButtonClassName({
-                intent: "positive",
-                className: "!h-12 !border-r !border-r-[rgb(var(--accent-divider-rgb)/0.24)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
-              }),
-              isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
-            )}
-          >
-            <span className="bottom-action__label text-[11px]">Log all</span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={handleLogSet}
-          disabled={isSaveDisabled}
-          data-bottom-action-intent="positive"
-          className={cn(
-            getAttachedCardActionButtonClassName({
-              intent: "positive",
-              className: cn(
-                "!h-12 rounded-br-[var(--card-radius)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
-                showLastTargetAction ? "" : "rounded-bl-[var(--card-radius)]",
-              ),
-            }),
-            isSaveDisabled ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
-          )}
-        >
-          <span className="bottom-action__label inline-flex min-w-0 items-center justify-center gap-1.5 text-[11px] leading-tight">
-            <span>{liveLogButtonPrefix}</span>
-            {liveSummaryItems.length > 0 ? (
-              <>
-                <SignatureMiniPipe className="h-[0.82em] w-[0.35rem]" barClassName="w-[2px]" />
-                <SignatureInlineList
-                  items={liveSummaryItems.map((item) => <span key={item}>{item}</span>)}
-                  separator="pipe"
-                  className="min-w-0 flex-wrap justify-center gap-x-1 gap-y-0.5 text-[11px] font-medium tracking-normal"
-                  itemClassName="whitespace-nowrap"
-                />
-              </>
+      <div data-logger-actions="true" className="grid gap-2 px-3 pb-3 pt-2">
+        {loggerLeadingAction || showLastTargetAction || showLogAllAction ? (
+          <div className="flex gap-2">
+            {loggerLeadingAction}
+            {showLastTargetAction ? (
+              <LoggerSecondaryButton intent="info" onPress={handleToggleLastTarget}>
+                {lastTargetButtonLabel}
+              </LoggerSecondaryButton>
             ) : null}
-          </span>
-        </button>
-      </AttachedCardActionStripFrame>
+            {showLogAllAction ? (
+              <LoggerSecondaryButton
+                intent="positive"
+                inactive={isSaveDisabled}
+                ariaLabel={`Log all ${remainingTargetSetCount} remaining sets`}
+                onPress={() => { void handleLogAll(); }}
+              >
+                {`Log all (${remainingTargetSetCount})`}
+              </LoggerSecondaryButton>
+            ) : null}
+          </div>
+        ) : null}
+        <LoggerPrimaryLogButton
+          prefix={liveLogButtonPrefix}
+          summaryItems={liveSummaryItems}
+          inactive={isSaveDisabled}
+          onPress={() => { void handleLogSet(); }}
+        />
+      </div>
     ),
-    [handleLogAll, handleLogSet, handleToggleLastTarget, isSaveDisabled, lastTargetButtonLabel, liveLogButtonPrefix, liveSummaryItems, showLastTargetAction, showLogAllAction, loggerActionGridClassName],
+    [handleLogAll, handleLogSet, handleToggleLastTarget, isSaveDisabled, lastTargetButtonLabel, liveLogButtonPrefix, liveSummaryItems, loggerLeadingAction, remainingTargetSetCount, showLastTargetAction, showLogAllAction],
   );
   // Keeps whichever measurement input (target/weight, reps, duration, etc.)
   // the user is actively editing visible once the mobile on-screen keyboard
@@ -1872,23 +1836,18 @@ export function SetLoggerCard({
       showEmptyValue: false,
       hasValue: true,
       renderInput: () => (
-        <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
-          <GlowSwitch
-            checked={resolvedIsWarmup}
-            ariaLabel={resolvedIsWarmup ? "Warm-up set enabled" : "Active set enabled"}
-            onLabel="Warm-Up"
-            offLabel="Active Set"
-            onClick={() => {
-              const nextWarmup = !resolvedIsWarmup;
-              setIsWarmup(nextWarmup);
-              if (nextWarmup) {
-                setIsFailure(false);
-              }
-            }}
-            className={GLOW_SWITCH_STANDARD_CLASS_NAME}
-            stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
-          />
-        </div>
+        <LoggerToggleChip
+          pressed={resolvedIsWarmup}
+          label="Warm-up"
+          ariaLabel="Warm-up set"
+          onPress={() => {
+            const nextWarmup = !resolvedIsWarmup;
+            setIsWarmup(nextWarmup);
+            if (nextWarmup) {
+              setIsFailure(false);
+            }
+          }}
+        />
       ),
     };
 
@@ -1903,28 +1862,23 @@ export function SetLoggerCard({
         showEmptyValue: false,
         hasValue: true,
         renderInput: () => (
-          <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
-            <GlowSwitch
-              checked={resolvedIsFailure}
-              ariaLabel={resolvedIsFailure ? "Failure target enabled" : "Failure target disabled"}
-              onLabel="Failure"
-              offLabel="Reps"
-              onClick={() => {
-                setIsFailure((current) => {
-                  const nextValue = !current;
-                  if (nextValue) {
-                    setIsWarmup(false);
-                  }
-                  return nextValue;
-                });
-                if (!resolvedIsFailure) {
-                  setReps("");
+          <LoggerToggleChip
+            pressed={resolvedIsFailure}
+            label="Failure"
+            ariaLabel="Failure target"
+            onPress={() => {
+              setIsFailure((current) => {
+                const nextValue = !current;
+                if (nextValue) {
+                  setIsWarmup(false);
                 }
-              }}
-              className={GLOW_SWITCH_STANDARD_CLASS_NAME}
-              stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
-            />
-          </div>
+                return nextValue;
+              });
+              if (!resolvedIsFailure) {
+                setReps("");
+              }
+            }}
+          />
         ),
       });
     }
@@ -1938,18 +1892,13 @@ export function SetLoggerCard({
         showEmptyValue: false,
         hasValue: true,
         renderInput: () => (
-          <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
-            <GlowSwitch
-              checked={exerciseTimerVisible}
-              ariaLabel={exerciseTimerVisible ? "Exercise timer enabled" : "Exercise timer disabled"}
-              onLabel="Timer"
-              offLabel="Timer"
-              onClick={() => { void handleExerciseTimerVisibilityToggle(); }}
-              disabled={isTimerVisibilityPending}
-              className={GLOW_SWITCH_STANDARD_CLASS_NAME}
-              stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
-            />
-          </div>
+          <LoggerToggleChip
+            pressed={exerciseTimerVisible}
+            label="Timer"
+            ariaLabel="Exercise timer"
+            inactive={isTimerVisibilityPending}
+            onPress={() => { void handleExerciseTimerVisibilityToggle(); }}
+          />
         ),
       });
     }
@@ -2116,27 +2065,12 @@ export function SetLoggerCard({
                 })}
                 actionClassName="items-center self-center bg-transparent pl-2 pr-0"
                 action={(
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleDeleteSet(set);
-                    }}
-                    disabled={set.isLeaving || isDeletePending}
-                    aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
-                    data-bottom-action-intent="danger"
-                    className={cn(
-                      getBottomActionButtonClassName({
-                        intent: "danger",
-                        fullWidth: false,
-                        className: "!h-11 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-                      }),
-                      "shrink-0 self-center",
-                      isDeletePending ? "opacity-75" : undefined,
-                      tapFeedbackClass,
-                    )}
-                  >
-                    <span className="bottom-action__label">{isDeletePending ? "Deleting..." : "Delete"}</span>
-                  </button>
+                  <LoggedSetDeleteButton
+                    ariaLabel={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
+                    pending={isDeletePending}
+                    inactive={Boolean(set.isLeaving)}
+                    onPress={() => setConfirmDeleteSet({ set, index })}
+                  />
                 )}
               />
             </li>
@@ -2169,7 +2103,15 @@ export function SetLoggerCard({
 
       {loggedSetList}
 
-      <div className="relative z-[1] mt-2 overflow-hidden rounded-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)]">
+      {/* Errors never render as red text here: every setError site also raises the in-flow notice (toast.error), and
+          the box only gains a neutral outline while a value is invalid. */}
+      <div
+        data-logger-invalid={error ? "true" : undefined}
+        className={cn(
+          "relative z-[1] mt-2 overflow-hidden rounded-[1.05rem] border bg-[rgb(var(--surface-1-rgb)/0.16)]",
+          error ? "border-[rgb(var(--text-primary)/0.55)]" : "border-[rgb(var(--accent-divider-rgb)/0.18)]",
+        )}
+      >
         <WorkoutEntrySection
           className={cn(
             appTokens.currentSessionLoggerPanel,
@@ -2235,12 +2177,29 @@ export function SetLoggerCard({
             auxiliaryFields={measurementAuxiliaryFields}
             footerContent={null}
             showInlineStepControls
+            wrapHorizontalFields
           />
-          {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
         </WorkoutEntrySection>
 
         {attachedLoggerActionStrip}
       </div>
+      <ConfirmDestructiveModal
+        open={confirmDeleteSet !== null}
+        titleVariant="raw"
+        title={confirmDeleteSet ? `Delete ${useIntervalLanguage ? "interval" : "set"} ${confirmDeleteSet.index + 1}?` : "Delete set?"}
+        consequenceText="It is removed from this workout."
+        confirmLabel="Delete"
+        confirmActionLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={() => setConfirmDeleteSet(null)}
+        onConfirm={() => {
+          const target = confirmDeleteSet;
+          setConfirmDeleteSet(null);
+          if (target) {
+            void handleDeleteSet(target.set);
+          }
+        }}
+      />
     </div>
   );
 }

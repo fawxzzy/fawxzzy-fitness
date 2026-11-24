@@ -7,14 +7,16 @@ import {
   type SetLoggerSeedSet,
 } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { useRouter } from "next/navigation";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { SessionExerciseBlock } from "@/components/session/SessionExerciseBlock";
 import {
   SessionExerciseRowCard,
   SessionHiddenRowCard,
+  SessionCardBarButton,
+  SessionCardMoreMenu,
   SessionQuickLogRow,
-  SessionRowActionButton,
   SessionRowNote,
   type SessionFinishedExercise,
   type SessionStatusChip,
@@ -28,7 +30,6 @@ import {
   splitExerciseTargetValues,
 } from "@/components/workout/exerciseRowCardValues";
 import type { CardTone } from "@/components/ui/card-system";
-import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 import {
@@ -51,7 +52,6 @@ import {
   buildSessionSavedFeedbackLabel,
   hasSavedSessionExerciseFeedback,
 } from "@/lib/session-feedback-ui";
-import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
 import {
@@ -360,7 +360,8 @@ export function SessionExerciseFocus({
   const cachedSessionState = sessionExerciseLocalStateCache.get(sessionId);
   const contract = resolveScreenContract("exerciseLog");
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("current-session", "compact");
-  const [removingExerciseIds] = useState<string[]>([]);
+  const router = useRouter();
+  const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
   const [persistedLoggerExerciseId, setPersistedLoggerExerciseId] = useState<string | null>(selectedExerciseId);
   const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
     cachedSessionState?.rowClientStateBySessionExerciseId
@@ -466,7 +467,6 @@ export function SessionExerciseFocus({
     );
   }, [exercises, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId, unitLabel]);
   const toast = useToast();
-  void removeExerciseAction;
 
   useEffect(() => {
     if (!liveProgressRef) {
@@ -844,9 +844,9 @@ export function SessionExerciseFocus({
     // `toggleSkipAction` throws (genuine transport failure) below. Unlike a
     // resolved `{ ok: false }` (an explicit server rejection -- reconciled
     // immediately, never queued), this keeps the optimistic value on screen
-    // with a "queued for sync" toast instead of silently losing the
-    // mutation or rolling back a change the user actually made.
-    const enqueueForOfflineReplay = async (queuedToastMessage: string) => {
+    // quietly (show/hide/skip never raises a notice, Zac 2026-11-23) instead of
+    // losing the mutation or rolling back a change the user actually made.
+    const enqueueForOfflineReplay = async () => {
       try {
         const queued = await enqueueSkipToggle({
           userId,
@@ -854,9 +854,7 @@ export function SessionExerciseFocus({
           sessionExerciseId: exerciseId,
           desiredSkipped: nextSkipped,
         });
-        if (queued) {
-          toast.success(queuedToastMessage);
-        } else {
+        if (!queued) {
           // enqueue itself failed (e.g. IndexedDB unavailable) -- there is
           // nowhere durable to hold this intent, so roll back rather than
           // leave a phantom local-only state that nothing will ever retry.
@@ -882,7 +880,7 @@ export function SessionExerciseFocus({
     const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
     if (isOffline) {
       try {
-        await enqueueForOfflineReplay("Offline: change queued for sync.");
+        await enqueueForOfflineReplay();
       } finally {
         patchRowState(exerciseId, (current) => ({
           ...current,
@@ -898,12 +896,10 @@ export function SessionExerciseFocus({
       formData.set("sessionExerciseId", exerciseId);
       formData.set("nextSkipped", String(nextSkipped));
       const result = await toggleSkipAction(formData);
-      toastActionResult(toast, result, {
-        success: previousSkipped
-          ? "Exercise shown."
-          : "Exercise hidden.",
-        error: "Could not update skip state.",
-      });
+      // Success is silent (the card itself changes); only a refusal raises the in-flow error notice.
+      if (!result.ok) {
+        toast.error(result.error || "Could not update skip state.");
+      }
 
       if (result.ok) {
         if (nextSkipped && selectedExerciseId === exerciseId) {
@@ -926,7 +922,7 @@ export function SessionExerciseFocus({
       // feature fixes: previously there was no catch here at all, so the
       // optimistic patch above silently stood as a phantom "success" that
       // was never sent and never retried. Now it durably queues instead.
-      await enqueueForOfflineReplay("Could not reach server. Change queued for sync.");
+      await enqueueForOfflineReplay();
     } finally {
       patchRowState(exerciseId, (current) => ({
         ...current,
@@ -935,9 +931,45 @@ export function SessionExerciseFocus({
     }
   }, [onSelectedExerciseIdChange, patchRowState, selectedExerciseId, sessionId, toast, toggleSkipAction, userId]);
 
+  // Remove from workout (More menu, after the confirm). Online only: it deletes the session row, so there is no offline
+  // queue for it. The row collapses at once and comes back with an error notice if the server refuses.
+  const handleRemoveExercise = useCallback(async (exerciseId: string) => {
+    if (removingExerciseIds.includes(exerciseId)) {
+      return;
+    }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      toast.error("Removing an exercise needs a connection.");
+      return;
+    }
+
+    const restore = () => setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
+    setRemovingExerciseIds((current) => [...current, exerciseId]);
+    if (selectedExerciseId === exerciseId) {
+      onSelectedExerciseIdChange(null);
+    }
+
+    try {
+      const formData = new FormData();
+      formData.set("sessionId", sessionId);
+      formData.set("sessionExerciseId", exerciseId);
+      const result = await removeExerciseAction(formData);
+      if (!result.ok) {
+        restore();
+        toast.error(result.error || "Could not remove exercise.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      restore();
+      toast.error("Could not remove exercise.");
+    }
+  }, [onSelectedExerciseIdChange, removeExerciseAction, removingExerciseIds, router, selectedExerciseId, sessionId, toast]);
+
   return (
     <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
-      <ul className={cn(appTokens.currentSessionFocusList, "space-y-0")}>
+      {/* 8px between cards: each SessionExerciseBlock carries pb-2, the list adds nothing (a collapsing removed row
+          leaves no gap behind). */}
+      <ul className="flex flex-col">
         {exercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
@@ -1171,6 +1203,28 @@ export function SessionExerciseFocus({
                   showProgressionControls={!isStretchHub}
                   updateProgressionAction={updateSessionExerciseProgressionAction}
                   bottomDockCenter={bottomDockCenter}
+                  loggerLeadingAction={(
+                    <SessionCardMoreMenu
+                      exerciseName={exercise.name}
+                      skipLabel={rowState.skipActionLabel}
+                      skipActionIntent={rowState.skipActionIntent}
+                      isSkipPending={rowViewModel.isSkipPending}
+                      skipInactive={rowViewModel.isSkipPending || rowViewModel.isQuickLogPending || rowState.isSkipDisabled}
+                      removeInactive={rowViewModel.isSkipPending || rowViewModel.isQuickLogPending}
+                      onSkip={() => {
+                        void handleSkipToggle(
+                          exercise.id,
+                          baseRowViewModel.isSkipped,
+                          effectiveIsHidden,
+                          progressState.isGoalCompleted,
+                          rowViewModel.isQuickLogPending,
+                          rowViewModel.isSkipPending,
+                          setCount,
+                        );
+                      }}
+                      onRemove={setCount === 0 ? () => handleRemoveExercise(exercise.id) : undefined}
+                    />
+                  )}
                   fallbackGoalLabel={exercise.goalLabel}
                   reportDraftState={isExpanded}
                   draftFormState={draftState?.formState ?? null}
@@ -1259,6 +1313,8 @@ export function SessionExerciseFocus({
                     setCount,
                   );
                 }}
+                // Remove is offered only before any set is logged: once sets exist, Skip keeps them (no data loss).
+                onRemove={setCount === 0 ? () => handleRemoveExercise(exercise.id) : undefined}
               onPress={async () => {
                 if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
                   return;
@@ -1353,7 +1409,7 @@ export function SessionExerciseFocus({
                     });
                     toast.success(outcome.message);
                   } else if (outcome.kind === "saved") {
-                    toast.success("Set logged.");
+                    // Quiet success (2026-11-23): the progress bar, set count and the row's polite status announce it.
                     if (outcome.result.data?.set) {
                       const savedSet = toSeedSet(outcome.result.data.set);
                       setSetSnapshotsBySessionExerciseId((current) => {
@@ -1425,8 +1481,9 @@ export function SessionExerciseFocus({
                     status={baseRowViewModel.isSkipped ? "skipped" : "done"}
                     progress={buildTodayExerciseLoggedProgress(progressState, baseRowViewModel.isSkipped)}
                     action={(
-                      <SessionRowActionButton
-                        intent={rowState.skipActionIntent === "toggleActive" ? "toggle" : "neutral"}
+                      <SessionCardBarButton
+                        variant="quiet"
+                        className="flex-1"
                         intentAttr={rowState.skipActionIntent}
                         label={rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}
                         ariaLabel={`${rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}: ${exercise.name}`}

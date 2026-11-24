@@ -118,15 +118,25 @@ export function SessionExerciseFeedbackPrompt({
         </p>
         <div className="flex items-center gap-2">
           {isSaving ? <span role="status" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.95)]">Saving</span> : null}
-          <ChipButton
+          {/* Rate wears the Promote button look (ExerciseProgressPromoteButton): 44px transparent target, 32px green
+              pill with the `.promote-shine` sweep while closed. Open, the same pill reads Hide without the sweep. */}
+          <button
             type="button"
             aria-expanded={isOpen}
             aria-controls={panelId}
+            data-session-feedback-rate="true"
             onClick={() => setIsOpen((current) => !current)}
-            className="min-h-11 min-w-11 justify-center px-4 text-[11px] font-semibold tracking-[0.12em]"
+            className="group inline-flex min-h-11 min-w-11 items-center justify-center rounded-full !border-0 !bg-transparent px-1.5 shadow-none !text-[rgb(var(--text-primary))] focus-visible:outline-none"
           >
-            {isOpen ? "Hide" : "Rate"}
-          </ChipButton>
+            <span
+              className={cn(
+                "relative inline-flex h-8 items-center overflow-hidden rounded-full border border-[rgb(var(--success-rgb)/0.62)] bg-[rgb(var(--success-rgb)/0.2)] px-3 text-xs font-bold uppercase tracking-[0.08em] text-[rgb(var(--text-primary))] shadow-[0_0_14px_rgb(var(--success-rgb)/0.28)] transition-colors group-hover:bg-[rgb(var(--success-rgb)/0.28)] group-focus-visible:ring-2 group-focus-visible:ring-[rgb(var(--accent)/0.6)] motion-reduce:transition-none",
+                isOpen ? undefined : "promote-shine",
+              )}
+            >
+              <span className="relative">{isOpen ? "Hide" : "Rate"}</span>
+            </span>
+          </button>
         </div>
       </div>
       {isOpen ? (

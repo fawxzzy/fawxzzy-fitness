@@ -131,7 +131,7 @@ test("Session: tapping Log sends one set with the planned reps and weight, and F
   const calls: AddSetPayload[] = [];
   renderSession({ exercises: [exercise({ id: "a", name: "Zed Press" })], addSetAction: acceptingAddSet(calls) as never });
 
-  fireEvent.click(screen.getByRole("button", { name: /^Log5 reps/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Log set\s*5 reps/ }));
   await waitFor(() => assert.equal(calls.length, 1));
   assert.equal(calls[0].sessionId, "s1");
   assert.equal(calls[0].sessionExerciseId, "a");

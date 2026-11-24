@@ -54,6 +54,7 @@ export function CardHeader({
   className,
   mainClassName,
   trailingClassName,
+  showAffordance = true,
 }: {
   title: ReactNode;
   titleSecondary?: ReactNode;
@@ -70,12 +71,14 @@ export function CardHeader({
   mainClassName?: string;
   /** Layout override for the trailing controls (exercise rows stack them vertically). */
   trailingClassName?: string;
+  /** Hide the decorative chevron (the live workout card: the whole card is the expand target and the bar holds the actions). Default true. */
+  showAffordance?: boolean;
 }) {
   const instanceId = useId();
   const titleId = `${instanceId}-title`;
   const metaId = `${instanceId}-meta`;
   const Heading = `h${headingLevel}` as "h2" | "h3" | "h4";
-  const showsAffordance = interaction.kind === "press" || interaction.kind === "toggle" || interaction.kind === "link";
+  const showsAffordance = showAffordance && (interaction.kind === "press" || interaction.kind === "toggle" || interaction.kind === "link");
   const hasMeta = meta !== null && meta !== undefined && meta !== false;
 
   return (

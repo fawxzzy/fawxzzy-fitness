@@ -117,8 +117,13 @@ test("Session logger: row header toggles, info does not, and quick-log Skip and 
 
   fireEvent.click(screen.getByTestId("session-exercise-toggle-se-1"));
   fireEvent.click(screen.getByRole("button", { name: "Open exercise info for Zed Press" }));
+  assert.equal(screen.queryByRole("button", { name: "Skip: Zed Press" }), null, "Skip lives in the More menu, not the bar");
+  const more = screen.getByRole("button", { name: "More actions for Zed Press" });
+  fireEvent.click(more);
+  assert.equal(more.getAttribute("aria-expanded"), "true");
   fireEvent.click(screen.getByRole("button", { name: "Skip: Zed Press" }));
-  fireEvent.click(screen.getAllByRole("button", { name: /^Log(?! all)/ })[0]);
+  assert.equal(screen.queryByRole("button", { name: /Remove from workout/ }), null, "no onRemove: no Remove item");
+  fireEvent.click(screen.getByRole("button", { name: /^Log set/ }));
   assert.deepEqual(calls, ["toggle", "info", "skip", "log"]);
 });
 
