@@ -33,6 +33,21 @@ async function noopActionResult(_: FormData) {
   return { ok: true as const };
 }
 
+async function failActionResult(_: FormData) {
+  "use server";
+  return { ok: false as const, error: "Could not reach the server. Check your connection and try again." };
+}
+
+async function decisionStateActionResult(_: FormData) {
+  "use server";
+  return {
+    ok: true as const,
+    workoutPlanId: "fixture-plan",
+    requiresWorkoutPlanEditDecision: true,
+    syncMode: undefined,
+  };
+}
+
 async function noopCreateDayAction(_: FormData) {
   "use server";
   return { ok: true as const, routineDayId: "fixture-new-day" };
@@ -45,6 +60,9 @@ const FIXTURE_DAY_EDIT_HREF = "/routines/fixture-routine/edit/day/fixture-day-1"
  * Dev-only fixtures of the signed-in detail screens that had no fixture (header lane H3):
  * `?screen=create-day | copy-day | days | days-empty | routine-add-exercise | session-add-exercise`;
  * `&long=1` swaps in a long routine and day name to check the one-line title and subtitle ellipsis.
+ * Add-exercise screens also take `&stats=1` (a last-used setup so "Use last" works), `&empty=1` (no exercises in the
+ * library), `&many=1` (a long library), `&fail=1` (the add action answers with a server error) and, for the routine
+ * screen, `&decision=1` (the day is shared, so Add asks Update or Save new first).
  * Each screen renders the route's own frame (CreateDayScreen, DaysLibraryScreen, AddExerciseScaffold) with static
  * fixture data: no Supabase client, no session, and every action is a local no-op. Availability is the shared
  * dev-route guard: middleware answers 404 for `/dev/*` on production hosts before this page runs; the first
@@ -58,6 +76,10 @@ export default async function DevDetailScreensPage(props: {
 
   const screenParam = Array.isArray(searchParams?.screen) ? searchParams?.screen[0] : searchParams?.screen;
   const longParam = Array.isArray(searchParams?.long) ? searchParams?.long[0] : searchParams?.long;
+  const flag = (name: string) => {
+    const value = searchParams?.[name];
+    return (Array.isArray(value) ? value[0] : value) === "1";
+  };
   const screen = screenParam ?? "create-day";
   if (!isDetailScreenFixtureId(screen)) {
     notFound();

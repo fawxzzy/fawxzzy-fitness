@@ -1,4 +1,5 @@
 import type { EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
+import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
 
 // Static QA data for `/dev/detail-screens`. No user data, no Supabase.
@@ -80,3 +81,50 @@ export const detailScreenFixtureExercises: readonly EditorExerciseOption[] = [
   { ...baseExercise, id: "fx-row", name: "Barbell Row", primary_muscle: "Back", equipment: "Barbell", movement_pattern: "Pull", measurement_type: "reps" },
   { ...baseExercise, id: "fx-bike", name: "Stationary Bike", primary_muscle: "Cardio", equipment: "Machine", movement_pattern: "Cardio", measurement_type: "time_distance", default_unit: "mi" },
 ];
+
+/** A long library (40 rows) to check scrolling, the result count and the filter chips. */
+export function detailScreenFixtureManyExercises(): EditorExerciseOption[] {
+  const muscles = ["Quads", "Chest", "Back", "Shoulders", "Biceps", "Triceps", "Hamstrings", "Glutes"];
+  const extra = Array.from({ length: 35 }, (_, index) => ({
+    ...baseExercise,
+    id: `fx-many-${index + 1}`,
+    name: `Fixture Exercise ${index + 1}`,
+    primary_muscle: muscles[index % muscles.length],
+    equipment: index % 2 === 0 ? "Dumbbell" : "Cable",
+    movement_pattern: index % 3 === 0 ? "Push" : "Pull",
+    measurement_type: "reps" as const,
+  }));
+  return [...detailScreenFixtureExercises, ...extra];
+}
+
+/** One last-used setup (Back Squat 4 x 6-8 at 185 lbs) so "Use last" has something to apply. */
+export function detailScreenFixtureStats(): ExerciseStatsOption[] {
+  return [{
+    exerciseId: "fx-squat",
+    statsExerciseId: "fx-squat",
+    lastWeight: 185,
+    lastReps: 6,
+    lastUnit: "lbs",
+    lastPerformedAt: "2026-11-20T17:00:00.000Z",
+    lastProgressionPlaybookId: null,
+    lastProgressionPlaybookConfig: null,
+    lastConfiguredAt: "2026-11-20T17:00:00.000Z",
+    lastConfiguredTargetSets: 4,
+    lastConfiguredTargetRepsMin: 6,
+    lastConfiguredTargetRepsMax: 8,
+    lastConfiguredTargetWeight: 185,
+    lastConfiguredTargetWeightUnit: "lbs",
+    lastConfiguredTargetDurationSeconds: null,
+    lastConfiguredTargetDistance: null,
+    lastConfiguredTargetDistanceUnit: null,
+    lastConfiguredTargetCalories: null,
+    lastConfiguredMeasurementType: "reps",
+    lastConfiguredDefaultUnit: null,
+    prWeight: 205,
+    prReps: 5,
+    prEst1rm: 239,
+    actualPrWeight: 205,
+    actualPrReps: 5,
+    actualPrAt: "2026-11-10T17:00:00.000Z",
+  }];
+}

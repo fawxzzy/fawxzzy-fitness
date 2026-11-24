@@ -620,7 +620,7 @@ export function ExercisePicker({
   const goalPreviewMissingLabel = !goalValidation.isValid
     ? (
       !hasAnyGoalMeasurementValue(goalState)
-        ? "Set current target"
+        ? "Set your goal"
         : effectiveGoalModality === "cardio_time_distance" && isMissingCardioTimeOrDistance({
             duration: goalState.duration,
             distance: goalState.distance,
@@ -901,9 +901,9 @@ export function ExercisePicker({
     ACTION_CHROME_CONTROL_CLASS_NAME,
     ACTION_CHROME_SEGMENTED_CLASS_NAME,
     GLOW_SWITCH_STANDARD_CLASS_NAME,
-    "relative inline-flex w-full min-w-0 items-center justify-center overflow-visible rounded-full border-[rgb(var(--accent-strong)/0.54)] bg-[linear-gradient(180deg,rgba(71,215,196,0.18),rgba(18,31,48,0.96))] px-[0.42rem] pb-[0.28rem] pt-[0.46rem] text-[11px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.18)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+    "relative inline-flex w-full min-w-0 items-center justify-center overflow-visible rounded-full border-[rgb(var(--accent-strong)/0.54)] bg-[linear-gradient(180deg,rgba(71,215,196,0.18),rgba(18,31,48,0.96))] px-[0.42rem] pb-[0.28rem] pt-[0.46rem] text-[length:var(--type-caption)] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.18)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
   );
-  const embeddedToggleLabelClassName = "pointer-events-none absolute right-2.5 top-0 z-[2] max-w-[calc(100%-1rem)] -translate-y-[38%] whitespace-nowrap bg-transparent text-right text-[11px] font-semibold uppercase leading-none tracking-[0.06em] text-[rgb(var(--accent-strong))]";
+  const embeddedToggleLabelClassName = "pointer-events-none absolute right-2.5 top-0 z-[2] max-w-[calc(100%-1rem)] -translate-y-[38%] whitespace-nowrap bg-transparent text-right text-[length:var(--type-caption)] font-semibold uppercase leading-none tracking-[0.06em] text-[rgb(var(--accent-strong))]";
   const useLastToggleCard = !isStretchHubSelected && selectedStats && hasLast ? (
     <div
       className={addFlowSecondaryToggleCardClassName}
@@ -936,7 +936,7 @@ export function ExercisePicker({
               separator="dot"
               className={cn(
                 appTokens.currentSessionLoggerSummaryText,
-                "measurement-toggle__label min-w-0 flex-nowrap justify-center whitespace-nowrap text-center text-[11px] font-semibold leading-none text-inherit",
+                "measurement-toggle__label min-w-0 flex-nowrap justify-center whitespace-nowrap text-center text-[length:var(--type-caption)] font-semibold leading-none text-inherit",
                 "[&_.signature-inline-list__item]:whitespace-nowrap",
               )}
             />
@@ -988,7 +988,9 @@ export function ExercisePicker({
         scrollClassName={cn(
           compactGoalDockViewport
             ? "w-full max-h-[min(30dvh,18rem)] pr-1"
-            : "w-full max-h-[min(40dvh,24rem)] pr-1",
+            : goalExtraNode
+              ? "w-full max-h-[min(46dvh,26rem)] pr-1"
+              : "w-full max-h-[min(40dvh,24rem)] pr-1",
           goalExtraNode ? (compactGoalDockViewport ? "pb-[3.25rem]" : "pb-[5.25rem]") : undefined,
         )}
         contentClassName="w-full"
@@ -1232,7 +1234,16 @@ export function ExercisePicker({
           onPress={handleExercisePress}
         />
       ))}
-      {filteredExercises.length === 0 ? <EmptyExerciseRow /> : null}
+      {filteredExercises.length === 0 ? (
+        <EmptyExerciseRow
+          onClearFilters={search.trim().length > 0 || selectedTags.length > 0
+            ? () => {
+              setSearch("");
+              setSelectedTags([]);
+            }
+            : undefined}
+        />
+      ) : null}
     </ul>
   );
 
