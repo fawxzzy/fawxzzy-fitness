@@ -2940,7 +2940,7 @@ export function ExerciseInfoSheet({
         </ContentRail>
       </main>
       {!inline && historyPointNavigationActions ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] bg-[linear-gradient(180deg,rgba(var(--bg-app),0)_0%,rgba(var(--bg-app),0.86)_22%,rgba(var(--bg-app),0.985)_100%)] backdrop-blur-[14px]">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] bg-[linear-gradient(180deg,rgb(var(--bg-app)/0)_0%,rgb(var(--bg-app)/0.86)_22%,rgb(var(--bg-app)/0.985)_100%)] backdrop-blur-[14px]">
           <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto")}>
             <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
               {historyPointNavigationActions}

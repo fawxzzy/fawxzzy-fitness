@@ -3112,8 +3112,8 @@ a:focus-visible {
 }
 
 .fx-links {
-  min-height: 24px;
-  margin-top: 6px;
+  min-height: 44px;
+  margin-top: 0;
   font-size: 16px;
   color: rgb(var(--fx-ac) / 0.95);
 }
@@ -3133,22 +3133,28 @@ a:focus-visible {
   background: rgb(var(--fx-ac) / 0.6);
 }
 
-/* 44px hit areas without moving anything: the visible link stays one text line, an invisible ::after grows the target
-   (the links row is 24px tall and the legal row about 20px, both too small to hit reliably). */
-.fx-notice__act::after,
-.fx-link::after,
-.fx-legal a::after {
+/* 44px hit areas as real boxes: the links row and the legal row are each 44px tall and stack with no gap, and every
+   link fills its row (inline-flex, min-height 44px), so two neighbouring rows can never overlap (the earlier invisible
+   ::after reached 11px past a 24px / 20px text line and overlapped the row below at 390 and 320). Inside a row the
+   second link owns the separator and its 16px / 14px margins (the divider is its ::before), so two links in one row
+   touch edge to edge and never overlap. */
+.fx-notice__act::after {
   content: "";
   position: absolute;
   inset: -11px -8px;
 }
 
+.fx-link,
 .fx-legal a {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .fx-link {
-  position: relative;
   padding: 0;
   border: 0;
   background: none;
@@ -3174,7 +3180,8 @@ a:focus-visible {
 }
 
 .fx-legal {
-  margin-top: 14px;
+  min-height: 44px;
+  margin-top: 0;
   font-size: 13.5px;
   color: rgb(var(--fx-text) / 0.6);
 }
@@ -3413,7 +3420,7 @@ a:focus-visible {
   }
 
   .fx-legal {
-    margin-top: 8px;
+    margin-top: 0;
     font-size: 12.5px;
   }
 

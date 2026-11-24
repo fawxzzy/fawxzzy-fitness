@@ -11,7 +11,7 @@ export const swipeRailInteractionTokens = {
   leadingOverscroll: 20,
 } as const;
 
-export const swipeRailShellClassName = "grid h-full w-full items-stretch overflow-hidden rounded-[inherit] border border-border/28 bg-[linear-gradient(180deg,rgba(var(--surface-2-soft),0.96),rgba(var(--surface-2-soft),0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(var(--bg),0.08)]";
+export const swipeRailShellClassName = "grid h-full w-full items-stretch overflow-hidden rounded-[inherit] border border-border/28 bg-[linear-gradient(180deg,rgb(var(--surface-2-soft)/0.96),rgb(var(--surface-2-soft)/0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgb(var(--bg)/0.08)]";
 
 export function getSwipeRailShellClassName({
   columnCount,

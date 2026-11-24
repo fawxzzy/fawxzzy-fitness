@@ -340,7 +340,6 @@ Workout cards open and close three ways (2026-11-24), all the same toggle and on
 | Routine setup (`/onboarding`) | `Routine setup` | none (the step and `N% done` sit in the body, the step name is an `h2`) | Today | `Start over` |
 | Account (`/account`, direct visit only) | `Account` | none (the rows show the username and email) | Settings | none |
 | Terms, Privacy | the document name | none | `returnTo` when it is an in-app path, else Settings | none |
-| Optional day preview (`/review/optional-planned-day`) | `Optional workout day` | `Preview` | Routines | none |
 | Add exercise, routine day (`/routines/[id]/edit/day/[dayId]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the day editor (`Back to day`) | none |
 | Add exercise, live workout (`/session/[id]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the workout (`Back to workout`) | none |
 

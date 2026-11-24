@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-24 (App-wide states)
+
+### WHAT
+- The sign-in, install, privacy, terms and error screens keep their link rows as real 44px boxes. The old invisible tap areas reached past a 24px / 20px text line and overlapped the row below at 390 and 320; now "Create account | Reset password" and "Privacy | Terms" are separate 44px rows that never overlap.
+- The in-app error card ("Could not load" on one area of a screen) is the same card as the rest of the app with the one primary button.
+- The app's loading placeholders (`Skeleton*`) and "nothing here yet" card (`EmptyState`) sit on the shared card tokens and stop pulsing under reduced motion; the History loading rows use them.
+- `/review/optional-planned-day` (nothing linked to it) now opens Routines. `/exercises/[exerciseId]` keeps redirecting to History exercises.
+- Seven surfaces (the exercise info sheet footer, the progression review card, the exercise row header, the list menu, the toast rail, the swipe rail and the sticky log shell) had colours written as `rgba(var(--token), a)`, which is invalid CSS because the tokens are space-separated; they now use `rgb(var(--token)/a)` and actually draw their fade or tint.
+- The unused shared exercise title no longer defaults to a "Current Target" heading (the word is not shown anywhere).
+
+### WHY
+Zac's 2026-11-23 full-app redesign approval, lane F1 (loading, error, not-found, offline, install, privacy, terms and empty states). The 320px sign-in review found the overlapping link tap areas.
+
 ## Unreleased - 2026-11-20 (Exercise cards + Promote on the card)
 
 ### WHAT

@@ -1,32 +1,11 @@
-import type { Metadata } from "next";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { RoutineDayKindReviewPanel } from "@/components/routines/RoutineDayKindReviewPanel";
-import { AppShell } from "@/components/ui/app/AppShell";
-import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
-import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Routine day status review",
-  robots: { index: false, follow: false },
-};
-
-export default function OptionalPlannedDayReviewPage() {
-  return (
-    <AppShell topNavMode="none" className="min-h-[100dvh]" ambientPreset="editDay">
-      <main className="flex min-h-[100dvh] w-full flex-col pb-8 pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
-        <ScreenHeader
-          kind="detail"
-          title="Optional workout day"
-          subtitle="Preview"
-          back={<ScreenHeaderBackButton href="/routines" label="Back to Routines" />}
-        />
-        <ContentRail className="w-full space-y-3">
-          <RoutineDayKindReviewPanel />
-          <p className="px-1 text-[12px] leading-5 text-[rgb(var(--text-muted)/0.88)]">
-            This is the same control as on the routine card. Nothing here reads or changes your routine.
-          </p>
-        </ContentRail>
-      </main>
-    </AppShell>
-  );
+/**
+ * Retired preview route. It only showed the Optional day control that already lives on the routine card, nothing in
+ * the app links to it, and it read and changed nothing. It redirects to Routines (where that control is) instead of
+ * 404ing, so an old bookmark or screenshot link still lands somewhere useful. The panel itself stays covered by the
+ * dev mobile-regression surface.
+ */
+export default function OptionalPlannedDayReviewPage(): never {
+  redirect("/routines");
 }

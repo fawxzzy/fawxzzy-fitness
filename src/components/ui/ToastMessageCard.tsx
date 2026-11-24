@@ -37,7 +37,7 @@ function resolveToneMeta(tone: ToastTone) {
 
   return {
     shellClassName: "text-[rgb(var(--text)/0.98)]",
-    railClassName: "bg-[linear-gradient(180deg,rgba(var(--accent),0.98),rgba(var(--accent-strong),0.64))]",
+    railClassName: "bg-[linear-gradient(180deg,rgb(var(--accent)/0.98),rgb(var(--accent-strong)/0.64))]",
     actionClassName:
       "border-[rgb(var(--accent)/0.18)] bg-[rgb(var(--accent)/0.1)] text-[rgb(var(--text)/0.98)] hover:bg-[rgb(var(--accent)/0.16)]",
     closeClassName:

@@ -193,7 +193,7 @@ export function ExerciseRowCard({
       data-exercise-row-card="true"
     >
       {stickyHeader && interaction.kind === "toggle" && interaction.expanded ? (
-        <div className="sticky top-0 z-20 [background:linear-gradient(180deg,rgba(var(--bg-app),0.98)_0%,rgba(var(--bg-app),0.92)_78%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
+        <div className="sticky top-0 z-20 [background:linear-gradient(180deg,rgb(var(--bg-app)/0.98)_0%,rgb(var(--bg-app)/0.92)_78%,rgb(var(--bg-app)/0)_100%)] backdrop-blur-[8px]">
           {header}
         </div>
       ) : header}
