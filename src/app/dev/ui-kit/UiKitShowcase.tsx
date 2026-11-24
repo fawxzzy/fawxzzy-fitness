@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { AppButton } from "@/components/ui/AppButton";
 import type { AppButtonCanonicalVariant, AppButtonSize } from "@/components/ui/appButtonClasses";
@@ -52,9 +52,12 @@ function SegmentDemo({ labels }: { labels: string[] }) {
   );
 }
 
-function FieldDemo() {
+function FieldDemo({ startWithError }: { startWithError: boolean }) {
   const [name, setName] = useState("Push Day");
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (startWithError) setError("Routine name already exists.");
+  }, [startWithError]);
   return (
     <div className="space-y-2">
       <FormField label="Routine name" invalid={Boolean(error)} error={error} helper="Try saving with the name Push Day.">
@@ -95,17 +98,18 @@ function FormLevelNoticeDemo() {
   );
 }
 
-export function UiKitShowcase() {
+export function UiKitShowcase({ initialOpen = null, hideDevBadge = false }: { initialOpen?: string | null; hideDevBadge?: boolean }) {
   const toast = useToast();
   const [loadingVariant, setLoadingVariant] = useState<AppButtonCanonicalVariant | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(initialOpen === "sheet");
+  const [confirmOpen, setConfirmOpen] = useState(initialOpen === "confirm");
   const [chips, setChips] = useState(["Chest", "Triceps", "Shoulders"]);
   const [selectedChip, setSelectedChip] = useState("all");
   const [lastMenuAction, setLastMenuAction] = useState("none yet");
 
   return (
     <ContentRail>
+      {hideDevBadge ? <style>{"nextjs-portal{display:none!important}"}</style> : null}
       <div className="space-y-4 py-4" data-ui-kit="">
         <header className="flex items-start justify-between gap-3">
           <div className="space-y-1">
@@ -207,7 +211,7 @@ export function UiKitShowcase() {
         </KitSection>
 
         <KitSection id="notices" title="FieldNotice and FormField" note="Errors never render as red text: they go to the in-flow notice, the field gets a neutral marker.">
-          <FieldDemo />
+          <FieldDemo startWithError={initialOpen === "field-error"} />
           <FormLevelNoticeDemo />
           <div className="flex flex-wrap gap-2">
             <AppButton variant="quiet" size="sm" onClick={() => toast.success("Saved.")}>

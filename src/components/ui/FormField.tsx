@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 export const formFieldLabelClassName = "mb-1.5 block w-full px-1 text-[11px] font-semibold uppercase leading-4 tracking-[0.12em] text-[rgb(var(--text-secondary)/0.92)]";
 export const formFieldShellClassName = "relative min-h-11 min-w-0 rounded-[var(--radius-sm)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.5)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 export const formFieldInvalidShellClassName = "!border-[rgb(var(--danger-rgb)/0.72)]";
-export const formFieldInvalidMarkerClassName = "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.42)] bg-[rgb(var(--surface-2)/0.9)] text-[10px] font-bold leading-none text-[rgb(var(--text-primary))]";
+export const formFieldInvalidMarkerClassName = "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.42)] bg-[rgb(var(--surface-2)/0.9)] text-[11px] font-bold leading-none text-[rgb(var(--text-primary))]";
 export const formFieldControlClassName = "block h-11 w-full min-w-0 rounded-[inherit] border-0 bg-transparent px-3 text-base text-[rgb(var(--text-primary)/0.98)] shadow-none outline-none ring-0 placeholder:text-[rgb(var(--text-muted)/0.72)] [-webkit-tap-highlight-color:transparent] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
 
 export type FormFieldControlProps = {
