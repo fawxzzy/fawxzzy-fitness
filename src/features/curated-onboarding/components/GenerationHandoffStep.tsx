@@ -1,8 +1,17 @@
+import { Chip, type ChipTone } from "@/components/ui/Chip";
 import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import type { CuratedGenerationStatus } from "../types.ts";
 import type { CuratedWorkoutPlan } from "../engine.ts";
 import { getCuratedHandoffPresentation, type CuratedHandoffFailure } from "../handoff.ts";
 import { CuratedInfoCard } from "./CuratedOnboardingPrimitives";
+
+const BADGE_TONES: Record<"Working" | "Ready" | "Failed" | "Blocked", ChipTone> = {
+  Working: "neutral",
+  Ready: "success",
+  // Failed stays neutral: the red rail on the card carries the signal, so no red text.
+  Failed: "neutral",
+  Blocked: "attention",
+};
 
 function formatExerciseTarget(exercise: CuratedWorkoutPlan["days"][number]["exercises"][number]) {
   if (exercise.targetDurationSeconds) {
@@ -32,9 +41,9 @@ export function GenerationHandoffStep({
       <CuratedInfoCard tone={copy.tone} compact>
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-[rgb(var(--text-primary))]">{copy.title}</p>
-          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--accent)/0.94)]">
+          <Chip tone={BADGE_TONES[copy.badge]} className="shrink-0">
             {copy.badge}
-          </span>
+          </Chip>
         </div>
         <p className="mt-1 text-xs leading-5 text-[rgb(var(--text-muted)/0.92)]">{copy.body}</p>
       </CuratedInfoCard>
@@ -88,7 +97,7 @@ export function GenerationHandoffStep({
 
       {failure && failure.code !== "safety-clearance-required" ? (
         <CuratedInfoCard compact tone="danger">
-          <p className="text-xs leading-5 text-[rgb(var(--danger-rgb))]">{failure.message}</p>
+          <p role="alert" className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.96)]">{failure.message}</p>
         </CuratedInfoCard>
       ) : null}
 

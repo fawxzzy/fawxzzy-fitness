@@ -29,8 +29,12 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   const progress = readComponent("CuratedOnboardingProgress.tsx");
   const review = readComponent("ReviewStep.tsx");
 
-  // Start over is a quiet text action in the header trailing slot (no glow underline), 44px tall.
-  assert.match(shell, /className="inline-flex min-h-11 items-center !border-0 !bg-transparent px-2 text-sm font-semibold !text-\[rgb\(var\(--danger-rgb\)\)\]"\s*>\s*Start over/);
+  // Start over lives in the header Menu (44px trigger) and asks for confirmation before it clears the answers.
+  assert.match(shell, /<Menu\s+label="Setup options"/);
+  assert.match(shell, /id: "start-over", label: "Start over", tone: "danger"/);
+  assert.match(shell, /<ConfirmDestructiveModal/);
+  assert.match(shell, /onConfirm=\{handleReset\}/);
+  assert.doesNotMatch(shell, /onClick=\{handleReset\}/);
   assert.match(shell, /canAccessCuratedStep/);
   assert.match(shell, /type: "go-to-step"/);
   assert.match(shell, /CURATED_FORM_STEP_ORDER/);
@@ -38,13 +42,16 @@ test("curated onboarding keeps operator review actions on canonical app patterns
   assert.match(review, /onEdit/);
   assert.match(progress, /aria-label="Edit setup pages"/);
   assert.match(progress, /aria-current/);
-  assert.match(progress, /steps\.length/);
+  assert.match(progress, /steps\.map/);
   assert.doesNotMatch(progress, /<h1/);
-  assert.match(progress, /!bg-\[rgb\(var\(--accent\)\)\]/);
+  // One 44px "Steps" button opens the sheet; the old ten 28px number dots are gone.
+  assert.match(progress, /<Sheet/);
+  assert.match(progress, /data-curated-steps-trigger/);
+  assert.doesNotMatch(progress, /min-h-7|h-7 min-w-7/);
+  assert.match(progress, /pages still need answers/);
   assert.match(review, /data-section-status/);
   assert.match(review, /data-answer-status/);
-  assert.match(review, /"Completed" : "Incomplete"/);
-  assert.match(review, /danger-rgb/);
+  assert.match(review, /"Completed" : "Needs answers"/);
   assert.doesNotMatch(review, /\{section\.answers\.length\} answers/);
 });
 test("curated user UI does not expose raw intake state or implementation-oriented snapshot chrome", () => {
@@ -92,7 +99,7 @@ test("curated onboarding has an auth-free non-production route for actual-shell 
   const shell = readComponent("CuratedOnboardingShell.tsx");
   assert.match(shell, /previewOnly \|\| !hasHydrated/);
   assert.match(shell, /if \(previewOnly \|\| createInFlightRef\.current\) \{\s+return;\s+\}/);
-  assert.match(shell, /disabled=\{previewOnly \|\| !generatedPlan/);
+  assert.match(shell, /disabled=\{\(previewOnly && !previewHandoff\) \|\| !generatedPlan/);
 });
 
 test("Tailwind compiles feature-owned onboarding styles", () => {
@@ -156,4 +163,31 @@ test("curated handoff guards double submit, keeps blocked primary on Build manua
   assert.match(shell, /handoffActions\.primary === "build-manually"/);
   assert.match(shell, /CURATED_LOST_RESPONSE_MESSAGE/);
   assert.doesNotMatch(shell, /error\.message|instanceof Error/);
+});
+
+test("curated onboarding shows no red text: problems use neutral copy, chips, the in-flow notice or a red rail", () => {
+  const shell = readComponent("CuratedOnboardingShell.tsx");
+  const redText = /text-\[rgb\(var\(--danger-rgb\)[^\]]*\]/;
+  for (const name of ["CuratedOnboardingShell.tsx", "QuestionnaireStep.tsx", "ReviewStep.tsx", "GenerationHandoffStep.tsx", "CuratedOnboardingProgress.tsx"]) {
+    assert.doesNotMatch(readComponent(name), redText, name);
+    assert.doesNotMatch(readComponent(name), /border-\[rgb\(var\(--danger-rgb\)/, name);
+  }
+  // A failed autosave goes to the persistent in-flow notice, not a red paragraph.
+  assert.match(shell, /useFieldNotice\("curated-onboarding:save", \{ persistent: true \}\)/);
+  assert.match(shell, /Changes could not be saved\./);
+  assert.doesNotMatch(shell, /<p role="alert"/);
+  // The danger info card keeps neutral fill and text; only its rail is red.
+  const primitives = readComponent("CuratedOnboardingPrimitives.tsx");
+  assert.match(primitives, /danger: "border-\[rgb\(var\(--border-strong\)\/0\.2\)\][^"]*before:bg-\[rgb\(var\(--danger-rgb\)\)\]"/);
+});
+
+test("curated questionnaire fields are 16px (no iOS focus zoom) and at least 44px tall", () => {
+  const questionnaire = readComponent("QuestionnaireStep.tsx");
+
+  assert.doesNotMatch(questionnaire, /py-2\.5 text-sm text-\[rgb\(var\(--text-primary\)\)\] outline-none/);
+  assert.equal((questionnaire.match(/min-h-11 w-full border-0 border-b/g) ?? []).length, 2);
+  assert.equal((questionnaire.match(/text-base text-\[rgb\(var\(--text-primary\)\)\] outline-none/g) ?? []).length, 2);
+  // "Required" is a neutral chip tied to the field by aria-describedby; no red "Required - incomplete" line.
+  assert.match(questionnaire, /<Chip tone="attention" id=\{errorId\}/);
+  assert.doesNotMatch(questionnaire, /Required - incomplete|Required acknowledgment - incomplete/);
 });

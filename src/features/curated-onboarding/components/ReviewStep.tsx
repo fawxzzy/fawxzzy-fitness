@@ -1,8 +1,8 @@
+import { AppButton } from "@/components/ui/AppButton";
+import { Chip } from "@/components/ui/Chip";
 import { cn } from "@/lib/cn";
 import { getCuratedReviewSections } from "../selectors.ts";
 import type { CuratedOnboardingData, CuratedStepId } from "../types.ts";
-
-const EDIT_ACTION_CLASS_NAME = "relative appearance-none !border-0 !bg-transparent !px-0 !pb-1 !pt-0 !text-[rgb(var(--warning-rgb))] !shadow-none text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:rounded-full after:bg-[linear-gradient(90deg,rgb(var(--warning-rgb)/0.14),rgb(var(--warning-rgb)/0.9),rgb(var(--warning-rgb)/0.14))] after:shadow-[0_0_14px_rgb(var(--warning-rgb)/0.18)] hover:!text-[rgb(255_242_200)] focus-visible:!outline-none focus-visible:after:h-[2px]";
 
 export function ReviewStep({
   data,
@@ -22,59 +22,45 @@ export function ReviewStep({
               "flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 border-l-[3px] px-3.5 py-3 [-webkit-tap-highlight-color:transparent] marker:hidden",
               section.complete
                 ? "border-[rgb(var(--accent))]"
-                : "border-[rgb(var(--danger-rgb))]",
+                : "border-[rgb(var(--warning-rgb))]",
             )}
           >
             <span className="text-xs font-semibold uppercase tracking-[0.11em] text-[rgb(var(--text-primary))]">{section.title}</span>
-            <span
-              data-section-status={section.complete ? "completed" : "incomplete"}
-              className={cn(
-                "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.11em]",
-                section.complete
-                  ? "text-[rgb(var(--accent)/0.96)]"
-                  : "text-[rgb(var(--danger-rgb)/0.98)]",
-              )}
-            >
-              {section.complete ? "Completed" : "Incomplete"}
-              <span aria-hidden="true" className="text-sm transition-transform group-open:rotate-90">&gt;</span>
+            <span className="flex items-center gap-2">
+              <Chip tone={section.complete ? "success" : "attention"} data-section-status={section.complete ? "completed" : "incomplete"}>
+                {section.complete ? "Completed" : "Needs answers"}
+              </Chip>
+              <span aria-hidden="true" className="text-sm text-[rgb(var(--text-muted))] transition-transform group-open:rotate-90">&gt;</span>
             </span>
           </summary>
 
           <div className="border-t border-[rgb(var(--border-strong)/0.16)]">
             <div className="flex justify-end px-3.5 py-2">
-              <button
-                type="button"
+              <AppButton
+                variant="quiet"
+                size="sm"
+                fullWidth={false}
+                aria-label={`Edit ${section.title}`}
                 onClick={() => onEdit(section.stepId)}
-                className={EDIT_ACTION_CLASS_NAME}
               >
                 Edit
-              </button>
+              </AppButton>
             </div>
             <dl className="divide-y divide-[rgb(var(--border-strong)/0.12)]">
               {section.answers.map((answer) => (
                 <div
                   key={answer.id}
                   data-answer-status={answer.incomplete ? "incomplete" : "complete"}
-                  className={cn(
-                    "space-y-1 px-3.5 py-3",
-                    answer.incomplete && "bg-[rgb(var(--danger-rgb)/0.055)]",
-                  )}
+                  className="space-y-1 px-3.5 py-3"
                 >
-                  <dt
-                    className={cn(
-                      "text-[11px] font-semibold uppercase leading-4 tracking-[0.11em]",
-                      answer.incomplete
-                        ? "text-[rgb(var(--danger-rgb))]"
-                        : "text-[rgb(var(--accent)/0.9)]",
-                    )}
-                  >
+                  <dt className="text-[11px] font-semibold uppercase leading-4 tracking-[0.11em] text-[rgb(var(--accent)/0.9)]">
                     {answer.label}
                   </dt>
                   <dd
                     className={cn(
                       "whitespace-pre-wrap text-xs font-medium leading-5",
                       answer.incomplete
-                        ? "text-[rgb(var(--danger-rgb)/0.96)]"
+                        ? "italic text-[rgb(var(--text-muted))]"
                         : "text-[rgb(var(--text-secondary)/0.96)]",
                     )}
                   >

@@ -3044,10 +3044,13 @@ a:focus-visible {
   margin-top: 1px;
 }
 
+/* Errors read as neutral text on a neutral card with a red rail and icon (the app notice style, Zac 2026-11-23: no
+   red error text): the words stay legible and calm, the rail and icon carry the "something is wrong" signal. */
 .fx-notice[data-tone="error"] {
-  border-color: rgb(var(--fx-danger) / 0.55);
-  background: rgb(var(--fx-danger) / 0.1);
-  color: #ffd9dc;
+  border-color: rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 3px 0 0 rgb(var(--fx-danger));
+  color: #f4f6f4;
 }
 
 .fx-notice[data-tone="error"] > svg {
@@ -3077,6 +3080,7 @@ a:focus-visible {
 }
 
 .fx-notice__act {
+  position: relative;
   display: inline;
   margin-left: 6px;
   padding: 0;
@@ -3128,7 +3132,22 @@ a:focus-visible {
   background: rgb(var(--fx-ac) / 0.6);
 }
 
+/* 44px hit areas without moving anything: the visible link stays one text line, an invisible ::after grows the target
+   (the links row is 24px tall and the legal row about 20px, both too small to hit reliably). */
+.fx-notice__act::after,
+.fx-link::after,
+.fx-legal a::after {
+  content: "";
+  position: absolute;
+  inset: -11px -8px;
+}
+
+.fx-legal a {
+  position: relative;
+}
+
 .fx-link {
+  position: relative;
   padding: 0;
   border: 0;
   background: none;
