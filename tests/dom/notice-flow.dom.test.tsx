@@ -106,6 +106,12 @@ function DockScreen() {
         <button onClick={() => toast.info("Applied to current set.")}>apply</button>
         <button>other</button>
       </li>
+      <li>
+        <label htmlFor="reps-field">Reps</label>
+        <input id="reps-field" type="number" />
+        <select aria-label="Unit"><option>kg</option></select>
+        <textarea aria-label="Notes" />
+      </li>
     </ul>
   );
 }
@@ -238,4 +244,45 @@ test("above-dock: an error stays (no timer) until the next action, uses role=ale
   });
   assert.equal(screen.queryByRole("alert"), null);
   assert.ok(slot.contains(screen.getByRole("status")));
+});
+
+test("above-dock: tapping a field to fix it is not the next action; the error stays until a button or Dismiss", async () => {
+  mountDockScreen();
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "fail" }));
+  });
+  await screen.findByRole("alert");
+
+  const fields = [
+    screen.getByText("Reps"),
+    screen.getByRole("spinbutton"),
+    screen.getByRole("combobox", { name: "Unit" }),
+    screen.getByRole("textbox", { name: "Notes" }),
+  ];
+  for (const field of fields) {
+    await act(async () => {
+      fireEvent.click(field);
+      if (!(field instanceof window.HTMLLabelElement)) fireEvent.input(field, { target: { value: "8" } });
+      await waitForExit();
+    });
+    assert.ok(screen.queryByRole("alert"), `the error stays after a tap on ${field.tagName.toLowerCase()}`);
+  }
+
+  // Submitting again (any button) is the next action.
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "other" }));
+    await waitForExit();
+  });
+  assert.equal(screen.queryByRole("alert"), null);
+
+  // And Dismiss still clears it.
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "fail" }));
+  });
+  await screen.findByRole("alert");
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss message" }));
+    await waitForExit();
+  });
+  assert.equal(screen.queryByRole("alert"), null);
 });

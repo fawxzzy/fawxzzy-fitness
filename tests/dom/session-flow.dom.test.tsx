@@ -219,6 +219,8 @@ test("Session: header, grab handle and Close all toggle the card; aria-expanded 
   assert.equal(handleOf("a").querySelector("svg")?.getAttribute("data-session-expand-handle-direction"), "up");
   const close = panelOf("a")?.querySelector<HTMLButtonElement>('[data-session-logger-close="true"]');
   assert.ok(close, "Close sits inside the open logger");
+  assert.equal(handleOf("a").getAttribute("aria-label"), "Collapse Zed Press logger");
+  assert.notEqual(handleOf("a").getAttribute("aria-label"), close.getAttribute("aria-label"), "handle and Close have distinct names");
   assert.equal(close.textContent, "Close");
   assert.equal(panelOf("a")?.firstElementChild?.contains(close), true, "Close is at the top of the logger");
 

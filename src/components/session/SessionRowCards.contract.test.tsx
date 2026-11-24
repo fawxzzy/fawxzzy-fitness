@@ -472,6 +472,13 @@ test("offline session list has no info control (it needs the network) and no ses
   assert.doesNotMatch(shell, /exerciseId \?\? exercise\.id/);
 });
 
+test("offline shell: a cached finished workout shows Back, not Pause (2026-11-24 review)", () => {
+  const shell = readSource("../../app/session/[id]/SessionOfflineShell.tsx");
+  assert.match(shell, /completed=\{cachedSnapshot\?\.completed === true\}/, "the header gets the cached completion");
+  const page = readSource("../../app/session/[id]/page.tsx");
+  assert.match(page, /completed: sessionRow\.status === "completed"/, "the snapshot records completion when it is cached");
+});
+
 test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close at the top of the open logger, no chevron", () => {
   const collapsed = renderRow(false);
   const handle = collapsed.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
@@ -488,8 +495,15 @@ test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close a
   assert.ok(collapsed.indexOf("footer-stub") < collapsed.indexOf("data-session-expand-handle="), "the handle is on the bottom edge, after the bar");
   assert.doesNotMatch(collapsed, /data-session-logger-close/);
 
+  // 16px under the pill: the 44px target ends 3px into the 8px card gap, never under the next card (2026-11-24 review;
+  // with pb-1 the next card took the bottom 8px, measured with elementFromPoint at 390 and 320).
+  assert.match(collapsed, /data-session-expand-handle-row="true" class="[^"]*\bpb-4\b/, "room under the handle for its target");
+
   const expanded = renderRow(true);
-  assert.match(expanded, /<button[^>]*data-session-expand-handle="true"[^>]*aria-expanded="true"/);
+  const openHandle = expanded.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
+  assert.ok(openHandle);
+  assert.match(openHandle, /aria-expanded="true"/);
+  assert.match(openHandle, /aria-label="Collapse Zed Press logger"/, "never the same name as the Close button");
   assert.match(expanded, /data-session-expand-handle-direction="up"[^>]*rotate-180/, "flips to point up while open");
   const close = expanded.match(/<button[^>]*data-session-logger-close="true"[^>]*>Close<\/button>/)?.[0];
   assert.ok(close, "Close is a visible text control");

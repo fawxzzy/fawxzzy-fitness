@@ -367,6 +367,15 @@ export function SessionExerciseFocus({
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("current-session", "compact");
   const router = useRouter();
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
+  // A removed row leaves `exercises` after router.refresh(); drop its id then so no stale removing id lingers.
+  const listedExerciseIdsKey = exercises.map((exercise) => exercise.id).join(" ");
+  useEffect(() => {
+    const listed = new Set(listedExerciseIdsKey.split(" "));
+    setRemovingExerciseIds((current) => {
+      const next = current.filter((id) => listed.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [listedExerciseIdsKey]);
   const [persistedLoggerExerciseId, setPersistedLoggerExerciseId] = useState<string | null>(selectedExerciseId);
   const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
     cachedSessionState?.rowClientStateBySessionExerciseId
@@ -1019,6 +1028,8 @@ export function SessionExerciseFocus({
         toast.error(result.error || "Could not remove exercise.");
         return;
       }
+      // Success: the id is dropped by the prune effect once the refresh no longer lists the row (dropping it here would
+      // flash the row back until the refresh lands).
       router.refresh();
     } catch {
       restore();

@@ -30,12 +30,14 @@ export function SessionOfflineShell({
     });
   }, [initialSnapshot, sessionId, userId]);
 
-  // Always a header (even before the cache loads) so Pause is the way back to Today; no app menu on the workout.
+  // Always a header (even before the cache loads) so Pause is the way back to Today; no app menu on the workout. A cached
+  // finished workout has nothing to pause, so it gets the plain Back (same rule as the online screen).
   const floatingHeader = (
     <SessionHeaderControls
       routineName={cachedSnapshot?.routineName ?? ""}
       sessionDayName={cachedSnapshot?.sessionDayName ?? ""}
       backHref={backHref}
+      completed={cachedSnapshot?.completed === true}
       statusBadge={<OfflineSyncBadge userId={userId} variant="header" label="Offline" />}
     />
   );

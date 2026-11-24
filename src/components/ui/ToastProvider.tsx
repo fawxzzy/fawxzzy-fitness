@@ -67,8 +67,11 @@ export const ERROR_TOAST_DURATION_MS = 6000;
 // Above-dock notices: one at a time, gone after about 4 s; errors stay until dismissed or the next action.
 export const DOCK_NOTICE_DURATION_MS = 4000;
 const MAX_TOASTS = 3;
-// A tap on one of these (outside the notice) is "the next action" that clears an above-dock error.
-const NEXT_ACTION_SELECTOR = 'button, a[href], input, select, textarea, label, [role="button"], [role="switch"]';
+// A tap on one of these (outside the notice) is "the next action" that clears an above-dock error. Fields (text inputs,
+// selects, textareas, their labels) are not: tapping a field to fix what the error names must leave the error up until
+// the person dismisses it or submits again (Log set, any button).
+const NEXT_ACTION_SELECTOR =
+  'button, a[href], input[type="submit"], input[type="button"], input[type="reset"], [role="button"], [role="switch"]';
 
 function isDockOverlaySlot(slot: HTMLElement | null) {
   return slot?.getAttribute("data-app-notice-placement") === "above-dock";

@@ -162,8 +162,12 @@ export function SessionExerciseRowCard({
  * The grab handle on a session card's bottom edge: a thin pill bent into a shallow V that points down while the card
  * is closed and flips to point up while it is open. Same toggle as the header; aria-expanded mirrors it. The visible
  * pill is small; the target is 64px wide and 44px tall, grown downward from 4px above the pill (the row sits 4px
- * under the action bar) so it never takes a tap from Log set / Log all above it, and ends inside the 8px gap below the
- * card (`SESSION_HANDLE_HIT_AREA`).
+ * under the action bar) so it never takes a tap from Log set / Log all above it (`SESSION_HANDLE_HIT_AREA`).
+ * The row's 16px bottom padding keeps the target inside the card except its last 3px, which sit in the empty 8px gap,
+ * so the next card (relative isolate, later in the DOM) never covers it: 44px measured at 390 and 320 wide. With 4px
+ * padding the next card took the bottom 8px and the real target was 36px (elementFromPoint, 2026-11-24 review).
+ *
+ * Name: "Open X logger" while closed, "Collapse X logger" while open, so it never shares a name with the Close button.
  */
 // 44px tall target that starts 4px above the pill (the bar's bottom edge) and grows down, not centred like HIT_AREA.
 const SESSION_HANDLE_HIT_AREA = "relative before:absolute before:inset-x-0 before:-top-1 before:h-11 before:content-['']";
@@ -180,13 +184,13 @@ export function SessionCardExpandHandle({
   onToggle: () => void;
 }) {
   return (
-    <div data-session-expand-handle-row="true" className="mt-1 flex justify-center pb-1">
+    <div data-session-expand-handle-row="true" className="mt-1 flex justify-center pb-4">
       <button
         type="button"
         data-session-expand-handle="true"
         aria-expanded={expanded}
         aria-controls={controlsId}
-        aria-label={expanded ? `Close ${exerciseName} logger` : `Open ${exerciseName} logger`}
+        aria-label={expanded ? `Collapse ${exerciseName} logger` : `Open ${exerciseName} logger`}
         onClick={onToggle}
         className={cn(
           SESSION_HANDLE_HIT_AREA,
