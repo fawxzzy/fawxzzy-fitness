@@ -121,7 +121,7 @@ test("progression filters live in the URL and clear back to the bare route", () 
   );
   assert.ok(screen.getByRole("button", { name: "Filters, 2 on" }));
   assert.ok(screen.getByRole("button", { name: "Remove filter Deload applied" }));
-  assert.ok(screen.getByRole("button", { name: "Remove filter From 2026-11-01" }));
+  assert.ok(screen.getByRole("button", { name: "Remove filter From Nov 1, 2026" }));
 
   fireEvent.click(screen.getByRole("button", { name: "Filters, 2 on" }));
   const sheet = screen.getByRole("dialog");

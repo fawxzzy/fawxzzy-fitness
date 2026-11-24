@@ -39,12 +39,12 @@ export type DetailSectionListSection = {
   legendSignals?: DetailSectionSignalTone[];
 };
 
-/** Labels stay as authored (copy is owned elsewhere); the look is the one card chip (DESIGN-CONTRACT C7). Tones: PR, PROMO and BEST are success, WATCH is attention, REG (regression) stays danger so it never reads as WATCH. */
+/** The look is the one card chip (DESIGN-CONTRACT C7). Signal chips use full words (History redesign 2026-11-23: PROMO / REG were cryptic). Tones: PR, Promotion and BEST are success, WATCH is attention, Regression stays danger so it never reads as WATCH. */
 const DETAIL_SECTION_BADGE_CONFIG = {
   pr: { label: "PR", tone: "success", textClassName: "text-[rgb(var(--secondary-action-rgb)/0.96)]" },
-  promotion: { label: "PROMO", tone: "success", textClassName: "text-[rgb(var(--accent-divider-rgb)/0.96)]" },
+  promotion: { label: "Promotion", tone: "success", textClassName: "text-[rgb(var(--accent-divider-rgb)/0.96)]" },
   watch: { label: "WATCH", tone: "attention", textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]" },
-  regression: { label: "REG", tone: "danger", textClassName: "text-[rgb(255,116,116)]" },
+  regression: { label: "Regression", tone: "danger", textClassName: "text-[rgb(255,116,116)]" },
   best: { label: "BEST", tone: "success", textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]" },
   default: { label: "", tone: "neutral", textClassName: "text-[rgb(var(--text-secondary)/0.92)]" },
 } satisfies Record<DetailSectionBadgeTone, {

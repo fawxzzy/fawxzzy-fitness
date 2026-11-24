@@ -566,9 +566,10 @@ export function ExerciseBrowserClient({
           )
         : null}
 
+      {/* Literal 8px list gap: the token class is built at runtime, so Tailwind never generates it (History review item 14). */}
       <div className={cn(appTokens.historyExerciseResultsViewport, "pt-2")}>
         {filteredRows.length > 0 ? (
-          <ul className={appTokens.historyExerciseResults}>
+          <ul className={cn(appTokens.historyExerciseResults, "grid gap-2")}>
             {filteredRows.map((row) => (
               <li key={row.exerciseId}>
                 <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />

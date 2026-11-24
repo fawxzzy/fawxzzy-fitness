@@ -54,11 +54,27 @@ export function ProgressionHistorySurface({
   totalEventCount,
   rows,
 }: ProgressionHistoryDisplayModel) {
+  // Nothing recorded yet: one empty card, not a grid of zeros and four empty charts (History redesign 2026-11-23).
+  if (totalEventCount === 0) {
+    return (
+      <div data-progression-history="true" className="grid gap-2 pt-2">
+        <CardEmptyState
+          headingLevel={2}
+          title="No progression yet"
+          body="Promotions, deloads, reverts and manual goal changes show here once the app applies them."
+          action={(
+            <Link href="/today" className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
+              Go to Today
+            </Link>
+          )}
+        />
+      </div>
+    );
+  }
+
   return (
     <div data-progression-history="true" className="grid gap-2 pt-2">
-      {totalEventCount > 0 ? (
-        <ProgressionHistoryFilters filters={filters} filterOptions={filterOptions} filteredEventCount={filteredEventCount} />
-      ) : null}
+      <ProgressionHistoryFilters filters={filters} filterOptions={filterOptions} filteredEventCount={filteredEventCount} />
 
       {dashboardCards.length > 0 ? (
         <CardSurface as="section" aria-label="Progression summary">
@@ -73,7 +89,7 @@ export function ProgressionHistorySurface({
         </CardSurface>
       ) : null}
 
-      <ProgressionHistoryCharts sections={chartSections} />
+      {rows.length > 0 ? <ProgressionHistoryCharts sections={chartSections} /> : null}
 
       <section aria-labelledby="progression-ledger-heading" className="grid gap-2">
         <h2 id="progression-ledger-heading" className="px-1 pt-2 text-[11px] font-semibold uppercase leading-4 tracking-[0.12em] text-[rgb(var(--text-secondary)/0.92)]">
@@ -129,11 +145,9 @@ export function ProgressionHistorySurface({
         ) : (
           <CardEmptyState
             headingLevel={3}
-            title={totalEventCount > 0 && hasActiveFilters ? "No changes match" : "No progression yet"}
-            body={totalEventCount > 0 && hasActiveFilters
-              ? "Remove a filter to see the rest of your changes."
-              : "Promotions, deloads, reverts and manual goal changes show here once the app applies them."}
-            action={totalEventCount > 0 && hasActiveFilters ? (
+            title="No changes match"
+            body={hasActiveFilters ? "Remove a filter to see the rest of your changes." : "No changes to show right now."}
+            action={hasActiveFilters ? (
               <Link href="/history/progression" className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
                 Clear filters
               </Link>

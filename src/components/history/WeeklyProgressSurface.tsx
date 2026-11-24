@@ -91,7 +91,7 @@ function buildPlannedDayStatusMetric(summary: WeeklyProgressSummary): MetricDatu
   return {
     label,
     value: String(remainingPlannedDayCount),
-    valueTone: remainingPlannedDayCount > 0 ? (label === "Open Days" ? "warning" : "danger") : "muted",
+    valueTone: remainingPlannedDayCount > 0 ? "warning" : "muted",
   };
 }
 
@@ -102,7 +102,7 @@ function buildWeekComparisonMetric(summary: WeeklyProgressSummary): MetricDatum 
 
   if (delta > 0) {
     return {
-      label: "Vs Last Cycle",
+      label: "From Last Cycle",
       value: `+${absDelta} ${unit}`,
       valueTone: "success",
     };
@@ -110,14 +110,14 @@ function buildWeekComparisonMetric(summary: WeeklyProgressSummary): MetricDatum 
 
   if (delta < 0) {
     return {
-      label: "Vs Last Cycle",
+      label: "From Last Cycle",
       value: `-${absDelta} ${unit}`,
-      valueTone: "danger",
+      valueTone: "warning",
     };
   }
 
   return {
-    label: "Vs Last Cycle",
+    label: "From Last Cycle",
     value: "Even",
     valueTone: summary.completedWorkoutCount > 0 ? "default" : "muted",
   };

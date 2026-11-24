@@ -7,6 +7,14 @@ import { FormField, formFieldControlClassName } from "@/components/ui/FormField"
 import type { ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
 import { serializeProgressionHistoryFilters, type ProgressionHistoryFilters as Filters } from "@/lib/progression-history-filters";
 
+const FILTER_DATE_FORMAT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+/** Chip label for a `YYYY-MM-DD` URL date ("May 8, 2026"); falls back to the raw value if it does not parse. */
+function formatFilterDate(value: string): string {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? FILTER_DATE_FORMAT.format(parsed) : value;
+}
+
 /**
  * Progression filters (History redesign 2026-11-23, review item 10): the same Filters button + sheet as Sessions
  * and Exercises instead of an always-open form with native selects. Filters still live in the URL
@@ -74,8 +82,8 @@ export function ProgressionHistoryFilters({
   if (routineLabel) activeChips.push({ key: "routine", label: routineLabel, onRemove: () => apply({ routineId: null }) });
   const exerciseLabel = labelFor(filterOptions.exercises, filters.exerciseId);
   if (exerciseLabel) activeChips.push({ key: "exercise", label: exerciseLabel, onRemove: () => apply({ exerciseId: null }) });
-  if (filters.dateFrom) activeChips.push({ key: "dateFrom", label: `From ${filters.dateFrom}`, onRemove: () => apply({ dateFrom: null }) });
-  if (filters.dateTo) activeChips.push({ key: "dateTo", label: `To ${filters.dateTo}`, onRemove: () => apply({ dateTo: null }) });
+  if (filters.dateFrom) activeChips.push({ key: "dateFrom", label: `From ${formatFilterDate(filters.dateFrom)}`, onRemove: () => apply({ dateFrom: null }) });
+  if (filters.dateTo) activeChips.push({ key: "dateTo", label: `To ${formatFilterDate(filters.dateTo)}`, onRemove: () => apply({ dateTo: null }) });
 
   return (
     <div data-progression-filters="true" aria-busy={isPending || undefined}>
