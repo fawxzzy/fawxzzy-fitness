@@ -806,7 +806,8 @@ export default async function TodayPage(
           {earnedInstallPromptEnabled ? <EarnedInstallPrompt /> : null}
           {todayPayload.inProgressSessionId ? (
             <TodayOverviewScaffold>
-              <div className="flex flex-col gap-[0.625rem]">
+              {/* Same wrapper as the Today picker's list (TodayDayPicker): the cards sit 8px apart (cardTokens.list), no extra container. */}
+              <div className="pt-0.5">
                 <TodayExerciseRows
                   exercises={todayPayload.exercises}
                   emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}

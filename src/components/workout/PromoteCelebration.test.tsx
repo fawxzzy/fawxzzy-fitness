@@ -74,3 +74,13 @@ test("confirm phase: 'Ready to promote', Not now + Promote, linked chooser slot;
   assert.match(render({ confirmDisabled: true }), /aria-disabled="true"[^>]*data-promote-confirm="true"[^>]*>Promote</);
   assert.doesNotMatch(idle + pending, /\btarget\b/i);
 });
+
+test("confirm button carries the shared promote-shine class, and the dialog keeps one glint", () => {
+  const html = renderToStaticMarkup(
+    <PromoteCelebrationDialog titleId="t3" exerciseName="Back Squat" rows={[{ label: "Reps", from: "8", to: "9" }]} phase="confirm" onClose={() => {}} onConfirm={() => {}} />,
+  );
+
+  assert.match(html, /data-promote-confirm="true"[^>]*class="promote-shine /);
+  assert.equal(html.split("promote-shine").length - 1, 1, "only the confirm button shines");
+  assert.match(html, /animate-exercise-glint/);
+});

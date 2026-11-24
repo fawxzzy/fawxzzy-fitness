@@ -2203,7 +2203,8 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
         >
           <ContentRail className="space-y-3">
             <ScreenScaffold recipe="todayOverview" className="w-full">
-              <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+              {/* Mirrors /today's resume screen: same wrapper as the Today picker's list, no section container. */}
+              <div className="pt-0.5">
                 <TodayExerciseRows
                   exercises={[
                     {
@@ -2237,7 +2238,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
                   ]}
                   emptyMessage="No runnable exercises planned for this day."
                 />
-              </SharedSectionShell>
+              </div>
             </ScreenScaffold>
           </ContentRail>
 

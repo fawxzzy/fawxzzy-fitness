@@ -69,8 +69,7 @@ export function ExerciseProgressPromoteButton({ promote, exerciseName }: { promo
       // Card control: restates background, border and colour with `!` (globals.css button rule, cardTokens note).
       className="group relative z-10 -my-2 -mr-1.5 inline-flex min-h-11 shrink-0 items-center justify-center rounded-full !border-0 !bg-transparent px-1.5 !text-[rgb(var(--text-primary))] focus-visible:outline-none aria-disabled:cursor-not-allowed"
     >
-      <span className="relative inline-flex h-8 items-center overflow-hidden rounded-full border border-[rgb(var(--success-rgb)/0.62)] bg-[rgb(var(--success-rgb)/0.2)] px-3 text-xs font-bold uppercase tracking-[0.08em] text-[rgb(var(--text-primary))] shadow-[0_0_14px_rgb(var(--success-rgb)/0.28)] transition-colors group-hover:bg-[rgb(var(--success-rgb)/0.28)] group-focus-visible:ring-2 group-focus-visible:ring-[rgb(var(--accent)/0.6)] group-aria-disabled:opacity-60 motion-reduce:transition-none">
-        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-1/2 animate-exercise-glint bg-[linear-gradient(90deg,transparent,rgb(var(--text-primary)/0.32),transparent)] motion-reduce:hidden" />
+      <span className="promote-shine relative inline-flex h-8 items-center overflow-hidden rounded-full border border-[rgb(var(--success-rgb)/0.62)] bg-[rgb(var(--success-rgb)/0.2)] px-3 text-xs font-bold uppercase tracking-[0.08em] text-[rgb(var(--text-primary))] shadow-[0_0_14px_rgb(var(--success-rgb)/0.28)] transition-colors group-hover:bg-[rgb(var(--success-rgb)/0.28)] group-focus-visible:ring-2 group-focus-visible:ring-[rgb(var(--accent)/0.6)] group-aria-disabled:opacity-60 motion-reduce:transition-none">
         <span className="relative">{pending ? "Promoting..." : "Promote"}</span>
       </span>
     </button>
@@ -80,7 +79,8 @@ export function ExerciseProgressPromoteButton({ promote, exerciseName }: { promo
 /**
  * Progress row shared by Today (progression) and the in-progress workout (logged sets): text first, then a
  * left-anchored 6px bar, and at 100% with a wired handler the Promote button at the bar's right end. The only shine
- * is on that button (three passes, none under reduced motion); a full bar alone stays still.
+ * is on that button (the shared `.promote-shine` sweep in globals.css, looping, none under reduced motion); a full
+ * bar alone stays still.
  */
 export function ExerciseProgressBar({ progress, exerciseName }: { progress: ExerciseRowCardProgress; exerciseName: string }) {
   const percent = clampProgressPercent(progress.percent);
