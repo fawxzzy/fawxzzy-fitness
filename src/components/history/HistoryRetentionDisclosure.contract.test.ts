@@ -59,12 +59,40 @@ test("History no longer owns Achievements presentation", () => {
 });
 
 test("History timeline filters expose one clear-all control and hide unrelated summaries", () => {
-  assert.match(historyClientSource, /aria-label="Clear all History filters"/);
-  assert.match(historyClientSource, /<FilterSection title="Session Date"/);
-  assert.match(historyClientSource, /<FilterSection title="Month"/);
+  // History redesign 2026-11-23: filters moved into the shared Filters sheet; its footer and the chip row own Clear all.
+  assert.match(historyClientSource, /<HistoryFilterBar/);
+  assert.match(historyClientSource, /onClearAll=\{clearAllFilters\}/);
+  assert.match(historyClientSource, /title: "Session date"/);
+  assert.match(historyClientSource, /title: "Month"/);
   assert.match(historyClientSource, /hasSpecificTimelineFilter/);
   assert.match(historyClientSource, /showWorkoutStreak = shouldShowHistoryWorkoutStreak\(\{/);
   assert.match(historyClientSource, /sessions: filteredSessions/);
   assert.match(historyClientSource, /summary=\{displayedWorkoutStreak\}/);
   assert.match(historyClientSource, /!effectiveSelectedDayKey && !hasCycleTimelineFilter \? \(/);
+});
+
+test("History screens carry no mis-encoded separators (a UTF-8 middle dot read as Latin-1 shows as \"Â·\")", () => {
+  const files = [
+    "../../app/history/HistorySessionsClient.tsx",
+    "../../app/history/[sessionId]/LogAuditClient.tsx",
+    "../../app/history/exercises/ExerciseBrowserClient.tsx",
+    "./HistoryFilterBar.tsx",
+    "./ProgressionHistorySurface.tsx",
+    "./ProgressionHistoryFilters.tsx",
+    "./HistoryLoadErrorState.tsx",
+  ];
+  for (const file of files) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.equal(/\u00c2[\u00a0-\u00bf]|\u00e2\u20ac/.test(source), false, `${file} has mojibake`);
+  }
+});
+
+test("a deleted session behind a Progression 'Open session' link lands on the History not-found card", () => {
+  const detailPage = readFileSync(new URL("../../app/history/[sessionId]/page.tsx", import.meta.url), "utf8");
+  const notFoundPage = readFileSync(new URL("../../app/history/[sessionId]/not-found.tsx", import.meta.url), "utf8");
+  const progression = readFileSync(new URL("./ProgressionHistorySurface.tsx", import.meta.url), "utf8");
+  assert.match(progression, /href=\{`\/history\/\$\{row\.sourceSessionId\}`\}/);
+  assert.match(detailPage, /if \(!session\) \{\s*notFound\(\);/);
+  assert.match(detailPage, /isNotFoundError\(error\)\) \{\s*throw error;/, "notFound() is not swallowed by the load-error catch");
+  assert.match(notFoundPage, /<HistorySessionMissingState \/>/);
 });

@@ -167,7 +167,7 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
   assert.equal(summary.activeDayCount, 2);
   assert.equal(summary.prMomentCount, 2);
   assert.deepEqual(summary.prExerciseNames, ["Back Squat", "Weighted Pull-Up"]);
-  assert.equal(summary.consistencyTrend.label, "+1 vs last cycle");
+  assert.equal(summary.consistencyTrend.label, "+1 from last cycle");
   assert.deepEqual(
     summary.volumeCategories.map((entry) => ({ key: entry.key, setCount: entry.setCount, exerciseCount: entry.exerciseCount })),
     [
@@ -391,7 +391,7 @@ test("weekly progress builds explicit progression recap, hotspots, and timeline 
   assert.deepEqual(summary.progressionSummary.topAdjustedExerciseNames, ["Incline Walk"]);
   assert.deepEqual(summary.progressionSummary.hotspotItems, [
     "Back Squat drove the most promotions.",
-    "Incline Walk had the most manual target changes.",
+    "Incline Walk had the most manual goal changes.",
   ]);
   assert.deepEqual(summary.progressionSummary.timelineItems, [
     "Active progression days: 2 days.",
@@ -413,7 +413,7 @@ test("weekly progress builds explicit progression recap, hotspots, and timeline 
     "May 7:1",
   ]);
   assert.deepEqual(summary.progressionSummary.activityBuckets[1]?.hotspotItems, [
-    "Incline Walk had the most manual target changes.",
+    "Incline Walk had the most manual goal changes.",
   ]);
   assert.deepEqual(summary.recapItems?.map((item) => ({
     primary: item.primary,

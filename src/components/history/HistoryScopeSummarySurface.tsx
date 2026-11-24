@@ -65,7 +65,7 @@ function buildMetricItems(summary: HistoryScopeSummary): MetricDatum[] {
     { label: "Exercises Trained", value: String(summary.exerciseCount), valueTone: summary.exerciseCount > 0 ? "default" : "muted" },
     { label: "PR Moments", value: String(summary.prMomentCount), valueTone: summary.prMomentCount > 0 ? "success" : "muted" },
     { label: "Promotions", value: String(summary.progressionSummary.promotionCount), valueTone: summary.progressionSummary.promotionCount > 0 ? "success" : "muted" },
-    { label: "Regressions", value: String(regressionCount), valueTone: regressionCount > 0 ? "danger" : "muted" },
+    { label: "Regressions", value: String(regressionCount), valueTone: regressionCount > 0 ? "warning" : "muted" },
     { label: "Watch", value: String(watchCount), valueTone: watchCount > 0 ? "warning" : "muted" },
     { label: "Manual", value: String(summary.progressionSummary.manualChangeCount), valueTone: summary.progressionSummary.manualChangeCount > 0 ? "warning" : "muted" },
   ];

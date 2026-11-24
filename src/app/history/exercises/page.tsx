@@ -1,8 +1,7 @@
+import { HistoryLoadErrorState } from "@/components/history/HistoryLoadErrorState";
 import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { appTokens } from "@/components/ui/app/tokens";
 import { getExerciseBrowserScopePayloadForUser } from "@/lib/exercises-browser";
 import { getHistoryPreviewExerciseRows } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
@@ -10,16 +9,6 @@ import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
 export const dynamic = "force-dynamic";
-
-function ExercisesBrowserError() {
-  return (
-    <SharedSectionShell
-      recipe="historyDetail"
-      label={<span className={appTokens.historyTitleControlLabel}>Unable to load exercise history right now.</span>}
-      context={<span className={appTokens.historyTitleControlCaption}>Please try again in a moment.</span>}
-    />
-  );
-}
 
 export default async function HistoryExercisesPage() {
   const diagnostics = new LoadingDiagnosticsCollector("/history/exercises");
@@ -64,7 +53,7 @@ export default async function HistoryExercisesPage() {
         activeTab="exercises"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <ExercisesBrowserError />
+        <HistoryLoadErrorState title="Could not load exercises" />
       </HistoryRouteScaffold>
     );
   }

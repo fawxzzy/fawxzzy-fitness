@@ -239,9 +239,8 @@ export function ConsistencyHeatmapSurface({
 
   return (
     <HistorySection
-      title={<span className="block w-full text-center">Consistency</span>}
+      title="Consistency"
       className="!border-0 !bg-transparent !p-0"
-      headerAlign="center"
     >
       <HeatmapBody heatmap={heatmap} description={description} emptyMessage={emptyMessage} />
     </HistorySection>

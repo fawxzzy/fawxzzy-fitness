@@ -56,21 +56,6 @@ export function HistoryControlPanel({ children, className }: { children: ReactNo
 
 // The History error state: what went wrong and what to do, in the body. Back is the screen header Back
 // (ScreenHeader kind="detail"), never a second button in the message.
-export function HistoryRouteErrorShell({
-  title,
-  caption,
-}: {
-  title: string;
-  caption: string;
-}) {
-  return (
-    <AppPanel className={appTokens.historyRouteMessage}>
-      <p className={appTokens.historyRouteMessageTitle}>{title}</p>
-      <p className={appTokens.historyRouteMessageCaption}>{caption}</p>
-    </AppPanel>
-  );
-}
-
 export function HistoryTitleControlShell({
   label,
   caption,
@@ -200,9 +185,9 @@ export function buildHistorySessionMeta(args: {
   prLabel?: string | null;
   dayTitle?: string | null;
 }) {
-  const dateLine = args.dayTitle ? `${args.dayTitle} • ${formatDateShort(args.startedAt)}` : formatDateShort(args.startedAt);
+  const dateLine = args.dayTitle ? `${args.dayTitle} · ${formatDateShort(args.startedAt)}` : formatDateShort(args.startedAt);
   return {
     dateLine,
-    summaryLine: buildHistorySessionSummaryParts(args).join(" • "),
+    summaryLine: buildHistorySessionSummaryParts(args).join(" · "),
   };
 }

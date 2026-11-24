@@ -39,7 +39,7 @@ import type { ProgressionEventRow, RoutineDayExerciseRow, SessionExerciseRow, Se
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
-import { HistoryRouteErrorShell } from "@/components/history/HistoryShared";
+import { HistoryLoadErrorState } from "@/components/history/HistoryLoadErrorState";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 
@@ -572,10 +572,7 @@ export default async function HistoryLogDetailsPage(props: PageProps) {
         floatingHeader={<ScreenHeader kind="detail" title="Workout" back={<ScreenHeaderBackButton href="/history" historyBehavior="history-first" label="Back to History" />} />}
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <HistoryRouteErrorShell
-          title="Unable to load this session right now."
-          caption="Go back to History and try again in a moment."
-        />
+        <HistoryLoadErrorState title="Could not load this session" backHref="/history" backLabel="Back to History" />
       </HistoryRouteScaffold>
     );
   }

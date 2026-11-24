@@ -269,8 +269,8 @@ type HistorySignalEntry = {
 };
 
 function formatReasonList(parts: string[]) {
-  if (parts.length === 2 && parts[0] === "had the most regressions" && parts[1] === "had the most manual target changes") {
-    return "had the most regressions and manual target changes";
+  if (parts.length === 2 && parts[0] === "had the most regressions" && parts[1] === "had the most manual goal changes") {
+    return "had the most regressions and manual goal changes";
   }
 
   if (parts.length <= 1) {
@@ -318,7 +318,7 @@ function buildConsolidatedHistorySignalItems(entries: HistorySignalEntry[]) {
         reasons.has("leadProgress") ? "led progress across this scope" : null,
         reasons.has("promotion") ? "drove the most promotions" : null,
         reasons.has("regression") ? "had the most regressions" : null,
-        reasons.has("manual") ? "had the most manual target changes" : null,
+        reasons.has("manual") ? "had the most manual goal changes" : null,
       ].filter((value): value is string => Boolean(value));
 
       return parts.length > 0 ? `${exerciseName} ${formatReasonList(parts)}.` : null;
@@ -384,7 +384,7 @@ function buildHistoryProgressionSummary(args: {
       attentionItems.push("Regressions outpaced promotions.");
     }
     if (analytics.manualTargetChangesCount > analytics.promotionsAppliedCount && analytics.manualTargetChangesCount > 0 && analytics.promotionsAppliedCount > 0) {
-      attentionItems.push("Manual target changes outpaced promotions.");
+      attentionItems.push("Manual goal changes outpaced promotions.");
     }
   }
 
