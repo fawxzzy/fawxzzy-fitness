@@ -36,6 +36,7 @@ import { buildWorkoutRecapArtifact, buildWorkoutRecapStreakAsOf } from "@/lib/wo
 import { loadHistorySessionsScopePayloadForUser } from "@/lib/history-sessions-page-loader";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionEventRow, RoutineDayExerciseRow, SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
+import { getRepeatWorkoutAvailability } from "@/lib/repeat-workout";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
@@ -552,6 +553,7 @@ export default async function HistoryLogDetailsPage(props: PageProps) {
           recapArtifact={toClientPlainObject(recapArtifact)}
           backHref={backHref}
           exercises={clientExercises}
+          repeatWorkout={getRepeatWorkoutAvailability(sessionRow)}
         />
       </HistoryRouteScaffold>
     );
