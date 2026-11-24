@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { friendlyActionError } from "@/lib/action-error-copy";
 import { cn } from "@/lib/cn";
 import { isRedirectError } from "@/lib/next-navigation-errors";
 
@@ -26,6 +27,8 @@ export function ConfirmedServerFormButton({
   triggerIntent,
   triggerClassName,
   modalTitle,
+  modalTitleVariant,
+  showDetailsInDeleteLayout,
   modalConsequenceText,
   modalDescription,
   confirmLabel,
@@ -46,6 +49,9 @@ export function ConfirmedServerFormButton({
   triggerIntent?: BottomActionIntent;
   triggerClassName?: string;
   modalTitle: string;
+  /** "raw" shows modalTitle as written ("Delete Day 5?") instead of the generic "Confirm delete". */
+  modalTitleVariant?: "confirm" | "raw";
+  showDetailsInDeleteLayout?: boolean;
   modalConsequenceText?: string;
   /** @deprecated Use modalConsequenceText for destructive confirmation copy. */
   modalDescription?: string;
@@ -80,7 +86,7 @@ export function ConfirmedServerFormButton({
           const failure = failureMessage === undefined ? null : readActionFailure(result);
           if (failure !== null) {
             setOpen(false);
-            toast.error(failure || failureMessage || "");
+            toast.error(friendlyActionError(failure, failureMessage ?? ""));
             // Re-read the screen: the thing may already be gone (or half gone), and a stale button can only fail again.
             router.refresh();
             return;
@@ -131,6 +137,8 @@ export function ConfirmedServerFormButton({
       <ConfirmDestructiveModal
         open={open}
         title={modalTitle}
+        titleVariant={modalTitleVariant}
+        showDetailsInDeleteLayout={showDetailsInDeleteLayout}
         consequenceText={modalConsequenceText ?? modalDescription ?? ""}
         confirmLabel={confirmLabel}
         contextLines={contextLines}
