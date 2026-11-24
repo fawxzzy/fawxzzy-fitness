@@ -10,6 +10,7 @@ import { CreateRoutineClient } from "@/app/routines/CreateRoutineClient";
 import { CardEmptyState } from "@/components/ui/card-system";
 import { buildRoutineCardActions } from "@/components/routines/routineCardActions";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { AppButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
@@ -19,6 +20,16 @@ import {
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
 import type { ActionResult } from "@/lib/action-result";
+
+/**
+ * What deleting a routine does, in the words the confirm shows. Mirrors deleteRoutineMutation (src/lib/dal/routine-delete.ts):
+ * the routine, its days and exercises, the workouts logged on it and its progression events go; if it was the
+ * active routine another one takes over.
+ */
+export function describeRoutineDeleteConsequence(routine: { name: string; isActive?: boolean }): string {
+  const base = "This permanently deletes the routine, its days and exercises, and the workouts you logged with it, along with their progression history. It can't be undone.";
+  return routine.isActive ? `${base} Another routine becomes your active one.` : base;
+}
 
 export function RoutinesPageClient({
   routines,
@@ -48,7 +59,6 @@ export function RoutinesPageClient({
   const router = useRouter();
   const toast = useToast();
   const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(initialCreateRoutineOpen);
-  const [expandedActionsRoutineId, setExpandedActionsRoutineId] = useState<string | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<RoutineBrowseCardItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const canOpenInlineCreate = Boolean(duplicateRoutineAction);
@@ -115,14 +125,10 @@ export function RoutinesPageClient({
             body="Create a routine to unify Today, session tracking, and history around the same training plan."
             action={canOpenInlineCreate
               ? (
-                <button
-                  type="button"
-                  onClick={() => setIsCreateRoutineOpen(true)}
-                  // The dock holds the screen's one primary (New Routine); the empty-state action is secondary.
-                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
-                >
+                // The dock holds the screen's one primary (New Routine); the empty-state action is secondary.
+                <AppButton type="button" variant="secondary" fullWidth onClick={() => setIsCreateRoutineOpen(true)}>
                   Create your first routine
-                </button>
+                </AppButton>
               )
               : (
                 <BottomDockLink
@@ -138,7 +144,6 @@ export function RoutinesPageClient({
           <RoutinesCardList>
             {[...activeRoutines, ...inactiveRoutines].map((routine, index) => {
               const routineHref = routine.href;
-              const actionsOpen = expandedActionsRoutineId === routine.id;
               const actions = buildRoutineCardActions({
                 routine,
                 isPending,
@@ -159,7 +164,6 @@ export function RoutinesPageClient({
                       return;
                     }
 
-                    setExpandedActionsRoutineId(null);
                     toast.success("Routine is now active");
                     router.refresh();
                   });
@@ -175,8 +179,6 @@ export function RoutinesPageClient({
                     routine={routine}
                     onPress={routineHref ? () => router.push(routineHref) : undefined}
                     actions={actions}
-                    actionsOpen={actionsOpen}
-                    onActionsToggle={() => setExpandedActionsRoutineId((current) => current === routine.id ? null : routine.id)}
                     showPreviewDays={Boolean(routine.isActive)}
                   />
                 </RoutinesListItem>
@@ -187,7 +189,9 @@ export function RoutinesPageClient({
       </SharedDayListSection>
       <ConfirmDestructiveModal
         open={routinePendingDelete !== null}
-        title="Confirm Delete"
+        title="Delete routine?"
+        objectName={routinePendingDelete?.name}
+        consequenceText={routinePendingDelete ? describeRoutineDeleteConsequence(routinePendingDelete) : undefined}
         confirmLabel="Delete"
         titleVariant="raw"
         isLoading={isPending}
@@ -210,7 +214,6 @@ export function RoutinesPageClient({
             }
 
             setRoutinePendingDelete(null);
-            setExpandedActionsRoutineId((current) => current === routineId ? null : current);
             toast.success("Routine deleted.");
             router.refresh();
           });

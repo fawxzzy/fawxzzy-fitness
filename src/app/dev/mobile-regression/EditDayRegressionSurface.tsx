@@ -5,10 +5,9 @@ import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/Reorder
 import { RoutineDayKindReviewPanel } from "@/components/routines/RoutineDayKindReviewPanel";
 import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { appTokens } from "@/components/ui/app/tokens";
-import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
-import { DragHandle } from "@/components/ui/card-system";
+import { CardEmptyState, DragHandle } from "@/components/ui/card-system";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
@@ -88,8 +87,7 @@ export function EditDayRegressionSurface({
 
   if (fixture === "empty") {
     return (
-      <DayDetailStateCard
-        tone="neutral"
+      <CardEmptyState
         title="No exercises planned"
         body="Add an exercise to start building this day."
       />
@@ -131,8 +129,7 @@ export function EditDayRegressionSurface({
 
     if (!parityExercise) {
       return (
-        <DayDetailStateCard
-          tone="neutral"
+        <CardEmptyState
           title="Parity audit unavailable"
           body="Add an exercise fixture to compare view, edit, and reorder rows."
         />

@@ -21,13 +21,13 @@ import {
   GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
 } from "@/components/ui/GlowSwitch";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { CardLiveRegion, CardReorderHint, DragHandle, formatReorderAnnouncement } from "@/components/ui/card-system";
+import { CardEmptyState, CardLiveRegion, CardReorderHint, DragHandle, formatReorderAnnouncement } from "@/components/ui/card-system";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
-import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import { AppButton } from "@/components/ui/AppButton";
+import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
@@ -209,14 +209,6 @@ function RoutineTargetInputs({
   );
 }
 
-const TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleInactive",
-  className: "!border-r !border-r-[rgb(var(--border-strong)/0.18)] focus-visible:ring-[rgb(var(--border-strong)/0.2)]",
-});
-const TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "positive",
-  className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
-});
 type EditDayProgressionMethodId = Exclude<ProgressionPlaybookId, "deload_after_stall"> | "";
 
 function createEditDayProgressionMethodInfoPayload(playbookId: EditDayProgressionMethodId) {
@@ -382,6 +374,7 @@ export function EditableRoutineDayExerciseList({
   const [workoutPlanDecisionSessionMode, setWorkoutPlanDecisionSessionMode] = useState<"update_existing" | null>(null);
   const [workoutPlanDecisionName, setWorkoutPlanDecisionName] = useState("");
   const [workoutPlanDecisionError, setWorkoutPlanDecisionError] = useState<string | null>(null);
+  useFieldErrorNotice(workoutPlanDecisionError, { id: "routine-day-decision-error" });
   const [isWorkoutPlanDecisionPending, startWorkoutPlanDecisionTransition] = useTransition();
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
   const draftsByIdRef = useRef<Record<string, EditDayExerciseDraft>>({});
@@ -1300,15 +1293,14 @@ export function EditableRoutineDayExerciseList({
       <>
         <SharedSectionShell recipe="editDay" bodyClassName={appTokens.routineEditorCompactStack}>
           {modeViewModel.sections.restDayCardVisible ? (
-            <DayDetailStateCard
-              tone="rest"
+            <CardEmptyState
               title="Rest day enabled"
-              body={REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
-              meta={items.length > 0 ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : undefined}
+              body={items.length > 0
+                ? `${REST_DAY_BEHAVIOR_CONTRACT.copy.helper} ${REST_DAY_BEHAVIOR_CONTRACT.copy.enabled}`
+                : REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
             />
           ) : (
-            <DayDetailStateCard
-              tone="neutral"
+            <CardEmptyState
               title="No day built yet"
               body="Add an exercise to build this day from scratch, or duplicate an existing day into this day."
             />
@@ -1569,65 +1561,66 @@ export function EditableRoutineDayExerciseList({
 
       <ConfirmDestructiveModal
         open={workoutPlanDecisionOpen}
-        title="Day"
+        title={workoutPlanDecisionStep === "choice" ? "Save your changes" : "Name the new day"}
+        description={workoutPlanDecisionStep === "choice"
+          ? "This day is shared. Update it so linked days stay in sync, or keep your changes as a new day."
+          : undefined}
         confirmLabel="Confirm"
         confirmVariant="primary"
         hideBottomActions
         isLoading={isWorkoutPlanDecisionPending}
         attachedFooter={(
-          <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-2 gap-2 px-4 pb-4 pt-2">
             {workoutPlanDecisionStep === "choice" ? (
               <>
-                <button
+                <AppButton
                   type="button"
+                  variant="secondary"
                   disabled={isWorkoutPlanDecisionPending}
+                  loading={isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "update_existing"}
                   data-confirm-modal-action="cancel"
-                  className={TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME}
                   onClick={() => submitWorkoutPlanDecision("update_existing")}
                 >
-                  <span className="bottom-action__label">
-                    {isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "update_existing" ? "Updating..." : "Update Day"}
-                  </span>
-                </button>
-                <button
+                  Update Day
+                </AppButton>
+                <AppButton
                   type="button"
+                  variant="primary"
                   disabled={isWorkoutPlanDecisionPending}
                   data-confirm-modal-action="confirm"
-                  className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
                   onClick={() => submitWorkoutPlanDecision("save_new")}
                 >
-                  <span className="bottom-action__label">Save New Day</span>
-                </button>
+                  Save New Day
+                </AppButton>
               </>
             ) : (
               <>
-                <button
+                <AppButton
                   type="button"
+                  variant="secondary"
                   disabled={isWorkoutPlanDecisionPending}
                   data-confirm-modal-action="cancel"
-                  className={TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME}
                   onClick={() => {
                     setWorkoutPlanDecisionStep("choice");
                     setWorkoutPlanDecisionMode("update_existing");
                     setWorkoutPlanDecisionError(null);
                   }}
                 >
-                  <span className="bottom-action__label">Cancel</span>
-                </button>
-                <button
+                  Back
+                </AppButton>
+                <AppButton
                   type="button"
+                  variant="primary"
                   disabled={isWorkoutPlanDecisionPending}
+                  loading={isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "save_new"}
                   data-confirm-modal-action="confirm"
-                  className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
                   onClick={() => submitWorkoutPlanDecision("save_new")}
                 >
-                  <span className="bottom-action__label">
-                    {isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "save_new" ? "Saving..." : "Confirm"}
-                  </span>
-                </button>
+                  Save
+                </AppButton>
               </>
             )}
-          </AttachedCardActionStripFrame>
+          </div>
         )}
         onCancel={() => {
           pendingWorkoutPlanDecisionSubmitRef.current = null;
@@ -1638,37 +1631,33 @@ export function EditableRoutineDayExerciseList({
         }}
         onConfirm={() => {}}
       >
-        <div className="space-y-3">
-          {workoutPlanDecisionStep === "save_new" ? (
-            <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
-              {(control) => (
-                <input
-                  {...control}
-                  type="text"
-                  value={workoutPlanDecisionName}
-                  onChange={(event) => {
-                    setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
-                    setWorkoutPlanDecisionError(null);
-                  }}
-                  placeholder="Day name"
-                  maxLength={15}
-                  className={cn(formFieldControlClassName, "text-center")}
-                />
-              )}
-            </FormField>
-          ) : null}
-          {workoutPlanDecisionError ? (
-            <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">
-              {workoutPlanDecisionError}
-            </p>
-          ) : null}
-        </div>
+        {workoutPlanDecisionStep === "save_new" ? (
+          // The error goes to the sheet's notice slot (useFieldErrorNotice above), never as red text here.
+          <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={workoutPlanDecisionName}
+                onChange={(event) => {
+                  setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
+                  setWorkoutPlanDecisionError(null);
+                }}
+                placeholder="Day name"
+                maxLength={15}
+                className={cn(formFieldControlClassName, "text-center")}
+              />
+            )}
+          </FormField>
+        ) : null}
       </ConfirmDestructiveModal>
 
       <ConfirmDestructiveModal
         open={deleteConfirmOpen}
         title="Delete exercise?"
-        details={activeExercise?.name}
+        titleVariant="raw"
+        objectName={activeExercise?.name}
+        consequenceText="This removes the exercise and its goals from this day."
         confirmLabel="Delete"
         onCancel={() => setDeleteConfirmOpen(false)}
         onConfirm={async () => {

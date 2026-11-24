@@ -194,6 +194,7 @@ const APP_MENU_HEADERS = new Set([
   "src/components/history/HistoryRouteScaffold.tsx",
   "src/components/SessionHeaderControls.tsx",
   "src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx",
+  "src/app/dev/routines-lab/RoutinesLab.tsx",
 ]);
 
 // The header itself and its menu slot define the prop; they are not call sites.

@@ -3,6 +3,8 @@
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { RoutineDayKindSelector, type RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
 import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
@@ -84,7 +86,7 @@ function EditDayAdjustmentButton({
         direction === "up"
           ? "hover:bg-[rgb(var(--accent)/0.12)] focus-visible:ring-[rgb(var(--accent)/0.22)]"
           : direction === "down"
-            ? "hover:bg-[rgb(var(--danger-rgb)/0.12)] focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]"
+            ? "hover:bg-[rgb(var(--warning-rgb)/0.12)] focus-visible:ring-[rgb(var(--warning-rgb)/0.22)]"
             : "hover:bg-[rgb(var(--accent-yellow-on)/0.12)] focus-visible:ring-[rgb(var(--accent-yellow-on)/0.22)]",
       )}
       aria-label={`Cycle slot ${dayNumber} adjustment`}
@@ -96,7 +98,7 @@ function EditDayAdjustmentButton({
             direction === "up"
               ? "text-[rgb(var(--accent)/0.88)]"
               : direction === "down"
-                ? "text-[rgb(var(--danger-rgb)/0.94)]"
+                ? "text-[rgb(var(--warning-rgb)/0.96)]"
                 : "text-[rgb(var(--accent-yellow-on))]",
           )}
         />
@@ -152,6 +154,8 @@ export function EditDaySettingsAutosaveForm({
   const [workoutPlanDecisionMode, setWorkoutPlanDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
   const [workoutPlanDecisionName, setWorkoutPlanDecisionName] = useState("");
   const [workoutPlanDecisionError, setWorkoutPlanDecisionError] = useState<string | null>(null);
+  // Errors go to the sheet's notice slot, never as red text in the dialog (docs/ui/FOUNDATION.md).
+  useFieldErrorNotice(workoutPlanDecisionError, { id: "routine-day-settings-decision-error" });
   const [isWorkoutPlanDecisionPending, startWorkoutPlanDecisionTransition] = useTransition();
 
   useEffect(() => () => {
@@ -374,38 +378,18 @@ export function EditDaySettingsAutosaveForm({
         }}
       >
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              className={cn(
-                "min-h-11 rounded-[0.95rem] border px-3 py-2 text-sm font-semibold transition",
-                workoutPlanDecisionMode === "update_existing"
-                  ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
-                  : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.56)] text-[rgb(var(--text-secondary)/0.88)]",
-              )}
-              onClick={() => {
-                setWorkoutPlanDecisionMode("update_existing");
-                setWorkoutPlanDecisionError(null);
-              }}
-            >
-              Update Day
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "min-h-11 rounded-[0.95rem] border px-3 py-2 text-sm font-semibold transition",
-                workoutPlanDecisionMode === "save_new"
-                  ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
-                  : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.56)] text-[rgb(var(--text-secondary)/0.88)]",
-              )}
-              onClick={() => {
-                setWorkoutPlanDecisionMode("save_new");
-                setWorkoutPlanDecisionError(null);
-              }}
-            >
-              Save New Day
-            </button>
-          </div>
+          <SegmentedControl
+            ariaLabel="How to save this day"
+            value={workoutPlanDecisionMode}
+            options={[
+              { label: "Update Day", value: "update_existing" },
+              { label: "Save New Day", value: "save_new" },
+            ]}
+            onChange={(next) => {
+              setWorkoutPlanDecisionMode(next === "save_new" ? "save_new" : "update_existing");
+              setWorkoutPlanDecisionError(null);
+            }}
+          />
           {workoutPlanDecisionMode === "save_new" ? (
             <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
               {(control) => (
@@ -423,11 +407,6 @@ export function EditDaySettingsAutosaveForm({
                 />
               )}
             </FormField>
-          ) : null}
-          {workoutPlanDecisionError ? (
-            <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">
-              {workoutPlanDecisionError}
-            </p>
           ) : null}
         </div>
       </ConfirmDestructiveModal>

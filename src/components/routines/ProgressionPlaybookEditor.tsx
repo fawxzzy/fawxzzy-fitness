@@ -262,7 +262,7 @@ function getEffortShiftTitleClassName(direction: SetFlowDirection) {
   }
 
   if (direction === "down") {
-    return "text-[rgb(var(--danger-rgb)/0.92)]";
+    return "text-[rgb(var(--warning-rgb)/0.92)]";
   }
 
   return "text-[rgb(var(--accent-yellow-on)/0.96)]";
@@ -274,7 +274,7 @@ function getEffortShiftBarClassName(direction: SetFlowDirection) {
   }
 
   if (direction === "down") {
-    return "!bg-[linear-gradient(90deg,rgb(var(--danger-rgb)/0.14),rgb(var(--danger-rgb)/0.92),rgb(var(--danger-rgb)/0.14))] !shadow-[0_0_14px_rgb(var(--danger-rgb)/0.16)]";
+    return "!bg-[linear-gradient(90deg,rgb(var(--warning-rgb)/0.14),rgb(var(--warning-rgb)/0.92),rgb(var(--warning-rgb)/0.14))] !shadow-[0_0_14px_rgb(var(--warning-rgb)/0.16)]";
   }
 
   return "!bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.14),rgb(var(--accent-yellow-on)/0.96),rgb(var(--accent-yellow-on)/0.14))] !shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.16)]";
@@ -286,7 +286,7 @@ function getDirectionAccentTextClassName(direction: SetFlowDirection) {
   }
 
   if (direction === "down") {
-    return "text-[rgb(var(--danger-rgb)/0.92)]";
+    return "text-[rgb(var(--warning-rgb)/0.92)]";
   }
 
   return "text-[rgb(var(--accent-yellow-on)/0.96)]";
@@ -298,7 +298,7 @@ function getInlineDirectionToggleToneClassName(direction: SetFlowDirection) {
   }
 
   if (direction === "down") {
-    return "text-[rgb(var(--danger-rgb)/0.94)] hover:bg-[rgb(var(--danger-rgb)/0.12)] focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]";
+    return "text-[rgb(var(--warning-rgb)/0.94)] hover:bg-[rgb(var(--warning-rgb)/0.12)] focus-visible:ring-[rgb(var(--warning-rgb)/0.22)]";
   }
 
   return "text-[rgb(var(--accent-yellow-on)/0.96)] hover:bg-[rgb(var(--accent-yellow-on)/0.12)] focus-visible:ring-[rgb(var(--accent-yellow-on)/0.22)]";
@@ -1355,7 +1355,7 @@ function CountDirectionPillControl({
                   displayDirection === "up"
                     ? "text-[rgb(var(--accent)/0.88)]"
                     : displayDirection === "down"
-                      ? "text-[rgb(var(--danger-rgb)/0.94)]"
+                      ? "text-[rgb(var(--warning-rgb)/0.94)]"
                       : "text-[rgb(var(--accent-yellow-on))]",
                 )}
               />
@@ -2710,7 +2710,7 @@ function InlineDirectionToggleButton({
               displayDirection === "up"
                 ? "text-[rgb(var(--accent)/0.88)]"
                 : displayDirection === "down"
-                  ? "text-[rgb(var(--danger-rgb)/0.94)]"
+                  ? "text-[rgb(var(--warning-rgb)/0.94)]"
                   : "text-[rgb(var(--accent-yellow-on))]",
             )}
           />
@@ -2770,7 +2770,7 @@ function getProgressionExampleMetricValueClassName(
   case "higher":
     return "text-[rgb(var(--accent)/0.82)]";
   case "lower":
-    return "text-[rgb(var(--danger-rgb)/0.95)]";
+    return "text-[rgb(var(--warning-rgb)/0.95)]";
   case "same":
     return "text-[rgb(var(--accent-yellow-on))]";
   case "neutral":
@@ -3816,8 +3816,8 @@ export function ProgressionPlaybookEditor({
   const getTargetMutationInfoPayload = (
     targetMutation: ProgressionPlaybookFormState["progressionTargetMutation"],
   ): ActiveProgressionInfoContent => ({
-    title: "Target changes",
-    summary: "Target changes decide what mutates after readiness is earned. Readiness rules stay separate.",
+    title: "Goal changes",
+    summary: "Goal changes decide what mutates after readiness is earned. Readiness rules stay separate.",
     rows: [
       { label: "Selected", value: getProgressionTargetMutationLabel(targetMutation) },
       { label: "Rule", value: "This changes the next target only. It does not change qualification proof." },
@@ -4663,10 +4663,10 @@ export function ProgressionPlaybookEditor({
           progressionMeasurementTitleClassName,
           "px-1 text-center text-[11px] font-semibold uppercase tracking-[0.14em]",
         )}>
-          Target changes
+          Goal changes
         </p>
         <ExpandingChoiceRow
-          ariaLabel="Target changes"
+          ariaLabel="Goal changes"
           options={targetMutationUiModel.options.map((option) => ({
             value: option.value,
             label: option.label,
@@ -6603,7 +6603,7 @@ export function ProgressionPlaybookEditor({
   const progressionControlsContent = (
     <div className="space-y-2.5 text-left">
         {shouldRenderTopMethodRailCard ? (
-        <section className={progressionInfoMiniCardClassName}>
+        <section className={cn(progressionInfoMiniCardClassName, !topMethodRailContent && "!w-full !min-w-0 !max-w-none")}>
           <div className="px-3 pb-3 pt-2.5">
             <div className="mx-auto w-full max-w-full space-y-3">
               <div className="space-y-2">

@@ -53,22 +53,19 @@ test("Today: exercise rows are a list of cards, each with an info button named a
   assert.equal(screen.getAllByRole("button", { name: /Zed (Press|Pull)/ }).length, 2, "one info control per exercise");
 });
 
-test("Routines: header press opens the routine; the actions control reveals actions and Escape closes them with focus returned", () => {
+test("Routines: header press opens the routine; the kebab Menu lists actions, Delete last, and Escape closes it with focus returned", () => {
   const opened: string[] = [];
   const pressed: string[] = [];
-  function Harness() {
-    const [open, setOpen] = useState(false);
-    return (
-      <RoutineBrowseCard
-        routine={routine}
-        onPress={() => opened.push("open")}
-        actions={[{ key: "delete", label: "Delete", intent: "danger", onPress: () => pressed.push("delete") }]}
-        actionsOpen={open}
-        onActionsToggle={() => setOpen((value) => !value)}
-      />
-    );
-  }
-  render(<Harness />);
+  render(
+    <RoutineBrowseCard
+      routine={routine}
+      onPress={() => opened.push("open")}
+      actions={[
+        { key: "delete", label: "Delete", intent: "danger", onPress: () => pressed.push("delete") },
+        { key: "set-active", label: "Set Active", intent: "toggle", onPress: () => pressed.push("set-active") },
+      ]}
+    />,
+  );
 
   fireEvent.click(screen.getByRole("button", { name: /^Atlas Routine/ }));
   assert.deepEqual(opened, ["open"]);
@@ -78,12 +75,16 @@ test("Routines: header press opens the routine; the actions control reveals acti
   fireEvent.click(more);
   assert.equal(more.getAttribute("aria-expanded"), "true");
 
-  fireEvent.click(screen.getByRole("button", { name: /Delete/ }));
-  assert.deepEqual(pressed, ["delete"]);
+  const items = screen.getAllByRole("menuitem");
+  assert.deepEqual(items.map((item) => item.textContent), ["Set Active", "Delete"], "safe action first, destructive last");
 
-  fireEvent.keyDown(more, { key: "Escape" });
-  assert.equal(more.getAttribute("aria-expanded"), "false", "Escape closes the action row");
-  assert.equal(document.activeElement, more, "focus returns to the control that opened it");
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+  assert.equal(more.getAttribute("aria-expanded"), "false", "Escape closes the menu");
+  assert.equal(document.activeElement, more, "focus returns to the trigger");
+
+  fireEvent.click(more);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+  assert.deepEqual(pressed, ["delete"]);
 });
 
 test("Session logger: row header toggles, info does not, and quick-log Skip and Log each fire once", () => {

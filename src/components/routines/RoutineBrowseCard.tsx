@@ -1,18 +1,15 @@
 "use client";
 
-import { useId } from "react";
+import { Menu, type MenuItem } from "@/components/ui/Menu";
 import type { RoutineDayCardSummary } from "@/components/day-list/RoutineDayCardPresentation";
 import {
-  CardActionRow,
   CardChips,
   CardHeader,
-  CardIconButton,
   CardMeta,
   CardStatusChip,
   CardSurface,
   type CardActionDefinition,
   type CardHeadingLevel,
-  closeCardActionsOnEscape,
 } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
@@ -42,14 +39,6 @@ export type RoutineBrowseCardItem = {
     splitSummary?: RoutineDayCardSummary;
   }>;
 };
-
-function MoreDotsGlyph() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5">
-      {[4.5, 10, 15.5].map((cx) => <circle key={cx} cx={cx} cy="10" r="1.6" fill="currentColor" />)}
-    </svg>
-  );
-}
 
 /**
  * Week strip: one fixed-size cell per day (weekday, exercise count or "Rest"). It wraps onto more rows for
@@ -101,10 +90,8 @@ export type RoutineBrowseCardProps = {
   routine: RoutineBrowseCardItem;
   /** Whole header opens the routine. Omit for a static card (offline list). */
   onPress?: (() => void) | undefined;
-  /** Actions revealed by the "Routine actions" control (delete, set active). Omit to hide the control. */
+  /** Actions listed in the card's kebab Menu (set active, delete). Omit to hide the menu. */
   actions?: CardActionDefinition[];
-  actionsOpen?: boolean;
-  onActionsToggle?: () => void;
   showPreviewDays?: boolean;
   headingLevel?: CardHeadingLevel;
   className?: string;
@@ -112,20 +99,17 @@ export type RoutineBrowseCardProps = {
 
 /**
  * Routine card (routine list). Anatomy: title, ACTIVE chip, meta line (counts, last session, created date),
- * optional week strip, optional action row behind a "more" control. The header navigates; the more control
- * reveals destructive/secondary actions, so Delete is never a corner button.
+ * optional week strip, optional kebab Menu. The header navigates; the Menu lists the secondary actions and the
+ * destructive one (danger tone, last), so Delete is never a loose corner button.
  */
 export function RoutineBrowseCard({
   routine,
   onPress,
   actions,
-  actionsOpen = false,
-  onActionsToggle,
   showPreviewDays = true,
   headingLevel = 2,
   className,
 }: RoutineBrowseCardProps) {
-  const actionsId = useId();
   const summaryParts = routine.summaryParts?.length
     ? routine.summaryParts
     : splitRoutineSummaryParts(routine.summary ?? "");
@@ -134,7 +118,17 @@ export function RoutineBrowseCard({
     ...normalizeRoutineSummaryParts(summaryParts),
     createdAt ? `Created ${formatDateShort(createdAt)}` : null,
   ].filter((item): item is string => Boolean(item));
-  const hasActions = Boolean(actions && actions.length > 0 && onActionsToggle);
+  const menuItems: MenuItem[] = (actions ?? [])
+    .map((action) => ({
+      id: action.key,
+      label: typeof action.label === "string" ? action.label : action.ariaLabel ?? action.key,
+      onSelect: action.onPress,
+      disabled: action.disabled,
+      tone: action.intent === "danger" ? ("danger" as const) : ("default" as const),
+    }))
+    // Safe action first, destructive last (the Menu convention).
+    .sort((a, b) => Number(a.tone === "danger") - Number(b.tone === "danger"));
+  const hasActions = menuItems.length > 0;
   const previewDays = showPreviewDays ? routine.previewDays ?? [] : [];
 
   return (
@@ -142,7 +136,6 @@ export function RoutineBrowseCard({
       tone={routine.isActive ? "current" : "neutral"}
       className={className}
       data-routine-card={routine.id}
-      onKeyDown={hasActions && onActionsToggle ? (event) => closeCardActionsOnEscape(event, actionsOpen, onActionsToggle) : undefined}
     >
       <CardHeader
         headingLevel={headingLevel}
@@ -150,30 +143,13 @@ export function RoutineBrowseCard({
         meta={<CardMeta items={metaItems} />}
         chips={routine.isActive ? <CardChips><CardStatusChip status="active" /></CardChips> : undefined}
         interaction={onPress ? { kind: "press", onPress } : { kind: "none" }}
-        trailing={hasActions ? (
-          <CardIconButton
-            label={`Actions for ${routine.name}`}
-            aria-expanded={actionsOpen}
-            aria-controls={actionsId}
-            onClick={onActionsToggle}
-            className={actionsOpen ? "!text-[rgb(var(--accent)/0.95)]" : undefined}
-          >
-            <MoreDotsGlyph />
-          </CardIconButton>
-        ) : undefined}
+        trailing={hasActions ? <Menu label={`Actions for ${routine.name}`} items={menuItems} /> : undefined}
       />
       {previewDays.length > 0 ? (
         <div className="px-4 pb-3">
           <RoutineWeekStrip days={previewDays} />
         </div>
       ) : null}
-      {hasActions && actionsOpen && actions ? (
-        <div id={actionsId}>
-          <CardActionRow actions={actions} label={`Actions for ${routine.name}`} />
-        </div>
-      ) : (
-        <span id={actionsId} hidden />
-      )}
     </CardSurface>
   );
 }
