@@ -21,11 +21,9 @@ import {
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { RoutineDayKindCycleAction } from "@/components/routines/RoutineDayKindCycleAction";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { OverlayHeaderBlock, overlayChromeClassNames } from "@/components/ui/OverlayChrome";
-import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { Sheet } from "@/components/ui/Sheet";
 import {
   CardActionFrame,
   CardEmptyState,
@@ -101,10 +99,6 @@ const ROUTINE_HOME_COPY = {
   empty: "No days yet.",
 } as const;
 
-const ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME = cn(
-  overlayChromeClassNames.panelBase,
-  `relative z-10 mx-auto flex max-h-[min(100dvh-2rem,42rem)] min-w-0 w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} flex-col overflow-hidden rounded-[1.25rem]`,
-);
 type DragState = {
   id: string;
   pointerId: number;
@@ -738,104 +732,87 @@ export function RoutineHomeClient({
         onConfirm={handleConfirmDeleteDay}
       />
 
-      {isAddDayMenuOpen ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pt-[max(1rem,var(--app-safe-top))] pb-[max(1rem,var(--app-safe-bottom))]">
-          <div aria-hidden="true" className={overlayChromeClassNames.scrim} />
-          <div className={ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME}>
-            <div className="px-4 pb-4 pt-3">
-              <div className="flex items-start justify-between gap-3">
-                <OverlayHeaderBlock
-                  title="Add Day"
-                  className="min-w-0 flex-1 !px-0 !pb-0"
-                />
-                <button
-                  type="button"
-                  aria-label="Close add day menu"
-                  onClick={() => {
-                    setIsAddDayMenuOpen(false);
-                    setIsDuplicateSourceListOpen(false);
-                  }}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.58)] text-[rgb(var(--text-secondary)/0.88)] transition hover:text-[rgb(var(--text-primary)/0.96)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
-                >
-                  <ChevronRightIcon className="h-4 w-4 rotate-180" />
-                </button>
-              </div>
+      {/* Add Day: the shared Sheet (focus trap, Escape, scroll lock, safe area, close button). */}
+      <Sheet
+        open={isAddDayMenuOpen}
+        title="Add Day"
+        onClose={() => {
+          setIsAddDayMenuOpen(false);
+          setIsDuplicateSourceListOpen(false);
+        }}
+      >
+        <div className="space-y-2 pt-3">
+          <RoutineChooserOptionCard
+            title="Blank day"
+            disabled={isBusy}
+            onPress={() => handleCreateDay("blank")}
+          />
 
-              <div className="space-y-2 pt-3">
-                <RoutineChooserOptionCard
-                  title="Blank day"
-                  disabled={isBusy}
-                  onPress={() => handleCreateDay("blank")}
-                />
+          <RoutineChooserOptionCard
+            title="Duplicate day"
+            kind="toggle"
+            active={isDuplicateSourceListOpen}
+            disabled={isCreateDayPending || isDeleteDayPending}
+            onPress={() => {
+              if (isCreateDayPending || isDeleteDayPending) {
+                return;
+              }
 
-                <RoutineChooserOptionCard
-                  title="Duplicate day"
-                  kind="toggle"
-                  active={isDuplicateSourceListOpen}
-                  disabled={isCreateDayPending || isDeleteDayPending}
-                  onPress={() => {
-                    if (isCreateDayPending || isDeleteDayPending) {
-                      return;
-                    }
-
-                    handleLoadWorkoutPlanSources();
-                    setIsDuplicateSourceListOpen((current) => !current);
-                  }}
-                />
-              </div>
-
-              {isDuplicateSourceListOpen ? (
-                <div className="pt-3">
-                  <RoutineDuplicateChooserPanel
-                    title="Choose Day"
-                    list={(
-                      isWorkoutPlanSourcesPending ? (
-                        <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
-                          Loading days...
-                        </div>
-                      ) : availableWorkoutPlanSources.length > 0 ? (
-                        <RoutineDuplicateChooserListViewport>
-                          {availableWorkoutPlanSources.map((source) => (
-                            <WorkoutPlanChooserSourceCard
-                              key={source.id}
-                              onPress={() => handleSelectDuplicateSourceDay(source.id)}
-                              selected={selectedSourceDayId === source.id}
-                              source={{
-                                dayIndex: source.dayIndex,
-                                title: source.title,
-                                occurrenceWeekday: source.weekdayLabel,
-                                isRest: source.isRest,
-                                splitSummary: source.splitSummary,
-                                recapExercises: source.recapExercises,
-                              }}
-                            />
-                          ))}
-                        </RoutineDuplicateChooserListViewport>
-                      ) : (
-                        <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
-                          No days available to duplicate.
-                        </div>
-                      )
-                    )}
-                    footer={(
-                      <>
-                        <BottomDockButton
-                          type="button"
-                          intent="positive"
-                          disabled={!selectedSourceDayId || isBusy}
-                          onClick={() => handleCreateDay("duplicate")}
-                        >
-                          {addDaySubmissionMode === "duplicate" && isCreateDayPending ? "Confirming..." : "Confirm"}
-                        </BottomDockButton>
-                      </>
-                    )}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </div>
+              handleLoadWorkoutPlanSources();
+              setIsDuplicateSourceListOpen((current) => !current);
+            }}
+          />
         </div>
-      ) : null}
+
+        {isDuplicateSourceListOpen ? (
+          <div className="pt-3">
+            <RoutineDuplicateChooserPanel
+              title="Choose Day"
+              list={(
+                isWorkoutPlanSourcesPending ? (
+                  <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
+                    Loading days...
+                  </div>
+                ) : availableWorkoutPlanSources.length > 0 ? (
+                  <RoutineDuplicateChooserListViewport>
+                    {availableWorkoutPlanSources.map((source) => (
+                      <WorkoutPlanChooserSourceCard
+                        key={source.id}
+                        onPress={() => handleSelectDuplicateSourceDay(source.id)}
+                        selected={selectedSourceDayId === source.id}
+                        source={{
+                          dayIndex: source.dayIndex,
+                          title: source.title,
+                          occurrenceWeekday: source.weekdayLabel,
+                          isRest: source.isRest,
+                          splitSummary: source.splitSummary,
+                          recapExercises: source.recapExercises,
+                        }}
+                      />
+                    ))}
+                  </RoutineDuplicateChooserListViewport>
+                ) : (
+                  <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
+                    No days available to duplicate.
+                  </div>
+                )
+              )}
+              footer={(
+                <>
+                  <BottomDockButton
+                    type="button"
+                    intent="positive"
+                    disabled={!selectedSourceDayId || isBusy}
+                    onClick={() => handleCreateDay("duplicate")}
+                  >
+                    {addDaySubmissionMode === "duplicate" && isCreateDayPending ? "Confirming..." : "Confirm"}
+                  </BottomDockButton>
+                </>
+              )}
+            />
+          </div>
+        ) : null}
+      </Sheet>
 
       <form
         action={async (formData) => {

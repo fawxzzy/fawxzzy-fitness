@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("create routine route uses the shared editor shell while the chooser remains a modal overlay", () => {
+test("create routine route uses the shared editor shell while the chooser is the shared Sheet", () => {
   const pageSource = readFileSync(new URL("./new/page.tsx", import.meta.url), "utf8");
   const clientSource = readFileSync(new URL("./CreateRoutineClient.tsx", import.meta.url), "utf8");
 
@@ -10,9 +10,10 @@ test("create routine route uses the shared editor shell while the chooser remain
   assert.match(pageSource, /title="New routine"/);
   assert.match(pageSource, /NewRoutineDraftForm/);
   assert.match(pageSource, /RoutineHomeEditorClient/);
-  assert.match(clientSource, /createPortal/);
-  assert.match(clientSource, /role="dialog"/);
-  assert.match(clientSource, /ScreenHeaderBackButton/);
+  // The chooser is the shared Sheet (design foundation): dialog role, focus trap, Escape and Close come from Sheet.tsx.
+  assert.match(clientSource, /<Sheet open title="New routine" onClose=\{handleClose\}/);
+  assert.doesNotMatch(clientSource, /createPortal/);
+  assert.doesNotMatch(clientSource, /rgba\(7,17,27/);
   assert.doesNotMatch(clientSource, /TopRightBackButton/);
   assert.match(clientSource, /Build manually/);
   assert.match(clientSource, /curatedMenuOption\.label/);

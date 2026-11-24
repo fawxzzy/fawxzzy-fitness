@@ -1,8 +1,7 @@
 "use client";
 
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { splitRoutineSummaryParts } from "@/components/day-list/RoutineDayCardPresentation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
@@ -13,9 +12,7 @@ import {
 } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
-import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
-import { overlayChromeClassNames } from "@/components/ui/OverlayChrome";
-import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
+import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveCuratedRoutineMenuOption, type CuratedRoutineMenuOption } from "@/features/curated-onboarding/selectors";
 import { loadCuratedOnboardingGateState } from "@/features/curated-onboarding/storage";
@@ -109,11 +106,6 @@ export function CreateRoutineClient({
   const [curatedMenuOption, setCuratedMenuOption] = useState<CuratedRoutineMenuOption | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const titleId = useId();
-  const modalRootRef = useRef<HTMLDivElement | null>(null);
-  const portalTarget = typeof document === "undefined"
-    ? null
-    : document.querySelector(".app-shell") ?? document.body;
   const duplicateSourceRoutines = useMemo(() => {
     const selectedOrPreferredId = selectedSourceRoutineId || preferredDuplicateSourceRoutineId;
 
@@ -223,68 +215,14 @@ export function CreateRoutineClient({
     }));
   }, [isDuplicateExpanded, routines, selectedSourceRoutineId]);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        if (onRequestClose) {
-          onRequestClose();
-          return;
-        }
-
-        router.push(backHref);
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [backHref, onRequestClose, router]);
-
-  useEffect(() => {
-    if (!(portalTarget instanceof HTMLElement)) {
+  function handleClose() {
+    if (onRequestClose) {
+      onRequestClose();
       return;
     }
 
-    const shellContent = Array.from(portalTarget.children).find(
-      (child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains("z-10"),
-    );
-    if (!shellContent) {
-      return;
-    }
-
-    const previousFilter = shellContent.style.filter;
-    const previousTransition = shellContent.style.transition;
-    const previousTransform = shellContent.style.transform;
-    const previousWillChange = shellContent.style.willChange;
-
-    shellContent.style.filter = "blur(1.5px) brightness(0.96) saturate(0.98)";
-    shellContent.style.transform = "scale(0.992) translateZ(0)";
-    shellContent.style.willChange = "filter";
-    shellContent.style.transition = previousTransition
-      ? `${previousTransition}, filter 180ms cubic-bezier(0.22, 1, 0.36, 1)`
-      : "filter 180ms cubic-bezier(0.22, 1, 0.36, 1)";
-
-    return () => {
-      shellContent.style.filter = previousFilter;
-      shellContent.style.transition = previousTransition;
-      shellContent.style.transform = previousTransform;
-      shellContent.style.willChange = previousWillChange;
-    };
-  }, [portalTarget]);
-
-  useEffect(() => {
-    const focusable = modalRootRef.current?.querySelector<HTMLElement>(
-      "button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex='-1'])",
-    );
-    focusable?.focus();
-  }, []);
+    router.push(backHref);
+  }
 
   useEffect(() => {
     router.prefetch("/routines/new?mode=blank");
@@ -296,143 +234,110 @@ export function CreateRoutineClient({
     }
   }, [curatedMenuOption, router]);
 
-  if (!isMounted || !portalTarget) {
+  // Mounted gate: the Sheet portals to <body>, which the server render cannot match.
+  if (!isMounted) {
     return null;
   }
 
-  return createPortal(
-    <div
-      ref={modalRootRef}
-      className="fixed inset-0 z-[120] flex items-center justify-center p-4 pt-[max(1rem,var(--app-safe-top))]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-    >
-      <div aria-hidden="true" className="fixed inset-0 z-0 bg-[rgba(7,17,27,0.015)] backdrop-blur-[2px]" />
-      <div
-        className={cn(
-          overlayChromeClassNames.panelBase,
-          "relative z-10 flex w-full min-w-0 flex-col overflow-hidden rounded-[1.5rem]",
-          `max-h-[min(100dvh-2rem,42rem)] ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME}`,
-        )}
-      >
-        {/* Same grammar as ScreenHeader kind="detail": Back on the left, a left-aligned one-line noun title. */}
-        <div className="flex min-w-0 items-center gap-1 px-2 pb-2 pt-3">
-          <ScreenHeaderBackButton
-            href={backHref}
-            label="Back to routines"
-            historyBehavior="fallback-only"
-            onClick={onRequestClose
-              ? (event) => {
-                event.preventDefault();
-                onRequestClose();
-              }
-              : undefined}
+  // The chooser is the shared Sheet (docs/ui/FOUNDATION.md): focus trap, Escape, scroll lock, safe area and a
+  // 44px Close; closing returns to the routines list (onRequestClose, else backHref).
+  return (
+    <Sheet open title="New routine" onClose={handleClose} dialogProps={{ "data-create-routine-chooser": "" }}>
+      <div className="flex min-h-0 flex-col gap-2.5 pb-3">
+        {draftRoutineName?.trim() ? (
+          <RoutineChooserOptionCard
+            title={(
+              <span className="inline-flex items-center gap-1.5">
+                <span>Continue Draft:</span>
+                <span className="text-[rgb(var(--accent))]">{draftRoutineName.trim()}</span>
+              </span>
+            )}
+            active
+            disabled={isPending}
+            onPress={() => {
+              setIsDuplicateExpanded(false);
+              router.push("/routines/new", { scroll: false });
+            }}
           />
-          <h2 id={titleId} className="min-w-0 truncate text-lg font-semibold tracking-[-0.02em] text-[rgb(var(--text-primary))]">
-            New routine
-          </h2>
-        </div>
+        ) : null}
+        {curatedMenuOption ? (
+          <RoutineChooserOptionCard
+            title={curatedMenuOption.label}
+            disabled={isPending}
+            onPress={() => {
+              setIsDuplicateExpanded(false);
+              router.push(curatedMenuOption.href, { scroll: false });
+            }}
+          />
+        ) : null}
+        <RoutineChooserOptionCard
+          title="Build manually"
+          disabled={isPending}
+          onPress={() => {
+            setIsDuplicateExpanded(false);
+            router.push("/routines/new?mode=blank", { scroll: false });
+          }}
+        />
+        <RoutineChooserOptionCard
+          title="Duplicate routine"
+          kind="toggle"
+          active={isDuplicateExpanded}
+          disabled={routines.length === 0 || isPending}
+          onPress={routines.length > 0 && !isPending ? handleToggleDuplicateExpanded : undefined}
+        />
 
-        <div className="min-h-0 flex-1 overflow-hidden px-4 pb-6 pt-2">
-          <div className="flex h-full min-h-0 flex-col gap-2.5">
-            {draftRoutineName?.trim() ? (
-              <RoutineChooserOptionCard
-                title={(
-                  <span className="inline-flex items-center gap-1.5">
-                    <span>Continue Draft:</span>
-                    <span className="text-[rgb(var(--accent))]">{draftRoutineName.trim()}</span>
-                  </span>
-                )}
-                active
-                disabled={isPending}
-                onPress={() => {
-                  setIsDuplicateExpanded(false);
-                  router.push("/routines/new", { scroll: false });
-                }}
-              />
+        {isDuplicateExpanded && routines.length > 0 ? (
+          <RoutineDuplicateChooserPanel
+            className="min-h-0 flex flex-1 flex-col"
+            title="Choose Routine"
+            list={(
+              <RoutineDuplicateChooserListViewport contentClassName="space-y-2">
+                {duplicateSourceRoutines.map((routine) => (
+                  <RoutineChooserSourceCard
+                    key={routine.id}
+                    onPress={() => handleSelectSourceRoutine(routine.id)}
+                    title={routine.name}
+                    selected={selectedSourceRoutineId === routine.id}
+                    meta={buildRoutineSourceMeta(routine)}
+                  />
+                ))}
+              </RoutineDuplicateChooserListViewport>
+            )}
+            footer={selectedSourceRoutineId ? (
+              <>
+                <FormField
+                  label="New routine name"
+                  invalid={Boolean(duplicateNameConflict)}
+                  error={duplicateNameError}
+                >
+                  {(control) => (
+                    <input
+                      {...control}
+                      value={duplicateName}
+                      onChange={(event) => {
+                        setDuplicateNameError(null);
+                        setDuplicateName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH));
+                      }}
+                      placeholder="Enter routine name"
+                      maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
+                      className={cn(formFieldControlClassName, "font-semibold")}
+                    />
+                  )}
+                </FormField>
+                <BottomDockButton
+                  type="button"
+                  intent="positive"
+                  onClick={handleDuplicateRoutine}
+                  disabled={duplicateName.trim().length === 0}
+                  loading={isPending}
+                >
+                  Confirm
+                </BottomDockButton>
+              </>
             ) : null}
-            {curatedMenuOption ? (
-              <RoutineChooserOptionCard
-                title={curatedMenuOption.label}
-                disabled={isPending}
-                onPress={() => {
-                  setIsDuplicateExpanded(false);
-                  router.push(curatedMenuOption.href, { scroll: false });
-                }}
-              />
-            ) : null}
-            <RoutineChooserOptionCard
-              title="Build manually"
-              disabled={isPending}
-              onPress={() => {
-                setIsDuplicateExpanded(false);
-                router.push("/routines/new?mode=blank", { scroll: false });
-              }}
-            />
-            <RoutineChooserOptionCard
-              title="Duplicate routine"
-              kind="toggle"
-              active={isDuplicateExpanded}
-              disabled={routines.length === 0 || isPending}
-              onPress={routines.length > 0 && !isPending ? handleToggleDuplicateExpanded : undefined}
-            />
-
-            {isDuplicateExpanded && routines.length > 0 ? (
-              <RoutineDuplicateChooserPanel
-                className="min-h-0 flex flex-1 flex-col"
-                title="Choose Routine"
-                list={(
-                  <RoutineDuplicateChooserListViewport contentClassName="space-y-2">
-                    {duplicateSourceRoutines.map((routine) => (
-                      <RoutineChooserSourceCard
-                        key={routine.id}
-                        onPress={() => handleSelectSourceRoutine(routine.id)}
-                        title={routine.name}
-                        selected={selectedSourceRoutineId === routine.id}
-                        meta={buildRoutineSourceMeta(routine)}
-                      />
-                    ))}
-                  </RoutineDuplicateChooserListViewport>
-                )}
-                footer={selectedSourceRoutineId ? (
-                  <>
-                    <FormField
-                      label="New routine name"
-                      invalid={Boolean(duplicateNameConflict)}
-                      error={duplicateNameError}
-                    >
-                      {(control) => (
-                        <input
-                          {...control}
-                          value={duplicateName}
-                          onChange={(event) => {
-                            setDuplicateNameError(null);
-                            setDuplicateName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH));
-                          }}
-                          placeholder="Enter routine name"
-                          maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                          className={cn(formFieldControlClassName, "font-semibold")}
-                        />
-                      )}
-                    </FormField>
-                    <BottomDockButton
-                      type="button"
-                      intent="positive"
-                      onClick={handleDuplicateRoutine}
-                      disabled={duplicateName.trim().length === 0}
-                      loading={isPending}
-                    >
-                      Confirm
-                    </BottomDockButton>
-                  </>
-                ) : null}
-              />
-            ) : null}
-          </div>
-        </div>
+          />
+        ) : null}
       </div>
-    </div>,
-    portalTarget,
+    </Sheet>
   );
 }
