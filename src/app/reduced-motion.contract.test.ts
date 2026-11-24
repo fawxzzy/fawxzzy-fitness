@@ -24,3 +24,16 @@ test("glass effects default off for reduced-motion preference while retaining ex
   assert.match(source, /isGlassEffectsMode\(saved\) \? saved : resolveDefaultMode\(\)/);
   assert.match(source, /document\.documentElement\.dataset\.glassEffects = mode/);
 });
+
+test("Promote shine: one shared class, a pure-CSS sweep on a pseudo-element, none under reduced motion or when disabled", async () => {
+  const styles = await readFile(globalsUrl, "utf8");
+
+  assert.match(styles, /\.promote-shine \{[^}]*position: relative;[^}]*overflow: hidden;/);
+  const band = styles.match(/\.promote-shine::after \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(band, /pointer-events: none;/);
+  assert.match(band, /animation: promote-shine-sweep [\d.]+s ease-in-out infinite;/);
+  assert.match(band, /rgb\(var\(--text-primary\) \/ 0\.3\)/, "a 30% white band from the text token");
+  assert.match(styles, /@keyframes promote-shine-sweep \{[\s\S]*?translateX\(-130%\)[\s\S]*?translateX\(290%\)/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\) \{\s*\.promote-shine::after \{\s*animation: none;/);
+  assert.match(styles, /\.promote-shine\[aria-disabled="true"\]::after/);
+});

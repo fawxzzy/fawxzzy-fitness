@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { ToastMessageCard } from "@/components/ui/ToastMessageCard";
 
@@ -40,6 +41,19 @@ export type ToastOptions = {
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
+// Where a screen shell lets error notices sit IN FLOW under its header (see `useNoticeFlowSlotRef`).
+const NoticeFlowSlotContext = createContext<((node: HTMLElement | null) => void) | null>(null);
+
+/**
+ * Callback ref for the shell's in-flow notice slot (`MobileScreenShell`, between the header and the scroll area).
+ * While a slot is mounted, ERROR notices render inside it, in flow, so the content below moves down instead of being
+ * covered (Zac 2026-11-23: a failed-discard notice hid the first card's title). Without a provider or a slot the
+ * notice falls back to the floating stack. Other tones stay floating: they vanish by themselves, and a layout jump
+ * for a 2 s "Saved" would be worse than the overlap.
+ */
+export function useNoticeFlowSlotRef() {
+  return useContext(NoticeFlowSlotContext);
+}
 const EXIT_ANIMATION_MS = 300;
 const DEFAULT_DURATION_MS = 2200;
 // Errors carry a reason and a next step, so they stay long enough to read (DESIGN-CONTRACT C16).
@@ -48,6 +62,7 @@ const MAX_TOASTS = 3;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [flowSlot, setFlowSlot] = useState<HTMLElement | null>(null);
   const dismissTimersRef = useRef<Map<string, number>>(new Map());
   const exitTimersRef = useRef<Map<string, number>>(new Map());
   const pathname = usePathname();
@@ -148,31 +163,49 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [push],
   );
 
+  const renderCard = (toast: ToastItem) => (
+    <ToastMessageCard
+      key={toast.id}
+      tone={toast.tone}
+      message={toast.message}
+      action={toast.action ? { label: toast.action.label } : undefined}
+      onAction={toast.action ? () => {
+        toast.action?.onClick();
+        dismiss(toast.id);
+      } : undefined}
+      onDismiss={() => dismiss(toast.id)}
+      isExiting={toast.isExiting}
+    />
+  );
+  const flowToasts = flowSlot ? toasts.filter((toast) => toast.tone === "error") : [];
+  const floatingToasts = flowSlot ? toasts.filter((toast) => toast.tone !== "error") : toasts;
+
   return (
     <ToastContext.Provider value={value}>
-      {children}
-      {/* Notice stack (DESIGN-CONTRACT C16): anchored top-right just under the screen's header row via the shared
-          --app-notice-top / --app-notice-inset-x variables (MobileScreenShell keeps --app-notice-top in sync with
-          the real header). Cards shrink-wrap to their text and grow leftward up to the full gutter-to-gutter width. */}
-      <div
-        data-app-notice-stack="true"
-        className="pointer-events-none fixed left-[var(--app-notice-inset-x)] right-[var(--app-notice-inset-x)] top-[var(--app-notice-top)] z-[110] ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2"
-      >
-        {toasts.map((toast) => (
-          <ToastMessageCard
-            key={toast.id}
-            tone={toast.tone}
-            message={toast.message}
-            action={toast.action ? { label: toast.action.label } : undefined}
-            onAction={toast.action ? () => {
-              toast.action?.onClick();
-              dismiss(toast.id);
-            } : undefined}
-            onDismiss={() => dismiss(toast.id)}
-            isExiting={toast.isExiting}
-          />
-        ))}
-      </div>
+      <NoticeFlowSlotContext.Provider value={setFlowSlot}>
+        {children}
+        {/* In-flow error notices: portalled into the shell's slot under the header (right-anchored, wraps to two
+            lines at 320px). 8px above (the anchor gap) and below keep it off the header and the first card. */}
+        {flowSlot && flowToasts.length > 0
+          ? createPortal(
+            <div data-app-notice-flow-stack="true" className="px-[var(--app-notice-inset-x)] pb-2 pt-2">
+              <div className="ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2">
+                {flowToasts.map(renderCard)}
+              </div>
+            </div>,
+            flowSlot,
+          )
+          : null}
+        {/* Notice stack (DESIGN-CONTRACT C16): anchored top-right just under the screen's header row via the shared
+            --app-notice-top / --app-notice-inset-x variables (MobileScreenShell keeps --app-notice-top in sync with
+            the real header). Cards shrink-wrap to their text and grow leftward up to the full gutter-to-gutter width. */}
+        <div
+          data-app-notice-stack="true"
+          className="pointer-events-none fixed left-[var(--app-notice-inset-x)] right-[var(--app-notice-inset-x)] top-[var(--app-notice-top)] z-[110] ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2"
+        >
+          {floatingToasts.map(renderCard)}
+        </div>
+      </NoticeFlowSlotContext.Provider>
     </ToastContext.Provider>
   );
 }

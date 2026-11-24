@@ -6,6 +6,7 @@ import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { ScreenHeaderMenuProvider, ScreenHeaderMenuSlot } from "@/components/ui/app/ScreenHeaderMenu";
 import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
 import { cn } from "@/lib/cn";
+import { useNoticeFlowSlotRef } from "@/components/ui/ToastProvider";
 import { useAppNoticeAnchor } from "@/components/shared/mobile-shell/useAppNoticeAnchor";
 
 type MobileScreenShellProps = {
@@ -65,6 +66,7 @@ function MobileScreenShellFrame({
   const topChromeRef = useRef<HTMLDivElement | null>(null);
   // The header layer: the notice anchor fallback when no menu button is on screen.
   const floatingHeaderRef = useRef<HTMLDivElement | null>(null);
+  const noticeFlowSlotRef = useNoticeFlowSlotRef();
   const [dockHeight, setDockHeight] = useState(0);
   const hasTopChrome = Boolean(topChrome);
   // A screen with the app menu but no header of its own still gets the menu, alone on the top line.
@@ -149,6 +151,9 @@ function MobileScreenShellFrame({
           ) : floatingHeader}
         </div>
       ) : null}
+
+      {/* In-flow notice slot: error notices render here (ToastProvider portals into it), so content moves down. Empty = 0px. */}
+      <div ref={noticeFlowSlotRef} data-app-notice-flow-slot="true" className="z-10 flex-none" />
 
       <ScrollContainer
         className={cn("min-h-0 flex-1", scrollClassName)}

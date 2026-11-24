@@ -141,3 +141,12 @@ test("TodayDayPicker wires all three empty states through TodayEmptyDayCard with
   assert.match(picker, /kind="empty"\s+actionHref=\{progressionRoutineId \? getRoutineDayEditHref\(progressionRoutineId, selectedDay\.id, "\/today"\) : null\}/);
   assert.doesNotMatch(picker, /Add exercises|<RestDayCard|<CardEmptyState|<RoutineOverviewDayCard/);
 });
+
+test("Today notice and state cards sit one card-gap (8px) above the exercise list; resume keeps the same spacing", () => {
+  const picker = readSource("./TodayDayPicker.tsx");
+  assert.match(picker, /mode\.dayPickerOpen \? ROUTINE_CONTENT_GAP_CLASS_NAME : "flex flex-col gap-2 pt-0\.5"/);
+
+  const page = readSource("./page.tsx");
+  assert.match(page, /<div className="pt-0\.5">/, "resume content is one list inside the scaffold, no extra gap wrapper");
+  assert.doesNotMatch(page, /flex flex-col gap-\[0\.625rem\]/);
+});

@@ -2276,6 +2276,57 @@ a:focus-visible {
   filter: none;
 }
 
+/* Promote shine (Zac 2026-11-23): one soft diagonal white band that sweeps left to right across a Promote button
+   (the bar button at 100% and the Promote box's confirm button), ~0.9s of sweep then ~2s of rest, looping.
+   The host needs only this class: it becomes the clip (overflow hidden + isolate) and the band is a pointer-less
+   pseudo-element, so layout never moves and a focus ring drawn on the host (box-shadow) is not clipped. The band
+   stays parked off to the left during the rest, and it is removed under reduced motion and while the button is
+   aria-disabled (Promoting...). Colour comes from --text-primary. Keep the 2.9s cycle and 31% sweep stop in sync
+   (0.9 / 2.9). */
+.promote-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.promote-shine::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 55%;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(105deg, transparent 0%, rgb(var(--text-primary) / 0.3) 50%, transparent 100%);
+  transform: translateX(-130%) skewX(-18deg);
+  animation: promote-shine-sweep 2.9s ease-in-out infinite;
+}
+
+[aria-disabled="true"] > .promote-shine::after,
+.promote-shine[aria-disabled="true"]::after {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes promote-shine-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-18deg);
+  }
+
+  31%,
+  100% {
+    transform: translateX(290%) skewX(-18deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promote-shine::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 @layer utilities {
   .glass-surface {
     position: relative;

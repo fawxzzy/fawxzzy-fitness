@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-23 - Today polish: Promote shine, in-flow error notices, card gaps
+
+- Type: UI (source; no server rule, schema or env change)
+- WHAT changed: (1) One shared `.promote-shine` class in `globals.css` (an `::after` white band, 30% peak, ~0.9s sweep then ~2s pause, looping) on the 100% bar Promote button and the Promote confirm button; the old inline glint span on the bar button is gone. (2) `ToastProvider` exposes `useNoticeFlowSlotRef()`; `MobileScreenShell` mounts a slot between the header and the scroll area and ERROR notices portal into it, so a failed Discard moves the content down instead of covering the first card title (other tones still float; no slot means the old floating stack). (3) `TodayDayPicker`'s notice/state-card wrapper now has `gap-2 pt-0.5`, and the resume content (real page and dev fixture) is one list in the scaffold with no extra container or gap wrapper.
+- WHY it changed: Zac's 2026-11-23 review of the Today screens: the error notice hid a card title, the no-scheduled card touched the first card, resume cards sat 2px apart in an extra dark container, and Promote needed a quiet cue that it is ready.
+- Rule: Motion that draws attention is one shared CSS class with a reduced-motion rule and a disabled rule, never per-button inline keyframes. A notice that must be read renders in flow so it cannot cover content; transient confirmations may float.
+- Failure Mode: A wrapper that stacks different card types without a gap makes them touch (`TodayDayPicker` only had the gap in the open-picker branch); a floating `fixed` notice sized to the header covers whatever sits under it.
+- Evidence: `tests/dom/notice-flow.dom.test.tsx` (slot, floating fallback, non-error stays floating), `src/app/reduced-motion.contract.test.ts` (shine class, keyframes, reduced motion, aria-disabled), `PromoteCelebration.test.tsx`, `TodaySwitchDayCard.contract.test.tsx` (gap + resume wrapper); phone-size captures (chrome + webkit, 390x844 and 320x568, standalone) of every scene. Not checked on a real phone.
+
 ## 2026-11-20 - Exercise cards: Promote on the card calls the real manual Promote
 
 - Type: UI wiring (source; no server rule, schema or env change)

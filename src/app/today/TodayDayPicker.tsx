@@ -844,7 +844,9 @@ export function TodayDayPicker({
         {!mode.noRoutine && selectedDay ? (
           <TodayOverviewScaffold>
             {mode.contentShellVisible ? (
-              <div className={mode.dayPickerOpen ? ROUTINE_CONTENT_GAP_CLASS_NAME : "pt-0.5"}>
+              // Closed picker: a column with the same 8px gap as the card list (cardTokens.list), so a state card
+              // (rest, empty, no scheduled workout, skipped summary) never touches the first exercise card.
+              <div className={mode.dayPickerOpen ? ROUTINE_CONTENT_GAP_CLASS_NAME : "flex flex-col gap-2 pt-0.5"}>
                 {mode.dayPickerOpen ? (
                   <TodaySwitchDayList
                     days={days}

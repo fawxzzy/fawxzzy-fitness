@@ -250,7 +250,7 @@ export function PromoteCelebrationDialog({
                   onConfirm?.();
                 }}
                 data-promote-confirm="true"
-                className="inline-flex min-h-11 items-center justify-center rounded-full !border !border-[rgb(var(--success-rgb)/0.6)] !bg-[rgb(var(--success-rgb)/0.22)] text-sm font-semibold !text-[rgb(var(--text-primary))] transition-colors hover:!bg-[rgb(var(--success-rgb)/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none"
+                className="promote-shine inline-flex min-h-11 items-center justify-center rounded-full !border !border-[rgb(var(--success-rgb)/0.6)] !bg-[rgb(var(--success-rgb)/0.22)] text-sm font-semibold !text-[rgb(var(--text-primary))] transition-colors hover:!bg-[rgb(var(--success-rgb)/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none"
               >
                 {pending ? "Promoting..." : "Promote"}
               </button>
