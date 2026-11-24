@@ -40,6 +40,13 @@ async function failActionResult(_: FormData) {
   return { ok: false as const, error: "Could not reach the server. Check your connection and try again." };
 }
 
+async function slowActionResult(_: FormData) {
+  "use server";
+  // Holds the add for a minute so a capture can show the pending state of the Add button.
+  await new Promise((resolve) => setTimeout(resolve, 60_000));
+  return { ok: true as const };
+}
+
 async function decisionStateActionResult(_: FormData) {
   "use server";
   return {
@@ -63,7 +70,8 @@ const FIXTURE_DAY_EDIT_HREF = "/routines/fixture-routine/edit/day/fixture-day-1"
  * `?screen=create-day | copy-day | days | days-empty | routine-add-exercise | session-add-exercise`;
  * `&long=1` swaps in a long routine and day name to check the one-line title and subtitle ellipsis.
  * Add-exercise screens also take `&stats=1` (a last-used setup so "Use last" works), `&empty=1` (no exercises in the
- * library), `&many=1` (a long library), `&fail=1` (the add action answers with a server error) and, for the routine
+ * library), `&many=1` (a long library), `&fail=1` (the add action answers with a server error), `&slow=1` (the add
+ * action takes a minute, to show the pending Add button) and, for the routine
  * screen, `&decision=1` (the day is shared, so Add asks Update or Save new first).
  * Each screen renders the route's own frame (CreateDayScreen, DaysLibraryScreen, AddExerciseScaffold) with static
  * fixture data: no Supabase client, no session, and every action is a local no-op. Availability is the shared
@@ -144,7 +152,7 @@ export default async function DevDetailScreensPage(props: {
             cycleLengthDays={4}
             exercises={fixtureExercises}
             weightUnit="lbs"
-            addExerciseAction={flag("fail") ? failActionResult : noopActionResult}
+            addExerciseAction={flag("fail") ? failActionResult : flag("slow") ? slowActionResult : noopActionResult}
             resolveWorkoutPlanDecisionAction={noopActionResult}
             loadWorkoutPlanDecisionStateAction={flag("decision") ? decisionStateActionResult : noopActionResult}
             existingWorkoutPlanNames={flag("decision") ? ["Lower A", "Upper B"] : []}
@@ -167,7 +175,7 @@ export default async function DevDetailScreensPage(props: {
             weightUnit="lbs"
             exerciseStats={fixtureStats}
             backHref="/session/fixture-session"
-            addExerciseAction={flag("fail") ? failActionResult : noopActionResult}
+            addExerciseAction={flag("fail") ? failActionResult : flag("slow") ? slowActionResult : noopActionResult}
           />
         </AddExerciseScaffold>
       );

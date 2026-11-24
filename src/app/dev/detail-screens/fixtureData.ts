@@ -74,8 +74,15 @@ const baseExercise = {
   image_icon_path: null,
 } as const;
 
+/**
+ * Back Squat has a UUID-shaped id on purpose: the exercise INFO sheet refuses any other id ("Invalid exercise link").
+ * A capture script can then seed `sessionStorage["fawxzzy:exercise-info-cache:v6"]` with a server-source payload for this
+ * id and the sheet opens without the signed-in API.
+ */
+export const DETAIL_SCREEN_FIXTURE_SQUAT_ID = "5b0f4f64-2a7e-4c1e-9d3a-0a1b2c3d4e5f";
+
 export const detailScreenFixtureExercises: readonly EditorExerciseOption[] = [
-  { ...baseExercise, id: "fx-squat", name: "Back Squat", primary_muscle: "Quads", equipment: "Barbell", movement_pattern: "Squat", measurement_type: "reps" },
+  { ...baseExercise, id: DETAIL_SCREEN_FIXTURE_SQUAT_ID, name: "Back Squat", primary_muscle: "Quads", equipment: "Barbell", movement_pattern: "Squat", measurement_type: "reps" },
   { ...baseExercise, id: "fx-rdl", name: "Romanian Deadlift", primary_muscle: "Hamstrings", equipment: "Barbell", movement_pattern: "Hinge", measurement_type: "reps" },
   { ...baseExercise, id: "fx-bench", name: "Bench Press", primary_muscle: "Chest", equipment: "Barbell", movement_pattern: "Push", measurement_type: "reps" },
   { ...baseExercise, id: "fx-row", name: "Barbell Row", primary_muscle: "Back", equipment: "Barbell", movement_pattern: "Pull", measurement_type: "reps" },
@@ -100,8 +107,8 @@ export function detailScreenFixtureManyExercises(): EditorExerciseOption[] {
 /** One last-used setup (Back Squat 4 x 6-8 at 185 lbs) so "Use last" has something to apply. */
 export function detailScreenFixtureStats(): ExerciseStatsOption[] {
   return [{
-    exerciseId: "fx-squat",
-    statsExerciseId: "fx-squat",
+    exerciseId: DETAIL_SCREEN_FIXTURE_SQUAT_ID,
+    statsExerciseId: DETAIL_SCREEN_FIXTURE_SQUAT_ID,
     lastWeight: 185,
     lastReps: 6,
     lastUnit: "lbs",

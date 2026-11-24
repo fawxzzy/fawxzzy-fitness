@@ -5,8 +5,9 @@ import { AppButton } from "@/components/ui/AppButton";
 import { Sheet } from "@/components/ui/Sheet";
 
 // Plain-words explainer for every add-exercise flow (session, quick add, routine day). One visible row in the goal
-// panel opens a Sheet that explains Warm-up, Till Failure and (in a workout) the Exercise Timer. It replaces the
-// tap-to-reveal INFO dock row as the only place these ideas lived.
+// panel opens a Sheet that explains Warm-up, Till Failure and (in a workout) the Exercise Timer. It is the one
+// plain-words home for these ideas when adding an exercise. The INFO dock row still renders: it explains the goal
+// fields and the Reps / Failure toggle in short, so this guide adds to it and does not replace it.
 export const ADD_EXERCISE_GUIDE_ROWS = {
   warmup: {
     term: "Warm-up",

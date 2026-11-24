@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -200,6 +200,9 @@ export function ExerciseChooserAddFlowForm({
   const [selectedTrainingFocus, setSelectedTrainingFocus] = useState<TrainingGoalId | "">("");
   // The submit button lives in the bottom dock (outside the <form>), so useFormStatus cannot see it: track it here.
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // `<form action>` runs as a React transition, so a pending flag set inside it lands in the same render as its reset and
+  // never shows. Submit from onSubmit (an urgent event) instead, and guard with a ref so a second tap cannot start a second add.
+  const submitInFlightRef = useRef(false);
   const shouldShowProgression = !isStretchHubExercise(selectedExercise);
   useEffect(() => {
     if (hasCustomizedProgression) {
@@ -251,10 +254,15 @@ export function ExerciseChooserAddFlowForm({
   return (
     <>
       <form
-        action={async (formData) => {
+        onSubmit={async (event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          if (submitInFlightRef.current) {
+            return;
+          }
+          submitInFlightRef.current = true;
           setIsSubmitting(true);
           try {
-            const result = await addExerciseAction(formData);
+            const result = await addExerciseAction(new FormData(event.currentTarget));
             if (result.handled) {
               return;
             }
@@ -270,6 +278,7 @@ export function ExerciseChooserAddFlowForm({
           } catch {
             toast.error(errorMessage, { id: "add-exercise-submit" });
           } finally {
+            submitInFlightRef.current = false;
             setIsSubmitting(false);
           }
         }}
