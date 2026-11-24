@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-24 - Workout screen: notices above the dock, chip caption, grab handle and Close
+
+- Type: UI only (source; no server action, queue, data shape or env change)
+- WHAT changed: (1) The workout screen's notices move from the in-flow slot under the header to an overlay slot pinned just above the bottom dock (`noticePlacement="above-dock"` on the shared `MobileScreenShell` / `MobileScreenScaffold` / `ScrollScreenWithBottomActions`; `ToastProvider` renders every tone there, one at a time, info and success for 4s, errors until dismissed or the next action). Other screens are unchanged until they opt in. (2) A one-line caption under the logger chips says what the pressed chip does, and the Log set button reads "Log warm-up set" / "Log failure set". (3) Session cards get a grab handle on the bottom edge (flips up while open) and a "Close" control at the top of the open logger; the header still toggles; one card open at a time.
+- WHY it changed: Zac's 2026-11-24 review: an in-flow notice pushed every card down, the chips gave no hint of what they do, and open / close was not discoverable without a chevron.
+- Rule: A transient notice on a list screen is an overlay outside the scroll content (absolute, pointer-events-none container) so mounting it never changes layout; the scroll area reserves the band so nothing is hidden under it for good. Chip captions state only what the code does; verify every claim in the data path before writing it.
+- Failure Mode: a warm-up is excluded from progression and recovery timing but NOT from the exercise PR stats (`exercise-stats.ts` query), the in-session PR notice (`deriveSimpleSessionPrToast`) or the weekly set count (`history-weekly-progress.ts`), so the caption says only "not counted for progression"; a heavy warm-up can still show as a PR (follow-up). Failure is a notes marker (`FAILURE_NOTE_SENTINEL`) that only tags the row.
+- Evidence: `tests/dom/notice-flow.dom.test.tsx` (slot out of flow, card markup and offsetTop unchanged on mount and unmount, one at a time, 4s timer, error stays until the next action), `tests/dom/session-flow.dom.test.tsx` (header, handle and Close toggle; focus to the header; one open card; caption and Log label; set notice in the overlay), `src/components/session/SessionRowCards.contract.test.tsx` (handle and Close markup, caption rules); real-browser card offsetTop with and without a notice at 390x844 and 320x568. Not checked on a real phone.
+
 ## 2026-11-23 - Workout screen: card bar, More sheet, logger redesign, Pause, in-flow notices, dock fix
 
 - Type: UI plus one server guard (source; `removeExerciseAction` now refuses an exercise with logged sets; no schema, queue or env change)

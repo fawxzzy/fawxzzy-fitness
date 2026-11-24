@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { MobileScreenShell } from "@/components/shared/mobile-shell/MobileScreenShell";
+import type { NoticePlacement } from "@/components/ui/ToastProvider";
 
 type MobileScreenScaffoldProps = {
   children: ReactNode;
@@ -17,6 +18,12 @@ type MobileScreenScaffoldProps = {
    * (the workout screen, 2026-11-23).
    */
   noticesInFlow?: "errors" | "all";
+  /**
+   * Where the notice slot sits. Default "under-header" (in flow, see noticesInFlow). "above-dock": an overlay pinned
+   * just above the bottom dock that takes every tone, one notice at a time, and never moves a card (the workout
+   * screen, 2026-11-24).
+   */
+  noticePlacement?: NoticePlacement;
 };
 
 export function MobileScreenScaffold({
@@ -28,6 +35,7 @@ export function MobileScreenScaffold({
   className,
   scrollClassName,
   noticesInFlow,
+  noticePlacement,
 }: MobileScreenScaffoldProps) {
   // Mobile shell contract:
   // All route headers must use `floatingHeader`; scroll headers are deprecated.
@@ -40,6 +48,7 @@ export function MobileScreenScaffold({
       floatingHeader={floatingHeader}
       bottomDock={bottomDock}
       noticesInFlow={noticesInFlow}
+      noticePlacement={noticePlacement}
     >
       {children}
     </MobileScreenShell>

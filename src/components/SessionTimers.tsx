@@ -28,6 +28,7 @@ import {
   LoggerSecondaryButton,
   LoggerToggleChip,
 } from "@/components/session/SetLoggerControls";
+import { describeLoggerChips, resolveLoggerLogPrefix } from "@/components/session/loggerChipCaption";
 import { appTokens } from "@/components/ui/app/tokens";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
@@ -1509,7 +1510,7 @@ export function SetLoggerCard({
       includeWarmupTag: false,
     }).filter((item) => item.trim().length > 0);
   }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, weight]);
-  const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
+  const liveLogButtonPrefix = resolveLoggerLogPrefix({ warmup: resolvedIsWarmup, failure: resolvedIsFailure });
   const liveLogButtonLabel = liveSummaryItems.length > 0
     ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)}`
     : liveLogButtonPrefix;
@@ -1920,6 +1921,13 @@ export function SetLoggerCard({
 
     return fields;
   }, [exerciseTimerVisible, handleExerciseTimerVisibilityToggle, isTimerVisibilityPending, onExerciseTimerVisibilityChange, resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
+  // One plain line under the chips that says what the pressed chip(s) do (loggerChipCaption.ts has the verified rules).
+  const loggerChipCaption = describeLoggerChips({
+    warmup: showWarmupToggle && resolvedIsWarmup,
+    failure: resolvedIsFailure,
+    timer: Boolean(onExerciseTimerVisibilityChange) && exerciseTimerVisible,
+    hasMarkChips: showWarmupToggle || showFailureToggle,
+  });
   const persistCopilotFeedback = useCallback(async (
     nextSignal: SessionCopilotFeedbackSignal | null,
     nextNote: string,
@@ -2190,6 +2198,11 @@ export function SetLoggerCard({
             rpe={undefined}
             onRpeChange={undefined}
             auxiliaryFields={measurementAuxiliaryFields}
+            auxiliaryCaption={loggerChipCaption ? (
+              <p data-logger-chip-caption="true" className="text-center text-[12px] font-medium leading-4 text-[rgb(var(--text-secondary))] [text-wrap:balance]">
+                {loggerChipCaption}
+              </p>
+            ) : null}
             footerContent={null}
             showInlineStepControls
             wrapHorizontalFields

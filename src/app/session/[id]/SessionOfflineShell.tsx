@@ -41,7 +41,7 @@ export function SessionOfflineShell({
   );
 
   return (
-    <ScrollScreenWithBottomActions floatingHeader={floatingHeader} noticesInFlow="all">
+    <ScrollScreenWithBottomActions floatingHeader={floatingHeader} noticePlacement="above-dock">
       <ContentRail className="space-y-3">
         {cachedSnapshot ? (
           <>

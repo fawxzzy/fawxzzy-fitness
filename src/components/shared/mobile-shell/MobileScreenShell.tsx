@@ -6,7 +6,7 @@ import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { ScreenHeaderMenuProvider, ScreenHeaderMenuSlot } from "@/components/ui/app/ScreenHeaderMenu";
 import { screenHeaderTokens } from "@/components/ui/app/headerTokens";
 import { cn } from "@/lib/cn";
-import { useNoticeFlowSlotRef } from "@/components/ui/ToastProvider";
+import { type NoticePlacement, useNoticeFlowSlotRef } from "@/components/ui/ToastProvider";
 import { useAppNoticeAnchor } from "@/components/shared/mobile-shell/useAppNoticeAnchor";
 
 type MobileScreenShellProps = {
@@ -24,6 +24,12 @@ type MobileScreenShellProps = {
    * (the workout screen, 2026-11-23).
    */
   noticesInFlow?: "errors" | "all";
+  /**
+   * Where the notice slot sits. Default "under-header" (in flow, see noticesInFlow). "above-dock": an overlay pinned
+   * just above the bottom dock that takes every tone, one notice at a time, and never moves a card (the workout
+   * screen, 2026-11-24).
+   */
+  noticePlacement?: NoticePlacement;
 };
 
 export function MobileScreenShell({
@@ -35,6 +41,7 @@ export function MobileScreenShell({
   className,
   scrollClassName,
   noticesInFlow,
+  noticePlacement,
 }: MobileScreenShellProps) {
   return (
     <BottomActionsProvider>
@@ -47,6 +54,7 @@ export function MobileScreenShell({
           className={className}
           scrollClassName={scrollClassName}
           noticesInFlow={noticesInFlow}
+          noticePlacement={noticePlacement}
         >
           {children}
         </MobileScreenShellFrame>
@@ -64,6 +72,7 @@ function MobileScreenShellFrame({
   className,
   scrollClassName,
   noticesInFlow = "errors",
+  noticePlacement = "under-header",
 }: MobileScreenShellProps) {
   // Mobile shell contract:
   // All route headers must render via `floatingHeader`.
@@ -85,8 +94,13 @@ function MobileScreenShellFrame({
   const shouldRenderBottomDock = Boolean(bottomDock) || hasPublishedBottomActions;
   const shouldApplyTopChromeFloatingHeaderGap = hasTopChrome && hasFloatingHeader;
   const shouldApplyTopChromeContentGap = hasTopChrome && !hasFloatingHeader;
+  const hasDockNoticeOverlay = noticePlacement === "above-dock";
+  // With the above-dock notice overlay the scroll end also clears the notice band (one or two lines + gap), so the
+  // last card can always be scrolled out from under a notice. Static, so a notice never changes it.
   const scrollBottomReserve = shouldRenderBottomDock
-    ? "calc(var(--app-mobile-bottom-dock-height) + 14px)"
+    ? hasDockNoticeOverlay
+      ? "calc(var(--app-mobile-bottom-dock-height) + 14px + var(--app-dock-notice-band, 3.5rem))"
+      : "calc(var(--app-mobile-bottom-dock-height) + 14px)"
     : undefined;
 
   useAppNoticeAnchor({ shellRef, topChromeRef, floatingHeaderRef, layoutKey: `${hasTopChrome}-${hasFloatingHeader}` });
@@ -162,7 +176,9 @@ function MobileScreenShellFrame({
       ) : null}
 
       {/* In-flow notice slot: error notices (every tone with noticesInFlow="all") render here (ToastProvider portals into it), so content moves down. Empty = 0px. */}
-      <div ref={noticeFlowSlotRef} data-app-notice-flow-slot="true" data-app-notice-flow-tones={noticesInFlow} className="z-10 flex-none" />
+      {hasDockNoticeOverlay ? null : (
+        <div ref={noticeFlowSlotRef} data-app-notice-flow-slot="true" data-app-notice-flow-tones={noticesInFlow} className="z-10 flex-none" />
+      )}
 
       <ScrollContainer
         className={cn("min-h-0 flex-1", scrollClassName)}
@@ -196,6 +212,19 @@ function MobileScreenShellFrame({
         >
           {bottomDock ? bottomDock : <BottomActionsSlot />}
         </div>
+      ) : null}
+
+      {/* Above-dock notice overlay (noticePlacement="above-dock"): out of flow, pinned 8px above the dock and over it in
+          z-order, so a notice never moves a card. The slot itself lets taps through; the notice card takes them. */}
+      {hasDockNoticeOverlay ? (
+        <div
+          ref={noticeFlowSlotRef}
+          data-app-notice-flow-slot="true"
+          data-app-notice-placement="above-dock"
+          data-app-notice-flow-tones="all"
+          className="pointer-events-none absolute inset-x-0 z-50"
+          style={{ bottom: shouldRenderBottomDock ? "calc(var(--app-mobile-bottom-dock-height) + 8px)" : "calc(var(--app-safe-bottom) + 8px)" }}
+        />
       ) : null}
     </section>
   );

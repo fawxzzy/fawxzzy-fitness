@@ -427,6 +427,7 @@ export function MeasurementPanelV2({
   labelTreatment = "inline",
   showInlineStepControls = false,
   wrapHorizontalFields = false,
+  auxiliaryCaption,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -496,6 +497,11 @@ export function MeasurementPanelV2({
    * callers (History log audit).
    */
   wrapHorizontalFields?: boolean;
+  /**
+   * One line directly under the wrapped auxiliary row (wrapHorizontalFields only) that says what the pressed toggles
+   * do, e.g. the workout logger's "Warm-up: listed apart, not used for progression". Null renders nothing.
+   */
+  auxiliaryCaption?: ReactNode;
 }) {
   const horizontalRailRef = useRef<HTMLDivElement | null>(null);
   const horizontalRailPointerStateRef = useRef<HorizontalRailPointerState | null>(null);
@@ -1505,6 +1511,11 @@ export function MeasurementPanelV2({
                           {field.node}
                         </div>
                       ))}
+                    </div>
+                  ) : null}
+                  {horizontalAuxiliaryFields.length > 0 && auxiliaryCaption ? (
+                    <div data-measurement-aux-caption="true" className="px-1">
+                      {auxiliaryCaption}
                     </div>
                   ) : null}
                   <div

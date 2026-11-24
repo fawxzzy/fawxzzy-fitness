@@ -24,6 +24,7 @@ import { getDurationWholeMinutes } from "@/lib/duration";
 import { formatDurationShort } from "@/lib/formatting";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { cn } from "@/lib/cn";
+import { HIT_AREA_CLASS_NAME } from "@/components/ui/hitArea";
 
 /**
  * Current-session cards (docs/design-system/CARD-SYSTEM.md section 7.4). Presentation only: every handler,
@@ -52,6 +53,11 @@ function SessionTitleStatus({ status }: { status: SessionStatusChip }) {
  * chevron, the whole header is the target), the status inline with the name, a 44px info control under the
  * thumbnail, the logger as the panel, and, while collapsed, the footer (feedback, rest note, action bar). The toggle
  * keeps `session-exercise-toggle-<id>` / `session-exercise-panel-<id>` ids.
+ *
+ * Open / close is discoverable three ways (Zac 2026-11-24), all calling the same `onToggle`: the header, a thin
+ * grab handle centred on the card's bottom edge (a shallow V that flips to point up while open), and a "Close" text
+ * control at the top of the open logger. Still no chevron or check on the card. Only one card is open at a time
+ * (the session keeps one selected exercise).
  */
 export function SessionExerciseRowCard({
   itemId,
@@ -85,6 +91,42 @@ export function SessionExerciseRowCard({
   footer?: ReactNode;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope: "session-exercise" });
+  const focusHeaderToggle = () => {
+    // The Close control unmounts with the panel; hand focus to the header toggle so it never drops to the page.
+    window.requestAnimationFrame(() => {
+      const toggle = document.querySelector<HTMLElement>(`[data-testid="${contract.buttonTestId}"]`);
+      toggle?.focus({ preventScroll: true });
+    });
+  };
+  const openPanel = expanded && panel ? (
+    <>
+      <div data-session-logger-close-row="true" className="-mr-1.5 -mt-1 flex justify-end">
+        <button
+          type="button"
+          data-session-logger-close="true"
+          aria-expanded="true"
+          aria-controls={contract.panelId}
+          aria-label={`Close ${exercise.name} logger`}
+          onClick={() => {
+            onToggle();
+            focusHeaderToggle();
+          }}
+          className="inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-[13px] font-semibold text-[rgb(var(--text-secondary))] transition-colors hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]"
+        >
+          Close
+        </button>
+      </div>
+      {panel}
+    </>
+  ) : undefined;
+  const expandHandle = (
+    <SessionCardExpandHandle
+      expanded={expanded}
+      controlsId={contract.panelId}
+      exerciseName={exercise.name}
+      onToggle={onToggle}
+    />
+  );
 
   return (
     <ExerciseRowCard
@@ -104,11 +146,59 @@ export function SessionExerciseRowCard({
         buttonProps: { "data-testid": contract.buttonTestId },
       }}
       trailing={<CardInfoButton label={infoLabel} onClick={onOpenInfo} />}
-      panel={expanded ? panel : undefined}
+      panel={openPanel}
       panelProps={{ id: contract.panelId, "data-testid": contract.panelTestId }}
-      footer={expanded ? undefined : footer}
+      footer={(
+        <>
+          {expanded ? null : footer}
+          {expandHandle}
+        </>
+      )}
       allowOverflow
     />
+  );
+}
+
+/**
+ * The grab handle on a session card's bottom edge: a thin pill bent into a shallow V that points down while the card
+ * is closed and flips to point up while it is open. Same toggle as the header; aria-expanded mirrors it. The visible
+ * pill is small, the target is 44px tall (HIT_AREA) and 64px wide, centred, clear of the action bar buttons above.
+ */
+export function SessionCardExpandHandle({
+  expanded,
+  controlsId,
+  exerciseName,
+  onToggle,
+}: {
+  expanded: boolean;
+  controlsId: string;
+  exerciseName: string;
+  onToggle: () => void;
+}) {
+  return (
+    <div data-session-expand-handle-row="true" className="-mt-1 flex justify-center pb-1">
+      <button
+        type="button"
+        data-session-expand-handle="true"
+        aria-expanded={expanded}
+        aria-controls={controlsId}
+        aria-label={expanded ? `Close ${exerciseName} logger` : `Open ${exerciseName} logger`}
+        onClick={onToggle}
+        className={cn(
+          HIT_AREA_CLASS_NAME,
+          "inline-flex h-5 w-16 items-center justify-center rounded-full text-[rgb(var(--text-muted)/0.9)] transition-colors hover:text-[rgb(var(--text-secondary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]",
+        )}
+      >
+        <svg
+          viewBox="0 0 32 10"
+          aria-hidden="true"
+          data-session-expand-handle-direction={expanded ? "up" : "down"}
+          className={cn("h-2.5 w-8 transition-transform duration-200 motion-reduce:transition-none", expanded ? "rotate-180" : "")}
+        >
+          <path d="M3 3 16 7 29 3" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+        </svg>
+      </button>
+    </div>
   );
 }
 

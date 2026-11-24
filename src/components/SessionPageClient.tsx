@@ -280,7 +280,7 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader} noticesInFlow="all">
+    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader} noticePlacement="above-dock">
       <PublishBottomActions>{sessionActions}</PublishBottomActions>
 
       <ContentRail className={cn(appTokens.currentSessionContentRail, "!gap-0 !py-0")}>

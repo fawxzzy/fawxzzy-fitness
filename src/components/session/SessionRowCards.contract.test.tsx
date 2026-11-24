@@ -13,8 +13,10 @@ import {
   LoggerSecondaryButton,
   LoggerToggleChip,
 } from "./SetLoggerControls.tsx";
+import { describeLoggerChips, LOGGER_CHIP_CAPTIONS, resolveLoggerLogPrefix } from "./loggerChipCaption.ts";
 import {
   buildSessionFinishedFacts,
+  SessionCardExpandHandle,
   SessionExerciseRowCard,
   SessionFinishedCard,
   SessionCardBarButton,
@@ -231,7 +233,7 @@ test("quiet success: show, hide and skip raise no notice; set notices stay; fail
   }
   assert.match(focus, /toast\.error\(result\.error \|\| "Could not update skip state\."\)/);
   assert.match(focus, /toast\.error\(result\.error \|\| "Could not remove exercise\."\)/);
-  assert.match(readSource("../SessionPageClient.tsx"), /noticesInFlow="all"/, "every workout notice renders in flow, never over a card title");
+  assert.match(readSource("../SessionPageClient.tsx"), /noticePlacement="above-dock"/, "every workout notice sits in the overlay above the dock, so it never moves a card");
 });
 
 test("bar buttons: inactive guards the handler; variants are 44px pills", () => {
@@ -468,4 +470,64 @@ test("offline session list has no info control (it needs the network) and no ses
   const shell = readSource("../../app/session/[id]/SessionOfflineShell.tsx");
   assert.match(shell, /showInfo=\{false\}/);
   assert.doesNotMatch(shell, /exerciseId \?\? exercise\.id/);
+});
+
+test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close at the top of the open logger, no chevron", () => {
+  const collapsed = renderRow(false);
+  const handle = collapsed.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
+  assert.ok(handle, "the collapsed card has the grab handle");
+  assert.match(handle, /aria-expanded="false"/);
+  assert.match(handle, /aria-controls="session-exercise-panel-se-1"/);
+  assert.match(handle, /aria-label="Open Zed Press logger"/);
+  assert.match(handle, /before:h-11/, "44px tall target");
+  assert.match(handle, /\bw-16\b/, "64px wide target");
+  assert.match(collapsed, /data-session-expand-handle-direction="down"/);
+  assert.ok(collapsed.indexOf("footer-stub") < collapsed.indexOf("data-session-expand-handle="), "the handle is on the bottom edge, after the bar");
+  assert.doesNotMatch(collapsed, /data-session-logger-close/);
+
+  const expanded = renderRow(true);
+  assert.match(expanded, /<button[^>]*data-session-expand-handle="true"[^>]*aria-expanded="true"/);
+  assert.match(expanded, /data-session-expand-handle-direction="up"[^>]*rotate-180/, "flips to point up while open");
+  const close = expanded.match(/<button[^>]*data-session-logger-close="true"[^>]*>Close<\/button>/)?.[0];
+  assert.ok(close, "Close is a visible text control");
+  assert.match(close, /aria-expanded="true"/);
+  assert.match(close, /\bh-11\b/);
+  assert.match(close, /aria-label="Close Zed Press logger"/, "label in name");
+  assert.ok(expanded.indexOf("data-session-logger-close=") < expanded.indexOf("logger-stub"), "Close sits above the logger");
+  for (const html of [collapsed, expanded]) {
+    assert.doesNotMatch(html, /data-card-affordance|chevron|data-exercise-done-check/i, "still no chevron or check on the card");
+  }
+
+  let toggles = 0;
+  const handleOnly = renderToStaticMarkup(<SessionCardExpandHandle expanded={false} controlsId="p" exerciseName="Zed Press" onToggle={() => { toggles += 1; }} />);
+  assert.match(handleOnly, /type="button"/);
+  assert.equal(toggles, 0);
+  assert.match(readSource("../SessionExerciseFocus.tsx"), /onToggle=\{\(\) => toggleExercise\(exercise\.id\)\}/, "header, handle and Close share the one toggle");
+});
+
+test("logger chips (Zac 2026-11-24): a plain caption for the pressed chip(s) and a Log set label that names the set", () => {
+  const base = { warmup: false, failure: false, timer: false, hasMarkChips: true };
+  assert.equal(describeLoggerChips(base), "Tap a chip to mark the next set");
+  assert.equal(describeLoggerChips({ ...base, warmup: true }), "Warm-up: not counted for progression");
+  assert.equal(describeLoggerChips({ ...base, failure: true }), "Failure: tagged, counts as a normal set");
+  assert.equal(describeLoggerChips({ ...base, timer: true }), "Timer: shown on this card");
+  assert.equal(describeLoggerChips({ ...base, warmup: true, timer: true }), "Warm-up: not counted for progression · Timer on");
+  assert.equal(describeLoggerChips({ ...base, hasMarkChips: false }), null, "nothing to say on a timer-only logger with the timer off");
+  for (const caption of Object.values(LOGGER_CHIP_CAPTIONS)) {
+    assert.doesNotMatch(caption, /target/i, "never the word Target");
+    assert.ok(caption.length <= 40, `fits one line at 320px: ${caption}`);
+  }
+  assert.equal(resolveLoggerLogPrefix({ warmup: true, failure: false }), "Log warm-up set");
+  assert.equal(resolveLoggerLogPrefix({ warmup: false, failure: true }), "Log failure set");
+  assert.equal(resolveLoggerLogPrefix({ warmup: false, failure: false }), "Log");
+  assert.match(renderToStaticMarkup(<LoggerPrimaryLogButton prefix="Log warm-up set" summaryItems={["5 reps"]} inactive={false} onPress={() => {}} />), /Log warm-up set/);
+
+  const timers = readSource("../SessionTimers.tsx");
+  assert.match(timers, /resolveLoggerLogPrefix\(\{ warmup: resolvedIsWarmup, failure: resolvedIsFailure \}\)/);
+  assert.match(timers, /auxiliaryCaption=\{loggerChipCaption \?/, "the caption renders directly under the chip row");
+  const panel = readSource("../ui/measurements/MeasurementPanelV2.tsx");
+  assert.ok(panel.indexOf('data-measurement-aux-row="wrap"') < panel.indexOf('data-measurement-aux-caption="true"'), "caption after the chip row");
+  assert.ok(panel.indexOf('data-measurement-aux-caption="true"') < panel.indexOf('data-measurement-field-wrap="true"'), "and before the fields");
+  // The verified data rules the caption relies on: progression skips warm-ups; nothing reads the failure marker.
+  assert.match(readSource("../../lib/progression-progress-percent.ts"), /filter\(\(row\) => !row\.isWarmup\)/);
 });
