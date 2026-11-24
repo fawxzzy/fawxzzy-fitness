@@ -3,6 +3,7 @@
 import { memo, type ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
+import { AppButton } from "@/components/ui/AppButton";
 import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
@@ -14,10 +15,10 @@ export const pickerRowMobileDensityClassNames = {
   body: "max-md:gap-1",
   title: "max-md:text-[0.86rem] max-md:leading-[1.15]",
   titleContainer: "max-md:space-y-0.25 max-md:pb-[1.9rem]",
-  subtitle: "max-md:text-[11px] max-md:leading-[1.26]",
+  subtitle: "max-md:text-[length:var(--type-caption)] max-md:leading-[1.26]",
   content: "max-md:space-y-0.25",
   trailing: "max-md:min-w-[4.3rem]",
-  selectPill: "max-md:min-h-11 max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[11px]",
+  selectPill: "max-md:min-h-11 max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[length:var(--type-caption)]",
 } as const;
 
 export const thinPickerRowClassName = "appearance-none [box-shadow:none] flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border-0 bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left shadow-none outline-none ring-0 transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
@@ -43,7 +44,7 @@ function ExerciseMetaLine({
     <SignatureInlineList
       separator="pipe"
       className={cn(
-        "min-w-0 max-w-full gap-x-2 gap-y-1.5 text-[11px] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.9)]",
+        "min-w-0 max-w-full gap-x-2 gap-y-1.5 text-[length:var(--type-caption)] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.9)]",
         className,
       )}
       itemClassName="min-w-0 whitespace-nowrap leading-none"
@@ -435,7 +436,7 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
                 name={exercise.name}
                 metadataItems={metadataItems}
                 nameClassName="text-[0.96rem] font-semibold text-[rgb(var(--text)/0.96)]"
-                metadataClassName="text-[11px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.86)]"
+                metadataClassName="text-[length:var(--type-caption)] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.86)]"
                 emphasizeLeadMetadata
                 metadataLeadClassName={rowCue.leadTextClassName}
               />
@@ -494,17 +495,17 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
                 <>
                   <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
                     <span className="min-w-0 max-w-full whitespace-nowrap text-[0.9rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]">
-                      Current Target
+                      Your Goal
                     </span>
                     <MetricAccentBar variant="thin" className="w-full opacity-75" />
                   </span>
-                  <span className="min-w-0 whitespace-nowrap text-[11px] tracking-[0.01em] leading-[1.18] text-[rgb(var(--text-secondary)/0.88)]">
+                  <span className="min-w-0 whitespace-nowrap text-[length:var(--type-caption)] tracking-[0.01em] leading-[1.18] text-[rgb(var(--text-secondary)/0.88)]">
                     {selectedSummaryText}
                   </span>
                 </>
               ) : undefined}
               nameClassName="text-[0.98rem] font-semibold text-[rgb(var(--text)/0.98)]"
-              metadataClassName="!flex-nowrap text-[11px] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
+              metadataClassName="!flex-nowrap text-[length:var(--type-caption)] tracking-[0.01em] text-[rgb(var(--text-secondary)/0.9)]"
               emphasizeLeadMetadata
               metadataLeadClassName={rowCue.leadTextClassName}
               showTitleUnderline={isSelected}
@@ -564,7 +565,7 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
           bodyClassName={cn(pickerRowMobileDensityClassNames.body, "min-h-[4.45rem]")}
           titleClassName={pickerRowMobileDensityClassNames.title}
           titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
-          subtitleClassName="pr-8 text-[11px] leading-[1.25]"
+          subtitleClassName="pr-8 text-[length:var(--type-caption)] leading-[1.25]"
           subtitleLabelClassName={rowCue.selectedSummaryLabelClassName}
           contentClassName={cn("pl-1.5 pr-9", pickerRowMobileDensityClassNames.content)}
         />
@@ -572,12 +573,12 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
     );
 });
 
-export function EmptyExerciseRow() {
+export function EmptyExerciseRow({ onClearFilters, libraryEmpty = false }: { onClearFilters?: () => void; libraryEmpty?: boolean }) {
   return (
     <li>
       <ExerciseCard
-        title="No exercises match your filters"
-        subtitle="Clear search or remove a filter to widen the library."
+        title={libraryEmpty ? "No exercises yet" : "No exercises match your filters"}
+        subtitle={libraryEmpty ? "Use Custom Exercise above to create your first one." : "Clear search or remove a filter to widen the library."}
         variant="compact"
         state="empty"
         leadingVisual={(
@@ -605,6 +606,13 @@ export function EmptyExerciseRow() {
         subtitleClassName={pickerRowMobileDensityClassNames.subtitle}
         contentClassName={pickerRowMobileDensityClassNames.content}
       />
+      {onClearFilters ? (
+        <div className="mt-2">
+          <AppButton type="button" variant="secondary" size="sm" fullWidth onClick={onClearFilters}>
+            Clear search and filters
+          </AppButton>
+        </div>
+      ) : null}
     </li>
   );
 }

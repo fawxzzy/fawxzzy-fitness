@@ -93,6 +93,23 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
   return { ok: true };
 }
 
+/** Removes a custom exercise created earlier in the same action when the session insert did not happen (mirrors the routine-day add). */
+async function discardCreatedCustomExercise(args: {
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
+  userId: string;
+  exerciseId: string | null;
+}) {
+  if (!args.exerciseId) {
+    return;
+  }
+  await args.supabase
+    .from("exercises")
+    .delete()
+    .eq("id", args.exerciseId)
+    .eq("user_id", args.userId)
+    .eq("is_global", false);
+}
+
 export async function addExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = await supabaseServer();
@@ -129,6 +146,11 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   let resolvedExerciseMeasurementType: "reps" | "time" | "distance" | "time_distance" | "none" | null = null;
   let resolvedExerciseName: string | null = null;
   let resolvedExerciseSlug: string | null = null;
+  let createdCustomExerciseId: string | null = null;
+  const failAfterCustomCreate = async (error: string): Promise<ActionResult> => {
+    await discardCreatedCustomExercise({ supabase, userId: user.id, exerciseId: createdCustomExerciseId });
+    return { ok: false, error };
+  };
 
   if (isCustomExercise) {
     const rawName = String(formData.get("customExerciseName") ?? "");
@@ -184,6 +206,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     }
 
     canonicalExerciseId = createdExercise.id;
+    createdCustomExerciseId = createdExercise.id;
     resolvedExerciseMeasurementType = customMeasurementType;
     resolvedExerciseName = name;
   } else {
@@ -214,7 +237,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       .maybeSingle();
 
     if (!session?.routine_id || session.routine_day_index === null) {
-      return { ok: false, error: "Invalid planned exercise link" };
+      return failAfterCustomCreate("Invalid planned exercise link");
     }
 
     const { data: routineDay } = await supabase
@@ -226,7 +249,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       .maybeSingle();
 
     if (!routineDay) {
-      return { ok: false, error: "Invalid planned exercise link" };
+      return failAfterCustomCreate("Invalid planned exercise link");
     }
 
     const { data: linkedExercise } = await supabase
@@ -239,7 +262,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       .maybeSingle();
 
     if (!linkedExercise) {
-      return { ok: false, error: "Invalid planned exercise link" };
+      return failAfterCustomCreate("Invalid planned exercise link");
     }
   }
 
@@ -268,7 +291,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
 
   if (error && isMissingExerciseTimerColumnError(error)) {
     if (timerConfig.values.exercise_timer_enabled) {
-      return { ok: false, error: "Exercise timer schema is pending migration review." };
+      return failAfterCustomCreate("Exercise timer schema is pending migration review.");
     }
     const fallback = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
       supabase,
@@ -313,11 +336,11 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   }
 
   if (error) {
-    return { ok: false, error: error.message };
+    return failAfterCustomCreate(error.message);
   }
 
   if (!insertedExercise?.exercise_id) {
-    return { ok: false, error: "Could not add this exercise to the session." };
+    return failAfterCustomCreate("Could not add this exercise to the session.");
   }
 
   if (SHOULD_DEBUG_CANONICAL_LINKING) {
