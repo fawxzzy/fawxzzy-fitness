@@ -41,10 +41,14 @@ export const menuTokens = {
     "relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgb(var(--text-secondary))] transition-colors hover:bg-[rgb(var(--surface-2)/0.6)] hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] aria-expanded:bg-[rgb(var(--surface-2)/0.7)] aria-expanded:text-[rgb(var(--text-primary))] [-webkit-tap-highlight-color:transparent]",
   panel:
     "fixed z-[115] origin-top-right rounded-[10px] border border-[rgb(var(--accent)/0.62)] bg-[rgb(var(--surface-1-rgb))] py-1.5 shadow-[0_0_18px_rgb(var(--accent)/0.16),0_18px_40px_rgb(var(--bg-0)/0.55)] outline-none",
+  // Row colours use `[button&]:` (`button.cls`, 0,1,1) so they beat the unlayered global `button, [type="button"]`
+  // surface rule in globals.css, which otherwise boxed every row and hid the danger red (ui-kit capture 2026-11-24).
   row:
-    "mx-1 flex h-11 w-[calc(100%-0.5rem)] items-center gap-3 rounded-[7px] pl-4 pr-3 text-left text-[15px] font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--accent)/0.7)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [-webkit-tap-highlight-color:transparent]",
-  rowDefault: "text-[rgb(var(--text-secondary))] hover:bg-[rgb(var(--surface-2)/0.7)] hover:text-[rgb(var(--text-primary))] focus:bg-[rgb(var(--surface-2)/0.7)] focus:text-[rgb(var(--text-primary))]",
-  rowDanger: "text-[rgb(var(--danger-rgb))] hover:bg-[rgb(var(--danger-rgb)/0.1)] focus:bg-[rgb(var(--danger-rgb)/0.1)]",
+    "mx-1 flex h-11 w-[calc(100%-0.5rem)] items-center gap-3 rounded-[7px] pl-4 pr-3 text-left text-[15px] font-medium outline-none [button&]:border-0 [button&]:bg-transparent transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--accent)/0.7)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [-webkit-tap-highlight-color:transparent]",
+  rowDefault:
+    "[button&]:text-[rgb(var(--text-secondary))] [button&]:hover:bg-[rgb(var(--surface-2)/0.7)] [button&]:hover:text-[rgb(var(--text-primary))] [button&]:focus:bg-[rgb(var(--surface-2)/0.7)] [button&]:focus:text-[rgb(var(--text-primary))]",
+  rowDanger:
+    "[button&]:text-[rgb(var(--danger-rgb))] [button&]:hover:bg-[rgb(var(--danger-rgb)/0.1)] [button&]:focus:bg-[rgb(var(--danger-rgb)/0.1)]",
   icon: "inline-flex h-5 w-5 shrink-0 items-center justify-center",
 } as const;
 

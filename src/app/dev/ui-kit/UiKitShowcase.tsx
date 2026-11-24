@@ -13,7 +13,7 @@ import { Menu } from "@/components/ui/Menu";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Sheet } from "@/components/ui/Sheet";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
-import { useToast } from "@/components/ui/ToastProvider";
+import { useNoticeFlowSlotRef, useToast } from "@/components/ui/ToastProvider";
 
 // /dev/ui-kit: the living reference for docs/ui/FOUNDATION.md. Every primitive renders here in each state so a
 // section lane can see what it consumes before it builds. Dev-only (page.tsx 404s in production; the /dev layout
@@ -100,6 +100,7 @@ function FormLevelNoticeDemo() {
 
 export function UiKitShowcase({ initialOpen = null, hideDevBadge = false }: { initialOpen?: string | null; hideDevBadge?: boolean }) {
   const toast = useToast();
+  const noticeFlowSlotRef = useNoticeFlowSlotRef();
   const [loadingVariant, setLoadingVariant] = useState<AppButtonCanonicalVariant | null>(null);
   const [sheetOpen, setSheetOpen] = useState(initialOpen === "sheet");
   const [confirmOpen, setConfirmOpen] = useState(initialOpen === "confirm");
@@ -109,7 +110,7 @@ export function UiKitShowcase({ initialOpen = null, hideDevBadge = false }: { in
 
   return (
     <ContentRail>
-      {hideDevBadge ? <style>{"nextjs-portal{display:none!important}"}</style> : null}
+      {hideDevBadge ? <style>{"nextjs-portal,[data-dev-supabase-target-banner]{display:none!important}"}</style> : null}
       <div className="space-y-4 py-4" data-ui-kit="">
         <header className="flex items-start justify-between gap-3">
           <div className="space-y-1">
@@ -126,6 +127,8 @@ export function UiKitShowcase({ initialOpen = null, hideDevBadge = false }: { in
             ]}
           />
         </header>
+        {/* The same in-flow slot MobileScreenShell mounts under its header: error notices render here, in flow. */}
+        <div ref={noticeFlowSlotRef} data-app-notice-flow-slot="true" className="-mx-1" />
 
         <KitSection id="buttons" title="AppButton" note="primary, promote, secondary, quiet, danger. Every size is at least 44px. Tap one to see loading.">
           <div className="grid grid-cols-1 gap-2">

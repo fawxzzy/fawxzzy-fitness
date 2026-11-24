@@ -20,8 +20,9 @@ old-to-new map.
 
 `<AppButton variant size loading fullWidth disabled />`
 
-- `variant`: `primary` (the one main action), `promote` (green fill + the shared `.promote-shine` sweep; only for a
-  ready-to-apply progression), `secondary` (other actions), `quiet` (low-emphasis, no fill), `danger` (destructive).
+- `variant`: `primary` (the one main action; accent-tinted fill and keyline), `promote` (stronger green fill + the
+  shared `.promote-shine` sweep; only for a ready-to-apply progression), `secondary` (other actions; neutral keyline),
+  `quiet` (low emphasis: faint keyline, muted text), `danger` (destructive; red text and keyline).
 - `size`: `lg` 56px, `md` 48px (default), `sm` 44px. No size is under 44px.
 - `loading`: keeps the width, shows a spinner and "Label...", sets `aria-busy` and disables the button.
 - Shortcuts: `PrimaryButton`, `SecondaryButton`, `PromoteButton`, `QuietButton`, `DestructiveButton`, `GhostButton`.
@@ -61,7 +62,7 @@ use a Sheet when the choice needs explanation or a form.
 
 - `Chip`: a non-interactive label/badge. `tone`: `neutral`, `accent`, `success`, `attention`, `danger`; `variant`:
   `badge` (small caps) or `label`; `onRemove` adds a named remove control ("Remove Chest") whose 20px icon carries a 44px hit area.
-- `ChipButton`: a selectable filter chip (`selected`).
+- `ChipButton`: a selectable filter chip (`selected`); the selected look matches the strong segmented selection.
 - `Pill`, `PillButton` (`Pill.tsx`) and `AppBadge` (`app/AppBadge.tsx`) are thin wrappers; old tone names
   (`default`, `today`, `current`, `warning`, `destructive`) map through `normalizeChipTone`.
 
@@ -80,10 +81,19 @@ path), so one implementation serves every screen.
 
 - `FormField` (server-compatible, no "use client"): when `error` is a string it mounts `FieldNotice`, which shows the
   error notice once per new message and dismisses it when the error clears or the field unmounts. The field itself
-  gets `aria-invalid`, a neutral "!" marker by the label and an `sr-only` description for screen readers.
+  gets `aria-invalid`, keeps its danger keyline, a neutral "!" marker by the label and an `sr-only` description for
+  screen readers.
 - `useFieldNotice(id)` -> `{ report(message), clear() }` for form-level errors (a failed save).
 - `useFieldErrorNotice(error, { id })` for custom fields that do not use `FormField`.
 - Without a `ToastProvider` these are no-ops (tests, isolated fixtures).
+
+## Cascade trap: the global button surface
+
+`globals.css` has an unlayered `button, [type="button"] { background; border; color }` rule after `@tailwind utilities`.
+At equal specificity it beats plain `bg-*` / `border-*` / `text-*` utilities on a `<button>`, so a button's own colour
+classes silently do nothing. Shared primitives set button colours with the `[button&]:` variant (`button.cls`,
+specificity 0,1,1), which beats the global rule and still loses to a caller's `!` override. `Chip`'s `ChipButton` and the
+`Menu` rows do this; before, every filter chip looked the same on or off and menu rows were boxed with no danger red.
 
 ## When to use which
 

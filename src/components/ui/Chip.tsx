@@ -53,9 +53,21 @@ const LABEL_TONE_CLASS_NAMES: Record<ChipToneCanonical, string> = {
 
 const BUTTON_BASE_CLASS_NAME =
   "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]";
-const BUTTON_SELECTED_CLASS_NAME = "border-[rgb(var(--accent)/0.38)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]";
+// Button colours use the `[button&]:` variant (`button.cls`, specificity 0,1,1). The global `button, [type="button"]`
+// surface rule in globals.css is unlayered and comes after `@tailwind utilities`, so at equal specificity it beat these
+// classes and every filter chip, on or off, rendered the same (found on the ui-kit page 2026-11-24). Not `!`: callers already force their own selected look with `!` classes
+// and must keep winning. Literal strings so Tailwind generates them.
+// Selected matches the SegmentedControl selected segment: a filter that is on must read as on at a glance.
+const BUTTON_SELECTED_CLASS_NAME = "[button&]:border-[rgb(var(--accent)/0.62)] [button&]:bg-[rgb(var(--accent)/0.24)] [button&]:text-[rgb(var(--text-primary))]";
+const BUTTON_TONE_CLASS_NAMES: Record<ChipToneCanonical, string> = {
+  neutral: "[button&]:border-[rgb(var(--border-strong)/0.18)] [button&]:bg-[rgb(var(--surface-3-rgb)/0.9)] [button&]:text-[rgb(var(--text-primary)/0.88)]",
+  accent: "[button&]:border-[rgb(var(--accent)/0.36)] [button&]:bg-[rgb(var(--accent)/0.14)] [button&]:text-[rgb(var(--text-primary))]",
+  success: "[button&]:border-[rgb(var(--success-rgb)/0.32)] [button&]:bg-[rgb(var(--success-rgb)/0.14)] [button&]:text-[rgb(var(--text-primary))]",
+  attention: "[button&]:border-[rgb(var(--warning-rgb)/0.34)] [button&]:bg-[rgb(var(--warning-rgb)/0.14)] [button&]:text-[rgb(255_242_220)]",
+  danger: "[button&]:border-[rgb(var(--danger-rgb)/0.22)] [button&]:bg-[rgb(var(--surface-3-rgb)/0.92)] [button&]:text-[rgb(var(--danger-rgb)/0.96)]",
+};
 const BUTTON_HOVER_CLASS_NAME =
-  "hover:border-[rgb(var(--border-strong)/0.28)] hover:bg-[rgb(var(--surface-2)/0.98)] hover:text-[rgb(var(--text-primary))]";
+  "[button&]:hover:border-[rgb(var(--border-strong)/0.28)] [button&]:hover:bg-[rgb(var(--surface-2)/0.98)] [button&]:hover:text-[rgb(var(--text-primary))]";
 
 const REMOVE_BUTTON_CLASS_NAME = cn(
   HIT_AREA_WIDE_CLASS_NAME,
@@ -135,7 +147,7 @@ export function ChipButton({ tone = "neutral", active, selected, hitSlop = false
       className={cn(
         hitSlop ? HIT_AREA_CLASS_NAME : "min-h-11",
         BUTTON_BASE_CLASS_NAME,
-        isOn ? BUTTON_SELECTED_CLASS_NAME : cn(LABEL_TONE_CLASS_NAMES[normalizeChipTone(tone)], BUTTON_HOVER_CLASS_NAME),
+        isOn ? BUTTON_SELECTED_CLASS_NAME : cn(BUTTON_TONE_CLASS_NAMES[normalizeChipTone(tone)], BUTTON_HOVER_CLASS_NAME),
         className,
       )}
       {...props}
