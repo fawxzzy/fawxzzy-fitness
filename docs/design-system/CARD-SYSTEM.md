@@ -164,7 +164,7 @@ Tones: routine active = `current`; inactive = `neutral` (no warning gradient); d
 
 ### 4.1 Interaction and affordance
 
-- One affordance per card. Chevron right navigates, chevron down expands. A card that both navigates and reveals actions (routine card) uses the header for navigation and a separate "Actions for X" control (more dots, `aria-expanded`) for the action row.
+- One affordance per card. Chevron right navigates, chevron down expands. A card that both navigates and reveals actions (routine card) uses the header for navigation and a separate "Actions for X" kebab `Menu` (44px, `role="menu"`) for its actions, safe ones first and Delete last.
 - Whole header is the target (>= 44px tall). Standalone controls keep their own 44px target and are siblings of the header button.
 - Delete is never a corner control. It sits in the action row and still goes through `ConfirmDestructiveModal`.
 - Drag: pointer drag is unchanged (handlers pass through). Keyboard: focus the handle, ArrowUp / ArrowDown moves one position and submits the same reorder action; focus returns to the moved handle.
@@ -288,7 +288,7 @@ Canonical terms (AGENT.md): routine, day, workout, session, exercise, set. Card 
 ### 7.1 Behaviour changes in PR 1 (explicit)
 
 - Inactive routine cards: tapping the card now opens the routine (previously it expanded Set Active / Edit). Set Active and Delete moved behind the "Actions for X" control; Edit is the card tap.
-- Delete on routine and day cards needs the expand step first (one extra tap), then the existing confirmation modal.
+- Delete on a routine card is a Delete item in the "Actions for X" menu; on a day card it needs the expand step first (one extra tap). Both then open a confirmation that names the routine or day and what goes with it.
 - Day cards: rest days show the user's custom title when one exists; day recap shows only while the card is expanded; recap is vertical.
 - Routine list shows a week strip for the active routine instead of scrolling day tiles; inactive routines still show none.
 - Drag handles are 44px and keyboard operable; reorder actions, payloads and endpoints are unchanged.
@@ -299,8 +299,8 @@ Canonical terms (AGENT.md): routine, day, workout, session, exercise, set. Card 
 - Reorder (days and exercises): the handle stays focusable while a save runs (`aria-disabled`, not `disabled`), arrow keys are ignored during a save (one save at a time on the day editor, as on the day list), a polite live region announces `<name> moved to position N of M`, and the handle is described by the arrow-key hint (`aria-describedby`).
 - Day-settings autosave: the name field shows the render-side rule (a stored placeholder reads as empty) but a toggle sends the stored name back unchanged unless the field was edited, so no autosave persists the position number over a stored name (`resolveRoutineDaySettingsSubmitName`). It no longer strips a legacy own-weekday prefix on a toggle.
 - Reorder announcements use the heading the day showed before the move (custom title, else `Day N` / `Rest`), and a failed save announces "Could not reorder ...; order restored".
-- Escape closes an open "Actions for X" row and returns focus to its control (routine and workout-plan cards).
-- Follow-up (not in PR 1): Escape does not close an expanded day-card footer; only the routine and workout-plan "Actions for X" rows close on Escape.
+- Escape closes an open "Actions for X" menu and returns focus to its control (routine and workout-plan cards).
+- Follow-up (not in PR 1): Escape does not close an expanded day-card footer; only the routine and workout-plan "Actions for X" menus close on Escape.
 - "N training days" is normalized from older cached strings ("N workout plans"); the cached count and a freshly computed one can differ until the routines cache refreshes.
 
 ### 7.2 Behaviour changes in PR 2 (Today; explicit)

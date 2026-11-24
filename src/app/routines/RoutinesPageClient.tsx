@@ -24,11 +24,14 @@ import type { ActionResult } from "@/lib/action-result";
 /**
  * What deleting a routine does, in the words the confirm shows. Mirrors deleteRoutineMutation (src/lib/dal/routine-delete.ts):
  * the routine, its days and exercises, the workouts logged on it and its progression events go; if it was the
- * active routine another one takes over.
+ * active routine the most recently updated other routine takes over, or none stays active when it was the only one.
  */
-export function describeRoutineDeleteConsequence(routine: { name: string; isActive?: boolean }): string {
+export function describeRoutineDeleteConsequence(routine: { name: string; isActive?: boolean }, otherRoutineCount = 1): string {
   const base = "This permanently deletes the routine, its days and exercises, and the workouts you logged with it, along with their progression history. It can't be undone.";
-  return routine.isActive ? `${base} Another routine becomes your active one.` : base;
+  if (!routine.isActive) return base;
+  return otherRoutineCount > 0
+    ? `${base} Another routine becomes your active one.`
+    : `${base} You will have no active routine until you create one.`;
 }
 
 export function RoutinesPageClient({
@@ -191,7 +194,7 @@ export function RoutinesPageClient({
         open={routinePendingDelete !== null}
         title="Delete routine?"
         objectName={routinePendingDelete?.name}
-        consequenceText={routinePendingDelete ? describeRoutineDeleteConsequence(routinePendingDelete) : undefined}
+        consequenceText={routinePendingDelete ? describeRoutineDeleteConsequence(routinePendingDelete, routines.filter((item) => item.id !== routinePendingDelete.id).length) : undefined}
         confirmLabel="Delete"
         titleVariant="raw"
         isLoading={isPending}

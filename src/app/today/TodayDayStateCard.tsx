@@ -16,8 +16,8 @@ const toneConfig: Record<TodayDayStateTone, { cardTone: CardTone; chip?: { tone:
 
 /**
  * Day state message on the card surface: a heading, plain body text, a status chip for warning and blocking.
- * Today day picker only (partial or invalid day, no scheduled workout). The day editor keeps `DayDetailStateCard`,
- * which the frozen design-system contract test ties to the `detailState*` tokens (routine editor lane).
+ * Today day picker only (partial or invalid day, no scheduled workout). The day editor and view-day screens use
+ * `CardEmptyState` for rest and empty days; `DayDetailStateCard` remains only for the design-system contract tests.
  */
 export function TodayDayStateCard({
   title,

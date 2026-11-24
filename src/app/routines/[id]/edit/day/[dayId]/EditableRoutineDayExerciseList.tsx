@@ -302,7 +302,7 @@ function EditDayAdjustedSummaryPreview({
 }) {
   const arrowColor = direction === "up"
     ? "rgb(var(--accent))"
-    : "rgb(var(--danger-rgb))";
+    : "rgb(var(--warning-rgb))";
 
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">

@@ -60,7 +60,9 @@ export function RoutinesLab({ state, fail, hang }: { state: RoutinesLabState; fa
     return fail ? { ok: false, error: message } : { ok: true };
   }
   const duplicateRoutineAction = async (formData: FormData): Promise<ActionResult & { routineId?: string }> => {
-    // The real action rejects a name that already exists; the lab does the same for the two seeded names.
+    // The real duplicateRoutineAction auto-suffixes a taken name. The duplicate-name error users see comes from the
+    // client pre-check in CreateRoutineClient (duplicateNameConflict), so the lab rejects the two seeded names to
+    // exercise the same notice slot.
     const name = String(formData.get("name") ?? formData.get("newRoutineName") ?? "").trim().toLowerCase();
     if (name === "atlas routine" || name === "atlas hypertrophy") {
       return { ok: false, error: "Routine name already exists." };

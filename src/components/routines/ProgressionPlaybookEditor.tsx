@@ -2634,7 +2634,8 @@ function getSetFlowDirectionIntent(direction: SetFlowDirection): BottomActionInt
   case "up":
     return "positive";
   case "down":
-    return "danger";
+    // A lower plan is a caution, not a destructive action: neutral intent plus the warning colour in the class below.
+    return "info";
   case "straight":
   default:
     return "info";
@@ -2655,10 +2656,10 @@ function getDirectionActionButtonClassName(args: {
       args.active
         ? undefined
         : "opacity-82",
-      intent === "info"
-        ? "focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.24)]"
-        : intent === "danger"
-          ? "focus-visible:ring-[rgb(var(--danger-rgb)/0.24)]"
+      args.direction === "down"
+        ? "[button&]:text-[rgb(var(--warning-rgb)/0.96)] focus-visible:ring-[rgb(var(--warning-rgb)/0.24)]"
+        : intent === "info"
+          ? "focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.24)]"
           : "focus-visible:ring-[rgb(var(--accent)/0.24)]",
     ),
   });
@@ -3477,7 +3478,7 @@ export function ProgressionPlaybookEditor({
     ? `${repRangePreviewLabel} + ${value.progressionRepPromotionThreshold === "top_half_of_range"
       ? "Top half of range"
       : value.progressionRepPromotionThreshold === "custom"
-        ? "Custom rep target"
+        ? "Custom rep goal"
         : "Top of range"} => ${repPromotionTarget}+ reps`
     : null;
   const customRepTargetInputInvalid = value.progressionRepPromotionThreshold === "custom"
@@ -3653,8 +3654,8 @@ export function ProgressionPlaybookEditor({
         return {
           title: "Regression",
           summary: selectedPlaybookId
-            ? "Controls what happens after repeated misses. None leaves the target where it is; Deload can lower the target so the progression lane can rebuild."
-            : "Regression stays off while progression is manual because the app is not generating progression changes for this target.",
+            ? "Controls what happens after repeated misses. None leaves the goal where it is; Deload can lower the goal so the progression lane can rebuild."
+            : "Regression stays off while progression is manual because the app is not generating progression changes for this goal.",
           rows: [
             { label: "Selected", value: selectedStallPolicyInfo.label },
             { label: "Effect", value: selectedStallPolicyInfo.whatItDoes },
@@ -3664,11 +3665,11 @@ export function ProgressionPlaybookEditor({
       case "deload_settings":
         return {
           title: "Regression",
-          summary: "These inputs define when a miss streak becomes a stall and when the current target reverses one cycle step.",
+          summary: "These inputs define when a miss streak becomes a stall and when the current goal reverses one cycle step.",
           rows: [
             { label: "Failure count", value: `${resolvedProgressionStallThreshold || "-"} missed attempts` },
-            { label: "Regression", value: "Reverse the current target by one cycle step using the active progression method." },
-            { label: "Applies to", value: "The target dimensions the exercise is currently progressing on, not an unrelated percent drop." },
+            { label: "Regression", value: "Reverse the current goal by one cycle step using the active progression method." },
+            { label: "Applies to", value: "The goal dimensions the exercise is currently progressing on, not an unrelated percent drop." },
           ],
         };
       case "session_settings":
@@ -3678,13 +3679,13 @@ export function ProgressionPlaybookEditor({
           rows: [
             { label: "Order", value: activeSessionMeasurementOrderLabel },
             { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
-            { label: "Resolution", value: "Each exercise keeps this order, then drops anything its target does not use or whose step field is blank. Empty measurements are omitted from active AND groups, and active AND groups share session count and direction until the flow advances." },
+            { label: "Resolution", value: "Each exercise keeps this order, then drops anything its goal does not use or whose step field is blank. Empty measurements are omitted from active AND groups, and active AND groups share session count and direction until the flow advances." },
           ],
         };
       case "day_settings":
         return {
           title: "Day Adjustments Settings",
-          summary: "Day Adjustments Settings shape the target for that day slot before Session Settings and Set Settings continue the progression flow.",
+          summary: "Day Adjustments Settings shape the goal for that day slot before Session Settings and Set Settings continue the progression flow.",
           rows: [
             { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
             { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
@@ -3714,7 +3715,7 @@ export function ProgressionPlaybookEditor({
           summary: "Controls whether targets stay exactly where you set them or move through reviewed progression after logged proof.",
           rows: [
             { label: "Type", value: selectedPlaybookId ? "Auto" : "Manual" },
-            { label: "Effect", value: selectedMethodInfo.id === "manual" ? "Uses the goal you enter. No automatic target changes." : selectedMethodInfo.whatItDoes },
+            { label: "Effect", value: selectedMethodInfo.id === "manual" ? "Uses the goal you enter. No automatic goal changes." : selectedMethodInfo.whatItDoes },
             { label: "Review", value: "Earned updates appear for approval. Applying or reverting is explicit." },
           ],
         };
@@ -3748,7 +3749,7 @@ export function ProgressionPlaybookEditor({
     return {
       title: "Progression",
       summary: methodInfo.id === "manual"
-        ? "Manual keeps the target exactly where you set it until you change it yourself."
+        ? "Manual keeps the goal exactly where you set it until you change it yourself."
         : methodInfo.whatItDoes,
       rows: [
         { label: "Type", value: playbookId ? "Auto" : "Manual" },
@@ -3820,7 +3821,7 @@ export function ProgressionPlaybookEditor({
     summary: "Goal changes decide what mutates after readiness is earned. Readiness rules stay separate.",
     rows: [
       { label: "Selected", value: getProgressionTargetMutationLabel(targetMutation) },
-      { label: "Rule", value: "This changes the next target only. It does not change qualification proof." },
+      { label: "Rule", value: "This changes the next goal only. It does not change qualification proof." },
     ],
     sectionKey: "progression_method",
   });
@@ -3836,14 +3837,14 @@ export function ProgressionPlaybookEditor({
     sectionKey: "progression_method",
   });
   const getRepThresholdInfoPayload = (threshold: ProgressionPlaybookFormState["progressionRepPromotionThreshold"]): ActiveProgressionInfoContent => ({
-    title: "Rep target for promotion",
+    title: "Rep goal for promotion",
     summary: threshold === "top_half_of_range"
       ? "Promotion can qualify once reps enter the top half of the range."
       : threshold === "custom"
         ? "Promotion uses a custom rep count instead of the standard range rules."
         : "Promotion waits for the top of the rep range.",
     rows: [
-      { label: "Selected", value: threshold === "top_half_of_range" ? "Top half of range" : threshold === "custom" ? "Custom rep target" : "Top of range" },
+      { label: "Selected", value: threshold === "top_half_of_range" ? "Top half of range" : threshold === "custom" ? "Custom rep goal" : "Top of range" },
       ...(activeRepPromotionPreview ? [{ label: "Preview", value: activeRepPromotionPreview }] : []),
     ],
     sectionKey: "progression_method",
@@ -3856,7 +3857,7 @@ export function ProgressionPlaybookEditor({
     summary: "Session Settings control measurement order, grouping, session count span, and asc or desc direction for the measurements that can progress.",
     rows: [
       { label: "Order", value: formatPromotionMeasurementSequence(measurements, links) },
-      { label: "Resolution", value: "Each exercise keeps this order, then drops anything its target does not use or whose step field is blank. Empty measurements are omitted from active AND groups, and active AND groups share session count and direction until the flow advances." },
+      { label: "Resolution", value: "Each exercise keeps this order, then drops anything its goal does not use or whose step field is blank. Empty measurements are omitted from active AND groups, and active AND groups share session count and direction until the flow advances." },
     ],
     sectionKey: "session_settings",
   });
@@ -4203,7 +4204,7 @@ export function ProgressionPlaybookEditor({
   const setProgressionHeaderInfo = () => {
     setCustomInfoContent({
       title: "Progression",
-      summary: "Settings that control target progression, deload behavior, promotion steps, and set-step suggestions.",
+      summary: "Settings that control goal progression, deload behavior, promotion steps, and set-step suggestions.",
     });
     setActiveInfoSection("custom");
     setHasInfoSelection(true);
@@ -6442,10 +6443,10 @@ export function ProgressionPlaybookEditor({
           content: (
             <ProgressionInfoRows
               rows={[
-                { label: "What it does", value: selectedMethodInfo.id === "manual" ? "Uses the target you enter. No automatic target changes are generated." : selectedMethodInfo.whatItDoes },
+                { label: "What it does", value: selectedMethodInfo.id === "manual" ? "Uses the goal you enter. No automatic goal changes are generated." : selectedMethodInfo.whatItDoes },
                 { label: "Use it for", value: selectedMethodInfo.id === "manual" ? "Anything you want to control directly." : selectedMethodInfo.useItFor },
                 { label: "Promotion proof", value: "The app only suggests updates from completed logged work, not from planned targets alone." },
-                { label: "Apply/Revert", value: "Ready updates require approval, keep a quick undo pin, and can be locked in once you train on the new target." },
+                { label: "Apply/Revert", value: "Ready updates require approval, keep a quick undo pin, and can be locked in once you train on the new goal." },
               ]}
             />
           ),
@@ -6462,7 +6463,7 @@ export function ProgressionPlaybookEditor({
                 rows={[
                   { label: "What it does", value: selectedStallPolicyInfo.whatItDoes },
                   { label: "Use it for", value: selectedStallPolicyInfo.useItFor },
-                  { label: "When it runs", value: "Only after repeated misses against the current target. Deleted evidence recomputes status but does not silently rewrite goals." },
+                  { label: "When it runs", value: "Only after repeated misses against the current goal. Deleted evidence recomputes status but does not silently rewrite goals." },
                   { label: "Review", value: "A regression candidate is still an explicit update; it is not auto-applied from the settings screen." },
                 ]}
               />
@@ -6501,7 +6502,7 @@ export function ProgressionPlaybookEditor({
             content: (
               <ProgressionInfoRows
                 rows={[
-                  { label: "Purpose", value: "Controls how the effective target adjusts for a day slot before Session Settings and Set Settings continue the workout flow." },
+                  { label: "Purpose", value: "Controls how the effective goal adjusts for a day slot before Session Settings and Set Settings continue the workout flow." },
                   { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
                   { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
                   { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
@@ -6530,13 +6531,13 @@ export function ProgressionPlaybookEditor({
                       : `${selectedSetFlowInfo.label}: ${selectedSetFlowInfo.shortExplanation}`,
                   },
                   { label: "Step", value: activeSetStepSummary },
-                  { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set target inside the current set sequence." },
+                  { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set goal inside the current set sequence." },
                   { label: "Grouped sets", value: "Active AND groups share one set count and one direction until the set flow advances." },
                   { label: "Empty inputs", value: "Blank measurements stay straight and are omitted from active grouped set behavior." },
-                  { label: SET_FLOW_DEFINITIONS.straight_sets.label, value: `${SET_FLOW_DEFINITIONS.straight_sets.shortExplanation} Best when every work set should hold the same active target.` },
+                  { label: SET_FLOW_DEFINITIONS.straight_sets.label, value: `${SET_FLOW_DEFINITIONS.straight_sets.shortExplanation} Best when every work set should hold the same active goal.` },
                   { label: SET_FLOW_DEFINITIONS.ascending_ramp.label, value: `${SET_FLOW_DEFINITIONS.ascending_ramp.shortExplanation} Set Settings define the per-set measurement movement and count span.` },
                   { label: SET_FLOW_DEFINITIONS.descending_backoff.label, value: `${SET_FLOW_DEFINITIONS.descending_backoff.shortExplanation} Useful when the first set is heaviest and later sets back off across the active measurements.` },
-                  { label: "Scope", value: "Set Settings affect the within-session example and session suggestions. They do not change post-session qualification or target updates." },
+                  { label: "Scope", value: "Set Settings affect the within-session example and session suggestions. They do not change post-session qualification or goal updates." },
                 ]}
               />
             ),
