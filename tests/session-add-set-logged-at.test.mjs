@@ -72,13 +72,19 @@ function loadActions(inserts) {
     },
     "@/lib/set-logged-at": setLoggedAt,
   };
-  const file = "src/app/session/[id]/actions.ts";
-  const exports = {};
-  runInNewContext(transpile(file), {
+  const file = "src/app/session/[id]/actions-log.ts";
+  const sharedFile = "src/app/session/[id]/actions-shared.ts";
+  const load = (target, exports) => runInNewContext(transpile(target), {
     exports,
     require: (name) => (Object.hasOwn(known, name) ? known[name] : noop),
     ...sandboxGlobals,
-  }, { filename: file });
+  }, { filename: target });
+  // The split action modules share helpers through ./actions-shared; load it with the same substituted boundaries.
+  const sharedExports = {};
+  load(sharedFile, sharedExports);
+  known["./actions-shared"] = sharedExports;
+  const exports = {};
+  load(file, exports);
   return exports;
 }
 

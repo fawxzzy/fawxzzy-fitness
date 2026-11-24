@@ -205,7 +205,7 @@ test("More menu: one sheet for Skip/Hide and Remove; Remove asks first and is of
   assert.match(focus, /guard\.savingIds\.includes\(exerciseId\) \|\| guardRow\?\.isQuickLogPending/, "the confirm re-checks a save in flight");
   assert.match(focus, /toast\.error\(REMOVE_EXERCISE_HAS_SETS_ERROR\)/, "the confirm re-checks the latest set count");
   assert.match(focus, /Removing an exercise needs a connection\./);
-  assert.match(readSource("../SessionTimers.tsx"), /onLogRequestPendingChangeRef\.current\?\.\(isLogRequestPending\)/);
+  assert.match(readSource("./SetLoggerCard.tsx"), /onLogRequestPendingChangeRef\.current\?\.\(isLogRequestPending\)/);
   assert.match(focus, /loggerLeadingAction=\{\(\s*<SessionCardMoreMenu/, "the expanded logger has the same More menu");
 });
 
@@ -221,7 +221,7 @@ test("Skip / Hide / Unskip hands focus to the swapped card (restore action or Mo
 
 test("quiet success: show, hide and skip raise no notice; set notices stay; failures still notify", () => {
   const focus = readSource("../SessionExerciseFocus.tsx");
-  const timers = readSource("../SessionTimers.tsx");
+  const timers = readSource("./SetLoggerCard.tsx");
   for (const source of [focus, timers]) {
     assert.doesNotMatch(source, /toast\.success\([^)]*(skipped|hidden|shown|Unskipped|change queued)/i);
   }
@@ -301,7 +301,7 @@ test("feedback prompt: 44px effort and signal buttons, 11px text, named groups, 
 });
 
 test("set logger (Zac 2026-11-23): toggle chips, quiet secondaries, one Log set primary, trash + confirm, no red inline error", () => {
-  const timers = readSource("../SessionTimers.tsx");
+  const timers = readSource("./SetLoggerCard.tsx");
 
   assert.doesNotMatch(timers, /<GlowSwitch/, "sliding switches clipped at the card edge; chips replace them");
   assert.equal((timers.match(/<LoggerToggleChip/g) ?? []).length, 3, "Warm-up, Failure, Timer");
@@ -325,7 +325,7 @@ test("logger controls: 44px chips with aria-pressed, Log set primary with the Pr
   assert.match(chip, /aria-pressed="true"/);
   assert.match(chip, /aria-label="Warm-up set"/);
   assert.match(renderToStaticMarkup(<LoggerToggleChip pressed={false} label="Timer" ariaLabel="Exercise timer" onPress={() => {}} />), /aria-pressed="false"/);
-  const timers = readSource("../SessionTimers.tsx");
+  const timers = readSource("./SetLoggerCard.tsx");
   assert.doesNotMatch(timers, /Active set enabled|target disabled|timer disabled/, "state lives in aria-pressed, not a name that contradicts the visible word");
   assert.match(timers, /const showLogAllAction = remainingTargetSetCount > 1;/, "one remaining set: Log set already does it");
   assert.match(chip, /\bh-11\b/);
@@ -539,7 +539,7 @@ test("logger chips (Zac 2026-11-24): a plain caption for the pressed chip(s) and
   assert.equal(resolveLoggerLogPrefix({ warmup: false, failure: false }), "Log");
   assert.match(renderToStaticMarkup(<LoggerPrimaryLogButton prefix="Log warm-up set" summaryItems={["5 reps"]} inactive={false} onPress={() => {}} />), /Log warm-up set/);
 
-  const timers = readSource("../SessionTimers.tsx");
+  const timers = readSource("./SetLoggerCard.tsx");
   assert.match(timers, /resolveLoggerLogPrefix\(\{ warmup: resolvedIsWarmup, failure: resolvedIsFailure \}\)/);
   assert.match(timers, /auxiliaryCaption=\{loggerChipCaption \?/, "the caption renders directly under the chip row");
   const panel = readSource("../ui/measurements/MeasurementPanelV2.tsx");

@@ -34,7 +34,7 @@ test("decideSessionExerciseRemoval refuses when any set is logged or the count i
 
 test("removeExerciseAction counts the row's sets and refuses before deleting", async () => {
   const { readFileSync } = await import("node:fs");
-  const source = readFileSync(new URL("../app/session/[id]/actions.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../app/session/[id]/actions-log.ts", import.meta.url), "utf8");
   const start = source.indexOf("export async function removeExerciseAction");
   const body = source.slice(start, source.indexOf("\nexport async function", start + 10));
   const countAt = body.indexOf('.from("sets")');

@@ -59,7 +59,7 @@ test("the set-log replay engine is bounded, caught and stoppable", () => {
 });
 
 test("a parked set is never silent: both the card engine and the session worker report it", () => {
-  const timersSource = readFileSync(new URL("./SessionTimers.tsx", import.meta.url), "utf8");
+  const timersSource = readFileSync(new URL("./session/SetLoggerCard.tsx", import.meta.url), "utf8");
 
   for (const source of [timersSource, syncHookSource]) {
     assert.match(source, /onTerminalFailure: \(\) => \{/);

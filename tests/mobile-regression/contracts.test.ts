@@ -290,10 +290,10 @@ test("history detail notes fall back to saved copilot feedback when exercise not
 });
 
 test("real current-session feedback path persists effort through action, query, page, and logger wiring", () => {
-  const actionSource = readSource("../../src/app/session/[id]/actions.ts");
+  const actionSource = readSource("../../src/app/session/[id]/actions-log.ts");
   const querySource = readSource("../../src/app/session/[id]/queries.ts");
   const pageSource = readSource("../../src/app/session/[id]/page.tsx");
-  const loggerSource = readSource("../../src/components/SessionTimers.tsx");
+  const loggerSource = readSource("../../src/components/session/SetLoggerCard.tsx");
 
   assert.match(actionSource, /effort:\s*number \| null/);
   assert.match(actionSource, /copilot_feedback_effort:\s*effort/);

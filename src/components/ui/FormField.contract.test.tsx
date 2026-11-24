@@ -76,7 +76,7 @@ const CALLERS = [
   "src/components/routines/RoutineEditorShared.tsx",
   "src/components/routines/RoutineEditorForm.tsx",
   "src/app/routines/CreateRoutineClient.tsx",
-  "src/components/ExercisePicker.tsx",
+  "src/components/exercise-picker/custom.tsx",
   "src/app/history/[sessionId]/LogAuditClient.tsx",
   "src/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx",
   "src/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen.tsx",
@@ -123,7 +123,7 @@ test("no caller adds an h-* utility next to formFieldControlClassName", () => {
 test("the copy-routine name and the custom exercise name carry an invalid state", () => {
   const read = (file: string) => readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
   assert.match(read("src/app/routines/CreateRoutineClient.tsx"), /<FormField\s+label="New routine name"\s+invalid=\{Boolean\(duplicateNameConflict\)\}\s+error=\{duplicateNameError\}/);
-  assert.match(read("src/components/ExercisePicker.tsx"), /<FormField label=\{fieldLabel\} className="w-full" invalid=\{isDraftNameInvalid\}>/);
+  assert.match(read("src/components/exercise-picker/custom.tsx"), /<FormField label=\{fieldLabel\} className="w-full" invalid=\{isDraftNameInvalid\}>/);
 });
 
 // Guard: a visible-labelled text/number/date/select/textarea control belongs in FormField. This scans src/ for a

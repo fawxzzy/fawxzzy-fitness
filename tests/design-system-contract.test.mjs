@@ -64,7 +64,7 @@ test("live app primitives bridge the frozen design-system pack", () => {
   const measurementPanel = readText("src/components/ui/measurements/MeasurementPanelV2.tsx");
   const measurementSummary = readText("src/components/ui/measurements/MeasurementSummary.tsx");
   const exerciseGoalForm = readText("src/components/ui/measurements/ExerciseGoalForm.tsx");
-  const sessionTimers = readText("src/components/SessionTimers.tsx");
+  const sessionTimers = readText("src/components/session/SetLoggerCard.tsx");
   const dayDetailStateCard = readText("src/components/routines/day-detail/DayDetailStateCard.tsx");
 
   assert.ok(designSystemBridge.includes("truth-pack/fitness/design-system/tokens.v1.json"));

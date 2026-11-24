@@ -87,13 +87,13 @@ test("routine forms use the C14 FormField recipe: no legend-on-border, no accent
   assert.doesNotMatch(editorForm, /labeledEditorFieldFloatingLabelClassName/);
   // Create day: the Day name field is the C14 recipe, not a hand-made label + input (lane H3).
   assert.match(code("src/app/routines/CreateRoutineDayClient.tsx"), /<FormField label="Day name" helper="Optional\. Leave blank to use the day number\.">/);
-  for (const file of ["src/app/routines/CreateRoutineClient.tsx", "src/components/ExercisePicker.tsx"]) {
+  for (const file of ["src/app/routines/CreateRoutineClient.tsx", "src/components/ExercisePicker.tsx", "src/components/exercise-picker/custom.tsx"]) {
     assert.doesNotMatch(code(file), /<LabeledEditorField\b/, `${file} still uses the legend-on-border field`);
   }
 });
 
 test("ExercisePicker selected row wraps the companion instead of collapsing the title at 320px", () => {
-  const picker = code("src/components/ExercisePicker.tsx");
+  const picker = code("src/components/exercise-picker/list.tsx");
   assert.match(picker, /data-exercise-title-companion-row="true" className="[^"]*flex-wrap/);
   assert.match(picker, /min-w-\[7rem\] max-w-\[10\.9rem\] flex-1 basis-\[7rem\]/);
 });
