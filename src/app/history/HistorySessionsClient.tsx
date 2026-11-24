@@ -16,6 +16,7 @@ import Link from "next/link";
 import { AppButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { CardEmptyState } from "@/components/ui/card-system";
+import { SkeletonRow } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -946,7 +947,7 @@ export function HistorySessionsClient({
       {isScopeLoading ? (
         <div role="status" aria-label="Loading sessions" data-history-scope-loading="true" className="grid gap-2" aria-busy="true">
           {[0, 1].map((index) => (
-            <div key={index} className="h-[4.5rem] animate-pulse rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.42)] motion-reduce:animate-none" />
+            <SkeletonRow key={index} />
           ))}
         </div>
       ) : null}

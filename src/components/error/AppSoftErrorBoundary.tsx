@@ -6,8 +6,8 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
+import { AppButton } from "@/components/ui/AppButton";
+import { CardSurface } from "@/components/ui/card-system/CardSurface";
 import { ERROR_COPY } from "@/components/error/errorCopy";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordClientBootDiagnostic } from "@/lib/boot-diagnostics";
@@ -28,7 +28,9 @@ type AppSoftErrorBoundaryState = {
 };
 
 // One line and one action, like Mazer: "Could not load", the shared crash line, "Try again". The error name never
-// shows. The first Try again re-renders the area; if it fails again the same button reloads the app.
+// shows. The first Try again re-renders the area; if it fails again the same button reloads the app. It is the same
+// card as the rest of the app (CardSurface, the Today card layout) with the one primary AppButton, 8px apart, so a
+// crashed area looks like the app and not like a different product. The words are plain text, never red.
 function AppSoftErrorFallback({
   onRetry,
 }: {
@@ -36,15 +38,19 @@ function AppSoftErrorFallback({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-4">
-      <SurfaceCard className="w-full max-w-sm space-y-4 text-center" role="alert">
-        <p className="text-base font-semibold text-[rgb(var(--text-primary))]">{ERROR_COPY.boundaryTitle}</p>
-        <p className="text-sm text-[rgb(var(--text-secondary))]">{ERROR_COPY.boundaryBody}</p>
-        <div className="flex flex-col gap-3">
-          <button type="button" className={getAppButtonClassName({ variant: "primary", fullWidth: true })} onClick={onRetry}>
+      <CardSurface showRail={false} className="w-full max-w-sm" role="alert" data-app-soft-error="true">
+        <div className="grid gap-2 p-4 text-center">
+          <h2 className="m-0 text-[length:var(--type-title-sm)] font-semibold leading-snug text-[rgb(var(--text-primary))]">
+            {ERROR_COPY.boundaryTitle}
+          </h2>
+          <p className="m-0 text-[length:var(--type-body)] leading-snug text-[rgb(var(--text-secondary))]">
+            {ERROR_COPY.boundaryBody}
+          </p>
+          <AppButton type="button" variant="primary" fullWidth className="mt-2" onClick={onRetry}>
             {ERROR_COPY.retryLabel}
-          </button>
+          </AppButton>
         </div>
-      </SurfaceCard>
+      </CardSurface>
     </div>
   );
 }

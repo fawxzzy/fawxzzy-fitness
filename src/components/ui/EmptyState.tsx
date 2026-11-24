@@ -1,29 +1,24 @@
 import type { ReactNode } from "react";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
-import { TitleText, SubtitleText } from "@/components/ui/text-roles";
-import { cn } from "@/lib/cn";
+import { CardEmptyState } from "@/components/ui/card-system/CardEmptyState";
 
+/**
+ * "Nothing here yet" for any list or screen. A thin wrapper over `CardEmptyState` (the one empty-state card: dashed
+ * outline, card title scale, plain-text body, one optional action), kept so older imports keep working. The title is
+ * a heading (level 2 by default, pass `headingLevel` to fit the page outline); the body says what to do next in plain
+ * words, never a red error.
+ */
 export function EmptyState({
   title,
   body,
   action,
+  headingLevel = 2,
   className,
 }: {
   title: ReactNode;
   body: ReactNode;
   action?: ReactNode;
+  headingLevel?: 2 | 3 | 4;
   className?: string;
 }) {
-  return (
-    <SurfaceCard className={cn("items-start text-left", className)}>
-      <div className="space-y-2">
-        <div className="h-10 w-10 rounded-[var(--radius-md)] border border-[rgb(var(--border)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.9)]" />
-        <TitleText as="h3" className="text-[1.3125rem]">
-          {title}
-        </TitleText>
-        <SubtitleText className="block max-w-[32ch]">{body}</SubtitleText>
-      </div>
-      {action ? <div>{action}</div> : null}
-    </SurfaceCard>
-  );
+  return <CardEmptyState title={title} body={body} action={action} headingLevel={headingLevel} className={className} />;
 }
