@@ -183,7 +183,7 @@ test("middleware durably refreshes the authenticated local account session", asy
   assert.match(setCookie, /sb-refresh-token=account-refresh-rotated/);
 });
 
-test("middleware leaves the optional day review fixture public without session cookies", async () => {
+test("middleware leaves the retired optional day review route public without session cookies (the page itself now redirects to /routines)", async () => {
   const response = await handleAuthSessionMiddleware(
     new NextRequest("https://example.com/review/optional-planned-day"),
   );

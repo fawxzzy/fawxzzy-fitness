@@ -612,7 +612,7 @@ export function ProgressionReviewCard({
         <button
           type="button"
           className={cn(
-            "group relative block w-full select-none appearance-none !border-0 !bg-[rgba(var(--bg-app),0.82)] px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+            "group relative block w-full select-none appearance-none !border-0 !bg-[rgb(var(--bg-app)/0.82)] px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
             appTokens.routineEditorInlineTitle,
           )}
           onClick={() => setExpanded(!isExpanded)}

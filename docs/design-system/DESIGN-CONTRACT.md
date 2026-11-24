@@ -255,7 +255,7 @@ Shot ids from the gallery. "Rule" points at the section above. Each lane re-meas
 | 12 | Header grammar: left vs centred; colon/pipe/bullet separators; 13px titles; title under the back chevron (tab screens fixed in H0; detail screens in H1) | `mr--today-in-session-summary`, `mr--view-day`, `mr--edit-day-default`, `mr--add-exercise-default`, `mr--create-routine`, `mr--exercise-detail-strength`, `dev--ui-contract` | 15 |
 | 13 | Same control, two treatments (Measurement Labels / Routine Type / Time Zone: card rows vs centred rules; underline title) | `routine-editor--editor-collapsed` vs `real--routines-new--create-routine-draft`, `mr--edit-routine`, `real--routines-id-edit--edit-routine` | 3, 4.4 |
 | 14 | Native date and select leak; legend-on-border; underline inputs | `mr--history-progression-default`, `mr--settings-data-export`, `routine-editor--editor-open`, `dev--curated-onboarding`, `mr--add-exercise-custom-taxonomy` | C14, C15 |
-| 15 | Developer and internal copy visible; raw error strings | `mr--history-progression-default`, `real--history-progression--progression-history`, `mr--settings-data-export` ("Failed to fetch"), `dev--app-boundary-probe-crash` ("(Error)", "app-shell"), `mr--edit-day-add-exercise`, `real--review-optional-planned-day--optional-planned-day-review`, `dev--history-preview-status` | 8.3, 9.1 |
+| 15 | Developer and internal copy visible; raw error strings | `mr--history-progression-default`, `real--history-progression--progression-history`, `mr--settings-data-export` ("Failed to fetch"), `dev--app-boundary-probe-crash` ("(Error)", "app-shell"), `mr--edit-day-add-exercise`, `real--review-optional-planned-day--optional-planned-day-review` (retired route: it now redirects to `/routines`, so this capture id is historical and no longer renders), `dev--history-preview-status` | 8.3, 9.1 |
 | 16 | Bare framework 404 | `pub--not-found`, `pub--not-found-privacy-subpath`, `real--routines-id--id-not-found-other-user-s-routine-404` | 8.3 |
 | 17 | Expired-link and hand-off error cards: tiny text in a huge card, no action | `auth-lab--reset-password-expired`, `pub--reset-password`, `auth-lab--entry-handoff-error` | 8.3 |
 | 18 | Six indistinguishable splash screens | `auth-lab--install`, `auth-lab--reset-password-linking`, `auth-lab--loading-boot`, `auth-lab--loading-route`, `auth-lab--entry-handoff`, `auth-lab--curated-restore-loading` | 8.1 |
@@ -340,7 +340,6 @@ Workout cards open and close three ways (2026-11-24), all the same toggle and on
 | Routine setup (`/onboarding`) | `Routine setup` | none (the step and `N% done` sit in the body, the step name is an `h2`) | Today | `Start over` |
 | Account (`/account`, direct visit only) | `Account` | none (the rows show the username and email) | Settings | none |
 | Terms, Privacy | the document name | none | `returnTo` when it is an in-app path, else Settings | none |
-| Optional day preview (`/review/optional-planned-day`) | `Optional workout day` | `Preview` | Routines | none |
 | Add exercise, routine day (`/routines/[id]/edit/day/[dayId]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the day editor (`Back to day`) | none |
 | Add exercise, live workout (`/session/[id]/add-exercise`) | `Add exercise` | `<day> · <routine>` | the workout (`Back to workout`) | none |
 

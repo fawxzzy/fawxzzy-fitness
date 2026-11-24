@@ -155,7 +155,6 @@ test("detail screens render the standard detail header with Back on the left", (
     ["src/components/account/AccountScreen.tsx", /<ScreenHeader\s+kind="detail"\s+title="Account"/],
     ["src/features/curated-onboarding/components/CuratedOnboardingShell.tsx", /<ScreenHeader\s+kind="detail"\s+title="Routine setup"/],
     ["src/components/legal/LegalDocumentLayout.tsx", /<ScreenHeader kind="detail" title=\{title\}/],
-    ["src/app/review/optional-planned-day/page.tsx", /<ScreenHeader\s+kind="detail"\s+title="Optional workout day"/],
   ];
   for (const [path, pattern] of cases) {
     const source = read(path);

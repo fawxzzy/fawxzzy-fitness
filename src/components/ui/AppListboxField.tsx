@@ -21,7 +21,7 @@ type AppListboxFieldProps = {
   buttonClassName?: string;
 };
 
-export const APP_LISTBOX_MENU_SURFACE_CLASSNAME = "fixed z-[90] overflow-hidden rounded-xl border border-white/12 bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0.95),rgba(var(--surface-rgb),0.95))] p-1 shadow-[0_18px_40px_rgba(0,0,0,0.42)] backdrop-blur-md";
+export const APP_LISTBOX_MENU_SURFACE_CLASSNAME = "fixed z-[90] overflow-hidden rounded-xl border border-white/12 bg-[linear-gradient(180deg,rgb(var(--surface-rgb)/0.95),rgb(var(--surface-rgb)/0.95))] p-1 shadow-[0_18px_40px_rgba(0,0,0,0.42)] backdrop-blur-md";
 
 export function AppListboxField({
   label,

@@ -134,7 +134,7 @@ function renderRightContent(content: ReactNode) {
 export function ExerciseCardStandardTitle({
   name,
   metadata,
-  rightTitle = "Current Target",
+  rightTitle = null,
   rightContent,
   rightAccessory,
   rightSubcontent,

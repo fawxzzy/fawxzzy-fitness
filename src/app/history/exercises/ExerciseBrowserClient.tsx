@@ -10,6 +10,7 @@ import { HistoryFilterBar, type HistoryActiveFilterChip, type HistoryFilterGroup
 import { HistoryHeaderDensityToggle } from "@/components/history/HistoryHeaderDensityToggle";
 import { AppButton } from "@/components/ui/AppButton";
 import { CardEmptyState } from "@/components/ui/card-system";
+import { SkeletonRow } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -610,7 +611,7 @@ export function ExerciseBrowserClient({
         {isScopeLoading ? (
           <div role="status" aria-label="Loading exercises" aria-busy="true" data-history-scope-loading="true" className="grid gap-2 pt-2">
             {[0, 1].map((index) => (
-              <div key={index} className="h-[4.5rem] animate-pulse rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.42)] motion-reduce:animate-none" />
+              <SkeletonRow key={index} />
             ))}
           </div>
         ) : null}

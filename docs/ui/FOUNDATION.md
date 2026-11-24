@@ -102,6 +102,44 @@ path), so one implementation serves every screen.
 - `useFieldErrorNotice(error, { id })` for custom fields that do not use `FormField`.
 - Without a `ToastProvider` these are no-ops (tests, isolated fixtures).
 
+## App-wide states (F1, 2026-11-24)
+
+One look for every state a screen can be in other than "has data".
+
+| State | Component | Rule |
+| --- | --- | --- |
+| Loading (boot, a route, a gate) | `RouteLoading` / `loading.tsx` -> the single `AppLoaderHost` overlay | `RouteLoading` draws nothing, it only registers a wait; the host owns the delay, hold and fade (`src/lib/app-loader.ts`). Every `page.tsx` has a `loading.tsx` at or above its segment (root `app/loading.tsx` covers the rest; `appStates.contract.test.tsx` enforces it). A loading.tsx never draws its own spinner or skeleton. |
+| Loading a list inside a screen | `SkeletonList` (`SkeletonRow`, `SkeletonCard`, `SkeletonLine`, `SkeletonThumb`) | Card-shaped blocks on the card tokens, 8px apart, `animate-pulse motion-reduce:animate-none`; the wrapper carries `role="status"`, a name ("Loading sessions") and `aria-busy`, the blocks are `aria-hidden`. |
+| Nothing here yet | `EmptyState` (a thin wrapper over `CardEmptyState`) | Dashed card, a heading, one plain sentence saying what to do, at most one action. Never red. |
+| Could not load, whole screen | `AppRecoveryScreen`, `error.tsx`, `global-error.tsx` | The Auth Surface v2 status shell (`AuthStatusScreen`): "Could not load", the shared crash notice, `Try again` plus `Go to Today`. The error name never shows. |
+| Could not load, one area | `AppSoftErrorBoundary` | The same words on a `CardSurface` with the one primary `AppButton`, so a crashed area still looks like the app. |
+| Not found | `not-found.tsx` (`NotFoundScreen`) | "Page not found" + `Go to Today`. |
+| Offline | each route's `*OfflineShell` | Cached content when there is a snapshot, else a `CardEmptyState` saying nothing is cached. |
+| Retired routes | `/exercises/[exerciseId]`, `/review/optional-planned-day` | Redirect-only (the first to its safe `returnTo` or `/history/exercises`, the second to `/routines`); nothing links to either, a stale bookmark still lands somewhere useful. |
+
+Auth and status screens (login, install, privacy, terms, the screens above) keep their link rows as real 44px boxes:
+`.fx-links` and `.fx-legal` are each 44px tall and stack with no gap, and every `.fx-link` / `.fx-legal a` is
+`inline-flex` with `min-height` / `min-width` 44px. Nothing hangs past its row on an invisible `::after`, so two
+neighbouring rows can never overlap (the old 11px overhang overlapped the legal row at 390 and 320).
+
+### Notice placement (decision, 2026-11-24)
+
+Errors and status notices go through the shared notice (`ToastProvider`); where it renders is one prop on the screen
+shell, `noticePlacement`:
+
+- `under-header` (the default, in flow): every screen. The message sits where the person just looked, directly under
+  the title, and content moves down by one row while it shows. Right for forms, settings, auth and list screens: a
+  notice appears after a deliberate tap near the top or after a save, and the screen is not under live manipulation.
+- `above-dock` (overlay, out of flow): only a screen that is manipulated continuously with its dock in reach, where a
+  notice that moves cards would move the card the person is about to tap. Today that is the live workout alone
+  (`SessionPageClient`, `SessionOfflineShell`).
+- Inside a `Sheet`, notices render in the sheet's own slot (see Sheet).
+
+Not migrated in this lane, because each belongs to a lane that is open or in review: the dock screens Add exercise
+(PR #306), Create day / Days library and the routine and day editors (Routines lane). They keep the in-flow default
+until their lane decides, with the same two-line test: does a long scrolling body sit above a dock that raises the
+error? If yes, opt in with `noticePlacement="above-dock"` (and reserve `--app-dock-notice-band`), otherwise stay in flow.
+
 ## Cascade trap: the global button surface
 
 `globals.css` has an unlayered `button, [type="button"] { background; border; color }` rule after `@tailwind utilities`.
@@ -109,6 +147,11 @@ At equal specificity it beats plain `bg-*` / `border-*` / `text-*` utilities on 
 classes silently do nothing. Shared primitives set button colours with the `[button&]:` variant (`button.cls`,
 specificity 0,1,1), which beats the global rule and still loses to a caller's `!` override. `Chip`'s `ChipButton`, the
 `Menu` rows and the Sheet Close button do this; before, every filter chip looked the same on or off and menu rows were boxed with no danger red.
+
+Moving that rule into `@layer base` (or `:where()`) was evaluated in the F1 lane and left alone: it flips the winner
+for every `<button>` that carries its own `bg-*` / `border-*` / `text-*` classes, which today are silently ignored, so
+every such button would change look at once. That needs a per-surface capture pass (not a one-lane sweep); it is listed as
+a follow-up. Until then keep using the `[button&]:` variant in shared primitives.
 
 ## When to use which
 
