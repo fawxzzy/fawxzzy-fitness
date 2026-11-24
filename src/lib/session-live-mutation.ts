@@ -69,3 +69,20 @@ export async function guardLiveSessionMutation(
 
   return { ok: true, data: { session, sessionExercise } };
 }
+
+// Remove from workout deletes the session_exercises row, and its sets cascade with it (001_init.sql). The card only offers
+// Remove before any set is logged, but that count can be stale (another tab, a queued set that just synced), so the server
+// re-checks and refuses instead of losing logged sets. A failed count read refuses too (fail closed). The message is shown
+// as the in-flow notice.
+export const REMOVE_EXERCISE_HAS_SETS_ERROR = "This exercise has logged sets, so it stays. Skip or hide it instead.";
+export const REMOVE_EXERCISE_CHECK_ERROR = "Could not check this exercise's sets. Try again.";
+
+export function decideSessionExerciseRemoval(loggedSetCount: number | null): ActionResult {
+  if (loggedSetCount === null || !Number.isFinite(loggedSetCount)) {
+    return { ok: false, error: REMOVE_EXERCISE_CHECK_ERROR };
+  }
+  if (loggedSetCount > 0) {
+    return { ok: false, error: REMOVE_EXERCISE_HAS_SETS_ERROR };
+  }
+  return { ok: true };
+}

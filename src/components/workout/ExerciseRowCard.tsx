@@ -93,6 +93,8 @@ export function ExerciseRowCard({
   footer,
   stickyHeader = false,
   allowOverflow = false,
+  titleAccessory,
+  showAffordance = true,
   className,
 }: {
   exercise: ExerciseRowCardVisual;
@@ -122,6 +124,10 @@ export function ExerciseRowCard({
   stickyHeader?: boolean;
   /** Let panel content escape the rounded clip (session set logger popovers). Implied by `stickyHeader` while open. */
   allowOverflow?: boolean;
+  /** Inline status on the title line, after the name (live workout: the Skipped / Added chip). Off by default. */
+  titleAccessory?: ReactNode;
+  /** Show the header chevron (default true). The live workout card hides it: the card itself is the expand target. */
+  showAffordance?: boolean;
   className?: string;
 }) {
   const showNoTarget = targetValues.length === 0 && Boolean(noTargetLabel);
@@ -161,7 +167,13 @@ export function ExerciseRowCard({
   const header = (
     <CardHeader
       headingLevel={headingLevel}
-      title={completed ? <>{exercise.name}<ExerciseDoneCheck /></> : exercise.name}
+      title={titleAccessory ? (
+        <span data-exercise-title-line="true" className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="min-w-0">{exercise.name}</span>
+          {completed ? <ExerciseDoneCheck /> : null}
+          {titleAccessory}
+        </span>
+      ) : completed ? <>{exercise.name}<ExerciseDoneCheck /></> : exercise.name}
       meta={metaItems.length > 0 ? <CardMeta items={metaItems} /> : undefined}
       chips={chips}
       details={details}
@@ -169,6 +181,7 @@ export function ExerciseRowCard({
       trailing={sideColumn}
       trailingClassName="pointer-events-none flex-col self-stretch !items-end justify-between gap-2 py-2"
       interaction={interaction}
+      showAffordance={showAffordance}
     />
   );
 

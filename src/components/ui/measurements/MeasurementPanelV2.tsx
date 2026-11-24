@@ -426,6 +426,8 @@ export function MeasurementPanelV2({
   layoutMode = "grid",
   labelTreatment = "inline",
   showInlineStepControls = false,
+  wrapHorizontalFields = false,
+  auxiliaryCaption,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -488,6 +490,18 @@ export function MeasurementPanelV2({
   layoutMode?: "grid" | "horizontal-scroll";
   labelTreatment?: "inline" | "floating-border";
   showInlineStepControls?: boolean;
+  /**
+   * Opt-in for `horizontal-scroll`: instead of one fixed-width rail that scrolls (and clips the edge fields), the
+   * auxiliary toggles share one equal-column row and the metric fields wrap into columns at least 8.25rem wide
+   * (an odd last field spans the row). Nothing is ever cut off. Default false keeps the scrolling rail for other
+   * callers (History log audit).
+   */
+  wrapHorizontalFields?: boolean;
+  /**
+   * One line directly under the wrapped auxiliary row (wrapHorizontalFields only) that says what the pressed toggles
+   * do, e.g. the workout logger's "Warm-up: listed apart, not used for progression". Null renders nothing.
+   */
+  auxiliaryCaption?: ReactNode;
 }) {
   const horizontalRailRef = useRef<HTMLDivElement | null>(null);
   const horizontalRailPointerStateRef = useRef<HorizontalRailPointerState | null>(null);
@@ -1484,7 +1498,40 @@ export function MeasurementPanelV2({
 
           {useHorizontalScrollLayout ? (
             <>
-              {horizontalAuxiliaryFields.length > 0 ? (
+              {wrapHorizontalFields ? (
+                <>
+                  {horizontalAuxiliaryFields.length > 0 ? (
+                    <div
+                      data-measurement-aux-row="wrap"
+                      className="grid gap-2 pb-1 pt-1"
+                      style={{ gridTemplateColumns: `repeat(${horizontalAuxiliaryFields.length}, minmax(0, 1fr))` }}
+                    >
+                      {horizontalAuxiliaryFields.map((field) => (
+                        <div key={field.id} className="min-w-0 [&>*]:!min-h-0">
+                          {field.node}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {horizontalAuxiliaryFields.length > 0 && auxiliaryCaption ? (
+                    <div data-measurement-aux-caption="true" className="px-1">
+                      {auxiliaryCaption}
+                    </div>
+                  ) : null}
+                  <div
+                    data-measurement-field-wrap="true"
+                    className="grid grid-cols-[repeat(auto-fit,minmax(8.25rem,1fr))] gap-x-2 gap-y-3 pb-1 pt-2 [&>*:last-child:nth-child(odd)]:col-span-full"
+                  >
+                    {horizontalRowPrefix ? <div className="min-w-0">{horizontalRowPrefix}</div> : null}
+                    {horizontalMetricFields.map((field) => (
+                      <div key={field.id} className="min-w-0 [&>*]:!min-h-0">
+                        {field.node}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              {!wrapHorizontalFields && horizontalAuxiliaryFields.length > 0 ? (
                 <div className="flex flex-nowrap items-center justify-center gap-1 pb-1 pt-1">
                   {horizontalAuxiliaryFields.map((field) => (
                     <div key={field.id} className="shrink-0 [&_button]:!w-[7.1rem]">
@@ -1493,6 +1540,7 @@ export function MeasurementPanelV2({
                   ))}
                 </div>
               ) : null}
+              {wrapHorizontalFields ? null : (
               <HorizontalScrollHint
                 className="-mx-1 relative overflow-visible"
                 scrollRef={horizontalRailRef}
@@ -1522,6 +1570,7 @@ export function MeasurementPanelV2({
                     </div>
                   ))}
               </HorizontalScrollHint>
+              )}
             </>
           ) : metricRows.map((row, rowIndex) => {
             if (row.length === 1) {

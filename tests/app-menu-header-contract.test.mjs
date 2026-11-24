@@ -107,16 +107,18 @@ test("ScreenHeader puts the inline status after the title and the app menu at th
   assert.match(tokens, /row: "flex min-h-11 min-w-0 items-start/, "row is top aligned so the title shares the button line");
 });
 
-test("the four tab screens and the live workout show the app menu; the old tab bar is gone", () => {
+test("the four tab screens show the app menu; the live workout has Pause instead; the old tab bar is gone", () => {
   for (const path of [
     "src/components/today/TodayScreenFamily.tsx",
     "src/app/routines/page.tsx",
     "src/app/settings/page.tsx",
     "src/components/history/HistoryRouteScaffold.tsx",
-    "src/components/SessionPageClient.tsx",
-    "src/app/session/[id]/SessionOfflineShell.tsx",
   ]) {
     assert.match(read(path), /headerMenu=\{(?:showTopChrome \? )?<AppMenu \/>/, path);
+  }
+  // Zac 2026-11-23: the in-progress workout has no app menu; Pause (top right) returns to Today and Finish ends it.
+  for (const path of ["src/components/SessionPageClient.tsx", "src/app/session/[id]/SessionOfflineShell.tsx"]) {
+    assert.doesNotMatch(read(path), /headerMenu=|<AppMenu\b/, path + ": no app menu on the live workout");
   }
   const offenders = listSourceFiles("src").filter((path) => /<AppNav\b|topChrome=\{<AppNav/.test(read(path)));
   assert.deepEqual(offenders, []);
@@ -167,6 +169,11 @@ test("dock buttons are flat: no gloss gradient, no drop shadow, token colours", 
   assert.deepEqual(dockProblems(css), []);
   const shell = read("src/components/shared/mobile-shell/MobileScreenShell.tsx");
   assert.match(shell, /ref=\{dockRef\}\s*data-app-bottom-dock=""/, "the screen dock carries the scope attribute");
+  // 2026-11-23: rgba(var(--bg-app),a) is invalid CSS (the token is space-separated), so the dock had no background and
+  // card text showed through it on Safari, which skips the blur. The dock cover must use the valid "/ alpha" syntax.
+  const dockLayer = shell.slice(shell.indexOf('data-app-bottom-dock=""'), shell.indexOf("{bottomDock ?"));
+  assert.match(dockLayer, /bg-\[linear-gradient\(180deg,rgb\(var\(--bg-app\)\/0\.9\)_0%,rgb\(var\(--bg-app\)\)_16%/);
+  assert.doesNotMatch(dockLayer, /rgba\(var\(--bg-app\),/);
   // Mutation guards.
   assert.notDeepEqual(dockProblems(css.replaceAll(DOCK, "")), [], "unscoped rules do not count");
   assert.notDeepEqual(dockProblems(css.replace("--bottom-action-shadow: none;", "--bottom-action-shadow: 0 8px 18px rgb(0 0 0 / 0.16);")), []);
@@ -215,9 +222,10 @@ function screenHeaderSlotProblems(headerSource) {
 test("the app menu is opt-in: only screen-level headers render it, never a sheet or dialog header", () => {
   const files = listSourceFiles("src").map((path) => [path.replaceAll("\\", "/"), read(path)]).filter(([, s]) => s.includes("<ScreenHeader"));
   assert.deepEqual(appMenuOptInProblems(files), []);
-  for (const path of ["src/app/today/TodayDayPicker.tsx", "src/app/routines/page.tsx", "src/components/SessionHeaderControls.tsx", "src/components/settings/SettingsFloatingHeader.tsx", "src/components/history/HistoryRouteScaffold.tsx"]) {
+  for (const path of ["src/app/today/TodayDayPicker.tsx", "src/app/routines/page.tsx", "src/components/settings/SettingsFloatingHeader.tsx", "src/components/history/HistoryRouteScaffold.tsx"]) {
     assert.match(read(path), /<ScreenHeader\b[^>]*?\sappMenu\b/s, `${path} opts in`);
   }
+  assert.doesNotMatch(read("src/components/SessionHeaderControls.tsx"), /\bappMenu\b/, "the live workout header never opts in (Pause sits there)");
   const sheet = read("src/components/ExerciseInfoSheet.tsx");
   assert.doesNotMatch(sheet, /\bappMenu\b/, "the exercise info sheet header never opts in");
   const header = read("src/components/ui/app/ScreenHeader.tsx");

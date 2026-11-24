@@ -14,6 +14,8 @@ type BottomSheetProps = {
   className?: string;
   description?: React.ReactNode;
   contentClassName?: string;
+  /** Small label above the title. Defaults to "Sheet"; pass null to drop it (action menus titled by their subject). */
+  eyebrow?: string | null;
 };
 
 const FOCUSABLE_SELECTOR = [
@@ -33,7 +35,7 @@ function getFocusableSheetElements(container: HTMLElement | null) {
   );
 }
 
-export function BottomSheet({ open, title, onClose, children, className, description, contentClassName }: BottomSheetProps) {
+export function BottomSheet({ open, title, onClose, children, className, description, contentClassName, eyebrow = "Sheet" }: BottomSheetProps) {
   const titleId = useId();
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
@@ -116,7 +118,9 @@ export function BottomSheet({ open, title, onClose, children, className, descrip
         <div className="fixed inset-0 z-[120] flex items-end justify-center" role="presentation">
           <motion.button
             type="button"
-            className={overlayChromeClassNames.scrim}
+            // The scrim is a <button>: the global button surface background painted it opaque, hiding the screen behind
+            // the sheet. `!` keeps the translucent scrim (cn() does not dedupe Tailwind classes).
+            className={cn(overlayChromeClassNames.scrim, "!border-0 !bg-[rgba(3,8,14,0.68)] !shadow-none")}
             aria-label={`Close ${title}`}
             onClick={onClose}
             initial={{ opacity: 0 }}
@@ -142,7 +146,7 @@ export function BottomSheet({ open, title, onClose, children, className, descrip
             style={{ willChange: "opacity, transform" }}
           >
             <div className={overlayChromeClassNames.handle} aria-hidden="true" />
-            <OverlayHeaderBlock eyebrow="Sheet" title={title} titleId={titleId} description={description} />
+            <OverlayHeaderBlock eyebrow={eyebrow ?? undefined} title={title} titleId={titleId} description={description} />
             <div className={cn(overlayChromeClassNames.body, contentClassName)}>{children}</div>
           </motion.div>
         </div>

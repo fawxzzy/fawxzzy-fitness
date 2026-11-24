@@ -559,6 +559,7 @@ export default async function SessionPage(props: PageProps) {
     capturedAt: new Date().toISOString(),
     routineName,
     sessionDayName,
+    completed: sessionRow.status === "completed",
     exercises: sessionExerciseItems.map((exercise) => ({
       id: exercise.id,
       exerciseId: exercise.exerciseId,

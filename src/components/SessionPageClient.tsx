@@ -11,7 +11,6 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { AppMenu } from "@/components/AppNav";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
@@ -201,21 +200,25 @@ export function SessionPageClient({
   }, [baseDurationSeconds, isSessionCompleted, performedAt]);
 
   const hasExercises = exercises.length > 0;
-  // The header stays on screen while an exercise is open: Back is always top left (DESIGN-CONTRACT.md section 15).
-  // Opening an exercise only rewrites the URL in place, so the first Back tap closes it and the second leaves.
+  // The header stays on screen while an exercise is open. No app menu here: Pause (top right) returns to Today with
+  // the workout still running, Finish (dock) ends it (sessionBackAction.ts). A completed workout shows Back instead.
   const floatingHeader = (
     <SessionHeaderControls
       routineName={routineName}
       sessionDayName={sessionDayName}
       backHref={fallbackReturnHref ?? "/today"}
       statusBadge={<OfflineSyncBadge userId={userId} variant="header" />}
-      exerciseOpen={selectedExerciseId !== null}
-      onCloseExercise={() => setSelectedExerciseId(null)}
+      completed={isSessionCompleted}
     />
   );
 
   const emptyState = useMemo(
-    () => (hasExercises ? null : <p className={appTokens.currentSessionEmptyState}>No exercises yet.</p>),
+    () => (hasExercises ? null : (
+      <div data-session-empty="true" className={cn(appTokens.currentSessionEmptyState, "grid gap-1 py-4 text-center")}>
+        <p className="text-[15px] font-semibold text-[rgb(var(--text-primary))]">No exercises yet</p>
+        <p>Tap Add below to put the first exercise in this workout.</p>
+      </div>
+    )),
     [hasExercises],
   );
   const sessionActions = useMemo(
@@ -277,7 +280,7 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} headerMenu={<AppMenu />} floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader} noticePlacement="above-dock">
       <PublishBottomActions>{sessionActions}</PublishBottomActions>
 
       <ContentRail className={cn(appTokens.currentSessionContentRail, "!gap-0 !py-0")}>

@@ -218,7 +218,8 @@ export function resolveQuickLogFromResolvedTarget(
 }
 
 function formatQuickLogActionLabel(payload: SessionQuickLogActionPayload) {
-  const prefix = payload.isWarmup ? "Log Warm-Up" : (payload.notes ? "Log Failure" : "Log");
+  // Same words as the logger's Log set button (loggerChipCaption.ts resolveLoggerLogPrefix).
+  const prefix = payload.isWarmup ? "Log warm-up set" : (payload.notes ? "Log failure set" : "Log");
   const summaries = [
     hasValue(payload.reps) ? `${payload.reps} reps` : null,
     hasValue(payload.weight) ? `${payload.weight} ${payload.weightUnit}` : null,

@@ -7,12 +7,24 @@ import { getDurationWholeMinutes } from "../../lib/duration.ts";
 import { SessionExerciseFeedbackPrompt } from "./SessionExerciseFeedbackPrompt.tsx";
 import { TodayExerciseRows } from "../../app/today/TodayExerciseRows.tsx";
 import {
+  formatLoggerSummary,
+  LoggedSetDeleteButton,
+  LoggerPrimaryLogButton,
+  LoggerSecondaryButton,
+  LoggerToggleChip,
+} from "./SetLoggerControls.tsx";
+import { describeLoggerChips, LOGGER_CHIP_CAPTIONS, resolveLoggerLogPrefix } from "./loggerChipCaption.ts";
+import {
   buildSessionFinishedFacts,
+  SessionCardExpandHandle,
   SessionExerciseRowCard,
   SessionFinishedCard,
+  SessionCardBarButton,
+  SessionCardMoreMenu,
   SessionHiddenRowCard,
   SessionQuickLogRow,
   SessionRowActionButton,
+  getSessionSkipMenuLabel,
 } from "./SessionRowCards.tsx";
 
 function readSource(path: string) {
@@ -93,49 +105,63 @@ test("info control is a sibling 44px card control (not inside the header button)
   assert.doesNotMatch(html, /<button[^>]*data-card-hit[^>]*>[^<]*<(button|span)/, "header button has no children");
 });
 
-test("status: a finished row is a check beside the name (no chip); SKIPPED keeps its glyph chip, Added is plain text, none renders no chip", () => {
+test("status (Zac 2026-11-23): no check and no chevron; Skipped and Added sit on the title line; hidden cards keep the thumbnail", () => {
   const done = renderRow(false, { status: "done" });
-  assert.match(done, /<h2[^>]*data-card-title="true"[^>]*>Zed Press<span data-exercise-done-check="true"[^>]*>[\s\S]*?<span class="sr-only">, done<\/span><\/span><\/h2>/);
-  assert.match(done, /data-exercise-done-check="true"[^>]*motion-reduce:animate-none/);
+  assert.doesNotMatch(done, /data-exercise-done-check/);
   assert.doesNotMatch(done, /data-card-chip=/);
-  assert.doesNotMatch(renderRow(false, { status: null }), /data-exercise-done-check/);
+  assert.doesNotMatch(done, /data-card-affordance|chevron/i, "no chevron: the whole header is the toggle");
+  assert.doesNotMatch(renderRow(false, { status: null }), /data-card-chip=/);
+
+  const added = renderRow(false, { status: "added" });
+  assert.match(added, /<h2[^>]*data-card-title="true"[^>]*>[\s\S]*Zed Press[\s\S]*Added[\s\S]*<\/h2>/, "Added is inline with the name");
+
   const hiddenDone = renderToStaticMarkup(
     <SessionHiddenRowCard exercise={exercise} status="done" progress={null} action={<button type="button">Show</button>} />,
   );
-  assert.match(hiddenDone, /data-exercise-done-check="true"/);
-  assert.doesNotMatch(hiddenDone, /data-card-chip=/);
-  assert.match(renderRow(false, { status: "added" }), />Added</);
-  assert.doesNotMatch(renderRow(false, { status: null }), /data-card-chip=/);
-  const hidden = renderToStaticMarkup(
+  assert.doesNotMatch(hiddenDone, /data-exercise-done-check|data-card-chip=/);
+  assert.match(hiddenDone, /data-exercise-thumb-slot|data-card-leading|<img/, "hidden card keeps the image top right");
+
+  const skipped = renderToStaticMarkup(
     <SessionHiddenRowCard exercise={exercise} status="skipped" progress={null} action={<button type="button">Unskip</button>} />,
   );
-  assert.match(hidden, /⊘[\s\S]*Skipped/);
-  assert.match(hidden, /Unskip/);
-  assert.doesNotMatch(hidden, /data-card-leading|data-exercise-thumb-slot/, "hidden row has no thumbnail");
-  assert.doesNotMatch(hidden, /data-exercise-done-check/);
+  assert.match(skipped, /<h2[^>]*data-card-title="true"[^>]*>[\s\S]*Zed Press[\s\S]*⊘[\s\S]*Skipped[\s\S]*<\/h2>/, "Skipped is on the title line");
+  assert.match(skipped, /data-exercise-thumb-slot|data-card-leading|<img/, "skipped card keeps the image top right");
+  assert.match(skipped, /data-session-card-bar="true"[\s\S]*Unskip/, "the restore action sits in the card bar");
 });
 
-test("quick-log row: Skip, Log all and Log set keep their order, 44px height class and label-in-name", () => {
+test("card bar: More, Log all and Log set in that order, every control a 44px pill inside the card, label-in-name", () => {
   const html = renderToStaticMarkup(
     <SessionQuickLogRow exerciseName="Zed Press" logAllCount={3} rowContract={baseRowContract} onSkip={() => {}} onPress={() => {}} />,
   );
   const buttons = html.match(/<button[\s\S]*?<\/button>/g) ?? [];
 
   assert.equal(buttons.length, 3);
-  assert.match(buttons[0], /aria-label="Skip: Zed Press"/);
-  assert.match(buttons[0], /!h-11/);
+  assert.match(buttons[0], /aria-label="More actions for Zed Press"/);
+  assert.match(buttons[0], /aria-haspopup="dialog"/);
+  assert.match(buttons[0], /aria-expanded="false"/);
   assert.match(buttons[1], /aria-label="Log all remaining sets: Zed Press"/);
-  assert.match(buttons[2], /Log/);
+  assert.match(buttons[1], />Log all</);
+  assert.match(buttons[2], />Log set</);
   assert.match(buttons[2], /5 reps · 225 lbs/);
-  assert.match(html, /role="group" aria-label="Quick actions for Zed Press"/);
+  for (const button of buttons) {
+    assert.match(button, /\bh-11\b/, "44px tall");
+    assert.match(button, /min-w-11/, "never narrower than 44px");
+  }
+  assert.doesNotMatch(buttons[2], /promote-shine/, "no shine on the card: the sweep is the logger's primary only");
+  assert.match(html, /data-session-card-bar="true" role="group" aria-label="Quick actions for Zed Press"/);
+  assert.match(html, /px-3 pb-3 pt-1/, "padded inside the card, not an edge-to-edge strip");
   assert.doesNotMatch(html, /text-\[(9|10)px\]/);
+  assert.doesNotMatch(html, />Skip</, "Skip moved into the More menu");
 });
 
-test("quick-log row without remaining sets drops Log all; pending and disabled states use aria-disabled, never native disabled", () => {
+test("card bar without remaining sets drops Log all; pending and disabled states use aria-disabled, never native disabled", () => {
   const two = renderToStaticMarkup(
     <SessionQuickLogRow exerciseName="Zed Press" logAllCount={0} rowContract={baseRowContract} onSkip={() => {}} onPress={() => {}} />,
   );
   assert.equal((two.match(/<button/g) ?? []).length, 2);
+  assert.equal((renderToStaticMarkup(
+    <SessionQuickLogRow exerciseName="Zed Press" logAllCount={1} rowContract={baseRowContract} onSkip={() => {}} onPress={() => {}} />,
+  ).match(/<button/g) ?? []).length, 2, "one remaining set: Log set already does it");
 
   const pending = renderToStaticMarkup(
     <SessionQuickLogRow
@@ -146,7 +172,7 @@ test("quick-log row without remaining sets drops Log all; pending and disabled s
       onPress={() => {}}
     />,
   );
-  assert.equal((pending.match(/aria-disabled="true"/g) ?? []).length, 3);
+  assert.equal((pending.match(/aria-disabled="true"/g) ?? []).length, 2, "Log all and Log set wait; More stays usable");
   assert.doesNotMatch(pending, /\sdisabled(=|\s|>)/, "focus survives a pending save: no native disabled");
   assert.match(pending, /Adding\.\.\./);
 
@@ -154,6 +180,66 @@ test("quick-log row without remaining sets drops Log all; pending and disabled s
     <SessionQuickLogRow exerciseName="Zed Press" logAllCount={0} rowContract={{ ...baseRowContract, isQuickLogDisabled: true }} onSkip={() => {}} onPress={() => {}} />,
   );
   assert.match(blocked, /Unskip to log/);
+});
+
+test("More menu: one sheet for Skip/Hide and Remove; Remove asks first and is offered only before any set is logged", () => {
+  assert.equal(getSessionSkipMenuLabel("Skip"), "Skip exercise");
+  assert.equal(getSessionSkipMenuLabel("Hide"), "Hide exercise");
+  const closed = renderToStaticMarkup(
+    <SessionCardMoreMenu exerciseName="Zed Press" skipLabel="Skip" isSkipPending={false} skipInactive={false} removeInactive={false} onSkip={() => {}} onRemove={() => {}} />,
+  );
+  assert.equal((closed.match(/<button/g) ?? []).length, 1, "closed: only the More button renders");
+  assert.match(closed, /data-session-more="true"/);
+
+  const rows = readSource("./SessionRowCards.tsx");
+  assert.match(rows, /<BottomSheet open=\{menuOpen\} title=\{exerciseName\} eyebrow=\{null\}/);
+  assert.match(rows, /aria-label=\{`\$\{skipNameLabel\}: \$\{exerciseName\}`\}/, "Skip keeps its named action");
+  assert.match(rows, /data-session-remove="true"/);
+  assert.match(rows, /setConfirmRemoveOpen\(true\)/, "Remove opens the confirm, never removes on the first tap");
+  assert.match(rows, /<ConfirmDestructiveModal[\s\S]*title=\{`Remove \$\{exerciseName\}\?`\}[\s\S]*cancelLabel="Keep"/);
+
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  assert.equal((focus.match(/onRemove=\{canOfferRemove \? \(\) => handleRemoveExercise\(exercise\.id\) : undefined\}/g) ?? []).length, 2, "card bar and expanded logger");
+  assert.match(focus, /const canOfferRemove = setCount === 0 && isOnline && !loggerSavingIds\.includes\(exercise\.id\);/, "online, no sets, no save in flight");
+  assert.match(focus, /onLogRequestPendingChange=\{\(pending\) => \{\s*handleLoggerSavingChange\(exercise\.id, pending\);/);
+  assert.match(focus, /guard\.savingIds\.includes\(exerciseId\) \|\| guardRow\?\.isQuickLogPending/, "the confirm re-checks a save in flight");
+  assert.match(focus, /toast\.error\(REMOVE_EXERCISE_HAS_SETS_ERROR\)/, "the confirm re-checks the latest set count");
+  assert.match(focus, /Removing an exercise needs a connection\./);
+  assert.match(readSource("../SessionTimers.tsx"), /onLogRequestPendingChangeRef\.current\?\.\(isLogRequestPending\)/);
+  assert.match(focus, /loggerLeadingAction=\{\(\s*<SessionCardMoreMenu/, "the expanded logger has the same More menu");
+});
+
+test("Skip / Hide / Unskip hands focus to the swapped card (restore action or More), never drops it to the page", () => {
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  assert.match(focus, /requestCardFocus\(exerciseId, nextSkipped \? "restore" : "more"\);/, "skip and unskip");
+  assert.match(focus, /requestCardFocus\(exerciseId, nextShowWhenCompleted \? "more" : "restore"\);/, "hide and show of a finished exercise");
+  assert.match(focus, /buttonProps=\{\{ "data-session-restore": "true" \}\}/, "the compact card's restore action is findable");
+  assert.ok(focus.includes(`'[data-session-restore="true"]' : '[data-session-more="true"]'`));
+  assert.match(focus, /active !== document\.body && active\.isConnected && !row\.contains\(active\)/, "never steals focus moved elsewhere");
+  assert.match(focus, /SESSION_CARD_FOCUS_HANDOFF_MS/, "a handoff that never renders (rolled back) expires");
+});
+
+test("quiet success: show, hide and skip raise no notice; set notices stay; failures still notify", () => {
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  const timers = readSource("../SessionTimers.tsx");
+  for (const source of [focus, timers]) {
+    assert.doesNotMatch(source, /toast\.success\([^)]*(skipped|hidden|shown|Unskipped|change queued)/i);
+  }
+  // Zac asked for no toast on show / hide / skip only: the set notices stay.
+  assert.match(focus, /toast\.success\("Set logged\."\)/);
+  assert.match(timers, /toast\.success\(prToast \? `Set logged\. \$\{prToast\}` : "Set logged\."\)/);
+  for (const message of ["Set removed.", "Queued set removed.", "Applied to current set."]) {
+    assert.ok(timers.includes(`toast.success("${message}")`), message);
+  }
+  assert.match(focus, /toast\.error\(result\.error \|\| "Could not update skip state\."\)/);
+  assert.match(focus, /toast\.error\(result\.error \|\| "Could not remove exercise\."\)/);
+  assert.match(readSource("../SessionPageClient.tsx"), /noticePlacement="above-dock"/, "every workout notice sits in the overlay above the dock, so it never moves a card");
+});
+
+test("bar buttons: inactive guards the handler; variants are 44px pills", () => {
+  const html = renderToStaticMarkup(<SessionCardBarButton variant="quiet" label="Show" inactive onPress={() => {}} />);
+  assert.match(html, /aria-disabled="true"/);
+  assert.match(html, /\bh-11\b/);
 });
 
 test("an inactive action button never runs its handler (the guard replaces native disabled)", () => {
@@ -214,12 +300,68 @@ test("feedback prompt: 44px effort and signal buttons, 11px text, named groups, 
   assert.doesNotMatch(source, /h-6 w-6|h-7 |text-\[(9|10)px\]|overflow-x-auto/);
 });
 
-test("set logger: delete-set button is 44px tall and the logger strip text is not below 11px", () => {
+test("set logger (Zac 2026-11-23): toggle chips, quiet secondaries, one Log set primary, trash + confirm, no red inline error", () => {
   const timers = readSource("../SessionTimers.tsx");
 
-  assert.match(timers, /className: "!h-11 !min-h-0 rounded-full !px-4 text-\[12px\]/);
-  assert.doesNotMatch(timers, /!h-6 !min-h-0/);
-  assert.doesNotMatch(timers, /gap-1\.5 text-\[10px\] leading-tight/);
+  assert.doesNotMatch(timers, /<GlowSwitch/, "sliding switches clipped at the card edge; chips replace them");
+  assert.equal((timers.match(/<LoggerToggleChip/g) ?? []).length, 3, "Warm-up, Failure, Timer");
+  assert.match(timers, /<LoggerPrimaryLogButton/);
+  assert.match(timers, /\swrapHorizontalFields\s/, "the logger opts into the wrapping field grid");
+  assert.match(timers, /onPress=\{\(\) => setConfirmDeleteSet\(\{ set, index \}\)\}/, "Delete asks first");
+  assert.match(timers, /<ConfirmDestructiveModal[\s\S]*confirmActionLabel="Delete"[\s\S]*cancelLabel="Keep"/);
+  assert.doesNotMatch(timers, /routineEditorAutosaveErrorText/, "no red error line under the logger");
+  assert.match(timers, /data-logger-invalid=\{error \? "true" : undefined\}/, "neutral outline marker while a value is invalid");
+  assert.doesNotMatch(timers, /error \? "border-\[rgb\(var\(--danger/);
+  assert.match(timers, /setError\(queued \? null : message\)/, "a queued set is not an error");
+  assert.doesNotMatch(timers, /!h-6 !min-h-0|gap-1\.5 text-\[10px\] leading-tight/);
+  assert.match(timers, /ariaLabel="Failure"/, "the Failure chip's name is just its word");
+  assert.doesNotMatch(timers, /Failure target/, "no 'Target' in the logger's names");
+});
+
+test("logger controls: 44px chips with aria-pressed, Log set primary with the Promote sweep only while active, 44px trash", () => {
+  assert.equal(formatLoggerSummary(["5 reps", " 225 lbs ", ""]), "5 reps · 225 lbs");
+
+  const chip = renderToStaticMarkup(<LoggerToggleChip pressed label="Warm-up" ariaLabel="Warm-up set" onPress={() => {}} />);
+  assert.match(chip, /aria-pressed="true"/);
+  assert.match(chip, /aria-label="Warm-up set"/);
+  assert.match(renderToStaticMarkup(<LoggerToggleChip pressed={false} label="Timer" ariaLabel="Exercise timer" onPress={() => {}} />), /aria-pressed="false"/);
+  const timers = readSource("../SessionTimers.tsx");
+  assert.doesNotMatch(timers, /Active set enabled|target disabled|timer disabled/, "state lives in aria-pressed, not a name that contradicts the visible word");
+  assert.match(timers, /const showLogAllAction = remainingTargetSetCount > 1;/, "one remaining set: Log set already does it");
+  assert.match(chip, /\bh-11\b/);
+  assert.match(chip, />Warm-up</);
+
+  const active = renderToStaticMarkup(<LoggerPrimaryLogButton prefix="Log" summaryItems={["5 reps", "225 lbs"]} inactive={false} onPress={() => {}} />);
+  assert.match(active, /promote-shine/);
+  assert.match(active, />Log set</);
+  assert.match(active, />5 reps · 225 lbs</);
+  assert.match(active, /\bh-14\b/);
+  const idle = renderToStaticMarkup(<LoggerPrimaryLogButton prefix="Log" summaryItems={[]} inactive onPress={() => {}} />);
+  assert.doesNotMatch(idle, /promote-shine/);
+  assert.match(idle, /aria-disabled="true"/);
+
+  const secondary = renderToStaticMarkup(<LoggerSecondaryButton onPress={() => {}} inactive>Log all (3)</LoggerSecondaryButton>);
+  assert.match(secondary, /\bh-11\b/);
+  assert.match(secondary, /aria-disabled="true"/);
+
+  const trash = renderToStaticMarkup(<LoggedSetDeleteButton ariaLabel="Delete set 1" pending={false} inactive={false} onPress={() => {}} />);
+  assert.match(trash, /aria-label="Delete set 1"/);
+  assert.match(trash, /h-11 w-11/);
+  assert.doesNotMatch(trash, /\sdisabled(=|\s|>)/);
+});
+
+test("measurement panel: wrapHorizontalFields is opt-in and lays fields on a wrapping grid (no clipped steppers)", () => {
+  const panel = readSource("../ui/measurements/MeasurementPanelV2.tsx");
+  assert.match(panel, /wrapHorizontalFields = false,/, "default keeps the scrolling rail for other callers");
+  assert.match(panel, /data-measurement-aux-row="wrap"/);
+  assert.match(panel, /data-measurement-field-wrap="true"/);
+  assert.ok(panel.includes("grid-cols-[repeat(auto-fit,minmax(8.25rem,1fr))]"));
+  assert.ok(panel.includes("[&>*:last-child:nth-child(odd)]:col-span-full"), "an odd last field spans the row");
+  assert.ok(panel.includes("min-w-0 [&>*]:!min-h-0"), "fields may shrink: no fixed rail width");
+  // The min-h-0 override reaches only each field's wrapper (direct child), never the steppers: they keep a fixed
+  // !h-11 !w-11 (44px, measured at 320 and 390 in chrome on the logger fixtures, 2026-11-23).
+  assert.doesNotMatch(panel, /\[&_[^\]]*\]:!?min-h-0|\[&_button\]:!?h-(?:[0-9]|10)\b/, "no descendant-wide min-h-0 or smaller button height");
+  assert.equal((panel.match(/className="!(?:left|right)-0 !h-11 !w-11 z-20"/g) ?? []).length, 2, "both steppers stay 44x44");
 });
 
 test("offline session shell renders the shared Today exercise rows; the legacy planned row is gone", () => {
@@ -328,4 +470,81 @@ test("offline session list has no info control (it needs the network) and no ses
   const shell = readSource("../../app/session/[id]/SessionOfflineShell.tsx");
   assert.match(shell, /showInfo=\{false\}/);
   assert.doesNotMatch(shell, /exerciseId \?\? exercise\.id/);
+});
+
+test("offline shell: a cached finished workout shows Back, not Pause (2026-11-24 review)", () => {
+  const shell = readSource("../../app/session/[id]/SessionOfflineShell.tsx");
+  assert.match(shell, /completed=\{cachedSnapshot\?\.completed === true\}/, "the header gets the cached completion");
+  const page = readSource("../../app/session/[id]/page.tsx");
+  assert.match(page, /completed: sessionRow\.status === "completed"/, "the snapshot records completion when it is cached");
+});
+
+test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close at the top of the open logger, no chevron", () => {
+  const collapsed = renderRow(false);
+  const handle = collapsed.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
+  assert.ok(handle, "the collapsed card has the grab handle");
+  assert.match(handle, /aria-expanded="false"/);
+  assert.match(handle, /aria-controls="session-exercise-panel-se-1"/);
+  assert.match(handle, /aria-label="Open Zed Press logger"/);
+  assert.match(handle, /before:h-11/, "44px tall target");
+  // A centred 44px area reached 12px up into Log set / Log all (real-browser elementFromPoint, 2026-11-24): grow it down.
+  assert.match(handle, /before:-top-1/, "the target starts at the bar's bottom edge and grows down");
+  assert.doesNotMatch(handle, /before:top-1\/2/, "not centred on the pill");
+  assert.match(handle, /\bw-16\b/, "64px wide target");
+  assert.match(collapsed, /data-session-expand-handle-direction="down"/);
+  assert.ok(collapsed.indexOf("footer-stub") < collapsed.indexOf("data-session-expand-handle="), "the handle is on the bottom edge, after the bar");
+  assert.doesNotMatch(collapsed, /data-session-logger-close/);
+
+  // 16px under the pill: the 44px target ends 3px into the 8px card gap, never under the next card (2026-11-24 review;
+  // with pb-1 the next card took the bottom 8px, measured with elementFromPoint at 390 and 320).
+  assert.match(collapsed, /data-session-expand-handle-row="true" class="[^"]*\bpb-4\b/, "room under the handle for its target");
+
+  const expanded = renderRow(true);
+  const openHandle = expanded.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
+  assert.ok(openHandle);
+  assert.match(openHandle, /aria-expanded="true"/);
+  assert.match(openHandle, /aria-label="Collapse Zed Press logger"/, "never the same name as the Close button");
+  assert.match(expanded, /data-session-expand-handle-direction="up"[^>]*rotate-180/, "flips to point up while open");
+  const close = expanded.match(/<button[^>]*data-session-logger-close="true"[^>]*>Close<\/button>/)?.[0];
+  assert.ok(close, "Close is a visible text control");
+  assert.match(close, /aria-expanded="true"/);
+  assert.match(close, /\bh-11\b/);
+  assert.match(close, /aria-label="Close Zed Press logger"/, "label in name");
+  assert.ok(expanded.indexOf("data-session-logger-close=") < expanded.indexOf("logger-stub"), "Close sits above the logger");
+  for (const html of [collapsed, expanded]) {
+    assert.doesNotMatch(html, /data-card-affordance|chevron|data-exercise-done-check/i, "still no chevron or check on the card");
+  }
+
+  let toggles = 0;
+  const handleOnly = renderToStaticMarkup(<SessionCardExpandHandle expanded={false} controlsId="p" exerciseName="Zed Press" onToggle={() => { toggles += 1; }} />);
+  assert.match(handleOnly, /type="button"/);
+  assert.equal(toggles, 0);
+  assert.match(readSource("../SessionExerciseFocus.tsx"), /onToggle=\{\(\) => toggleExercise\(exercise\.id\)\}/, "header, handle and Close share the one toggle");
+});
+
+test("logger chips (Zac 2026-11-24): a plain caption for the pressed chip(s) and a Log set label that names the set", () => {
+  const base = { warmup: false, failure: false, timer: false, hasMarkChips: true };
+  assert.equal(describeLoggerChips(base), "Tap a chip to mark the next set");
+  assert.equal(describeLoggerChips({ ...base, warmup: true }), "Warm-up: not counted for progression");
+  assert.equal(describeLoggerChips({ ...base, failure: true }), "Failure: a tag only. Enter reps reached");
+  assert.equal(describeLoggerChips({ ...base, timer: true }), "Timer: shown on this card");
+  assert.equal(describeLoggerChips({ ...base, warmup: true, timer: true }), "Warm-up: not counted for progression", "the mark only, so it stays one line");
+  assert.equal(describeLoggerChips({ ...base, hasMarkChips: false }), null, "nothing to say on a timer-only logger with the timer off");
+  for (const caption of Object.values(LOGGER_CHIP_CAPTIONS)) {
+    assert.doesNotMatch(caption, /target/i, "never the word Target");
+    assert.ok(caption.length <= 40, `fits one line at 320px: ${caption}`);
+  }
+  assert.equal(resolveLoggerLogPrefix({ warmup: true, failure: false }), "Log warm-up set");
+  assert.equal(resolveLoggerLogPrefix({ warmup: false, failure: true }), "Log failure set");
+  assert.equal(resolveLoggerLogPrefix({ warmup: false, failure: false }), "Log");
+  assert.match(renderToStaticMarkup(<LoggerPrimaryLogButton prefix="Log warm-up set" summaryItems={["5 reps"]} inactive={false} onPress={() => {}} />), /Log warm-up set/);
+
+  const timers = readSource("../SessionTimers.tsx");
+  assert.match(timers, /resolveLoggerLogPrefix\(\{ warmup: resolvedIsWarmup, failure: resolvedIsFailure \}\)/);
+  assert.match(timers, /auxiliaryCaption=\{loggerChipCaption \?/, "the caption renders directly under the chip row");
+  const panel = readSource("../ui/measurements/MeasurementPanelV2.tsx");
+  assert.ok(panel.indexOf('data-measurement-aux-row="wrap"') < panel.indexOf('data-measurement-aux-caption="true"'), "caption after the chip row");
+  assert.ok(panel.indexOf('data-measurement-aux-caption="true"') < panel.indexOf('data-measurement-field-wrap="true"'), "and before the fields");
+  // The verified data rules the caption relies on: progression skips warm-ups; nothing reads the failure marker.
+  assert.match(readSource("../../lib/progression-progress-percent.ts"), /filter\(\(row\) => !row\.isWarmup\)/);
 });

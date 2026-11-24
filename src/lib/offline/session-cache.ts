@@ -37,6 +37,8 @@ export type SessionCacheSnapshot = {
   capturedAt: string;
   routineName: string;
   sessionDayName: string;
+  /** True when the workout was finished; the offline header then shows Back instead of Pause. Older caches omit it. */
+  completed?: boolean;
   exercises: CachedSessionExercise[];
 };
 

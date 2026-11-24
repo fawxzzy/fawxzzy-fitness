@@ -149,7 +149,6 @@ test("the raw <h1> check catches a hand-made centred title (mutation guard)", ()
 
 test("detail screens render the standard detail header with Back on the left", () => {
   const cases = [
-    ["src/components/SessionHeaderControls.tsx", /<ScreenHeader\s+kind="detail"\s+appMenu\s+title="Workout"/],
     ["src/app/history/[sessionId]/LogAuditClient.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{sessionSummary\.dayTitle\?\.trim\(\) \|\| "Workout"\}/],
     ["src/app/history/[sessionId]/page.tsx", /<ScreenHeader kind="detail" title="Workout" back=\{<ScreenHeaderBackButton href="\/history" historyBehavior="history-first" label="Back to History" \/>\} \/>/],
     ["src/components/ExerciseInfoSheet.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{exercise\?\.name \?\? "Exercise"\}/],
@@ -179,13 +178,25 @@ test("the live workout header is title, one day · routine line, Back and at mos
   assert.doesNotMatch(client, /buildCurrentSessionHeaderInfoRailItems|sessionHeaderInfoItems|isExerciseOpen \?/);
 });
 
-test("live workout Back closes an open exercise first, like history detail (two-step Back)", () => {
+test("live workout: Pause top right is the one header exit (back to Today, workout keeps running); no left Back, no menu", () => {
+  // Zac 2026-11-23 replaced the two-step Back (close the open exercise, then history-first back) with Pause. Drafts
+  // persist in the session draft store, so leaving with an exercise open loses nothing.
   const controls = read("src/components/SessionHeaderControls.tsx");
-  assert.match(controls, /onClick=\{\(event\) => handleSessionBackClick\(event, exerciseOpen, onCloseExercise\)\}/);
-  assert.match(controls, /label=\{getSessionBackLabel\(exerciseOpen\)\}/);
+  assert.match(controls, /<ScreenHeader\s+kind="detail"\s+title="Workout"/);
+  assert.match(controls, /trailing=\{<SessionPauseButton backHref=\{backHref\} \/>\}/);
+  assert.match(controls, /aria-label=\{SESSION_PAUSE_ARIA_LABEL\}/);
+  assert.match(controls, /\bh-11 min-w-11\b/, "44px target");
+  assert.doesNotMatch(controls, /\bappMenu\b/);
+  // The in-progress header has no left Back; only a completed workout (nothing to pause) swaps Pause for Back.
+  const completedBranch = controls.slice(controls.indexOf("if (completed) {"), controls.indexOf("trailing={<SessionPauseButton"));
+  assert.match(completedBranch, /back=\{<ScreenHeaderBackButton href=\{resolveSessionPauseTarget\(backHref\)\} historyBehavior="history-first" label="Back" \/>\}/);
+  assert.doesNotMatch(completedBranch, /SessionPauseButton|trailing=/, "a completed workout never offers Pause");
+  assert.equal((controls.match(/<ScreenHeaderBackButton/g) ?? []).length, 1, "Back appears only in the completed branch");
+  const pause = read("src/components/sessionBackAction.ts");
+  assert.match(pause, /SESSION_PAUSE_FALLBACK_HREF = "\/today"/);
   const client = read("src/components/SessionPageClient.tsx");
-  assert.match(client, /exerciseOpen=\{selectedExerciseId !== null\}/);
-  assert.match(client, /onCloseExercise=\{\(\) => setSelectedExerciseId\(null\)\}/);
+  assert.doesNotMatch(client, /onCloseExercise=|exerciseOpen=/);
+  assert.match(client, /completed=\{isSessionCompleted\}/, "the header follows the session's completed state");
   const history = read("src/app/history/[sessionId]/LogAuditClient.tsx");
   assert.match(history, /if \(expandedExercise\) \{\s+event\.preventDefault\(\);\s+setExpandedExerciseId\(null\);/);
 });

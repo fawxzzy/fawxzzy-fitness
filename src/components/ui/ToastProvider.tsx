@@ -54,15 +54,38 @@ const NoticeFlowSlotContext = createContext<((node: HTMLElement | null) => void)
 export function useNoticeFlowSlotRef() {
   return useContext(NoticeFlowSlotContext);
 }
+/**
+ * Where a screen shell puts its notice slot. "under-header" (default): in flow between the header and the scroll area.
+ * "above-dock": an overlay pinned just above the bottom dock, out of flow, so a notice never moves a card (the workout
+ * screen, Zac 2026-11-24). Read from the slot's data-app-notice-placement attribute.
+ */
+export type NoticePlacement = "under-header" | "above-dock";
 const EXIT_ANIMATION_MS = 300;
 const DEFAULT_DURATION_MS = 2200;
 // Errors carry a reason and a next step, so they stay long enough to read (DESIGN-CONTRACT C16).
 export const ERROR_TOAST_DURATION_MS = 6000;
+// Above-dock notices: one at a time, gone after about 4 s; errors stay until dismissed or the next action.
+export const DOCK_NOTICE_DURATION_MS = 4000;
 const MAX_TOASTS = 3;
+// A tap on one of these (outside the notice) is "the next action" that clears an above-dock error. Fields (text inputs,
+// selects, textareas, their labels) are not: tapping a field to fix what the error names must leave the error up until
+// the person dismisses it or submits again (Log set, any button).
+const NEXT_ACTION_SELECTOR =
+  'button, a[href], input[type="submit"], input[type="button"], input[type="reset"], [role="button"], [role="switch"]';
+
+function isDockOverlaySlot(slot: HTMLElement | null) {
+  return slot?.getAttribute("data-app-notice-placement") === "above-dock";
+}
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const [flowSlot, setFlowSlot] = useState<HTMLElement | null>(null);
+  const [flowSlot, setFlowSlotState] = useState<HTMLElement | null>(null);
+  // push() reads the slot synchronously (one-at-a-time and the timers depend on it), so keep it in a ref too.
+  const flowSlotRef = useRef<HTMLElement | null>(null);
+  const setFlowSlot = useCallback((node: HTMLElement | null) => {
+    flowSlotRef.current = node;
+    setFlowSlotState(node);
+  }, []);
   const dismissTimersRef = useRef<Map<string, number>>(new Map());
   const exitTimersRef = useRef<Map<string, number>>(new Map());
   const pathname = usePathname();
@@ -125,6 +148,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       action: options?.action,
       ownerPathname: options?.dismissOnRouteChange ? pathnameRef.current : undefined,
     };
+    if (isDockOverlaySlot(flowSlotRef.current)) {
+      // One notice at a time: the new one replaces whatever is showing (an error included: this is the next action).
+      dismissTimersRef.current.forEach((timer, timerId) => {
+        if (timerId !== id) {
+          window.clearTimeout(timer);
+          dismissTimersRef.current.delete(timerId);
+        }
+      });
+      exitTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      exitTimersRef.current.clear();
+      setToasts([nextToast]);
+      const existing = dismissTimersRef.current.get(id);
+      if (existing) {
+        window.clearTimeout(existing);
+        dismissTimersRef.current.delete(id);
+      }
+      if (tone === "error" || options?.persistent) {
+        return;
+      }
+      scheduleDismiss(id, options?.durationMs ?? DOCK_NOTICE_DURATION_MS);
+      return;
+    }
     setToasts((current) => {
       const existingIndex = current.findIndex((toast) => toast.id === id);
       if (existingIndex >= 0) {
@@ -153,6 +198,25 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     });
   }, [pathname, toasts, dismiss]);
 
+  const isDockOverlay = isDockOverlaySlot(flowSlot);
+  const openDockErrorIds = isDockOverlay
+    ? toasts.filter((toast) => toast.tone === "error" && !toast.isExiting).map((toast) => toast.id).join(" ")
+    : "";
+  // An above-dock error stays until it is dismissed or the person's next action: the next tap on a control outside
+  // the notice clears it (a new notice replaces it too, in push()).
+  useEffect(() => {
+    if (!openDockErrorIds) return;
+    const ids = openDockErrorIds.split(" ");
+    const onClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || target.closest('[data-app-notice-dock-stack="true"]')) return;
+      if (!target.closest(NEXT_ACTION_SELECTOR)) return;
+      ids.forEach((id) => dismiss(id));
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [openDockErrorIds, dismiss]);
+
   const value = useMemo<ToastContextValue>(
     () => ({
       info: (message: string, options?: ToastOptions) => push("info", message, options),
@@ -177,16 +241,41 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       isExiting={toast.isExiting}
     />
   );
-  const flowToasts = flowSlot ? toasts.filter((toast) => toast.tone === "error") : [];
-  const floatingToasts = flowSlot ? toasts.filter((toast) => toast.tone !== "error") : toasts;
+  // The shell says which tones go in flow (data-app-notice-flow-tones, fixed per screen): errors by default, every tone
+  // on screens that opt in with noticesInFlow="all". An above-dock slot (the workout screen) takes every tone, one at a
+  // time, out of flow, so a notice never moves a card.
+  const flowAllTones = isDockOverlay || flowSlot?.getAttribute("data-app-notice-flow-tones") === "all";
+  const isFlowToast = (toast: ToastItem) => flowAllTones || toast.tone === "error";
+  const flowToasts = flowSlot ? toasts.filter(isFlowToast) : [];
+  const floatingToasts = flowSlot ? toasts.filter((toast) => !isFlowToast(toast)) : toasts;
+  const dockToast = isDockOverlay ? flowToasts[flowToasts.length - 1] : undefined;
 
   return (
     <ToastContext.Provider value={value}>
       <NoticeFlowSlotContext.Provider value={setFlowSlot}>
         {children}
+        {/* Above-dock notice: portalled into the shell's overlay slot (absolute, just above the bottom dock), so it never
+            moves a card. One at a time, centred; a tap on the notice (outside its buttons) dismisses it, as does X. */}
+        {flowSlot && isDockOverlay && dockToast
+          ? createPortal(
+            <div data-app-notice-dock-stack="true" className="px-[var(--app-notice-inset-x)]">
+              <div
+                className="mx-auto flex max-w-[var(--app-notice-max-width)] flex-col items-center"
+                onClick={(event) => {
+                  const target = event.target instanceof Element ? event.target : null;
+                  if (target?.closest("button")) return;
+                  dismiss(dockToast.id);
+                }}
+              >
+                {renderCard(dockToast)}
+              </div>
+            </div>,
+            flowSlot,
+          )
+          : null}
         {/* In-flow error notices: portalled into the shell's slot under the header (right-anchored, wraps to two
             lines at 320px). 8px above (the anchor gap) and below keep it off the header and the first card. */}
-        {flowSlot && flowToasts.length > 0
+        {flowSlot && !isDockOverlay && flowToasts.length > 0
           ? createPortal(
             <div data-app-notice-flow-stack="true" className="px-[var(--app-notice-inset-x)] pb-2 pt-2">
               <div className="ml-auto flex max-w-[var(--app-notice-max-width)] flex-col items-end gap-2">

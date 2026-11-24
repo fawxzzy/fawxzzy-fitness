@@ -25,7 +25,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { TablesInsert } from "@/lib/supabase/database.types";
 import type { SetRow } from "@/types/db";
-import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
+import { decideSessionExerciseRemoval, guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
 import { clampSessionDurationSeconds } from "@/lib/session-duration";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
@@ -1059,6 +1059,16 @@ export async function removeExerciseAction(formData: FormData): Promise<ActionRe
 
   if (!liveSession.ok) {
     return liveSession;
+  }
+
+  // Sets cascade with the row: never remove an exercise that has a logged set, whatever the client believed.
+  const { count: loggedSetCount, error: setCountError } = await supabase
+    .from("sets")
+    .select("id", { count: "exact", head: true })
+    .eq("session_exercise_id", sessionExerciseId);
+  const removal = decideSessionExerciseRemoval(setCountError ? null : (loggedSetCount ?? 0));
+  if (!removal.ok) {
+    return removal;
   }
 
   const { error } = await supabase
