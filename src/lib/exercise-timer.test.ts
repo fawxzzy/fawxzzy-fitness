@@ -67,7 +67,7 @@ test("session completion finalizes a running timer once with exact elapsed time"
 });
 
 test("session save finalizes exercise timers before marking the session completed", () => {
-  const source = readFileSync(new URL("../app/session/[id]/actions.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../app/session/[id]/actions-log.ts", import.meta.url), "utf8");
   const saveAction = source.slice(source.indexOf("export async function saveSessionAction"));
   const finalizationIndex = saveAction.indexOf("finalizeRunningExerciseTimersForSession");
   const completionIndex = saveAction.indexOf('update({ duration_seconds: durationSeconds, status: "completed" })');

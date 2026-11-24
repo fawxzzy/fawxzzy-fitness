@@ -28,7 +28,8 @@ test("dock roles: attached action dividers use the neutral border, not amber", (
     ["components", "ui", "ConfirmDestructiveModal.tsx"],
     ["components", "session", "ExerciseTimerControl.tsx"],
     ["components", "session", "SessionExerciseBlock.tsx"],
-    ["components", "SessionTimers.tsx"],
+    ["components", "session", "SetLoggerCard.tsx"],
+    ["components", "session", "sessionLoggerModel.tsx"],
     ["app", "dev", "mobile-regression", "EditDayRegressionSurface.tsx"],
   ]) {
     const source = readFileSync(path.join(SRC_ROOT, ...file), "utf8");
