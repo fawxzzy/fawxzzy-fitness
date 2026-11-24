@@ -2054,6 +2054,78 @@ button,
   background: rgb(var(--success-rgb) / 0.3);
 }
 
+/* AppButton hierarchy (docs/ui/FOUNDATION.md "Buttons"): three looks a person can tell apart at a glance.
+   Primary = solid accent-tinted fill over an opaque base + strong accent keyline. Secondary = lifted neutral grey surface with
+   a visible grey keyline (not the green border token). Quiet = no keyline, no fill, secondary-colour text; pressed shows a soft neutral wash (no
+   underline). Scoped to the AppButton markers so other action-chrome users (rails, toggles) keep their intent look.
+   Text stays text-primary / text-secondary on dark fills: AA (>= 4.5:1) on every theme accent. */
+.action-chrome.app-button-primary {
+  --action-chrome-border-color: rgb(var(--accent-strong) / 0.82);
+  --action-chrome-border-color-hover: rgb(var(--accent-strong) / 0.92);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.06);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.09);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.06);
+  --action-chrome-overlay-top-active: rgb(0 0 0 / 0.04);
+  --action-chrome-overlay-bottom-active: rgb(0 0 0 / 0.08);
+  --action-chrome-text-color: rgb(var(--text-primary));
+  background:
+    linear-gradient(rgb(var(--accent) / 0.42), rgb(var(--accent) / 0.42)),
+    rgb(var(--surface-2));
+}
+
+.action-chrome.app-button-primary:hover:not(:disabled) {
+  background:
+    linear-gradient(rgb(var(--accent) / 0.52), rgb(var(--accent) / 0.52)),
+    rgb(var(--surface-2));
+}
+
+.action-chrome.app-button-secondary {
+  --action-chrome-border-color: rgb(var(--text-secondary) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--text-secondary) / 0.5);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.015);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.07);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.03);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.08);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.04);
+  --action-chrome-text-color: rgb(var(--text-primary));
+  background: rgb(var(--surface-3-rgb) / 0.62);
+}
+
+.action-chrome.app-button-tertiary {
+  --action-chrome-border-color: transparent;
+  --action-chrome-border-color-hover: transparent;
+  --action-chrome-shadow: none;
+  --action-chrome-shadow-hover: none;
+  --action-chrome-shadow-active: none;
+  --action-chrome-overlay-top: transparent;
+  --action-chrome-overlay-bottom: transparent;
+  --action-chrome-overlay-top-hover: transparent;
+  --action-chrome-overlay-bottom-hover: transparent;
+  --action-chrome-overlay-top-active: transparent;
+  --action-chrome-overlay-bottom-active: transparent;
+  --action-chrome-text-color: rgb(var(--text-secondary));
+  background: transparent;
+  text-decoration: none;
+}
+
+.action-chrome.app-button-tertiary::before,
+.action-chrome.app-button-tertiary::after {
+  background: none;
+}
+
+.action-chrome.app-button-tertiary:hover:not(:disabled) {
+  background: rgb(var(--surface-3-rgb) / 0.42);
+  color: rgb(var(--text-primary));
+}
+
+.action-chrome.app-button-tertiary:active:not(:disabled) {
+  background: rgb(var(--surface-3-rgb) / 0.62);
+  color: rgb(var(--text-primary));
+  text-decoration: none;
+}
+
 /* SegmentedControl selected segment, strong look (default when no activeIntent is passed): accent tint + keyline. */
 .action-chrome.segmented-selected-strong {
   --action-chrome-border-color: rgb(var(--accent) / 0.58);

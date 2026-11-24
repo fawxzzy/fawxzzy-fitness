@@ -84,6 +84,61 @@ function FieldDemo({ startWithError }: { startWithError: boolean }) {
   );
 }
 
+// A form inside a sheet: the duplicate-name error shows in the sheet's own notice slot, under its title (it would be
+// hidden under the sheet layer otherwise). `startOpen` opens it on load (?open=sheet-error); tap Create routine.
+function SheetFieldDemo({ startOpen }: { startOpen: boolean }) {
+  const [open, setOpen] = useState(startOpen);
+  const [name, setName] = useState("Push Day");
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      <AppButton variant="secondary" size="sm" onClick={() => setOpen(true)}>
+        Open form sheet
+      </AppButton>
+      <Sheet
+        open={open}
+        title="New routine"
+        onClose={() => {
+          setError(null);
+          setOpen(false);
+        }}
+        footer={(
+          <div className="space-y-2">
+            <FormField label="New routine name" invalid={Boolean(error)} error={error}>
+              {(control) => (
+                <input
+                  {...control}
+                  value={name}
+                  onChange={(event) => {
+                    setError(null);
+                    setName(event.target.value);
+                  }}
+                  className={formFieldControlClassName}
+                />
+              )}
+            </FormField>
+            <AppButton
+              variant="primary"
+              fullWidth
+              onClick={() => {
+                if (name.trim().toLowerCase() === "push day") {
+                  setError("A routine named Push Day already exists. Pick another name.");
+                  return;
+                }
+                setOpen(false);
+              }}
+            >
+              Create routine
+            </AppButton>
+          </div>
+        )}
+      >
+        <p className="text-sm text-[rgb(var(--text-secondary))]">Copy of Push Pull Legs. Save with the name Push Day to see the error.</p>
+      </Sheet>
+    </>
+  );
+}
+
 function FormLevelNoticeDemo() {
   const notice = useFieldNotice("ui-kit:form");
   return (
@@ -130,7 +185,7 @@ export function UiKitShowcase({ initialOpen = null, hideDevBadge = false }: { in
         {/* The same in-flow slot MobileScreenShell mounts under its header: error notices render here, in flow. */}
         <div ref={noticeFlowSlotRef} data-app-notice-flow-slot="true" className="-mx-1" />
 
-        <KitSection id="buttons" title="AppButton" note="primary, promote, secondary, quiet, danger. Every size is at least 44px. Tap one to see loading.">
+        <KitSection id="buttons" title="AppButton" note="Primary: accent fill. Secondary: grey keyline. Quiet: no keyline or fill. Plus promote and danger. Every size is at least 44px. Tap one to see loading.">
           <div className="grid grid-cols-1 gap-2">
             {BUTTON_VARIANTS.map((variant) => (
               <AppButton
@@ -174,6 +229,7 @@ export function UiKitShowcase({ initialOpen = null, hideDevBadge = false }: { in
               Delete routine
             </AppButton>
           </div>
+          <SheetFieldDemo startOpen={initialOpen === "sheet-error"} />
         </KitSection>
 
         <KitSection id="chips" title="Chips" note="Chip (label or badge, optional remove) and ChipButton (filter). Pill and AppBadge are thin wrappers.">
