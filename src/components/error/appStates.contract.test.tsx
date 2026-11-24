@@ -119,6 +119,10 @@ test("the shared exercise title never defaults to the word Target, and no live c
   const source = read(join(SRC, "components", "workout", "ExerciseCardStandardTitle.tsx"));
   assert.match(source, /rightTitle = null,/);
   assert.doesNotMatch(source, /Current Target/);
+  for (const file of ["exercise-picker/list.tsx", "exercise-picker/custom.tsx"]) {
+    const picker = join(SRC, "components", file);
+    assert.doesNotMatch(read(picker), /current target/i, `${file} says goal, not target`);
+  }
 });
 
 test("Skeleton blocks pulse, stop under reduced motion, and are decorative; the list owns the status role", () => {

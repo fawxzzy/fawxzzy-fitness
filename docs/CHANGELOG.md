@@ -11,7 +11,7 @@ All notable changes to this project are documented in this file.
 - The app's loading placeholders (`Skeleton*`) and "nothing here yet" card (`EmptyState`) sit on the shared card tokens and stop pulsing under reduced motion; the History loading rows use them.
 - `/review/optional-planned-day` (nothing linked to it) now opens Routines. `/exercises/[exerciseId]` keeps redirecting to History exercises.
 - Six live surfaces (the exercise info sheet footer, the progression review card, the exercise row header, the list menu, the toast rail and the sticky log shell) had colours written as `rgba(var(--token), a)`, which is invalid CSS because the tokens are space-separated; they now use `rgb(var(--token)/a)` and actually draw their fade or tint. The swipe rail's shell class strings were unused and read an undefined `--surface-2-soft` token, so they were removed; a test now also fails on any new `rgb(var(--x)/a)` whose token nothing defines.
-- The unused shared exercise title no longer defaults to a "Current Target" heading (the word is not shown anywhere).
+- The shared exercise title no longer defaults to a "Current Target" heading, and the add-exercise picker says "Your Goal" (after #306), so the Title Case "Current Target" heading is shown nowhere in the app. The plain sentence "Current target: ..." on the progression status rows is unchanged.
 
 ### WHY
 Zac's 2026-11-23 full-app redesign approval, lane F1 (loading, error, not-found, offline, install, privacy, terms and empty states). The 320px sign-in review found the overlapping link tap areas.
