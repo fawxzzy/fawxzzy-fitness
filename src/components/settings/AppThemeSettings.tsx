@@ -7,7 +7,9 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { SettingsCard } from "@/components/settings/SettingsCard";
-import { CardHeader, CardStatusChip, CardChips, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useToast } from "@/components/ui/ToastProvider";
+import { CardHeader, CardStatusChip, CardChips, CardMeta, CardNotice, CardSurface, cardTokens } from "@/components/ui/card-system";
 import { appTokens } from "@/components/ui/app/tokens";
 import { mergeAppBootPreferences } from "@/lib/app-boot-preferences";
 import {
@@ -230,15 +232,42 @@ function ThemeRangeField({
   );
 }
 
+/** Where the Save, Delete and edit results are announced: one id, so a newer result replaces the older one. */
+const THEME_NOTICE_ID = "app-theme-status";
+
+/**
+ * A small preview of a theme: its card colour with its keyline, its primary action and its accent. The colours are
+ * the theme's own (data, not app tokens), so a card shows what picking it would look like. Decorative; the title and
+ * the Selected chip carry the meaning.
+ */
+function ThemeSwatch({ theme }: { theme: AppThemeSettings }) {
+  const colors = [theme.surfaceCardColor, theme.primaryActionColor, theme.accentDividerColor, theme.textPrimaryColor];
+  return (
+    <span
+      aria-hidden="true"
+      data-theme-swatch={colors.map((color) => color.toLowerCase()).join(",")}
+      className="relative block h-10 w-10 shrink-0 overflow-hidden rounded-[var(--radius-sm,0.5rem)] border"
+      style={{ backgroundColor: theme.surfaceCardColor, borderColor: theme.cardOutlineColor }}
+    >
+      <span className="absolute inset-x-1.5 top-1.5 h-2 rounded-full" style={{ backgroundColor: theme.primaryActionColor }} />
+      <span className="absolute bottom-1.5 left-1.5 h-2 w-2 rounded-full" style={{ backgroundColor: theme.accentDividerColor }} />
+      <span className="absolute bottom-1.5 left-5 h-2 w-3.5 rounded-full" style={{ backgroundColor: theme.textPrimaryColor }} />
+    </span>
+  );
+}
+
 function ThemeChoiceCard({
   title,
   meta,
+  theme,
   selected,
   empty = false,
   onSelect,
 }: {
   title: string;
   meta: string;
+  /** The theme this card applies, drawn as the swatch. Omitted for the empty "new theme" entry. */
+  theme?: AppThemeSettings;
   selected: boolean;
   /** The "new custom theme" entry: dashed outline, nothing saved yet. */
   empty?: boolean;
@@ -250,6 +279,7 @@ function ThemeChoiceCard({
         title={title}
         meta={<CardMeta items={[meta]} />}
         headingLevel={3}
+        leading={theme ? <ThemeSwatch theme={theme} /> : undefined}
         chips={selected ? <CardChips><CardStatusChip status="selected" /></CardChips> : undefined}
         interaction={{ kind: "select", selected, onSelect }}
       />
@@ -263,7 +293,8 @@ export function AppThemeSettings({
   const [savedThemes, setSavedThemes] = useState<SavedAppThemeSlot[]>([]);
   const [selectedThemeId, setSelectedThemeId] = useState<AppThemeSelectionId>("default");
   const [themeName, setThemeName] = useState("");
-  const [saveMessage, setSaveMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const toast = useToast();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isSaving, startSaving] = useTransition();
   const [isThemeNameFocused, setIsThemeNameFocused] = useState(false);
@@ -312,8 +343,10 @@ export function AppThemeSettings({
     });
   }, [hasLoaded, selectedThemeId, theme]);
 
+  const clearMessage = () => toast.dismiss(THEME_NOTICE_ID);
+
   const updateTheme = (updater: (currentTheme: AppThemeSettings) => AppThemeSettings) => {
-    setSaveMessage(null);
+    clearMessage();
     setTheme((currentTheme) => updater(currentTheme));
   };
 
@@ -352,7 +385,7 @@ export function AppThemeSettings({
   const selectPresetTheme = (preset: AppThemePreset) => {
     setSelectedThemeId(preset);
     setThemeName("");
-    setSaveMessage(null);
+    clearMessage();
     setTheme(APP_THEME_PRESETS[preset]);
     writeStoredAppThemeSelection(preset);
   };
@@ -360,7 +393,7 @@ export function AppThemeSettings({
   const selectSavedTheme = (savedTheme: SavedAppThemeSlot) => {
     setSelectedThemeId(savedTheme.id);
     setThemeName(savedTheme.name);
-    setSaveMessage(null);
+    clearMessage();
     setTheme(savedTheme.theme);
     writeStoredAppThemeSelection(savedTheme.id);
   };
@@ -368,12 +401,12 @@ export function AppThemeSettings({
   const selectEmptySlot = (slotId: CustomAppThemeSlotId) => {
     setSelectedThemeId(slotId);
     setThemeName("");
-    setSaveMessage(null);
+    clearMessage();
     writeStoredAppThemeSelection(slotId);
   };
 
   const saveTheme = () => {
-    setSaveMessage(null);
+    clearMessage();
     startSaving(async () => {
       const successMessages: string[] = [];
       const errorMessages: string[] = [];
@@ -405,28 +438,21 @@ export function AppThemeSettings({
       }
 
       if (errorMessages.length > 0) {
-        setSaveMessage({
-          tone: "error",
-          text: [...successMessages, ...errorMessages].join(" "),
-        });
+        toast.error([...successMessages, ...errorMessages].join(" "), { id: THEME_NOTICE_ID });
         return;
       }
 
       if (successMessages.length > 0) {
-        setSaveMessage({
-          tone: "success",
-          text: successMessages.join(" "),
-        });
+        toast.success(successMessages.join(" "), { id: THEME_NOTICE_ID });
       }
     });
   };
 
+  // Delete asks first (the confirm names the theme); this runs on Confirm.
   const deleteTheme = () => {
+    setConfirmDeleteOpen(false);
     if (!selectedSavedTheme) {
-      setSaveMessage({
-        tone: "error",
-        text: "Select a saved theme to delete.",
-      });
+      toast.error("Select a saved theme to delete.", { id: THEME_NOTICE_ID });
       return;
     }
 
@@ -436,10 +462,7 @@ export function AppThemeSettings({
     setSelectedThemeId(selectedSavedTheme.id);
     setThemeName("");
     writeStoredAppThemeSelection(selectedSavedTheme.id);
-    setSaveMessage({
-      tone: "success",
-      text: `"${selectedSavedTheme.name}" deleted.`,
-    });
+    toast.success(`"${selectedSavedTheme.name}" deleted.`, { id: THEME_NOTICE_ID });
   };
 
   return (
@@ -451,7 +474,7 @@ export function AppThemeSettings({
               <BottomDockButton
                 type="button"
                 intent="danger"
-                onClick={deleteTheme}
+                onClick={() => setConfirmDeleteOpen(true)}
                 disabled={!selectedSavedTheme}
               >
                 Delete
@@ -478,6 +501,7 @@ export function AppThemeSettings({
             <ThemeChoiceCard
               title={getAppThemePresetLabel(presetId)}
               meta="Built-in theme"
+              theme={APP_THEME_PRESETS[presetId]}
               selected={selectedThemeId === presetId}
               onSelect={() => selectPresetTheme(presetId)}
             />
@@ -491,6 +515,7 @@ export function AppThemeSettings({
                 <ThemeChoiceCard
                   title={savedTheme.name}
                   meta="Custom theme"
+                  theme={savedTheme.theme}
                   selected={selectedThemeId === slotId}
                   onSelect={() => selectSavedTheme(savedTheme)}
                 />
@@ -518,17 +543,11 @@ export function AppThemeSettings({
         })}
       </ul>
 
-      {saveMessage ? (
-        <p
-          role={saveMessage.tone === "success" ? "status" : "alert"}
-          className={saveMessage.tone === "success" ? appTokens.settingsStatusSuccess : appTokens.settingsStatusError}
-        >
-          {saveMessage.text}
-        </p>
-      ) : null}
-
       {showThemeEditor ? (
         <>
+          {hasActiveThemeChange ? (
+            <CardNotice>Unsaved changes. Use Save theme to keep them.</CardNotice>
+          ) : null}
           {showThemeNameField ? (
             <SettingsCard title="Name your theme">
               <div className={appTokens.settingsFieldStack}>
@@ -543,7 +562,7 @@ export function AppThemeSettings({
                     onFocus={() => setIsThemeNameFocused(true)}
                     onBlur={() => setIsThemeNameFocused(false)}
                     onChange={(event) => {
-                      setSaveMessage(null);
+                      clearMessage();
                       setThemeName(sanitizeAppThemeName(event.target.value));
                     }}
                     className={cn(formFieldControlClassName, "text-center")}
@@ -595,6 +614,16 @@ export function AppThemeSettings({
           </SettingsCard>
         </>
       ) : null}
+
+      <ConfirmDestructiveModal
+        open={confirmDeleteOpen}
+        title="Delete theme"
+        confirmLabel="Delete"
+        objectName={selectedSavedTheme?.name}
+        consequenceText="This removes the saved theme from this device. The colors on screen stay until you pick another theme."
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={deleteTheme}
+      />
     </div>
   );
 }
