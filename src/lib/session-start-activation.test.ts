@@ -204,7 +204,8 @@ test("createSessionAtomicallyFromDay: a duplicate request returns the existing w
 
   const result = await createSessionAtomicallyFromDay(baseArgs([fullyPopulatedExercise()]), execute);
 
-  assert.deepEqual(result, { ok: true, data: { sessionId: SESSION_ID } });
+  // `existing` lets callers (Repeat workout) tell a returned live session from a freshly created one.
+  assert.deepEqual(result, { ok: true, data: { sessionId: SESSION_ID, existing: true } });
 });
 
 test("createSessionAtomicallyFromDay: an adapter failure is surfaced as ok:false without any fallback write", async () => {

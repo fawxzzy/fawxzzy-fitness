@@ -7,6 +7,7 @@ import {
   type IncomingHistoryAuditExercise,
 } from "@/lib/history-log-normalization";
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
+import type { RepeatWorkoutAvailability } from "@/lib/repeat-workout";
 
 
 function pickPreferredArray<T>(candidates: Array<T[] | null | undefined>): T[] {
@@ -36,6 +37,8 @@ export function HistoryLogPageClient(props: {
   recapArtifact?: WorkoutRecapArtifact | null;
   backHref: string;
   initialExpandedExerciseId?: string | null;
+  /** Whether "Repeat workout" can start from this session; omitted on fixture/preview data (no card). */
+  repeatWorkout?: RepeatWorkoutAvailability;
 }) {
   const incomingExercises = pickPreferredArray([
     props.exercises,
