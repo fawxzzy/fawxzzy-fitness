@@ -86,3 +86,13 @@ test("History screens carry no mis-encoded separators (a UTF-8 middle dot read a
     assert.equal(/\u00c2[\u00a0-\u00bf]|\u00e2\u20ac/.test(source), false, `${file} has mojibake`);
   }
 });
+
+test("a deleted session behind a Progression 'Open session' link lands on the History not-found card", () => {
+  const detailPage = readFileSync(new URL("../../app/history/[sessionId]/page.tsx", import.meta.url), "utf8");
+  const notFoundPage = readFileSync(new URL("../../app/history/[sessionId]/not-found.tsx", import.meta.url), "utf8");
+  const progression = readFileSync(new URL("./ProgressionHistorySurface.tsx", import.meta.url), "utf8");
+  assert.match(progression, /href=\{`\/history\/\$\{row\.sourceSessionId\}`\}/);
+  assert.match(detailPage, /if \(!session\) \{\s*notFound\(\);/);
+  assert.match(detailPage, /isNotFoundError\(error\)\) \{\s*throw error;/, "notFound() is not swallowed by the load-error catch");
+  assert.match(notFoundPage, /<HistorySessionMissingState \/>/);
+});

@@ -5,7 +5,8 @@ import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AppProviders, createRouterSpy } from "./providers.tsx";
 import { HistoryFilterBar, type HistoryFilterGroup } from "../../src/components/history/HistoryFilterBar.tsx";
-import { HistoryLoadErrorState } from "../../src/components/history/HistoryLoadErrorState.tsx";
+import { HistoryLoadErrorState, resolveHistoryLoadErrorNotice } from "../../src/components/history/HistoryLoadErrorState.tsx";
+import { HistorySessionMissingState } from "../../src/components/history/HistorySessionMissingState.tsx";
 import { ProgressionHistoryFilters } from "../../src/components/history/ProgressionHistoryFilters.tsx";
 
 // History redesign 2026-11-23: one Filters button + bottom sheet replaces the sideways chip rails (review items 1, 5,
@@ -140,11 +141,36 @@ test("a load error names what failed in the card and says why once, in the in-fl
   assert.ok(screen.getByRole("heading", { name: "Could not load sessions" }));
   const card = document.querySelector('[data-history-load-error="true"]');
   assert.ok(card);
-  assert.equal(card.textContent?.includes("Check your connection"), false, "the reason is not repeated inline");
-  assert.equal(screen.getAllByText("Check your connection and try again.").length, 1);
+  assert.equal(card.textContent?.includes("Something went wrong"), false, "the reason is not repeated inline");
+  assert.equal(screen.getAllByText("Something went wrong loading history. Try again.").length, 1);
+  assert.equal(screen.queryByText(/Check your connection/), null, "an online failure does not blame the connection");
   assert.equal(within(card as HTMLElement).getByRole("link", { name: "Go to Today" }).getAttribute("href"), "/today");
 
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await act(async () => {});
   assert.equal(calls.refresh, 1);
+});
+
+test("the load-error notice only mentions the connection when the browser is offline", async () => {
+  assert.equal(resolveHistoryLoadErrorNotice(false), "You look offline. Check your connection and try again.");
+  assert.equal(resolveHistoryLoadErrorNotice(true), "Something went wrong loading history. Try again.");
+  assert.equal(resolveHistoryLoadErrorNotice(undefined), "Something went wrong loading history. Try again.");
+
+  const onLine = Object.getOwnPropertyDescriptor(window.navigator, "onLine");
+  Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true });
+  try {
+    mount(<HistoryLoadErrorState title="Could not load sessions" />);
+    await act(async () => {});
+    assert.equal(screen.getAllByText("You look offline. Check your connection and try again.").length, 1);
+  } finally {
+    if (onLine) Object.defineProperty(window.navigator, "onLine", onLine);
+    else delete (window.navigator as { onLine?: boolean }).onLine;
+  }
+});
+
+test("a deleted session (stale Open session link) shows a calm card with a way back, not a blank screen", () => {
+  render(<HistorySessionMissingState />);
+  assert.ok(screen.getByRole("heading", { name: "This session is no longer here" }));
+  assert.equal(screen.getByRole("link", { name: "Back to History" }).getAttribute("href"), "/history");
+  assert.equal(document.querySelector('[role="alert"]'), null, "no red error text for a missing session");
 });

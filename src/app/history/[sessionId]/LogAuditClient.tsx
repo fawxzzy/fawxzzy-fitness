@@ -48,7 +48,8 @@ import {
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type MetricDatum } from "@/components/ui/MetricItem";
-import { toastActionResult } from "@/lib/action-feedback";
+import { toastHistoryActionResult } from "@/lib/history-action-feedback";
+import { buildHistorySessionDeleteCopy } from "@/lib/history-session-delete-copy";
 import { formatDurationClock } from "@/lib/duration";
 import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace } from "@/lib/exercise-stats-formatting";
 import { formatDateShort } from "@/lib/formatting";
@@ -1099,7 +1100,7 @@ export function LogAuditClient({
     startTransition(async () => {
       const metaResult = await updateLogMetaAction({ logId, dayNameOverride: dayName, notes: sessionNotes });
       if (!metaResult.ok) {
-        toastActionResult(toast, metaResult, { success: "", error: "Unable to save log details." });
+        toastHistoryActionResult(toast, metaResult, { success: "", error: "Unable to save log details." });
         return;
       }
 
@@ -1108,7 +1109,7 @@ export function LogAuditClient({
         if (notesValue === (exercise.notes ?? "").trim()) continue;
         const result = await updateLogExerciseNotesAction({ logId, logExerciseId: exercise.id, notes: notesValue });
         if (!result.ok) {
-          toastActionResult(toast, result, { success: "", error: "Unable to save exercise notes." });
+          toastHistoryActionResult(toast, result, { success: "", error: "Unable to save exercise notes." });
           return;
         }
       }
@@ -1141,14 +1142,14 @@ export function LogAuditClient({
           });
 
           if (!result.ok) {
-            toastActionResult(toast, result, { success: "", error: "Unable to save set changes." });
+            toastHistoryActionResult(toast, result, { success: "", error: "Unable to save set changes." });
             return;
           }
         }
       }
 
       setIsEditing(false);
-      toastActionResult(toast, { ok: true }, { success: "Log details saved.", error: "Unable to save log details." });
+      toastHistoryActionResult(toast, { ok: true }, { success: "Log details saved.", error: "Unable to save log details." });
       navigateReturn();
     });
   }, [dayName, editableSets, exerciseNotes, exercises, logId, navigateReturn, sessionNotes, toast]);
@@ -1158,13 +1159,14 @@ export function LogAuditClient({
     setIsEditing(true);
   }, []);
 
-  const deleteSessionName = sessionSummary.dayTitle?.trim() || initialDayName.trim() || "this session";
-  const deleteSessionDate = formatDateShort(sessionSummary.startedAt);
-  const deleteSessionConsequence = [
-    deleteSessionDate ? `Removes the ${deleteSessionDate} session` : "Removes this session",
-    exercises.length > 0 ? ` and its ${exercises.length === 1 ? "1 exercise" : `${exercises.length} exercises`}` : "",
-    ". This cannot be undone.",
-  ].join("");
+  const deleteCopy = buildHistorySessionDeleteCopy({
+    dayTitle: sessionSummary.dayTitle,
+    dayName: initialDayName,
+    dateLabel: formatDateShort(sessionSummary.startedAt),
+    exerciseCount: exercises.length,
+  });
+  const deleteSessionName = deleteCopy.name;
+  const deleteSessionConsequence = deleteCopy.consequence;
 
   const actionsNode = useMemo(() => {
     if (isEditing) {
@@ -1225,7 +1227,7 @@ export function LogAuditClient({
 
     startTransition(async () => {
       const result = await deleteLogExerciseSetAction({ logId, logExerciseId: exerciseId, setId });
-      toastActionResult(toast, result, { success: "Set deleted.", error: "Unable to delete set." });
+      toastHistoryActionResult(toast, result, { success: "Set deleted.", error: "Unable to delete set." });
       if (!result.ok) {
         setEditableSets((current) => ({ ...current, [exerciseId]: previous }));
       }
@@ -1265,7 +1267,7 @@ export function LogAuditClient({
         calories: null,
         weightUnit: unitLabel,
       });
-      toastActionResult(toast, result, { success: "Set added.", error: "Unable to add set." });
+      toastHistoryActionResult(toast, result, { success: "Set added.", error: "Unable to add set." });
       if (!result.ok) {
         setEditableSets((current) => ({ ...current, [exerciseId]: (current[exerciseId] ?? []).filter((set) => set.id !== tempId) }));
         return;
@@ -1288,7 +1290,7 @@ export function LogAuditClient({
   const handleDeleteExercise = (logExerciseId: string) => {
     startTransition(async () => {
       const result = await deleteLogExerciseAction({ logId, logExerciseId });
-      toastActionResult(toast, result, { success: "Exercise removed.", error: "Unable to remove exercise." });
+      toastHistoryActionResult(toast, result, { success: "Exercise removed.", error: "Unable to remove exercise." });
       if (result.ok) {
         setExerciseToDelete(null);
         router.refresh();

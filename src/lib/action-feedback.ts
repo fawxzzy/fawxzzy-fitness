@@ -1,6 +1,5 @@
 "use client";
 
-import { friendlyActionError } from "@/lib/action-error-copy";
 import type { ActionResult } from "@/lib/action-result";
 
 type ActionFeedbackResult = ActionResult | { ok: boolean; error?: string };
@@ -20,6 +19,5 @@ export function toastActionResult(
     return;
   }
 
-  // Never show a raw code ("session_expired") or database text: map it to copy, else use the caller's message.
-  toast.error(friendlyActionError(result.error, messages.error));
+  toast.error(result.error || messages.error);
 }
