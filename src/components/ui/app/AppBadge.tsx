@@ -1,27 +1,20 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { cn } from "@/lib/cn";
-import { appTokens } from "@/components/ui/app/tokens";
+import { Chip } from "@/components/ui/Chip";
 
-const toneClassNames = {
-  today: appTokens.todayBadge,
-  default: appTokens.defaultBadge,
-  success: appTokens.successBadge,
-  warning: appTokens.warningBadge,
-  destructive: appTokens.destructiveBadge,
-} as const;
-
+// Legacy name, kept as a thin wrapper over the one chip family (Chip.tsx, docs/ui/FOUNDATION.md "Chips").
+// Markup is identical to the old AppBadge.
 export function AppBadge({
   tone = "default",
   children,
   className,
   ...props
 }: HTMLAttributes<HTMLSpanElement> & {
-  tone?: keyof typeof toneClassNames;
+  tone?: "today" | "default" | "success" | "warning" | "destructive";
   children: ReactNode;
 }) {
   return (
-    <span className={cn(appTokens.badgeBase, toneClassNames[tone], className)} {...props}>
+    <Chip tone={tone} className={className} {...props}>
       {children}
-    </span>
+    </Chip>
   );
 }

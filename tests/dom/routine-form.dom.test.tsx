@@ -84,7 +84,9 @@ test("Routine form: a name that already exists (any case) shows the error, sends
   assert.deepEqual(calls.push, []);
 
   fireEvent.change(input, { target: { value: "Hypertrophy B" } });
-  await waitFor(() => assert.equal(screen.queryByText("Routine name already exists."), null));
+  // The error shows twice while it is up: the in-flow notice (FieldNotice) and the field's sr-only description.
+  // queryAllByText, because queryByText throws on two matches and prints the whole DOM on every waitFor retry.
+  await waitFor(() => assert.equal(screen.queryAllByText("Routine name already exists.").length, 0));
 });
 
 test("Routine form: a server error is shown and the chooser stays open", async () => {

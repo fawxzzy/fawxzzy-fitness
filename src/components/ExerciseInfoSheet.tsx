@@ -400,7 +400,7 @@ function getCompactMetricArrowToneClassName(value: string) {
     const leftScore = (transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
     const rightScore = (transitionMatch[2].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
     if (Number.isFinite(leftScore) && Number.isFinite(rightScore) && rightScore !== leftScore) {
-      return rightScore > leftScore ? "text-[rgb(var(--success-rgb)/0.94)]" : "text-[rgb(255,116,116)]";
+      return rightScore > leftScore ? "text-[rgb(var(--success-rgb)/0.94)]" : "text-[rgb(var(--danger-rgb))]";
     }
   }
 
@@ -409,7 +409,7 @@ function getCompactMetricArrowToneClassName(value: string) {
   }
 
   if (/\b(reduced|removed|regression|regressed|revert|reverted|deload|decreased|down|below|slipped)\b/.test(normalized)) {
-    return "text-[rgb(255,116,116)]";
+    return "text-[rgb(var(--danger-rgb))]";
   }
 
   if (/\b(increased|added|promotion|promoted|improved|up|new best|pr)\b/.test(normalized)) {

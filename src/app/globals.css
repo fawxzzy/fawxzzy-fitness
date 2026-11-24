@@ -17,21 +17,27 @@
   --text-primary: 244 248 252;
   --text-secondary: 205 217 232;
   --text-muted: 144 164 188;
-  --accent-mint: 32 151 78;
+  /* Design foundation (docs/ui/FOUNDATION.md): ONE green and ONE red. The theme script (lib/app-theme.ts) still writes
+     every legacy name below inline for custom themes, so the names stay; at default they all point at one palette value. */
+  --palette-green-rgb: 32 151 78;
+  --palette-red-rgb: 238 62 78;
+  --accent-mint: var(--palette-green-rgb);
   --accent-mint-strong: 68 168 106;
-  --accent-blue: 32 151 78;
+  --accent-blue: var(--palette-green-rgb);
   --secondary-action-rgb: 205 151 66;
-  --accent-divider-rgb: 32 151 78;
-  --metric-accent-rgb: 32 151 78;
-  --selection-rgb: 32 151 78;
+  --accent-divider-rgb: var(--palette-green-rgb);
+  --metric-accent-rgb: var(--palette-green-rgb);
+  --selection-rgb: var(--palette-green-rgb);
   --loader-scan-rgb: 32 121 78;
   --accent-yellow-off: 240 178 78;
   --accent-yellow-on: 240 178 78;
-  --accent-red: 255 111 131;
-  --accent-purple: 32 151 78;
-  --success-rgb: 32 151 78;
+  --accent-purple: var(--palette-green-rgb);
+  --success-rgb: var(--palette-green-rgb);
   --warning-rgb: 240 178 78;
-  --danger-rgb: 238 62 78;
+  --danger-rgb: var(--palette-red-rgb);
+  /* Legacy red names: aliases of the one danger red (custom themes already set --accent-red = danger). */
+  --accent-red: var(--danger-rgb);
+  --danger-text-rgb: var(--danger-rgb);
   --ambient-depth-top: 12 22 33;
   --ambient-depth-mid: 8 17 27;
   --ambient-depth-bottom: 5 12 19;
@@ -68,7 +74,8 @@
 
   --button-height-lg: 3.5rem;
   --button-height: 3rem;
-  --button-height-sm: 2.5rem;
+  /* 44px: the minimum tap target (matches AppButton sm min-h-[2.75rem]). */
+  --button-height-sm: 2.75rem;
   --button-padding-x-lg: 1.25rem;
   --button-padding-x: 1rem;
   --button-padding-x-sm: 0.875rem;
@@ -123,6 +130,31 @@
   --radius-md: 1.25rem;
   --radius-sm: 1rem;
   --radius-pill: 999px;
+
+  /* Foundation scales (docs/ui/FOUNDATION.md). Type never goes under 12px for content (11px is the uppercase label floor). */
+  --type-label: 0.6875rem;
+  --type-caption: 0.75rem;
+  --type-body-sm: 0.8125rem;
+  --type-body: 0.9375rem;
+  --type-title-sm: 1.0625rem;
+  --type-title: 1.25rem;
+  --type-display: 1.75rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --gap-stack: var(--space-2);
+  --hit-min: 2.75rem;
+  /* Layers: the list in docs/design-system/DESIGN-CONTRACT.md section 15, as tokens (values unchanged). */
+  --z-listbox: 90;
+  --z-loader: 95;
+  --z-popover: 96;
+  --z-toast: 110;
+  --z-menu: 115;
+  --z-sheet: 120;
+  --z-modal: 120;
 
   --glass-tint-rgb: var(--surface-1-rgb);
   --glass-tint-alpha-on: 0.88;
@@ -1998,6 +2030,118 @@ button,
   --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.018);
   --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.024);
   --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.016);
+}
+
+/* AppButton variant="promote" (docs/ui/FOUNDATION.md): the Today promote look as a button. Success-green fill and
+   keyline; the sweep comes from the shared `.promote-shine` class it also carries. */
+.action-chrome.app-button-promote {
+  --action-chrome-border-color: rgb(var(--success-rgb) / 0.62);
+  --action-chrome-border-color-hover: rgb(var(--success-rgb) / 0.78);
+  --action-chrome-text-color: rgb(var(--text-primary));
+  --action-chrome-shadow:
+    0 1px 0 rgb(255 255 255 / 0.05) inset,
+    0 0 14px rgb(var(--success-rgb) / 0.28);
+  --action-chrome-shadow-hover:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 0 18px rgb(var(--success-rgb) / 0.34);
+  --action-chrome-shadow-active:
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 0 10px rgb(var(--success-rgb) / 0.24);
+  background: rgb(var(--success-rgb) / 0.22);
+}
+
+.action-chrome.app-button-promote:hover:not(:disabled) {
+  background: rgb(var(--success-rgb) / 0.3);
+}
+
+/* AppButton hierarchy (docs/ui/FOUNDATION.md "Buttons"): three looks a person can tell apart at a glance.
+   Primary = solid accent-tinted fill over an opaque base + strong accent keyline. Secondary = lifted neutral grey surface with
+   a visible grey keyline (not the green border token). Quiet = no keyline, no fill, secondary-colour text; pressed shows a soft neutral wash (no
+   underline). Scoped to the AppButton markers so other action-chrome users (rails, toggles) keep their intent look.
+   Text stays text-primary / text-secondary on dark fills: AA (>= 4.5:1) on every theme accent. */
+.action-chrome.app-button-primary {
+  --action-chrome-border-color: rgb(var(--accent-strong) / 0.82);
+  --action-chrome-border-color-hover: rgb(var(--accent-strong) / 0.92);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.06);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.09);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.06);
+  --action-chrome-overlay-top-active: rgb(0 0 0 / 0.04);
+  --action-chrome-overlay-bottom-active: rgb(0 0 0 / 0.08);
+  --action-chrome-text-color: rgb(var(--text-primary));
+  background:
+    linear-gradient(rgb(var(--accent) / 0.42), rgb(var(--accent) / 0.42)),
+    rgb(var(--surface-2));
+}
+
+.action-chrome.app-button-primary:hover:not(:disabled) {
+  background:
+    linear-gradient(rgb(var(--accent) / 0.52), rgb(var(--accent) / 0.52)),
+    rgb(var(--surface-2));
+}
+
+.action-chrome.app-button-secondary {
+  --action-chrome-border-color: rgb(var(--text-secondary) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--text-secondary) / 0.5);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.015);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.07);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.03);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.08);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.04);
+  --action-chrome-text-color: rgb(var(--text-primary));
+  background: rgb(var(--surface-3-rgb) / 0.62);
+}
+
+.action-chrome.app-button-tertiary {
+  --action-chrome-border-color: transparent;
+  --action-chrome-border-color-hover: transparent;
+  --action-chrome-shadow: none;
+  --action-chrome-shadow-hover: none;
+  --action-chrome-shadow-active: none;
+  --action-chrome-overlay-top: transparent;
+  --action-chrome-overlay-bottom: transparent;
+  --action-chrome-overlay-top-hover: transparent;
+  --action-chrome-overlay-bottom-hover: transparent;
+  --action-chrome-overlay-top-active: transparent;
+  --action-chrome-overlay-bottom-active: transparent;
+  --action-chrome-text-color: rgb(var(--text-secondary));
+  background: transparent;
+  text-decoration: none;
+}
+
+.action-chrome.app-button-tertiary::before,
+.action-chrome.app-button-tertiary::after {
+  background: none;
+}
+
+.action-chrome.app-button-tertiary:hover:not(:disabled) {
+  background: rgb(var(--surface-3-rgb) / 0.42);
+  color: rgb(var(--text-primary));
+}
+
+.action-chrome.app-button-tertiary:active:not(:disabled) {
+  background: rgb(var(--surface-3-rgb) / 0.62);
+  color: rgb(var(--text-primary));
+  text-decoration: none;
+}
+
+/* SegmentedControl selected segment, strong look (default when no activeIntent is passed): accent tint + keyline. */
+.action-chrome.segmented-selected-strong {
+  --action-chrome-border-color: rgb(var(--accent) / 0.58);
+  --action-chrome-border-color-hover: rgb(var(--accent) / 0.72);
+  --action-chrome-overlay-top: rgb(var(--accent) / 0.24);
+  --action-chrome-overlay-bottom: rgb(var(--accent) / 0.12);
+  --action-chrome-overlay-top-hover: rgb(var(--accent) / 0.28);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.14);
+  --action-chrome-overlay-top-active: rgb(var(--accent) / 0.32);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent) / 0.16);
+  --action-chrome-text-color: rgb(var(--text-primary));
+}
+
+.promote-shine:disabled::after {
+  animation: none;
+  opacity: 0;
 }
 
 .measurement-toggle-button {

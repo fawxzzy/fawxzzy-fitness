@@ -234,7 +234,9 @@ test("root CSS defines the default metric and card stroke tokens for default the
   const globalsPath = path.resolve(process.cwd(), "src/app/globals.css");
   const globalsCss = readFileSync(globalsPath, "utf8");
 
-  assert.match(globalsCss, /--metric-accent-rgb:\s*32 151 78;/);
+  // Design foundation: the legacy green names alias one palette value (docs/ui/FOUNDATION.md).
+  assert.match(globalsCss, /--palette-green-rgb:\s*32 151 78;/);
+  assert.match(globalsCss, /--metric-accent-rgb:\s*var\(--palette-green-rgb\);/);
   assert.match(globalsCss, /--stroke-soft:\s*38 181 94;/);
   assert.match(globalsCss, /--stroke-strong:\s*38 181 94;/);
 });

@@ -20,7 +20,7 @@ export type StatGridItem = {
 const toneClassNames: Record<StatGridTone, string> = {
   default: "text-[rgb(var(--text-primary)/0.98)]",
   success: "text-[rgb(var(--success-rgb)/0.96)]",
-  danger: "text-[rgb(255,116,116)]",
+  danger: "text-[rgb(var(--danger-rgb))]",
   warning: "text-[rgb(var(--warning-rgb)/0.98)]",
   muted: "text-[rgb(var(--text-secondary)/0.9)]",
 };

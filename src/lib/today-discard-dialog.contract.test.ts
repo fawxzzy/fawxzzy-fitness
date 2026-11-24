@@ -38,13 +38,18 @@ test("telemetry after the discard delete is best-effort and runs only once the s
 });
 
 test("the discard dialog blurs and dims the screen behind it and uses tokens only", () => {
+  // Design foundation: the confirm renders on the shared Sheet, whose scrim does the dim + blur for every sheet.
   const modal = read("../components/ui/ConfirmDestructiveModal.tsx");
-  const blur = /MODAL_SHELL_CONTENT_FILTER = "blur\((\d+(?:\.\d+)?)px\)/.exec(modal);
-  assert.ok(blur, "the shell filter is a named constant");
-  assert.ok(Number(blur[1]) >= 5, `backdrop blur is noticeable (was 1.5px, now ${blur[1]}px)`);
-  assert.match(modal, /MODAL_BACKDROP_CLASSNAME =\s+"bg-\[rgb\(var\(--bg-app\)\/0\.\d+\)\]"/);
-  assert.doesNotMatch(modal, /rgba\(7,\s*17,\s*27/, "no hard-coded app background colour");
-  assert.match(modal, /MODAL_PANEL_CLASSNAME =[\s\S]*rounded-\[var\(--card-radius\)\][\s\S]*shadow-\[var\(--glass-shadow-overlay\)\]/);
+  const sheet = read("../components/ui/Sheet.tsx");
+  assert.match(modal, /<Sheet\b/);
+  const scrim = /SHEET_SCRIM_CLASSNAME = "([^"]+)"/.exec(sheet);
+  assert.ok(scrim, "the scrim is a named constant");
+  assert.match(scrim[1], /bg-\[rgb\(var\(--bg-app\)\/0\.\d+\)\]/);
+  const blur = /backdrop-blur-\[(\d+(?:\.\d+)?)px\]/.exec(scrim[1]);
+  assert.ok(blur && Number(blur[1]) >= 5, `backdrop blur is noticeable (was 1.5px, now ${blur?.[1]}px)`);
+  for (const source of [modal, sheet]) {
+    assert.doesNotMatch(source, /rgba\(7,\s*17,\s*27/, "no hard-coded app background colour");
+  }
 });
 
 test("notices anchor top-right under the header through shared CSS variables", () => {

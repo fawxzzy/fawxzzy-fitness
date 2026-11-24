@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/appButtonClasses";
 import { ACTION_CHROME_SEGMENTED_CLASS_NAME, resolveAppButtonIntent } from "@/components/ui/actionChrome";
 
-type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: AppButtonVariant;
   size?: AppButtonSize;
   state?: AppButtonState;
@@ -81,4 +81,13 @@ export function DestructiveButton(props: Omit<AppButtonProps, "variant">) {
 
 export function GhostButton(props: Omit<AppButtonProps, "variant">) {
   return <AppButton variant="tertiary" {...props} />;
+}
+
+// The one "promote" action on a screen (Today's promote pattern): green fill and the shared shine sweep.
+export function PromoteButton(props: Omit<AppButtonProps, "variant">) {
+  return <AppButton variant="promote" {...props} />;
+}
+
+export function QuietButton(props: Omit<AppButtonProps, "variant">) {
+  return <AppButton variant="quiet" {...props} />;
 }

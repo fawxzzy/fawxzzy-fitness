@@ -39,12 +39,24 @@ test("helper text is tied to the control through aria-describedby", () => {
   assert.doesNotMatch(html, /<input[^>]*aria-invalid/);
 });
 
-test("an error replaces the helper, is announced, and marks the control aria-invalid", () => {
+// Zac 2026-11-23: no inline red errors. The error is announced by the in-flow notice (FieldNotice -> ToastProvider);
+// the field keeps an sr-only description for aria-describedby and a neutral "!" marker, never danger-coloured text.
+test("an error replaces the helper, backs aria-describedby, marks the control aria-invalid, and is not red text", () => {
   const html = renderField({ helper: "Helper", error: "Name already used." });
   const describedBy = attr(html, "input", "aria-describedby");
   assert.equal(attr(html, "input", "aria-invalid"), "true");
-  assert.match(html, new RegExp(`<p id="${describedBy}" role="alert"[^>]*>.*Name already used\\.`));
+  assert.match(html, new RegExp(`<p id="${describedBy}" class="sr-only"[^>]*>Name already used\\.`));
+  assert.match(html, /data-form-field-marker=""[^>]*>!</);
+  assert.doesNotMatch(html, /text-\[rgb\(var\(--danger-rgb\)/);
+  assert.doesNotMatch(html, /role="alert"/);
   assert.doesNotMatch(html, />Helper</);
+});
+
+test("FormField routes its error through FieldNotice instead of rendering danger text", () => {
+  const source = readFileSync(new URL("./FormField.tsx", import.meta.url), "utf8");
+  assert.match(source, /error\?: string \| null;/);
+  assert.match(source, /<FieldNotice error=\{error \?\? null\} id=\{fieldNoticeId\(controlId\)\} \/>/);
+  assert.doesNotMatch(source, /className="[^"]*text-\[rgb\(var\(--danger-rgb\)\)\]/);
 });
 
 test("invalid without a message still sets aria-invalid", () => {

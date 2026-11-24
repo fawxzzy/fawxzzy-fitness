@@ -4,7 +4,8 @@ import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles
 import { cn } from "@/lib/cn";
 
 export const overlayChromeClassNames = {
-  scrim: "fixed inset-0 z-0 bg-[rgba(3,8,14,0.68)] backdrop-blur-[6px]",
+  // Same token scrim as Sheet (SHEET_SCRIM_CLASSNAME); no raw rgba copy.
+  scrim: "fixed inset-0 z-0 bg-[rgb(var(--bg-app)/0.62)] backdrop-blur-[6px]",
   panelBase: cn(
     appTokens.panelBase,
     "space-y-0 p-0 border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]",
