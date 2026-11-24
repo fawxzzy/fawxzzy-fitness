@@ -271,9 +271,11 @@ test("history detail progression uses the focused metric lane without old activi
 test("history detail compact exercise rows keep the session-native summary rhythm", () => {
   const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
 
-  assert.match(source, /summaryLabel=\{bestSet \? "Top Set" : "Session"\}/);
-  assert.match(source, /signalCodes=\{collapsedCardBadgeItems\.signalItems\}/);
-  assert.match(source, /metaItems=\{\[\s*formatLoggedSetCountMeta\(collapsedCardBadgeItems\.countLabel\),/);
+  // History redesign (2026-11-23): skipped and empty exercises say so instead of showing a made-up summary.
+  assert.match(source, /summary=\{isSkipped \? "" : bestSummary\}/);
+  assert.match(source, /summaryLabel="Top set"/);
+  assert.match(source, /signalCodes=\{\[\.\.\.\(isSkipped \? \["SKIPPED"\] : \[\]\), \.\.\.collapsedCardBadgeItems\.signalItems\]\}/);
+  assert.match(source, /metaItems=\{\[\s*isSkipped \? "Skipped" : setsForExercise\.length === 0 \? "No sets logged" : formatLoggedSetCountMeta\(collapsedCardBadgeItems\.countLabel\),/);
   assert.match(source, /\.\.\.\(timerSignalItem \? \[timerSignalItem\] : \[\]\)/);
   assert.match(source, /\.\.\.\(recoveryInsight \? \[recoveryInsight\.label\] : \[\]\)/);
   assert.match(source, /buildCollapsedExerciseCardBadgeItems/);

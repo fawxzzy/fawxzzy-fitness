@@ -148,7 +148,7 @@ test("history summary counts all stored workouts, routines, exercises, and pr mo
   ]);
   assert.deepEqual(summary.hotspotItems, [
     "Back Squat led progress across this scope and drove the most promotions.",
-    "Bench Press had the most manual target changes.",
+    "Bench Press had the most manual goal changes.",
     "Walking Lunge appeared in 1 session without a PR or progression signal.",
   ]);
   assert.equal(summary.plannedWorkoutDayCount, 4);
@@ -164,7 +164,7 @@ test("history summary counts all stored workouts, routines, exercises, and pr mo
   assert.deepEqual(summary.progressionSummary.topAdjustedExerciseNames, ["Bench Press"]);
   assert.deepEqual(summary.progressionSummary.hotspotItems, [
     "Back Squat drove the most promotions.",
-    "Bench Press had the most manual target changes.",
+    "Bench Press had the most manual goal changes.",
   ]);
   assert.deepEqual(summary.progressionSummary.timelineItems, [
     "Active weeks: 2 weeks.",
@@ -253,7 +253,7 @@ test("history summary raises plain-language attention flags for inactivity and m
   ]);
   assert.deepEqual(summary.hotspotItems, [
     "Regressions outpaced promotions.",
-    "Exercise had the most regressions and manual target changes.",
+    "Exercise had the most regressions and manual goal changes.",
     "Back Squat appeared in 1 session without a PR or progression signal.",
   ]);
   assert.equal(summary.plannedWorkoutDayCount, 4);
@@ -264,7 +264,7 @@ test("history summary raises plain-language attention flags for inactivity and m
     "No promotions landed yet.",
   ]);
   assert.deepEqual(summary.progressionSummary.hotspotItems, [
-    "Exercise had the most regressions and manual target changes.",
+    "Exercise had the most regressions and manual goal changes.",
   ]);
   assert.deepEqual(summary.progressionSummary.activityBuckets.map((bucket) => `${bucket.label}:${bucket.eventCount}`), [
     "Apr 20 - Apr 26:2",

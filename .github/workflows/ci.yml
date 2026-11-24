@@ -83,6 +83,7 @@ jobs:
           node --import ./scripts/register-test-aliases.mjs --test src/lib/progression-manual-promotion.test.ts src/lib/progression-manual-promotion-supabase.test.ts
           npm run test:card-system
           npm run test:dom
+          node --import ./scripts/register-test-aliases.mjs --test src/lib/action-error-copy.test.ts src/lib/history-weekly-progress.test.ts src/components/history/HistoryRetentionDisclosure.contract.test.ts tests/dom/history-filters.dom.test.tsx tests/dom/history-session-delete.dom.test.tsx
 
       - name: Build
         run: npm run build

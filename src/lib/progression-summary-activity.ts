@@ -76,7 +76,7 @@ export function buildProgressionSummaryActivityBuckets(args: {
           ? `${args.exerciseNameById?.get(analytics.deloadFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"} had the most regressions.`
           : null,
         analytics.manualChangeFrequencyByExercise[0]
-          ? `${args.exerciseNameById?.get(analytics.manualChangeFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"} had the most manual target changes.`
+          ? `${args.exerciseNameById?.get(analytics.manualChangeFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"} had the most manual goal changes.`
           : null,
       ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
 

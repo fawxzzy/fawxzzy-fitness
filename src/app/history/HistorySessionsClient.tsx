@@ -1,21 +1,22 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { ConsistencyHeatmapSurface } from "@/components/history/ConsistencyHeatmapSurface";
 import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
 import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
 import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { HistoryFilterBar, type HistoryActiveFilterChip, type HistoryFilterGroup } from "@/components/history/HistoryFilterBar";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
 import { HistoryHeaderDensityToggle } from "@/components/history/HistoryHeaderDensityToggle";
-import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
-import { PillButton } from "@/components/ui/Pill";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import Link from "next/link";
+import { AppButton } from "@/components/ui/AppButton";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { CardEmptyState } from "@/components/ui/card-system";
+import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildHistoryCalendarView } from "@/lib/history-calendar";
@@ -74,24 +75,7 @@ function buildFilterStateKey(filterState: ExerciseInfoFilterState) {
   ].join("::");
 }
 
-function orderSelectedFirst<T>(options: T[], isSelected: (option: T) => boolean) {
-  const selected: T[] = [];
-  const unselected: T[] = [];
-  for (const option of options) {
-    if (isSelected(option)) {
-      selected.push(option);
-    } else {
-      unselected.push(option);
-    }
-  }
-
-  return [...selected, ...unselected];
-}
-
 const HISTORY_CYCLE_SEPARATOR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
-const FILTER_SECTION_STACK_CLASS_NAME = "space-y-1";
-const FILTER_SECTION_HEADER_CLASS_NAME = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]";
-const FILTER_SECTION_RAIL_CLASS_NAME = "hide-scrollbar -mx-1.5 max-w-none overflow-x-auto overflow-y-visible px-1.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
 
 type HistorySessionsScopePayload = {
   sessionItems: SessionSummary[];
@@ -115,49 +99,6 @@ function HistoryCycleSectionSeparator({ className }: { className?: string }) {
         variant="thin"
         className={HISTORY_CYCLE_SEPARATOR_CLASS_NAME}
       />
-    </div>
-  );
-}
-
-function FilterSection({
-  title,
-  showClear = false,
-  onClear,
-  children,
-}: {
-  title: string;
-  showClear?: boolean;
-  onClear?: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className={FILTER_SECTION_STACK_CLASS_NAME}>
-      <div className={FILTER_SECTION_HEADER_CLASS_NAME}>
-        <p className={appTokens.exercisePickerFilterGroupLabel}>{title}</p>
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
-      <HorizontalScrollHint
-        scrollClassName={FILTER_SECTION_RAIL_CLASS_NAME}
-        contentClassName="flex min-w-max flex-nowrap gap-1.5 pt-0"
-      >
-          {showClear && onClear ? (
-            <button
-              type="button"
-              onClick={onClear}
-              className={cn(
-                appTokens.exercisePickerFilterClearButton,
-                "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-              )}
-            >
-              Clear
-            </button>
-          ) : null}
-          {children}
-      </HorizontalScrollHint>
-      <div className="px-[4px] pt-0.5">
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
     </div>
   );
 }
@@ -196,7 +137,6 @@ function HistorySessionFilters({
   selectedMonthKey,
   onMonthChange,
   monthOptions,
-  showClearAll,
   onClearAll,
 }: {
   query: string;
@@ -215,7 +155,6 @@ function HistorySessionFilters({
   selectedMonthKey: string | null;
   onMonthChange: (next: string | null) => void;
   monthOptions: HistoryTimelineFilterOption[];
-  showClearAll: boolean;
   onClearAll: () => void;
 }) {
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
@@ -225,241 +164,176 @@ function HistorySessionFilters({
     ? routineOptions.find((routine) => routine.id === normalizedFilterState.routineId) ?? null
     : defaultRoutineOption;
   const selectedCycleStartDate = normalizedFilterState.cycleStartDate;
-  const orderedRoutineOptions = orderSelectedFirst(routineOptions, (routine) => routine.id === selectedRoutine?.id);
   const cycleOptions = routineOptions.flatMap((routine) => routine.cycleOptions.map((cycle) => ({
     ...cycle,
     routineId: routine.id,
     routineTitle: routine.title,
   })));
-  const orderedCycleOptions = orderSelectedFirst(
-    cycleOptions,
-    (cycle) => cycle.startDate === selectedCycleStartDate && cycle.routineId === normalizedFilterState.routineId,
-  );
 
   const applyFilterState = (nextState: Partial<ExerciseInfoFilterState>) => {
     onFilterStateChange(normalizeExerciseInfoFilterState(nextState));
   };
-
-  const handleRoutineScopeSelect = () => {
-    if (normalizedFilterState.analyticsScope !== "all_time") {
-      return;
-    }
-
-    const nextRoutine = selectedRoutine ?? defaultRoutineOption;
-    if (!nextRoutine) {
-      return;
-    }
-
-    applyFilterState({
-      analyticsScope: "current_routine",
-      routineId: nextRoutine.id,
-      cycleStartDate: null,
-    });
-  };
+  const resetScope = () => onFilterStateChange(createDefaultExerciseInfoFilterState());
 
   const handleRoutineSelect = (routine: ExerciseInfoRoutineFilterOption) => {
-    if (
-      normalizedFilterState.analyticsScope === "current_routine"
-      && normalizedFilterState.routineId === routine.id
-    ) {
-      return;
-    }
-
-    if (
-      normalizedFilterState.analyticsScope === "current_cycle"
-      && normalizedFilterState.routineId === routine.id
-      && Boolean(normalizedFilterState.cycleStartDate)
-    ) {
-      return;
-    }
-
     if (normalizedFilterState.analyticsScope === "current_cycle") {
       const nextCycle = routine.cycleOptions[0] ?? null;
       if (nextCycle) {
-        applyFilterState({
-          analyticsScope: "current_cycle",
-          routineId: routine.id,
-          cycleStartDate: nextCycle.startDate,
-        });
+        applyFilterState({ analyticsScope: "current_cycle", routineId: routine.id, cycleStartDate: nextCycle.startDate });
         return;
       }
     }
-
-    applyFilterState({
-      analyticsScope: "current_routine",
-      routineId: routine.id,
-      cycleStartDate: null,
-    });
+    applyFilterState({ analyticsScope: "current_routine", routineId: routine.id, cycleStartDate: null });
   };
 
-  const filterExtraContent = (
-    <>
-      {routineOptions.length > 0 ? (
-        <FilterSection
-          title="Scope"
-          showClear={normalizedFilterState.analyticsScope !== "all_time"}
-          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
-        >
-          <PillButton
-            type="button"
-            active={normalizedFilterState.analyticsScope !== "all_time"}
-            className={cn(
-              "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-              normalizedFilterState.analyticsScope !== "all_time"
-                ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-                : undefined,
-            )}
-            onClick={handleRoutineScopeSelect}
-          >
-            Routine
-          </PillButton>
-        </FilterSection>
-      ) : null}
-
-      {normalizedFilterState.analyticsScope !== "all_time" && orderedRoutineOptions.length > 0 ? (
-        <FilterSection
-          title="Routine"
-          showClear
-          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
-        >
-          {orderedRoutineOptions.map((routine) => {
-            const isSelected = selectedRoutine?.id === routine.id;
-            return (
-              <PillButton
-                key={routine.id}
-                type="button"
-                active={isSelected}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
-                )}
-                onClick={() => handleRoutineSelect(routine)}
-              >
-                {routine.title}
-              </PillButton>
-            );
-          })}
-        </FilterSection>
-      ) : null}
-
-      {orderedCycleOptions.length > 0 ? (
-        <FilterSection
-          title="Cycle"
-          showClear={Boolean(selectedCycleStartDate)}
-          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
-        >
-          {orderedCycleOptions.map((cycle) => {
-            const isSelected = cycle.startDate === selectedCycleStartDate && cycle.routineId === normalizedFilterState.routineId;
-            return (
-              <PillButton
-                key={`${cycle.routineId}:${cycle.startDate}`}
-                type="button"
-                active={isSelected}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
-                )}
-                onClick={() => {
-                  onCalendarDayChange(null);
-                  onMonthChange(null);
-                  applyFilterState({
-                    analyticsScope: "current_cycle",
-                    routineId: cycle.routineId,
-                    cycleStartDate: cycle.startDate,
-                  });
-                }}
-              >
-                {routineOptions.length > 1 ? `${cycle.routineTitle}: ${cycle.label}` : cycle.label}
-              </PillButton>
-            );
-          })}
-        </FilterSection>
-      ) : null}
-      {calendarDayOptions.length > 0 ? (
-        <FilterSection title="Session Date" showClear={Boolean(selectedCalendarDayKey)} onClear={() => onCalendarDayChange(null)}>
-          {calendarDayOptions.map((option) => {
-            const isSelected = option.key === selectedCalendarDayKey;
-            return (
-              <PillButton
-                key={option.key}
-                type="button"
-                active={isSelected}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)]" : undefined,
-                )}
-                onClick={() => onCalendarDayChange(isSelected ? null : option.key)}
-              >
-                {option.label}
-              </PillButton>
-            );
-          })}
-        </FilterSection>
-      ) : null}
-      {monthOptions.length > 0 ? (
-        <FilterSection title="Month" showClear={Boolean(selectedMonthKey)} onClear={() => onMonthChange(null)}>
-          {monthOptions.map((option) => {
-            const isSelected = option.key === selectedMonthKey;
-            return (
-              <PillButton
-                key={option.key}
-                type="button"
-                active={isSelected}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-2 py-1 text-[11px]",
-                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)]" : undefined,
-                )}
-                onClick={() => onMonthChange(isSelected ? null : option.key)}
-              >
-                {option.label}
-              </PillButton>
-            );
-          })}
-        </FilterSection>
-      ) : null}
-    </>
+  const isRoutineScope = normalizedFilterState.analyticsScope !== "all_time";
+  const formatCycleLabel = (cycle: (typeof cycleOptions)[number]) => (
+    routineOptions.length > 1 ? `${cycle.routineTitle} · ${cycle.label}` : cycle.label
   );
+  const groupLabelByTag = new Map<string, string>();
+  for (const group of groups) {
+    for (const tag of group.tags) {
+      groupLabelByTag.set(tag.value, tag.label);
+    }
+  }
+  const toggleTag = (value: string) => {
+    onTagsChange(selectedTags.includes(value) ? selectedTags.filter((tag) => tag !== value) : [...selectedTags, value]);
+  };
+
+  const sheetGroups: HistoryFilterGroup[] = [];
+  if (routineOptions.length > 0) {
+    sheetGroups.push({
+      key: "scope",
+      title: "Show",
+      options: [
+        { key: "all_time", label: "All sessions", selected: !isRoutineScope, onSelect: resetScope },
+        {
+          key: "routine",
+          label: "One routine",
+          selected: isRoutineScope,
+          onSelect: () => {
+            const nextRoutine = selectedRoutine ?? defaultRoutineOption;
+            if (!isRoutineScope && nextRoutine) {
+              applyFilterState({ analyticsScope: "current_routine", routineId: nextRoutine.id, cycleStartDate: null });
+            }
+          },
+        },
+      ],
+    });
+  }
+  if (isRoutineScope && routineOptions.length > 0) {
+    sheetGroups.push({
+      key: "routine",
+      title: "Routine",
+      options: routineOptions.map((routine) => ({
+        key: routine.id,
+        label: routine.title,
+        selected: selectedRoutine?.id === routine.id,
+        onSelect: () => handleRoutineSelect(routine),
+      })),
+    });
+  }
+  if (cycleOptions.length > 0) {
+    sheetGroups.push({
+      key: "cycle",
+      title: "Cycle",
+      collapsedLimit: 6,
+      options: cycleOptions.map((cycle) => {
+        const isSelected = cycle.startDate === selectedCycleStartDate && cycle.routineId === normalizedFilterState.routineId;
+        return {
+          key: `${cycle.routineId}:${cycle.startDate}`,
+          label: formatCycleLabel(cycle),
+          selected: isSelected,
+          onSelect: () => {
+            if (isSelected) {
+              applyFilterState({ analyticsScope: "current_routine", routineId: cycle.routineId, cycleStartDate: null });
+              return;
+            }
+            onCalendarDayChange(null);
+            onMonthChange(null);
+            applyFilterState({ analyticsScope: "current_cycle", routineId: cycle.routineId, cycleStartDate: cycle.startDate });
+          },
+        };
+      }),
+    });
+  }
+  if (monthOptions.length > 0) {
+    sheetGroups.push({
+      key: "month",
+      title: "Month",
+      collapsedLimit: 6,
+      options: monthOptions.map((option) => ({
+        key: option.key,
+        label: option.label,
+        selected: option.key === selectedMonthKey,
+        onSelect: () => onMonthChange(option.key === selectedMonthKey ? null : option.key),
+      })),
+    });
+  }
+  if (calendarDayOptions.length > 0) {
+    sheetGroups.push({
+      key: "session-date",
+      title: "Session date",
+      collapsedLimit: 8,
+      options: calendarDayOptions.map((option) => ({
+        key: option.key,
+        label: option.label,
+        selected: option.key === selectedCalendarDayKey,
+        onSelect: () => onCalendarDayChange(option.key === selectedCalendarDayKey ? null : option.key),
+      })),
+    });
+  }
+  for (const group of groups) {
+    sheetGroups.push({
+      key: `tag-${group.key}`,
+      title: group.label,
+      collapsedLimit: 10,
+      options: group.tags.map((tag) => ({
+        key: tag.value,
+        label: tag.label,
+        selected: selectedTags.includes(tag.value),
+        onSelect: () => toggleTag(tag.value),
+      })),
+    });
+  }
+
+  const activeChips: HistoryActiveFilterChip[] = [];
+  if (isRoutineScope) {
+    const selectedCycle = cycleOptions.find((cycle) => cycle.startDate === selectedCycleStartDate && cycle.routineId === normalizedFilterState.routineId);
+    activeChips.push(selectedCycle
+      ? { key: "scope", label: formatCycleLabel(selectedCycle), onRemove: resetScope }
+      : { key: "scope", label: selectedRoutine?.title ?? "One routine", onRemove: resetScope });
+  }
+  const selectedMonth = monthOptions.find((option) => option.key === selectedMonthKey);
+  if (selectedMonth) {
+    activeChips.push({ key: "month", label: selectedMonth.label, onRemove: () => onMonthChange(null) });
+  }
+  const selectedDay = calendarDayOptions.find((option) => option.key === selectedCalendarDayKey);
+  if (selectedDay) {
+    activeChips.push({ key: "session-date", label: selectedDay.label, onRemove: () => onCalendarDayChange(null) });
+  }
+  for (const tag of selectedTags) {
+    activeChips.push({
+      key: `tag-${tag}`,
+      label: groupLabelByTag.get(tag) ?? tag.slice(tag.indexOf(":") + 1),
+      onRemove: () => onTagsChange(selectedTags.filter((value) => value !== tag)),
+    });
+  }
 
   return (
-    <ExerciseSearchFilters
+    <HistoryFilterBar
       query={query}
       onQueryChange={onQueryChange}
-      selectedTags={selectedTags}
-      onTagsChange={onTagsChange}
-      groups={groups}
+      searchPlaceholder="Search sessions…"
+      searchLabel="Search sessions"
+      activeFilterCount={activeChips.length}
+      activeChips={activeChips}
+      onClearAll={onClearAll}
+      groups={sheetGroups}
       resultCount={resultCount}
-      filterLabel="Filters"
-      className={cn(appTokens.historyExerciseFilterStack, DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME)}
-      filterClassName="space-y-1.5"
-      filterButtonClassName={appTokens.historyExerciseFilterButton}
-      filterPanelClassName={cn(
-        appTokens.historyExerciseFilterPanel,
-        "!overflow-visible !bg-[rgb(var(--surface-1-rgb))] !backdrop-blur-none",
-      )}
-      filterHorizontalRailOverrideClassName="-mx-1.5 px-1.5"
-      filterCompactDensity="tight"
-      searchInputClassName={appTokens.historyExerciseSearchInput}
-      clearButtonClassName={appTokens.exercisePickerSearchClearButton}
-      searchPlaceholder="Search sessions"
       resultSingularLabel="session"
       resultPluralLabel="sessions"
-      clearSearchAriaLabel="Clear session search"
-      toggleFiltersAriaLabel="Toggle session filters"
-      additionalFilterCount={(normalizedFilterState.analyticsScope !== "all_time" ? 1 : 0) + (selectedCalendarDayKey ? 1 : 0) + (selectedMonthKey ? 1 : 0)}
-      trailingControls={showClearAll ? (
-        <button
-          type="button"
-          onClick={onClearAll}
-          aria-label="Clear all History filters"
-          title="Clear all filters"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[rgb(var(--success-rgb)/0.46)] bg-[rgb(var(--surface-2-rgb)/0.62)] text-[1rem] leading-none text-[rgb(var(--success-rgb)/0.96)] shadow-[0_0_10px_rgb(var(--success-rgb)/0.1)] transition-colors hover:bg-[rgb(var(--success-rgb)/0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.3)]"
-        >
-          &times;
-        </button>
-      ) : null}
-      defaultFilterOpen={initialOpen}
-      chromeVariant="history"
-      filterExtraContent={filterExtraContent}
+      initialSheetOpen={initialOpen}
     />
   );
 }
@@ -581,6 +455,8 @@ export function HistorySessionsClient({
     routineTitle: null,
   });
   const [isScopeLoading, setIsScopeLoading] = useState(false);
+  const toast = useToast();
+  const toastError = toast.error;
   const deferredQuery = useDeferredValue(query);
   const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
   const filterKey = useMemo(() => buildFilterStateKey(normalizedFilterState), [normalizedFilterState]);
@@ -665,6 +541,8 @@ export function HistorySessionsClient({
           filterState: normalizedFilterState,
           error,
         });
+        // Errors only go through the in-flow notice (History review item 0c); the list keeps the last results.
+        toastError("Could not load that filter. Showing your last results.");
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -673,7 +551,7 @@ export function HistorySessionsClient({
       });
 
     return () => controller.abort();
-  }, [filterKey, normalizedFilterState, payloadsByFilterKey]);
+  }, [filterKey, normalizedFilterState, payloadsByFilterKey, toastError]);
 
   useEffect(() => {
     if (normalizedFilterState.analyticsScope === "all_time") {
@@ -922,10 +800,11 @@ export function HistorySessionsClient({
     || Boolean(selectedMonthKey);
 
   return (
-    <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
+    <div className={cn(appTokens.historyBrowserStack, "!gap-2 pt-2")}>
       {sessions.length > 0 ? (
-        <div className="sticky top-0 z-30 -mx-1 px-1 pt-0">
-          <div className="rounded-b-[1.1rem] bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0.96)_0%,rgba(var(--surface-rgb),0.92)_72%,rgba(var(--surface-rgb),0)_100%)] backdrop-blur-md">
+        <div data-history-sticky-filters="true" className="sticky top-0 z-30 -mx-1 px-1 pt-0">
+          {/* Opaque so cards never show through around the search row (History review item 15). */}
+          <div className="rounded-b-[1.1rem] bg-[rgb(var(--surface-rgb))] pb-1 shadow-[0_10px_18px_-14px_rgba(0,0,0,0.7)]">
             <div className={cn(appTokens.historyFloatingHeaderRail, "overflow-visible")}>
               <HistoryTitleControlShell
                 viewMode={viewMode}
@@ -949,7 +828,6 @@ export function HistorySessionsClient({
                   selectedMonthKey={selectedMonthKey}
                   onMonthChange={handleMonthChange}
                   monthOptions={monthOptions}
-                  showClearAll={hasStructuredFilters}
                   onClearAll={clearAllFilters}
                 />
               </HistoryTitleControlShell>
@@ -991,11 +869,8 @@ export function HistorySessionsClient({
       ) : null}
       {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
-        <ul className={cn(
-          viewMode === "compact"
-            ? appTokens.historyBrowserList
-            : appTokens.historyBrowserList,
-        )}>
+        // One 8px rhythm for summary cards and session cards (History review item 14).
+        <ul data-history-session-list="true" className="grid gap-2">
           {filteredSessions.map((session, filteredIndex) => {
             const index = scopedSessionIndexById.get(session.id) ?? -1;
             const previousFilteredSession = filteredIndex > 0 ? filteredSessions[filteredIndex - 1] : null;
@@ -1010,7 +885,7 @@ export function HistorySessionsClient({
             return (
               <li
                 key={session.id}
-                className={cn(startsNewWeekGroup && historicalWeeklySummary ? "space-y-2.5 pt-6" : undefined)}
+                className={cn(startsNewWeekGroup && historicalWeeklySummary ? "grid gap-2 pt-4" : undefined)}
               >
                 {startsNewWeekGroup && historicalWeeklySummary ? (
                   <>
@@ -1034,24 +909,45 @@ export function HistorySessionsClient({
           })}
         </ul>
       ) : (
-        <SharedSectionShell
-          recipe="historyDetail"
-          listState={(
-            <p className={appTokens.historyBrowserEmptyState}>
-              {scopedSessions.length > 0
-                ? "No matching sessions."
+        <div data-history-list-state={scopedSessions.length > 0 ? "filtered-empty" : "empty"}>
+          {scopedSessions.length > 0 ? (
+            <CardEmptyState
+              headingLevel={2}
+              title="No sessions match"
+              body="Try a different search or remove a filter."
+              action={(
+                <AppButton type="button" variant="secondary" size="sm" onClick={clearAllFilters}>
+                  Clear filters
+                </AppButton>
+              )}
+            />
+          ) : (
+            <CardEmptyState
+              headingLevel={2}
+              title={normalizedFilterState.analyticsScope === "current_cycle"
+                ? "No sessions in this cycle yet"
                 : normalizedFilterState.analyticsScope === "current_routine"
-                  ? "No completed sessions in the current routine yet."
-                  : normalizedFilterState.analyticsScope === "current_cycle"
-                    ? "No completed sessions in the current cycle yet."
-                    : "No completed sessions yet."}
-            </p>
+                  ? "No sessions in this routine yet"
+                  : "No sessions yet"}
+              body={normalizedFilterState.analyticsScope === "all_time"
+                ? "Finish a workout and it lands here with its sets, PRs and progression."
+                : "Sessions you finish in this routine land here."}
+              action={normalizedFilterState.analyticsScope === "all_time" ? (
+                <Link href="/today" className={getAppButtonClassName({ variant: "primary", size: "sm" })}>Go to Today</Link>
+              ) : (
+                <AppButton type="button" variant="secondary" size="sm" onClick={clearAllFilters}>
+                  Show all sessions
+                </AppButton>
+              )}
+            />
           )}
-        />
+        </div>
       )}
       {isScopeLoading ? (
-        <div className="px-1 pt-2 text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.72)]">
-          Updating scope...
+        <div role="status" aria-label="Loading sessions" data-history-scope-loading="true" className="grid gap-2" aria-busy="true">
+          {[0, 1].map((index) => (
+            <div key={index} className="h-[4.5rem] animate-pulse rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.42)] motion-reduce:animate-none" />
+          ))}
         </div>
       ) : null}
       {showHeaderDensityToggle ? (

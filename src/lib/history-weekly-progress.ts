@@ -388,8 +388,8 @@ type WeeklySignalEntry = {
 };
 
 function formatWeeklyReasonList(parts: string[]) {
-  if (parts.length === 2 && parts[0] === "had the most regressions" && parts[1] === "had the most manual target changes") {
-    return "had the most regressions and manual target changes";
+  if (parts.length === 2 && parts[0] === "had the most regressions" && parts[1] === "had the most manual goal changes") {
+    return "had the most regressions and manual goal changes";
   }
 
   if (parts.length <= 1) {
@@ -433,7 +433,7 @@ function buildConsolidatedWeeklySignalItems(entries: WeeklySignalEntry[]) {
         reasons.has("pr") ? "had the strongest PR signal" : null,
         reasons.has("promotion") ? "drove the most promotions" : null,
         reasons.has("regression") ? "had the most regressions" : null,
-        reasons.has("manual") ? "had the most manual target changes" : null,
+        reasons.has("manual") ? "had the most manual goal changes" : null,
       ].filter((value): value is string => Boolean(value));
 
       return parts.length > 0 ? `${exerciseName} ${formatWeeklyReasonList(parts)}.` : null;
@@ -630,7 +630,7 @@ export function buildWeeklyProgressSummary({
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} across ${toPluralLabel(activeDayCount, "day")}.`;
   } else if (consistencyDelta > 0) {
     consistencyDirection = "up";
-    consistencyLabel = `+${consistencyDelta} vs last cycle`;
+    consistencyLabel = `+${consistencyDelta} from last cycle`;
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this cycle, ${toPluralLabel(previousWeekWorkoutCount, "workout")} last cycle.`;
   } else if (consistencyDelta === 0 && completedWorkoutCount > 0) {
     consistencyDirection = "flat";
@@ -638,7 +638,7 @@ export function buildWeeklyProgressSummary({
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} across ${toPluralLabel(activeDayCount, "active day", "active days")}.`;
   } else if (consistencyDelta < 0) {
     consistencyDirection = "down";
-    consistencyLabel = `${consistencyDelta} vs last cycle`;
+    consistencyLabel = `${consistencyDelta} from last cycle`;
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this cycle after ${toPluralLabel(previousWeekWorkoutCount, "workout")} last cycle.`;
   }
 
@@ -720,7 +720,7 @@ export function buildWeeklyProgressSummary({
         ? "Regressions outpaced promotions this cycle."
         : null,
       progressionAnalytics.manualTargetChangesCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
-        ? "Manual target changes outpaced promotions this cycle."
+        ? "Manual goal changes outpaced promotions this cycle."
         : null,
     ].filter((value): value is string => Boolean(value)),
   };

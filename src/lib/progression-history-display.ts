@@ -250,7 +250,7 @@ function getLatestProgressionHistoryCard(args: {
       id: "latest-change",
       label: "Latest change",
       value: "No changes yet",
-      detail: "The ledger starts after the first applied progression change.",
+      detail: "Shows once the first change is recorded.",
       caption: null,
       tone: "muted",
     };
@@ -332,7 +332,7 @@ export function buildProgressionHistoryChartSections(args: ProgressionHistoryDis
       label: formatMonthBucketLabel(bucket.bucket),
       value: bucket.count,
       valueLabel: countLabel(bucket.count, "event"),
-      detail: bucket.eventIds.length > 0 ? `${bucket.eventIds.length} ledger entr${bucket.eventIds.length === 1 ? "y" : "ies"}` : null,
+      detail: bucket.eventIds.length > 0 ? `${bucket.eventIds.length} ${bucket.eventIds.length === 1 ? "change" : "changes"}` : null,
     }));
 
   const eventMixBars = toChartBarsFromCountEntries({
@@ -360,33 +360,33 @@ export function buildProgressionHistoryChartSections(args: ProgressionHistoryDis
     {
       id: "monthly-activity",
       title: "Monthly activity",
-      description: "Ledger event volume by month for the current filtered result set.",
+      description: "Changes per month for the current filters.",
       emptyTitle: "No monthly activity yet.",
-      emptyCaption: "Applied changes will start the trend once progression events are recorded.",
+      emptyCaption: "Shows once the first change is recorded.",
       bars: monthlyBars,
     },
     {
       id: "event-mix",
       title: "Event mix",
-      description: "Distribution of progression event types in the visible ledger slice.",
+      description: "Which kinds of change these are.",
       emptyTitle: "No event mix yet.",
-      emptyCaption: "Event type distribution appears after the first progression ledger entry.",
+      emptyCaption: "Shows once the first change is recorded.",
       bars: eventMixBars,
     },
     {
       id: "top-promotions",
       title: "Top promotions",
-      description: "Exercises with the most applied promotions in the current filtered result set.",
+      description: "Exercises with the most promotions for the current filters.",
       emptyTitle: "No promotions yet.",
-      emptyCaption: "Promotion rankings appear after the first applied promotion event.",
+      emptyCaption: "Shows once the first promotion is applied.",
       bars: promotionBars,
     },
     {
       id: "vector-distribution",
       title: "Progression vectors",
-      description: "Which vectors are driving the current filtered history.",
+      description: "What is moving: load, reps, sets, time or distance.",
       emptyTitle: "No vector data yet.",
-      emptyCaption: "Vector distribution appears after the first progression ledger entry.",
+      emptyCaption: "Shows once the first change is recorded.",
       bars: vectorBars,
     },
   ];
@@ -442,7 +442,7 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
     },
     {
       id: "manual-target-changes",
-      label: "Manual target changes",
+      label: "Manual goal changes",
       value: String(summary.manualTargetChangesCount),
       detail: countLabel(summary.manualTargetChangesCount, "manual change"),
       caption: null,
@@ -454,7 +454,7 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
       topEntry: summary.byVector[0] ?? null,
       formatValue: formatVectorLabel,
       emptyValue: "No vector data",
-      emptyDetail: "Vector counts appear after the first ledger event.",
+      emptyDetail: "Shows once the first change is recorded.",
     }),
     getMostActiveCountCard({
       id: "most-active-method",
@@ -462,7 +462,7 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
       topEntry: summary.byMethod[0] ?? null,
       formatValue: prettifyKey,
       emptyValue: "No method data",
-      emptyDetail: "Method counts appear after the first ledger event.",
+      emptyDetail: "Shows once the first change is recorded.",
     }),
     {
       id: "events-this-month",
@@ -490,7 +490,7 @@ export function buildProgressionHistoryDisplayRow(args: {
       ? `To ${toTargetLabel}`
       : fromTargetLabel
         ? `From ${fromTargetLabel}`
-        : "Target changed";
+        : "Goal changed";
 
   return {
     id: args.event.id,

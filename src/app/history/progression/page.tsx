@@ -1,7 +1,7 @@
 import { isNotFoundError, isRedirectError } from "@/lib/next-navigation-errors";
 import { ProgressionHistorySurface } from "@/components/history/ProgressionHistorySurface";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
-import { HistoryRouteErrorShell } from "@/components/history/HistoryShared";
+import { HistoryLoadErrorState } from "@/components/history/HistoryLoadErrorState";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
@@ -61,10 +61,7 @@ export default async function HistoryProgressionPage(
         activeTab="progression"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <HistoryRouteErrorShell
-          title="Unable to load progression history right now."
-          caption="Please try again in a moment."
-        />
+        <HistoryLoadErrorState title="Could not load progression" />
       </HistoryRouteScaffold>
     );
   }

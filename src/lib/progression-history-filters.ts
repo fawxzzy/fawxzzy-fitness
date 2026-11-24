@@ -155,7 +155,7 @@ export function getProgressionHistoryEventTypeLabel(eventType: ProgressionHistor
     case "review_acknowledged":
       return "Review acknowledged";
     case "manual_target_change":
-      return "Manual target change";
+      return "Manual goal change";
     case "watch_applied":
       return "Watch applied";
     default:

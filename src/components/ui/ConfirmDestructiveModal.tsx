@@ -61,6 +61,7 @@ export function ConfirmDestructiveModal({
   titleVariant = "confirm",
   hideBottomActions = false,
   hideCancelAction = false,
+  showDetailsInDeleteLayout = false,
   onCancel,
   onConfirm,
 }: {
@@ -82,6 +83,11 @@ export function ConfirmDestructiveModal({
   titleVariant?: "confirm" | "raw";
   hideBottomActions?: boolean;
   hideCancelAction?: boolean;
+  /**
+   * Opt-in: the delete layout hides every supporting line by default. Callers that name the object ("Delete Day 5?")
+   * set this so the consequence line ("Its 14 exercises are removed. This cannot be undone.") shows under the title.
+   */
+  showDetailsInDeleteLayout?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -193,7 +199,7 @@ export function ConfirmDestructiveModal({
           )}
         >
           <h2 id={titleId} className="text-center text-[1.1875rem] font-semibold leading-snug tracking-[-0.02em] text-text">{resolvedTitle}</h2>
-          {!usesDeleteLayout && supportingLines.length > 0 ? (
+          {(!usesDeleteLayout || showDetailsInDeleteLayout) && supportingLines.length > 0 ? (
             <div className="mt-2 space-y-1.5 text-center text-[0.9rem] font-medium leading-relaxed text-[rgb(var(--text-muted)/0.9)]">
               {supportingLines.map((line, index) => (
                 <p key={`${index}-${line}`}>{line}</p>

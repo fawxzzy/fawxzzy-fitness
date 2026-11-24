@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { friendlyActionError } from "@/lib/action-error-copy";
 import { cn } from "@/lib/cn";
 import { isRedirectError } from "@/lib/next-navigation-errors";
 
@@ -26,6 +27,8 @@ export function ConfirmedServerFormButton({
   triggerIntent,
   triggerClassName,
   modalTitle,
+  modalTitleVariant,
+  showDetailsInDeleteLayout,
   modalConsequenceText,
   modalDescription,
   confirmLabel,
@@ -46,6 +49,9 @@ export function ConfirmedServerFormButton({
   triggerIntent?: BottomActionIntent;
   triggerClassName?: string;
   modalTitle: string;
+  /** "raw" shows modalTitle as written ("Delete Day 5?") instead of the generic "Confirm delete". */
+  modalTitleVariant?: "confirm" | "raw";
+  showDetailsInDeleteLayout?: boolean;
   modalConsequenceText?: string;
   /** @deprecated Use modalConsequenceText for destructive confirmation copy. */
   modalDescription?: string;
@@ -66,6 +72,10 @@ export function ConfirmedServerFormButton({
 }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // State set inside a form action only commits when the async action ends, so isLoading alone cannot stop a double
+  // tap: guard synchronously in the click handler and disable the buttons from there (History review 2026-11-24).
+  const submittingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
   const toast = useToast();
   const router = useRouter();
@@ -80,7 +90,7 @@ export function ConfirmedServerFormButton({
           const failure = failureMessage === undefined ? null : readActionFailure(result);
           if (failure !== null) {
             setOpen(false);
-            toast.error(failure || failureMessage || "");
+            toast.error(friendlyActionError(failure, failureMessage ?? "", { refreshes: true }));
             // Re-read the screen: the thing may already be gone (or half gone), and a stale button can only fail again.
             router.refresh();
             return;
@@ -102,6 +112,8 @@ export function ConfirmedServerFormButton({
           toast.error(failureMessage);
           router.refresh();
         } finally {
+          submittingRef.current = false;
+          setIsSubmitting(false);
           setIsLoading(false);
         }
       }}
@@ -123,7 +135,7 @@ export function ConfirmedServerFormButton({
             : triggerClassName,
           open ? "pointer-events-none opacity-0" : "",
         )}
-        disabled={isLoading || disabled}
+        disabled={isLoading || isSubmitting || disabled}
         onClick={() => setOpen(true)}
       >
         <span className={triggerIntent ? "bottom-action__label" : undefined}>{triggerLabel}</span>
@@ -131,15 +143,20 @@ export function ConfirmedServerFormButton({
       <ConfirmDestructiveModal
         open={open}
         title={modalTitle}
+        titleVariant={modalTitleVariant}
+        showDetailsInDeleteLayout={showDetailsInDeleteLayout}
         consequenceText={modalConsequenceText ?? modalDescription ?? ""}
         confirmLabel={confirmLabel}
         contextLines={contextLines}
         details={details}
         bullets={bullets}
-        isLoading={isLoading}
+        isLoading={isLoading || isSubmitting}
         confirmVariant={confirmVariant}
         onCancel={() => setOpen(false)}
         onConfirm={() => {
+          if (submittingRef.current || !formRef.current) return;
+          submittingRef.current = true;
+          setIsSubmitting(true);
           onBeforeSubmit?.();
           formRef.current?.requestSubmit();
         }}

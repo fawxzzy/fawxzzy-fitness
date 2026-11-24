@@ -269,7 +269,7 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
         emptyTitle: "No change mix yet.",
         emptyCaption: "The mix appears after the first progression event is recorded.",
         bars: [
-          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+          { id: "manual_target_change", label: "Manual goal change", value: 1, valueLabel: "1 event", detail: null },
           { id: "promotion_applied", label: "Promotion applied", value: 1, valueLabel: "1 event", detail: null },
         ],
       },
@@ -297,11 +297,11 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
         revertCount: 0,
         items: [
           "Back Squat promoted | 6 reps -> 7 reps",
-          "Walking Lunge manual target change | 10 reps -> 12 reps",
+          "Walking Lunge manual goal change | 10 reps -> 12 reps",
         ],
         hotspotItems: [
           "Back Squat drove the most promotions.",
-          "Walking Lunge had the most manual target changes.",
+          "Walking Lunge had the most manual goal changes.",
         ],
       },
     ],
@@ -311,7 +311,7 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
     reviewItems: [],
     hotspotItems: [
       "Back Squat drove the most promotions.",
-      "Walking Lunge had the most manual target changes.",
+      "Walking Lunge had the most manual goal changes.",
     ],
     timelineItems: [
       "Active progression days: 1 day.",
@@ -322,7 +322,7 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
   },
   hotspotItems: [
     "Back Squat had the strongest PR signal and drove the most promotions.",
-    "Walking Lunge had the most manual target changes.",
+    "Walking Lunge had the most manual goal changes.",
   ],
   attentionItems: [
     "3 planned days are still open this cycle.",
@@ -386,7 +386,7 @@ const historyPreviewScopeSummary: HistoryScopeSummary = {
         emptyCaption: "The mix appears after the first progression event is recorded.",
         bars: [
           { id: "promotion_applied", label: "Promotion applied", value: 2, valueLabel: "2 events", detail: null },
-          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+          { id: "manual_target_change", label: "Manual goal change", value: 1, valueLabel: "1 event", detail: null },
         ],
       },
       {
@@ -431,11 +431,11 @@ const historyPreviewScopeSummary: HistoryScopeSummary = {
         revertCount: 0,
         items: [
           "Back Squat promoted | 6 reps -> 7 reps",
-          "Incline Walk manual target change | 12:00 -> 15:00",
+          "Incline Walk manual goal change | 12:00 -> 15:00",
         ],
         hotspotItems: [
           "Back Squat drove the most promotions.",
-          "Incline Walk had the most manual target changes.",
+          "Incline Walk had the most manual goal changes.",
         ],
       },
     ],
@@ -445,7 +445,7 @@ const historyPreviewScopeSummary: HistoryScopeSummary = {
     reviewItems: [],
     hotspotItems: [
       "Back Squat drove the most promotions.",
-      "Incline Walk had the most manual target changes.",
+      "Incline Walk had the most manual goal changes.",
     ],
     timelineItems: [
       "Active weeks: 2 weeks.",
@@ -457,7 +457,7 @@ const historyPreviewScopeSummary: HistoryScopeSummary = {
   hotspotItems: [
     "Back Squat led progress across this scope and drove the most promotions.",
     "Incline Walk appeared in 1 session without a PR or progression signal.",
-    "Incline Walk had the most manual target changes.",
+    "Incline Walk had the most manual goal changes.",
   ],
   reviewItems: [
     "3 completed workout days across 3 routines.",

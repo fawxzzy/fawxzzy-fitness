@@ -122,7 +122,7 @@ test("summary cards consume analytics helpers and resolve the top progressed exe
     "Top progressed",
     "Latest change",
     "Deloads applied",
-    "Manual target changes",
+    "Manual goal changes",
     "Most active vector",
     "Most active method",
     "This month",
@@ -214,7 +214,7 @@ test("filtered display models keep dashboard cards aligned with the filtered vis
       dateTo: null,
     },
     filterOptions: {
-      eventTypes: [{ value: "manual_target_change", label: "Manual target change" }],
+      eventTypes: [{ value: "manual_target_change", label: "Manual goal change" }],
       routines: [],
       exercises: [],
     },
@@ -225,9 +225,9 @@ test("filtered display models keep dashboard cards aligned with the filtered vis
   assert.equal(model.hasActiveFilters, true);
   assert.deepEqual(model.rows.map((row) => row.id), ["manual-1"]);
   assert.equal(model.dashboardCards[0]?.value, "1");
-  assert.equal(model.dashboardCards[3]?.detail, "Manual target change");
-  assert.deepEqual(model.chartSections[1]?.bars.map((bar) => bar.label), ["Manual target change"]);
-  assert.deepEqual(model.activeFilterLabels, ["Type: Manual target change"]);
+  assert.equal(model.dashboardCards[3]?.detail, "Manual goal change");
+  assert.deepEqual(model.chartSections[1]?.bars.map((bar) => bar.label), ["Manual goal change"]);
+  assert.deepEqual(model.activeFilterLabels, ["Type: Manual goal change"]);
 });
 
 test("monthly chart models are sorted deterministically and limited to the latest buckets", () => {
@@ -264,7 +264,7 @@ test("event type chart counts correctly without recomputing from status rows", (
 
   assert.deepEqual(model.chartSections[1]?.bars.map((bar) => `${bar.label}:${bar.value}`), [
     "Promotion applied:2",
-    "Manual target change:1",
+    "Manual goal change:1",
   ]);
 });
 
