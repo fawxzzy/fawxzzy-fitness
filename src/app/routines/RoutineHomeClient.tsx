@@ -35,7 +35,7 @@ import {
   getCardActionButtonClassName,
 } from "@/components/ui/card-system";
 import { useToast } from "@/components/ui/ToastProvider";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { AppButton } from "@/components/ui/AppButton";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import type { ActionResult } from "@/lib/action-result";
@@ -703,20 +703,21 @@ export function RoutineHomeClient({
               title="No days"
               body={ROUTINE_HOME_COPY.empty}
               action={(
-                <button
+                // The dock holds the screen's one primary: Add Day when editing, Create Routine on a draft
+                // (publishing has no day requirement). So the empty-state action is secondary. A routine
+                // normally never reaches zero days: creation seeds cycle-length days and delete keeps the last.
+                <AppButton
                   type="button"
+                  variant="secondary"
+                  fullWidth
+                  disabled={isBusy}
                   onClick={() => {
                     setIsAddDayMenuOpen(true);
                     setIsDuplicateSourceListOpen(false);
                   }}
-                  disabled={isBusy}
-                  // The dock holds the screen's one primary: Add Day when editing, Create Routine on a draft
-                  // (publishing has no day requirement). So the empty-state action is secondary. A routine
-                  // normally never reaches zero days: creation seeds cycle-length days and delete keeps the last.
-                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
                 >
                   {isDeleteDayPending ? "Deleting..." : isCreateDayPending ? "Adding day..." : "Add first day"}
-                </button>
+                </AppButton>
               )}
             />
           )}
@@ -726,7 +727,9 @@ export function RoutineHomeClient({
       <ConfirmDestructiveModal
         open={dayPendingDelete !== null}
         title="Delete day?"
-        details={dayPendingDelete?.title ?? dayPendingDelete?.name ?? undefined}
+        titleVariant="raw"
+        objectName={dayPendingDelete?.title ?? dayPendingDelete?.name ?? undefined}
+        consequenceText="This removes the day and its exercises from the routine. The days after it move up and the cycle gets one day shorter. It can't be undone."
         confirmLabel="Delete"
         onCancel={() => setDayPendingDelete(null)}
         onConfirm={handleConfirmDeleteDay}

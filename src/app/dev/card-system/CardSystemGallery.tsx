@@ -94,7 +94,6 @@ function Section({ title, note, children }: { title: string; note?: string; chil
 
 export function CardSystemGallery() {
   const [expandedDay, setExpandedDay] = useState<string | null>("expanded");
-  const [expandedRoutine, setExpandedRoutine] = useState<string | null>("r1");
   const [expandedExercise, setExpandedExercise] = useState<string | null>("ex-open");
   const [selectedSource, setSelectedSource] = useState(true);
 
@@ -116,13 +115,11 @@ export function CardSystemGallery() {
         <p className="m-0 text-sm text-[rgb(var(--text-secondary)/0.95)]">One surface, one header, one set of controls. Dev only.</p>
       </header>
 
-      <Section title="Routine card" note="Header opens the routine. The more control reveals Delete and Set Active. Week strip wraps, never scrolls.">
+      <Section title="Routine card" note="Header opens the routine. The kebab Menu lists Set Active and Delete. Week strip wraps, never scrolls.">
         <RoutineBrowseCard
           routine={activeRoutine}
           onPress={noop}
           actions={[{ key: "delete", label: "Delete", intent: "danger", onPress: noop }]}
-          actionsOpen={expandedRoutine === "r1"}
-          onActionsToggle={() => setExpandedRoutine((current) => (current === "r1" ? null : "r1"))}
         />
         <RoutineBrowseCard
           routine={inactiveRoutine}
@@ -132,8 +129,6 @@ export function CardSystemGallery() {
             { key: "delete", label: "Delete", intent: "danger", onPress: noop },
             { key: "set-active", label: "Set Active", intent: "toggle", onPress: noop },
           ]}
-          actionsOpen={expandedRoutine === "r2"}
-          onActionsToggle={() => setExpandedRoutine((current) => (current === "r2" ? null : "r2"))}
         />
         <RoutineBrowseCard routine={{ ...activeRoutine, id: "r3", name: "Offline copy (static)" }} showPreviewDays={false} />
       </Section>

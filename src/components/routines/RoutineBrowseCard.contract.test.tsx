@@ -37,23 +37,19 @@ test("routine card: header opens the routine; there is no corner Delete and no n
   assert.equal((html.match(/<button/g) ?? []).length, 1, "only the stretched header button without actions");
 });
 
-test("routine card: the more control exposes aria-expanded/controls and the action row appears only when open", () => {
+test("routine card: the kebab Menu trigger is named for the routine and lists Set Active before Delete", () => {
   const actions = [
     { key: "delete", label: "Delete", intent: "danger" as const, onPress: () => {} },
     { key: "set-active", label: "Set Active", intent: "toggle" as const, onPress: () => {} },
   ];
-  const closed = renderToStaticMarkup(
-    <RoutineBrowseCard routine={routine} onPress={() => {}} actions={actions} actionsOpen={false} onActionsToggle={() => {}} />,
-  );
-  const open = renderToStaticMarkup(
-    <RoutineBrowseCard routine={routine} onPress={() => {}} actions={actions} actionsOpen onActionsToggle={() => {}} />,
-  );
+  const html = renderToStaticMarkup(<RoutineBrowseCard routine={routine} onPress={() => {}} actions={actions} />);
+  const source = readFileSync(new URL("./RoutineBrowseCard.tsx", import.meta.url), "utf8");
 
-  assert.match(closed, /aria-label="Actions for Atlas Routine"[^>]*aria-expanded="false"|aria-expanded="false"[^>]*aria-label="Actions for Atlas Routine"/);
-  assert.doesNotMatch(closed, /data-card-actions/);
-  assert.match(open, /aria-expanded="true"/);
-  assert.match(open, /data-card-actions="true"/);
-  assert.ok(open.indexOf(">Delete<") < open.indexOf(">Set Active<"), "destructive action first");
+  assert.match(html, /aria-label="Actions for Atlas Routine"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(source, /<Menu label=\{`Actions for \$\{routine\.name\}`\}/);
+  assert.match(source, /tone === "danger"[\s\S]*sort|sort[\s\S]*tone === "danger"/, "destructive items sort last");
+  assert.doesNotMatch(source, /CardActionRow|CardIconButton|actionsOpen|onActionsToggle/);
 });
 
 test("routine card: week strip wraps (no sideways scroll), one cell per day, full sentence for assistive tech", () => {

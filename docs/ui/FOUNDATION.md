@@ -195,7 +195,8 @@ a follow-up. Until then keep using the `[button&]:` variant in shared primitives
 
 ## Still to migrate (owned by later section lanes)
 
-Inline danger text remains in: `ProgressionPlaybookEditor`, `EditDaySettingsAutosaveForm`, `EditDayAddExerciseScreen`,
-`EditableRoutineDayExerciseList`, `RoutineEditorForm`,
-`HistoryExerciseCard`.
+Inline danger text remains in: `EditDayAddExerciseScreen`, `HistoryExerciseCard`.
+Routines and the day editor moved in the Routines lane (list menu, delete confirms that name what they remove, notice-based errors,
+Segmented day mode, card empty states). `ProgressionPlaybookEditor` (7.4k lines) was migrated only where it showed red "down" text and
+the word "target" in its own labels and info sheets (now "goal"); this is partial: the shared progression-method info (`progression-playbooks.ts` and the other `src/lib/progression-*` display strings) still says "target" (about 90 strings, a follow-up), and its goal-field horizontal rail and about 14 raw buttons still need `AppButton`/`SegmentedControl`.
 (The curated onboarding wizard moved in the Sign-in / onboarding lane; Data and Discord moved in the Settings lane.) Each moves to `FormField error` / `useFieldNotice` when its section is redesigned.

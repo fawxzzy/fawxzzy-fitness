@@ -9,8 +9,10 @@ import { deleteRoutineAction } from "@/app/routines/actions";
 
 export function DeleteRoutineButton({
   routineId,
+  routineName,
 }: {
   routineId: string;
+  routineName?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -30,7 +32,9 @@ export function DeleteRoutineButton({
 
       <ConfirmDestructiveModal
         open={isOpen}
-        title="Confirm Delete"
+        title="Delete routine?"
+        objectName={routineName}
+        consequenceText="This permanently deletes the routine, its days and exercises, and the workouts you logged with it, along with their progression history. It can't be undone."
         confirmLabel="Delete"
         titleVariant="raw"
         isLoading={isPending}

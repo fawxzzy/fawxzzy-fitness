@@ -22,7 +22,7 @@ import { BottomActionSingle, BottomActionSplit } from "@/components/layout/Canon
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { CardEmptyState } from "@/components/ui/card-system";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
@@ -32,7 +32,6 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
@@ -2501,26 +2500,19 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
               <DayTaxonomyHeaderSummary dayName={PREVIEW_DAY_LABEL} summary={viewDaySummary} isRest={isRestFixture} />
             </div>
             {isRestFixture || isEmptyFixture ? (
-              <SharedSectionShell
-                recipe="viewDay"
-                label={isRestFixture ? "Recovery plan" : "Day status"}
-                context={isRestFixture ? "Recovery, mobility, or an easy walk fit here." : "Add exercises to this day to start a workout."}
-                bodyClassName="space-y-2.5"
-              >
+              <div className="space-y-2.5">
                 {isRestFixture ? (
-                  <DayDetailStateCard
-                    tone="rest"
+                  <CardEmptyState
                     title="Rest day"
                     body="Use this day for recovery, mobility, or an easy walk."
                   />
                 ) : (
-                  <DayDetailStateCard
-                    tone="neutral"
+                  <CardEmptyState
                     title="No exercises planned"
                     body="Add exercises to this day to start a workout."
                   />
                 )}
-              </SharedSectionShell>
+              </div>
             ) : (
               <RoutineDayExerciseList
                 exercises={[...mockViewDayExercises]}

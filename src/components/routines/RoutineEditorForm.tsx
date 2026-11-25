@@ -545,7 +545,7 @@ function RoutineCycleDayDirectionButton({
         direction === "up"
           ? "hover:bg-[rgb(var(--accent)/0.12)] focus-visible:ring-[rgb(var(--accent)/0.22)]"
           : direction === "down"
-            ? "hover:bg-[rgb(var(--danger-rgb)/0.12)] focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]"
+            ? "hover:bg-[rgb(var(--warning-rgb)/0.12)] focus-visible:ring-[rgb(var(--warning-rgb)/0.22)]"
             : "hover:bg-[rgb(var(--accent-yellow-on)/0.12)] focus-visible:ring-[rgb(var(--accent-yellow-on)/0.22)]",
       )}
       aria-label={`Cycle slot ${dayNumber} adjustment`}
@@ -558,7 +558,7 @@ function RoutineCycleDayDirectionButton({
             direction === "up"
               ? "text-[rgb(var(--accent)/0.88)]"
               : direction === "down"
-                ? "text-[rgb(var(--danger-rgb)/0.94)]"
+                ? "text-[rgb(var(--warning-rgb)/0.96)]"
                 : "text-[rgb(var(--accent-yellow-on))]",
           )}
         />

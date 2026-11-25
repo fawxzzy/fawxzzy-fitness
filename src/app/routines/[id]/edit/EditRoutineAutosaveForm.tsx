@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { RoutineEditorPageBody, RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import {
@@ -246,7 +247,7 @@ export function EditRoutineAutosaveForm(props: Props) {
         <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
         <RoutineEditorPageBody>
-          <div className="space-y-2 pt-4">
+          <ContentRail className="space-y-2 pt-4">
             {routineHeaderTitle}
             <RoutineEditorFormFields
               fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
@@ -293,7 +294,7 @@ export function EditRoutineAutosaveForm(props: Props) {
               autoApplyUpdatesToExercises={autoApplyUpdatesToExercises}
               onAutoApplyUpdatesToExercisesChange={setAutoApplyUpdatesToExercises}
             />
-          </div>
+          </ContentRail>
         </RoutineEditorPageBody>
       </form>
 
