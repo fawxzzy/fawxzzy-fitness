@@ -1,6 +1,6 @@
 "use client";
 
-import { AppMenu } from "@/components/AppNav";
+import { AppTabBarPreview } from "@/components/AppTabBar";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
@@ -148,9 +148,9 @@ export function SettingsCardsFixture({
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
+      <AppTabBarPreview pathname="/settings" />
       <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
-          headerMenu={<AppMenu />}
           floatingHeader={<SettingsFloatingHeader />}
         >
           <ContentRail className={appTokens.settingsContentRail}>

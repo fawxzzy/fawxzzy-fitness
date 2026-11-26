@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("days library route (/routines/workout-plans) is a detail ScreenHeader titled Days with Back to /routines and no tab bar", () => {
+test("days library route (/routines/workout-plans) is a detail ScreenHeader titled Days with Back to /routines (a read-only child: the bottom tab bar stays)", () => {
   const pageSource = readFileSync(new URL("./workout-plans/page.tsx", import.meta.url), "utf8");
   // The frame lives in DaysLibraryScreen so the route and its /dev/detail-screens fixture render the same header.
   const frameSource = readFileSync(new URL("./workout-plans/DaysLibraryScreen.tsx", import.meta.url), "utf8");

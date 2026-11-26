@@ -9,7 +9,7 @@ import {
   applySessionRegressionScenarioState,
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "@/app/dev/mobile-regression/sessionScenarioFixtures";
-import { AppMenu } from "@/components/AppNav";
+import { AppTabBarPreview } from "@/components/AppTabBar";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
 import { formatAddExerciseSubtitle } from "@/lib/header-meta";
@@ -268,8 +268,32 @@ async function noopSyncQueuedSetLogsAction(_: unknown) {
   return { ok: true as const, data: { results: [] } };
 }
 
+// The product route each fixture stands in for, so the real bottom tab bar shows (or hides) exactly as it would
+// there (src/lib/app-tabs.ts decides; the preview only applies under /dev).
+const REGRESSION_TAB_BAR_PATHS: Record<MobileRouteKey, string> = {
+  today: "/today",
+  session: "/session/fixture",
+  routines: "/routines",
+  viewDay: "/routines/fixture",
+  editDay: "/routines/fixture/edit/day/fixture",
+  createRoutine: "/routines/new",
+  editRoutine: "/routines/fixture/edit",
+  addExercise: "/routines/fixture/edit/day/fixture/add-exercise",
+  historySessions: "/history",
+  historyProgression: "/history/progression",
+  historyExercises: "/history/exercises",
+  historyDetail: "/history/fixture",
+  settings: "/settings",
+  exerciseDetail: "/exercises/fixture",
+};
+
 function RegressionMarker({ scenario }: { scenario: MobileFixtureScenario }) {
-  return <div hidden data-mobile-regression-root="true" data-mobile-regression-id={scenario.id} data-mobile-regression-screen={scenario.screen} />;
+  return (
+    <>
+      <div hidden data-mobile-regression-root="true" data-mobile-regression-id={scenario.id} data-mobile-regression-screen={scenario.screen} />
+      <AppTabBarPreview pathname={REGRESSION_TAB_BAR_PATHS[scenario.route]} />
+    </>
+  );
 }
 
 function getRegressionRenderBoundary(route: MobileRouteKey) {
@@ -2197,8 +2221,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       <MainTabScreen topNavMode="none">
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
-          headerMenu={<AppMenu activePathnameOverride="/today" />}
-          floatingHeader={<ScreenHeader kind="tab" appMenu title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
+          floatingHeader={<ScreenHeader kind="tab" title="Today" subtitle={formatTodayHeaderSubtitle(selectedDay.name, PREVIEW_ROUTINE_NAME)} />}
         >
           <ContentRail className="space-y-3">
             <ScreenScaffold recipe="todayOverview" className="w-full">
@@ -2256,7 +2279,6 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        headerMenu={<AppMenu activePathnameOverride="/today" />}
         floatingHeader={<div id="today-floating-header-slot" />}
       >
         <ContentRail className="space-y-3">
@@ -2416,8 +2438,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
       <MainTabScreen topNavMode="none" ambientPreset="viewDay">
         <RegressionMarker scenario={scenario} />
         <ScrollScreenWithBottomActions
-          headerMenu={<AppMenu activePathnameOverride="/routines" />}
-          floatingHeader={<ScreenHeader kind="tab" appMenu title="Routines" />}
+          floatingHeader={<ScreenHeader kind="tab" title="Routines" />}
         >
           <ContentRail className="space-y-3">
             <RoutinesPageClient
@@ -2848,7 +2869,6 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
-        headerMenu={<AppMenu activePathnameOverride="/settings" />}
         floatingHeader={<SettingsFloatingHeader />}
       >
         <ContentRail className={appTokens.settingsContentRail}>

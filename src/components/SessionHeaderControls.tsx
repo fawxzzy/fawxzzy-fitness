@@ -34,8 +34,8 @@ export function SessionWorkoutClock({ elapsedSeconds }: { elapsedSeconds: number
 }
 
 /**
- * Pause: the one header way out of an in-progress workout (sessionBackAction.ts). A 44px pill, top right where the
- * app menu sits on tab screens, so floating notices anchor under it. It never finishes or discards anything.
+ * Pause: the one header way out of an in-progress workout (sessionBackAction.ts). A 44px pill, top right; it carries
+ * the notice anchor, so floating notices sit under it. It never finishes or discards anything.
  */
 export function SessionPauseButton({ backHref }: { backHref?: string }) {
   const router = useRouter();
@@ -68,7 +68,7 @@ export function SessionPauseButton({ backHref }: { backHref?: string }) {
 
 // The live workout is a detail screen (DESIGN-CONTRACT.md section 15) with its own exit rules: title "Workout",
 // one subtitle line (day · routine), the inline sync status on the title line ("– Offline"), and Pause top right.
-// No app menu and no left Back: the only ways out are Pause (back to Today, workout keeps running) and Finish.
+// No tab bar and no left Back: the only ways out are Pause (back to Today, workout keeps running) and Finish.
 // Progress counts live in the exercise list, not in the header. The workout clock (DESIGN #2) sits left of Pause: it is
 // derived from the session start time, so it survives a reload, and it is local display only (nothing is saved).
 // A completed workout (opened from a link after Finish) has nothing to pause: it shows the plain left Back instead,

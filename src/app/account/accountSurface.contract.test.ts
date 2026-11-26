@@ -8,8 +8,8 @@ const settingsSource = readFileSync(new URL("../../components/settings/SettingsS
 const settingsPageSource = readFileSync(new URL("../settings/page.tsx", import.meta.url), "utf8");
 const signOutSource = readFileSync(new URL("../../components/SignOutButton.tsx", import.meta.url), "utf8");
 const refreshSource = readFileSync(new URL("../../components/account/AccountPortalReturnRefresh.tsx", import.meta.url), "utf8");
-const appNavSource = readFileSync(new URL("../../components/AppNav.tsx", import.meta.url), "utf8");
-const appMenuRulesSource = readFileSync(new URL("../../lib/app-menu.ts", import.meta.url), "utf8");
+const tabBarSource = readFileSync(new URL("../../components/AppTabBar.tsx", import.meta.url), "utf8");
+const tabRulesSource = readFileSync(new URL("../../lib/app-tabs.ts", import.meta.url), "utf8");
 
 test("account route consumes the existing Fitness session and renders, never redirecting to the portal", () => {
   assert.match(pageSource, /requireUser\(\{/);
@@ -36,11 +36,11 @@ test("account screen is read-only: identity rows link to the portal, no in-app e
   // The retired in-app forms are gone, not just unlinked.
   assert.equal(existsSync(new URL("../../components/settings/AccountSettingsForm.tsx", import.meta.url)), false);
   assert.equal(existsSync(new URL("../../components/settings/AccountPasswordSection.tsx", import.meta.url)), false);
-  // Navigation still links to the portal; Settings stays current in the app menu on /account.
+  // Navigation still links to the portal; Settings stays current in the bottom tab bar on /account.
   assert.match(settingsSource, /getFitnessAccountPortalUrl\("\/account", "\/settings"\)/);
-  assert.match(appNavSource, /resolveActiveMenuHref\(activePathname\)/);
-  assert.match(appMenuRulesSource, /SETTINGS_ALIASES = \["\/account"\]/);
-  assert.match(appMenuRulesSource, /\? "\/settings" : null/);
+  assert.match(tabBarSource, /resolveActiveTabHref\(/);
+  assert.match(tabRulesSource, /SETTINGS_ALIASES = \["\/account"\]/);
+  assert.match(tabRulesSource, /\? "\/settings" : null/);
 });
 
 test("username and email are read back after a trip to the portal", () => {

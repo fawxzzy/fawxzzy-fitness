@@ -68,10 +68,10 @@ for (const target of targets) {
       const email = document.querySelector('input[name="email"]');
       const username = document.querySelector('input[name="username"]');
       const title = [...document.querySelectorAll("h1, h2")].find((entry) => entry.textContent?.trim() === "Account");
-      // The top tab bar is gone (DESIGN-CONTRACT 15.6): Account is a detail screen of Settings with Back only. If an
-      // app menu is ever present here it may mark only Settings as current.
+      // The old top tab bar is gone; the bottom tab bar (DESIGN-CONTRACT 15.6) may show on Account, a read-only child of
+      // Settings, and then it marks only Settings as current.
       const legacyTabBar = document.querySelector('nav[aria-label="App tabs"]');
-      const activeMenuRow = document.querySelector('nav[aria-label="App menu"] [aria-current="page"]');
+      const activeMenuRow = document.querySelector('nav[aria-label="Sections"] [aria-current="page"]');
       const anchors = [...document.querySelectorAll("a[href]")].map((anchor) => new URL(anchor.getAttribute("href") ?? "", location.href));
       const rect = (entry) => entry?.getBoundingClientRect() ?? null;
       const backRect = rect(back);
@@ -110,7 +110,7 @@ for (const target of targets) {
     assert.equal(metrics.legacyTabBar, false, `${target.id}: the old app tab bar came back`);
     assert.ok(
       metrics.activeMenuRow === null || metrics.activeMenuRow === "Settings",
-      `${target.id}: app menu marks ${metrics.activeMenuRow} as current on Account (expected Settings or no menu)`,
+      `${target.id}: tab bar marks ${metrics.activeMenuRow} as current on Account (expected Settings or no bar)`,
     );
     assert.ok(metrics.backWidth >= 44 && metrics.backHeight >= 44, `${target.id}: back control is smaller than 44px`);
     assert.ok(metrics.saveHeight >= 44 && metrics.signOutHeight >= 44, `${target.id}: bottom actions are smaller than 44px`);

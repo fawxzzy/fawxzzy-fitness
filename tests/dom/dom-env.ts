@@ -36,7 +36,7 @@ for (const key of copied) {
   Object.defineProperty(globalThis, key, { value: (window as unknown as Record<string, unknown>)[key], configurable: true, writable: true });
 }
 // next/link's prefetch-on-visible path schedules work with `self.requestIdleCallback`; Node has no `self`. Any
-// screen with a header now renders the app menu's links, so every DOM test needs it.
+// screen with a next/link (the tab bar, cards) needs it, so every DOM test gets it.
 if (typeof (globalThis as { self?: unknown }).self === "undefined") {
   Object.defineProperty(globalThis, "self", { value: window, configurable: true, writable: true });
 }

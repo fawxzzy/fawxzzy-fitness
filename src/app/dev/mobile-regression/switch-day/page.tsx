@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
 import { findSwitchDayVariant, SWITCH_DAY_VARIANTS } from "@/app/dev/switch-day/switchDayFixtures";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
-import { AppMenu } from "@/components/AppNav";
+import { AppTabBarPreview } from "@/components/AppTabBar";
 import { AppBackdropOverride } from "@/components/layout/AppBackdrop";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -45,12 +45,12 @@ export default async function DevSwitchDayFullScreenPage(
   const backdrop = resolveDevRegressionBackdrop({ screen: "today", backdrop: searchParams.backdrop });
   const screen = (
     <MainTabScreen topNavMode="none" ambientPreset="today">
+      <AppTabBarPreview pathname="/today" />
       <RegressionBodyFlag />
       <div hidden data-mobile-regression-root="true" data-mobile-regression-id={`switch-day-${variant.id}`} data-mobile-regression-screen="today" />
       <ScrollScreenWithBottomActions
-        headerMenu={<AppMenu activePathnameOverride="/today" />}
         floatingHeader={(
-          // Both header slots, as /today mounts them: the picker portals the "Today" header (with the app menu) into
+          // Both header slots, as /today mounts them: the picker portals the "Today" header into
           // the switch slot while Switch Day is open, and into the day slot while it is closed.
           <>
             <div id="today-routine-switch-floating-header-slot" />

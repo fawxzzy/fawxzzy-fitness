@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
 // The ONE action menu (docs/ui/FOUNDATION.md "Menu"): a 44x44 trigger, usually top right on a card or header, that
-// opens a small popover right-aligned under it. Same look as the app menu (AppNav.tsx, DESIGN-CONTRACT.md section
+// opens a small popover right-aligned under it. Look (DESIGN-CONTRACT.md section
 // 15): opaque panel, accent keyline, 44px rows. Behaviour: opens with focus on the first row; ArrowUp/ArrowDown
 // wrap, Home/End jump; Escape closes and returns focus to the trigger; Tab closes; a tap outside only closes (the
 // click under the finger is swallowed, like a scrim); picking a row closes, returns focus, then runs the action.
@@ -35,7 +35,7 @@ export type MenuProps = {
   triggerClassName?: string;
   /** Called when the open state changes (for analytics or to pause other UI). */
   onOpenChange?: (open: boolean) => void;
-  /** Panel min width in px (default 176, the app menu width). */
+  /** Panel min width in px (default 176). */
   minWidth?: number;
 };
 
@@ -85,7 +85,7 @@ export function resolveMenuPlacement({
 
 let cancelPendingClickSwallow: (() => void) | null = null;
 
-// Same rule as the app menu: the click that follows an outside pointerdown must not also press what is under the
+// Same rule as a modal scrim: the click that follows an outside pointerdown must not also press what is under the
 // finger. Dropped on pointercancel (a scroll), the next pointerdown, or a key press.
 function swallowNextClick() {
   cancelPendingClickSwallow?.();

@@ -36,7 +36,7 @@ const LITERAL_PATHS = [
   "src/lib/password-reset-request*",
   "src/lib/password-policy*",
   "tests/password-mutation-actions.test.mjs",
-  "src/components/AppNav.tsx",
+  "src/components/AppTabBar.tsx",
   "src/lib/local-dev-auto-entry.test.ts",
   "src/lib/local-dev-auto-login-credentials.ts",
   "src/lib/remembered-login.ts",

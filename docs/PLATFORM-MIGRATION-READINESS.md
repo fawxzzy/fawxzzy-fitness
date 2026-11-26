@@ -28,7 +28,7 @@ Next 15.5 + React 19 in one PR behind its own card with the codemod, then Next 1
 - `@next/codemod@15.5.29 next-async-request-api ./src` changed 49 files (params, searchParams, `cookies()`, `headers()` awaited). Every diff was read by hand; no `@next-codemod` markers were left.
 - Sync helpers that read the request (`src/lib/supabase/server.ts`, `src/lib/auth/server-session.ts`, `src/lib/dev-route-guard-page.ts`, `src/lib/history-preview.server.ts`, `src/lib/local-dev-auto-entry.ts`, `getOrigin` in `src/app/auth/actions.ts`) keep the codemod cast `UnsafeUnwrappedCookies` / `UnsafeUnwrappedHeaders`. Next 15 supports this (dev-only warning). Making them async touches about 150 call sites, and `assertDevPageAvailable` / `isHistoryPreviewActiveForRequest` would fail open if one `await` were missed, so it is a separate step. It MUST land before Next 16, which removes sync access.
 - The internal `isRedirectError` / `isNotFoundError` imports moved in Next 15; they now come from one file, `src/lib/next-navigation-errors.ts`.
-- React 19 typing: `JSX` is imported from react in `AppNav.tsx`; `useRef` needs an initial value in `bottom-actions.tsx`.
+- React 19 typing: `JSX` is imported from react in `AppTabBar.tsx`; `useRef` needs an initial value in `bottom-actions.tsx`.
 - `next.config.mjs` sets `experimental.staleTimes.dynamic: 30` to keep the Next 14 client router cache timing (the Next 15 default is 0).
 
 ## Next step: Next 16 (deadline)

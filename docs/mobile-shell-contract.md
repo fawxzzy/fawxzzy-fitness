@@ -46,6 +46,22 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - Pattern: `intent -> shared primitive -> surface label mapping`.
    - Usage note: color follows `intent`; label follows the owning surface/workflow copy.
 
+## Bottom tab bar
+
+One bar (`AppTabBar`, `src/components/AppTabBar.tsx`), mounted once in the root layout as an in-flow sibling after `<main id="app-main">`. `<main>` shrinks by its height, so every screen (and its bottom dock) ends above the bar and nothing scrolls behind it. The bar carries `env(safe-area-inset-bottom)` itself; while it is on screen `body:has(> [data-app-tab-bar]) #app-main` sets `--app-dock-safe-padding-bottom: 2px`, so a dock above it does not add the home-indicator inset a second time. Hidden = not rendered (no node), so the rule switches off with it.
+
+Where it shows is decided by ONE function, `resolveAppTabBarVisibility({ pathname, suppressed, keyboardOpen })` in `src/lib/app-tabs.ts` (`classifyAppRoute` + two overrides). Unit table: `src/lib/app-tabs.test.ts` (`VISIBILITY_TABLE`, keep in step with this one).
+
+| Kind | Routes | Bar |
+|---|---|---|
+| tab | `/today`, `/routines`, `/history`, `/settings` | visible |
+| child (read-only) | `/routines/<id>` (routine home), `/routines/workout-plans` (Days), `/history/<id>` (session detail), `/history/exercises`, `/history/progression`, `/account` (Settings is active) | visible |
+| workout | `/session/**` (live workout, its add exercise) | hidden |
+| flow | `/routines/new`, `/routines/<id>/edit/**` (editors, add exercise), `/routines/<id>/new-day`, `/routines/<id>/new-workout-plan`, `/routines/<id>/days/**` | hidden |
+| outside (fail closed) | `/`, auth (`/login`, `/signup`, `/forgot-password`, `/reset-password`, `/auth/**`), `/entry`, `/install`, `/curated-onboarding`, `/review/**`, `/privacy`, `/terms`, `/offline`, `/exercises/**`, `/dev/**`, anything unlisted | hidden |
+
+Overrides (both hide, never show): `suppressed` (an in-route editor calls `useHideAppTabBar(true)`: History session Edit with its Cancel / Save dock) and `keyboardOpen` (an editable element is focused AND the layout viewport shrank by more than 150px; iOS and Chrome Android resize only the visual viewport, so there the bar simply stays under the keyboard and nothing jumps). Confirm sheets and pickers are modals over the screen and cover the bar. `/dev` fixtures show the bar as their product route with `AppTabBarPreview` (ignored outside `/dev`); dev never prefetches.
+
 ## Bottom Action Pattern (No Container)
 
 - Bottom action wrappers provide spacing only.

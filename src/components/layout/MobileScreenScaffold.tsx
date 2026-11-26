@@ -7,7 +7,6 @@ import type { NoticePlacement } from "@/components/ui/ToastProvider";
 type MobileScreenScaffoldProps = {
   children: ReactNode;
   topChrome?: ReactNode;
-  headerMenu?: ReactNode;
   floatingHeader?: ReactNode;
   bottomDock?: ReactNode;
   className?: string;
@@ -29,7 +28,6 @@ type MobileScreenScaffoldProps = {
 export function MobileScreenScaffold({
   children,
   topChrome,
-  headerMenu,
   floatingHeader,
   bottomDock,
   className,
@@ -44,7 +42,6 @@ export function MobileScreenScaffold({
       className={className}
       scrollClassName={scrollClassName}
       topChrome={topChrome}
-      headerMenu={headerMenu}
       floatingHeader={floatingHeader}
       bottomDock={bottomDock}
       noticesInFlow={noticesInFlow}
