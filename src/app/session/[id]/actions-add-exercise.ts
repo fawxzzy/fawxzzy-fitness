@@ -4,13 +4,14 @@ import { requireUser } from "@/lib/auth";
 import { buildCustomExerciseInsertPayload } from "@/lib/custom-exercise-payload";
 import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
-import { isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
+import { isMissingSessionExerciseProgressionColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
+import { ADD_EXERCISE_FAILED_MESSAGE, CREATE_CUSTOM_EXERCISE_FAILED_MESSAGE, EXERCISE_TIMER_UNAVAILABLE_MESSAGE, logAddExerciseFailure } from "@/lib/add-exercise-error-copy";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { ActionResult } from "@/lib/action-result";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
-import { SHOULD_DEBUG_CANONICAL_LINKING, createLiveSessionMutationRepository, hasSelectedProgressionPlaybook, isMissingExerciseTimerColumnError, parseExerciseTimerConfig, parseSessionExercisePayload } from "./actions-shared";
+import { SHOULD_DEBUG_CANONICAL_LINKING, createLiveSessionMutationRepository, isMissingExerciseTimerColumnError, parseExerciseTimerConfig, parseSessionExercisePayload } from "./actions-shared";
 
 export async function quickAddExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
@@ -74,7 +75,8 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
   });
 
   if (error) {
-    return { ok: false, error: error.message };
+    logAddExerciseFailure("quick add insert failed", error);
+    return { ok: false, error: ADD_EXERCISE_FAILED_MESSAGE };
   }
 
   if (!insertedExercise?.exercise_id) {
@@ -202,7 +204,8 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       .single();
 
     if (customExerciseError || !createdExercise) {
-      return { ok: false, error: customExerciseError?.message ?? "Could not create custom exercise" };
+      logAddExerciseFailure("custom exercise insert failed", customExerciseError);
+      return { ok: false, error: CREATE_CUSTOM_EXERCISE_FAILED_MESSAGE };
     }
 
     canonicalExerciseId = createdExercise.id;
@@ -271,7 +274,12 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
   warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addExerciseAction" });
 
-  let { data: insertedExercise, error } = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
+  // Older databases can lack optional columns on session_exercises (timer and progression copies). Each one is
+  // dropped at most once and the insert retried, so the exercise is still added; progression lives on the routine
+  // day row, and the session copy is optional even when a playbook was selected.
+  let dropTimerColumns = false;
+  let dropProgressionColumns = false;
+  const insertWithCurrentColumns = () => insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
     supabase,
     sessionId,
     userId: user.id,
@@ -281,62 +289,39 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       exercise_id: canonicalExerciseId,
       routine_day_exercise_id: routineDayExerciseId,
       is_skipped: false,
-      ...mappedGoalColumns,
-      ...timerConfig.values,
+      ...(dropProgressionColumns ? omitProgressionPlaybookColumns(mappedGoalColumns) : mappedGoalColumns),
+      ...(dropTimerColumns ? {} : timerConfig.values),
       measurement_type: measurementType,
       default_unit: defaultUnit,
     },
     select: "id, exercise_id",
   });
 
+  let { data: insertedExercise, error } = await insertWithCurrentColumns();
+
   if (error && isMissingExerciseTimerColumnError(error)) {
     if (timerConfig.values.exercise_timer_enabled) {
-      return failAfterCustomCreate("Exercise timer schema is pending migration review.");
+      logAddExerciseFailure("exercise timer columns missing", error);
+      return failAfterCustomCreate(EXERCISE_TIMER_UNAVAILABLE_MESSAGE);
     }
-    const fallback = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
-      supabase,
-      sessionId,
-      userId: user.id,
-      values: {
-        session_id: sessionId,
-        user_id: user.id,
-        exercise_id: canonicalExerciseId,
-        routine_day_exercise_id: routineDayExerciseId,
-        is_skipped: false,
-        ...mappedGoalColumns,
-        measurement_type: measurementType,
-        default_unit: defaultUnit,
-      },
-      select: "id, exercise_id",
-    });
-    insertedExercise = fallback.data;
-    error = fallback.error;
+    dropTimerColumns = true;
+    ({ data: insertedExercise, error } = await insertWithCurrentColumns());
   }
 
-  if (error && isMissingProgressionPlaybookColumnError(error) && !hasSelectedProgressionPlaybook(parsedPayload.payload)) {
-    const fallback = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
-      supabase,
-      sessionId,
-      userId: user.id,
-      values: {
-        session_id: sessionId,
-        user_id: user.id,
-        exercise_id: canonicalExerciseId,
-        routine_day_exercise_id: routineDayExerciseId,
-        is_skipped: false,
-        ...omitProgressionPlaybookColumns(mappedGoalColumns),
-        ...timerConfig.values,
-        measurement_type: measurementType,
-        default_unit: defaultUnit,
-      },
-      select: "id, exercise_id",
-    });
-    insertedExercise = fallback.data;
-    error = fallback.error;
+  if (error && isMissingSessionExerciseProgressionColumnError(error)) {
+    logAddExerciseFailure("session_exercises progression columns missing; retrying without them", error);
+    dropProgressionColumns = true;
+    ({ data: insertedExercise, error } = await insertWithCurrentColumns());
+  }
+
+  if (error && isMissingExerciseTimerColumnError(error) && !dropTimerColumns && !timerConfig.values.exercise_timer_enabled) {
+    dropTimerColumns = true;
+    ({ data: insertedExercise, error } = await insertWithCurrentColumns());
   }
 
   if (error) {
-    return failAfterCustomCreate(error.message);
+    logAddExerciseFailure("session exercise insert failed", error);
+    return failAfterCustomCreate(ADD_EXERCISE_FAILED_MESSAGE);
   }
 
   if (!insertedExercise?.exercise_id) {

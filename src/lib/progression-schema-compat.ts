@@ -88,6 +88,15 @@ export function isMissingProgressionPlaybookColumnError(error: SupabaseLikeError
   return isMissingColumnOnTable(error, "routine_day_exercises", PROGRESSION_PLAYBOOK_COLUMNS);
 }
 
+/**
+ * `session_exercises` has no progression_playbook_* columns in the repo migrations (045 adds them to
+ * `routine_day_exercises` only), so a live-session insert that carries them can fail with a schema-cache error on this
+ * table. Progression lives on the routine day row; the session copy is optional and safe to drop.
+ */
+export function isMissingSessionExerciseProgressionColumnError(error: SupabaseLikeError | null | undefined) {
+  return isMissingColumnOnTable(error, "session_exercises", PROGRESSION_PLAYBOOK_COLUMNS);
+}
+
 export function isMissingRoutineDefaultProgressionColumnError(error: SupabaseLikeError | null | undefined) {
   return isMissingColumnOnTable(error, "routines", ROUTINE_DEFAULT_PROGRESSION_COLUMNS);
 }

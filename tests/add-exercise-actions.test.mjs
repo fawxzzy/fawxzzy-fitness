@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {
+  ADD_EXERCISE_FAILED_MESSAGE,
+  CREATE_CUSTOM_EXERCISE_FAILED_MESSAGE,
+  EXERCISE_TIMER_UNAVAILABLE_MESSAGE,
+} from "../src/lib/add-exercise-error-copy.ts";
 import { createSupabaseRecorder, formDataOf, loadActionModule } from "./helpers/action-vm.mjs";
 
 // Drives the REAL session addExerciseAction and routine addRoutineDayExerciseAction with only their external
@@ -116,13 +121,87 @@ test("session add: a missing timer column with the timer ON is a clear migration
   const withTimer = loadSessionAction({ insertResults: [missing] });
   assert.deepEqual(
     await withTimer.addExerciseAction(sessionFields({ exerciseTimerEnabled: "true", exerciseTimerMode: "count_up" })),
-    { ok: false, error: "Exercise timer schema is pending migration review." },
+    { ok: false, error: EXERCISE_TIMER_UNAVAILABLE_MESSAGE },
   );
   assert.equal(withTimer.inserts.length, 1);
 
   const withoutTimer = loadSessionAction({ insertResults: [missing] });
   assert.deepEqual(await withoutTimer.addExerciseAction(sessionFields()), { ok: true });
   assert.equal(withoutTimer.inserts.length, 2);
+});
+
+const sessionProgressionMissing = {
+  data: null,
+  error: { message: "Could not find the 'progression_playbook_config' column of 'session_exercises' in the schema cache" },
+};
+const progressionFields = { progressionPlaybookId: "double_progression", progressionLoadIncrement: "5" };
+
+test("session add (F-001): a session_exercises progression column missing in the schema cache retries without those columns, even with a playbook selected", async () => {
+  const { addExerciseAction, inserts } = loadSessionAction({ insertResults: [sessionProgressionMissing] });
+  const result = await addExerciseAction(sessionFields(progressionFields));
+  assert.deepEqual(result, { ok: true });
+  assert.equal(inserts.length, 2);
+  assert.equal(inserts[0].progression_playbook_id, "double_progression", "first attempt carries the selected playbook");
+  assert.equal("progression_playbook_id" in inserts[1], false);
+  assert.equal("progression_playbook_config" in inserts[1], false);
+  assert.equal(inserts[1].target_sets_min, 3, "goal columns survive the retry");
+});
+
+test("session add (F-001): the progression retry keeps the timer columns, and a timer retry followed by a progression retry still adds the exercise", async () => {
+  const timerOn = loadSessionAction({ insertResults: [sessionProgressionMissing] });
+  assert.deepEqual(await timerOn.addExerciseAction(sessionFields({ ...progressionFields, exerciseTimerEnabled: "true", exerciseTimerMode: "count_up" })), { ok: true });
+  assert.equal(timerOn.inserts.length, 2);
+  assert.equal(timerOn.inserts[1].exercise_timer_enabled, true);
+  assert.equal("progression_playbook_id" in timerOn.inserts[1], false);
+
+  const timerMissing = { data: null, error: { message: "column exercise_timer_enabled does not exist" } };
+  const both = loadSessionAction({ insertResults: [timerMissing, sessionProgressionMissing] });
+  assert.deepEqual(await both.addExerciseAction(sessionFields(progressionFields)), { ok: true });
+  assert.equal(both.inserts.length, 3);
+  assert.equal("exercise_timer_enabled" in both.inserts[2], false);
+  assert.equal("progression_playbook_id" in both.inserts[2], false);
+});
+
+test("session add (F-001): the same progression drift on a custom exercise adds it and keeps the custom exercise", async () => {
+  const { addExerciseAction, inserts, calls } = loadSessionAction({ respond: createRespond, insertResults: [sessionProgressionMissing] });
+  assert.deepEqual(await addExerciseAction(customFields(progressionFields)), { ok: true });
+  assert.equal(inserts.length, 2);
+  assert.equal(deletesOf(calls).length, 0);
+});
+
+test("session add (F-001): unrelated database errors are not retried and never reach the member as a raw message", async () => {
+  const raw = "duplicate key value violates unique constraint \"session_exercises_pkey\"";
+  const unrelated = loadSessionAction({ insertResults: [{ data: null, error: { message: raw } }] });
+  const result = await unrelated.addExerciseAction(sessionFields(progressionFields));
+  assert.deepEqual(result, { ok: false, error: ADD_EXERCISE_FAILED_MESSAGE });
+  assert.equal(unrelated.inserts.length, 1);
+
+  const otherTable = loadSessionAction({
+    insertResults: [{ data: null, error: { message: "Could not find the 'progression_playbook_config' column of 'routine_day_exercises' in the schema cache" } }],
+  });
+  assert.deepEqual(await otherTable.addExerciseAction(sessionFields(progressionFields)), { ok: false, error: ADD_EXERCISE_FAILED_MESSAGE });
+  assert.equal(otherTable.inserts.length, 1);
+
+  const otherColumn = loadSessionAction({
+    insertResults: [{ data: null, error: { message: "Could not find the 'mystery_column' column of 'session_exercises' in the schema cache" } }],
+  });
+  assert.equal((await otherColumn.addExerciseAction(sessionFields())).error, ADD_EXERCISE_FAILED_MESSAGE);
+  assert.equal(otherColumn.inserts.length, 1);
+});
+
+test("session add (F-001): a retry that still fails reports plain copy, not the database message", async () => {
+  const stillFailing = { data: null, error: { message: "permission denied for table session_exercises" } };
+  const { addExerciseAction, inserts } = loadSessionAction({ insertResults: [sessionProgressionMissing, stillFailing] });
+  const result = await addExerciseAction(sessionFields(progressionFields));
+  assert.deepEqual(result, { ok: false, error: ADD_EXERCISE_FAILED_MESSAGE });
+  assert.equal(inserts.length, 2);
+  assert.doesNotMatch(result.error, /permission|session_exercises|schema cache|column/i);
+});
+
+test("session quick add: a database error is mapped to plain copy", async () => {
+  const { quickAddExerciseAction } = loadSessionAction({ insertResults: [sessionProgressionMissing] });
+  const result = await quickAddExerciseAction(formDataOf({ sessionId: "session-1", exerciseId: "ex-1" }));
+  assert.deepEqual(result, { ok: false, error: ADD_EXERCISE_FAILED_MESSAGE });
 });
 
 test("session add: a planned-exercise link must belong to this session's routine day", async () => {
@@ -169,19 +248,19 @@ test("session add: a custom exercise whose creation fails adds nothing", async (
   const { addExerciseAction, inserts } = loadSessionAction({
     respond: (call) => (call.table === "exercises" && call.op === "insert" ? { data: null, error: { message: "boom" } } : undefined),
   });
-  assert.deepEqual(await addExerciseAction(customFields()), { ok: false, error: "boom" });
+  assert.deepEqual(await addExerciseAction(customFields()), { ok: false, error: CREATE_CUSTOM_EXERCISE_FAILED_MESSAGE });
   assert.equal(inserts.length, 0);
 });
 
 test("session add: a custom exercise created for a session insert that then fails is removed again (no orphan in the library)", async () => {
   const failures = [
-    { label: "insert error", insertResults: [{ data: null, error: { message: "insert failed" } }], expected: "insert failed" },
+    { label: "insert error", insertResults: [{ data: null, error: { message: "insert failed" } }], expected: ADD_EXERCISE_FAILED_MESSAGE },
     { label: "no row back", insertResults: [{ data: null, error: null }], expected: "Could not add this exercise to the session." },
     {
       label: "timer schema pending",
       insertResults: [{ data: null, error: { message: "column exercise_timer_enabled does not exist" } }],
       extra: { exerciseTimerEnabled: "true", exerciseTimerMode: "count_up" },
-      expected: "Exercise timer schema is pending migration review.",
+      expected: EXERCISE_TIMER_UNAVAILABLE_MESSAGE,
     },
   ];
   for (const failure of failures) {
@@ -200,7 +279,7 @@ test("session add: a custom exercise created for a session insert that then fail
 
 test("session add: a failed insert of a LIBRARY exercise never deletes anything", async () => {
   const { addExerciseAction, calls } = loadSessionAction({ insertResults: [{ data: null, error: { message: "insert failed" } }] });
-  assert.deepEqual(await addExerciseAction(sessionFields()), { ok: false, error: "insert failed" });
+  assert.deepEqual(await addExerciseAction(sessionFields()), { ok: false, error: ADD_EXERCISE_FAILED_MESSAGE });
   assert.equal(deletesOf(calls).length, 0);
 });
 
