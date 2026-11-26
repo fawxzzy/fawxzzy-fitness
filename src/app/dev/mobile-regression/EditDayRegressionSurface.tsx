@@ -8,7 +8,6 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { CardEmptyState, DragHandle } from "@/components/ui/card-system";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
@@ -54,14 +53,6 @@ function resolveInlineModality(
 ): GoalModality {
   return resolveGoalModality({ measurementType: measurementType === "none" ? "reps" : measurementType, equipment, name, tags: undefined });
 }
-
-const INLINE_VIEW_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleInactive",
-});
-
-const INLINE_DELETE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "danger",
-});
 
 export function EditDayRegressionSurface({
   fixture,
@@ -242,14 +233,7 @@ export function EditDayRegressionSurface({
           if (fixture !== "edit-exercise" || expandedId !== item.id) return null;
           return (
             <div className={appTokens.routineEditorCompactStack}>
-              <AttachedCardActionStripFrame gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
-                  <button type="button" data-bottom-action-intent="toggleInactive" className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--border-strong)/0.18)]")}>
-                    <span className="bottom-action__label">View</span>
-                  </button>
-                  <button type="button" data-bottom-action-intent="danger" className={INLINE_DELETE_ACTION_BUTTON_CLASS_NAME}>
-                    <span className="bottom-action__label">Delete</span>
-                  </button>
-              </AttachedCardActionStripFrame>
+              {/* The real editor has no View / Delete strip on the card: Delete is the bottom dock with a confirm (F-013). */}
               <div className="pt-[2px]">
                 <SharedExerciseGoalForm
                   modality="strength"
@@ -269,6 +253,8 @@ export function EditDayRegressionSurface({
                   emptySummaryLabel="Goal missing"
                   hideSummary
                   measurementLayoutMode="horizontal-scroll"
+                  wrapMeasurementFields
+                  showInlineStepControls
                 />
               </div>
             </div>

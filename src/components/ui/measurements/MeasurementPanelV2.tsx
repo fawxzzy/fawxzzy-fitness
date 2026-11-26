@@ -1480,6 +1480,7 @@ export function MeasurementPanelV2({
   const horizontalMetricFields = useHorizontalScrollLayout
     ? orderedMetricFields.filter((field) => !field.id.startsWith("aux-field-"))
     : orderedMetricFields;
+  const hasWrappedRepsGroup = wrapHorizontalFields && horizontalMetricFields.some((field) => field.id === "reps-group");
 
   return (
     <section className={cn(appTokens.measurementPanelStack, "max-w-full overflow-x-hidden", useHorizontalScrollLayout ? "space-y-0.5" : undefined, className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
@@ -1535,7 +1536,15 @@ export function MeasurementPanelV2({
                   >
                     {horizontalRowPrefix ? <div className="min-w-0">{horizontalRowPrefix}</div> : null}
                     {horizontalMetricFields.map((field) => (
-                      <div key={field.id} className="min-w-0 [&>*]:!min-h-0">
+                      <div
+                        key={field.id}
+                        // The rep-range group (Min, Max and the Reps / Failure toggle) needs a full row or it spills past
+                        // the card edge at 390px; Sets then gets its own row too so no half-empty row is left (F-013).
+                        className={cn(
+                          "min-w-0 [&>*]:!min-h-0",
+                          hasWrappedRepsGroup && (field.id === "reps-group" || field.id === "top-field") ? "col-span-full" : undefined,
+                        )}
+                      >
                         {field.node}
                       </div>
                     ))}
