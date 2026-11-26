@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import { usePathname } from "next/navigation";
 import { deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { AppButton } from "@/components/ui/AppButton";
+import { buildCustomExerciseReturnTo } from "@/lib/custom-exercise-return";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { Menu } from "@/components/ui/Menu";
@@ -49,6 +50,8 @@ export function CustomExerciseManageMenu({ exerciseId, exerciseName }: { exercis
     event.preventDefault();
     event.stopPropagation();
     const formData = new FormData(event.currentTarget);
+    // Read at submit time: the page's own query (returnTo, day) must survive the redirect, not just the path.
+    formData.set("returnTo", buildCustomExerciseReturnTo(pathname, window.location.search));
     startSubmit(async () => {
       await action(formData);
     });

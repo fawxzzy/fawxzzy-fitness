@@ -99,13 +99,13 @@ function getProValueSummary(snapshot: ProAccessSnapshot) {
       title: "Routine capacity",
       description: snapshot.accessState === "pro"
         ? "Pro keeps routine creation unlimited while access is active."
-        : "Base includes up to 3 routines. Extra routines stay hidden and locked until Pro is restored.",
+        : "The Free plan includes up to 3 routines. Extra routines stay hidden and locked until Pro is restored.",
     },
     {
       title: "Saved days",
       description: snapshot.accessState === "pro"
         ? "Pro keeps saved day creation unlimited while access is active."
-        : "Base includes up to 14 saved days. Extra saved days stay hidden and locked until Pro is restored.",
+        : "The Free plan includes up to 14 saved days. Extra saved days stay hidden and locked until Pro is restored.",
     },
   ];
 

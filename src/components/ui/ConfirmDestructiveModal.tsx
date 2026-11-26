@@ -124,7 +124,9 @@ export function ConfirmDestructiveModal({
       : hideCancelAction
         ? confirmButton
         : (
-          <div className="grid grid-cols-2 gap-2">
+          // A two-word verb ("Delete routine", "Discard workout") does not fit half of a 320px sheet and wrapped onto two
+          // lines, so below 360px the pair stacks instead of squeezing the label.
+          <div className={confirmActionLabel.length > 10 ? "grid grid-cols-2 gap-2 max-[359px]:grid-cols-1" : "grid grid-cols-2 gap-2"}>
             <AppButton
               type="button"
               variant="secondary"

@@ -610,8 +610,8 @@ export function EmptyExerciseRow({ onClearFilters, libraryEmpty = false }: { onC
         bodyClassName={pickerRowMobileDensityClassNames.body}
         titleClassName={pickerRowMobileDensityClassNames.title}
         titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
-        subtitleClassName={pickerRowMobileDensityClassNames.subtitle}
-        contentClassName={pickerRowMobileDensityClassNames.content}
+        subtitleClassName={cn("!px-1.5 !py-0.5", pickerRowMobileDensityClassNames.subtitle)}
+        contentClassName={cn("pl-3 pr-3", pickerRowMobileDensityClassNames.content)}
       />
       {onClearFilters ? (
         <div className="mt-2">

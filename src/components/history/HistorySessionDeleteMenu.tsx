@@ -10,7 +10,7 @@ import { isRedirectError } from "@/lib/next-navigation-errors";
 
 /**
  * Session detail kebab (DESIGN #7): Delete leaves the bottom dock (where a red Delete sat beside Edit) for the shared
- * Menu in the header, and the confirm uses the real verb ("Delete session"). Same submit rules as
+ * Menu in the header, and the confirm button says "Delete" (the title and the session name already say what; a longer label wrapped at 320). Same submit rules as
  * ConfirmedServerFormButton: the action runs as a form action (so its redirect to /history navigates), a double tap
  * on the confirm submits once, and a failure closes the dialog, shows the in-flow notice and refreshes the screen.
  */
@@ -91,7 +91,7 @@ export function HistorySessionDeleteMenu({
         open={open}
         title={title}
         consequenceText={consequence}
-        confirmLabel="Delete session"
+        confirmLabel="Delete"
         isLoading={isLoading || isSubmitting}
         confirmVariant="destructive"
         onCancel={() => setOpen(false)}

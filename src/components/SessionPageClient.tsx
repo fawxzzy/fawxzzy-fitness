@@ -155,6 +155,10 @@ export function SessionPageClient({
   // Set only when Finish is tapped with planned sets still unlogged; null means the sheet is closed.
   const [finishConfirm, setFinishConfirm] = useState<SessionFinishCheck | null>(null);
   const finishFormRef = useRef<HTMLFormElement>(null);
+  // Finish guard: a second tap (or a confirm tap racing the first submit) must not send saveSessionAction twice, which
+  // would also put an error toast over the summary the first save just opened.
+  const finishInFlightRef = useRef(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   // Rest timer (DESIGN #2): local only, started by SessionExerciseFocus when a set is logged; cleared on finish.
   const restTimer = useRestTimer(sessionId, !isSessionCompleted);
   const toast = useToast();
@@ -261,20 +265,38 @@ export function SessionPageClient({
       <form
         ref={finishFormRef}
         action={async (formData) => {
-          const result = await saveSessionAction(formData);
-          toastActionResult(toast, result, {
-            success: "Workout saved.",
-            error: "Could not save workout.",
-          });
+          try {
+            const result = await saveSessionAction(formData);
+            toastActionResult(toast, result, {
+              success: "Workout saved.",
+              error: "Could not save workout.",
+            });
 
-          if (result.ok) {
-            clearActiveSessionHint(sessionId);
-            writeInstallEarnedMoment("workout-completed");
-            setSelectedExerciseId(null);
-            // Stay on this screen: it turns into the post-workout summary (DESIGN #1). "Done" in the dock goes to Today.
-            setIsSessionCompleted(true);
-            window.scrollTo({ top: 0 });
+            if (result.ok) {
+              clearActiveSessionHint(sessionId);
+              writeInstallEarnedMoment("workout-completed");
+              setSelectedExerciseId(null);
+              // Stay on this screen: it turns into the post-workout summary (DESIGN #1). "Done" in the dock goes to Today.
+              setIsSessionCompleted(true);
+              window.scrollTo({ top: 0 });
+              // Saved: the guard stays on so nothing can submit this session again from this screen.
+              return;
+            }
+          } catch {
+            toast.error("Could not save workout.");
           }
+          finishInFlightRef.current = false;
+          setIsFinishing(false);
+        }}
+        // The urgent update lives here, not in the action: state set inside a form action waits for the whole action,
+        // so the busy button (and the guard) would not show until the save had already finished.
+        onSubmit={(event) => {
+          if (finishInFlightRef.current) {
+            event.preventDefault();
+            return;
+          }
+          finishInFlightRef.current = true;
+          setIsFinishing(true);
         }}
         className="w-full"
       >
@@ -287,7 +309,12 @@ export function SessionPageClient({
               type="submit"
               intent="positive"
               className="!min-h-[44px]"
+              loading={isFinishing}
               onClick={(event) => {
+                if (finishInFlightRef.current) {
+                  event.preventDefault();
+                  return;
+                }
                 // One tap (plain submit) when every planned set is logged; a confirm sheet only when some are unfinished.
                 const check = buildSessionFinishCheck({ exercises, live: liveProgressRef.current });
                 if (check.needsConfirm) {
@@ -302,7 +329,7 @@ export function SessionPageClient({
         />
       </form>
     ),
-    [durationSeconds, exercises, isSessionCompleted, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
+    [durationSeconds, exercises, isFinishing, isSessionCompleted, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
   );
 
   return (
@@ -372,6 +399,7 @@ export function SessionPageClient({
           onCancel={() => setFinishConfirm(null)}
           onConfirm={() => {
             setFinishConfirm(null);
+            if (finishInFlightRef.current) return;
             finishFormRef.current?.requestSubmit();
           }}
         />

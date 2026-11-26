@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
+import { AppButton } from "@/components/ui/AppButton";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
 import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
@@ -294,11 +295,65 @@ export function EditDaySettingsAutosaveForm({
     timeoutRef.current = setTimeout(submitAutosave, 500);
   }, [submitAutosave]);
 
+  const stableDayTitle = formatRoutineDayStableDisplayName({ name, dayIndex, startDate });
+
+  // One submit for both footer buttons: "Update day" (shared day, everyone linked gets the change) or "Save new day".
+  const submitWorkoutPlanDecision = (mode: "update_existing" | "save_new") => {
+    const normalizedWorkoutPlanName = normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName);
+    if (mode === "save_new") {
+      if (!normalizedWorkoutPlanName) {
+        setWorkoutPlanDecisionError("Day name is required.");
+        return;
+      }
+      if (hasWorkoutPlanNameConflict({
+        candidateName: normalizedWorkoutPlanName,
+        workoutPlanNames: existingWorkoutPlanNames,
+      })) {
+        setWorkoutPlanDecisionError("Day name already exists.");
+        return;
+      }
+    }
+
+    startWorkoutPlanDecisionTransition(() => {
+      void (async () => {
+        const decisionFormData = new FormData();
+        decisionFormData.set("routineId", routineId);
+        decisionFormData.set("routineDayId", routineDayId);
+        decisionFormData.set("decisionMode", mode);
+        if (mode === "save_new") {
+          decisionFormData.set("templateName", normalizedWorkoutPlanName);
+        }
+
+        const result = await resolveWorkoutPlanDecisionAction(decisionFormData);
+        if (!result.ok) {
+          setWorkoutPlanDecisionError(result.error ?? "Could not update day.");
+          return;
+        }
+
+        setWorkoutPlanDecisionOpen(false);
+        setWorkoutPlanDecisionError(null);
+        setRequiresWorkoutPlanDecision(false);
+        setShouldSyncWorkoutPlanOnSave(result.syncMode === "sync");
+        if (result.workoutPlanId ?? result.templateId) {
+          setActiveWorkoutPlanId(result.workoutPlanId ?? result.templateId ?? null);
+        }
+        if (result.workoutPlanName ?? result.templateName) {
+          toast.success(
+            mode === "update_existing"
+              ? `Day updated: ${result.workoutPlanName ?? result.templateName}`
+              : `New day saved: ${result.workoutPlanName ?? result.templateName}`,
+          );
+        }
+        submitAutosave({ forceTemplateSync: true });
+      })();
+    });
+  };
+
   const headerNode = (
     <ScreenHeader
       kind="detail"
       // The saved name, not the draft: the title must not change while the name field is being typed in.
-      title={formatRoutineDayStableDisplayName({ name, dayIndex, startDate })}
+      title={stableDayTitle}
       subtitle={routineName?.trim() || null}
       back={<ScreenHeaderBackButton href={backHref} label="Back to routine" historyBehavior="history-first" />}
     />
@@ -312,83 +367,83 @@ export function EditDaySettingsAutosaveForm({
       {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
       <ConfirmDestructiveModal
         open={workoutPlanDecisionOpen}
-        title="Save day changes?"
+        // Same pattern as the add-exercise decision: name the day being changed, and the two choices are the two footer buttons.
+        title={workoutPlanDecisionMode === "update_existing" ? `Save to ${stableDayTitle}` : `New day from ${stableDayTitle}`}
+        titleVariant="raw"
         description={workoutPlanDecisionMode === "update_existing"
-          ? "Update this shared day so linked days stay in sync."
-          : "Save this as a new day before these edits continue autosaving."}
-        confirmLabel={workoutPlanDecisionMode === "update_existing" ? "Update day" : "Save new day"}
+          ? "Other days use this day too. Update it and they all get this change, or save your change as a new day."
+          : "Name the new day. Your edits keep saving to it."}
+        confirmLabel="Update day"
         cancelLabel="Cancel"
         confirmVariant="primary"
-        confirmDisabled={workoutPlanDecisionMode === "save_new" && normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName).length === 0}
+        hideCancelAction
+        attachedFooter={workoutPlanDecisionMode === "update_existing" ? (
+          <div className="grid grid-cols-2 gap-2">
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="md"
+              fullWidth
+              disabled={isWorkoutPlanDecisionPending}
+              onClick={() => {
+                setWorkoutPlanDecisionMode("save_new");
+                setWorkoutPlanDecisionError(null);
+              }}
+              data-workout-plan-decision="save-new"
+            >
+              New day
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="primary"
+              size="md"
+              fullWidth
+              loading={isWorkoutPlanDecisionPending}
+              onClick={() => submitWorkoutPlanDecision("update_existing")}
+              data-workout-plan-decision="update"
+            >
+              Update day
+            </AppButton>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="md"
+              fullWidth
+              disabled={isWorkoutPlanDecisionPending}
+              onClick={() => {
+                setWorkoutPlanDecisionMode("update_existing");
+                setWorkoutPlanDecisionError(null);
+              }}
+              data-workout-plan-decision="back"
+            >
+              Back
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="primary"
+              size="md"
+              fullWidth
+              loading={isWorkoutPlanDecisionPending}
+              disabled={normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName).length === 0}
+              onClick={() => submitWorkoutPlanDecision("save_new")}
+              data-workout-plan-decision="save-new-confirm"
+            >
+              Save new day
+            </AppButton>
+          </div>
+        )}
         isLoading={isWorkoutPlanDecisionPending}
         onCancel={() => {
           setWorkoutPlanDecisionOpen(false);
           setWorkoutPlanDecisionError(null);
+          setWorkoutPlanDecisionMode("update_existing");
         }}
-        onConfirm={() => {
-          const normalizedWorkoutPlanName = normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName);
-          if (workoutPlanDecisionMode === "save_new") {
-            if (!normalizedWorkoutPlanName) {
-              setWorkoutPlanDecisionError("Day name is required.");
-              return;
-            }
-            if (hasWorkoutPlanNameConflict({
-              candidateName: normalizedWorkoutPlanName,
-              workoutPlanNames: existingWorkoutPlanNames,
-            })) {
-              setWorkoutPlanDecisionError("Day name already exists.");
-              return;
-            }
-          }
-
-          startWorkoutPlanDecisionTransition(() => {
-            void (async () => {
-              const decisionFormData = new FormData();
-              decisionFormData.set("routineId", routineId);
-              decisionFormData.set("routineDayId", routineDayId);
-              decisionFormData.set("decisionMode", workoutPlanDecisionMode);
-              if (workoutPlanDecisionMode === "save_new") {
-                decisionFormData.set("templateName", normalizedWorkoutPlanName);
-              }
-
-              const result = await resolveWorkoutPlanDecisionAction(decisionFormData);
-              if (!result.ok) {
-                setWorkoutPlanDecisionError(result.error ?? "Could not update day.");
-                return;
-              }
-
-              setWorkoutPlanDecisionOpen(false);
-              setWorkoutPlanDecisionError(null);
-              setRequiresWorkoutPlanDecision(false);
-              setShouldSyncWorkoutPlanOnSave(result.syncMode === "sync");
-              if (result.workoutPlanId ?? result.templateId) {
-                setActiveWorkoutPlanId(result.workoutPlanId ?? result.templateId ?? null);
-              }
-              if (result.workoutPlanName ?? result.templateName) {
-                toast.success(
-                  workoutPlanDecisionMode === "update_existing"
-                    ? `Day updated: ${result.workoutPlanName ?? result.templateName}`
-                    : `New day saved: ${result.workoutPlanName ?? result.templateName}`,
-                );
-              }
-              submitAutosave({ forceTemplateSync: true });
-            })();
-          });
-        }}
+        onConfirm={() => submitWorkoutPlanDecision(workoutPlanDecisionMode)}
       >
         <div className="space-y-3">
-          <SegmentedControl
-            ariaLabel="How to save this day"
-            value={workoutPlanDecisionMode}
-            options={[
-              { label: "Update Day", value: "update_existing" },
-              { label: "Save New Day", value: "save_new" },
-            ]}
-            onChange={(next) => {
-              setWorkoutPlanDecisionMode(next === "save_new" ? "save_new" : "update_existing");
-              setWorkoutPlanDecisionError(null);
-            }}
-          />
           {workoutPlanDecisionMode === "save_new" ? (
             <FormField label="Day name" invalid={Boolean(workoutPlanDecisionError)}>
               {(control) => (

@@ -5,6 +5,7 @@ import {
   resolveDistanceStep,
   resolveNumericInputMode,
   resolveWeightStep,
+  sanitizeDecimalInput,
   stepNumericValue,
 } from "./numericFieldPolicy.ts";
 
@@ -76,4 +77,15 @@ test("measurement panel and goal form use the policy, not a hard-coded text keyb
   assert.equal(/inputMode="text"/.test(goal), false, "the sets field opens a number pad");
   assert.match(panel, /resolveWeightStep\(values\.weightUnit\)/, "weight steppers are unit-aware");
   assert.match(panel, /resolveDistanceStep\(resolvedDistanceUnit\)/, "distance steppers are unit-aware");
+});
+
+test("a comma is a decimal point (comma-locale decimal pad), not a character to strip", () => {
+  assert.equal(sanitizeDecimalInput("62,5"), "62.5");
+  assert.equal(sanitizeDecimalInput("62.5"), "62.5");
+  assert.equal(sanitizeDecimalInput("0,25"), "0.25");
+  assert.equal(sanitizeDecimalInput("7,"), "7.");
+  assert.equal(sanitizeDecimalInput("1,2,3"), "1.23");
+  assert.equal(sanitizeDecimalInput("1.2,3"), "1.23");
+  assert.equal(sanitizeDecimalInput("abc12x"), "12");
+  assert.equal(sanitizeDecimalInput(""), "");
 });

@@ -9,6 +9,20 @@ export type NumericMeasurementField = "reps" | "sets" | "weight" | "distance" | 
 
 export type NumericInputMode = "numeric" | "decimal" | "text";
 
+/**
+ * Cleans what was typed into a decimal field (weight, distance, effort). The decimal pad on a comma-locale phone only
+ * offers ",", so a comma is the decimal point: "62,5" becomes "62.5" (it used to be stripped and read as 625). Anything
+ * that is not a digit or the one point is dropped, and extra points collapse into the first.
+ */
+export function sanitizeDecimalInput(value: string): string {
+  const cleaned = value.replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const [whole = "", ...fractionParts] = cleaned.split(".");
+  if (fractionParts.length === 0) {
+    return cleaned;
+  }
+  return `${whole}.${fractionParts.join("")}`;
+}
+
 export function resolveNumericInputMode(field: NumericMeasurementField): NumericInputMode {
   switch (field) {
     case "reps":

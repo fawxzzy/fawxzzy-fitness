@@ -11,6 +11,7 @@ import {
   CardSurface,
   type CardHeadingLevel,
 } from "@/components/ui/card-system";
+import { toPlainProgressionLabel } from "@/lib/exercise-progression-state-label";
 import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 import { cn } from "@/lib/cn";
 import { formatRoutineDayStableDisplayName, getRoutineDayHeading, getRoutineDayWeekdayLabel } from "@/lib/routines";
@@ -228,7 +229,8 @@ export function RoutineDayRecapList({
           .split(/\s+\|\s+/)
           .map((value) => value.trim())
           .filter(Boolean);
-        const progressionLabel = exercise.progressionStateLabel?.trim();
+        // Engine flags ("AUTO • SESSION • SET") never reach the screen: "Auto progression", or nothing for manual.
+        const progressionLabel = toPlainProgressionLabel(exercise.progressionStateLabel?.trim());
 
         return (
           <li key={`${exercise.id}-${index}`} className="grid min-w-0 gap-0.5">

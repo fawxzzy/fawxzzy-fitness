@@ -8,7 +8,7 @@ import { buildHistorySessionDeleteCopy } from "../../src/lib/history-session-del
 
 // History review item 3 (2026-11-23): the session-delete confirm names the day ("Delete Day 5?"), says what goes with
 // it, and a double tap on the confirm button submits exactly once. DESIGN #7 (2026-11-26): Delete lives in the header
-// kebab and the confirm button says "Delete session". Same props as LogAuditClient's header menu.
+// kebab and the confirm button says "Delete" (320px fit). Same props as LogAuditClient's header menu.
 
 // React builds `new FormData(form)` for form actions; Node's own FormData rejects a jsdom form, so use jsdom's here.
 Object.defineProperty(globalThis, "FormData", { value: window.FormData, configurable: true, writable: true });
@@ -68,7 +68,7 @@ test("History session delete: the confirm names the day, states the consequence,
   assert.ok(within(dialog).getByText("Delete Day 5?"), "the title names the day");
   assert.ok(within(dialog).getByText("Removes the Nov 21 session and its 4 exercises. This cannot be undone."));
 
-  const confirm = within(dialog).getByRole("button", { name: "Delete session" });
+  const confirm = within(dialog).getByRole("button", { name: "Delete" });
   await act(async () => {
     fireEvent.click(confirm);
     fireEvent.click(confirm);
@@ -92,7 +92,7 @@ test("History session delete: a not_found code says the item is gone and the scr
 
   openDeleteConfirm();
   const dialog = await screen.findByRole("dialog");
-  fireEvent.click(within(dialog).getByRole("button", { name: "Delete session" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
   const notice = await screen.findByRole("alert");
   assert.equal(notice.textContent?.includes("That item is no longer there. The screen has been refreshed."), true);
