@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveGoalVisibleMetrics } from "./goalVisibleMetrics.ts";
+import { resolveGoalVisibleMetrics, resolveSubmittedGoalState } from "./goalVisibleMetrics.ts";
 
 const EMPTY = { repsMin: "", repsMax: "", weight: "", duration: "", distance: "", calories: "" };
 
@@ -29,4 +29,12 @@ test("calories appear only when asked for (More options) or already set", () => 
 
 test("a value saved before this change is never hidden", () => {
   assert.deepEqual(resolveGoalVisibleMetrics("strength", { ...EMPTY, repsMin: "5", duration: "60" }), ["reps", "weight", "time"]);
+});
+
+test("closed Calories drops an auto-estimate from what the plain form submits (and so from its summary)", () => {
+  const state = { ...EMPTY, duration: "30:00", calories: "240" };
+  assert.equal(resolveSubmittedGoalState(state, { simpleLayout: true, caloriesShown: false }).calories, "");
+  assert.equal(resolveSubmittedGoalState(state, { simpleLayout: true, caloriesShown: true }).calories, "240");
+  // The full layout keeps whatever is in state.
+  assert.equal(resolveSubmittedGoalState(state, { simpleLayout: false, caloriesShown: false }).calories, "240");
 });

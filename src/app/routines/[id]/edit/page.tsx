@@ -53,6 +53,15 @@ export default async function EditRoutinePage(props: PageProps) {
 
   if (!routine) notFound();
 
+  // Rest-day slots let the schedule line name only the training weekdays; without them it names every slot.
+  const { data: restDays } = await supabase
+    .from("routine_days")
+    .select("day_index")
+    .eq("routine_id", routine.id)
+    .eq("user_id", user.id)
+    .eq("is_rest", true);
+  const restDayIndexes = (restDays ?? []).map((day) => day.day_index);
+
   const returnHref = getRoutineHomeHref(params.id);
   // Back honours a safe in-app returnTo (Today's "Edit routine" passes /today); autosave keeps the routine home.
   const backHref = resolveRoutineEditBackHref(params.id, searchParams?.returnTo);
@@ -77,6 +86,7 @@ export default async function EditRoutinePage(props: PageProps) {
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         error={searchParams?.error}
         focusName={searchParams?.focus === "name"}
+        restDayIndexes={restDayIndexes}
       />
     </RoutineDetailsScreenShell>
   );

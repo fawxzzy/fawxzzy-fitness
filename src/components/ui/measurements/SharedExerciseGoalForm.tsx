@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState, type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, type GoalModality } from "@/lib/exercise-goal-validation";
-import { isCardioGoalModality, resolveGoalVisibleMetrics } from "@/components/ui/measurements/goalVisibleMetrics";
+import { isCardioGoalModality, resolveGoalVisibleMetrics, resolveSubmittedGoalState } from "@/components/ui/measurements/goalVisibleMetrics";
 import { MoreOptionsDisclosure, OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
@@ -53,6 +53,7 @@ export function SharedExerciseGoalForm({
   includeCalories,
   simpleLayout = false,
   moreOptionsContent,
+  onCaloriesShownChange,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -85,6 +86,8 @@ export function SharedExerciseGoalForm({
    */
   simpleLayout?: boolean;
   moreOptionsContent?: ReactNode;
+  /** Told whether Calories is shown (and so submitted), so a caller's own summary can match what is saved. */
+  onCaloriesShownChange?: (shown: boolean) => void;
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
@@ -107,7 +110,10 @@ export function SharedExerciseGoalForm({
     [modality, visibleMetricOrder],
   );
   // A closed Calories option means "no calorie goal": an auto-estimate kept in state must not submit or count as chosen.
-  const formState = simpleLayout && !showCalories && state.calories ? { ...state, calories: "" } : state;
+  const formState = resolveSubmittedGoalState(state, { simpleLayout, caloriesShown: showCalories });
+  useEffect(() => {
+    onCaloriesShownChange?.(showCalories);
+  }, [onCaloriesShownChange, showCalories]);
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
 
   return (

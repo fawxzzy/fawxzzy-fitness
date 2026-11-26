@@ -38,6 +38,17 @@ export function resolveGoalVisibleMetrics(
   return getGoalMeasurementOrder(baseModality).filter((metric) => visible.has(metric));
 }
 
+/**
+ * What the plain ("set it up") goal form submits. A closed Calories option means "no calorie goal", so an auto-estimate
+ * kept in state is dropped. Summaries must read this, not the raw state, so they never show a value that is not saved.
+ */
+export function resolveSubmittedGoalState<T extends { calories: string }>(
+  state: T,
+  options: { simpleLayout: boolean; caloriesShown: boolean },
+): T {
+  return options.simpleLayout && !options.caloriesShown && state.calories ? { ...state, calories: "" } : state;
+}
+
 export function isCardioGoalModality(modality: GoalModality) {
   return modality === "cardio_time" || modality === "cardio_distance" || modality === "cardio_time_distance";
 }

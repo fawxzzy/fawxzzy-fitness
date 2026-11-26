@@ -17,7 +17,7 @@ This matrix defines the **minimum valid goal state** required before the Add CTA
 - Goal mode only renders relevant metric cards for the chosen modality mode to improve mobile readability.
 - Empty goal previews use explicit guidance text instead of a visual-only "Goal missing" badge.
 - Add and inline Edit flows both mount the same shared `SharedExerciseGoalForm` wrapper so modality logic does not drift.
-- Which fields render is one pure function, `resolveGoalVisibleMetrics` (`src/components/ui/measurements/goalVisibleMetrics.ts`, unit-tested): the exercise's base modality plus any metric that already holds a value. Auto-progress, Timer, To failure and Calories live under "More options".
+- Which fields render is one pure function, `resolveGoalVisibleMetrics` (`src/components/ui/measurements/goalVisibleMetrics.ts`, unit-tested): the exercise's base modality plus any metric that already holds a value. Auto-progress, Timer, To failure and Calories live under "More options". Cardio calories are saved only when Calories is opened there: an auto-estimate is not submitted while it is closed, and the picker summary reads the submitted values (`resolveSubmittedGoalState`), so it never shows a calorie goal that is not saved.
 - "Same as last time" fills the goal from the last logged workout and only shows when that history exists.
 
 ## Measurement presence contract

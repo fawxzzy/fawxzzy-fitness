@@ -12,6 +12,7 @@ import {
   useRoutineDetailsExitGuard,
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -34,19 +35,7 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
-
-/** One plain line for the schedule (SIMPLIFY #8): "Weekly, from Thu, Nov 26" / "Every 4 days, from Thu, Nov 26". */
-export function describeRoutineSchedule(draft: Pick<RoutineDetailsDraft, "scheduleMode" | "cycleLengthDays" | "startDate">) {
-  const timestamp = Date.parse(`${draft.startDate}T00:00:00Z`);
-  const fromLabel = Number.isFinite(timestamp)
-    ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(timestamp))
-    : null;
-  // Only a 7-day cycle lines up with the week; any other length rotates across weekdays, so say how often it repeats.
-  const shape = draft.cycleLengthDays === 7 && draft.scheduleMode !== "rolling_n_day"
-    ? "Weekly"
-    : `Repeats every ${draft.cycleLengthDays} ${draft.cycleLengthDays === 1 ? "day" : "days"}`;
-  return fromLabel ? `${shape}, from ${fromLabel}` : shape;
-}
+import { buildRoutineSettingsFormData, describeRoutineSchedule } from "@/app/routines/[id]/edit/routine-settings";
 
 function getDeviceTimezone(fallback: string) {
   if (typeof window === "undefined") {
@@ -74,6 +63,8 @@ type Props = {
   error?: string;
   /** Opened from the routine menu's Rename: focus the name field. */
   focusName?: boolean;
+  /** 1-based day slots marked rest, so the schedule line names only the training weekdays. */
+  restDayIndexes?: number[];
 };
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {
@@ -104,7 +95,10 @@ export function EditRoutineAutosaveForm(props: Props) {
     config: props.defaultProgressionPlaybookConfig ?? null,
   }));
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
-  const [autoApplyUpdatesToExercises, setAutoApplyUpdatesToExercises] = useState(true);
+  // Overwriting every exercise's progress rules is an explicit, confirmed choice, never a side effect of the simple
+  // Auto-progress switch (review P1 #2). Off by default; it resets after each save.
+  const [applyToAllExercisesConfirmed, setApplyToAllExercisesConfirmed] = useState(false);
+  const [isConfirmingApplyToAll, setIsConfirmingApplyToAll] = useState(false);
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(props.cycleLengthDays));
   const [showProgressHelp, setShowProgressHelp] = useState(false);
   // Turning Auto-progress off and on again brings back the rules that were set, not a fresh default.
@@ -145,7 +139,9 @@ export function EditRoutineAutosaveForm(props: Props) {
   const currentProgressionSnapshot = useMemo(() => buildProgressionPlaybookFormSnapshot(progressionDraft), [progressionDraft]);
   const baselineSnapshot = lastSavedSnapshot || initialSnapshot;
   const baselineProgressionSnapshot = lastSavedProgressionSnapshot || initialProgressionSnapshot;
-  const isDirty = currentSnapshot !== baselineSnapshot || currentProgressionSnapshot !== baselineProgressionSnapshot;
+  const isDirty = currentSnapshot !== baselineSnapshot
+    || currentProgressionSnapshot !== baselineProgressionSnapshot
+    || applyToAllExercisesConfirmed;
   const validation = validateRoutineDetailsDraft(draft, { allowLegacyLongName: true });
   const canSave = validation.valid && isDirty && !isSaving;
   const isAutoProgressOn = progressionDraft.progressionPlaybookId !== "";
@@ -202,15 +198,9 @@ export function EditRoutineAutosaveForm(props: Props) {
     formData: FormData,
     nextDraft: RoutineDetailsDraft,
     progressionSnapshot: string,
-    applyRoutineDefaultToExercises: boolean,
+    appliedToAllExercises: boolean,
   ) => {
     startTransition(async () => {
-      if (applyRoutineDefaultToExercises) {
-        formData.set("applyRoutineDefaultToExercises", "1");
-      } else {
-        formData.delete("applyRoutineDefaultToExercises");
-      }
-
       const result = await updateRoutineAction(formData);
       if (!result.ok) {
         const nextError = result.error ?? "Could not save routine.";
@@ -220,7 +210,10 @@ export function EditRoutineAutosaveForm(props: Props) {
 
       setLastSavedSnapshot(buildRoutineDetailsSnapshot(nextDraft));
       setLastSavedProgressionSnapshot(progressionSnapshot);
-      toast.success("Routine changes saved");
+      setApplyToAllExercisesConfirmed(false);
+      toast.success(appliedToAllExercises
+        ? "Routine saved. Exercises now use these progress rules."
+        : "Routine changes saved");
     });
   };
 
@@ -238,28 +231,17 @@ export function EditRoutineAutosaveForm(props: Props) {
         return;
       }
 
-      const progressionChanged = currentProgressionSnapshot !== baselineProgressionSnapshot;
+      const formData = buildRoutineSettingsFormData({
+        routineId: props.routineId,
+        existingStartDate: props.existingStartDate,
+        draft: nextDraft,
+        timezone: getDeviceTimezone(nextDraft.timezone),
+        progressionDraft,
+        returnHref: props.returnHref,
+        applyToAllExercisesConfirmed,
+      });
 
-      const formData = new FormData();
-      formData.set("routineId", props.routineId);
-      formData.set("existingStartDate", props.existingStartDate);
-      formData.set("name", nextDraft.name.trim());
-      formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
-      formData.set("scheduleMode", nextDraft.scheduleMode);
-      formData.set("startDate", nextDraft.startDate);
-      formData.set("startWeekday", nextDraft.startWeekday);
-      formData.set("timezone", getDeviceTimezone(nextDraft.timezone));
-      formData.set("weightUnit", nextDraft.weightUnit);
-      formData.set("distanceUnit", nextDraft.distanceUnit);
-      appendProgressionPlaybookFormData(formData, progressionDraft);
-      formData.set("returnTo", props.returnHref);
-
-      submitChanges(
-        formData,
-        nextDraft,
-        currentProgressionSnapshot,
-        progressionChanged && autoApplyUpdatesToExercises,
-      );
+      submitChanges(formData, nextDraft, currentProgressionSnapshot, applyToAllExercisesConfirmed);
     });
   };
 
@@ -273,7 +255,7 @@ export function EditRoutineAutosaveForm(props: Props) {
           <ContentRail className="space-y-2 pt-4">
             {routineHeaderTitle}
             <p className="px-1 text-[0.9rem] text-[rgb(var(--text-secondary))]" data-routine-schedule-summary="">
-              {describeRoutineSchedule(draft)}
+              {describeRoutineSchedule(draft, props.restDayIndexes)}
             </p>
             <div className="space-y-1">
               <OptionSwitchRow
@@ -283,6 +265,8 @@ export function EditRoutineAutosaveForm(props: Props) {
                   : "Off: you set each next goal yourself."}
                 checked={isAutoProgressOn}
                 onCheckedChange={(next) => {
+                  setApplyToAllExercisesConfirmed(false);
+                  setIsConfirmingApplyToAll(false);
                   if (next) {
                     setProgressionDraft(lastProgressionRulesRef.current ?? createProgressionPlaybookFormState({ playbookId: "double_progression" }));
                     return;
@@ -350,9 +334,51 @@ export function EditRoutineAutosaveForm(props: Props) {
                 setSelectedTrainingGoal(goal);
                 setProgressionDraft(createProgressionPlaybookFormStateForTrainingGoal(goal));
               }}
-              autoApplyUpdatesToExercises={autoApplyUpdatesToExercises}
-              onAutoApplyUpdatesToExercisesChange={setAutoApplyUpdatesToExercises}
             />
+            <div className="space-y-2" data-routine-apply-to-all="">
+              <OptionSwitchRow
+                label="Apply to all exercises"
+                hint={applyToAllExercisesConfirmed
+                  ? "On: Save replaces every exercise's progress rules with these."
+                  : "Off: exercises keep their own progress rules."}
+                checked={applyToAllExercisesConfirmed}
+                onCheckedChange={(next) => {
+                  if (next) {
+                    setIsConfirmingApplyToAll(true);
+                    return;
+                  }
+                  setApplyToAllExercisesConfirmed(false);
+                  setIsConfirmingApplyToAll(false);
+                }}
+              />
+              {isConfirmingApplyToAll ? (
+                <div
+                  role="alertdialog"
+                  aria-label="Replace progress rules on all exercises?"
+                  className="space-y-3 rounded-2xl border border-[rgb(var(--border-strong)/0.26)] bg-[rgb(var(--surface-2-rgb)/0.5)] px-3 py-3"
+                >
+                  <p className="text-[0.9rem] leading-snug text-[rgb(var(--text-primary))]">
+                    This replaces the progress rules on every exercise in this routine (stretches are skipped), including
+                    any you set one by one. It happens when you tap Save.
+                  </p>
+                  <div className="flex gap-2">
+                    <SecondaryButton type="button" fullWidth onClick={() => setIsConfirmingApplyToAll(false)}>
+                      Keep mine
+                    </SecondaryButton>
+                    <DestructiveButton
+                      type="button"
+                      fullWidth
+                      onClick={() => {
+                        setApplyToAllExercisesConfirmed(true);
+                        setIsConfirmingApplyToAll(false);
+                      }}
+                    >
+                      Replace all
+                    </DestructiveButton>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             </MoreOptionsDisclosure>
           </ContentRail>
         </RoutineEditorPageBody>

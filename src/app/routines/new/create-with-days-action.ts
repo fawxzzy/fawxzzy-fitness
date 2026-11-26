@@ -1,6 +1,10 @@
 "use server";
 
 import { createRoutineAction } from "@/app/routines/actions";
+import { createRoutineWithCleanup } from "@/app/routines/new/create-with-days-cleanup";
+import { requireUser } from "@/lib/auth";
+import { revalidateRoutinesViews } from "@/lib/revalidation";
+import { supabaseServer } from "@/lib/supabase/server";
 import { appendProgressionPlaybookFormData, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
@@ -57,5 +61,17 @@ export async function createRoutineWithDaysAction(formData: FormData) {
 
   // Auto-progress is on by default for a new routine (unchanged from the previous create form).
   appendProgressionPlaybookFormData(routineFormData, createProgressionPlaybookFormState({ playbookId: "double_progression" }));
-  return createRoutineAction(routineFormData);
+  // createRoutineAction can fail after the routine row exists (days insert, a rest-day update). Remove that half-made
+  // routine before reporting the failure so a retry does not leave two routines or burn the Free routine slot.
+  return createRoutineWithCleanup({
+    create: () => createRoutineAction(routineFormData),
+    removeRoutine: async (routineId) => {
+      const user = await requireUser();
+      const supabase = await supabaseServer();
+      await supabase.from("routine_days").delete().eq("routine_id", routineId).eq("user_id", user.id);
+      const { error } = await supabase.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+      if (!error) revalidateRoutinesViews();
+      return { ok: !error };
+    },
+  });
 }
