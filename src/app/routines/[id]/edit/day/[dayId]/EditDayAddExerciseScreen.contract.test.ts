@@ -14,7 +14,7 @@ test("the shared-day sheet names the day and offers its two choices as two foote
   assert.match(screen, /attachedFooter=\{/);
   assert.match(screen, /hideCancelAction/, "the sheet keeps its close button");
   assert.match(screen, /onClick=\{\(\) => submitWorkoutPlanDecision\("update_existing"\)\}[\s\S]*?Update day/);
-  assert.match(screen, />\s*Save as new day\s*</);
+  assert.match(screen, /data-workout-plan-decision="save-new"\s*>\s*New day\s*</, "short enough for one line at 320px");
   assert.match(screen, /onClick=\{\(\) => submitWorkoutPlanDecision\("save_new"\)\}[\s\S]*?Save new day/);
 });
 

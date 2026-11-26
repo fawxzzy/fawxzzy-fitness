@@ -284,7 +284,7 @@ export function EditDayAddExerciseScreen({
               }}
               data-workout-plan-decision="save-new"
             >
-              Save as new day
+              New day
             </AppButton>
             <AppButton
               type="button"
