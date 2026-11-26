@@ -91,7 +91,7 @@ test("Theme: confirming Delete removes the saved theme from storage and says so 
   await screen.findByRole("heading", { name: "Night Run", level: 3 });
 
   fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
-  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete theme" }));
 
   await waitFor(() => assert.equal(readStoredAppThemeLibrary().length, 0));
   await screen.findByText("\"Night Run\" deleted.");

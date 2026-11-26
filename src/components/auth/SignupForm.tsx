@@ -42,6 +42,9 @@ import {
 import { isUsernameIdentifier, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@/lib/username-policy";
 
 const SIGNUP_FORM_ID = "signup-form";
+const PASSWORD_HINT_ID = "signup-password-hint";
+/** The password rule, said before the person types (the same minimum the field enforces). */
+export const PASSWORD_HINT = `${NEW_PASSWORD_MINIMUM}+ characters`;
 const SENT_WAIT_SECONDS = 60;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -265,11 +268,13 @@ export function SignupForm({
                 autoComplete="new-password"
                 readOnly={isSubmitting}
                 aria-invalid={invalidField === "password" || undefined}
+                aria-describedby={PASSWORD_HINT_ID}
                 wrapperClassName="w-full"
                 className={AUTH_ACCOUNT_PASSWORD_INPUT_CLASS_NAME}
                 onChange={(event) => setPassword(event.target.value)}
               />
             </AuthAccountField>
+            <p id={PASSWORD_HINT_ID} className="fx-fld__hint">{PASSWORD_HINT}</p>
           </AuthFormFields>
           <AuthNoticeSlot
             notice={notice}

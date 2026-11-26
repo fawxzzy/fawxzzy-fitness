@@ -212,30 +212,30 @@ export function DataSettingsSection({
       return [] as string[];
     }
 
-    const progression = `Progression: ${exportPreview.progressionSummary.promotionCount} promotions across ${exportPreview.progressionSummary.distinctExerciseCount} exercises.`;
+    const progression = `Progression: ${exportPreview.progressionSummary.promotionCount} ${exportPreview.progressionSummary.promotionCount === 1 ? "promotion" : "promotions"} across ${exportPreview.progressionSummary.distinctExerciseCount} ${exportPreview.progressionSummary.distinctExerciseCount === 1 ? "exercise" : "exercises"}.`;
 
     if (exportPreview.scope === "history") {
       return [
-        "History counts match what History shows. Stored totals can also include hidden test data and sessions still in progress.",
+        "The History counts match what History shows. The saved totals can also include hidden test data and workouts still in progress.",
         progression,
-        "Progression changes are stored separately, so they do not always match one visible session.",
-        `Total stored history records: ${storageSnapshot.totalRecordCount}.`,
+        "Progression changes are saved on their own, so they do not always match one workout you can see.",
+        `${storageSnapshot.totalRecordCount} saved records in all.`,
       ];
     }
 
     if (exportPreview.scope === "routines") {
       return [
         "Routine counts reflect your saved routines only.",
-        "Templates are not included yet and will join this scope when they exist.",
-        `Total stored routine records: ${storageSnapshot.totalRecordCount}.`,
+        "Templates are not included yet.",
+        `${storageSnapshot.totalRecordCount} saved records in all.`,
       ];
     }
 
     return [
-      "This snapshot combines visible history with stored routine totals.",
+      "This combines what History shows with your saved routines.",
       progression,
-      "Stored totals can also include hidden test data, sessions still in progress, and progression changes that do not match one visible session.",
-      `Total stored records across history and routines: ${storageSnapshot.totalRecordCount}.`,
+      "The saved totals can also include hidden test data, workouts still in progress, and progression changes that do not match one workout you can see.",
+      `${storageSnapshot.totalRecordCount} saved records in all.`,
     ];
   }, [exportPreview, storageSnapshot]);
 
@@ -392,21 +392,21 @@ export function DataSettingsSection({
       ) : null}
 
       <SettingsCard
-        title="Stored snapshot"
+        title="Your saved data"
         tone="logged"
         meta={(
           <CardMeta
             items={[
               exportPreview
                 ? `${exportPreview.scopeLabel} scope`
-                : "Scope-aware stored snapshot",
+                : "What is saved on your account",
               exportPreview ? (storageSnapshot?.historyRangeLabel ?? exportPreview.dateRange.label) : "",
             ]}
           />
         )}
       >
         {!storageSnapshot ? (
-          renderUnavailable("stored snapshot")
+          renderUnavailable("saved data")
         ) : (
           <>
             {storageSections.map((section) => (
@@ -425,12 +425,11 @@ export function DataSettingsSection({
             ))}
             <ul className="m-0 grid list-disc gap-1.5 pl-5 text-xs leading-snug text-[rgb(var(--text-secondary)/0.95)]">
               <li>
-                Current snapshot follows the selected{" "}
-                <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview?.scopeLabel ?? "selected"}</span>{" "}
-                export scope.
+                These counts follow the export scope:{" "}
+                <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview?.scopeLabel ?? "selected"}</span>.
               </li>
               <li>
-                Snapshot range:{" "}
+                Dates covered:{" "}
                 <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{storageSnapshot.historyRangeLabel}</span>.
               </li>
               {storageNoteItems.map((entry) => (

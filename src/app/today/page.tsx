@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 import { revalidatePath } from "next/cache";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
@@ -919,7 +920,7 @@ export default async function TodayPage(
                 size="md"
                 modalTitle="Discard workout?"
                 modalConsequenceText="Current workout will be removed."
-                confirmLabel="Discard Workout"
+                confirmLabel={CONFIRM_ACTION_LABELS.discardWorkout}
                 failureMessage={DISCARD_IN_PROGRESS_FAILED_MESSAGE}
               />
             )}

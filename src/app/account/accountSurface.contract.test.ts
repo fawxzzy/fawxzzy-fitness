@@ -91,5 +91,9 @@ test("Sign out everywhere is a separate link to the portal Account page, set apa
   const everywhereAt = actions.search(/>\s*Sign out everywhere\s*<\/a>/);
   assert.ok(everywhereAt > 0 && actions.indexOf("<SignOutButton") < everywhereAt);
   assert.match(actions, /<a\s+href=\{everywhereHref\}/);
-  assert.match(screenSource, /<AccountSignOutActions everywhereHref=\{ACCOUNT_SCREEN_SIGN_OUT_EVERYWHERE_HREF\} signedInAs=\{username\.trim\(\) \|\| email\.trim\(\) \|\| undefined\} \/>/);
+});
+
+test("Sign out and Sign out everywhere live on Settings only, not again on the Account screen", () => {
+  assert.doesNotMatch(screenSource, /<AccountSignOutActions|<SignOutButton|import .*SignOut/);
+  assert.match(settingsSource, /<AccountSignOutActions everywhereHref=\{SETTINGS_SIGN_OUT_EVERYWHERE_HREF\} signedInAs=\{signedInAs\} \/>/);
 });

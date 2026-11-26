@@ -5,6 +5,7 @@ import {
   isMissingSessionCopilotFeedbackEffortColumnError,
   getSchemaMismatchMessage,
   isMissingProgressionPlaybookColumnError,
+  isMissingSessionExerciseProgressionColumnError,
   isMissingRoutineDefaultProgressionColumnError,
 } from "@/lib/progression-schema-compat";
 
@@ -74,4 +75,24 @@ test("session copilot feedback effort column mismatch is detected without report
   assert.equal(isMissingSessionCopilotFeedbackEffortColumnError(error), true);
   assert.equal(isMissingProgressionPlaybookColumnError(error), false);
   assert.equal(isMissingRoutineDefaultProgressionColumnError(error), false);
+});
+
+test("session_exercises progression columns are matched on their own table only (F-001)", () => {
+  const sessionConfig = {
+    message: "Could not find the 'progression_playbook_config' column of 'session_exercises' in the schema cache",
+  };
+  const sessionId = { message: "column session_exercises.progression_playbook_id does not exist" };
+  assert.equal(isMissingSessionExerciseProgressionColumnError(sessionConfig), true);
+  assert.equal(isMissingSessionExerciseProgressionColumnError(sessionId), true);
+  assert.equal(isMissingProgressionPlaybookColumnError(sessionConfig), false, "the routine-day matcher stays routine-day only");
+
+  const routineDay = { message: "Could not find the 'progression_playbook_config' column of 'routine_day_exercises' in the schema cache" };
+  assert.equal(isMissingSessionExerciseProgressionColumnError(routineDay), false);
+  assert.equal(
+    isMissingSessionExerciseProgressionColumnError({ message: "Could not find the 'copilot_feedback_effort' column of 'session_exercises' in the schema cache" }),
+    false,
+  );
+  assert.equal(isMissingSessionExerciseProgressionColumnError({ message: "permission denied for table session_exercises" }), false);
+  assert.equal(isMissingSessionExerciseProgressionColumnError(null), false);
+  assert.equal(isMissingSessionExerciseProgressionColumnError(undefined), false);
 });

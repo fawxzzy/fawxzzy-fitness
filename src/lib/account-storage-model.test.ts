@@ -48,18 +48,18 @@ test("account storage snapshot uses history metrics for history scope", () => {
   });
 
   assert.deepEqual(snapshot.metrics, [
-    { label: "History Sessions", value: "31" },
-    { label: "Stored Sessions", value: "35" },
-    { label: "Completed Sessions", value: "33" },
-    { label: "Hidden QA", value: "2" },
-    { label: "In Progress", value: "2" },
-    { label: "History Exercises", value: "108" },
-    { label: "Stored Exercise Rows", value: "122" },
-    { label: "History Sets", value: "455" },
-    { label: "Stored Sets", value: "488" },
-    { label: "Stored Progression Events", value: "16" },
-    { label: "Applied Promotions", value: "9" },
-    { label: "Progressed Exercises", value: "7" },
+    { label: "Workouts in History", value: "31" },
+    { label: "All saved workouts", value: "35" },
+    { label: "Finished workouts", value: "33" },
+    { label: "Hidden test data", value: "2" },
+    { label: "In progress", value: "2" },
+    { label: "Exercises in History", value: "108" },
+    { label: "All saved exercises", value: "122" },
+    { label: "Sets in History", value: "455" },
+    { label: "All saved sets", value: "488" },
+    { label: "Progression changes", value: "16" },
+    { label: "Promotions", value: "9" },
+    { label: "Exercises progressed", value: "7" },
   ]);
   assert.deepEqual(snapshot.sections.map((section) => section.title), ["History"]);
   assert.equal(snapshot.historyRangeLabel, "All time");
@@ -76,8 +76,8 @@ test("account storage snapshot switches to routine metrics for routine scope", (
 
   assert.deepEqual(snapshot.metrics, [
     { label: "Routines", value: "4" },
-    { label: "Routine Days", value: "18" },
-    { label: "Routine Exercises", value: "71" },
+    { label: "Routine days", value: "18" },
+    { label: "Routine exercises", value: "71" },
   ]);
   assert.deepEqual(snapshot.sections.map((section) => section.title), ["Routines"]);
   assert.equal(snapshot.historyRangeLabel, "All time");
@@ -93,21 +93,21 @@ test("account storage snapshot combines history and routine metrics for all scop
   });
 
   assert.deepEqual(snapshot.metrics, [
-    { label: "History Sessions", value: "31" },
-    { label: "Stored Sessions", value: "35" },
-    { label: "Completed Sessions", value: "33" },
-    { label: "Hidden QA", value: "2" },
-    { label: "In Progress", value: "2" },
-    { label: "History Exercises", value: "108" },
-    { label: "Stored Exercise Rows", value: "122" },
-    { label: "History Sets", value: "455" },
-    { label: "Stored Sets", value: "488" },
-    { label: "Stored Progression Events", value: "16" },
-    { label: "Applied Promotions", value: "9" },
-    { label: "Progressed Exercises", value: "7" },
+    { label: "Workouts in History", value: "31" },
+    { label: "All saved workouts", value: "35" },
+    { label: "Finished workouts", value: "33" },
+    { label: "Hidden test data", value: "2" },
+    { label: "In progress", value: "2" },
+    { label: "Exercises in History", value: "108" },
+    { label: "All saved exercises", value: "122" },
+    { label: "Sets in History", value: "455" },
+    { label: "All saved sets", value: "488" },
+    { label: "Progression changes", value: "16" },
+    { label: "Promotions", value: "9" },
+    { label: "Exercises progressed", value: "7" },
     { label: "Routines", value: "4" },
-    { label: "Routine Days", value: "18" },
-    { label: "Routine Exercises", value: "71" },
+    { label: "Routine days", value: "18" },
+    { label: "Routine exercises", value: "71" },
   ]);
   assert.deepEqual(snapshot.sections.map((section) => section.title), ["History", "Routines"]);
   assert.equal(snapshot.historyRangeLabel, "All time");

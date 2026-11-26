@@ -1,5 +1,6 @@
 "use client";
 
+import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -195,7 +196,7 @@ export function RoutinesPageClient({
         title="Delete routine?"
         objectName={routinePendingDelete?.name}
         consequenceText={routinePendingDelete ? describeRoutineDeleteConsequence(routinePendingDelete, routines.filter((item) => item.id !== routinePendingDelete.id).length) : undefined}
-        confirmLabel="Delete"
+        confirmLabel={CONFIRM_ACTION_LABELS.deleteRoutine}
         titleVariant="raw"
         isLoading={isPending}
         onCancel={() => {

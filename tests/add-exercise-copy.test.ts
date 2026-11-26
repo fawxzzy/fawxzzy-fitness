@@ -33,12 +33,20 @@ test("the Add exercise flow never shows the word target (any case) to the player
   }
 });
 
-test("the guide explains warm-up, till failure, the exercise timer and the workout clock in plain words", () => {
+test("the guide explains warm-up, failure and the exercise timer in plain words, in the control's own labels", () => {
   assert.equal(ADD_EXERCISE_GUIDE_ROWS.warmup.term, "Warm-up");
-  assert.equal(ADD_EXERCISE_GUIDE_ROWS.failure.term, "Till Failure");
+  assert.equal(ADD_EXERCISE_GUIDE_ROWS.failure.term, "Failure", "the toggle reads Failure / Reps");
+  assert.match(ADD_EXERCISE_GUIDE_ROWS.failure.body, /Switch back to Reps to set a rep range/u);
   assert.equal(ADD_EXERCISE_GUIDE_ROWS.timer.term, "Exercise Timer");
   assert.match(ADD_EXERCISE_GUIDE_ROWS.timer.body, /not a rest timer/u);
-  assert.match(ADD_EXERCISE_GUIDE_ROWS.clock.body, /whole session/u);
+});
+
+test("the guide only describes what exists: no workout clock until one ships", () => {
+  const rows = Object.values(ADD_EXERCISE_GUIDE_ROWS);
+  assert.equal(rows.length, 3);
+  for (const row of rows) {
+    assert.doesNotMatch(`${row.term} ${row.body}`, /clock|Till Failure|Reps-Based/u);
+  }
 });
 
 test("the old unused SessionAddExerciseForm stays deleted", () => {

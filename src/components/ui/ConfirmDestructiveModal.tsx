@@ -7,19 +7,25 @@ import { Sheet } from "@/components/ui/Sheet";
 // The confirm dialog (docs/ui/FOUNDATION.md "Confirm"). It renders on the shared Sheet: token scrim that dims and
 // blurs the screen, title, the object being acted on (`objectName`), the consequence, then [Cancel | Confirm] in the
 // pinned footer. Focus starts on Cancel (else Confirm); Escape and a tap on the scrim cancel.
+// The title is shown exactly as passed and the confirm button reads `confirmLabel` (or `confirmActionLabel` when a
+// caller needs a longer verb phrase), so every dialog names the real action: "Delete routine?" / [Delete].
 // The name is historic: it confirms non-destructive actions too (`confirmVariant="primary"`).
 
-function resolveConfirmTitle(title: string, confirmLabel: string) {
-  const trimmedLabel = confirmLabel.trim();
-  const normalizedLabel = trimmedLabel.toLowerCase();
+const DEFAULT_CONFIRM_LABEL = "Confirm";
 
-  if (!trimmedLabel || normalizedLabel === "confirm") return title;
-  return `Confirm ${normalizedLabel}`;
+/** The dialog title as passed; only a blank title falls back to "Confirm <label>". */
+export function resolveConfirmTitle(title: string, confirmLabel: string) {
+  const trimmedTitle = title.trim();
+  if (trimmedTitle) return trimmedTitle;
+  const trimmedLabel = confirmLabel.trim();
+  return trimmedLabel && trimmedLabel.toLowerCase() !== DEFAULT_CONFIRM_LABEL.toLowerCase()
+    ? `${DEFAULT_CONFIRM_LABEL} ${trimmedLabel.toLowerCase()}`
+    : DEFAULT_CONFIRM_LABEL;
 }
 
-function resolveConfirmActionLabel(confirmLabel: string) {
-  void confirmLabel;
-  return "Confirm";
+/** The confirm button text: the caller's `confirmLabel`, never a hard-coded "Confirm" over a real verb. */
+export function resolveConfirmActionLabel(confirmLabel: string) {
+  return confirmLabel.trim() || DEFAULT_CONFIRM_LABEL;
 }
 
 const INITIAL_FOCUS_SELECTOR =
@@ -44,6 +50,7 @@ export type ConfirmDestructiveModalProps = {
   isLoading?: boolean;
   confirmDisabled?: boolean;
   confirmVariant?: "primary" | "destructive";
+  /** Accepted for existing callers and ignored: the title is always shown as passed. */
   titleVariant?: "confirm" | "raw";
   hideBottomActions?: boolean;
   hideCancelAction?: boolean;
@@ -75,7 +82,7 @@ export function ConfirmDestructiveModal({
   isLoading = false,
   confirmDisabled = false,
   confirmVariant = "destructive",
-  titleVariant = "confirm",
+  titleVariant: _titleVariant = "confirm",
   hideBottomActions = false,
   hideCancelAction = false,
   showDetailsInDeleteLayout: _showDetailsInDeleteLayout = false,
@@ -83,7 +90,8 @@ export function ConfirmDestructiveModal({
   onConfirm,
 }: ConfirmDestructiveModalProps) {
   void _showDetailsInDeleteLayout;
-  const resolvedTitle = titleVariant === "raw" ? title : resolveConfirmTitle(title, confirmLabel);
+  void _titleVariant;
+  const resolvedTitle = resolveConfirmTitle(title, confirmLabel);
   const confirmActionLabel = confirmActionLabelOverride ?? resolveConfirmActionLabel(confirmLabel);
   const trimmedObjectName = objectName?.trim() ?? "";
   const supportingLines = [

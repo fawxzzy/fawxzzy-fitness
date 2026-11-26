@@ -42,48 +42,52 @@ export function destinationToHref(destination: PostLoginDestination) {
   return `/curated-onboarding?draft=${encodeURIComponent(destination.draftId)}`;
 }
 
+/**
+ * The words for each stage of the sign-in handoff. Only `detail` is shown today (as the loading label); the rest is
+ * kept in the same plain words so any screen that uses it later says something a person understands.
+ */
 export function getInitialExperienceStageCopy(stage: InitialExperienceGateStage) {
   if (stage === "checking-session") {
     return {
-      eyebrow: "Warm-Up Handoff",
+      eyebrow: "Fitness",
       title: "Checking your session",
-      subtitle: "Preparing your training space before the app decides the safest next stop.",
-      detail: "Checking where to drop you in.",
+      subtitle: "Making sure you are signed in.",
+      detail: "Checking your session.",
     };
   }
 
   if (stage === "preparing-experience") {
     return {
-      eyebrow: "Warm-Up Handoff",
-      title: "Preparing your training space",
-      subtitle: "Looking at saved setup and whether this session should continue through first-time setup.",
-      detail: "Lining up the right post-login experience.",
+      eyebrow: "Fitness",
+      title: "Getting Fitness ready",
+      subtitle: "Looking at your saved setup.",
+      detail: "Getting your workouts ready.",
     };
   }
 
   if (stage === "redirecting") {
     return {
-      eyebrow: "Warm-Up Handoff",
-      title: "Redirecting cleanly",
-      subtitle: "The destination is locked. Handing off without leaving extra history noise behind.",
-      detail: "Taking you straight to the next screen.",
+      eyebrow: "Fitness",
+      title: "Opening Fitness",
+      subtitle: "Taking you to the next screen.",
+      detail: "Opening Fitness.",
     };
   }
 
   if (stage === "recovery") {
     return {
-      eyebrow: "Warm-Up Handoff",
-      title: "The launch handoff stalled",
-      subtitle: "The app can recover safely without requiring a browser refresh first.",
-      detail: "Offering direct recovery actions.",
+      eyebrow: "Fitness",
+      title: "This is taking longer than usual",
+      subtitle: "You can try again without refreshing the page.",
+      detail: "Fitness is taking longer than usual to open.",
     };
   }
 
   return {
-    eyebrow: "Warm-Up Handoff",
-    title: "We could not finish the handoff",
-    subtitle: "The fallback is safe: open the app directly or retry the post-auth check.",
-    detail: "The redirect did not commit cleanly.",
+    eyebrow: "Fitness",
+    title: "Could not open Fitness",
+    subtitle: "Try again, or go straight to Today.",
+    detail: "Fitness could not open.",
   };
 }
 

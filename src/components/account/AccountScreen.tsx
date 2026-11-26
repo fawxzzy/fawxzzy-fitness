@@ -1,26 +1,25 @@
 import { AccountPortalReturnRefresh } from "@/components/account/AccountPortalReturnRefresh";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { AccountSignOutActions } from "@/components/settings/SettingsSectionsClient";
 import { CardHeader, CardMeta, CardSurface, cardTokens } from "@/components/ui/card-system";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ACCOUNT_PORTAL_LINK_ATTRIBUTE, getFitnessAccountPortalUrl, getFitnessSignOutEverywhereUrl } from "@/lib/account-portal";
+import { ACCOUNT_PORTAL_LINK_ATTRIBUTE, getFitnessAccountPortalUrl } from "@/lib/account-portal";
 
 /**
  * Every Account row opens the portal Account page (username, email and Reset password live there). The return target is
  * Settings, the same one the Settings Account row already uses (and the screen that shows who is signed in).
  */
 export const ACCOUNT_SCREEN_PORTAL_HREF = getFitnessAccountPortalUrl("/account", "/settings");
-export const ACCOUNT_SCREEN_SIGN_OUT_EVERYWHERE_HREF = getFitnessSignOutEverywhereUrl("/settings");
 const PORTAL_SUMMARY = "Opens account.fawxzzy.com";
 
 /**
  * Account is a read-only detail screen (DESIGN-CONTRACT.md section 15): username, email and password are changed on
  * account.fawxzzy.com, so each row shows the current value and links there. Kept for direct visits to /account (old
  * links, bookmarks); Settings links straight to the portal. Back on the left, title "Account"; no tab bar.
+ * Sign out and Sign out everywhere are on Settings only (one place, not two): this screen is the way back to it.
  */
 export function AccountScreen({
   email,
@@ -69,7 +68,6 @@ export function AccountScreen({
                 </li>
               ))}
             </ul>
-            <AccountSignOutActions everywhereHref={ACCOUNT_SCREEN_SIGN_OUT_EVERYWHERE_HREF} signedInAs={username.trim() || email.trim() || undefined} />
           </div>
         </ContentRail>
       </ScrollScreenWithBottomActions>

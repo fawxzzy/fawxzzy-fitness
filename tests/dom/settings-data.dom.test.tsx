@@ -162,3 +162,15 @@ test("Data: Export is a button inside the Export card, not in the dock", async (
   assert.ok(exportCard, "the Export card surface exists");
   assert.ok(within(exportCard).getByRole("button", { name: "Export" }));
 });
+
+test("Data: the saved-data card speaks in plain words (no stored/snapshot/rows jargon)", async () => {
+  stubPreview();
+  const { container } = renderData();
+  await screen.findByText("Your saved data");
+  await screen.findByText("Workouts in History");
+  const card = container.querySelector("[data-card-surface]") as HTMLElement;
+  const text = (card.textContent ?? "") + (container.textContent ?? "");
+  assert.doesNotMatch(text, /Stored (Sessions|Exercise Rows|Sets|Progression)|Total stored|snapshot|Scope-aware|Applied Promotions/i);
+  assert.ok(screen.getByText("All saved workouts"));
+  assert.ok(screen.getByText(/saved records in all\./));
+});

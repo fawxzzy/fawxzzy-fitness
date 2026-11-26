@@ -1,5 +1,6 @@
 "use client";
 
+import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 import { useEffect, useRef, useState } from "react";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AuthNoticeSlot } from "@/components/auth/AuthShell";
@@ -110,8 +111,8 @@ export function SignOutButton({
         </AppButton>
         <ConfirmDestructiveModal
           open={confirmOpen}
-          title="Sign out"
-          confirmLabel="Sign out"
+          title="Sign out?"
+          confirmLabel={CONFIRM_ACTION_LABELS.signOut}
           confirmVariant="primary"
           objectName={signedInAs}
           consequenceText="This signs out this device only. Your other devices stay signed in."

@@ -42,7 +42,7 @@ export function getSettingsSectionMeta(section: SettingsSectionId): SettingsSect
     case "pro":
       return { title: "Pro Access", summary: "Your plan and billing" };
     case "data":
-      return { title: "Data", summary: "Stored snapshot and export" };
+      return { title: "Data", summary: "Your saved data and export" };
     case "discord":
       return { title: "Discord Connector", summary: "Join the community and get a verification key" };
     default:
