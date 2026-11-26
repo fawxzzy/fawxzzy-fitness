@@ -12,12 +12,13 @@ import {
   updateLogExerciseSetAction,
   updateLogMetaAction,
 } from "@/app/actions/history";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
+import { HistorySessionDeleteMenu } from "@/components/history/HistorySessionDeleteMenu";
+import { buildHistorySessionDetailTitle, formatHistoryDayTitle, formatSetCountAgainstPlan } from "@/components/history/history-session-copy";
 import { RepeatWorkoutCard } from "@/components/history/RepeatWorkoutCard";
 import type { RepeatWorkoutAvailability } from "@/lib/repeat-workout";
 import { computeSessionCompletion, resolvePlannedSetCount } from "@/lib/session-analytics";
@@ -454,18 +455,6 @@ function resolveExerciseTargetSetCount(exercise: AuditExercise, loggedSetCount: 
   return loggedSetCount;
 }
 
-function buildLoggedSetCountBadge(loggedSetCount: number, targetSetCount: number) {
-  if (targetSetCount > 0 && targetSetCount !== loggedSetCount) {
-    return `${loggedSetCount} of ${targetSetCount}`;
-  }
-
-  return String(loggedSetCount);
-}
-
-/** The set count badge is `2 of 4` or `3`; as card meta it reads `2 of 4 sets` / `1 set`. */
-function formatLoggedSetCountMeta(countLabel: string) {
-  return countLabel.includes(" of ") || countLabel !== "1" ? `${countLabel} sets` : `${countLabel} set`;
-}
 
 function buildSignalTagItems(args: {
   hasPrInSession?: boolean;
@@ -505,8 +494,6 @@ function buildFocusedExerciseDetailedMetrics(args: {
   hasPrInSession: boolean;
 }): MetricDatum[] | null {
   const meaningfulSetCount = countMeaningfulSetData(args.sets);
-  const bestSet = findBestEditableSet(args.sets);
-  const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, args.defaultUnit) : null;
   const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
   const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
   const totalDistance = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.distance), 0);
@@ -540,12 +527,8 @@ function buildFocusedExerciseDetailedMetrics(args: {
     },
   ];
 
-  if (bestDisplay && bestDisplay !== "No measurements") {
-    summaryMetrics.push({
-      label: "Best",
-      value: bestDisplay,
-    });
-  }
+  // Best is shown once (DESIGN #7): the exercise card above already shows the top set, so the overview does not
+  // repeat it as a "Best" stat.
 
   const detailMetrics: MetricDatum[] = [];
 
@@ -620,7 +603,6 @@ function buildFocusedExerciseDetailedMetrics(args: {
 
   if (args.exercise.measurement_type === "reps") {
     const orderedSummaryMetrics = [
-      summaryMetrics.find((metric) => metric.label === "Best"),
       summaryMetrics.find((metric) => metric.label === "Goal"),
       summaryMetrics.find((metric) => metric.label === "Sets"),
       summaryMetrics.find((metric) => metric.label === "Completion" || metric.label === "PR"),
@@ -707,10 +689,10 @@ function buildFocusedExerciseSetListMeta(args: {
   }
 
   if (args.isEditing) {
-    return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets · Tap a set to edit`;
+    return `${formatSetCountAgainstPlan(args.setCount, args.targetSetCount)} · Tap a set to edit`;
   }
 
-  return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets logged`;
+  return formatSetCountAgainstPlan(args.setCount, args.targetSetCount, "logged");
 }
 
 function buildCollapsedExerciseCardBadgeItems(args: {
@@ -1164,8 +1146,8 @@ export function LogAuditClient({
   }, []);
 
   const deleteCopy = buildHistorySessionDeleteCopy({
-    dayTitle: sessionSummary.dayTitle,
-    dayName: initialDayName,
+    dayTitle: formatHistoryDayTitle(sessionSummary.dayTitle),
+    dayName: formatHistoryDayTitle(initialDayName),
     dateLabel: formatDateShort(sessionSummary.startedAt),
     exerciseCount: exercises.length,
   });
@@ -1182,38 +1164,19 @@ export function LogAuditClient({
       );
     }
 
+    // Delete lives in the header kebab (DESIGN #7), so the dock holds only Edit.
     return (
-      <BottomActionSplit
-        secondary={(
-          <ConfirmedServerFormButton
-            action={deleteCompletedSessionAction}
-            onBeforeSubmit={() => markProgressionAppliedPinsSourceDeletedInStorage(logId)}
-            hiddenFields={{ sessionId: logId }}
-            size="md"
-            triggerLabel="Delete"
-            triggerAriaLabel={`Delete ${deleteSessionName}`}
-            triggerIntent="danger"
-            // Named confirm (History review item 3): the title is the session and the line says what goes with it.
-            modalTitle={`Delete ${deleteSessionName}?`}
-            modalTitleVariant="raw"
-            showDetailsInDeleteLayout
-            modalConsequenceText={deleteSessionConsequence}
-            confirmLabel="Delete"
-            failureMessage="Could not delete this session. Try again."
-          />
-        )}
-        primary={(
-          <BottomDockButton
-            type="button"
-            intent="positive"
-            onClick={handleStartEditing}
-          >
-            Edit
-          </BottomDockButton>
-        )}
-      />
+      <BottomActionSingle>
+        <BottomDockButton
+          type="button"
+          intent="positive"
+          onClick={handleStartEditing}
+        >
+          Edit
+        </BottomDockButton>
+      </BottomActionSingle>
     );
-  }, [deleteSessionConsequence, deleteSessionName, handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId]);
+  }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending]);
 
   usePublishBottomActions(actionsNode);
 
@@ -1302,12 +1265,16 @@ export function LogAuditClient({
     });
   };
 
-  // Detail header (DESIGN-CONTRACT.md section 15): the day name as the title, "Fri, Nov 6 · Routine" as the one
-  // subtitle line, Back on the left. With one exercise open, Back first returns to the whole session.
-  const sessionHeaderSubtitle = [
-    [formatWeekdayShort(sessionSummary.startedAt), formatDateShort(sessionSummary.startedAt)].filter(Boolean).join(", "),
-    sessionSummary.routineTitle?.trim() || null,
-  ].filter(Boolean).join(" · ");
+  // Detail header (DESIGN-CONTRACT.md section 15, DESIGN #7): "Push A · Routine" as the title (the list card leads
+  // with the routine, so the detail names both), the date as the one subtitle line, Back on the left and the session
+  // kebab (Delete) on the right. With one exercise open, Back first returns to the whole session.
+  const sessionHeaderTitle = buildHistorySessionDetailTitle({
+    dayTitle: sessionSummary.dayTitle,
+    routineTitle: sessionSummary.routineTitle,
+  });
+  const sessionHeaderSubtitle = [formatWeekdayShort(sessionSummary.startedAt), formatDateShort(sessionSummary.startedAt)]
+    .filter(Boolean)
+    .join(", ");
   const prExerciseNames = expandedExercise ? (focusedSessionSummary.prExerciseNames ?? []) : (sessionSummary.prExerciseNames ?? []);
   const renderExerciseNoteInput = (exerciseId: string) => (
     <FormField label="Exercise notes">
@@ -1336,8 +1303,20 @@ export function LogAuditClient({
         ? createPortal(
           <ScreenHeader
             kind="detail"
-            title={sessionSummary.dayTitle?.trim() || "Workout"}
+            title={sessionHeaderTitle}
             subtitle={sessionHeaderSubtitle}
+            trailing={isEditing ? undefined : (
+              <HistorySessionDeleteMenu
+                sessionId={logId}
+                action={deleteCompletedSessionAction}
+                onBeforeSubmit={() => markProgressionAppliedPinsSourceDeletedInStorage(logId)}
+                sessionName={deleteSessionName}
+                // Named confirm (History review item 3): the title is the session and the line says what goes with it.
+                title={deleteCopy.title}
+                consequence={deleteSessionConsequence}
+                failureMessage="Could not delete this session. Try again."
+              />
+            )}
             back={(
               <ScreenHeaderBackButton
                 href={backHref}
@@ -1409,7 +1388,7 @@ export function LogAuditClient({
         {!isEditing && !expandedExercise && repeatWorkout ? (
           <RepeatWorkoutCard
             sessionId={logId}
-            dayLabel={sessionSummary.dayTitle?.trim() || initialDayName}
+            dayLabel={formatHistoryDayTitle(sessionSummary.dayTitle) ?? formatHistoryDayTitle(initialDayName) ?? initialDayName}
             available={repeatWorkout.available}
             unavailableReason={repeatWorkout.available ? undefined : repeatWorkout.reason}
           />
@@ -1427,7 +1406,7 @@ export function LogAuditClient({
             <CardEmptyState
               headingLevel={3}
               title="No exercises in this session"
-              body="It was saved without any exercises, so there are no sets to show. Delete it from the bar below if you do not need it."
+              body="It was saved without any exercises, so there are no sets to show. If you do not need it, open the menu at the top right and choose Delete session."
             />
           ) : null}
 
@@ -1451,7 +1430,7 @@ export function LogAuditClient({
             const expandedSet = setsForExercise.find((set) => set.id === expandedSetId) ?? null;
             const hasPrInSession = (sessionSummary.prExerciseNames ?? []).includes(name);
             const targetSetCount = resolveExerciseTargetSetCount(exercise, setsForExercise.length);
-            const countBadgeLabel = buildLoggedSetCountBadge(setsForExercise.length, targetSetCount);
+            const countBadgeLabel = formatSetCountAgainstPlan(setsForExercise.length, targetSetCount);
             const canExpandExercise = hasExpandableExerciseContent({
               sets: setsForExercise,
               notesValue: displayNotesValue,
@@ -1492,7 +1471,7 @@ export function LogAuditClient({
                     summary={isSkipped ? "" : bestSummary}
                     summaryLabel="Top set"
                     metaItems={[
-                      isSkipped ? "Skipped" : setsForExercise.length === 0 ? "No sets logged" : formatLoggedSetCountMeta(collapsedCardBadgeItems.countLabel),
+                      isSkipped ? "Skipped" : setsForExercise.length === 0 ? "No sets logged" : collapsedCardBadgeItems.countLabel,
                       ...(timerSignalItem ? [timerSignalItem] : []),
                       ...(recoveryInsight ? [recoveryInsight.label] : []),
                     ]}

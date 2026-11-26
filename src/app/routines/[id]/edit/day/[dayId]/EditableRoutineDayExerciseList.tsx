@@ -1567,7 +1567,7 @@ export function EditableRoutineDayExerciseList({
         description={workoutPlanDecisionStep === "choice"
           ? "This day is shared. Update it so linked days stay in sync, or keep your changes as a new day."
           : undefined}
-        confirmLabel="Confirm"
+        confirmLabel={workoutPlanDecisionStep === "choice" ? "Save changes" : "Save new day"}
         confirmVariant="primary"
         hideBottomActions
         isLoading={isWorkoutPlanDecisionPending}

@@ -133,6 +133,7 @@ export function RoutineEditorTitleInput({
   label = "Name",
   invalid = false,
   error,
+  autoFocus = false,
 }: {
   name: string;
   value: string;
@@ -143,6 +144,8 @@ export function RoutineEditorTitleInput({
   label?: string;
   invalid?: boolean;
   error?: string | null;
+  /** Rename entry (`?focus=name`): focus and select the name so the user can type straight away. */
+  autoFocus?: boolean;
 }) {
   return (
     <FormField label={label} invalid={invalid} error={error} className={className}>
@@ -155,6 +158,8 @@ export function RoutineEditorTitleInput({
           placeholder={placeholder}
           maxLength={maxLength}
           autoComplete="off"
+          autoFocus={autoFocus}
+          onFocus={autoFocus ? (event) => event.currentTarget.select() : undefined}
           className={cn(formFieldControlClassName, "font-semibold")}
         />
       )}

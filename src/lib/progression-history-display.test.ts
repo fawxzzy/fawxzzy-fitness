@@ -126,6 +126,7 @@ test("summary cards consume analytics helpers and resolve the top progressed exe
     "Most active vector",
     "Most active method",
     "This month",
+    "Promotions this month",
   ]);
   assert.equal(model.dashboardCards[2]?.value, "Back Squat");
   assert.equal(model.dashboardCards[3]?.value, "Exercise");
@@ -300,4 +301,20 @@ test("vector chart handles unknown and empty vectors safely", () => {
     "Load + reps:1",
     "Mystery Vector:1",
   ]);
+});
+
+test("Promotions this month counts only promotions applied in the current UTC month", () => {
+  const now = new Date();
+  const thisMonth = `${now.toISOString().slice(0, 7)}-01T12:00:00.000Z`;
+  const model = buildProgressionHistoryDisplayModel({
+    events: [
+      buildEvent({ id: "a", created_at: thisMonth }),
+      buildEvent({ id: "b", created_at: thisMonth, event_type: "deload_applied" }),
+      buildEvent({ id: "c", created_at: "2001-01-15T12:00:00.000Z" }),
+    ],
+  });
+  const card = model.dashboardCards.find((entry) => entry.id === "promotions-this-month");
+  assert.equal(card?.label, "Promotions this month");
+  assert.equal(card?.value, "1");
+  assert.equal(card?.tone, "success");
 });

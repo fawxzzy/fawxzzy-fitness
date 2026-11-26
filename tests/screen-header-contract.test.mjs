@@ -149,7 +149,7 @@ test("the raw <h1> check catches a hand-made centred title (mutation guard)", ()
 
 test("detail screens render the standard detail header with Back on the left", () => {
   const cases = [
-    ["src/app/history/[sessionId]/LogAuditClient.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{sessionSummary\.dayTitle\?\.trim\(\) \|\| "Workout"\}/],
+    ["src/app/history/[sessionId]/LogAuditClient.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{sessionHeaderTitle\}/],
     ["src/app/history/[sessionId]/page.tsx", /<ScreenHeader kind="detail" title="Workout" back=\{<ScreenHeaderBackButton href="\/history" historyBehavior="history-first" label="Back to History" \/>\} \/>/],
     ["src/components/ExerciseInfoSheet.tsx", /<ScreenHeader\s+kind="detail"\s+title=\{exercise\?\.name \?\? "Exercise"\}/],
     ["src/components/account/AccountScreen.tsx", /<ScreenHeader\s+kind="detail"\s+title="Account"/],

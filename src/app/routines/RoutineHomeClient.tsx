@@ -27,8 +27,11 @@ import { Sheet } from "@/components/ui/Sheet";
 import {
   CardActionFrame,
   CardEmptyState,
+  CardHeader,
   CardLiveRegion,
+  CardMeta,
   CardReorderHint,
+  CardSurface,
   DragHandle,
   cardTokens,
   formatReorderAnnouncement,
@@ -37,6 +40,7 @@ import {
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
+import { getWeekBasedExtraDayNotice } from "@/app/routines/routine-day-cycle";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -286,7 +290,11 @@ export function RoutineHomeClient({
         router.refresh();
       } catch (error) {
         setAddDaySubmissionMode(null);
-        toast.error(error instanceof Error ? error.message : "Could not complete the day action.");
+        // A thrown server action is a network/server failure, never authored copy: show plain words.
+        void error;
+        toast.error(creationMode === "blank"
+          ? "Could not add the day. Check your connection and try again."
+          : "Could not duplicate the day. Check your connection and try again.");
       }
     });
   }, [availableWorkoutPlanSources, createRoutineDayAction, routineId, router, selectedSourceDayId, toast]);
@@ -540,6 +548,9 @@ export function RoutineHomeClient({
 
   usePublishBottomActions(actionsNode);
 
+  // F-007: a week-based routine that already fills its week says what one more day does before it is added.
+  const weekBasedExtraDayNotice = getWeekBasedExtraDayNotice({ scheduleMode, dayCount: orderedDays.length });
+
   const todaySlotIndexes = useMemo(
     () => new Set(days.filter((day) => day.isToday).map((day) => day.dayIndex)),
     [days],
@@ -688,7 +699,7 @@ export function RoutineHomeClient({
                               }}
                               className={getCardActionButtonClassName({ intent: "primary" })}
                             >
-                              <span className="bottom-action__label">{hasWorkoutPlanContent ? "Edit" : "Create"}</span>
+                              <span className="bottom-action__label">{hasWorkoutPlanContent ? "Edit" : "Add exercises"}</span>
                             </button>
                           ) : null}
                         </CardActionFrame>
@@ -745,6 +756,15 @@ export function RoutineHomeClient({
         }}
       >
         <div className="space-y-2 pt-3">
+          {weekBasedExtraDayNotice ? (
+            <CardSurface tone="attention" data-add-day-cycle-notice="true">
+              <CardHeader
+                headingLevel={3}
+                title={weekBasedExtraDayNotice.title}
+                meta={<CardMeta items={[weekBasedExtraDayNotice.body]} />}
+              />
+            </CardSurface>
+          ) : null}
           <RoutineChooserOptionCard
             title="Blank day"
             disabled={isBusy}
@@ -808,7 +828,7 @@ export function RoutineHomeClient({
                     disabled={!selectedSourceDayId || isBusy}
                     onClick={() => handleCreateDay("duplicate")}
                   >
-                    {addDaySubmissionMode === "duplicate" && isCreateDayPending ? "Confirming..." : "Confirm"}
+                    {addDaySubmissionMode === "duplicate" && isCreateDayPending ? "Duplicating..." : "Duplicate Day"}
                   </BottomDockButton>
                 </>
               )}

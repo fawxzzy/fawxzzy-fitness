@@ -405,6 +405,10 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
     timeZone: "UTC",
   });
   const currentMonthCount = monthlyBuckets.find((bucket) => bucket.bucket === currentMonthKey)?.count ?? 0;
+  // Promotions applied in the current (UTC) month: the lead number on the History progression tab (DESIGN #7).
+  const promotionsThisMonthCount = args.events.filter((event) => (
+    event.event_type === "promotion_applied" && String(event.created_at ?? "").slice(0, 7) === currentMonthKey
+  )).length;
 
   return [
     {
@@ -471,6 +475,14 @@ export function buildProgressionHistoryDashboardCards(args: ProgressionHistoryDi
       detail: countLabel(currentMonthCount, "event"),
       caption: currentMonthKey,
       tone: currentMonthCount > 0 ? "default" : "muted",
+    },
+    {
+      id: "promotions-this-month",
+      label: "Promotions this month",
+      value: String(promotionsThisMonthCount),
+      detail: promotionsThisMonthCount > 0 ? countLabel(promotionsThisMonthCount, "promotion") : "None yet this month",
+      caption: null,
+      tone: promotionsThisMonthCount > 0 ? "success" : "muted",
     },
   ];
 }

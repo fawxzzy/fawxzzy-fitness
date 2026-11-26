@@ -13,6 +13,7 @@ import { RoutineDuplicateChooserListViewport } from "@/components/routines/Routi
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
 import { CardChips, CardHeader, CardMeta, CardStatusChip, CardSurface } from "@/components/ui/card-system";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
+import { GlowSwitch } from "@/components/ui/GlowSwitch";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ActionResult } from "@/lib/action-result";
 import { ROUTINE_COPY_NAME_MAX_LENGTH } from "@/lib/routine-copy-name";
@@ -56,10 +57,11 @@ export function CreateRoutineDayClient({
   const canCreate = isTargetMode
     ? Boolean(selectedSource?.workoutPlanTemplateId)
     : creationMode === "blank" || Boolean(selectedSource?.workoutPlanTemplateId);
+  // Real verbs on the one primary (DESIGN #8; dock labels are Title Case per DESIGN-CONTRACT C12).
   const primaryLabel = isTargetMode
-    ? "Confirm"
+    ? "Copy Day"
     : creationMode === "duplicate"
-      ? "Confirm"
+      ? "Duplicate Day"
       : "Create Day";
 
   const actionsNode = useMemo(() => (
@@ -124,8 +126,11 @@ export function CreateRoutineDayClient({
                 router.push(isTargetMode
                   ? (targetDayEditHref ?? getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)))
                   : getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)));
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Could not complete the day action.");
+              } catch {
+                // A thrown action (network, server crash) never shows its raw message.
+                toast.error(isTargetMode || creationMode === "duplicate"
+                  ? "Could not copy the day. Check your connection and try again."
+                  : "Could not create the day. Check your connection and try again.");
               }
             });
           }}
@@ -182,10 +187,11 @@ export function CreateRoutineDayClient({
           ) : null}
 
           {creationMode === "blank" ? (
+            // A real on/off switch (DESIGN #8), the same card + GlowSwitch shape as Settings switches.
             <CardSurface tone={isRest ? "attention" : "neutral"} data-create-day-rest-toggle={isRest ? "on" : "off"}>
               <CardHeader
                 headingLevel={3}
-                title="Make this a rest day"
+                title="Rest day"
                 meta={(
                   <CardMeta
                     items={[isRest
@@ -194,11 +200,13 @@ export function CreateRoutineDayClient({
                   />
                 )}
                 chips={isRest ? <CardChips><CardStatusChip status="rest" /></CardChips> : undefined}
-                interaction={{
-                  kind: "select",
-                  selected: isRest,
-                  onSelect: () => setIsRest((current) => !current)
-                }}
+                trailing={(
+                  <GlowSwitch
+                    checked={isRest}
+                    ariaLabel="Rest day"
+                    onClick={() => setIsRest((current) => !current)}
+                  />
+                )}
               />
             </CardSurface>
           ) : null}

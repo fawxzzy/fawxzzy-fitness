@@ -20,18 +20,28 @@ function build(routine: typeof inactive, overrides: Partial<Parameters<typeof bu
   return { actions, calls };
 }
 
-test("Delete is first and only asks for confirmation with the routine; Set Active hands over the routine id", () => {
-  const { actions, calls } = build(inactive);
+test("menu order is Set active, Edit, Duplicate, Rename, Delete last; Delete only asks for confirmation", () => {
+  const { actions, calls } = build(inactive, {
+    onEdit: (id) => calls.push(["edit", id]),
+    onDuplicate: (id) => calls.push(["duplicate", id]),
+    onRename: (id) => calls.push(["rename", id]),
+  });
 
-  assert.deepEqual(actions.map((action) => action.key), ["delete", "set-active"]);
-  assert.equal(actions[0].intent, "danger");
-  actions[0].onPress();
-  actions[1].onPress();
-  assert.deepEqual(calls, [["delete-requested", "routine-7"], ["set-active", "routine-7"]]);
+  assert.deepEqual(actions.map((action) => action.key), ["set-active", "edit", "duplicate", "rename", "delete"]);
+  assert.equal(actions.at(-1)?.intent, "danger");
+  for (const action of actions) action.onPress();
+  assert.deepEqual(calls, [
+    ["set-active", "routine-7"],
+    ["edit", "routine-7"],
+    ["duplicate", "routine-7"],
+    ["rename", "routine-7"],
+    ["delete-requested", "routine-7"],
+  ]);
 });
 
-test("an active routine has no Set Active action", () => {
+test("an active routine has no Set active action; unwired navigation items are left out", () => {
   assert.deepEqual(build(active).actions.map((action) => action.key), ["delete"]);
+  assert.deepEqual(build(active, { onEdit: () => undefined }).actions.map((action) => action.key), ["edit", "delete"]);
 });
 
 test("accessible names contain the visible label text (WCAG 2.5.3)", () => {
@@ -41,9 +51,9 @@ test("accessible names contain the visible label text (WCAG 2.5.3)", () => {
     assert.ok(action.ariaLabel?.startsWith(action.label as string), `${action.key}: "${action.ariaLabel}" must start with "${action.label}"`);
     assert.ok(action.ariaLabel?.includes("Atlas Hypertrophy"));
   }
-  assert.equal(actions[1].ariaLabel, "Set Active: Atlas Hypertrophy");
+  assert.equal(actions[0].ariaLabel, "Set active: Atlas Hypertrophy");
 
-  const pending = build(inactive, { isPending: true }).actions[1];
+  const pending = build(inactive, { isPending: true }).actions[0];
   assert.equal(pending.label, "Saving...");
   assert.ok(pending.ariaLabel?.startsWith("Saving"), "the visible 'Saving' text stays in the name while pending");
 });
@@ -59,6 +69,9 @@ test("RoutinesPageClient wires the builder to the server actions: confirm delete
 
   assert.match(page, /buildRoutineCardActions\(\{/);
   assert.match(page, /onRequestDelete: \(\) => setRoutinePendingDelete\(routine\)/);
+  assert.match(page, /onEdit: \(routineId\) => router\.push\(getRoutineEditHref\(routineId, "\/routines"\)\)/);
+  assert.match(page, /onRename: \(routineId\) => router\.push\(getRoutineRenameHref\(routineId\)\)/);
+  assert.match(page, /setDuplicateSourceRoutineId\(routineId\);\s*setIsCreateRoutineOpen\(true\)/);
   assert.match(page, /formData\.set\("routineId", routineId\);\s*const result = await setActiveRoutineAction\(formData\)/);
   assert.match(page, /onConfirm=\{\(\) => \{[\s\S]*?await deleteRoutineAction\(\{ routineId \}\)/);
 });

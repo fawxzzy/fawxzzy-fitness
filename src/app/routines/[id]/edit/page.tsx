@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ error?: string; returnTo?: string }>;
+  searchParams?: Promise<{ error?: string; returnTo?: string; focus?: string }>;
 };
 
 const ROUTINE_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit";
@@ -76,6 +76,7 @@ export default async function EditRoutinePage(props: PageProps) {
         defaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         error={searchParams?.error}
+        focusName={searchParams?.focus === "name"}
       />
     </RoutineDetailsScreenShell>
   );

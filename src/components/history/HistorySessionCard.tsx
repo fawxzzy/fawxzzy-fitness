@@ -8,6 +8,7 @@ import { DetailSectionBlocks, type DetailSectionListItem, type DetailSectionList
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
+import { formatHistoryDayTitle } from "./history-session-copy";
 import { buildHistorySessionCardViewModel } from "@/lib/workout-card-view-models";
 
 function formatWeekdayShort(value: string) {
@@ -22,7 +23,8 @@ function formatWeekdayShort(value: string) {
 function buildSessionTitleParts(session: SessionSummary) {
   const weekday = formatWeekdayShort(session.startedAt);
   const routineTitle = session.routineTitle?.trim() || "Unknown routine";
-  const dayTitle = session.dayTitle?.trim() || null;
+  // F-021: a bare day number ("1") reads as "Day 1" instead of an unexplained leading number.
+  const dayTitle = formatHistoryDayTitle(session.dayTitle);
   return { weekday, routineTitle, dayTitle };
 }
 

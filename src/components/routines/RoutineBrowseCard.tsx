@@ -46,7 +46,11 @@ export type RoutineBrowseCardItem = {
  * each cell carries a full-sentence description for assistive tech.
  */
 export function RoutineWeekStrip({ days }: { days: NonNullable<RoutineBrowseCardItem["previewDays"]> }) {
+  // F-020: the done/skipped glyphs get a visible key whenever one is on screen.
+  const hasDone = days.some((day) => day.isCompleted);
+  const hasSkipped = days.some((day) => !day.isCompleted && day.isSkipped);
   return (
+    <>
     <ul
       aria-label="Days in this routine"
       data-routine-week-strip="true"
@@ -83,6 +87,12 @@ export function RoutineWeekStrip({ days }: { days: NonNullable<RoutineBrowseCard
         );
       })}
     </ul>
+    {hasDone || hasSkipped ? (
+      <p aria-hidden="true" data-routine-week-legend="true" className="mt-1.5 text-[11px] font-medium text-[rgb(var(--text-secondary)/0.9)]">
+        {[hasDone ? "✓ Done" : null, hasSkipped ? "⊘ Skipped" : null].filter(Boolean).join(" · ")}
+      </p>
+    ) : null}
+    </>
   );
 }
 
@@ -90,7 +100,7 @@ export type RoutineBrowseCardProps = {
   routine: RoutineBrowseCardItem;
   /** Whole header opens the routine. Omit for a static card (offline list). */
   onPress?: (() => void) | undefined;
-  /** Actions listed in the card's kebab Menu (set active, delete). Omit to hide the menu. */
+  /** Actions listed in the card's kebab Menu (set active, edit, duplicate, rename, delete). Omit to hide the menu. */
   actions?: CardActionDefinition[];
   showPreviewDays?: boolean;
   headingLevel?: CardHeadingLevel;

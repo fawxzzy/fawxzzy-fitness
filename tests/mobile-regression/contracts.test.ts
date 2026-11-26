@@ -275,7 +275,7 @@ test("history detail compact exercise rows keep the session-native summary rhyth
   assert.match(source, /summary=\{isSkipped \? "" : bestSummary\}/);
   assert.match(source, /summaryLabel="Top set"/);
   assert.match(source, /signalCodes=\{\[\.\.\.\(isSkipped \? \["SKIPPED"\] : \[\]\), \.\.\.collapsedCardBadgeItems\.signalItems\]\}/);
-  assert.match(source, /metaItems=\{\[\s*isSkipped \? "Skipped" : setsForExercise\.length === 0 \? "No sets logged" : formatLoggedSetCountMeta\(collapsedCardBadgeItems\.countLabel\),/);
+  assert.match(source, /metaItems=\{\[\s*isSkipped \? "Skipped" : setsForExercise\.length === 0 \? "No sets logged" : collapsedCardBadgeItems\.countLabel,/);
   assert.match(source, /\.\.\.\(timerSignalItem \? \[timerSignalItem\] : \[\]\)/);
   assert.match(source, /\.\.\.\(recoveryInsight \? \[recoveryInsight\.label\] : \[\]\)/);
   assert.match(source, /buildCollapsedExerciseCardBadgeItems/);

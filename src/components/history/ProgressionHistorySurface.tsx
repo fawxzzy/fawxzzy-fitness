@@ -13,6 +13,7 @@ import {
   type StatGridItem,
 } from "@/components/ui/card-system";
 import { cn } from "@/lib/cn";
+import { toPlainProgressionChartSections, toPlainProgressionDashboard } from "@/components/history/progression-dashboard-copy";
 import type { ProgressionDashboardCard, ProgressionHistoryDisplayModel, ProgressionHistoryDisplayRow } from "@/lib/progression-history-display";
 
 /**
@@ -21,6 +22,8 @@ import type { ProgressionDashboardCard, ProgressionHistoryDisplayModel, Progress
  * Filters sit behind the shared Filters button + sheet, the summary is ONE card with a wrapping StatGrid (no tall
  * card per number), and each ledger change is one flat card: exercise, date and change chip in the header, the goal
  * change sentence, then step and reason. Internal ids are never printed; the source session is a link.
+ * DESIGN #7: the summary leads with "Promotions this month" and the top progressed lift; the vector/method rows and
+ * the vector chart are not shown (progression-dashboard-copy.ts).
  */
 
 function chipToneForRow(tone: ProgressionHistoryDisplayRow["eventTypeTone"]) {
@@ -54,6 +57,8 @@ export function ProgressionHistorySurface({
   totalEventCount,
   rows,
 }: ProgressionHistoryDisplayModel) {
+  const summaryCards = toPlainProgressionDashboard(dashboardCards);
+  const visibleChartSections = toPlainProgressionChartSections(chartSections);
   // Nothing recorded yet: one empty card, not a grid of zeros and four empty charts (History redesign 2026-11-23).
   if (totalEventCount === 0) {
     return (
@@ -76,7 +81,7 @@ export function ProgressionHistorySurface({
     <div data-progression-history="true" className="grid gap-2 pt-2">
       <ProgressionHistoryFilters filters={filters} filterOptions={filterOptions} filteredEventCount={filteredEventCount} />
 
-      {dashboardCards.length > 0 ? (
+      {summaryCards.length > 0 ? (
         <CardSurface as="section" aria-label="Progression summary">
           <CardHeader
             title="Progression"
@@ -84,12 +89,12 @@ export function ProgressionHistorySurface({
             meta={hasActiveFilters ? `${filteredEventCount} of ${totalEventCount} changes` : `${totalEventCount} ${totalEventCount === 1 ? "change" : "changes"} recorded`}
           />
           <div className={cardTokens.body}>
-            <StatGrid items={dashboardCards.map(toStatItem)} />
+            <StatGrid items={summaryCards.map(toStatItem)} />
           </div>
         </CardSurface>
       ) : null}
 
-      {rows.length > 0 ? <ProgressionHistoryCharts sections={chartSections} /> : null}
+      {rows.length > 0 ? <ProgressionHistoryCharts sections={visibleChartSections} /> : null}
 
       <section aria-labelledby="progression-ledger-heading" className="grid gap-2">
         <h2 id="progression-ledger-heading" className="px-1 pt-2 text-[11px] font-semibold uppercase leading-4 tracking-[0.12em] text-[rgb(var(--text-secondary)/0.92)]">
@@ -128,7 +133,7 @@ export function ProgressionHistorySurface({
                         ) : null}
                       </dl>
                     ) : null}
-                    <CardMeta flush items={[row.methodLabel, row.vectorLabel, `Recorded ${row.createdAtFullLabel}`]} />
+                    <CardMeta flush items={[row.methodLabel, `Recorded ${row.createdAtFullLabel}`]} />
                     {row.sourceSessionId ? (
                       <Link
                         href={`/history/${row.sourceSessionId}`}

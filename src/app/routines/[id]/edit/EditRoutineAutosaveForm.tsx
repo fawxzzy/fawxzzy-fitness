@@ -58,6 +58,8 @@ type Props = {
   defaultProgressionPlaybookId?: ProgressionPlaybookId | null;
   defaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   error?: string;
+  /** Opened from the routine menu's Rename: focus the name field. */
+  focusName?: boolean;
 };
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {
@@ -143,8 +145,9 @@ export function EditRoutineAutosaveForm(props: Props) {
         label="Routine name"
         placeholder="Routine name"
         maxLength={15}
+        autoFocus={props.focusName}
       />
-  ), [draft.name]);
+  ), [draft.name, props.focusName]);
 
   useRoutineDetailsDirtyState(isDirty);
 

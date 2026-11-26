@@ -34,7 +34,9 @@ test("RoutinesPageClient delete confirm names the routine and what deleting it r
   assert.match(source, /objectName=\{routinePendingDelete\?\.name\}/);
   assert.match(source, /consequenceText=/);
   assert.doesNotMatch(source, /title="Confirm Delete"/);
-  assert.match(source, /<AppButton[\s\S]*Create your first routine/);
+  // One create action: the dock's New Routine; the empty state only explains what a routine is.
+  assert.doesNotMatch(source, /Create your first routine/);
+  assert.match(source, /A routine is your weekly plan/);
   assert.doesNotMatch(source, /<button/, "no raw buttons: AppButton, Menu and dock buttons only");
 });
 

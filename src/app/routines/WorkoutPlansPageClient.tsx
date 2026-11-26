@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
 import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
+import { getLibraryDayTitle, withPlainProgressionLabels } from "@/app/routines/routine-copy";
 
 type WorkoutPlanLibraryCardItem = WorkoutPlanSourceListItem & {
   href?: string | null;
@@ -98,7 +99,8 @@ export function WorkoutPlansPageClient({
           <RoutinesCardList>
             {workoutPlans.map((plan) => {
               const planHref = plan.href ?? null;
-              const planTitle = plan.title?.trim() || "Day";
+              // F-020: never a bare "Day"; unnamed days read "Day N · Routine".
+              const planTitle = getLibraryDayTitle({ title: plan.title, dayIndex: plan.dayIndex, sourceRoutineName: plan.sourceRoutineName });
               const actionsOpen = expandedActionsPlanId === plan.id;
               const actionsId = `workout-plan-actions-${plan.id}`;
               const closeActions = () => setExpandedActionsPlanId(null);
@@ -113,7 +115,7 @@ export function WorkoutPlansPageClient({
                       occurrenceWeekday: null,
                       isRest: plan.isRest,
                       splitSummary: plan.splitSummary,
-                      recapExercises: plan.recapExercises,
+                      recapExercises: withPlainProgressionLabels(plan.recapExercises),
                       isToday: false,
                       isCompleted: false,
                       isSkipped: false,
@@ -163,9 +165,10 @@ export function WorkoutPlansPageClient({
 
       <ConfirmDestructiveModal
         open={planPendingDelete !== null}
-        title="Confirm Delete"
-        confirmLabel="Delete"
-        titleVariant="raw"
+        title="Delete day?"
+        objectName={planPendingDelete ? getLibraryDayTitle({ title: planPendingDelete.title, dayIndex: planPendingDelete.dayIndex, sourceRoutineName: planPendingDelete.sourceRoutineName }) : undefined}
+        consequenceText="This removes the day, and every copy of it, from the routines that use it."
+        confirmLabel="Delete day"
         isLoading={isPending}
         onCancel={() => {
           if (!isPending) {
