@@ -757,7 +757,6 @@ export function TodayDayPicker({
     ? (
       <ScreenHeader
         kind="tab"
-        appMenu
         title="Today"
         subtitle={formatTodayHeaderSubtitle(
           formatRoutineDayStableDisplayName({ name: selectedDay.name, dayIndex: selectedDay.dayIndex, startDate }),
@@ -769,7 +768,7 @@ export function TodayDayPicker({
     )
     : null;
   const switchHeaderNode = selectedDay && mode.dayPickerOpen
-    ? <ScreenHeader kind="tab" appMenu title="Today" subtitle={routineName.trim() || null} status={headerStatus} />
+    ? <ScreenHeader kind="tab" title="Today" subtitle={routineName.trim() || null} status={headerStatus} />
     : null;
 
   const actionsNode = useMemo(() => {

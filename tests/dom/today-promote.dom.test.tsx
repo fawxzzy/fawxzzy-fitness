@@ -16,7 +16,7 @@ import { PROGRESSION_PROMOTE_MESSAGES } from "../../src/lib/progression-revert-m
 // Promote there calls the action once; success shows "Progression up", pins the quick-undo Revert and refreshes Today;
 // a refusal or a thrown request closes the box with one error toast and refreshes.
 
-// "Zed" names resolve to no bundled thumbnail: next/image cannot render under node:test (see app-menu.dom.test.tsx).
+// "Zed" names resolve to no bundled thumbnail: next/image cannot render under node:test (its CJS default export does not load there).
 const ROUTINE_ID = "routine-1";
 
 afterEach(() => {

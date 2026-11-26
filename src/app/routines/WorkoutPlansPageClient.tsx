@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { RoutineOverviewDayCard } from "@/components/day-list/RoutineDayCardPresentation";
@@ -37,13 +37,9 @@ export function WorkoutPlansPageClient({
   const [isPending, startTransition] = useTransition();
 
   const actionsNode = useMemo(() => (
-    <BottomActionSplit
-      secondary={(
-        <BottomDockLink href={routinesHref} intent="toggleInactive">
-          Routines
-        </BottomDockLink>
-      )}
-      primary={newWorkoutPlanHref ? (
+    // One action: the bottom tab bar already goes to Routines, so the dock no longer repeats it (DESIGN.md #2).
+    <BottomActionSingle>
+      {newWorkoutPlanHref ? (
         <BottomDockLink href={newWorkoutPlanHref} intent="positive">
           New Day
         </BottomDockLink>
@@ -52,8 +48,8 @@ export function WorkoutPlansPageClient({
           New Day
         </BottomDockButton>
       )}
-    />
-  ), [newWorkoutPlanHref, routinesHref]);
+    </BottomActionSingle>
+  ), [newWorkoutPlanHref]);
 
   usePublishBottomActions(actionsNode);
 

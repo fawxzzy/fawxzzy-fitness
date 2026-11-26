@@ -1,6 +1,6 @@
 "use client";
 
-import { AppMenu } from "@/components/AppNav";
+import { AppTabBarPreview } from "@/components/AppTabBar";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -74,6 +74,7 @@ export function RoutinesLab({ state, fail, hang }: { state: RoutinesLabState; fa
   if (state === "detail" || state === "detail-add-day") {
     return (
       <MainTabScreen topNavMode="none" ambientPreset="viewDay">
+        <AppTabBarPreview pathname="/routines/lab" />
         <ScrollScreenWithBottomActions
           floatingHeader={(
             <ScreenHeader
@@ -108,9 +109,9 @@ export function RoutinesLab({ state, fail, hang }: { state: RoutinesLabState; fa
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
+      <AppTabBarPreview pathname="/routines" />
       <ScrollScreenWithBottomActions
-        headerMenu={<AppMenu activePathnameOverride="/routines" />}
-        floatingHeader={<ScreenHeader kind="tab" appMenu title="Routines" />}
+        floatingHeader={<ScreenHeader kind="tab" title="Routines" />}
       >
         <ContentRail className="space-y-3">
           <RoutinesPageClient

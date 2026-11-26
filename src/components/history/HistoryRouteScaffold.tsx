@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { AppMenu } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { FloatingHeaderSlot } from "@/components/layout/FloatingHeaderRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -14,7 +13,7 @@ type HistoryOverviewRouteScaffoldProps = {
   mode: "overview";
   activeTab: "sessions" | "exercises" | "progression";
   children: ReactNode;
-  /** Show the app menu top right on the header line (default true). */
+  /** Kept for callers; the overview always shows its tab header (default true). */
   showTopChrome?: boolean;
   /** Inline status on the History title line ("– Offline"), see ScreenHeader `status`. */
   headerStatus?: ReactNode;
@@ -49,7 +48,6 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
           <ScreenHeader
             kind="tab"
             title="History"
-            appMenu
             status={props.headerStatus}
             trailing={props.activeTab === "progression" ? undefined : <div id={HISTORY_HEADER_TRAILING_SLOT_ID} className="contents" />}
           />
@@ -77,7 +75,6 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
     <MainTabScreen topNavMode="none" ambientPreset="history">
       {/* The detail screen scrolls like every other screen (History review item 1): no locked outer scroller. */}
       <ScrollScreenWithBottomActions
-        headerMenu={showTopChrome ? <AppMenu /> : undefined}
         floatingHeader={floatingHeader}
       >
         <ContentRail

@@ -6,6 +6,7 @@ import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/E
 import { WorkoutPlansPageClient } from "@/app/routines/WorkoutPlansPageClient";
 import { DaysLibraryScreen } from "@/app/routines/workout-plans/DaysLibraryScreen";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
+import { AppTabBarPreview } from "@/components/AppTabBar";
 import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
 import { formatAddExerciseSubtitle } from "@/lib/header-meta";
 import { assertDevPageAvailable } from "@/lib/dev-route-guard-page";
@@ -132,6 +133,8 @@ export default async function DevDetailScreensPage(props: {
     case "days-empty":
       return (
         <DaysLibraryScreen>
+          {/* A read-only child of Routines: the bottom tab bar shows here as on /routines/workout-plans. */}
+          <AppTabBarPreview pathname="/routines/workout-plans" />
           <WorkoutPlansPageClient
             routinesHref="/routines"
             newWorkoutPlanHref={`${FIXTURE_ROUTINE_HREF}/new-workout-plan`}

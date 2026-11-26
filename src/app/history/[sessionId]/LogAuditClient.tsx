@@ -12,6 +12,7 @@ import {
   updateLogExerciseSetAction,
   updateLogMetaAction,
 } from "@/app/actions/history";
+import { useHideAppTabBar } from "@/components/AppTabBar";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
@@ -952,6 +953,8 @@ export function LogAuditClient({
   const { navigateReturn } = useReturnNavigation(backHref);
   const [isPending, startTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
+  // Edit mode is an editor (Cancel / Save dock): the bottom tab bar steps aside until it closes (src/lib/app-tabs.ts).
+  useHideAppTabBar(isEditing);
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(initialExpandedExerciseId);

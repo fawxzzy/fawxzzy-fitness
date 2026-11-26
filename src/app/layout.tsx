@@ -6,6 +6,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
 import { AppLoaderHost } from "@/components/AppLoaderHost";
+import { AppTabBar } from "@/components/AppTabBar";
 import { RouteLoading } from "@/components/RouteLoading";
 import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
 import { AppAmbientThemeBootstrap } from "@/components/ui/AppAmbientThemeBootstrap";
@@ -162,6 +163,8 @@ export default async function RootLayout({
               <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
             </Suspense>
           </main>
+          {/* The bottom tab bar: an in-flow sibling after <main>, so <main> ends above it (src/lib/app-tabs.ts decides where it shows). */}
+          <AppTabBar />
         </ToastProvider>
       </body>
     </html>

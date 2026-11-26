@@ -14,7 +14,7 @@ afterEach(() => cleanup());
 // in its own process, uses jsdom's FormData the way a browser would.
 Object.defineProperty(globalThis, "FormData", { value: window.FormData, configurable: true, writable: true });
 
-// "Zed" names resolve to no bundled thumbnail: next/image cannot render under node:test (see app-menu.dom.test.tsx).
+// "Zed" names resolve to no bundled thumbnail: next/image cannot render under node:test (its CJS default export does not load there).
 const EXERCISES = [{ ...detailScreenFixtureExercises[0]!, id: "zed-1", name: "Zed Lift" }];
 const STATS = detailScreenFixtureStats().map((row) => ({ ...row, exerciseId: "zed-1", statsExerciseId: "zed-1" }));
 

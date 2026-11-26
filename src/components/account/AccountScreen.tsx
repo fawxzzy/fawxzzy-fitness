@@ -18,7 +18,7 @@ const PORTAL_SUMMARY = "Opens account.fawxzzy.com";
 /**
  * Account is a read-only detail screen (DESIGN-CONTRACT.md section 15): username, email and password are changed on
  * account.fawxzzy.com, so each row shows the current value and links there. Kept for direct visits to /account (old
- * links, bookmarks); Settings links straight to the portal. Back on the left, title "Account"; no tab bar.
+ * links, bookmarks); Settings links straight to the portal. Back on the left, title "Account"; the bottom tab bar stays with Settings active.
  * Sign out and Sign out everywhere are on Settings only (one place, not two): this screen is the way back to it.
  */
 export function AccountScreen({

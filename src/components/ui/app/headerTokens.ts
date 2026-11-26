@@ -4,7 +4,7 @@
 export const screenHeaderTokens = {
   // Same top padding under the safe area and the same gap to the first card on every screen.
   root: "mx-auto w-full max-w-[calc(var(--content-max)+var(--screen-gutter)*2)] px-[var(--screen-gutter)] pb-3 pt-2",
-  // Top-aligned: the title line shares the 44px line with Back and the menu button; the subtitle hangs below.
+  // Top-aligned: the title line shares the 44px line with Back and the trailing action; the subtitle hangs below.
   row: "flex min-h-11 min-w-0 items-start gap-2 px-1",
   // Back sits on the LEFT (detail screens only); 44x44 tap target.
   backSlot: "-ml-2 flex h-11 w-11 shrink-0 items-center justify-center",
@@ -17,14 +17,12 @@ export const screenHeaderTokens = {
   // status (shrink-0, capped at the line width): a long status is cut with an ellipsis before the title is.
   title: "max-w-full shrink-0 truncate text-[1.375rem] font-semibold leading-7 tracking-[-0.02em] text-[rgb(var(--accent))]",
   // The inline status after the title: muted, one line, never pushes the title off-screen. It shrinks first and
-  // ends in an ellipsis on narrow phones (320px with Back, title and menu), so "Workout" always stays readable.
+  // ends in an ellipsis on narrow phones (320px with Back, title and a trailing action), so "Workout" always stays readable.
   status: "min-w-0 truncate text-sm font-medium leading-5 text-[rgb(var(--text-muted))]",
   // At most one muted, single-line subtitle in plain words.
   subtitle: "truncate text-sm leading-5 text-[rgb(var(--text-muted))]",
   // At most one 44x44 icon action or one chip.
   trailingSlot: "-mr-1 flex min-h-11 min-w-11 shrink-0 items-center justify-end",
-  // The app menu button, top RIGHT on the title line (tab screens and the live workout).
-  menuSlot: "-mr-2 flex h-11 w-11 shrink-0 items-center justify-center",
   // The one header icon-button look (44x44, no border, no shadow, no glow). `!` beats the global
   // `button, [type="button"]` rule in globals.css, which otherwise adds a surface fill and a 1px ring.
   iconAction:

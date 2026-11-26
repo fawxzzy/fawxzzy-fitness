@@ -6,7 +6,7 @@ import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 
 // The Days library screen frame. Pushed from Routines, so a detail screen (DESIGN-CONTRACT 15.1): Back to
-// /routines, no tab bar. Shared by the route and its `/dev/detail-screens` fixture.
+// /routines; a read-only child, so the bottom tab bar stays (src/lib/app-tabs.ts). Shared by the route and its `/dev/detail-screens` fixture.
 export function DaysLibraryScreen({ children }: { children: ReactNode }) {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">

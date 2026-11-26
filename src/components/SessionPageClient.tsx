@@ -218,7 +218,7 @@ export function SessionPageClient({
     })),
     [exercises],
   );
-  // The header stays on screen while an exercise is open. No app menu here: Pause (top right) returns to Today with
+  // The header stays on screen while an exercise is open. No tab bar here: Pause (top right) returns to Today with
   // the workout still running, Finish (dock) ends it (sessionBackAction.ts). A completed workout shows Back instead.
   const floatingHeader = (
     <SessionHeaderControls

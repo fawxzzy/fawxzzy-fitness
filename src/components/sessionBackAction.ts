@@ -1,4 +1,4 @@
-// Live workout Pause (DESIGN-CONTRACT.md section 15.5). The in-progress workout has no app menu and no left Back:
+// Live workout Pause (DESIGN-CONTRACT.md section 15.5). The in-progress workout has no tab bar and no left Back:
 // the only ways out are Pause (top right) and Finish (dock). Pause leaves the workout running and returns to Today.
 // Nothing is discarded or finished: logged sets are already saved or queued, and set drafts persist in the
 // session draft store, so leaving with an exercise open loses nothing (that is why Pause no longer needs the old

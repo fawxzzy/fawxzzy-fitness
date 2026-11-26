@@ -40,15 +40,16 @@ test("ScreenHeader has two kinds, a left-aligned single-line h1, and no centred 
 
 test("the four tab screens render the standard tab header", () => {
   const cases = [
-    // `appMenu`: the screen-level header shows the app menu (DESIGN-CONTRACT.md 15.6).
-    ["src/app/today/page.tsx", /<ScreenHeader\s+kind="tab"\s+appMenu\s+title="Today"/],
-    ["src/app/today/TodayDayPicker.tsx", /<ScreenHeader\s+kind="tab"\s+appMenu\s+title="Today"/],
-    ["src/app/routines/page.tsx", /<ScreenHeader kind="tab" appMenu title="Routines"/],
-    ["src/components/history/HistoryRouteScaffold.tsx", /<ScreenHeader\s+kind="tab"\s+title="History"\s+appMenu\b/],
-    ["src/components/settings/SettingsFloatingHeader.tsx", /<ScreenHeader kind="tab" appMenu title="Settings" \/>/],
+    // No navigation in the header: the bottom tab bar switches sections (DESIGN-CONTRACT.md 15.6).
+    ["src/app/today/page.tsx", /<ScreenHeader\s+kind="tab"\s+title="Today"/],
+    ["src/app/today/TodayDayPicker.tsx", /<ScreenHeader\s+kind="tab"\s+title="Today"/],
+    ["src/app/routines/page.tsx", /<ScreenHeader kind="tab" title="Routines"/],
+    ["src/components/history/HistoryRouteScaffold.tsx", /<ScreenHeader\s+kind="tab"\s+title="History"/],
+    ["src/components/settings/SettingsFloatingHeader.tsx", /<ScreenHeader kind="tab" title="Settings" \/>/],
   ];
   for (const [path, pattern] of cases) {
     assert.match(read(path), pattern, path);
+    assert.doesNotMatch(read(path), /\bappMenu\b|headerMenu=/, path);
   }
 });
 
@@ -72,12 +73,12 @@ test("Today's header is one subtitle line, with no info rail, pipes or status ch
 });
 
 test("tabs are Today / Routines / History / Settings and never leave the app", () => {
-  // The one destination list (src/lib/app-menu.ts); AppNav.tsx only adds icons.
-  const destinations = read("src/lib/app-menu.ts");
-  const list = destinations.slice(destinations.indexOf("export const APP_MENU_DESTINATIONS"), destinations.indexOf("] as const;"));
+  // The one destination list (src/lib/app-tabs.ts); AppTabBar.tsx only adds icons.
+  const destinations = read("src/lib/app-tabs.ts");
+  const list = destinations.slice(destinations.indexOf("export const APP_TAB_DESTINATIONS"), destinations.indexOf("] as const;"));
   const labels = [...list.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(labels, ["Today", "Routines", "History", "Settings"]);
-  for (const source of [list, read("src/components/AppNav.tsx")]) {
+  for (const source of [list, read("src/components/AppTabBar.tsx")]) {
     assert.doesNotMatch(source, /href: "\/account"|account\.fawxzzy\.com|getFitnessAccountPortalUrl/);
   }
 });
@@ -177,7 +178,7 @@ test("the live workout header is title, one day · routine line, Back and at mos
   assert.doesNotMatch(client, /buildCurrentSessionHeaderInfoRailItems|sessionHeaderInfoItems|isExerciseOpen \?/);
 });
 
-test("live workout: Pause top right is the one header exit (back to Today, workout keeps running); no left Back, no menu", () => {
+test("live workout: Pause top right is the one header exit (back to Today, workout keeps running); no left Back, no tab bar", () => {
   // Zac 2026-11-23 replaced the two-step Back (close the open exercise, then history-first back) with Pause. Drafts
   // persist in the session draft store, so leaving with an exercise open loses nothing.
   const controls = read("src/components/SessionHeaderControls.tsx");

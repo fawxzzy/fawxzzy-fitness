@@ -2333,7 +2333,7 @@ a:focus-visible {
 
 /* Screen dock look (DESIGN-CONTRACT.md section 15.6, C9-C12 unchanged): inside the screen's bottom dock only
    (`[data-app-bottom-dock]` on MobileScreenShell), dock buttons are flat: token fills, a 1px keyline, no gloss
-   gradient, no drop shadow, so the dock reads as calm as the header and the app menu. Primary = accent tint with
+   gradient, no drop shadow, so the dock reads as calm as the header and the tab bar. Primary = accent tint with
    the menu's 0.62 accent keyline. Fills are opaque (surface + a tint in the ::after overlay) so list content never
    shows through a dock button. Pressed = a slightly stronger fill and a small scale; focus = a 2px accent ring.
    Scoped on purpose: card action rows, timers and sheets reuse `.bottom-action` and keep their own look. */
@@ -2689,6 +2689,12 @@ a:focus-visible {
 
 .safe-area-main {
   padding-top: 0;
+}
+
+/* Bottom tab bar (AppTabBar, docs/mobile-shell-contract.md): when it is on screen it sits under <main> and carries
+   the home-indicator safe area itself, so a screen dock above it keeps only its small base padding. */
+body:has(> [data-app-tab-bar]) #app-main {
+  --app-dock-safe-padding-bottom: 2px;
 }
 
 .picker-scroll-viewport {
