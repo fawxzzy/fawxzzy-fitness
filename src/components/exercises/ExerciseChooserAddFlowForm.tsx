@@ -159,7 +159,8 @@ export function ExerciseChooserAddFlowForm({
   const toast = useToast();
   const router = useRouter();
   const initialSelectedExercise = useMemo(
-    () => exercises.find((exercise) => exercise.id === (initialSelectedId ?? exercises[0]?.id)) ?? exercises[0] ?? null,
+    // No fallback to the first exercise: nothing is selected until the person picks one (F-003).
+    () => (initialSelectedId ? exercises.find((exercise) => exercise.id === initialSelectedId) ?? null : null),
     [exercises, initialSelectedId],
   );
   const [selectedExercise, setSelectedExercise] = useState<EditorExerciseOption | null>(initialSelectedExercise);
@@ -292,7 +293,7 @@ export function ExerciseChooserAddFlowForm({
         <RoutineEditorAddExerciseFlowShell
           exercises={exercises}
           name="exerciseId"
-          initialSelectedId={initialSelectedId ?? exercises[0]?.id}
+          initialSelectedId={initialSelectedId}
           initialCustomExerciseDraft={initialCustomExerciseDraft}
           selectionSearchParam="exerciseId"
           weightUnit={weightUnit}
@@ -389,7 +390,9 @@ export function ExerciseChooserAddFlowForm({
                     }}
                     reserveInfoLayoutSpace={false}
                     dropdownPreset="exercise-inline"
-                    infoDockPlacement="above-bottom-actions"
+                    // One explainer (DESIGN #4): AddExerciseGuide above is the only help row. The fixed INFO dock also
+                    // covered the bottom of the goal sheet and its folded header.
+                    showProgressionInfo={false}
                   />
                 ) : null}
               </div>

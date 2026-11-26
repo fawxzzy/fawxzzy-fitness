@@ -90,6 +90,7 @@ export function ExerciseProgressionEditorSurface({
   hideProgressionMethodControl,
   renderRegressionAsSection,
   infoDockPlacement,
+  showProgressionInfo = true,
 }: {
   draft: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -115,6 +116,7 @@ export function ExerciseProgressionEditorSurface({
   hideProgressionMethodControl?: boolean;
   renderRegressionAsSection?: boolean;
   infoDockPlacement?: "default" | "above-bottom-actions";
+  showProgressionInfo?: boolean;
 }) {
   const draftProgressionConfig = useMemo(
     () => buildProgressionPlaybookConfigFromFormState(draft),
@@ -227,6 +229,7 @@ export function ExerciseProgressionEditorSurface({
       hideProgressionMethodControl={hideProgressionMethodControl}
       renderRegressionAsSection={renderRegressionAsSection}
       infoDockPlacement={infoDockPlacement}
+      showProgressionInfo={showProgressionInfo}
       exampleTargetValues={exampleTargetValues}
     />
   );

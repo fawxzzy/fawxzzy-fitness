@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { RoutineDayKindSelector, type RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
+import type { RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
 import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
@@ -422,9 +422,19 @@ export function EditDaySettingsAutosaveForm({
         placeholder={`Day ${dayIndex}`}
         maxLength={15}
       />
-      <RoutineDayKindSelector
+      {/* Day type on the shared SegmentedControl: 44px segments and the strong selected look (F-009). */}
+      <SegmentedControl
+        ariaLabel="Day type"
+        size="sm"
+        className="mx-auto max-w-sm"
         value={(draft.isRest ? "rest" : draft.isOptional ? "optional" : "required") satisfies RoutineDayKind}
-        onChange={(kind) => {
+        options={[
+          { label: "Required", value: "required" },
+          { label: "Optional", value: "optional" },
+          { label: "Rest", value: "rest" },
+        ]}
+        onChange={(next) => {
+          const kind: RoutineDayKind = next === "rest" ? "rest" : next === "optional" ? "optional" : "required";
           const nextSnapshot = {
             ...draft,
             isRest: kind === "rest",

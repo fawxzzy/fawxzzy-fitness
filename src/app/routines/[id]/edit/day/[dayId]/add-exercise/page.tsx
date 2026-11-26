@@ -92,6 +92,7 @@ export default async function EditDayAddExercisePage(props: PageProps) {
       <EditDayAddExerciseScreen
         routineId={params.id}
         routineDayId={params.dayId}
+        dayName={dayLabel}
         dayIndex={day.day_index}
         cycleLengthDays={(routine as RoutineRow).cycle_length_days}
         exercises={exercises}

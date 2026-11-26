@@ -200,6 +200,8 @@ function RoutineTargetInputs({
         emptySummaryLabel="Goal missing"
         hideSummary
         measurementLayoutMode="horizontal-scroll"
+        // Wrap the goal fields into rows so Max reps and the Reps toggle are never cut off at 320-390px (F-013).
+        wrapMeasurementFields
         onInfoRequest={onInfoRequest}
         auxiliaryFields={auxiliaryFields}
         showInlineStepControls

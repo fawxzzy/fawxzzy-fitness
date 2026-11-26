@@ -12,6 +12,7 @@ import {
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { resolveNumericInputMode } from "@/components/ui/measurements/numericFieldPolicy";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
@@ -403,7 +404,8 @@ export function ExerciseGoalForm({
           renderInput: ({ inputClassName }) => (
             <input
               type="text"
-              inputMode="text"
+              inputMode={resolveNumericInputMode("sets")}
+              autoComplete="off"
               name={names.sets}
               value={state.sets}
               onChange={(event) => onStateChange({ ...state, sets: sanitizeIntegerInput(event.target.value) })}

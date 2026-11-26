@@ -147,7 +147,7 @@ export function ExerciseSearchFilters({
             onClick={() => onQueryChange("")}
             aria-label={clearSearchAriaLabel}
             className={cn(
-              "inline-flex h-7 w-7 items-center justify-center rounded-full text-[rgb(var(--text-muted)/0.96)] transition-colors hover:bg-[rgb(var(--surface-2-rgb)/0.54)] hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]",
+              "inline-flex h-11 w-11 items-center justify-center rounded-full text-[rgb(var(--text-muted)/0.96)] transition-colors hover:bg-[rgb(var(--surface-2-rgb)/0.54)] hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]",
               clearButtonClassName,
             )}
           >

@@ -96,7 +96,11 @@ export default async function DevDetailScreensPage(props: {
   }
   const fixtureExercises = flag("empty")
     ? []
-    : flag("many") ? detailScreenFixtureManyExercises() : [...detailScreenFixtureExercises];
+    : [
+      ...(flag("many") ? detailScreenFixtureManyExercises() : detailScreenFixtureExercises),
+      // `&custom=1`: one of your own custom exercises, so the Rename / Delete menu shows (never submitted here).
+      ...(flag("custom") ? [{ ...detailScreenFixtureExercises[2], id: "fx-custom-fly", name: "My Cable Fly", user_id: "fixture-user", is_global: false, equipment: "Cable" }] : []),
+    ];
   const fixtureStats = flag("stats") ? detailScreenFixtureStats() : [];
   const names = resolveDetailScreenFixtureNames(longParam === "1");
   const days = detailScreenFixtureDays(names.routineName);
@@ -148,6 +152,7 @@ export default async function DevDetailScreensPage(props: {
           <EditDayAddExerciseScreen
             routineId="fixture-routine"
             routineDayId="fixture-day-1"
+            dayName={names.dayLabel}
             dayIndex={1}
             cycleLengthDays={4}
             exercises={fixtureExercises}

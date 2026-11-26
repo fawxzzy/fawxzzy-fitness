@@ -3064,6 +3064,7 @@ export function ProgressionPlaybookEditor({
   collapsible = false,
   defaultExpanded = true,
   separateInfoBox = false,
+  showProgressionInfo = true,
   portalProgressionSettings = false,
   portalTriggerMode = "inline",
   progressionStepLabel,
@@ -3109,6 +3110,8 @@ export function ProgressionPlaybookEditor({
   collapsible?: boolean;
   defaultExpanded?: boolean;
   separateInfoBox?: boolean;
+  /** false drops the INFO row/dock; the caller owns the one explainer (add-exercise uses AddExerciseGuide). */
+  showProgressionInfo?: boolean;
   portalProgressionSettings?: boolean;
   portalTriggerMode?: "inline" | "fixed" | "dock";
   progressionStepLabel?: string | null;
@@ -3339,7 +3342,7 @@ export function ProgressionPlaybookEditor({
     && Boolean(onApplyRoutineDefault);
   const isRoutineDefaultContext = context === "routine-default";
   const showLegacyTopMethodRail = true;
-  const shouldRenderProgressionInfo = true;
+  const shouldRenderProgressionInfo = showProgressionInfo;
   const supportsPromotionQualificationControls = isRoutineDefaultContext
     || (context === "exercise" && showDefaultState && Boolean(onApplyRoutineDefault));
   const visiblePromotionStepFieldIds = visiblePromotionStepFields ?? getVisiblePromotionStepFieldIds({
@@ -6455,7 +6458,7 @@ export function ProgressionPlaybookEditor({
         if (shouldRenderRegressionInfoSection) {
           infoPanels.push({
             key: "regression_method",
-            title: "Regression",
+            title: "Step back",
             summary: selectedStallPolicyInfo.label,
             widthClassName: "w-[11.5rem] min-w-[11.5rem]",
             content: (
@@ -6474,7 +6477,7 @@ export function ProgressionPlaybookEditor({
         if (shouldRenderSessionInfoSection) {
           infoPanels.push({
             key: "session_settings",
-            title: "Session",
+            title: "Per workout",
             summary: "Flow",
             widthClassName: "w-[11rem] min-w-[11rem]",
             content: (
@@ -6515,7 +6518,7 @@ export function ProgressionPlaybookEditor({
         if (shouldRenderSetSettingsInfoSection) {
           infoPanels.push({
             key: "set_step_settings",
-            title: "Set",
+            title: "Per set",
             summary: "Flow",
             widthClassName: "w-[11rem] min-w-[11rem]",
             content: (
@@ -6690,7 +6693,7 @@ export function ProgressionPlaybookEditor({
           if (shouldRenderRegressionControls) {
             progressionSettingsPanels.push({
               key: "regression",
-              title: "Regression",
+              title: "Step back",
               summary: value.progressionStallPolicy === "deload_after_stall" ? "On" : "Off",
               widthClassName: "w-[11.5rem] min-w-[11.5rem]",
               content: (
@@ -6725,7 +6728,7 @@ export function ProgressionPlaybookEditor({
           if (!resolvedHideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0)) {
             progressionSettingsPanels.push({
               key: "session",
-              title: "Session",
+              title: "Per workout",
               summary: sessionSettingsEnabled
                 ? `${renderedSessionPromotionMeasurements.length || routinePromotionMeasurements.length} metrics`
                 : "Off",
@@ -6821,7 +6824,7 @@ export function ProgressionPlaybookEditor({
           if (shouldRenderSetStepSettings) {
             progressionSettingsPanels.push({
               key: "set",
-              title: "Set",
+              title: "Per set",
               summary: setSettingsEnabled ? "Flow" : "Off",
               widthClassName: "w-[9.75rem] min-w-[9.75rem]",
               content: (
@@ -6858,7 +6861,7 @@ export function ProgressionPlaybookEditor({
           if (selectedPlaybookId && !isRoutineDefaultContext && hasScopedDetailedProgressionExampleContent) {
             progressionSettingsPanels.push({
               key: "example",
-              title: <span className={progressionExampleTitleClassName}>Example</span>,
+              title: <span className={progressionExampleTitleClassName}>Preview</span>,
               summary: "Current exercise",
               widthClassName: "w-[10.5rem] min-w-[10.5rem]",
               content: renderDetailedProgressionExample(scopedCombinedProgressionExampleRows, scopedPreProgressionCycleShiftRows),
@@ -6868,7 +6871,7 @@ export function ProgressionPlaybookEditor({
           if (selectedPlaybookId && isRoutineDefaultContext && hasDetailedProgressionExampleContent) {
             progressionSettingsPanels.push({
               key: "example",
-              title: <span className={progressionExampleTitleClassName}>Example</span>,
+              title: <span className={progressionExampleTitleClassName}>Preview</span>,
               summary: "Current exercise",
               widthClassName: "w-[10.5rem] min-w-[10.5rem]",
               content: renderDetailedProgressionExample(combinedProgressionExampleRows, uniquePreProgressionCycleShiftRows),

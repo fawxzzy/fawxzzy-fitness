@@ -471,9 +471,16 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
         event.stopPropagation();
         onOpenInfo();
       }}
-      className="pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
+      // A real 44x44 target (FOUNDATION "Touch") in the row's bottom-right corner; the visible 26px "i" disc sits inside it.
+      data-exercise-picker-info-button=""
+      className="group/info pointer-events-auto absolute bottom-0 right-0 z-[3] inline-flex h-11 w-11 items-center justify-center rounded-full [button&]:border-0 [button&]:bg-transparent [button&]:p-0 [button&]:shadow-none focus-visible:outline-none"
     >
-      <span aria-hidden="true">i</span>
+      <span
+        aria-hidden="true"
+        className="inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors group-hover/info:border-[rgb(var(--accent)/0.42)] group-hover/info:text-[rgb(var(--accent)/0.98)] group-focus-visible/info:ring-2 group-focus-visible/info:ring-[rgb(var(--accent)/0.2)]"
+      >
+        i
+      </span>
     </button>
   ) : null;
   const selectedOverlayActions = isSelected
