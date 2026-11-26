@@ -4,21 +4,24 @@ export type RoutineCardActionRoutine = { id: string; name: string; isActive?: bo
 
 /**
  * Menu for a routine card (DESIGN #8): Set active (inactive routines only), Edit, Duplicate, Rename, then
- * Delete last. Pure so the wiring is testable:
- * - Delete hands the routine to the confirm flow (it never deletes directly).
+ * Archive last. Pure so the wiring is testable:
+ * - Archive hands the routine to the confirm flow (it never archives directly). It is a neutral action, not a
+ *   destructive one: archiving keeps the routine and all of its logged workouts and can be undone with Restore.
+ *   There is no permanent delete for routines (2026-11-26).
  * - Set active hands the routine id to the caller.
  * - Edit and Rename open the existing routine settings screen (Rename focuses the name; the rename is saved
  *   by the existing owner-scoped `updateRoutineAction` autosave, there is no separate rename action).
  * - Duplicate opens the existing duplicate chooser with this routine preselected (`duplicateRoutineAction`).
- * Edit/Duplicate/Rename are listed only when the caller wires them.
+ * Edit/Duplicate/Rename/Archive are listed only when the caller wires them (Archive is left out while the
+ * archive column is missing, see src/lib/routine-archive.ts).
  * The accessible name starts with the visible label (WCAG 2.5.3).
  */
 export function buildRoutineCardActions(args: {
   routine: RoutineCardActionRoutine;
   isPending: boolean;
-  canDelete: boolean;
+  canArchive: boolean;
   canSetActive: boolean;
-  onRequestDelete: (routine: RoutineCardActionRoutine) => void;
+  onRequestArchive?: (routine: RoutineCardActionRoutine) => void;
   onSetActive: (routineId: string) => void;
   onEdit?: (routineId: string) => void;
   onDuplicate?: (routineId: string) => void;
@@ -56,14 +59,17 @@ export function buildRoutineCardActions(args: {
     });
   }
 
-  actions.push({
-    key: "delete",
-    label: "Delete",
-    ariaLabel: `Delete ${routine.name}`,
-    intent: "danger",
-    disabled: args.isPending || !args.canDelete,
-    onPress: () => args.onRequestDelete(routine),
-  });
+  const onRequestArchive = args.onRequestArchive;
+  if (onRequestArchive) {
+    actions.push({
+      key: "archive",
+      label: "Archive",
+      ariaLabel: `Archive ${routine.name}`,
+      intent: "neutral",
+      disabled: args.isPending || !args.canArchive,
+      onPress: () => onRequestArchive(routine),
+    });
+  }
 
   return actions;
 }

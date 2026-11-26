@@ -15,23 +15,24 @@ test("RoutinesPageClient keeps /routines as the browse list screen", () => {
   assert.match(source, /curatedOnboardingUserId/);
 });
 
-test("RoutinesPageClient renders routine cards on the card system: actions in the kebab Menu, no corner Delete", () => {
+test("RoutinesPageClient renders routine cards on the card system: actions in the kebab Menu, no corner Delete or Archive", () => {
   const source = readFileSync(new URL("./RoutinesPageClient.tsx", import.meta.url), "utf8");
 
   assert.match(source, /<RoutineBrowseCard/);
   assert.doesNotMatch(source, /onActionsToggle|actionsOpen|expandedActionsRoutineId/);
   assert.match(source, /buildRoutineCardActions\(\{/);
   const builder = readFileSync(new URL("../../components/routines/routineCardActions.ts", import.meta.url), "utf8");
-  assert.match(builder, /key: "delete"/);
+  assert.match(builder, /key: "archive"/);
+  assert.doesNotMatch(builder, /key: "delete"/);
   assert.match(builder, /key: "set-active"/);
   assert.match(source, /<CardEmptyState/);
   assert.doesNotMatch(source, /routine-card-delete|ROUTINE_CARD_DELETE|AttachedCardActionStripFrame|INACTIVE_ROUTINE_CARD_CLASS_NAME/);
 });
 
-test("RoutinesPageClient delete confirm names the routine and what deleting it removes", () => {
+test("RoutinesPageClient archive confirm names the routine and what archiving does", () => {
   const source = readFileSync(new URL("./RoutinesPageClient.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /objectName=\{routinePendingDelete\?\.name\}/);
+  assert.match(source, /objectName=\{routinePendingArchive\?\.name\}/);
   assert.match(source, /consequenceText=/);
   assert.doesNotMatch(source, /title="Confirm Delete"/);
   // One create action: the dock's New Routine; the empty state only explains what a routine is.
@@ -40,12 +41,17 @@ test("RoutinesPageClient delete confirm names the routine and what deleting it r
   assert.doesNotMatch(source, /<button/, "no raw buttons: AppButton, Menu and dock buttons only");
 });
 
-test("routine delete confirm names the routine and what it removes; the day delete does the same", () => {
+test("routine archive confirm says history is kept and uses a neutral Archive button; the day delete is unchanged", () => {
   const list = readFileSync(new URL("./RoutinesPageClient.tsx", import.meta.url), "utf8");
-  assert.match(list, /objectName=\{routinePendingDelete\?\.name\}/);
-  assert.match(list, /consequenceText=\{routinePendingDelete \? describeRoutineDeleteConsequence/);
-  assert.match(list, /permanently deletes the routine, its days and exercises, and the workouts you logged/);
-  assert.match(list, /Another routine becomes your active one/);
+  assert.match(list, /objectName=\{routinePendingArchive\?\.name\}/);
+  assert.match(list, /consequenceText=\{routinePendingArchive \? describeRoutineArchiveConsequence\(routinePendingArchive\)/);
+  assert.match(list, /title=\{ROUTINE_ARCHIVE_COPY\.confirmTitle\}/);
+  assert.match(list, /confirmLabel=\{CONFIRM_ACTION_LABELS\.archiveRoutine\}/);
+  assert.match(list, /confirmVariant="primary"/);
+  assert.doesNotMatch(list, /deleteRoutineAction|describeRoutineDeleteConsequence|permanently deletes the routine/);
+  const copy = readFileSync(new URL("../../lib/routine-archive.ts", import.meta.url), "utf8");
+  assert.match(copy, /Your workouts from it stay in History, and you can restore it any time from Archived\./);
+  assert.match(copy, /confirmLabel: "Archive"/);
   const home = readFileSync(new URL("./RoutineHomeClient.tsx", import.meta.url), "utf8");
   assert.match(home, /title="Delete day\?"/);
   assert.match(home, /objectName=/);
@@ -77,15 +83,18 @@ test("the routines dev lab asserts the dev guard before reading searchParams and
   assert.doesNotMatch(lab, /@\/app\/routines\/actions|supabase/i);
 });
 
-test("active-routine delete copy only promises a replacement when another routine exists", () => {
-  const list = readFileSync(new URL("./RoutinesPageClient.tsx", import.meta.url), "utf8");
-  // routine-delete.ts sets active_routine_id to the next routine, or NULL when it was the only one.
-  assert.match(list, /describeRoutineDeleteConsequence\(routine: \{ name: string; isActive\?: boolean \}, otherRoutineCount = 1\)/);
-  assert.match(list, /otherRoutineCount > 0\s*\?\s*`\$\{base\} Another routine becomes your active one\.`\s*:\s*`\$\{base\} You will have no active routine until you create one\.`/);
-  assert.match(list, /if \(!routine\.isActive\) return base;/);
-  assert.match(list, /routines\.filter\(\(item\) => item\.id !== routinePendingDelete\.id\)\.length/);
-  const dal = readFileSync(new URL("../../lib/dal/routine-delete.ts", import.meta.url), "utf8");
-  assert.match(dal, /active_routine_id: replacementRoutineId/);
+test("archiving the active routine clears the pointer so Today asks to choose; no permanent routine delete is wired", () => {
+  const dal = readFileSync(new URL("../../lib/dal/routine-archive.ts", import.meta.url), "utf8");
+  assert.match(dal, /active_routine_id: null/);
+  assert.match(dal, /\.eq\("active_routine_id", args\.routineId\)/);
+  assert.match(dal, /\.eq\("status", "in_progress"\)/);
+  assert.doesNotMatch(dal, /\.delete\(\)/);
+  const today = readFileSync(new URL("../today/page.tsx", import.meta.url), "utf8");
+  assert.match(today, /routine && !isRoutineArchived\(routine\) \? routine : null/);
+  const actions = readFileSync(new URL("./actions.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(actions, /deleteRoutineMutation|deleteRoutineAction|from "@\/lib\/dal\/routine-delete"/);
+  assert.match(actions, /export async function archiveRoutineAction/);
+  assert.match(actions, /export async function restoreRoutineAction/);
 });
 
 function listSources(dir: string): string[] {

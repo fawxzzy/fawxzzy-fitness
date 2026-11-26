@@ -1307,6 +1307,7 @@ export type Database = {
       }
       routines: {
         Row: {
+          archived_at: string | null
           created_at: string
           cycle_length_days: number
           default_progression_playbook_config: Json | null
@@ -1323,6 +1324,7 @@ export type Database = {
           weight_unit: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           cycle_length_days: number
           default_progression_playbook_config?: Json | null
@@ -1339,6 +1341,7 @@ export type Database = {
           weight_unit?: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           cycle_length_days?: number
           default_progression_playbook_config?: Json | null

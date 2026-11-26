@@ -22,7 +22,8 @@ export const REST_DAY_TOGGLE_LABEL = "Rest day";
  * these instead of a generic "Confirm"/"Delete" that does not say what is being deleted.
  */
 export const CONFIRM_ACTION_LABELS = {
-  deleteRoutine: "Delete routine",
+  /** Routines are archived, never deleted (2026-11-26); the button names the action. */
+  archiveRoutine: "Archive",
   deleteDay: "Delete day",
   deleteExercise: "Delete exercise",
   deleteSet: "Delete set",

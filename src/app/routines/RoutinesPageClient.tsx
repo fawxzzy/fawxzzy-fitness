@@ -7,6 +7,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
+import { ArchivedRoutinesSection, type ArchivedRoutineListItem } from "@/components/routines/ArchivedRoutinesSection";
 import { CreateRoutineClient } from "@/app/routines/CreateRoutineClient";
 import { CardEmptyState } from "@/components/ui/card-system";
 import { buildRoutineCardActions } from "@/components/routines/routineCardActions";
@@ -20,19 +21,15 @@ import {
 } from "@/components/routines/RoutinesScreenFamily";
 import type { ActionResult } from "@/lib/action-result";
 import { getRoutineEditHref } from "@/lib/routine-day-navigation";
+import { canAddListedRoutineForTier } from "@/lib/pro-tier-limits";
+import { ROUTINE_ARCHIVE_COPY, describeRoutineArchiveConsequence } from "@/lib/routine-archive";
 
-/**
- * What deleting a routine does, in the words the confirm shows. Mirrors deleteRoutineMutation (src/lib/dal/routine-delete.ts):
- * the routine, its days and exercises, the workouts logged on it and its progression events go; if it was the
- * active routine the most recently updated other routine takes over, or none stays active when it was the only one.
- */
-export function describeRoutineDeleteConsequence(routine: { name: string; isActive?: boolean }, otherRoutineCount = 1): string {
-  const base = "This permanently deletes the routine, its days and exercises, and the workouts you logged with it, along with their progression history. It can't be undone.";
-  if (!routine.isActive) return base;
-  return otherRoutineCount > 0
-    ? `${base} Another routine becomes your active one.`
-    : `${base} You will have no active routine until you create one.`;
-}
+/** Server answers that are expected outcomes, not failures: shown as a plain warning, never as an error. */
+const ROUTINE_ARCHIVE_PLAIN_OUTCOMES = new Set<string>([
+  ROUTINE_ARCHIVE_COPY.inProgressBlocked,
+  ROUTINE_ARCHIVE_COPY.restoreLimit,
+  ROUTINE_ARCHIVE_COPY.unavailable,
+]);
 
 /** Rename opens the routine settings screen with the name field focused (saved by the existing autosave). */
 export function getRoutineRenameHref(routineId: string) {
@@ -49,9 +46,14 @@ export function RoutinesPageClient({
   curatedOnboardingUserId = null,
   duplicateRoutineAction,
   setActiveRoutineAction,
-  deleteRoutineAction,
+  archiveRoutineAction,
+  restoreRoutineAction,
+  archivedRoutines = [],
+  listedRoutineCount,
+  accessState = "free",
   initialCreateRoutineOpen = false,
   initialCreateRoutineDuplicateExpanded = false,
+  initialArchivedExpanded = false,
 }: {
   routines: RoutineBrowseCardItem[];
   newRoutineHref?: string;
@@ -61,17 +63,26 @@ export function RoutinesPageClient({
   curatedOnboardingUserId?: string | null;
   duplicateRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["duplicateRoutineAction"];
   setActiveRoutineAction?: (formData: FormData) => Promise<ActionResult>;
-  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
+  /** Left undefined while routines.archived_at is missing: Archive is then not offered (src/lib/routine-archive.ts). */
+  archiveRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
+  restoreRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
+  archivedRoutines?: ArchivedRoutineListItem[];
+  /** Non-archived routines, including any the Free plan hides; defaults to the routines shown. */
+  listedRoutineCount?: number;
+  accessState?: "free" | "pro";
   initialCreateRoutineOpen?: boolean;
   initialCreateRoutineDuplicateExpanded?: boolean;
+  initialArchivedExpanded?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(initialCreateRoutineOpen);
   // Set by a card's Duplicate: the New routine chooser opens on Duplicate with that routine preselected.
   const [duplicateSourceRoutineId, setDuplicateSourceRoutineId] = useState<string | null>(null);
-  const [routinePendingDelete, setRoutinePendingDelete] = useState<RoutineBrowseCardItem | null>(null);
+  const [routinePendingArchive, setRoutinePendingArchive] = useState<RoutineBrowseCardItem | null>(null);
+  const [restoringRoutineId, setRestoringRoutineId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const atRestoreLimit = !canAddListedRoutineForTier({ listedRoutineCount: listedRoutineCount ?? routines.length, accessState });
   const canOpenInlineCreate = Boolean(duplicateRoutineAction);
   const activeRoutines = routines.filter((routine) => routine.isActive);
   const inactiveRoutines = routines.filter((routine) => !routine.isActive);
@@ -132,10 +143,17 @@ export function RoutinesPageClient({
       <SharedDayListSection>
         {routines.length === 0 ? (
           // One create action: the dock's New Routine. The empty state only says what a routine is.
-          <CardEmptyState
-            title="No routines yet"
-            body="A routine is your weekly plan: the days you train and the exercises on each day. Tap New Routine to make one."
-          />
+          archivedRoutines.length > 0 && restoreRoutineAction ? (
+            <CardEmptyState
+              title="No routines in your list"
+              body="Your archived routines are below. Restore one, or tap New Routine to make a new one."
+            />
+          ) : (
+            <CardEmptyState
+              title="No routines yet"
+              body="A routine is your weekly plan: the days you train and the exercises on each day. Tap New Routine to make one."
+            />
+          )
         ) : (
           <RoutinesCardList>
             {[...activeRoutines, ...inactiveRoutines].map((routine, index) => {
@@ -143,9 +161,9 @@ export function RoutinesPageClient({
               const actions = buildRoutineCardActions({
                 routine,
                 isPending,
-                canDelete: Boolean(deleteRoutineAction),
+                canArchive: Boolean(archiveRoutineAction),
                 canSetActive: Boolean(setActiveRoutineAction),
-                onRequestDelete: () => setRoutinePendingDelete(routine),
+                onRequestArchive: archiveRoutineAction ? () => setRoutinePendingArchive(routine) : undefined,
                 onEdit: (routineId) => router.push(getRoutineEditHref(routineId, "/routines")),
                 onRename: (routineId) => router.push(getRoutineRenameHref(routineId)),
                 onDuplicate: duplicateRoutineAction
@@ -191,34 +209,73 @@ export function RoutinesPageClient({
           </RoutinesCardList>
         )}
       </SharedDayListSection>
+      {restoreRoutineAction ? (
+        <ArchivedRoutinesSection
+          routines={archivedRoutines}
+          atRestoreLimit={atRestoreLimit}
+          pendingRoutineId={restoringRoutineId}
+          disabled={isPending}
+          defaultExpanded={initialArchivedExpanded}
+          onRestore={(routine) => {
+            if (atRestoreLimit) {
+              toast.warning(ROUTINE_ARCHIVE_COPY.restoreLimit);
+              return;
+            }
+
+            setRestoringRoutineId(routine.id);
+            startTransition(async () => {
+              const result = await restoreRoutineAction({ routineId: routine.id });
+              setRestoringRoutineId(null);
+              if (!result.ok) {
+                const message = result.error ?? ROUTINE_ARCHIVE_COPY.restoreFailed;
+                if (ROUTINE_ARCHIVE_PLAIN_OUTCOMES.has(message)) {
+                  toast.warning(message);
+                } else {
+                  toast.error(message);
+                }
+                return;
+              }
+
+              toast.success(ROUTINE_ARCHIVE_COPY.restoredToast);
+              router.refresh();
+            });
+          }}
+        />
+      ) : null}
       <ConfirmDestructiveModal
-        open={routinePendingDelete !== null}
-        title="Delete routine?"
-        objectName={routinePendingDelete?.name}
-        consequenceText={routinePendingDelete ? describeRoutineDeleteConsequence(routinePendingDelete, routines.filter((item) => item.id !== routinePendingDelete.id).length) : undefined}
-        confirmLabel={CONFIRM_ACTION_LABELS.deleteRoutine}
-        titleVariant="raw"
-        isLoading={isPending}
+        open={routinePendingArchive !== null}
+        title={ROUTINE_ARCHIVE_COPY.confirmTitle}
+        objectName={routinePendingArchive?.name}
+        consequenceText={routinePendingArchive ? describeRoutineArchiveConsequence(routinePendingArchive) : undefined}
+        confirmLabel={CONFIRM_ACTION_LABELS.archiveRoutine}
+        confirmVariant="primary"
+        isLoading={isPending && routinePendingArchive !== null}
         onCancel={() => {
           if (!isPending) {
-            setRoutinePendingDelete(null);
+            setRoutinePendingArchive(null);
           }
         }}
         onConfirm={() => {
-          if (!deleteRoutineAction || !routinePendingDelete) {
+          if (!archiveRoutineAction || !routinePendingArchive) {
             return;
           }
 
           startTransition(async () => {
-            const routineId = routinePendingDelete.id;
-            const result = await deleteRoutineAction({ routineId });
+            const routineId = routinePendingArchive.id;
+            const result = await archiveRoutineAction({ routineId });
             if (!result.ok) {
-              toast.error(result.error ?? "Failed to delete routine.");
+              const message = result.error ?? ROUTINE_ARCHIVE_COPY.archiveFailed;
+              setRoutinePendingArchive(null);
+              if (ROUTINE_ARCHIVE_PLAIN_OUTCOMES.has(message)) {
+                toast.warning(message);
+              } else {
+                toast.error(message);
+              }
               return;
             }
 
-            setRoutinePendingDelete(null);
-            toast.success("Routine deleted.");
+            setRoutinePendingArchive(null);
+            toast.success(ROUTINE_ARCHIVE_COPY.archivedToast);
             router.refresh();
           });
         }}
