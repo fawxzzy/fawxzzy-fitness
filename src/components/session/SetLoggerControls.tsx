@@ -140,7 +140,7 @@ export function LoggerPrimaryLogButton({
       )}
     >
       <span className="relative flex min-w-0 max-w-full flex-col items-center gap-0.5 leading-tight">
-        <span className="text-[15px] font-bold uppercase tracking-[0.08em]">{label}</span>
+        <span className="text-base font-bold">{label}</span>
         {summary ? <span className="max-w-full truncate text-[12px] font-medium tracking-normal text-[rgb(var(--text-secondary))]">{summary}</span> : null}
       </span>
     </button>
@@ -180,7 +180,9 @@ export function LoggedSetDeleteButton({
         }
         onPress();
       }}
-      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full !border !border-[rgb(var(--danger-rgb)/0.32)] !bg-[rgb(var(--danger-rgb)/0.08)] !text-[rgb(var(--danger-rgb))] shadow-none transition-colors hover:!bg-[rgb(var(--danger-rgb)/0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--danger-rgb)/0.45)] motion-reduce:transition-none aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
+      // Quiet until pressed (DESIGN #3): a red pill on every logged row shouted louder than Log set. The red lives in the
+      // confirm that follows, which names the set and says Delete.
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full !border !border-[rgb(var(--border-strong)/0.22)] !bg-transparent !text-[rgb(var(--text-muted))] shadow-none transition-colors hover:!bg-[rgb(var(--danger-rgb)/0.1)] hover:!text-[rgb(var(--danger-rgb))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--danger-rgb)/0.45)] active:!text-[rgb(var(--danger-rgb))] motion-reduce:transition-none aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
     >
       <TrashIcon />
     </button>

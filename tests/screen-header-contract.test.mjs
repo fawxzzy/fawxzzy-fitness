@@ -182,12 +182,12 @@ test("live workout: Pause top right is the one header exit (back to Today, worko
   // persist in the session draft store, so leaving with an exercise open loses nothing.
   const controls = read("src/components/SessionHeaderControls.tsx");
   assert.match(controls, /<ScreenHeader\s+kind="detail"\s+title="Workout"/);
-  assert.match(controls, /trailing=\{<SessionPauseButton backHref=\{backHref\} \/>\}/);
+  assert.match(controls, /trailing=\{\(\s*<span[^>]*>\s*\{typeof elapsedSeconds === "number" \? <SessionWorkoutClock elapsedSeconds=\{elapsedSeconds\} \/> : null\}\s*<SessionPauseButton backHref=\{backHref\} \/>/, "clock, then Pause");
   assert.match(controls, /aria-label=\{SESSION_PAUSE_ARIA_LABEL\}/);
   assert.match(controls, /\bh-11 min-w-11\b/, "44px target");
   assert.doesNotMatch(controls, /\bappMenu\b/);
   // The in-progress header has no left Back; only a completed workout (nothing to pause) swaps Pause for Back.
-  const completedBranch = controls.slice(controls.indexOf("if (completed) {"), controls.indexOf("trailing={<SessionPauseButton"));
+  const completedBranch = controls.slice(controls.indexOf("if (completed) {"), controls.indexOf("trailing={("));
   assert.match(completedBranch, /back=\{<ScreenHeaderBackButton href=\{resolveSessionPauseTarget\(backHref\)\} historyBehavior="history-first" label="Back" \/>\}/);
   assert.doesNotMatch(completedBranch, /SessionPauseButton|trailing=/, "a completed workout never offers Pause");
   assert.equal((controls.match(/<ScreenHeaderBackButton/g) ?? []).length, 1, "Back appears only in the completed branch");

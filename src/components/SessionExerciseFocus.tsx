@@ -18,10 +18,13 @@ import {
   SessionCardMoreMenu,
   SessionQuickLogRow,
   SessionRowNote,
+  resolveSessionSkippedStatus,
   type SessionFinishedExercise,
   type SessionStatusChip,
 } from "@/components/session/SessionRowCards";
 import { useIsOnline } from "@/components/session/useIsOnline";
+import { toSessionSummarySets } from "@/components/session/sessionSummary";
+import { didLogNewSet } from "@/components/session/restTimerModel";
 import { REMOVE_EXERCISE_HAS_SETS_ERROR } from "@/lib/session-live-mutation";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
@@ -330,6 +333,7 @@ export function SessionExerciseFocus({
   disableDraftPersistence = false,
   bottomDockCenter,
   liveProgressRef,
+  onSetLogged,
 }: {
   userId: string;
   sessionId: string;
@@ -361,6 +365,8 @@ export function SessionExerciseFocus({
   bottomDockCenter?: ReactNode;
   /** Read-only snapshot for the finish screen: per-exercise set count (set snapshots, queued sets included) and skip state. Written by an effect; nothing here reads it back. */
   liveProgressRef?: MutableRefObject<SessionFinishedExercise[] | null>;
+  /** Called once each time the total of logged sets goes up (a set or Log all was logged, queued sets included). Starts the rest timer. */
+  onSetLogged?: () => void;
 }) {
   const cachedSessionState = sessionExerciseLocalStateCache.get(sessionId);
   const contract = resolveScreenContract("exerciseLog");
@@ -508,7 +514,7 @@ export function SessionExerciseFocus({
       return;
     }
     const row = document.querySelector<HTMLElement>(`[data-session-exercise-row-id="${pending.exerciseId}"]`);
-    const selector = pending.target === "restore" ? '[data-session-restore="true"]' : '[data-session-more="true"]';
+    const selector = pending.target === "restore" ? '[data-session-restore="true"]' : '[data-session-more="true"] [data-menu-trigger]';
     const target = row?.querySelector<HTMLElement>(selector);
     if (!row || !target) {
       return;
@@ -535,8 +541,30 @@ export function SessionExerciseFocus({
         ?? rowClientStateBySessionExerciseId[exercise.id]?.loggedSetCount
         ?? exercise.loggedSetCount,
       isSkipped: rowClientStateBySessionExerciseId[exercise.id]?.isSkipped ?? exercise.isSkipped,
+      name: exercise.name,
+      sets: toSessionSummarySets(setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets),
     }));
   }, [exercises, liveProgressRef, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId]);
+
+  // Rest timer trigger: compare the total of set snapshots with the previous render (never fires on the first one).
+  // The snapshot map starts empty and is filled by an effect after mount, so fall back to each exercise's server sets:
+  // otherwise the first fill (0 -> N) reads as "a set was just logged" and a rest starts on page load.
+  const loggedSetTotal = exercises.reduce(
+    (total, exercise) => total + (setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets).length,
+    0,
+  );
+  const previousLoggedSetTotalRef = useRef<number | null>(null);
+  const onSetLoggedRef = useRef(onSetLogged);
+  useEffect(() => {
+    onSetLoggedRef.current = onSetLogged;
+  }, [onSetLogged]);
+  useEffect(() => {
+    const previous = previousLoggedSetTotalRef.current;
+    previousLoggedSetTotalRef.current = loggedSetTotal;
+    if (didLogNewSet(previous, loggedSetTotal)) {
+      onSetLoggedRef.current?.();
+    }
+  }, [loggedSetTotal]);
 
   // Snapshot of the latest `exercises` prop for use inside the skip-toggle
   // sync engine's callbacks (registered in a mount-scoped effect below, see
@@ -1182,7 +1210,7 @@ export function SessionExerciseFocus({
             image_howto_path: exercise.image_howto_path,
           };
           const rowStatus: SessionStatusChip = rowViewModel.isSkipped
-            ? "skipped"
+            ? resolveSessionSkippedStatus(setCount)
             : isCompletedRow
               ? "done"
               : exercise.routineDayExerciseId === null
@@ -1554,7 +1582,7 @@ export function SessionExerciseFocus({
                 {shouldRenderCompactSkippedRow ? (
                   <SessionHiddenRowCard
                     exercise={exerciseVisual}
-                    status={baseRowViewModel.isSkipped ? "skipped" : "done"}
+                    status={baseRowViewModel.isSkipped ? resolveSessionSkippedStatus(setCount) : "done"}
                     progress={buildTodayExerciseLoggedProgress(progressState, baseRowViewModel.isSkipped)}
                     action={(
                       <SessionCardBarButton

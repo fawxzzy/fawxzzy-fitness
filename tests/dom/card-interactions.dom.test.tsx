@@ -122,8 +122,8 @@ test("Session logger: row header toggles, info does not, and quick-log Skip and 
   const more = screen.getByRole("button", { name: "More actions for Zed Press" });
   fireEvent.click(more);
   assert.equal(more.getAttribute("aria-expanded"), "true");
-  fireEvent.click(screen.getByRole("button", { name: "Skip: Zed Press" }));
-  assert.equal(screen.queryByRole("button", { name: /Remove from workout/ }), null, "no onRemove: no Remove item");
+  fireEvent.click(screen.getByRole("menuitem", { name: "Skip exercise" }));
+  assert.equal(screen.queryByRole("menuitem", { name: /Remove from workout/ }), null, "no onRemove: no Remove item");
   fireEvent.click(screen.getByRole("button", { name: /^Log set/ }));
   assert.deepEqual(calls, ["toggle", "info", "skip", "log"]);
 });

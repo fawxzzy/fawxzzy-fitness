@@ -7,6 +7,7 @@ import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayExerciseCard } from "@/app/today/TodayExerciseCard";
 import { TodayDayStateCard } from "@/app/today/TodayDayStateCard";
 import { TodayEmptyDayCard } from "@/app/today/TodayEmptyDayCard";
+import { resolveTodayNextUp } from "@/app/today/todayNextUp";
 import { TodaySwitchDayList } from "@/app/today/TodaySwitchDayCard";
 import { TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
@@ -690,13 +691,22 @@ export function TodayDayPicker({
   // The three quiet states (rest day, no exercises, no scheduled workout) share ONE card: TodayEmptyDayCard
   // (centred title, no second line, at most one action). Rest day for the closed-picker, selected-rest-day case;
   // getTodayDaySummaryTone returns no tone for rest days, so without it the body would be empty.
+  const selectedDayNextUp = useMemo(() => {
+    const next = selectedDay
+      ? resolveTodayNextUp(
+        days.map((day) => ({ dayIndex: day.dayIndex, name: day.name, isRest: day.isRest, exerciseCount: day.exercises.length, occurrenceWeekday: day.occurrenceWeekday })),
+        selectedDay.dayIndex,
+      )
+      : null;
+    return next ? { ...next, onShow: () => setSelectedDayIndex(next.dayIndex) } : null;
+  }, [days, selectedDay]);
   const selectedDayRestCard = useMemo(() => {
     if (mode.dayPickerOpen || !mode.restDay || !selectedDay) {
       return null;
     }
 
-    return <TodayEmptyDayCard kind="rest" />;
-  }, [mode.dayPickerOpen, mode.restDay, selectedDay]);
+    return <TodayEmptyDayCard kind="rest" nextUp={selectedDayNextUp} />;
+  }, [mode.dayPickerOpen, mode.restDay, selectedDay, selectedDayNextUp]);
   // `noScheduledDayMessage` is a presence flag now: the card has no second line, so its text is not shown.
   // [Edit routine] opens the routine editor (/routines/[id]/edit?returnTo=/today), where the schedule is set; back returns to Today.
   const noScheduledDayNotice = useMemo(() => {
@@ -736,9 +746,10 @@ export function TodayDayPicker({
       <TodayEmptyDayCard
         kind="empty"
         actionHref={progressionRoutineId ? getRoutineDayEditHref(progressionRoutineId, selectedDay.id, "/today") : null}
+        nextUp={selectedDayNextUp}
       />
     );
-  }, [mode.dayPickerOpen, mode.emptyTrainingDay, noScheduledDayNotice, progressionRoutineId, selectedDay]);
+  }, [mode.dayPickerOpen, mode.emptyTrainingDay, noScheduledDayNotice, progressionRoutineId, selectedDay, selectedDayNextUp]);
 
   // One "Today" tab header (DESIGN-CONTRACT.md section 15). Picker closed: the subtitle names the selected day and
   // routine. Picker open: it names the routine whose days are listed below.
@@ -751,6 +762,7 @@ export function TodayDayPicker({
         subtitle={formatTodayHeaderSubtitle(
           formatRoutineDayStableDisplayName({ name: selectedDay.name, dayIndex: selectedDay.dayIndex, startDate }),
           routineName,
+          { dayIndex: selectedDay.dayIndex, dayCount: days.length },
         )}
         status={headerStatus}
       />

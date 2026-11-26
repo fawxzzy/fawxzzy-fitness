@@ -5,9 +5,11 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
+import { buildSessionFinishedDetails, buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
+import { toSessionSummarySets } from "@/components/session/sessionSummary";
+import { RestTimer, useRestTimer } from "@/components/session/RestTimer";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -153,6 +155,8 @@ export function SessionPageClient({
   // Set only when Finish is tapped with planned sets still unlogged; null means the sheet is closed.
   const [finishConfirm, setFinishConfirm] = useState<SessionFinishCheck | null>(null);
   const finishFormRef = useRef<HTMLFormElement>(null);
+  // Rest timer (DESIGN #2): local only, started by SessionExerciseFocus when a set is logged; cleared on finish.
+  const restTimer = useRestTimer(sessionId, !isSessionCompleted);
   const toast = useToast();
   useToastMessageEffect("error", searchError, { id: "session-search-error" });
   const fallbackReturnHref = useMemo(
@@ -200,6 +204,16 @@ export function SessionPageClient({
   }, [baseDurationSeconds, isSessionCompleted, performedAt]);
 
   const hasExercises = exercises.length > 0;
+  // A session opened already completed has no live list: the summary reads the server rows instead.
+  const serverSummaryExercises = useMemo<SessionFinishedExercise[]>(
+    () => exercises.map((exercise) => ({
+      loggedSetCount: exercise.loggedSetCount,
+      isSkipped: exercise.isSkipped,
+      name: exercise.name,
+      sets: toSessionSummarySets(exercise.initialSets),
+    })),
+    [exercises],
+  );
   // The header stays on screen while an exercise is open. No app menu here: Pause (top right) returns to Today with
   // the workout still running, Finish (dock) ends it (sessionBackAction.ts). A completed workout shows Back instead.
   const floatingHeader = (
@@ -209,6 +223,7 @@ export function SessionPageClient({
       backHref={fallbackReturnHref ?? "/today"}
       statusBadge={<OfflineSyncBadge userId={userId} variant="header" />}
       completed={isSessionCompleted}
+      elapsedSeconds={isSessionCompleted ? undefined : durationSeconds}
     />
   );
 
@@ -223,14 +238,25 @@ export function SessionPageClient({
   );
   const sessionActions = useMemo(
     () => isSessionCompleted ? (
-      <BottomDockButton
-        type="button"
-        intent="positive"
-        className="!min-h-[44px]"
-        onClick={navigateReturn}
-      >
-        Continue
-      </BottomDockButton>
+      // Post-workout summary dock: "View in History" opens this session's History detail, "Done" returns to Today.
+      <BottomActionSplit
+        secondary={(
+          <BottomDockLink href={`/history/${sessionId}?returnTab=sessions`} intent="info" className="!min-h-[44px]">
+            View in History
+          </BottomDockLink>
+        )}
+        primary={(
+          <BottomDockButton
+            type="button"
+            intent="positive"
+            className="!min-h-[44px]"
+            onClick={navigateReturn}
+            data-session-summary-done="true"
+          >
+            Done
+          </BottomDockButton>
+        )}
+      />
     ) : (
       <form
         ref={finishFormRef}
@@ -245,9 +271,9 @@ export function SessionPageClient({
             clearActiveSessionHint(sessionId);
             writeInstallEarnedMoment("workout-completed");
             setSelectedExerciseId(null);
+            // Stay on this screen: it turns into the post-workout summary (DESIGN #1). "Done" in the dock goes to Today.
             setIsSessionCompleted(true);
-            // Progression is manual-only (2026-11-19): saving never promotes, so return straight to Today.
-            navigateReturn();
+            window.scrollTo({ top: 0 });
           }
         }}
         className="w-full"
@@ -281,7 +307,14 @@ export function SessionPageClient({
 
   return (
     <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader} noticePlacement="above-dock">
-      <PublishBottomActions>{sessionActions}</PublishBottomActions>
+      <PublishBottomActions>
+        {restTimer.state && !isSessionCompleted ? (
+          <div className="grid w-full gap-2">
+            <RestTimer state={restTimer.state} now={restTimer.now} onAdjust={restTimer.adjust} onSkip={restTimer.skip} />
+            {sessionActions}
+          </div>
+        ) : sessionActions}
+      </PublishBottomActions>
 
       <ContentRail className={cn(appTokens.currentSessionContentRail, "!gap-0 !py-0")}>
         <section
@@ -294,7 +327,10 @@ export function SessionPageClient({
           <ActionFeedbackToasts />
 
           {isSessionCompleted ? (
-            <SessionFinishedCard facts={buildSessionFinishedFacts({ exercises: liveProgressRef.current ?? exercises, durationSeconds })} />
+            <SessionFinishedCard
+              facts={buildSessionFinishedFacts({ exercises: liveProgressRef.current ?? exercises, durationSeconds })}
+              details={buildSessionFinishedDetails(liveProgressRef.current ?? serverSummaryExercises)}
+            />
           ) : hasExercises ? (
             <SessionExerciseFocus
               userId={userId}
@@ -316,6 +352,7 @@ export function SessionPageClient({
               disableDraftPersistence={disableDraftPersistence}
               bottomDockCenter={null}
               liveProgressRef={liveProgressRef}
+              onSetLogged={restTimer.start}
             />
           ) : null}
 

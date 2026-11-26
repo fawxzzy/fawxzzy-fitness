@@ -38,6 +38,8 @@ function renderSession(options: {
   exercises: SessionExerciseFocusItem[];
   saveSessionAction?: (formData: FormData) => Promise<{ ok: true }>;
   addSetAction?: (payload: { reps: number; weight: number }) => Promise<unknown>;
+  initialIsSessionCompleted?: boolean;
+  initialDurationSeconds?: number;
 }) {
   const { router } = createRouterSpy();
   const noop = async () => ({ ok: true as const });
@@ -46,8 +48,8 @@ function renderSession(options: {
         <SessionPageClient
           userId="u1"
           sessionId="s1"
-          initialDurationSeconds={0}
-          initialIsSessionCompleted={false}
+          initialDurationSeconds={options.initialDurationSeconds ?? 0}
+          initialIsSessionCompleted={options.initialIsSessionCompleted ?? false}
           performedAt={new Date().toISOString()}
           routineName="Atlas Routine"
           sessionDayName="Lower A"
@@ -143,6 +145,36 @@ test("Session: tapping Log sends one set with the planned reps and weight, and F
   assert.ok(within(sheet).getByText("1 of 4 sets logged."), "the Finish sheet counts the set that was just logged");
 });
 
+// DESIGN #2 (2026-11-26): logging a set starts a local 90s rest countdown above Finish; +15 adds time, Skip hides it.
+test("Session: logging a set starts the rest timer; +15 adds time and Skip hides it; the header shows the workout clock", async () => {
+  window.sessionStorage.clear();
+  const calls: AddSetPayload[] = [];
+  renderSession({ exercises: [exercise({ id: "a", name: "Zed Press" })], addSetAction: acceptingAddSet(calls) as never });
+  assert.ok(document.querySelector('[data-session-clock="true"]'), "workout clock in the header");
+  assert.equal(document.querySelector("[data-rest-timer]"), null, "no rest before the first set");
+
+  fireEvent.click(screen.getByRole("button", { name: /^Log set\s*5 reps/ }));
+  const timer = await screen.findByRole("timer", { name: /^Rest, 1 minute 30 seconds left$|^Rest, 1 minute 29 seconds left$/ });
+  assert.ok(timer);
+  fireEvent.click(screen.getByRole("button", { name: "15 seconds more rest" }));
+  await screen.findByRole("timer", { name: /^Rest, 1 minute 4[45] seconds left$/ });
+  assert.ok(window.sessionStorage.getItem("fitness:session-rest-timer:s1"), "the countdown survives a reload");
+
+  fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+  await waitFor(() => assert.equal(document.querySelector("[data-rest-timer]"), null));
+  assert.equal(window.sessionStorage.getItem("fitness:session-rest-timer:s1"), null);
+});
+
+test("Session: opening a workout that already has logged sets does not start a rest", async () => {
+  window.sessionStorage.clear();
+  const set = { session_exercise_id: "a", user_id: "u1", is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" as const };
+  renderSession({
+    exercises: [exercise({ id: "a", name: "Zed Press", loggedSetCount: 2, initialSets: [{ ...set, id: "s-0", set_index: 0, weight: 225, reps: 5 }, { ...set, id: "s-1", set_index: 1, weight: 225, reps: 4 }] })],
+  });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(document.querySelector("[data-rest-timer]"), null);
+});
+
 test("Session: Finish with every planned set logged submits once and shows no confirm sheet", async () => {
   const { container } = renderSession({
     exercises: [exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1, loggedSetCount: 1, initialSets: [{ id: "set-0", session_exercise_id: "a", user_id: "u1", set_index: 0, weight: 225, reps: 5, is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" }] })],
@@ -166,6 +198,28 @@ test("Session: confirming the Finish sheet submits the workout once; Keep going 
   fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Finish" }));
   await waitFor(() => assert.equal(submits.count, 1));
   assert.equal(screen.queryByRole("dialog"), null, "the sheet closes once the workout is submitted");
+});
+
+// DESIGN #1 (2026-11-26): a saved workout stays on a summary with Done (back to Today) and View in History.
+test("Session: a saved workout shows the summary with volume, top set, Done and View in History", () => {
+  const set = { session_exercise_id: "a", user_id: "u1", is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" as const };
+  renderSession({
+    initialIsSessionCompleted: true,
+    initialDurationSeconds: 2700,
+    exercises: [
+      exercise({ id: "a", name: "Zed Press", loggedSetCount: 2, initialSets: [{ ...set, id: "s-0", set_index: 0, weight: 225, reps: 5 }, { ...set, id: "s-1", set_index: 1, weight: 225, reps: 4 }] }),
+      exercise({ id: "b", name: "Dips", isSkipped: true }),
+    ],
+  });
+  const card = screen.getByRole("status");
+  assert.ok(within(card).getByText("Workout saved"));
+  assert.ok(within(card).getByText("45m"));
+  assert.ok(within(card).getByText("2,025 lbs lifted"));
+  assert.ok(within(card).getByText("225 lbs x 5 · Zed Press"));
+  assert.ok(within(card).getByText("Skipped"));
+  assert.ok(screen.getByRole("button", { name: "Done" }));
+  assert.equal(screen.getByRole("link", { name: "View in History" }).getAttribute("href"), "/history/s1?returnTab=sessions");
+  assert.equal(screen.queryByRole("button", { name: "Finish" }), null);
 });
 
 // Zac 2026-11-24: open / close must be discoverable. The header, the bottom-edge grab handle and the logger's Close

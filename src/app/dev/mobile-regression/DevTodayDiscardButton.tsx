@@ -1,6 +1,7 @@
 "use client";
 
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 
 const DEV_DISCARD_FAILED_MESSAGE = "Could not discard the workout. Try again.";
 
@@ -15,12 +16,12 @@ export function DevTodayDiscardButton() {
       action={async () => ({ ok: false as const, error: DEV_DISCARD_FAILED_MESSAGE })}
       hiddenFields={{ sessionId: "dev-session" }}
       triggerLabel="Discard"
-      triggerIntent="danger"
+      triggerIntent="info"
       triggerClassName="h-full w-full"
       size="md"
       modalTitle="Discard workout?"
       modalConsequenceText="Current workout will be removed."
-      confirmLabel="Discard Workout"
+      confirmLabel={CONFIRM_ACTION_LABELS.discardWorkout}
       failureMessage={DEV_DISCARD_FAILED_MESSAGE}
     />
   );
