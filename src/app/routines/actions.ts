@@ -898,7 +898,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
   });
 
   if (targetDayError || !targetDay) {
-    return { ok: false, error: targetDayError?.message ?? "Target day not found." };
+    return { ok: false, error: targetDayError?.message ?? "Day not found." };
   }
 
   const { data: existingTargetExercises, error: existingTargetExercisesError } = await supabase

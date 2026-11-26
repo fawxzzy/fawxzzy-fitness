@@ -119,6 +119,16 @@ export function AppLoaderHost() {
 
     const apply = (frame: LoaderFrame, active: boolean, label: string) => {
       const { phase } = frame.machine;
+      if (stageHidden && active && phase !== "fading-out" && phase !== "idle" && root.dataset.state === "boot") {
+        // A wait arrived after the cover had already started to leave (a screen whose <RouteLoading> mounts a frame
+        // later): the fade turned around and the cover is up again, so give the icon back (the CSS boot fade-in
+        // restarts) instead of leaving a blank cover up until the wait ends.
+        if (stage) {
+          stage.style.removeProperty("animation");
+          stage.style.removeProperty("opacity");
+        }
+        stageHidden = false;
+      }
       if (!stageHidden && phase === "fading-out" && root.dataset.state === "boot") {
         // The cover starts to leave. If its icon never got past the show delay (the load beat it), keep the icon from
         // fading in while the cover fades out: a load shorter than the delay never shows the loader.

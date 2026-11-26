@@ -52,5 +52,8 @@ test("the notice slot always holds its height and every notice is role=alert", (
   assert.match(cssSource, /@media \(max-height: 640px\)[\s\S]*\.fx-slot \{\s*min-height: 62px;/);
   assert.match(shellSource, /<div className=\{cn\("fx-slot", className\)\} data-testid="auth-notice-slot">/);
   assert.match(shellSource, /role="alert"/);
+  // A freshly shown notice scrolls itself into view (320x568: the auth body is a short scroller).
+  assert.match(shellSource, /<NoticeScrollIntoView \/>/);
+  assert.match(readFileSync(new URL("./NoticeScrollIntoView.tsx", import.meta.url), "utf8"), /scrollIntoView\(\{ block: "nearest" \}\)/);
   assert.doesNotMatch(shellSource, /role="status"[^}]*data-testid="auth-notice"/);
 });
