@@ -445,6 +445,56 @@ test("Session: a failed save never auto-advances", async () => {
   assert.equal(panelOf("b"), null, "the next card did not open");
 });
 
+test("Session: the last planned set of the last unfinished exercise just closes the card (no next)", async () => {
+  const calls: AddSetPayload[] = [];
+  renderSession({
+    sessionId: "s-last-card",
+    exercises: [
+      exercise({ id: "a", name: "Zed Press", isSkipped: true }),
+      exercise({ id: "b", name: "Yew Row", targetSetsMin: 1, targetSetsMax: 1 }),
+    ],
+    addSetAction: acceptingAddSet(calls) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-b"));
+  await waitFor(() => assert.ok(panelOf("b")));
+  fireEvent.click(panelOf("b")?.querySelector('[data-logger-primary="true"]') as HTMLButtonElement);
+  await waitFor(() => assert.equal(calls.length, 1));
+  await waitFor(() => assert.equal(panelOf("b"), null, "the finished card closes"));
+  assert.equal(document.querySelectorAll('[data-testid^="session-exercise-panel-"]').length, 0, "nothing else opens");
+});
+
+test("Session: a save that lands after the user opened another card never yanks the selection", async () => {
+  const calls: AddSetPayload[] = [];
+  const accept = acceptingAddSet(calls);
+  let release: (() => void) | null = null;
+  renderSession({
+    sessionId: "s-late",
+    exercises: [
+      exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1 }),
+      exercise({ id: "b", name: "Yew Row" }),
+      exercise({ id: "c", name: "Xen Curl" }),
+    ],
+    addSetAction: (async (payload: AddSetPayload) => {
+      await new Promise<void>((resolve) => { release = resolve; });
+      return accept(payload);
+    }) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
+  await waitFor(() => assert.ok(panelOf("a")));
+  fireEvent.click(panelOf("a")?.querySelector('[data-logger-primary="true"]') as HTMLButtonElement);
+  await waitFor(() => assert.ok(release, "the save is in flight"));
+
+  // The user moves to Xen Curl by hand while Zed Press's last set is still saving.
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-c"));
+  await waitFor(() => assert.ok(panelOf("c")));
+  (release as unknown as () => void)();
+  await waitFor(() => assert.equal(calls.length, 1));
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.ok(panelOf("c"), "the card the user chose stays open");
+  assert.equal(panelOf("b"), null, "the late save did not advance to the next card");
+  assert.equal(panelOf("a"), null);
+});
+
 test("Session: the timer is shown and hidden from the open card's More menu", async () => {
   const commands: string[] = [];
   renderSession({

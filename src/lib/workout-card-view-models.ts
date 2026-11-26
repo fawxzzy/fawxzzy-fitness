@@ -856,7 +856,7 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
   const metrics: MetricDatum[] = [
     ...(duration && duration !== "0m"
       ? [{
-          label: "Session Time",
+          label: "Workout Time",
           value: duration,
         }]
       : []),
@@ -896,7 +896,7 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
 
   if (metrics.length <= 2) {
     metrics.unshift({
-      label: "Session Time",
+      label: "Workout Time",
       value: duration ?? "Open",
     });
   }

@@ -36,8 +36,10 @@ test("history fixtures preserve selected-session identity and fixture-relative c
   assert.match(source, /logId=\{historySession\.id\}/);
   assert.match(source, /sessionSummary=\{historySession\}/);
   assert.match(source, /calendarNow="2026-04-10T12:00:00\.000Z"/);
-  assert.match(historyClientSource, /calendarNow\?: string/);
-  // Wave 2: the calendar and heatmap moved to Progress, which frames them on the same fixture clock.
+  // Wave 2: the calendar and heatmap moved to Progress, which frames them on the same fixture clock; the Workouts list
+  // no longer takes a clock at all.
+  assert.doesNotMatch(historyClientSource, /calendarNow/);
+  assert.match(progressOverviewSource, /calendarNow\?: string/);
   assert.match(progressOverviewSource, /now: calendarNow/);
 });
 

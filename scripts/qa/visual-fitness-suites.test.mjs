@@ -83,7 +83,7 @@ test("history seam asserts the deterministic notes highlight contract", () => {
     "Expected the history seam to assert the Notes highlight option.",
   );
   assert.ok(
-    (suite?.interaction?.expectedText ?? []).includes("No Set Data"),
+    (suite?.interaction?.expectedText ?? []).includes("No sets logged"),
     "Expected the history seam to assert neighboring highlight options for the same filter lane.",
   );
   assert.ok(

@@ -88,11 +88,11 @@ export function ProgressionHistorySurface({
             <ul className="grid">
               {lifts.map((lift) => (
                 <li
-                  key={lift.exerciseName}
+                  key={lift.key}
                   data-progress-lift={lift.exerciseName}
                   className="flex min-h-11 min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-0.5 border-b border-[rgb(var(--border-strong)/0.1)] py-1.5 last:border-b-0"
                 >
-                  <span className="min-w-0 truncate text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{lift.exerciseName}</span>
+                  <span className="min-w-0 truncate text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{lift.routineName ? `${lift.exerciseName} · ${lift.routineName}` : lift.exerciseName}</span>
                   <span className="min-w-0 text-[0.84rem] tabular-nums text-[rgb(var(--text-secondary))]">
                     {lift.before && lift.after ? (
                       <>

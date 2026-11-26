@@ -375,7 +375,7 @@ async function main() {
             return Boolean(
               card
               && card.getAttribute("data-history-density") === "detailed"
-              && card.textContent?.includes("Session Time")
+              && card.textContent?.includes("Workout Time")
               && card.textContent?.includes("Completion")
             );
           })()`,

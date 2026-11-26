@@ -90,13 +90,13 @@ test("headerless detailed session card (session detail summary) has no heading o
       session={session}
       viewMode="detailed"
       detailedHeaderMode="hidden"
-      detailedMetrics={[{ label: "Session Time", value: "26m" }, { label: "Completion", value: "100%", valueTone: "success" }]}
+      detailedMetrics={[{ label: "Workout Time", value: "26m" }, { label: "Completion", value: "100%", valueTone: "success" }]}
     />,
   );
 
   assert.doesNotMatch(html, /<h[1-6]/);
   assert.doesNotMatch(html, /<a /);
-  assert.match(html, /Session Time/);
+  assert.match(html, /Workout Time/);
   assert.match(html, /26m/);
   assert.match(html, /Completion/);
 });

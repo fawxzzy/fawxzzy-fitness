@@ -82,6 +82,7 @@ import { useSessionSetLogSync } from "@/components/session/useSessionSetLogSync"
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
 import { findNextUnfinishedExerciseId, isLastPlannedSet } from "@/components/session/sessionAutoAdvance";
+import { getLoggerRevealShift } from "@/components/session/loggerReveal";
 import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
@@ -312,6 +313,27 @@ function resolveSessionExerciseTone(args: {
   }
 
   return "neutral";
+}
+
+// Bring the open logger's Log set above the floating Add / Finish dock on short phones, keeping the logger box itself
+// on screen (getLoggerRevealShift). Runs after the row anchor; no-op when Log set already shows.
+function revealOpenLoggerActions(scrollContainer: HTMLElement, exerciseId: string) {
+  const panel = document.querySelector(`[data-testid="session-exercise-panel-${exerciseId}"]`);
+  const actions = panel?.querySelector("[data-logger-actions='true']");
+  if (!(panel instanceof HTMLElement) || !(actions instanceof HTMLElement)) {
+    return;
+  }
+  const scrollRect = scrollContainer.getBoundingClientRect();
+  const dockTop = document.querySelector("[data-app-bottom-dock]")?.getBoundingClientRect().top ?? scrollRect.bottom;
+  const shift = getLoggerRevealShift({
+    actionsBottom: actions.getBoundingClientRect().bottom,
+    panelTop: panel.getBoundingClientRect().top,
+    visibleTop: scrollRect.top,
+    visibleBottom: Math.min(scrollRect.bottom, dockTop),
+  });
+  if (shift > 0) {
+    scrollContainer.scrollTop += shift;
+  }
 }
 
 export function SessionExerciseFocus({
@@ -606,7 +628,7 @@ export function SessionExerciseFocus({
     const previousSelectedExerciseId = previousSelectedExerciseIdRef.current;
     previousSelectedExerciseIdRef.current = selectedExerciseId;
 
-    if (!shouldAnchorExpandedSessionExercise(previousSelectedExerciseId, selectedExerciseId)) {
+    if (!selectedExerciseId || !shouldAnchorExpandedSessionExercise(previousSelectedExerciseId, selectedExerciseId)) {
       return;
     }
 
@@ -623,6 +645,7 @@ export function SessionExerciseFocus({
         }
 
         scrollDockAwareIntoView(scrollContainer, activeRow);
+        revealOpenLoggerActions(scrollContainer, selectedExerciseId);
       });
     });
 
@@ -631,6 +654,30 @@ export function SessionExerciseFocus({
       window.cancelAnimationFrame(frameB);
     };
   }, [selectedExerciseId]);
+
+  // A logger that is already open when the workout loads gets the same Log set reveal once (no row anchor: the page
+  // keeps its own starting scroll otherwise).
+  const initialOpenExerciseIdRef = useRef(selectedExerciseId);
+  useEffect(() => {
+    const openExerciseId = initialOpenExerciseIdRef.current;
+    if (!openExerciseId) {
+      return;
+    }
+    let frameA = 0;
+    let frameB = 0;
+    frameA = window.requestAnimationFrame(() => {
+      frameB = window.requestAnimationFrame(() => {
+        const scrollContainer = document.querySelector("[data-app-scroll-container='true']");
+        if (scrollContainer instanceof HTMLElement) {
+          revealOpenLoggerActions(scrollContainer, openExerciseId);
+        }
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+    };
+  }, []);
 
   const patchRowState = useCallback((
     sessionExerciseId: string,
@@ -1394,7 +1441,7 @@ export function SessionExerciseFocus({
                       onRemove={canOfferRemove ? () => handleRemoveExercise(exercise.id) : undefined}
                       timerVisible={isExerciseTimerVisible}
                       timerInactive={timerTogglePendingIds.includes(exercise.id)}
-                      onToggleTimer={updateSessionExerciseTimerAction && !isStretchHub
+                      onToggleTimer={updateSessionExerciseTimerAction
                         ? () => handleExerciseTimerToggle(exercise.id, !isExerciseTimerVisible)
                         : undefined}
                     />

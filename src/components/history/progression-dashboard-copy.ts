@@ -24,39 +24,88 @@ export function toPlainEventLabel(eventType: string, fallback?: string): string 
 }
 
 export type LiftThatWentUp = {
+  /** Stable key for the lift (its routine slot, else exercise id, else name). */
+  key: string;
   exerciseName: string;
+  /** Set only when two lifts in the list share a name, so the lines can be told apart. */
+  routineName: string | null;
   before: string | null;
   after: string | null;
   timesUp: number;
 };
 
-type LiftRow = Pick<ProgressionHistoryDisplayRow, "eventTypeValue" | "exerciseName" | "fromTargetLabel" | "toTargetLabel">;
+type LiftRow = Pick<ProgressionHistoryDisplayRow, "eventTypeValue" | "exerciseName" | "fromTargetLabel" | "toTargetLabel">
+  & Partial<Pick<ProgressionHistoryDisplayRow, "exerciseId" | "routineDayExerciseId" | "routineName">>;
+
+type LiftWalk = { lift: LiftThatWentUp | null; pendingReverts: number; closed: boolean; order: number };
+
+function liftKey(row: LiftRow) {
+  // A goal belongs to one routine slot; the same exercise in two routines has two goals. Name is the last resort.
+  if (row.routineDayExerciseId) return `slot:${row.routineDayExerciseId}`;
+  if (row.exerciseId) return `exercise:${row.exerciseId}`;
+  return `name:${row.exerciseName}`;
+}
 
 /**
- * One line per exercise that went up, newest first: the goal before its first raise and after its latest raise.
- * `rows` are the ledger rows, newest first (the loader's order).
+ * One line per lift whose CURRENT goal is up, newest first: the goal before the raises that still stand -> the goal now.
+ * `rows` are the ledger rows, newest first (the loader's order). Per lift, walking newest -> oldest:
+ * - "Undone" (promotion_reverted) cancels the next older raise; an undone raise never shows.
+ * - A lighter week or a goal you changed by hand that is NEWER than every standing raise drops the lift: its goal now
+ *   is not the raised one, and the labels are text, so netting them out would guess. An older one just ends the run.
+ * - Locks, reviews and watch marks do not change the goal and are skipped.
  */
 export function buildLiftsThatWentUp(rows: readonly LiftRow[], limit = 5): LiftThatWentUp[] {
-  const byExercise = new Map<string, LiftThatWentUp>();
+  const walks = new Map<string, LiftWalk>();
+  let order = 0;
   for (const row of rows) {
-    if (row.eventTypeValue !== "promotion_applied") {
-      continue;
+    const key = liftKey(row);
+    let walk = walks.get(key);
+    if (!walk) {
+      walk = { lift: null, pendingReverts: 0, closed: false, order: 0 };
+      walks.set(key, walk);
     }
-    const existing = byExercise.get(row.exerciseName);
-    if (existing) {
-      // Older raise: its starting point is the new "before".
-      existing.before = row.fromTargetLabel ?? existing.before;
-      existing.timesUp += 1;
-      continue;
+    if (walk.closed) continue;
+    switch (row.eventTypeValue) {
+      case "promotion_reverted":
+        walk.pendingReverts += 1;
+        break;
+      case "promotion_applied":
+        if (walk.pendingReverts > 0) {
+          walk.pendingReverts -= 1;
+          break;
+        }
+        if (walk.lift) {
+          // Older standing raise: its starting point is the new "before".
+          walk.lift.before = row.fromTargetLabel ?? walk.lift.before;
+          walk.lift.timesUp += 1;
+        } else {
+          walk.lift = {
+            key,
+            exerciseName: row.exerciseName,
+            routineName: row.routineName ?? null,
+            before: row.fromTargetLabel,
+            after: row.toTargetLabel,
+            timesUp: 1,
+          };
+          walk.order = order++;
+        }
+        break;
+      case "deload_applied":
+      case "manual_target_change":
+        walk.closed = true;
+        break;
+      default:
+        break;
     }
-    byExercise.set(row.exerciseName, {
-      exerciseName: row.exerciseName,
-      before: row.fromTargetLabel,
-      after: row.toTargetLabel,
-      timesUp: 1,
-    });
   }
-  return [...byExercise.values()].slice(0, Math.max(0, limit));
+  const lifts = [...walks.values()]
+    .filter((walk): walk is LiftWalk & { lift: LiftThatWentUp } => walk.lift !== null)
+    .sort((left, right) => left.order - right.order)
+    .map((walk) => walk.lift)
+    .slice(0, Math.max(0, limit));
+  const nameCounts = new Map<string, number>();
+  for (const lift of lifts) nameCounts.set(lift.exerciseName, (nameCounts.get(lift.exerciseName) ?? 0) + 1);
+  return lifts.map((lift) => ({ ...lift, routineName: (nameCounts.get(lift.exerciseName) ?? 0) > 1 ? lift.routineName : null }));
 }
 
 const DETAIL_STAT_LABELS: Record<string, string> = {

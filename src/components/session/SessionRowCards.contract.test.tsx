@@ -603,7 +603,9 @@ test("More menu (wave 2, SIMPLIFY #4): Show timer / Hide timer sits first, befor
   assert.match(rowCards, /id: "timer",\s*label: timerVisible \? "Hide timer" : "Show timer"/);
   assert.ok(rowCards.indexOf('id: "timer"') < rowCards.indexOf('id: "skip"'), "timer before skip");
   const focus = readSource("../SessionExerciseFocus.tsx");
-  assert.match(focus, /onToggleTimer=\{updateSessionExerciseTimerAction && !isStretchHub/);
+  // Stretch hubs keep the Timer too (they had it before wave 2; the review of PR #322 caught its removal).
+  assert.match(focus, /onToggleTimer=\{updateSessionExerciseTimerAction\s*\?/);
+  assert.doesNotMatch(focus, /onToggleTimer=\{[^}]*isStretchHub/, "every card, stretch hubs included, offers the Timer");
   assert.match(focus, /timerInactive=\{timerTogglePendingIds\.includes\(exercise\.id\)\}/, "no double toggle while one is saving");
   assert.match(focus, /toast\.error\(\(!result\.ok && result\.error\) \|\| "Could not update exercise timer\."\)/, "a failed toggle uses the in-flow notice");
 });

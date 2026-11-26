@@ -2800,7 +2800,6 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}
             sessionHrefOverrides={sessionHrefOverrides}
-            calendarNow="2026-04-10T12:00:00.000Z"
           />
       </div>
     </HistoryRouteScaffold>

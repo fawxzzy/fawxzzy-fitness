@@ -59,6 +59,9 @@ export type ProgressionHistoryDisplayRow = {
   createdAtLabel: string;
   createdAtFullLabel: string;
   exerciseName: string;
+  /** Ids behind the row, so callers can group by lift without trusting display names. */
+  exerciseId: string | null;
+  routineDayExerciseId: string | null;
   routineName: string | null;
   fromTargetLabel: string | null;
   toTargetLabel: string | null;
@@ -512,6 +515,8 @@ export function buildProgressionHistoryDisplayRow(args: {
     createdAtLabel: formatDateShort(args.event.created_at),
     createdAtFullLabel: formatDateTime(args.event.created_at),
     exerciseName: args.exerciseNameById?.get(args.event.exercise_id) ?? "Exercise",
+    exerciseId: args.event.exercise_id ?? null,
+    routineDayExerciseId: args.event.routine_day_exercise_id ?? null,
     routineName: args.routineNameById?.get(args.event.routine_id) ?? null,
     fromTargetLabel,
     toTargetLabel,

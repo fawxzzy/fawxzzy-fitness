@@ -380,8 +380,6 @@ export function HistorySessionsClient({
   /** Portal the Compact / Detailed toggle into the History header (off on dev fixtures without that header). */
   showHeaderDensityToggle?: boolean;
   sessionHrefOverrides?: Record<string, string>;
-  /** Unused since the calendar moved to Progress (wave 2); kept so fixture callers still type-check. */
-  calendarNow?: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
