@@ -38,6 +38,11 @@ function renderForm(addExerciseAction: (formData: FormData) => Promise<ActionRes
   return calls;
 }
 
+// Nothing is preselected (DESIGN #3): pick the exercise first, the way a person does.
+function selectExercise() {
+  fireEvent.click(screen.getByText("Zed Lift"));
+}
+
 function addButton() {
   return screen.getByRole("button", { name: /Add Exercise|Adding exercise/u });
 }
@@ -53,6 +58,7 @@ test("Add exercise: a slow add shows the pending state at once and a second tap 
   });
 
   // "Use Last" fills a complete goal so the Add button is allowed to submit.
+  selectExercise();
   fireEvent.click(screen.getByRole("button", { name: "Use Last" }));
   assert.equal((addButton() as HTMLButtonElement).disabled, false);
 
@@ -84,6 +90,7 @@ test("Add exercise: after a failed add the button comes back and another tap can
     attempts += 1;
     return { ok: false, error: "Could not add exercise." } as ActionResult;
   });
+  selectExercise();
   fireEvent.click(screen.getByRole("button", { name: "Use Last" }));
   fireEvent.click(addButton());
   await waitFor(() => assert.equal(attempts, 1));
