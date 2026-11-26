@@ -12,6 +12,13 @@ import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { StatFieldLabel } from "@/components/ui/measurements/StatFieldLabel";
 import { resolveDefaultMeasurementMetricLabel } from "@/lib/measurement-metric-labels";
 import { getDistanceMetricLabel, normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import {
+  CALORIES_STEP,
+  resolveDistanceStep,
+  resolveNumericInputMode,
+  resolveWeightStep,
+  stepNumericValue,
+} from "@/components/ui/measurements/numericFieldPolicy";
 
 const METRICS: Array<{
   key: keyof MeasurementMetrics;
@@ -79,10 +86,6 @@ function formatDurationSecondsForSteppedValue(seconds: number) {
   const minutes = Math.floor(safeSeconds / 60);
   const remainder = safeSeconds % 60;
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
-}
-
-function formatDecimalStepValue(value: number, precision = 2) {
-  return value.toFixed(precision).replace(/\.?0+$/, "");
 }
 
 function decrementRepFieldValue(value: string | undefined) {
@@ -718,7 +721,8 @@ export function MeasurementPanelV2({
           <input
             name={names?.reps}
             type="text"
-            inputMode="text"
+            inputMode={resolveNumericInputMode("reps")}
+            autoComplete="off"
             value={values.reps}
             onChange={(event) => {
               onChange({ reps: sanitizeIntegerInput(event.target.value) });
@@ -753,7 +757,8 @@ export function MeasurementPanelV2({
           <input
             name={names?.repsMax}
             type="text"
-            inputMode="text"
+            inputMode={resolveNumericInputMode("reps")}
+            autoComplete="off"
             value={values.repsMax ?? ""}
             onChange={(event) => {
               onChange({ repsMax: sanitizeIntegerInput(event.target.value) });
@@ -842,7 +847,8 @@ export function MeasurementPanelV2({
                   <input
                     name={names?.reps}
                     type="text"
-                    inputMode="text"
+                    inputMode={resolveNumericInputMode("reps")}
+                    autoComplete="off"
                     value={values.reps}
                     onChange={(event) => {
                       onChange({ reps: sanitizeIntegerInput(event.target.value) });
@@ -888,7 +894,8 @@ export function MeasurementPanelV2({
                   <input
                     name={names?.weight}
                     type="text"
-                    inputMode="text"
+                    inputMode={resolveNumericInputMode("weight")}
+                    autoComplete="off"
                     value={values.weight}
                     onChange={(event) => {
                       onChange({ weight: sanitizeDecimalInput(event.target.value) });
@@ -905,8 +912,8 @@ export function MeasurementPanelV2({
                   {renderStepperButtons({
                     decrementAriaLabel: "Decrease weight",
                     incrementAriaLabel: "Increase weight",
-                    onDecrement: () => onChange({ weight: formatDecimalStepValue(Math.max(0, (Number.parseFloat(values.weight) || 0) - 1), 2) }),
-                    onIncrement: () => onChange({ weight: formatDecimalStepValue((Number.parseFloat(values.weight) || 0) + 1, 2) }),
+                    onDecrement: () => onChange({ weight: stepNumericValue(values.weight, resolveWeightStep(values.weightUnit), -1) }),
+                    onIncrement: () => onChange({ weight: stepNumericValue(values.weight, resolveWeightStep(values.weightUnit), 1) }),
                   })}
                 </InlineFieldControl>
                 {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
@@ -935,7 +942,8 @@ export function MeasurementPanelV2({
                   <input
                     name={names?.duration}
                     type="text"
-                    inputMode="text"
+                    inputMode={resolveNumericInputMode("time")}
+                    autoComplete="off"
                     value={values.duration}
                     onChange={(event) => {
                       onChange({ duration: sanitizeDurationTextInput(event.target.value) });
@@ -981,7 +989,8 @@ export function MeasurementPanelV2({
                   <input
                     name={names?.distance}
                     type="text"
-                    inputMode="text"
+                    inputMode={resolveNumericInputMode("distance")}
+                    autoComplete="off"
                     value={values.distance}
                     onChange={(event) => {
                       onChange({ distance: sanitizeDecimalInput(event.target.value) });
@@ -998,8 +1007,8 @@ export function MeasurementPanelV2({
                   {renderStepperButtons({
                     decrementAriaLabel: "Decrease distance",
                     incrementAriaLabel: "Increase distance",
-                    onDecrement: () => onChange({ distance: formatDecimalStepValue(Math.max(0, (Number.parseFloat(values.distance) || 0) - 1), 2) }),
-                    onIncrement: () => onChange({ distance: formatDecimalStepValue((Number.parseFloat(values.distance) || 0) + 1, 2) }),
+                    onDecrement: () => onChange({ distance: stepNumericValue(values.distance, resolveDistanceStep(resolvedDistanceUnit), -1) }),
+                    onIncrement: () => onChange({ distance: stepNumericValue(values.distance, resolveDistanceStep(resolvedDistanceUnit), 1) }),
                   })}
                 </InlineFieldControl>
                 {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
@@ -1028,7 +1037,8 @@ export function MeasurementPanelV2({
                   <input
                     name={names?.calories}
                     type="text"
-                    inputMode="text"
+                    inputMode={resolveNumericInputMode("calories")}
+                    autoComplete="off"
                     value={values.calories}
                     onChange={(event) => {
                       onChange({ calories: sanitizeIntegerInput(event.target.value) });
@@ -1046,8 +1056,8 @@ export function MeasurementPanelV2({
                   {renderStepperButtons({
                     decrementAriaLabel: "Decrease calories",
                     incrementAriaLabel: "Increase calories",
-                    onDecrement: () => onChange({ calories: String(Math.max(0, (Number.parseInt(values.calories, 10) || 0) - 1)) }),
-                    onIncrement: () => onChange({ calories: String((Number.parseInt(values.calories, 10) || 0) + 1) }),
+                    onDecrement: () => onChange({ calories: stepNumericValue(values.calories, CALORIES_STEP, -1) }),
+                    onIncrement: () => onChange({ calories: stepNumericValue(values.calories, CALORIES_STEP, 1) }),
                   })}
                 </InlineFieldControl>
               </>
@@ -1073,7 +1083,8 @@ export function MeasurementPanelV2({
                 >
                   <input
                     type="text"
-                    inputMode="text"
+                    inputMode={resolveNumericInputMode("rpe")}
+                    autoComplete="off"
                     value={rpe ?? ""}
                     onChange={(event) => onRpeChange(sanitizeDecimalInput(event.target.value))}
                     className={getInputClassName({
