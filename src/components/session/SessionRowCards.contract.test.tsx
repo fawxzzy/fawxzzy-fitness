@@ -15,6 +15,7 @@ import {
 } from "./SetLoggerControls.tsx";
 import { describeLoggerChips, LOGGER_CHIP_CAPTIONS, resolveLoggerLogPrefix } from "./loggerChipCaption.ts";
 import {
+  buildSessionFinishedDetails,
   buildSessionFinishedFacts,
   SessionCardExpandHandle,
   SessionExerciseRowCard,
@@ -270,8 +271,29 @@ test("finished card: status role, heading, facts from sessions data, Continue hi
   assert.match(html, /role="status"/);
   assert.match(html, /<h2[^>]*>Workout saved<\/h2>/);
   assert.match(html, /2 exercises/);
-  assert.match(html, /Continue to return to your workout overview\./);
+  assert.match(html, /Saved to History\. Tap Done to go back to Today\./);
+  assert.doesNotMatch(html, /data-session-summary-highlights|data-session-summary-rows/, "no details, no empty sections");
   assert.doesNotMatch(renderToStaticMarkup(<SessionFinishedCard facts={[]} />), /data-card-meta/);
+});
+
+test("post-workout summary: volume, top set and one line per exercise from the live list; no PR line", () => {
+  const details = buildSessionFinishedDetails([
+    { loggedSetCount: 2, isSkipped: false, name: "Bench Press", sets: [{ weight: 185, reps: 5, weightUnit: "lbs" }, { weight: 185, reps: 6, weightUnit: "lbs" }] },
+    { loggedSetCount: 0, isSkipped: true, name: "Dips", sets: [] },
+    { loggedSetCount: 0, isSkipped: false },
+  ]);
+  const html = renderToStaticMarkup(<SessionFinishedCard facts={["1 exercise", "2 sets"]} details={details} />);
+  assert.match(html, /data-session-summary-highlight="volume"[\s\S]*2,035 lbs lifted/);
+  assert.match(html, /data-session-summary-highlight="top-set"[\s\S]*185 lbs x 6 · Bench Press/);
+  assert.match(html, /data-session-summary-row="done"[\s\S]*Bench Press[\s\S]*2 sets/);
+  assert.match(html, /data-session-summary-row="skipped"[\s\S]*Dips[\s\S]*Skipped/);
+  assert.doesNotMatch(html, /\bPR\b/);
+
+  const page = readSource("../SessionPageClient.tsx");
+  // Saving stays on the summary; Done goes back (navigateReturn), View in History opens this session's detail.
+  assert.doesNotMatch(page, /setIsSessionCompleted\(true\);[\s\S]{0,200}navigateReturn\(\);/);
+  assert.match(page, /<BottomDockLink href=\{`\/history\/\$\{sessionId\}\?returnTab=sessions`\}[\s\S]{0,80}>\s*View in History\s*<\/BottomDockLink>/);
+  assert.match(page, /onClick=\{navigateReturn\}[\s\S]{0,80}>\s*Done\s*<\/BottomDockButton>/);
 });
 
 test("SessionExerciseFocus is presentation-migrated: no legacy card engine, same handlers and data attributes", () => {

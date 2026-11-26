@@ -22,6 +22,7 @@ import {
   type SessionStatusChip,
 } from "@/components/session/SessionRowCards";
 import { useIsOnline } from "@/components/session/useIsOnline";
+import { toSessionSummarySets } from "@/components/session/sessionSummary";
 import { REMOVE_EXERCISE_HAS_SETS_ERROR } from "@/lib/session-live-mutation";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { buildExerciseCardMetadataItems } from "@/components/workout/ExerciseCardStandardTitle";
@@ -535,6 +536,8 @@ export function SessionExerciseFocus({
         ?? rowClientStateBySessionExerciseId[exercise.id]?.loggedSetCount
         ?? exercise.loggedSetCount,
       isSkipped: rowClientStateBySessionExerciseId[exercise.id]?.isSkipped ?? exercise.isSkipped,
+      name: exercise.name,
+      sets: toSessionSummarySets(setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets),
     }));
   }, [exercises, liveProgressRef, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId]);
 

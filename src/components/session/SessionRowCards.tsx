@@ -24,6 +24,7 @@ import { getDurationWholeMinutes } from "@/lib/duration";
 import { formatDurationShort } from "@/lib/formatting";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import { cn } from "@/lib/cn";
+import { buildSessionSummaryDetails, type SessionSummaryDetails, type SessionSummarySet } from "@/components/session/sessionSummary";
 
 /**
  * Current-session cards (docs/design-system/CARD-SYSTEM.md section 7.4). Presentation only: every handler,
@@ -589,8 +590,23 @@ export function SessionRowNote({ children }: { children: ReactNode }) {
   );
 }
 
-/** What the finished card counts per exercise. `SessionExerciseFocus` keeps a live copy (set snapshots, including queued sets) in a ref. */
-export type SessionFinishedExercise = { loggedSetCount: number; isSkipped: boolean };
+/**
+ * What the finished card counts per exercise. `SessionExerciseFocus` keeps a live copy (set snapshots, including queued
+ * sets) in a ref. `name` and `sets` feed the summary details (volume, top set, per-exercise lines).
+ */
+export type SessionFinishedExercise = { loggedSetCount: number; isSkipped: boolean; name?: string; sets?: SessionSummarySet[] };
+
+/** The summary details for the finished card from the live list (exercises without a name are left out of the lines). */
+export function buildSessionFinishedDetails(exercises: readonly SessionFinishedExercise[]): SessionSummaryDetails {
+  return buildSessionSummaryDetails(
+    exercises.map((exercise) => ({
+      name: exercise.name?.trim() || "Exercise",
+      loggedSetCount: exercise.loggedSetCount,
+      isSkipped: exercise.isSkipped,
+      sets: exercise.sets ?? [],
+    })),
+  );
+}
 
 /** Facts for the finished-session card: exercises worked, sets logged, duration through the History formatter (whole minutes, floored; 75 min reads "1h 15m"). */
 export function buildSessionFinishedFacts(args: {
@@ -614,14 +630,47 @@ export function buildSessionFinishedFacts(args: {
   return facts;
 }
 
-/** Finish screen: a completed card with what was done, then the existing "Continue" hint. The Continue action stays in the dock. */
-export function SessionFinishedCard({ facts }: { facts: string[] }) {
+/**
+ * Post-workout summary (DESIGN #1, 2026-11-26). Saving no longer jumps straight to Today: the screen stays here and
+ * shows what was done (exercises, sets, duration), the volume and the top set when the work was weighted, and one line
+ * per exercise. The dock carries "Done" (back to Today) and "View in History". No PR line: the session screen has no
+ * previous bests to compare against.
+ */
+export function SessionFinishedCard({ facts, details }: { facts: string[]; details?: SessionSummaryDetails | null }) {
+  const highlights = [
+    details?.volumeLabel ? { id: "volume", label: "Volume", value: details.volumeLabel } : null,
+    details?.topSet ? { id: "top-set", label: "Top set", value: `${details.topSet.display} · ${details.topSet.exerciseName}` } : null,
+  ].filter((item): item is { id: string; label: string; value: string } => item !== null);
+  const rows = details?.rows ?? [];
+
   return (
     <CardSurface tone="completed" role="status" data-session-finished="true">
-      <div className="grid gap-1 px-4 py-4 pl-5">
-        <h2 className={cardTokens.title}>Workout saved</h2>
-        {facts.length > 0 ? <CardMeta items={facts} flush /> : null}
-        <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">Continue to return to your workout overview.</p>
+      <div className="grid gap-2 px-4 py-4 pl-5">
+        <div className="grid gap-1">
+          <h2 className={cardTokens.title}>Workout saved</h2>
+          {facts.length > 0 ? <CardMeta items={facts} flush /> : null}
+        </div>
+        {highlights.length > 0 ? (
+          <dl data-session-summary-highlights="true" className="m-0 grid gap-1.5">
+            {highlights.map((item) => (
+              <div key={item.id} data-session-summary-highlight={item.id} className="flex min-w-0 items-baseline justify-between gap-3">
+                <dt className="shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-secondary)/0.9)]">{item.label}</dt>
+                <dd className="m-0 min-w-0 text-right text-sm font-semibold text-[rgb(var(--text-primary))] [overflow-wrap:anywhere]">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {rows.length > 0 ? (
+          <ul data-session-summary-rows="true" className="m-0 grid list-none gap-1 border-t border-[rgb(var(--accent-divider-rgb)/0.18)] p-0 pt-2">
+            {rows.map((row, index) => (
+              <li key={`${row.name}-${index}`} data-session-summary-row={row.state} className="flex min-w-0 items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium text-[rgb(var(--text-primary))]">{row.name}</span>
+                <span className={cn("shrink-0 text-xs font-semibold", row.state === "done" ? "text-[rgb(var(--text-secondary)/0.95)]" : "text-[rgb(var(--warning-rgb))]")}>{row.detail}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">Saved to History. Tap Done to go back to Today.</p>
         <CardChips><CardStatusChip status="done" /></CardChips>
       </div>
     </CardSurface>

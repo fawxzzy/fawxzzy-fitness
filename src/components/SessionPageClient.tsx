@@ -5,9 +5,10 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
+import { buildSessionFinishedDetails, buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
+import { toSessionSummarySets } from "@/components/session/sessionSummary";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -200,6 +201,16 @@ export function SessionPageClient({
   }, [baseDurationSeconds, isSessionCompleted, performedAt]);
 
   const hasExercises = exercises.length > 0;
+  // A session opened already completed has no live list: the summary reads the server rows instead.
+  const serverSummaryExercises = useMemo<SessionFinishedExercise[]>(
+    () => exercises.map((exercise) => ({
+      loggedSetCount: exercise.loggedSetCount,
+      isSkipped: exercise.isSkipped,
+      name: exercise.name,
+      sets: toSessionSummarySets(exercise.initialSets),
+    })),
+    [exercises],
+  );
   // The header stays on screen while an exercise is open. No app menu here: Pause (top right) returns to Today with
   // the workout still running, Finish (dock) ends it (sessionBackAction.ts). A completed workout shows Back instead.
   const floatingHeader = (
@@ -223,14 +234,25 @@ export function SessionPageClient({
   );
   const sessionActions = useMemo(
     () => isSessionCompleted ? (
-      <BottomDockButton
-        type="button"
-        intent="positive"
-        className="!min-h-[44px]"
-        onClick={navigateReturn}
-      >
-        Continue
-      </BottomDockButton>
+      // Post-workout summary dock: "View in History" opens this session's History detail, "Done" returns to Today.
+      <BottomActionSplit
+        secondary={(
+          <BottomDockLink href={`/history/${sessionId}?returnTab=sessions`} intent="info" className="!min-h-[44px]">
+            View in History
+          </BottomDockLink>
+        )}
+        primary={(
+          <BottomDockButton
+            type="button"
+            intent="positive"
+            className="!min-h-[44px]"
+            onClick={navigateReturn}
+            data-session-summary-done="true"
+          >
+            Done
+          </BottomDockButton>
+        )}
+      />
     ) : (
       <form
         ref={finishFormRef}
@@ -245,9 +267,9 @@ export function SessionPageClient({
             clearActiveSessionHint(sessionId);
             writeInstallEarnedMoment("workout-completed");
             setSelectedExerciseId(null);
+            // Stay on this screen: it turns into the post-workout summary (DESIGN #1). "Done" in the dock goes to Today.
             setIsSessionCompleted(true);
-            // Progression is manual-only (2026-11-19): saving never promotes, so return straight to Today.
-            navigateReturn();
+            window.scrollTo({ top: 0 });
           }
         }}
         className="w-full"
@@ -294,7 +316,10 @@ export function SessionPageClient({
           <ActionFeedbackToasts />
 
           {isSessionCompleted ? (
-            <SessionFinishedCard facts={buildSessionFinishedFacts({ exercises: liveProgressRef.current ?? exercises, durationSeconds })} />
+            <SessionFinishedCard
+              facts={buildSessionFinishedFacts({ exercises: liveProgressRef.current ?? exercises, durationSeconds })}
+              details={buildSessionFinishedDetails(liveProgressRef.current ?? serverSummaryExercises)}
+            />
           ) : hasExercises ? (
             <SessionExerciseFocus
               userId={userId}
