@@ -479,6 +479,15 @@ export function HistorySessionsClient({
       setFilterState(createDefaultExerciseInfoFilterState());
     }
   };
+  // The calendar sits below the list (list first), so picking a day brings the filtered list back into view.
+  const handleCalendarSurfaceDayChange = (nextDayKey: string | null) => {
+    handleCalendarDayChange(nextDayKey);
+    if (nextDayKey && typeof document !== "undefined") {
+      requestAnimationFrame(() => {
+        document.querySelector("[data-history-sticky-filters]")?.scrollIntoView({ block: "start" });
+      });
+    }
+  };
   const handleMonthChange = (nextMonthKey: string | null) => {
     setSelectedMonthKey(nextMonthKey);
     if (nextMonthKey) {
@@ -800,6 +809,9 @@ export function HistorySessionsClient({
     || Boolean(effectiveSelectedDayKey)
     || Boolean(selectedMonthKey);
 
+  // No summary block for a brand-new history: the one empty state says what to do.
+  const summariesVisible = sessions.length > 0;
+
   return (
     <div className={cn(appTokens.historyBrowserStack, "!gap-2 pt-2")}>
       {sessions.length > 0 ? (
@@ -836,39 +848,6 @@ export function HistorySessionsClient({
           </div>
         </div>
       ) : null}
-      {queryFilteredSessions.length > 0 ? (
-        <div data-history-retention-surface="calendar">
-          <HistoryCalendarSurface
-            calendarView={calendarView}
-            onSelectDayKey={handleCalendarDayChange}
-            viewMode={viewMode}
-          />
-        </div>
-      ) : null}
-      {showWorkoutStreak ? (
-        <div data-history-retention-surface="streak">
-          <WorkoutStreakSurface summary={displayedWorkoutStreak} viewMode={viewMode} />
-        </div>
-      ) : null}
-      {showConsistencyHeatmap ? (
-        <div data-history-retention-surface="heatmap">
-          <ConsistencyHeatmapSurface heatmap={consistencyHeatmap} viewMode={viewMode} />
-        </div>
-      ) : null}
-      {!effectiveSelectedDayKey && !selectedMonthKey ? (
-        <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-      ) : null}
-      {!effectiveSelectedDayKey && !hasCycleTimelineFilter ? (
-        <div data-history-retention-surface="monthly">
-          <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
-        </div>
-      ) : null}
-      {!effectiveSelectedDayKey && !selectedMonthKey ? (
-        <div data-history-retention-surface="current-week-progression">
-          <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-        </div>
-      ) : null}
-      {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
         // One 8px rhythm for summary cards and session cards (History review item 14).
         <ul data-history-session-list="true" className="grid gap-2">
@@ -950,6 +929,46 @@ export function HistorySessionsClient({
             <SkeletonRow key={index} />
           ))}
         </div>
+      ) : null}
+      {/* DESIGN #7: list first. The summary cards (calendar, streak, heatmap, scope, monthly, weekly) follow the
+          sessions; each is a collapsed disclosure in compact view. */}
+      {summariesVisible ? (
+        <section aria-labelledby="history-summaries-title" data-history-summaries="true" className="grid gap-2">
+          <HistoryCycleSectionSeparator />
+          <h2 id="history-summaries-title" className="px-1.5 text-[13px] font-semibold text-[rgb(var(--text-secondary)/0.95)]">Summary</h2>
+          {queryFilteredSessions.length > 0 ? (
+            <div data-history-retention-surface="calendar">
+              <HistoryCalendarSurface
+                calendarView={calendarView}
+                onSelectDayKey={handleCalendarSurfaceDayChange}
+                viewMode={viewMode}
+              />
+            </div>
+          ) : null}
+          {showWorkoutStreak ? (
+            <div data-history-retention-surface="streak">
+              <WorkoutStreakSurface summary={displayedWorkoutStreak} viewMode={viewMode} />
+            </div>
+          ) : null}
+          {showConsistencyHeatmap ? (
+            <div data-history-retention-surface="heatmap">
+              <ConsistencyHeatmapSurface heatmap={consistencyHeatmap} viewMode={viewMode} />
+            </div>
+          ) : null}
+          {!effectiveSelectedDayKey && !selectedMonthKey ? (
+            <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+          ) : null}
+          {!effectiveSelectedDayKey && !hasCycleTimelineFilter ? (
+            <div data-history-retention-surface="monthly">
+              <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
+            </div>
+          ) : null}
+          {!effectiveSelectedDayKey && !selectedMonthKey ? (
+            <div data-history-retention-surface="current-week-progression">
+              <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+            </div>
+          ) : null}
+        </section>
       ) : null}
       {showHeaderDensityToggle ? (
         <HistoryHeaderDensityToggle scope="sessions" viewMode={viewMode} onViewModeChange={setViewMode} />

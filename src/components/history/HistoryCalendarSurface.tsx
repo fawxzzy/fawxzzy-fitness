@@ -43,7 +43,8 @@ function getDayButtonClassName(args: {
     case "low":
       return "border-[rgb(var(--success-rgb)/0.68)] bg-[rgb(12_57_33)] text-[rgb(238_255_248)]";
     default:
-      return "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-3-rgb)/0.58)] text-[rgb(var(--text-secondary)/0.82)]";
+      // DESIGN #7: no keyline on an empty day; only days with sessions (and today/skipped markers) are outlined.
+      return "border-transparent bg-[rgb(var(--surface-3-rgb)/0.32)] text-[rgb(var(--text-secondary)/0.82)]";
   }
 }
 
@@ -80,6 +81,13 @@ function formatDayLabel(day: { dayNumber: number; sessionCount: number; isSkippe
 }
 
 const MONTH_NAV_BUTTON_CLASS_NAME = cardTokens.iconControl;
+
+/** Same colours as the day cells (getDayBackgroundColor low / medium / high). */
+const CALENDAR_DENSITY_STEPS = [
+  { label: "1", color: "rgb(12 57 33)" },
+  { label: "2", color: "rgb(17 91 49)" },
+  { label: "3+", color: "rgb(24 132 67)" },
+] as const;
 
 /**
  * One month at a time with older / newer controls (`aria-disabled`, not `disabled`, so the pressed control keeps
@@ -158,6 +166,7 @@ function CalendarContent({
                   aria-pressed={day.isSelected}
                   aria-label={formatDayLabel(day)}
                   data-calendar-day-state={day.sessionCount > 0 ? "training" : day.isSkipped ? "skipped" : day.isToday ? "today" : "empty"}
+                  data-calendar-day-density={day.sessionCount > 0 ? day.activityTone : undefined}
                   disabled={day.sessionCount === 0}
                   onClick={() => onSelectDayKey(day.isSelected ? null : day.dayKey)}
                   style={{ backgroundColor: getDayBackgroundColor(day) }}
@@ -181,9 +190,15 @@ function CalendarContent({
           <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--accent-yellow-on)/0.5)] bg-[rgb(var(--accent-yellow-on)/0.18)]" />
           <span>Today</span>
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)] bg-[rgb(17_91_49)]" />
-          <span>Training</span>
+        {/* Density key: the green deepens with the number of sessions that day (1, 2, 3 or more). */}
+        <span data-calendar-density-legend="true" className="inline-flex items-center gap-1.5">
+          <span>Sessions</span>
+          {CALENDAR_DENSITY_STEPS.map((step) => (
+            <span key={step.label} className="inline-flex items-center gap-1">
+              <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)]" style={{ backgroundColor: step.color }} />
+              <span>{step.label}</span>
+            </span>
+          ))}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--danger-rgb)/0.62)] bg-[rgb(92_26_31)]" />

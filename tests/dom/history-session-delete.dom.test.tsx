@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AppProviders, createRouterSpy } from "./providers.tsx";
-import { ConfirmedServerFormButton } from "../../src/components/destructive/ConfirmedServerFormButton.tsx";
+import { HistorySessionDeleteMenu } from "../../src/components/history/HistorySessionDeleteMenu.tsx";
 import { buildHistorySessionDeleteCopy } from "../../src/lib/history-session-delete-copy.ts";
 
 // History review item 3 (2026-11-23): the session-delete confirm names the day ("Delete Day 5?"), says what goes with
-// it, and a double tap on the confirm button submits exactly once. Same props as LogAuditClient's delete button.
+// it, and a double tap on the confirm button submits exactly once. DESIGN #7 (2026-11-26): Delete lives in the header
+// kebab and the confirm button says "Delete session". Same props as LogAuditClient's header menu.
 
 // React builds `new FormData(form)` for form actions; Node's own FormData rejects a jsdom form, so use jsdom's here.
 Object.defineProperty(globalThis, "FormData", { value: window.FormData, configurable: true, writable: true });
@@ -24,26 +25,25 @@ function renderSessionDelete(action: (formData: FormData) => Promise<unknown>) {
   const copy = buildHistorySessionDeleteCopy({ dayTitle: "Day 5", dayName: "Legs", dateLabel: "Nov 21", exerciseCount: 4 });
   render(
     <AppProviders router={router} pathname="/history/log-5">
-      <ConfirmedServerFormButton
+      <HistorySessionDeleteMenu
+        sessionId="log-5"
         action={async (formData: FormData) => {
           submitted.push(formData);
           return action(formData);
         }}
-        hiddenFields={{ sessionId: "log-5" }}
-        size="md"
-        triggerLabel="Delete"
-        triggerAriaLabel={copy.triggerAriaLabel}
-        triggerIntent="danger"
-        modalTitle={copy.title}
-        modalTitleVariant="raw"
-        showDetailsInDeleteLayout
-        modalConsequenceText={copy.consequence}
-        confirmLabel="Delete"
+        sessionName={copy.name}
+        title={copy.title}
+        consequence={copy.consequence}
         failureMessage={FAILURE}
       />
     </AppProviders>,
   );
   return { submitted, calls };
+}
+
+function openDeleteConfirm() {
+  fireEvent.click(screen.getByRole("button", { name: "Actions for Day 5" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete session" }));
 }
 
 test("delete copy names the session and counts what goes with it", () => {
@@ -63,12 +63,12 @@ test("History session delete: the confirm names the day, states the consequence,
     resolveAction = resolve;
   }));
 
-  fireEvent.click(screen.getByRole("button", { name: "Delete Day 5" }));
+  openDeleteConfirm();
   const dialog = await screen.findByRole("dialog");
   assert.ok(within(dialog).getByText("Delete Day 5?"), "the title names the day");
   assert.ok(within(dialog).getByText("Removes the Nov 21 session and its 4 exercises. This cannot be undone."));
 
-  const confirm = within(dialog).getByRole("button", { name: /^(Delete|Confirm)$/ });
+  const confirm = within(dialog).getByRole("button", { name: "Delete session" });
   await act(async () => {
     fireEvent.click(confirm);
     fireEvent.click(confirm);
@@ -90,9 +90,9 @@ test("History session delete: the confirm names the day, states the consequence,
 test("History session delete: a not_found code says the item is gone and the screen refreshed (it really refreshes)", async () => {
   const { calls } = renderSessionDelete(async () => ({ ok: false, error: "not_found" }));
 
-  fireEvent.click(screen.getByRole("button", { name: "Delete Day 5" }));
+  openDeleteConfirm();
   const dialog = await screen.findByRole("dialog");
-  fireEvent.click(within(dialog).getByRole("button", { name: /^(Delete|Confirm)$/ }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Delete session" }));
 
   const notice = await screen.findByRole("alert");
   assert.equal(notice.textContent?.includes("That item is no longer there. The screen has been refreshed."), true);

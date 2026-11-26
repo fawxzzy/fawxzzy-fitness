@@ -33,7 +33,7 @@ test("compact Calendar is a collapsible History disclosure card and Session Stre
   assert.match(calendarSource, /viewMode: "compact" \| "detailed"/);
   assert.match(calendarSource, /<HistoryDisclosureCard title="Calendar" tone="logged"/);
   assert.doesNotMatch(calendarSource, /Tap a day to filter the session list/);
-  assert.match(historyClientSource, /onSelectDayKey=\{handleCalendarDayChange\}[\s\S]*viewMode=\{viewMode\}/);
+  assert.match(historyClientSource, /onSelectDayKey=\{handleCalendarSurfaceDayChange\}[\s\S]*viewMode=\{viewMode\}/);
 
   const calendarIndex = historyClientSource.indexOf('data-history-retention-surface="calendar"');
   const streakIndex = historyClientSource.indexOf('data-history-retention-surface="streak"');
@@ -44,6 +44,14 @@ test("compact Calendar is a collapsible History disclosure card and Session Stre
   assert.ok(calendarIndex < streakIndex);
   assert.ok(streakIndex < summaryIndex);
   assert.ok(summaryIndex < monthlyIndex);
+});
+
+test("History is list-first: the session list renders above the summary cards (DESIGN #7)", () => {
+  const listIndex = historyClientSource.indexOf('data-history-session-list="true"');
+  const summariesIndex = historyClientSource.indexOf('data-history-summaries="true"');
+  const calendarIndex = historyClientSource.indexOf('data-history-retention-surface="calendar"');
+  assert.ok(listIndex >= 0 && summariesIndex > listIndex, "list before the summaries section");
+  assert.ok(calendarIndex > summariesIndex, "calendar lives inside the summaries section");
 });
 
 test("Calendar month grids replace neighboring-month dates with blank fillers", () => {
