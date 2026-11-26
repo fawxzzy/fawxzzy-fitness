@@ -25,7 +25,7 @@ test("calendar exposes distinct training and skipped day states", async () => {
 test("calendar outlines only days with sessions and labels the session density (DESIGN #7)", async () => {
   const source = await readFile(surfaceUrl, "utf8");
 
-  assert.match(source, /default:\s*\/\/[^\n]*\n\s*return "border-transparent/);
+  assert.match(source, /default:(?:\s*\/\/[^\n]*)*\s*return "!border-transparent/);
   assert.match(source, /data-calendar-day-density=/);
   assert.match(source, /data-calendar-density-legend="true"/);
   assert.match(source, /label: "3\+"/);

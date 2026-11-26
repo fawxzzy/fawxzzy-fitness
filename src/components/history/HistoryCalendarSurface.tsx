@@ -44,7 +44,8 @@ function getDayButtonClassName(args: {
       return "border-[rgb(var(--success-rgb)/0.68)] bg-[rgb(12_57_33)] text-[rgb(238_255_248)]";
     default:
       // DESIGN #7: no keyline on an empty day; only days with sessions (and today/skipped markers) are outlined.
-      return "border-transparent bg-[rgb(var(--surface-3-rgb)/0.32)] text-[rgb(var(--text-secondary)/0.82)]";
+      // `!` because the global `button, [type="button"]` rule in globals.css sets a border colour and outranks a utility.
+      return "!border-transparent bg-[rgb(var(--surface-3-rgb)/0.32)] text-[rgb(var(--text-secondary)/0.82)]";
   }
 }
 
