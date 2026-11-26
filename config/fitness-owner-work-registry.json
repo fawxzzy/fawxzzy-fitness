@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-26T02:32:42.757Z",
+  "updatedAt": "2026-11-26T11:46:39.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -15,7 +15,7 @@
     },
     "researchCandidateImport": { "recordCount": 64, "adoptedCount": 0, "stableIdOverlapCount": 0, "sha256": "6bdeb360433a8413edda9e7f094728120f37eae2f9223e4cca00a975e1d6dca1" },
     "excludedOwnerRecords": { "recordCount": 18, "reason": "missing stable Fitness card identity or belongs to another product" },
-    "boardSync": { "at": "2026-11-26T02:32:42.757Z", "appliedEventCount": 68, "lastEventId": "f9d91bdf6fbf" }
+    "boardSync": { "at": "2026-11-26T11:46:39.000Z", "appliedEventCount": 69, "lastEventId": "6c7e653c2be1" }
   },
   "acceptedPublicCardIds": [
     "FF-ANALYTICS-001",
@@ -452,6 +452,15 @@
         "dependsOn": [],
         "description": "Loading, empty and error states share Skeleton and EmptyState components, link rows meet 44px tap size, and retired routes were removed.",
         "acceptanceCriteria": ["Loading and empty states use shared components.","Link rows are at least 44px tall.","Retired routes no longer exist."]
+      }
+    },
+    { "id": "FF-FIX-001", "status": "review", "updatedAt": "2026-11-26T11:46:39.000Z", "visibility": "public",
+      "card": {
+        "title": "Full-app audit fixes: add exercise, summary, rest timer, routines",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "A full-app audit fix round: adding an exercise mid-workout works again, the workout summary, clock and rest timer are clearer, Today shows what is next, and routines, History and the exercise picker are tidier.",
+        "acceptanceCriteria": ["Adding an exercise in the middle of a workout works.","Workout summary, clock and rest timer show clear plain-language information.","Routines menu, History list and exercise picker work with comma decimals and no double-tap on Finish."]
       }
     }
   ]
