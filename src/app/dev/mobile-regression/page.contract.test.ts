@@ -46,7 +46,9 @@ test("session completion never promotes: no promotions receipt, straight back to
   assert.doesNotMatch(source, /Progression Promotions/);
   assert.doesNotMatch(source, /No promotions this session/);
   assert.doesNotMatch(source, /progressionUpdates/);
-  assert.match(source, /setIsSessionCompleted\(true\);[\s\S]{0,200}navigateReturn\(\);/);
+  // Lane L2 (2026-11-26): Finish now shows the post-workout summary in place; Done (not Finish) returns to Today.
+  assert.match(source, /setIsSessionCompleted\(true\);\s*window\.scrollTo\(\{ top: 0 \}\);/);
+  assert.match(source, /onClick=\{navigateReturn\}\s+data-session-summary-done="true"/);
   assert.doesNotMatch(routeSource, /session-auto-progression-confirmation/);
 });
 
@@ -60,7 +62,7 @@ test("session completion immediately retires all live workout controls", async (
   assert.match(source, /isSessionCompleted \? \(/);
   assert.match(
     source,
-    /isSessionCompleted \? \(\s*<BottomDockButton\s+type="button"\s+intent="positive"\s+className="!min-h-\[44px\]"\s+onClick=\{navigateReturn\}\s*>\s*Continue\s*<\/BottomDockButton>/,
+    /isSessionCompleted \? \([\s\S]{0,200}<BottomActionSplit[\s\S]{0,300}View in History[\s\S]{0,300}<BottomDockButton\s+type="button"\s+intent="positive"\s+className="!min-h-\[44px\]"\s+onClick=\{navigateReturn\}\s+data-session-summary-done="true"\s*>\s*Done\s*<\/BottomDockButton>/,
   );
   assert.match(source, /Workout saved/);
   assert.match(source, /isSessionCompleted \? null : emptyState/);

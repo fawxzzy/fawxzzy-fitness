@@ -119,7 +119,7 @@ export function RestTimer({
         "relative flex w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-[22px] !border py-1 pl-3.5 pr-1",
         done
           ? "border-[rgb(var(--success-rgb)/0.55)] bg-[rgb(var(--success-rgb)/0.16)]"
-          : "border-[rgb(var(--border-strong)/0.24)] bg-[rgb(var(--surface-1)/0.92)]",
+          : "border-[rgb(var(--border-strong)/0.24)] bg-[rgb(var(--surface-1-rgb)/0.92)]",
       )}
     >
       {/* Draining bar: decorative (the time is in text); width steps each tick, no transition under reduced motion. */}
