@@ -31,6 +31,8 @@ export type TodayExerciseRow = {
   tags?: string[] | string | null;
   categories?: string[] | string | null;
   progressionStateLabel?: string | null;
+  /** "Last: 5 × 225 lb"; shown only when the list is `compact`. */
+  lastLine?: string | null;
 };
 
 /**
@@ -65,6 +67,7 @@ export function TodayExerciseRows({
   surface = "today",
   isRestDay = false,
   showInfo = true,
+  compact = false,
 }: {
   exercises: TodayExerciseRow[];
   emptyMessage: string;
@@ -79,6 +82,8 @@ export function TodayExerciseRows({
   isRestDay?: boolean;
   /** Off where the info sheet cannot load (offline session list). */
   showInfo?: boolean;
+  /** Today's calm list: name, goal and "Last: ..." only (see TodayExerciseCard `compact`). */
+  compact?: boolean;
 }) {
   return (
     <ul className={cardTokens.list}>
@@ -107,6 +112,7 @@ export function TodayExerciseRows({
               state={state}
               progress={progressState ? buildTodayExerciseLoggedProgress(progressState, state === "skipped") : null}
               showInfo={showInfo}
+              compact={compact}
             />
           </li>
         );

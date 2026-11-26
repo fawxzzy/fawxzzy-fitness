@@ -31,6 +31,8 @@ export type TodayExerciseCardExercise = {
   tags?: string[] | string | null;
   categories?: string[] | string | null;
   progressionStateLabel?: string | null;
+  /** "Last: 5 × 225 lb" from exercise_stats; shown on the compact Today list only. */
+  lastLine?: string | null;
 };
 
 export type TodayExerciseCardState = "default" | "completed" | "skipped";
@@ -59,6 +61,7 @@ export function TodayExerciseCard({
   progress = null,
   footer,
   showInfo = true,
+  compact = false,
 }: {
   exercise: TodayExerciseCardExercise;
   surface?: WorkoutCardSurface;
@@ -67,6 +70,11 @@ export function TodayExerciseCard({
   footer?: ReactNode;
   /** Off for screens that cannot open the info sheet (the offline session list: it fetches from the network). */
   showInfo?: boolean;
+  /**
+   * Today's calm list (wave 2 "Start fast"): name, goal and the last result only. The meta line is the
+   * "Last: ..." line instead of muscle and pattern, and the thumbnail is dropped so more of the day fits.
+   */
+  compact?: boolean;
 }) {
   const isStretchHub = isStretchHubExercise(exercise);
   const isSkipped = state === "skipped";
@@ -76,7 +84,11 @@ export function TodayExerciseCard({
     movementPattern: exercise.movement_pattern,
     equipment: exercise.equipment,
   });
-  const metaItems = isSkipped ? [] : surface === "today" ? facts.slice(0, TODAY_META_FACT_LIMIT) : facts;
+  const metaItems = isSkipped
+    ? []
+    : compact
+      ? (exercise.lastLine ? [exercise.lastLine] : [])
+      : surface === "today" ? facts.slice(0, TODAY_META_FACT_LIMIT) : facts;
   const targetValues = isSkipped || isStretchHub ? [] : splitExerciseTargetValues(normalizeExerciseTargetSummary(exercise.targets));
 
   return (
@@ -96,7 +108,7 @@ export function TodayExerciseCard({
       chips={isSkipped ? (
         <CardChips><CardStatusChip status="skipped" /></CardChips>
       ) : undefined}
-      showMedia={policy.showMedia && !isSkipped}
+      showMedia={policy.showMedia && !isSkipped && !compact}
       tone={state === "completed" ? "completed" : "neutral"}
       interaction={{ kind: "none" }}
       trailing={showInfo && exercise.exerciseId ? <ExerciseInfoIconButton exerciseId={exercise.exerciseId} exerciseName={exercise.name} /> : undefined}

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-export type SettingsSectionKey = "account" | "achievements" | "pro" | "data" | "discord" | "theme" | null;
+export type SettingsSectionKey = "account" | "units" | "pro" | "data" | "discord" | "theme" | null;
 
 const SettingsScreenStateContext = createContext<{
   expandedSection: SettingsSectionKey;

@@ -10,10 +10,8 @@ import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagn
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { appTokens } from "@/components/ui/app/tokens";
 import { getAccountWorkoutExportSuggestedDateRange } from "@/lib/account-workout-export";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { buildHistoryAchievements } from "@/lib/history-achievements";
-import { loadHistorySessionsScopePayloadForUser } from "@/lib/history-sessions-page-loader";
-import { buildHistoryWorkoutStreak } from "@/lib/history-workout-streak";
 import { optionalEnv } from "@/lib/env";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
@@ -25,13 +23,14 @@ import {
   resolveShowQaLlelDataPreferenceWithOverride,
 } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
+import { readUnitsSettings } from "@/lib/units-settings";
 
 export const dynamic = "force-dynamic";
 
 function resolveSettingsSection(value: string | string[] | undefined) {
   const section = Array.isArray(value) ? value[0] : value;
   return section === "account"
-    || section === "achievements"
+    || section === "units"
     || section === "pro"
     || section === "data"
     || section === "discord"
@@ -51,6 +50,11 @@ export default async function SettingsPage(
   }
 ) {
   const searchParams = await props.searchParams;
+  // Achievements live in History > Progress now; keep old links (and the retired Settings card's deep link) working.
+  const requestedSection = Array.isArray(searchParams?.section) ? searchParams.section[0] : searchParams?.section;
+  if (requestedSection === "achievements") {
+    redirect("/history/progression");
+  }
   const diagnostics = new LoadingDiagnosticsCollector("/settings");
   const user = await requireUser({
     gate: "settings.auth.session",
@@ -84,41 +88,16 @@ export default async function SettingsPage(
     (await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value,
   );
   const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(profile, qaVisibilityOverride);
-  const [exportDateRange, achievements] = await Promise.all([
-    diagnostics.measure("settings.export.date-range", async () => getAccountWorkoutExportSuggestedDateRange({
-      supabase: await supabaseServer(),
+  const exportDateRange = await diagnostics.measure("settings.export.date-range", async () => getAccountWorkoutExportSuggestedDateRange({
+    supabase: await supabaseServer(),
+    userId: user.id,
+  }), {
+    blockingReason: "Loading default export date range.",
+    metadata: {
       userId: user.id,
-    }), {
-      blockingReason: "Loading default export date range.",
-      metadata: {
-        userId: user.id,
-      },
-      timeoutMs: 5000,
-    }),
-    diagnostics.measure("settings.achievements.summary", async () => {
-      const history = await loadHistorySessionsScopePayloadForUser({
-        supabase: await supabaseServer(),
-        userId: user.id,
-        showQaLlelDataOverride: qaVisibilityOverride,
-      });
-      const streak = buildHistoryWorkoutStreak({
-        sessions: history.sessionItems,
-        timezone: history.weeklyProgress.timezone,
-        skippedDayKeys: history.plannedSkippedDayKeys,
-      });
-      return buildHistoryAchievements({
-        completedWorkoutCount: history.scopeSummary.completedWorkoutCount,
-        bestSessionStreakCount: streak.bestSessionCount,
-        prMomentCount: history.scopeSummary.prMomentCount,
-      });
-    }, {
-      blockingReason: "Loading earned training milestones.",
-      metadata: {
-        userId: user.id,
-      },
-      timeoutMs: 10000,
-    }),
-  ]);
+    },
+    timeoutMs: 5000,
+  });
   const initialExpandedSection = resolveSettingsSection(searchParams?.section);
   const billingNotice = resolveBillingNotice(searchParams?.billing);
   if (billingNotice === "cancel") {
@@ -170,8 +149,8 @@ export default async function SettingsPage(
                 initialExportDateTo={exportDateRange.dateTo}
                 proAccess={proAccess}
                 billingNotice={billingNotice}
-                achievements={achievements}
                 signedInAs={username || user.email || undefined}
+                units={readUnitsSettings(profile)}
               />
             </div>
           </ContentRail>

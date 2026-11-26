@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { splitRoutineSummaryParts } from "@/components/day-list/RoutineDayCardPresentation";
+import { StarterPlanList } from "@/app/today/StarterPlanCard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import {
@@ -98,6 +99,7 @@ export function CreateRoutineClient({
   const initialDuplicateExpanded = initialDuplicateExpandedProp || Boolean(requestedSourceRoutineId);
   const preferredDuplicateSourceRoutineId = requestedSourceRoutineId ?? resolvePreferredDuplicateSourceRoutine(routines)?.id ?? "";
   const [isDuplicateExpanded, setIsDuplicateExpanded] = useState(initialDuplicateExpanded);
+  const [isStarterExpanded, setIsStarterExpanded] = useState(false);
   const [selectedSourceRoutineId, setSelectedSourceRoutineId] = useState<string>(
     initialDuplicateExpanded ? preferredDuplicateSourceRoutineId : "",
   );
@@ -182,7 +184,13 @@ export function CreateRoutineClient({
     });
   }
 
+  function handleToggleStarterExpanded() {
+    setIsStarterExpanded((current) => !current);
+    setIsDuplicateExpanded(false);
+  }
+
   function handleToggleDuplicateExpanded() {
+    setIsStarterExpanded(false);
     setIsDuplicateExpanded((current) => {
       if (current) {
         setSelectedSourceRoutineId("");
@@ -287,6 +295,19 @@ export function CreateRoutineClient({
               router.push(curatedMenuOption.href, { scroll: false });
             }}
           />
+        ) : null}
+        <RoutineChooserOptionCard
+          title="Start from a plan"
+          kind="toggle"
+          active={isStarterExpanded}
+          disabled={isPending}
+          onPress={!isPending ? handleToggleStarterExpanded : undefined}
+        />
+        {isStarterExpanded ? (
+          <div className="pl-2" data-create-routine-starter-plans="true">
+            {/* One tap creates the routine and makes it active, then Today opens on Day 1. */}
+            <StarterPlanList headingLevel={4} onCreated={() => router.push("/today")} />
+          </div>
         ) : null}
         <RoutineChooserOptionCard
           title="Build manually"

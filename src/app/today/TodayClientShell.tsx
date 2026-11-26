@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { StarterPlanCard } from "@/app/today/StarterPlanCard";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
@@ -119,15 +119,25 @@ export function TodayClientShell({
     return (
       <TodayOverviewContent>
         <TodayOverviewScaffold>
-          <CardEmptyState
-            title="Choose a routine"
-            body="Pick the routine you want to follow, then today's plan shows here."
-            action={(
-              <Link href="/routines" className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>
-                Go to Routines
-              </Link>
-            )}
-          />
+          {fetchFailed ? (
+            // Today could not load (offline or a server error) and nothing is cached: the person may well have a
+            // routine, so offering new plans here could make a duplicate. Point at a retry instead.
+            <CardEmptyState
+              title="Today could not load"
+              body="Check your connection, then try again."
+              action={(
+                <button
+                  type="button"
+                  onClick={() => router.refresh()}
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
+                >
+                  Try again
+                </button>
+              )}
+            />
+          ) : (
+            <StarterPlanCard />
+          )}
         </TodayOverviewScaffold>
       </TodayOverviewContent>
     );
@@ -141,6 +151,7 @@ export function TodayClientShell({
             exercises={display.exercises}
             emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}
             isRestDay={display.routine.isRest}
+            compact
           />
 
           {display.inProgressSessionId ? (
@@ -149,10 +160,10 @@ export function TodayClientShell({
               returnTo="/today"
               fullWidth
               className="w-full"
-              label="Resume"
+              label="Resume workout"
             />
           ) : display.staleAt ? null : (
-            <CardNotice>Start session requires a live connection.</CardNotice>
+            <CardNotice>Starting a workout needs a connection.</CardNotice>
           )}
         </div>
       </TodayOverviewScaffold>

@@ -134,18 +134,23 @@ test("Today empty states share one card: centred title, no second line, one acti
   assert.doesNotMatch(render(<TodayEmptyDayCard kind="empty" actionHref={null} />), /<a /, "no editor href, no dead button");
 });
 
-test("Rest and empty days may add ONE Next up line with a quiet Show button; no schedule never does", () => {
-  const nextUp = { label: "Next up: Pull A · Thu", actionLabel: "Show Pull A", onShow: () => {} };
-  for (const kind of ["rest", "empty"] as const) {
+test("Rest, empty and done days may add ONE Next line with a quiet Show button; no schedule never does", () => {
+  const nextUp = { label: "Next: Pull A on Thu, Nov 27", actionLabel: "Show Pull A", onShow: () => {} };
+  for (const kind of ["rest", "empty", "done"] as const) {
     const html = render(<TodayEmptyDayCard kind={kind} actionHref="/routines/r/edit" nextUp={nextUp} />);
     assert.equal((html.match(/<p[\s>]/g) ?? []).length, 1, "exactly one second line");
     assert.match(html, /data-today-next-up="true"/);
-    assert.match(html, />Next up: Pull A · Thu<\/p>/);
+    assert.match(html, />Next: Pull A on Thu, Nov 27<\/p>/);
     const button = html.match(/<button [^>]*>Show Pull A<\/button>/)?.[0] ?? "";
     assert.ok(button.includes('type="button"'));
     assert.match(button, /app-button-tertiary/, "quiet variant");
   }
-  assert.doesNotMatch(render(<TodayEmptyDayCard kind="noSchedule" actionHref="/routines/r/edit" nextUp={nextUp} />), /Next up/);
+  assert.doesNotMatch(render(<TodayEmptyDayCard kind="noSchedule" actionHref="/routines/r/edit" nextUp={nextUp} />), /data-today-next-up/);
+  const done = render(<TodayEmptyDayCard kind="done" actionHref="/routines/r/edit" nextUp={nextUp} />);
+  assert.match(done, /<h2 class="[^"]*">Done today<\/h2>/);
+  assert.doesNotMatch(done, /<a /, "done never offers an editor action");
+  assert.match(done, /data-card-tone="completed"/, "done reads as completed (green), alongside its words");
+  assert.match(done, /data-today-empty-mark="done"/);
   const picker = readFileSync(new URL("./TodayDayPicker.tsx", import.meta.url), "utf8");
   assert.match(picker, /<TodayEmptyDayCard kind="rest" nextUp=\{selectedDayNextUp\} \/>/);
   assert.match(picker, /onShow: \(\) => setSelectedDayIndex\(next\.dayIndex\)/, "Show selects the day; it never starts a workout");

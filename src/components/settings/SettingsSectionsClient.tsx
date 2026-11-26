@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AccountAchievementsSection } from "@/components/settings/AccountAchievementsSection";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { ProAccessSettings } from "@/components/settings/ProAccessSettings";
+import { UnitsSettings, type UnitsSettingsAction } from "@/components/settings/UnitsSettings";
+import { updateUnitsSettingsAction } from "@/app/settings/units-actions";
+import { formatUnitsSettingsStatus, UNITS_SETTINGS_DEFAULTS, type UnitsSettingsValues } from "@/lib/units-settings";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
 import { useIsOnline } from "@/components/session/useIsOnline";
 import { CardChip, CardChips, CardHeader, CardMeta, CardNotice, CardSurface, cardTokens } from "@/components/ui/card-system";
@@ -17,7 +19,6 @@ import {
   readStoredAppThemeSelection,
 } from "@/lib/app-theme";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
-import type { HistoryAchievement } from "@/lib/history-achievements";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ACCOUNT_PORTAL_LINK_ATTRIBUTE, getFitnessAccountPortalUrl, getFitnessSignOutEverywhereUrl } from "@/lib/account-portal";
 
@@ -28,15 +29,18 @@ type SettingsSectionMeta = {
   summary: string;
 };
 
-/** Settings sections in screen order. `account` opens the Fawxzzy account portal; every other section expands in place. */
-export const SETTINGS_SECTION_ORDER: readonly SettingsSectionId[] = ["account", "achievements", "pro", "data", "theme", "discord"];
+/**
+ * Settings sections in screen order. `account` opens the Fawxzzy account portal; every other section expands in place.
+ * Achievements moved to History > Progress (`/history/progression`); `/settings?section=achievements` redirects there.
+ */
+export const SETTINGS_SECTION_ORDER: readonly SettingsSectionId[] = ["account", "units", "pro", "data", "theme", "discord"];
 
 export function getSettingsSectionMeta(section: SettingsSectionId): SettingsSectionMeta | null {
   switch (section) {
     case "account":
       return { title: "Account", summary: "Opens account.fawxzzy.com" };
-    case "achievements":
-      return { title: "Achievements", summary: "Training milestones you have earned" };
+    case "units":
+      return { title: "Units & time zone", summary: "Weight, distance and time zone" };
     case "theme":
       return { title: "App Theme", summary: "Colors and shape" };
     case "pro":
@@ -99,7 +103,7 @@ export function SettingsSectionCard({
   /** Expand or collapse (everything else). */
   onToggle?: () => void;
   signedInAs?: string;
-  /** A live one-word state for the section (plan, achievements earned, current theme), shown as a chip. */
+  /** A live one-word state for the section (units, plan, current theme), shown as a chip. */
   status?: string | null;
 }) {
   const meta = getSettingsSectionMeta(section);
@@ -165,11 +169,16 @@ export function SettingsSectionsClient({
   initialExportDateTo,
   proAccess,
   billingNotice,
-  achievements,
   signedInAs,
+  units = UNITS_SETTINGS_DEFAULTS,
+  unitsAction = updateUnitsSettingsAction,
 }: {
   /** Username (or email when there is none), shown on the Account card. */
   signedInAs?: string;
+  /** The saved weight unit, distance unit and time zone (profile). */
+  units?: UnitsSettingsValues;
+  /** Saves the Units & time zone panel; dev fixtures pass a stub. */
+  unitsAction?: UnitsSettingsAction;
   userKind: "human" | "automation" | "unknown";
   userNumber: number | null;
   canAccessQaVisibilitySetting: boolean;
@@ -178,14 +187,12 @@ export function SettingsSectionsClient({
   initialExportDateTo: string;
   proAccess: ProAccessSnapshot;
   billingNotice?: "success" | "cancel" | null;
-  achievements: HistoryAchievement[];
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
   const isOnline = useIsOnline();
   const themeLabel = useActiveThemeLabel();
-  const earnedCount = achievements.filter((achievement) => achievement.unlocked).length;
   const statusBySection: Partial<Record<SettingsSectionId, string | null>> = {
-    achievements: `${earnedCount} of ${achievements.length}`,
+    units: formatUnitsSettingsStatus(units),
     pro: proAccess.accessState === "pro" ? "Pro" : "Free",
     theme: themeLabel,
   };
@@ -232,7 +239,7 @@ export function SettingsSectionsClient({
         <SettingsSectionCard section={expandedSection} expanded status={statusBySection[expandedSection]} onToggle={() => setExpandedSection(null)} />
       )}
       {offlineNotice}
-      {expandedSection === "achievements" ? <AccountAchievementsSection achievements={achievements} /> : null}
+      {expandedSection === "units" ? <UnitsSettings saved={units} action={unitsAction} /> : null}
       {expandedSection === "pro" ? <ProAccessSettings snapshot={proAccess} billingNotice={billingNotice} /> : null}
       {expandedSection === "data" ? (
         <DataSettingsSection
