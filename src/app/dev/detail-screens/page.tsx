@@ -148,6 +148,7 @@ export default async function DevDetailScreensPage(props: {
           <EditDayAddExerciseScreen
             routineId="fixture-routine"
             routineDayId="fixture-day-1"
+            dayName={names.dayLabel}
             dayIndex={1}
             cycleLengthDays={4}
             exercises={fixtureExercises}
