@@ -64,14 +64,14 @@ export function buildFailureToggleInfoPayload({
     : "No rep goal entered yet";
 
   return {
-    title: "Reps / Failure Toggle",
+    title: "Reps / Failure",
     summary: isFailureMode
-      ? "Till Failure turns the goal into going until you cannot do another clean rep."
-      : "Reps-Based keeps a rep range in the goal row.",
+      ? "Failure means you go until you cannot do another clean rep."
+      : "Reps keeps a rep range in the goal.",
     rows: [
-      { label: "Selected", value: isFailureMode ? "Till Failure" : "Reps-Based" },
-      { label: "Effect", value: isFailureMode ? "Rep inputs collapse and you go until you cannot do another clean rep, instead of a fixed rep count." : "Rep inputs stay active and progression can qualify against the rep goal you enter." },
-      { label: "Current reps", value: isFailureMode ? "Rep goal hidden while Till Failure is on." : repGoalLabel },
+      { label: "Selected", value: isFailureMode ? "Failure" : "Reps" },
+      { label: "Effect", value: isFailureMode ? "Rep inputs collapse and you go until you cannot do another clean rep, instead of a fixed rep count." : "Rep inputs stay active and progression can count your sets against the rep goal you enter." },
+      { label: "Current reps", value: isFailureMode ? "Rep goal hidden while Failure is on." : repGoalLabel },
     ],
     sectionKey: "failure_toggle",
   };
@@ -232,7 +232,7 @@ export function ExerciseGoalForm({
     >
       <GlowSwitch
         checked={isFailureMode}
-        ariaLabel={isFailureMode ? "Till Failure on" : "Till Failure off"}
+        ariaLabel={isFailureMode ? "Failure on" : "Reps on"}
         onLabel="Failure"
         offLabel="Reps"
         onClick={() => {
@@ -278,7 +278,7 @@ export function ExerciseGoalForm({
             >
               <GlowSwitch
                 checked={isFailureMode}
-                ariaLabel={isFailureMode ? "Till Failure on" : "Till Failure off"}
+                ariaLabel={isFailureMode ? "Failure on" : "Reps on"}
                 onLabel="Failure"
                 offLabel="Reps"
                 onClick={() => {

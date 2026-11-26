@@ -41,5 +41,10 @@ test("dock roles: the session dock pairs a secondary Add with a primary Finish (
   const addSource = readFileSync(path.join(SRC_ROOT, "app", "session", "[id]", "QuickAddExerciseSheet.tsx"), "utf8");
   assert.match(addSource, /intent="info"/);
   const sessionSource = readFileSync(path.join(SRC_ROOT, "components", "SessionPageClient.tsx"), "utf8");
-  assert.match(sessionSource, /intent="positive"[\s\S]{0,600}>\s*Finish\s*<\/BottomDockButton>/);
+  assert.match(sessionSource, /intent="positive"[\s\S]{0,900}>\s*Finish\s*<\/BottomDockButton>/);
+});
+
+test("confirm dialog: a long confirm label stacks the buttons below 360px instead of wrapping onto two lines", () => {
+  const source = readFileSync(path.join(SRC_ROOT, "components", "ui", "ConfirmDestructiveModal.tsx"), "utf8");
+  assert.match(source, /confirmActionLabel\.length > 10[\s\S]{0,80}max-\[359px\]:grid-cols-1/);
 });

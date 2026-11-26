@@ -695,17 +695,16 @@ function buildFocusedExerciseSetListMeta(args: {
   return formatSetCountAgainstPlan(args.setCount, args.targetSetCount, "logged");
 }
 
+// The collapsed card already leads with "Top set <best set>", so it never adds a BEST chip beside it (one Best, not two).
 function buildCollapsedExerciseCardBadgeItems(args: {
   badgeCountLabel: string;
   hasPrInSession: boolean;
-  isBest: boolean;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
 }) {
   return {
     countLabel: args.badgeCountLabel,
     signalItems: buildSignalTagItems({
       hasPrInSession: args.hasPrInSession,
-      isBest: args.isBest,
       progressionSummary: args.progressionSummary,
     }),
   };
@@ -1425,7 +1424,6 @@ export function LogAuditClient({
             const isExpanded = expandedExerciseId === exercise.id;
             const isSkipped = Boolean(exercise.is_skipped);
             const bestSet = findBestEditableSet(setsForExercise);
-            const isSessionBestExercise = focusedSessionSummary.bestLift?.exerciseName?.trim() === name;
             const bestSummary = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : "";
             const expandedSet = setsForExercise.find((set) => set.id === expandedSetId) ?? null;
             const hasPrInSession = (sessionSummary.prExerciseNames ?? []).includes(name);
@@ -1445,7 +1443,6 @@ export function LogAuditClient({
             const collapsedCardBadgeItems = buildCollapsedExerciseCardBadgeItems({
               badgeCountLabel: countBadgeLabel,
               hasPrInSession,
-              isBest: isSessionBestExercise,
               progressionSummary: exercise.progressionSummary ?? null,
             });
             const timerSignalItem = exercise.exercise_timer_enabled

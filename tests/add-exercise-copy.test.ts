@@ -34,6 +34,12 @@ test("the Add exercise flow never shows the word target (any case) to the player
   }
 });
 
+test("the guide explains the goal fields in the control's own words", () => {
+  assert.equal(ADD_EXERCISE_GUIDE_ROWS.goal.term, "Goal");
+  assert.match(ADD_EXERCISE_GUIDE_ROWS.goal.body, /Sets is how many sets/u);
+  assert.doesNotMatch(ADD_EXERCISE_GUIDE_ROWS.goal.body, /targets?/iu);
+});
+
 test("the guide explains warm-up, failure and the exercise timer in plain words, in the control's own labels", () => {
   assert.equal(ADD_EXERCISE_GUIDE_ROWS.warmup.term, "Warm-up");
   assert.equal(ADD_EXERCISE_GUIDE_ROWS.failure.term, "Failure", "the toggle reads Failure / Reps");
@@ -44,7 +50,7 @@ test("the guide explains warm-up, failure and the exercise timer in plain words,
 
 test("the guide only describes what exists: the workout clock and rest timer row matches what ships (DESIGN #2)", () => {
   const rows = Object.values(ADD_EXERCISE_GUIDE_ROWS);
-  assert.equal(rows.length, 4);
+  assert.equal(rows.length, 5);
   for (const row of rows) {
     assert.doesNotMatch(`${row.term} ${row.body}`, /Till Failure|Reps-Based/u);
   }

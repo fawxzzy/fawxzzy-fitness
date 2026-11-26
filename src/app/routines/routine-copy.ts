@@ -2,7 +2,11 @@
 // - Server actions must never hand a raw database message to the in-flow notice: `toPlainActionError`
 //   keeps authored copy and swaps anything that looks like a database/driver error for plain fallback copy.
 // - The Free-plan routine cap is shown before submit, as one notice with an upgrade link.
+import { toPlainProgressionLabel } from "@/lib/exercise-progression-state-label";
 import { BASE_ROUTINE_LIMIT, ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE } from "@/lib/pro-tier-limits";
+
+// Moved to the shared lib so every day card (Today, routine home, edit day) shows the same words; kept exported here.
+export { toPlainProgressionLabel };
 
 /** Where the Free-plan notice sends the user to upgrade (Settings, Pro access section). */
 export const ROUTINE_LIMIT_UPGRADE_HREF = "/settings?section=pro";
@@ -29,7 +33,7 @@ export function resolveRoutineLimitNotice(args: {
   return { message: getRoutineLimitNoticeCopy(limit), upgradeHref: ROUTINE_LIMIT_UPGRADE_HREF };
 }
 
-/** Maps the server cap message (still worded "Base" in shared lib copy) to the routines notice copy. */
+/** Maps the server cap message to the routines notice copy. */
 export function isRoutineLimitError(message: string | null | undefined) {
   return message === ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE;
 }
@@ -89,16 +93,6 @@ export function toPlainActionError(error: ErrorLike, fallback: string): string {
     return fallback;
   }
   return message;
-}
-
-/**
- * Plain words for the exercise progression tag on day recaps (FUNCTIONAL.md F-020). The shared recap builder
- * emits engine flags ("AUTO • SESSION • SET", "MANUAL"); routine screens show "Auto progression" for an
- * exercise with an auto-progression plan and nothing for manual (the default needs no tag).
- */
-export function toPlainProgressionLabel(label: string | null | undefined): string | null {
-  const flags = (label ?? "").toUpperCase().split(/[\s•|·,]+/).filter(Boolean);
-  return flags.includes("AUTO") ? "Auto progression" : null;
 }
 
 /** Applies `toPlainProgressionLabel` to recap rows, including `setLabel` when it carries the same flags. */

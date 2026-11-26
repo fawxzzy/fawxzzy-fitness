@@ -20,6 +20,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { getRoutineLimitNoticeCopy, isRoutineLimitError } from "@/app/routines/routine-copy";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
+import { normalizeRoutineSummaryParts } from "@/lib/routine-card-copy";
 import { ROUTINE_COPY_NAME_MAX_LENGTH, resolveUniqueRoutineCopyName } from "@/lib/routine-copy-name";
 
 type Props = {
@@ -41,7 +42,8 @@ function buildRoutineSourceMeta(routine: RoutineBrowseCardItem): string[] {
     : splitRoutineSummaryParts(routine.summary);
   const normalizedCreatedAt = typeof routine.createdAt === "string" ? routine.createdAt.trim() : "";
   return [
-    ...parts.map((part) => part.trim()).filter(Boolean),
+    // Same plain words as the Routines list ("4 training days", not the legacy "4 train").
+    ...normalizeRoutineSummaryParts(parts.map((part) => part.trim()).filter(Boolean)),
     normalizedCreatedAt ? `Created ${formatDateShort(normalizedCreatedAt)}` : "",
   ].filter(Boolean);
 }

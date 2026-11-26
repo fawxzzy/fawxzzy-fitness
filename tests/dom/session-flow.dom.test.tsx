@@ -200,6 +200,33 @@ test("Session: confirming the Finish sheet submits the workout once; Keep going 
   assert.equal(screen.queryByRole("dialog"), null, "the sheet closes once the workout is submitted");
 });
 
+// Coordinator review of 4e21b9a04 (P3): a double tap on Finish used to be able to call saveSessionAction twice, and the
+// second (failing) answer put an error toast over the summary. One call, a busy button, then the summary and no error.
+test("Session: a double tap on Finish saves once, shows a busy button, then the summary with no error toast", async () => {
+  Object.defineProperty(globalThis, "FormData", { value: window.FormData, configurable: true, writable: true });
+  let calls = 0;
+  let release: (value: { ok: true }) => void = () => {};
+  const { container } = renderSession({
+    exercises: [exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1, loggedSetCount: 1, initialSets: [{ id: "set-0", session_exercise_id: "a", user_id: "u1", set_index: 0, weight: 225, reps: 5, is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" }] })],
+    saveSessionAction: () => {
+      calls += 1;
+      return new Promise<{ ok: true }>((resolve) => { release = resolve; });
+    },
+  });
+  const form = container.querySelector("form") as HTMLFormElement;
+  assert.ok(form, "the Finish form exists");
+  fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+  await waitFor(() => assert.equal(calls, 1));
+  form.requestSubmit();
+  form.requestSubmit();
+  assert.equal(calls, 1, "a second submit while the first is saving is ignored");
+  await waitFor(() => assert.equal(screen.getByRole("button", { name: /Finish/ }).getAttribute("aria-busy"), "true"));
+  release({ ok: true });
+  await waitFor(() => assert.ok(screen.queryByRole("button", { name: "Done" })));
+  assert.equal(calls, 1);
+  assert.equal(screen.queryByText("Could not save workout."), null);
+});
+
 // DESIGN #1 (2026-11-26): a saved workout stays on a summary with Done (back to Today) and View in History.
 test("Session: a saved workout shows the summary with volume, top set, Done and View in History", () => {
   const set = { session_exercise_id: "a", user_id: "u1", is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" as const };

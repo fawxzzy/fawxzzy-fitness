@@ -45,6 +45,12 @@ import { toPlainActionError } from "@/app/routines/routine-copy";
 // Database/driver messages never reach the in-flow notice; see routine-copy.ts.
 const DAY_ACTION_FALLBACK_ERROR = "Could not save the day. Try again.";
 
+/** A missing progression column is a deploy problem, not something the person can act on: log it, show plain copy. */
+function plainSchemaMismatchError(error: Parameters<typeof getSchemaMismatchMessage>[0], operation: string) {
+  console.error("[routines] schema mismatch mapped to plain copy", { operation, detail: getSchemaMismatchMessage(error, { operation }) });
+  return DAY_ACTION_FALLBACK_ERROR;
+}
+
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineHomePath(routineId));
   revalidatePath(getRoutineEditPath(routineId));
@@ -367,10 +373,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     if (routineWithProgressionError && isMissingRoutineDefaultProgressionColumnError(routineWithProgressionError)) {
       return {
         ok: false,
-        error: getSchemaMismatchMessage(routineWithProgressionError, {
-          operation: "update routine day adjustment",
-          progressionMigration: "046",
-        }) ?? "Progression schema is missing. Apply migration 046.",
+        error: plainSchemaMismatchError(routineWithProgressionError, "update routine day adjustment"),
       };
     }
 
@@ -407,10 +410,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     if (dayExerciseRowsError && isMissingProgressionPlaybookColumnError(dayExerciseRowsError)) {
       return {
         ok: false,
-        error: getSchemaMismatchMessage(dayExerciseRowsError, {
-          operation: "update routine day exercise day adjustment",
-          progressionMigration: "045",
-        }) ?? "Progression schema is missing. Apply migration 045.",
+        error: plainSchemaMismatchError(dayExerciseRowsError, "update routine day exercise day adjustment"),
       };
     }
 
@@ -646,10 +646,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
   if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgression) {
     return {
       ok: false,
-      error: getSchemaMismatchMessage(error, {
-        operation: "add routine day exercise progression",
-        progressionMigration: "045",
-      }) ?? "Progression schema is missing. Apply migration 045.",
+      error: plainSchemaMismatchError(error, "add routine day exercise progression"),
     };
   }
 
@@ -910,10 +907,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
   if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgressionPlaybook(parsedPayload.payload)) {
     return {
       ok: false,
-      error: getSchemaMismatchMessage(error, {
-        operation: "update routine day exercise progression",
-        progressionMigration: "045",
-      }) ?? "Progression schema is missing. Apply migration 045.",
+      error: plainSchemaMismatchError(error, "update routine day exercise progression"),
     };
   }
 

@@ -21,3 +21,13 @@ export function buildExerciseProgressionStateLabel(source: ExerciseProgressionSt
 
   return normalizeDecoratedText(stateLabels.join(" • "));
 }
+
+/**
+ * Plain words for the exercise progression tag on day recaps (FUNCTIONAL.md F-020). The shared recap builder
+ * emits engine flags ("AUTO • SESSION • SET", "MANUAL"); routine screens show "Auto progression" for an
+ * exercise with an auto-progression plan and nothing for manual (the default needs no tag).
+ */
+export function toPlainProgressionLabel(label: string | null | undefined): string | null {
+  const flags = (label ?? "").toUpperCase().split(/[\s•|·,]+/).filter(Boolean);
+  return flags.includes("AUTO") ? "Auto progression" : null;
+}

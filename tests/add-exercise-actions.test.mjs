@@ -404,14 +404,15 @@ test("routine add: a custom exercise is removed again when the day insert or day
   assert.equal(deletesOf(library.calls).length, 0);
 });
 
-test("routine add: a missing progression column with a progression selected says to apply the migration and keeps no orphan custom exercise", async () => {
+test("routine add: a missing progression column with a progression selected answers plain copy (no migration number) and keeps no orphan custom exercise", async () => {
   const missing = { data: null, error: { message: "column routine_day_exercises.progression_playbook_id does not exist" } };
   const progression = { progressionPlaybookId: "double_progression", progressionLoadIncrement: "5" };
 
   const library = loadRoutineAction({ insertResults: [missing] });
   const libraryResult = await library.addRoutineDayExerciseAction(routineFields(progression));
   assert.equal(libraryResult.ok, false);
-  assert.match(libraryResult.error, /045|progression/i);
+  assert.equal(libraryResult.error, "Could not save the day. Try again.");
+  assert.doesNotMatch(libraryResult.error, /045|migration|column/i);
 
   const custom = loadRoutineAction({ respond: createRespond, insertResults: [missing] });
   const customResult = await custom.addRoutineDayExerciseAction(routineCustomFields(progression));

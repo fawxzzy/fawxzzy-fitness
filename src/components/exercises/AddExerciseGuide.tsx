@@ -5,15 +5,18 @@ import { AppButton } from "@/components/ui/AppButton";
 import { Sheet } from "@/components/ui/Sheet";
 
 // Plain-words explainer for every add-exercise flow (session, quick add, routine day). One visible row in the goal
-// panel opens a Sheet that explains Warm-up, Failure and (in a workout) the Exercise Timer and the workout clock and
-// rest timer. It is the one
-// plain-words home for these ideas when adding an exercise. The INFO dock row still renders: it explains the goal
-// fields and the Reps / Failure toggle in short, so this guide adds to it and does not replace it.
+// panel opens a Sheet that explains the goal fields, Warm-up, Failure and (in a workout) the Exercise Timer and the
+// workout clock and rest timer. It is the one plain-words home for these ideas when adding an exercise. (The old INFO
+// dock row is gone: the goal panel no longer renders one, so this Sheet is the only place the goal fields are explained.)
 // Every row describes something the app does today, in the words the controls use ("Failure" and "Reps" on the toggle).
 // The workout clock and rest timer shipped 2026-11-26 (DESIGN #2): the clock sits left of Pause in the workout header,
 // the rest countdown appears above Finish after each logged set. Keep this row in step with SessionHeaderControls and
 // RestTimer.
 export const ADD_EXERCISE_GUIDE_ROWS = {
+  goal: {
+    term: "Goal",
+    body: "Sets is how many sets you plan. Reps is the range you aim for in each set, with Weight, Time or Distance when the exercise uses them. The goal is what Today shows and what progression checks you against; you can change it any time.",
+  },
   warmup: {
     term: "Warm-up",
     body: "While you log a workout you can mark a set as a warm-up. It is saved with the workout, but it is left out when your progression is worked out.",
@@ -35,6 +38,7 @@ export const ADD_EXERCISE_GUIDE_ROWS = {
 export function AddExerciseGuide({ showTimer }: { showTimer: boolean }) {
   const [open, setOpen] = useState(false);
   const rows = [
+    ADD_EXERCISE_GUIDE_ROWS.goal,
     ADD_EXERCISE_GUIDE_ROWS.warmup,
     ADD_EXERCISE_GUIDE_ROWS.failure,
     ...(showTimer ? [ADD_EXERCISE_GUIDE_ROWS.timer, ADD_EXERCISE_GUIDE_ROWS.clock] : []),

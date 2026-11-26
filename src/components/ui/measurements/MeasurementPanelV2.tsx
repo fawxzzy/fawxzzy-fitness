@@ -17,6 +17,7 @@ import {
   resolveDistanceStep,
   resolveNumericInputMode,
   resolveWeightStep,
+  sanitizeDecimalInput,
   stepNumericValue,
 } from "@/components/ui/measurements/numericFieldPolicy";
 
@@ -50,15 +51,6 @@ const horizontalRailTouchIntentRatio = 1.15;
 
 function sanitizeIntegerInput(value: string) {
   return value.replace(/[^\d]/g, "");
-}
-
-function sanitizeDecimalInput(value: string) {
-  const cleaned = value.replace(/[^\d.]/g, "");
-  const [whole = "", ...fractionParts] = cleaned.split(".");
-  if (fractionParts.length === 0) {
-    return cleaned;
-  }
-  return `${whole}.${fractionParts.join("")}`;
 }
 
 function sanitizeDurationTextInput(value: string) {

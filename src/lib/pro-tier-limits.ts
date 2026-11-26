@@ -16,10 +16,10 @@ export const BASE_ROUTINE_LIMIT = 3;
 export const BASE_SAVED_WORKOUT_PLAN_LIMIT = 14;
 
 export const ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE =
-  "Base includes up to 3 routines. Upgrade to Pro to restore unlimited routine access.";
+  "The Free plan includes up to 3 routines. Upgrade to Pro to restore unlimited routine access.";
 
 export const WORKOUT_PLAN_LIMIT_PRO_REQUIRED_MESSAGE =
-  "Base includes up to 14 saved days. Upgrade to Pro to restore unlimited saved days.";
+  "The Free plan includes up to 14 saved days. Upgrade to Pro to restore unlimited saved days.";
 
 function compareNullableTimestampDesc(left?: string | null, right?: string | null) {
   const normalizedLeft = left ?? "";
