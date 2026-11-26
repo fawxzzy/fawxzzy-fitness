@@ -1,5 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
+## 2026-11-26 - Add exercise + exercise fields (lane L3): number pads, unit-aware steps
+
+- Type: UI only (source; no server action, flag, schema, data shape or env change; stored values stay plain decimal/integer strings)
+- WHAT changed: (1) Every measurement field opens a number pad: reps, sets and calories use `inputMode="numeric"`, weight, distance and effort `"decimal"`; time keeps `"text"` because it takes `m:ss` and the number pads have no colon. One pure policy (`src/components/ui/measurements/numericFieldPolicy.ts`) owns the input modes and the stepper steps: weight 2.5 lb / 1 kg, distance 0.25 mi / 0.5 km / 100 m / 100 steps, calories 5, reps and sets 1. A step snaps to the grid first (137 lb + one step = 137.5, 137 lb - one step = 135). Steppers stay 44x44.
+- WHY it changed: design audit 2026-11-26 #3 and functional audit F-005: the set logger and the goal sheet opened the full keyboard and weight moved by 1, so a realistic load took many taps.
+- Rule: A numeric field gets its `inputMode` and step from the shared policy, never a literal; a source test fails on any `inputMode="text"` in the measurement panel or goal form.
+- Failure Mode: `inputMode="numeric"` on a duration field removes the colon on iOS, so `m:ss` cannot be typed; time stays text.
+- Evidence: `src/components/ui/measurements/numericFieldPolicy.test.ts`.
+
 ## 2026-11-24 - App-wide states: real 44px link rows, invalid rgba(var()) sweep, shared Skeleton / EmptyState, retired routes
 
 - Type: UI only (source; no server action, flag, schema, data shape or env change)
