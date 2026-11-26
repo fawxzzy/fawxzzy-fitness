@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 import { isRoutineArchived, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import { revalidatePath } from "next/cache";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
@@ -9,12 +8,13 @@ import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { TodayNoticeHost } from "@/app/today/TodayNoticeHost";
 import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { TodayInSessionCard } from "@/app/today/TodayInSessionCard";
+import { loadTodayLastPerformanceLines } from "@/app/today/todayLastPerformance";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { EarnedInstallPrompt } from "@/components/install/EarnedInstallPrompt";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import {
   TodayOverviewContent,
   TodayOverviewScaffold,
@@ -64,6 +64,8 @@ import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-sha
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
 import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-shadow-placement.server";
+import type { TodayNoRoutineState } from "@/lib/start-fast-guards";
+import { loadTodayNoRoutineState } from "@/lib/start-fast-state.server";
 
 export const dynamic = "force-dynamic";
 
@@ -147,7 +149,7 @@ function logTodayBootstrapFailure(args: {
   });
 }
 
-// Failures return a result so the Discard dialog closes and shows this notice (ConfirmedServerFormButton
+// Failures return a result so the Discard dialog closes and shows this notice (TodayInSessionCard
 // failureMessage); success still redirects to a fresh Today.
 const DISCARD_IN_PROGRESS_FAILED_MESSAGE = "Could not discard the workout. Try again.";
 
@@ -322,7 +324,7 @@ export default async function TodayPage(
         }
 
         // Archiving clears the active pointer; an archived routine that is still referenced is treated as no
-        // active routine, so Today shows "Choose a routine" instead of a plan the person archived.
+        // active routine, so Today shows the no-routine panel (loadTodayNoRoutineState) instead of a plan the person archived.
         return routine && !isRoutineArchived(routine) ? routine : null;
       }, {
         blockingReason: "Waiting for Today active routine lookup.",
@@ -334,6 +336,18 @@ export default async function TodayPage(
       });
     } catch (error) {
       markBootstrapFailure("routine fetch", error, profile.active_routine_id);
+    }
+  }
+
+  // No active routine: starter plans only on a true first run (no routines, no finished workouts). People with
+  // routines pick one of theirs; all-archived adds "Restore a routine"; any failed read shows the plain Routines card.
+  let noRoutineState: TodayNoRoutineState | null = null;
+  if (!activeRoutine && !fetchFailed) {
+    try {
+      noRoutineState = await loadTodayNoRoutineState(supabase, user.id);
+    } catch (error) {
+      logTodayBootstrapFailure({ step: "routine fetch", userId: user.id, routineId: null, activeRoutineId: profile.active_routine_id, error });
+      noRoutineState = { kind: "choose" };
     }
   }
 
@@ -607,6 +621,15 @@ export default async function TodayPage(
   const routineDayIndexById = new Map(
     routineDays.map((day) => [day.id, day.day_index] as const),
   );
+  // "Last: 5 × 225 lb" per exercise for Today's compact list (wave 2 "Start fast"): one read of exercise_stats,
+  // never fatal (an empty map just hides the line).
+  const lastPerformanceByExerciseId = allDayExercises.length > 0
+    ? await loadTodayLastPerformanceLines({
+        supabase,
+        userId: user.id,
+        exerciseIds: normalizedDaySummaries.flatMap((summary) => summary.runnableExercises.map((exercise) => exercise.details?.id ?? exercise.exercise_id)),
+      })
+    : new Map<string, string>();
   const progressionUpdatesEnabled = isFeatureEnabled("progressionUpdatesSurface");
   const earnedInstallPromptEnabled = isFeatureEnabled("earnedInstallPromptTiming");
   let progressionReviewItems: ProgressionReviewDisplayItem[] = [];
@@ -810,12 +833,23 @@ export default async function TodayPage(
           {earnedInstallPromptEnabled ? <EarnedInstallPrompt /> : null}
           {todayPayload.inProgressSessionId ? (
             <TodayOverviewScaffold>
-              {/* Same wrapper as the Today picker's list (TodayDayPicker): the cards sit 8px apart (cardTokens.list), no extra container. */}
+              {/* One "Workout in progress" card (Discard lives in its ⋯ menu), then the same compact list as the picker. */}
+              <TodayInSessionCard
+                sessionId={todayPayload.inProgressSessionId}
+                dayName={todayPayload.routine.dayName}
+                loggedSetCount={inProgressSessionLoggedSetCount}
+                action={discardInProgressSessionAction}
+                failureMessage={DISCARD_IN_PROGRESS_FAILED_MESSAGE}
+              />
               <div className="pt-0.5">
                 <TodayExerciseRows
-                  exercises={todayPayload.exercises}
+                  exercises={todayPayload.exercises.map((exercise) => ({
+                    ...exercise,
+                    lastLine: lastPerformanceByExerciseId.get(exercise.exerciseId) ?? null,
+                  }))}
                   emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
                   isRestDay={todayPayload.routine.state === "rest"}
+                  compact
                 />
               </div>
             </TodayOverviewScaffold>
@@ -873,6 +907,7 @@ export default async function TodayPage(
                   image_icon_path: exercise.details?.image_icon_path ?? null,
                   slug: exercise.details?.slug ?? null,
                   how_to_short: exercise.details?.how_to_short ?? null,
+                  lastLine: lastPerformanceByExerciseId.get(exercise.details?.id ?? exercise.exercise_id) ?? null,
                 })),
               }))}
               currentDayIndex={displayDay.hasScheduledDayToday ? todayPayload.routine.dayIndex : null}
@@ -894,42 +929,27 @@ export default async function TodayPage(
               applyProgressionReviewCandidateAction={applyProgressionReviewCandidateAction}
               revertProgressionReviewCandidateAction={revertProgressionReviewCandidateAction}
               promoteExerciseAction={promoteExerciseAction}
+              todayDate={todayReferenceDate}
+              doneToday={completedTodayCount > 0 && !todayPayload.inProgressSessionId}
             />
           )}
         </TodayOverviewContent>
       ) : (
-        <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} />
+        <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} noRoutineState={noRoutineState} />
       )}
 
       {todayPayload.routine && todayPayload.inProgressSessionId && hasDetailedRoutineState ? (
         <PublishBottomActions>
-          <BottomActionSplit
-            primary={(
-              <TodayStartButton
-                sessionId={todayPayload.inProgressSessionId}
-                returnTo="/today"
-                fullWidth
-                className="w-full"
-                label="Resume"
-              />
-            )}
-            secondary={(
-              <ConfirmedServerFormButton
-                action={discardInProgressSessionAction}
-                hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                triggerLabel="Discard"
-                // Secondary, not a red twin of Resume (DESIGN Today in-session): the red and the real verb live in
-                // the confirm ("Discard workout"), which still guards the action.
-                triggerIntent="info"
-                triggerClassName="h-full w-full"
-                size="md"
-                modalTitle="Discard workout?"
-                modalConsequenceText="Current workout will be removed."
-                confirmLabel={CONFIRM_ACTION_LABELS.discardWorkout}
-                failureMessage={DISCARD_IN_PROGRESS_FAILED_MESSAGE}
-              />
-            )}
-          />
+          {/* ONE primary (wave 2 "Start fast"); Discard moved to the in-session card's ⋯ menu and keeps its confirm. */}
+          <BottomActionSingle>
+            <TodayStartButton
+              sessionId={todayPayload.inProgressSessionId}
+              returnTo="/today"
+              fullWidth
+              className="w-full"
+              label="Resume workout"
+            />
+          </BottomActionSingle>
         </PublishBottomActions>
       ) : null}
 

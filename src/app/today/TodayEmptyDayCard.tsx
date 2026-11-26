@@ -5,26 +5,30 @@ import { cn } from "@/lib/cn";
 
 /**
  * The three quiet Today states share ONE card (Zac 2026-11-19): a centred decorative mark, a centred title, and at
- * most one centred action that opens the right editor. Rest and empty days may add ONE "Next up: <day>" line with a
+ * most one centred action that opens the right editor. Rest, empty and done days may add ONE "Next: <day>" line with a
  * quiet Show button that selects that day (DESIGN today-rest / today-empty, 2026-11-26), so they are not dead ends.
  *   - "empty":      No exercises planned  -> [Edit day]      (Edit Day editor, /routines/[id]/edit/day/[dayId])
  *   - "rest":       Rest day              -> no action
  *   - "noSchedule": No scheduled workout  -> [Edit routine]  (routine editor, /routines/[id]/edit)
+ *   - "done":       Done today            -> no action       (today's workout is finished; wave 2 "Start fast")
  * Dashed card-system surface, no rail (DESIGN-CONTRACT 8.2). The title is the meaning; the mark is aria-hidden,
- * and rest uses the attention (amber) colour only alongside its words (C3).
+ * and rest uses the attention (amber) colour only alongside its words (C3); done uses success the same way.
  */
-export type TodayEmptyDayKind = "empty" | "rest" | "noSchedule";
+export type TodayEmptyDayKind = "empty" | "rest" | "noSchedule" | "done";
 
 export const TODAY_EMPTY_DAY_COPY = {
   empty: { title: "No exercises planned", actionLabel: "Edit day" },
   rest: { title: "Rest day", actionLabel: null },
   noSchedule: { title: "No scheduled workout", actionLabel: "Edit routine" },
+  done: { title: "Done today", actionLabel: null },
 } as const satisfies Record<TodayEmptyDayKind, { title: string; actionLabel: string | null }>;
 
 function TodayEmptyDayMark({ kind }: { kind: TodayEmptyDayKind }) {
   const tint = kind === "rest"
     ? "text-[rgb(var(--warning-rgb)/0.92)] bg-[rgb(var(--warning-rgb)/0.1)] border-[rgb(var(--warning-rgb)/0.28)]"
-    : "text-[rgb(var(--accent)/0.92)] bg-[rgb(var(--accent)/0.1)] border-[rgb(var(--accent)/0.26)]";
+    : kind === "done"
+      ? "text-[rgb(var(--success-rgb)/0.95)] bg-[rgb(var(--success-rgb)/0.1)] border-[rgb(var(--success-rgb)/0.3)]"
+      : "text-[rgb(var(--accent)/0.92)] bg-[rgb(var(--accent)/0.1)] border-[rgb(var(--accent)/0.26)]";
 
   return (
     <span
@@ -36,6 +40,9 @@ function TodayEmptyDayMark({ kind }: { kind: TodayEmptyDayKind }) {
         {kind === "rest" ? (
           // Crescent moon.
           <path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10Z" />
+        ) : kind === "done" ? (
+          // Check mark.
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
         ) : kind === "empty" ? (
           // Empty list: three short rows.
           <>
@@ -64,7 +71,7 @@ export function TodayEmptyDayCard({
   className,
 }: {
   kind: TodayEmptyDayKind;
-  /** Rest / empty day only: the next day with exercises ("Next up: Pull A · Thu") and how to show it. */
+  /** Rest / empty / done day only: the next day with exercises ("Next: Pull A on Thu, Nov 27") and how to show it. */
   nextUp?: { label: string; actionLabel: string; onShow: () => void } | null;
   /** Where the single action goes. Ignored for "rest"; when missing, the card shows no action. */
   actionHref?: string | null;
@@ -79,7 +86,7 @@ export function TodayEmptyDayCard({
     <CardSurface
       empty
       showRail={false}
-      tone={kind === "rest" ? "attention" : "neutral"}
+      tone={kind === "rest" ? "attention" : kind === "done" ? "completed" : "neutral"}
       data-card-empty="true"
       data-today-empty-day={kind}
       className={className}

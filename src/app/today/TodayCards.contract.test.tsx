@@ -288,9 +288,9 @@ test("Today no longer renders the old card engine, the 26px info overlay, or han
 
 test("no behaviour code moved: TodayStartButton, the offline cache read and the live-connection notice stay in the shell", () => {
   const shell = readSource("./TodayClientShell.tsx");
-  assert.match(shell, /<TodayStartButton[\s\S]*?label="Resume"/);
+  assert.match(shell, /<TodayStartButton[\s\S]*?label="Resume workout"/);
   assert.match(shell, /readTodayCache\(userId\)/);
-  assert.match(shell, /Start session requires a live connection\./);
+  assert.match(shell, /Starting a workout needs a connection\./);
 });
 
 test("FF-TODAY-004: an exercise without a goal shows a quiet 'No goal set' cue (the card never says 'Target'), never 'Goal missing'; goals and stretch hub stay clean", () => {

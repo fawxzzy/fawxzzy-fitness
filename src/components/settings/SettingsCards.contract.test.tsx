@@ -46,6 +46,7 @@ const settingsFiles = [
   "SettingsCard.tsx",
   "SettingsFloatingHeader.tsx",
   "SettingsSectionsClient.tsx",
+  "UnitsSettings.tsx",
 ];
 
 const freePlan: ProAccessSnapshot = {
@@ -65,10 +66,10 @@ const freePlan: ProAccessSnapshot = {
 };
 
 test("Settings sections keep their order and titles; Account navigates, the rest expand", () => {
-  assert.deepEqual([...SETTINGS_SECTION_ORDER], ["account", "achievements", "pro", "data", "theme", "discord"]);
+  assert.deepEqual([...SETTINGS_SECTION_ORDER], ["account", "units", "pro", "data", "theme", "discord"]);
   assert.deepEqual(
     SETTINGS_SECTION_ORDER.map((section) => getSettingsSectionMeta(section)?.title),
-    ["Account", "Achievements", "Pro Access", "Data", "App Theme", "Discord Connector"],
+    ["Account", "Units & time zone", "Pro Access", "Data", "App Theme", "Discord Connector"],
   );
 
   const account = render(<SettingsSectionCard section="account" href="/account" />);
@@ -105,7 +106,7 @@ test("Settings header: the standard tab header with a visible h1 and nothing els
   }
 });
 
-test("Achievements: a list of cards, text chips instead of dimming, h3 section title and h4 card titles", () => {
+test("Achievements (rendered by History > Progress): a list of cards, text chips instead of dimming, h3 section title and h4 card titles", () => {
   const html = render(
     <AccountAchievementsSection
       achievements={[

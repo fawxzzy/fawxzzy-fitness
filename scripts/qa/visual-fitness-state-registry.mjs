@@ -82,7 +82,7 @@ const mobileRegressionInventory = [
   ["history-detail-long-metrics", "Session summaries", "history-detail", "long-metrics"],
   ["settings-default", "Settings / detail", "settings", "default"],
   ["settings-data-export", "Settings / detail", "settings", "data-export"],
-  ["settings-achievements", "Settings / detail", "settings", "achievements"],
+  ["settings-units", "Settings / detail", "settings", "units"],
   ["exercise-detail-strength", "Settings / detail", "exercise-detail", "strength"],
   ["exercise-detail-cardio", "Settings / detail", "exercise-detail", "cardio"],
   ["exercise-detail-bodyweight", "Settings / detail", "exercise-detail", "bodyweight"],

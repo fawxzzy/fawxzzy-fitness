@@ -2929,7 +2929,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className={appTokens.settingsContentRail}>
           <div className="space-y-3">
-            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : scenario.fixture === "achievements" ? "achievements" : null}>
+            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : scenario.fixture === "units" ? "units" : null}>
               <div className="pointer-events-none">
                 <SettingsSectionsClient
                   userKind="human"
@@ -2954,12 +2954,9 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                     supportNote: "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
                   }}
                   billingNotice={null}
-                  achievements={[
-                    { id: "first-workout", title: "First Workout", description: "Complete one workout.", unlocked: true },
-                    { id: "ten-sessions", title: "Ten Workouts", description: "Complete ten workouts over time.", unlocked: true },
-                    { id: "three-week-streak", title: "Three Workout Streak", description: "Log three consecutive planned workout days.", unlocked: true },
-                    { id: "first-pr", title: "PR Logged", description: "Log your first PR.", unlocked: true },
-                  ]}
+                  // Fixture only: a chosen (not new-account) zone keeps the device preset off; saving never runs.
+                  units={{ weightUnit: "lbs", distanceUnit: "mi", timeZone: "America/Chicago" }}
+                  unitsAction={async () => ({ ok: true as const })}
                 />
               </div>
             </SettingsScreenStateProvider>

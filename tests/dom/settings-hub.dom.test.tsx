@@ -34,14 +34,9 @@ const PLAN: ProAccessSnapshot = {
   supportNote: "",
 };
 
-const ACHIEVEMENTS = [
-  { id: "first-workout", title: "First workout", description: "x", unlocked: true },
-  { id: "ten-sessions", title: "Ten sessions", description: "x", unlocked: false },
-  { id: "three-week-streak", title: "Three-week streak", description: "x", unlocked: true },
-  { id: "first-pr", title: "First PR", description: "x", unlocked: false },
-] as const;
+type UnitsAction = (formData: FormData) => Promise<{ ok: true } | { ok: false; error: string }>;
 
-function renderHub() {
+function renderHub(unitsAction: UnitsAction = async () => ({ ok: true })) {
   const { router } = createRouterSpy();
   return render(
     <AppProviders router={router} pathname="/settings">
@@ -53,8 +48,9 @@ function renderHub() {
           initialExportDateFrom="2026-05-01"
           initialExportDateTo="2026-05-09"
           proAccess={PLAN}
-          achievements={[...ACHIEVEMENTS]}
           signedInAs="zac@example.com"
+          units={{ weightUnit: "kg", distanceUnit: "km", timeZone: "Europe/London" }}
+          unitsAction={unitsAction}
         />
       </SettingsScreenStateProvider></BottomActionsProvider>
     </AppProviders>,
@@ -65,13 +61,37 @@ function sectionCard(name: string) {
   return screen.getByRole("heading", { level: 2, name }).closest("[data-settings-section-card]") as HTMLElement;
 }
 
-test("Hub: each section card carries a live summary chip (plan, achievements earned, theme in use)", async () => {
+test("Hub: each section card carries a live summary chip (units, plan, theme in use); Achievements live in History", async () => {
   writeStoredAppThemeSelection("rose");
   renderHub();
 
   assert.ok(within(sectionCard("Pro Access")).getByText("Free"));
-  assert.ok(within(sectionCard("Achievements")).getByText("2 of 4"));
+  assert.ok(within(sectionCard("Units & time zone")).getByText("kg · km"));
+  assert.equal(screen.queryByRole("heading", { level: 2, name: "Achievements" }), null);
   await waitFor(() => assert.ok(within(sectionCard("App Theme")).getByText("Rose Circuit")));
+});
+
+test("Units & time zone: change a unit, one Save sends all three values, the result is a notice (not red text)", async () => {
+  const sent: Array<Record<string, string>> = [];
+  renderHub(async (formData) => {
+    sent.push(Object.fromEntries([...formData.entries()].map(([key, value]) => [key, String(value)])));
+    return sent.length === 1 ? { ok: false, error: "Could not save units and time zone. Try again." } : { ok: true };
+  });
+
+  fireEvent.click(within(sectionCard("Units & time zone")).getByRole("button"));
+  const save = await screen.findByRole("button", { name: /^Saved/ });
+  assert.equal((save as HTMLButtonElement).disabled, true, "nothing changed yet");
+
+  fireEvent.click(within(screen.getByRole("tablist", { name: "Weight unit" })).getByRole("tab", { name: "lb" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save(?!d)/ }));
+  await screen.findByText("Could not save units and time zone. Try again.");
+  assert.deepEqual(sent[0], { weightUnit: "lbs", distanceUnit: "km", timeZone: "Europe/London" });
+
+  // The failed save leaves the choice in place and Save ready again once the first request settles.
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: /^Save(?!d)/ }) as HTMLButtonElement).disabled, false));
+  fireEvent.click(screen.getByRole("button", { name: /^Save(?!d)/ }));
+  await screen.findByText("Units and time zone saved.");
+  assert.equal(sent.length, 2);
 });
 
 test("Hub: Sign out names the account that is signed in before anything is sent", () => {

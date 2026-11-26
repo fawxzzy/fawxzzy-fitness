@@ -15,7 +15,7 @@ import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/S
 import { ROUTINE_CONTENT_GAP_CLASS_NAME } from "@/components/day-list/RoutineDayCardPresentation";
 import { useHasBottomActions, usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { CardActionRow, cardTokens } from "@/components/ui/card-system";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -77,6 +77,8 @@ type TodayExercise = {
   slug: string | null;
   how_to_short: string | null;
   progressionStateLabel?: string | null;
+  /** "Last: 5 × 225 lb" from exercise_stats (todayLastPerformance.ts); the compact row's only meta line. */
+  lastLine?: string | null;
 };
 
 type TodayDay = {
@@ -218,6 +220,8 @@ export function TodayDayPicker({
   applyProgressionReviewCandidateAction,
   revertProgressionReviewCandidateAction,
   promoteExerciseAction,
+  todayDate = null,
+  doneToday = false,
 }: {
   days: TodayDay[];
   currentDayIndex: number | null;
@@ -265,6 +269,10 @@ export function TodayDayPicker({
     expectedFromTarget: ProgressionTargetPlan | null;
     linkedIds?: string[];
   }) => Promise<ActionResult<ProgressionReviewApplyResult>>;
+  /** Calendar today (YYYY-MM-DD, routine zone): lets the Next line name a date ("Next: Pull A on Fri, Nov 27"). */
+  todayDate?: string | null;
+  /** A workout on this routine was finished today and none is in progress: today's day shows "Done today". */
+  doneToday?: boolean;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => initialSelectedDayIndex ?? currentDayIndex ?? days[0]?.dayIndex ?? 1);
   const [isPickerOpen, setIsPickerOpen] = useState(initialPickerOpen);
@@ -696,10 +704,24 @@ export function TodayDayPicker({
       ? resolveTodayNextUp(
         days.map((day) => ({ dayIndex: day.dayIndex, name: day.name, isRest: day.isRest, exerciseCount: day.exercises.length, occurrenceWeekday: day.occurrenceWeekday })),
         selectedDay.dayIndex,
+        // Only today's own day can name a date: each routine day is one calendar day from here.
+        { todayDate: selectedDay.dayIndex === currentDayIndex ? todayDate : null },
       )
       : null;
     return next ? { ...next, onShow: () => setSelectedDayIndex(next.dayIndex) } : null;
-  }, [days, selectedDay]);
+  }, [currentDayIndex, days, selectedDay, todayDate]);
+  // After Finish (wave 2 "Start fast"): today's own day says "Done today" with the next day, instead of offering
+  // the same workout again. Switching to another day still shows its list and Start.
+  const showDoneToday = Boolean(
+    doneToday
+    && !inProgressSessionId
+    && !mode.dayPickerOpen
+    && selectedDay
+    && !selectedDay.isRest
+    && selectedDay.dayIndex === currentDayIndex,
+  );
+  const doneTodayCard = showDoneToday ? <TodayEmptyDayCard kind="done" nextUp={selectedDayNextUp} /> : null;
+  const showPrimaryAction = mode.cta.showPrimary && !showDoneToday;
   const selectedDayRestCard = useMemo(() => {
     if (mode.dayPickerOpen || !mode.restDay || !selectedDay) {
       return null;
@@ -771,34 +793,37 @@ export function TodayDayPicker({
     ? <ScreenHeader kind="tab" title="Today" subtitle={routineName.trim() || null} status={headerStatus} />
     : null;
 
+  // ONE primary in the dock (wave 2 "Start fast"): Start or Resume alone. Switching day is a quiet text link under
+  // the list ("Not today? Switch day"). With no primary (rest, empty, done, picker open) the dock keeps the single
+  // Switch day / Hide toggle so the screen always has one way forward. Exactly one control carries the
+  // today-day-picker id at a time.
   const actionsNode = useMemo(() => {
-    const selectDayButton = (
-      <BottomDockButton
-        id="today-day-picker"
-        type="button"
-        intent="toggleActive"
-        onClick={togglePicker}
-        aria-expanded={mode.dayPickerOpen}
-        aria-controls="today-day-selector-list"
-      >
-        <span>{mode.cta.secondaryLabel}</span>
-      </BottomDockButton>
-    );
-
-    if (mode.dayPickerOpen || !mode.cta.showPrimary) {
-      return <BottomActionSingle>{selectDayButton}</BottomActionSingle>;
+    if (mode.dayPickerOpen || !showPrimaryAction) {
+      return (
+        <BottomActionSingle>
+          <BottomDockButton
+            id="today-day-picker"
+            type="button"
+            intent="toggleActive"
+            onClick={togglePicker}
+            aria-expanded={mode.dayPickerOpen}
+            aria-controls="today-day-selector-list"
+          >
+            <span>{mode.dayPickerOpen ? "Hide" : "Switch day"}</span>
+          </BottomDockButton>
+        </BottomActionSingle>
+      );
     }
 
     return (
-      <BottomActionSplit
-        secondary={selectDayButton}
-        primary={mode.cta.primaryLabel === "Resume Workout" ? (
+      <BottomActionSingle>
+        {mode.cta.primaryLabel === "Resume Workout" ? (
           <TodayStartButton
             sessionId={inProgressSessionId ?? undefined}
             returnTo="/today"
             fullWidth
             className="w-full"
-            label="Resume"
+            label="Resume workout"
           />
         ) : (
           <TodayStartButton
@@ -810,19 +835,36 @@ export function TodayDayPicker({
             className="w-full"
           />
         )}
-      />
+      </BottomActionSingle>
     );
   }, [
     inProgressSessionId,
     mode.cta.primaryLabel,
-    mode.cta.secondaryLabel,
-    mode.cta.showPrimary,
     mode.dayPickerOpen,
     progressionRoutineId,
     selectedDay?.id,
     selectedDayIndex,
+    showPrimaryAction,
     togglePicker,
   ]);
+  // A bare <button> picks up the global unlayered `button` rule (border, fill, text colour), which beats utilities:
+  // the `!` overrides keep this a text link, not a boxed button (seen in phone captures, not in tests).
+  const switchDayLink = !mode.dayPickerOpen && showPrimaryAction ? (
+    <p className="pt-1 text-center text-sm text-[rgb(var(--text-secondary))]">
+      Not today?{" "}
+      <button
+        id="today-day-picker"
+        type="button"
+        onClick={togglePicker}
+        aria-expanded={false}
+        aria-controls="today-day-selector-list"
+        data-today-switch-day-link="true"
+        className="inline-flex min-h-11 items-center !border-transparent !bg-transparent px-1 font-semibold !text-[rgb(var(--accent))] !shadow-none underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.6)] [-webkit-tap-highlight-color:transparent]"
+      >
+        Switch day
+      </button>
+    </p>
+  ) : null;
 
   usePublishBottomActions(actionsNode);
 
@@ -877,7 +919,9 @@ export function TodayDayPicker({
 
                 {noScheduledDayNotice ?? emptyTrainingDayCard}
 
-                {mode.dayRowsVisible && hasSelectedDayRows ? (
+                {doneTodayCard}
+
+                {mode.dayRowsVisible && hasSelectedDayRows && !showDoneToday ? (
                   <ul className={cardTokens.list}>
                     {selectedDay.exercises.map((exercise) => {
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
@@ -915,6 +959,7 @@ export function TodayDayPicker({
                           <TodayExerciseCard
                             exercise={exercise}
                             surface="today"
+                            compact
                             progress={cardProgressFill.fill ? {
                               label: `Progression: ${cardProgressFill.fill.label}`,
                               percent: cardProgressFill.fill.percent,
@@ -982,6 +1027,7 @@ export function TodayDayPicker({
                   </ul>
                 ) : null}
 
+                {switchDayLink}
               </div>
             ) : null}
           </TodayOverviewScaffold>

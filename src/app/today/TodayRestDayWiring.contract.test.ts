@@ -21,10 +21,11 @@ test("TodayClientShell (offline/fallback shell) tells TodayExerciseRows when the
   assert.match(source, /isRestDay=\{display\.routine\.isRest\}/);
 });
 
-test("TodayClientShell's no-routine state reuses the card-system empty state instead of a bespoke link block", () => {
+test("TodayClientShell's no-routine state renders the no-routine panel; a failed load reuses the card-system empty state", () => {
   const source = readSource("./TodayClientShell.tsx");
   assert.match(source, /import \{ CardEmptyState, CardNotice \} from "@\/components\/ui\/card-system";/);
   assert.match(source, /<CardEmptyState/);
+  assert.match(source, /<TodayNoRoutinePanel state=\{noRoutineState\} \/>/);
   assert.doesNotMatch(source, /components\/ui\/EmptyState/);
 });
 

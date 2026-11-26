@@ -9,16 +9,14 @@ import { SettingsSectionsClient } from "@/components/settings/SettingsSectionsCl
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { appTokens } from "@/components/ui/app/tokens";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
-import type { HistoryAchievement } from "@/lib/history-achievements";
 
-const SECTION_KEYS = ["account", "achievements", "pro", "data", "discord", "theme"] as const;
+const SECTION_KEYS = ["account", "units", "pro", "data", "discord", "theme"] as const;
 
-const ACHIEVEMENTS: HistoryAchievement[] = [
-  { id: "first-workout", title: "First Workout", description: "Complete one workout.", unlocked: true },
-  { id: "ten-sessions", title: "Ten Sessions", description: "Complete ten workouts over time.", unlocked: true },
-  { id: "three-week-streak", title: "Three Session Streak", description: "Log three consecutive planned workout days.", unlocked: false },
-  { id: "first-pr", title: "PR Logged", description: "Record one history-backed PR moment.", unlocked: false },
-];
+// Fixture only: saving units never reaches a server or a profile.
+async function fixtureUnitsAction(): Promise<{ ok: true }> {
+  await new Promise((resolve) => window.setTimeout(resolve, 300));
+  return { ok: true };
+}
 
 const FREE_PLAN: ProAccessSnapshot = {
   schemaReady: true,
@@ -135,13 +133,11 @@ export function SettingsCardsFixture({
   section,
   plan,
   qaSwitch = false,
-  noneEarned = false,
   longName = false,
 }: {
   section: string | null;
   plan: "free" | "pro" | "ending" | "unconfigured";
   qaSwitch?: boolean;
-  noneEarned?: boolean;
   longName?: boolean;
 }) {
   const initialExpandedSection: SettingsSectionKey = SECTION_KEYS.find((key) => key === section) ?? null;
@@ -164,8 +160,9 @@ export function SettingsCardsFixture({
                 initialExportDateTo="2026-05-09"
                 proAccess={plan === "pro" ? PRO_PLAN : plan === "ending" ? ENDING_PLAN : plan === "unconfigured" ? UNCONFIGURED_PLAN : FREE_PLAN}
                 billingNotice={null}
-                achievements={noneEarned ? ACHIEVEMENTS.map((achievement) => ({ ...achievement, unlocked: false })) : ACHIEVEMENTS}
                 signedInAs={longName ? LONG_NAME : "dev-fixture"}
+                units={{ weightUnit: "lbs", distanceUnit: "mi", timeZone: "America/New_York" }}
+                unitsAction={fixtureUnitsAction}
               />
             </div>
           </ContentRail>

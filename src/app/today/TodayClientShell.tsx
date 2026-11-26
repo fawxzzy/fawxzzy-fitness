@@ -1,15 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
+import { TodayNoRoutinePanel } from "@/app/today/TodayNoRoutinePanel";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { CardEmptyState, CardNotice } from "@/components/ui/card-system";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import type { TodayNoRoutineState } from "@/lib/start-fast-guards";
 
 type TodayPayload = {
   routine: {
@@ -53,10 +54,13 @@ export function TodayClientShell({
   userId,
   payload,
   fetchFailed,
+  noRoutineState = null,
 }: {
   userId: string;
   payload: TodayPayload;
   fetchFailed: boolean;
+  /** Read by page.tsx only when there is no active routine; null shows the plain Routines card, never plans. */
+  noRoutineState?: TodayNoRoutineState | null;
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
   const router = useRouter();
@@ -119,15 +123,26 @@ export function TodayClientShell({
     return (
       <TodayOverviewContent>
         <TodayOverviewScaffold>
-          <CardEmptyState
-            title="Choose a routine"
-            body="Pick the routine you want to follow, then today's plan shows here."
-            action={(
-              <Link href="/routines" className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>
-                Go to Routines
-              </Link>
-            )}
-          />
+          {fetchFailed ? (
+            // Today could not load (offline or a server error) and nothing is cached: the person may well have a
+            // routine, so offering new plans here could make a duplicate. Point at a retry instead.
+            <CardEmptyState
+              title="Today could not load"
+              body="Check your connection, then try again."
+              action={(
+                <button
+                  type="button"
+                  onClick={() => router.refresh()}
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
+                >
+                  Try again
+                </button>
+              )}
+            />
+          ) : (
+            // Starter plans only on a true first run; routines that exist are picked, not re-created.
+            <TodayNoRoutinePanel state={noRoutineState} />
+          )}
         </TodayOverviewScaffold>
       </TodayOverviewContent>
     );
@@ -141,6 +156,7 @@ export function TodayClientShell({
             exercises={display.exercises}
             emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}
             isRestDay={display.routine.isRest}
+            compact
           />
 
           {display.inProgressSessionId ? (
@@ -149,10 +165,10 @@ export function TodayClientShell({
               returnTo="/today"
               fullWidth
               className="w-full"
-              label="Resume"
+              label="Resume workout"
             />
           ) : display.staleAt ? null : (
-            <CardNotice>Start session requires a live connection.</CardNotice>
+            <CardNotice>Starting a workout needs a connection.</CardNotice>
           )}
         </div>
       </TodayOverviewScaffold>
