@@ -5,6 +5,7 @@ import {
   describeRoutineArchiveConsequence,
   excludeArchivedRoutines,
   formatRoutineArchivedLabel,
+  isBodylessRoutineArchiveProbeError,
   isMissingRoutineArchivedAtColumnError,
   isRoutineArchived,
   partitionRoutinesByArchiveState,
@@ -54,6 +55,42 @@ test("compat select returns other errors as is, without a retry", async () => {
   assert.equal(calls, 1);
   assert.equal(result.archiveSupported, true);
   assert.deepEqual(result.error, { message: "timeout" });
+});
+
+test("compat select retries the legacy query on a body-less HEAD-style 400 (pre-migration head:true count)", async () => {
+  // postgrest-js gives a failed HEAD request no body, so the error is { message: "" } with no code.
+  const seen: boolean[] = [];
+  const result = await selectWithRoutineArchiveCompat<null>(async (withArchive) => {
+    seen.push(withArchive);
+    return withArchive
+      ? { data: null, error: { message: "" }, count: null, status: 400 }
+      : { data: null, error: null, count: 2, status: 200 };
+  });
+  assert.deepEqual(seen, [true, false]);
+  assert.equal(result.error, null);
+  assert.equal(result.count, 2);
+  assert.equal(result.archiveSupported, false);
+});
+
+test("body-less errors only count as a missing column for a 400 or unknown status, never with a message or code", () => {
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: "" }, 400), true);
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: "  " }), true);
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: null, code: null }), true);
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: "" }, 401), false);
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: "" }, 500), false);
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: "timeout" }), false);
+  assert.equal(isBodylessRoutineArchiveProbeError({ message: "", code: "42501" }), false);
+  assert.equal(isBodylessRoutineArchiveProbeError(null), false);
+});
+
+test("a body-less error that the legacy query also hits is returned (real outage, not a missing column)", async () => {
+  let calls = 0;
+  const result = await selectWithRoutineArchiveCompat<null>(async () => {
+    calls += 1;
+    return { data: null, error: { message: "" }, status: 400 };
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(result.error, { message: "" });
 });
 
 test("archive filters: archived = non-empty archived_at; legacy rows without the field count as listed", () => {

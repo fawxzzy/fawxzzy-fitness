@@ -55,10 +55,10 @@ test("archive sets archived_at only on a listed routine and never deletes anythi
   assert.deepEqual(updates[0].filters, [["eq", "id", "r1"], ["eq", "user_id", "u1"], ["is", "archived_at", null]]);
 });
 
-test("archiving the active routine clears the profile pointer first, guarded on it still pointing here", async () => {
+test("archiving the active routine archives first, then clears the profile pointer guarded on it still pointing here", async () => {
   const { client, calls } = fakeClient({
     "routines.select": [{ data: [{ id: "r1", archived_at: null }], error: null }],
-    "sessions.select": [{ data: [], error: null }],
+    "sessions.select": [{ data: [], error: null }, { data: [], error: null }],
     "profiles.select": [{ data: [{ active_routine_id: "r1" }], error: null }],
   });
 
@@ -66,9 +66,58 @@ test("archiving the active routine clears the profile pointer first, guarded on 
 
   assert.deepEqual(result, { ok: true, alreadyArchived: false, clearedActiveRoutine: true });
   const updates = calls.filter((call) => call.op === "update");
-  assert.deepEqual(updates.map((call) => call.table), ["profiles", "routines"]);
-  assert.deepEqual(updates[0].arg, { active_routine_id: null });
-  assert.deepEqual(updates[0].filters, [["eq", "id", "u1"], ["eq", "active_routine_id", "r1"]]);
+  assert.deepEqual(updates.map((call) => call.table), ["routines", "profiles"]);
+  assert.deepEqual(updates[1].arg, { active_routine_id: null });
+  assert.deepEqual(updates[1].filters, [["eq", "id", "u1"], ["eq", "active_routine_id", "r1"]]);
+});
+
+test("a failed archive write leaves the profile pointer untouched", async () => {
+  const { client, calls } = fakeClient({
+    "routines.select": [{ data: [{ id: "r1", archived_at: null }], error: null }],
+    "sessions.select": [{ data: [], error: null }],
+    "profiles.select": [{ data: [{ active_routine_id: "r1" }], error: null }],
+    "routines.update": [{ data: null, error: { message: "timeout" } }],
+  });
+
+  const result = await archiveRoutineMutation({ routineId: "r1", userId: "u1", supabase: client, nowIso: NOW });
+
+  assert.equal(result.ok === false && result.reason, "routine-update-failed");
+  assert.equal(calls.some((call) => call.table === "profiles"), false, "the pointer is only touched after the archive lands");
+});
+
+test("archive still succeeds when clearing the active pointer fails afterwards (lookup or update)", async () => {
+  const updateFails = fakeClient({
+    "routines.select": [{ data: [{ id: "r1", archived_at: null }], error: null }],
+    "profiles.select": [{ data: [{ active_routine_id: "r1" }], error: null }],
+    "profiles.update": [{ data: null, error: { message: "timeout" } }],
+  });
+  const afterUpdateFailure = await archiveRoutineMutation({ routineId: "r1", userId: "u1", supabase: updateFails.client, nowIso: NOW });
+  assert.deepEqual(afterUpdateFailure, { ok: true, alreadyArchived: false, clearedActiveRoutine: false });
+  assert.deepEqual(updateFails.calls.filter((call) => call.op === "update").map((call) => call.table), ["routines", "profiles"]);
+
+  const lookupFails = fakeClient({
+    "routines.select": [{ data: [{ id: "r1", archived_at: null }], error: null }],
+    "profiles.select": [{ data: null, error: { message: "timeout" } }],
+  });
+  const afterLookupFailure = await archiveRoutineMutation({ routineId: "r1", userId: "u1", supabase: lookupFails.client, nowIso: NOW });
+  assert.deepEqual(afterLookupFailure, { ok: true, alreadyArchived: false, clearedActiveRoutine: false });
+  assert.deepEqual(lookupFails.calls.filter((call) => call.op === "update").map((call) => call.table), ["routines"]);
+});
+
+test("a workout that starts between the check and the archive write undoes the archive (guarded on our timestamp)", async () => {
+  const { client, calls } = fakeClient({
+    "routines.select": [{ data: [{ id: "r1", archived_at: null }], error: null }],
+    "sessions.select": [{ data: [], error: null }, { data: [{ id: "s-new" }], error: null }],
+    "profiles.select": [{ data: [{ active_routine_id: "r1" }], error: null }],
+  });
+
+  const result = await archiveRoutineMutation({ routineId: "r1", userId: "u1", supabase: client, nowIso: NOW });
+
+  assert.equal(result.ok === false && result.reason, "in-progress-session");
+  const updates = calls.filter((call) => call.op === "update");
+  assert.deepEqual(updates.map((call) => call.table), ["routines", "routines"], "archive, then undo; the pointer is never touched");
+  assert.deepEqual(updates[1].arg, { archived_at: null });
+  assert.deepEqual(updates[1].filters, [["eq", "id", "r1"], ["eq", "user_id", "u1"], ["eq", "archived_at", NOW]]);
 });
 
 test("archive is blocked while the routine has a workout in progress, and changes nothing", async () => {
@@ -140,6 +189,22 @@ test("Free restore is refused at 3 listed routines and changes nothing", async (
 
   assert.equal(result.ok === false && result.reason, "routine-limit");
   assert.equal(calls.filter((call) => call.op === "update").length, 0);
+});
+
+test("Free restore is undone when another routine became listed between the count and the write", async () => {
+  const twoListed = [{ id: "a", archived_at: null }, { id: "b", archived_at: null }, { id: "old", archived_at: "2026-11-01T00:00:00Z" }];
+  const afterConcurrentCreate = [...twoListed.slice(0, 2), { id: "new", archived_at: null }, { id: "old", archived_at: null }];
+  const { client, calls } = fakeClient({
+    "routines.select": [{ data: twoListed, error: null }, { data: afterConcurrentCreate, error: null }],
+  });
+
+  const result = await restoreRoutineMutation({ routineId: "old", userId: "u1", accessState: "free", supabase: client, nowIso: NOW });
+
+  assert.equal(result.ok === false && result.reason, "routine-limit");
+  const updates = calls.filter((call) => call.op === "update");
+  assert.equal(updates.length, 2);
+  assert.deepEqual(updates[1].arg, { archived_at: "2026-11-01T00:00:00Z" });
+  assert.deepEqual(updates[1].filters, [["eq", "id", "old"], ["eq", "user_id", "u1"], ["is", "archived_at", null]]);
 });
 
 test("Pro restore ignores the Free limit and clears archived_at, bumping updated_at, without making it active", async () => {

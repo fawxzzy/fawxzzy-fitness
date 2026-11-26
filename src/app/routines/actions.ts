@@ -1747,19 +1747,19 @@ async function enforceRoutineCapacityForCreate(args: {
   }
 
   // Archived routines do not count toward the Free plan limit (pre-migration fallback counts every routine).
-  const { count, error } = await selectWithRoutineArchiveCompat<unknown>((withArchive) => {
-    const query = args.supabase
-      .from("routines")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", args.userId);
-    return withArchive ? query.is("archived_at", null) : query;
-  });
+  // A GET select, not a `head: true` count: a failed HEAD has no body, so the missing-column error would be unreadable.
+  const { data: routineRows, error } = await selectWithRoutineArchiveCompat<Array<{ id: string; archived_at?: string | null }>>(
+    (withArchive) => withArchive
+      ? args.supabase.from("routines").select("id, archived_at").eq("user_id", args.userId)
+      : args.supabase.from("routines").select("id").eq("user_id", args.userId),
+  );
 
   if (error) {
     return { ok: false, error: "Could not verify routine capacity." };
   }
 
-  if ((count ?? 0) >= BASE_ROUTINE_LIMIT) {
+  const listedRoutineCount = (routineRows ?? []).filter((routine) => !isRoutineArchived(routine)).length;
+  if (listedRoutineCount >= BASE_ROUTINE_LIMIT) {
     return { ok: false, error: ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE };
   }
 

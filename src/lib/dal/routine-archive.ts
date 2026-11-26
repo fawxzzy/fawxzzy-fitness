@@ -6,13 +6,16 @@ import { isMissingRoutineArchivedAtColumnError, isRoutineArchived } from "@/lib/
  * exercises, its sessions, sets and progression events all stay, so History keeps every workout.
  *
  * Archive rules:
- * - blocked while the routine has a workout in progress (finish or discard it first);
- * - if it is the active routine, the profile's active_routine_id is cleared FIRST (conditionally, only while it still
- *   points at this routine), so there is never an active pointer to an archived routine; Today then asks the person
- *   to choose a routine;
+ * - blocked while the routine has a workout in progress (finish or discard it first). The check runs again right after
+ *   the archive write; if a workout started in between, the archive is undone (guarded on our own timestamp) and the
+ *   result is `in-progress-session`;
+ * - the routine is archived FIRST, then, if it was the active routine, the profile's active_routine_id is cleared
+ *   (conditionally, only while it still points at this routine). If clearing fails the archive still succeeds: Today
+ *   already treats an archived active routine as no active routine and asks the person to choose one;
  * - archiving an archived routine is a no-op success.
  * Restore rules:
- * - Free keeps at most 3 non-archived routines: restore is refused at the limit (`routine-limit`);
+ * - Free keeps at most 3 non-archived routines: restore is refused at the limit (`routine-limit`). The count runs
+ *   again right after the restore write; if another routine became listed in between, the restore is undone;
  * - restore bumps updated_at so the restored routine sorts first and is accessible on the Free plan;
  * - it does not make the routine active.
  * Both return `archive-unsupported` when the archived_at column does not exist yet (migration not applied).
@@ -42,7 +45,6 @@ export type ArchiveRoutineFailureReason =
   | "routine-not-found"
   | "session-lookup-failed"
   | "in-progress-session"
-  | "profile-update-failed"
   | "routine-update-failed";
 
 export type ArchiveRoutineMutationResult =
@@ -92,48 +94,19 @@ export async function archiveRoutineMutation(args: {
     return { ok: true, alreadyArchived: true, clearedActiveRoutine: false };
   }
 
-  const { data: inProgressRows, error: sessionError } = await args.supabase
-    .from("sessions")
-    .select("id")
-    .eq("user_id", args.userId)
-    .eq("routine_id", args.routineId)
-    .eq("status", "in_progress")
-    .limit(1);
-
-  if (sessionError) {
-    return { ok: false, reason: "session-lookup-failed", error: errorMessage(sessionError, "Failed to check sessions.") };
+  const inProgress = await hasInProgressSession(args);
+  if (inProgress.error) {
+    return { ok: false, reason: "session-lookup-failed", error: errorMessage(inProgress.error, "Failed to check sessions.") };
   }
 
-  if ((inProgressRows ?? []).length > 0) {
+  if (inProgress.found) {
     return { ok: false, reason: "in-progress-session", error: "Routine has a workout in progress." };
   }
 
-  const { data: profileRows, error: profileLookupError } = await args.supabase
-    .from("profiles")
-    .select("active_routine_id")
-    .eq("id", args.userId)
-    .limit(1);
-
-  if (profileLookupError) {
-    return { ok: false, reason: "profile-update-failed", error: errorMessage(profileLookupError, "Failed to load profile.") };
-  }
-
-  const isActiveRoutine = (profileRows?.[0] as { active_routine_id?: string | null } | undefined)?.active_routine_id === args.routineId;
-  if (isActiveRoutine) {
-    const { error: profileUpdateError } = await args.supabase
-      .from("profiles")
-      .update({ active_routine_id: null })
-      .eq("id", args.userId)
-      .eq("active_routine_id", args.routineId);
-
-    if (profileUpdateError) {
-      return { ok: false, reason: "profile-update-failed", error: errorMessage(profileUpdateError, "Failed to clear active routine.") };
-    }
-  }
-
+  const archivedAt = args.nowIso ?? new Date().toISOString();
   const { error: updateError } = await args.supabase
     .from("routines")
-    .update({ archived_at: args.nowIso ?? new Date().toISOString() })
+    .update({ archived_at: archivedAt })
     .eq("id", args.routineId)
     .eq("user_id", args.userId)
     .is("archived_at", null);
@@ -144,7 +117,60 @@ export async function archiveRoutineMutation(args: {
       : { ok: false, reason: "routine-update-failed", error: errorMessage(updateError, "Failed to archive routine.") };
   }
 
-  return { ok: true, alreadyArchived: false, clearedActiveRoutine: isActiveRoutine };
+  // A workout may have started between the check and the write. If so, undo our archive (only while it is still ours).
+  // A failed recheck keeps the archive: the session itself stays loggable and History keeps it either way.
+  const recheck = await hasInProgressSession(args);
+  if (!recheck.error && recheck.found) {
+    await args.supabase
+      .from("routines")
+      .update({ archived_at: null })
+      .eq("id", args.routineId)
+      .eq("user_id", args.userId)
+      .eq("archived_at", archivedAt);
+    return { ok: false, reason: "in-progress-session", error: "Routine has a workout in progress." };
+  }
+
+  const clearedActiveRoutine = await clearActiveRoutinePointer(args);
+  return { ok: true, alreadyArchived: false, clearedActiveRoutine };
+}
+
+async function hasInProgressSession(args: { routineId: string; userId: string; supabase: RoutineArchiveClient }) {
+  const { data, error } = await args.supabase
+    .from("sessions")
+    .select("id")
+    .eq("user_id", args.userId)
+    .eq("routine_id", args.routineId)
+    .eq("status", "in_progress")
+    .limit(1);
+  return { found: (data ?? []).length > 0, error };
+}
+
+/**
+ * Clears profiles.active_routine_id when it points at the archived routine, guarded on it still pointing there.
+ * Best effort: any failure leaves the pointer, which Today already reads as "no active routine" for an archived one.
+ */
+async function clearActiveRoutinePointer(args: { routineId: string; userId: string; supabase: RoutineArchiveClient }) {
+  try {
+    const { data: profileRows, error: profileLookupError } = await args.supabase
+      .from("profiles")
+      .select("active_routine_id")
+      .eq("id", args.userId)
+      .limit(1);
+
+    if (profileLookupError) return false;
+    const activeRoutineId = (profileRows?.[0] as { active_routine_id?: string | null } | undefined)?.active_routine_id;
+    if (activeRoutineId !== args.routineId) return false;
+
+    const { error: profileUpdateError } = await args.supabase
+      .from("profiles")
+      .update({ active_routine_id: null })
+      .eq("id", args.userId)
+      .eq("active_routine_id", args.routineId);
+
+    return !profileUpdateError;
+  } catch {
+    return false;
+  }
 }
 
 export async function restoreRoutineMutation(args: {
@@ -189,6 +215,26 @@ export async function restoreRoutineMutation(args: {
 
   if (updateError) {
     return { ok: false, reason: "routine-update-failed", error: errorMessage(updateError, "Failed to restore routine.") };
+  }
+
+  // Free: count again after the write. If another routine became listed in between, undo this restore (only while
+  // it is still listed) and refuse. A failed recount keeps the restore; the next create is still limit-checked.
+  if (args.accessState === "free") {
+    const { data: afterRows, error: afterError } = await args.supabase
+      .from("routines")
+      .select("id, archived_at")
+      .eq("user_id", args.userId);
+    const otherListedCount = ((afterRows ?? []) as Array<{ id: string; archived_at?: string | null }>)
+      .filter((routine) => routine.id !== args.routineId && !isRoutineArchived(routine)).length;
+    if (!afterError && !canAddListedRoutineForTier({ listedRoutineCount: otherListedCount, accessState: "free" })) {
+      await args.supabase
+        .from("routines")
+        .update({ archived_at: target.archived_at })
+        .eq("id", args.routineId)
+        .eq("user_id", args.userId)
+        .is("archived_at", null);
+      return { ok: false, reason: "routine-limit", error: "Free plan routine limit reached." };
+    }
   }
 
   return { ok: true, alreadyListed: false };

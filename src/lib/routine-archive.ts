@@ -120,18 +120,36 @@ type CompatResult<TData> = {
   data: TData | null;
   error: SupabaseLikeError | null;
   count?: number | null;
+  status?: number;
 };
+
+/**
+ * A failed HEAD request (`select(..., { head: true })`) has no response body, so postgrest-js reports the error as
+ * `{ message: "" }` with no code: the missing-column text never arrives. On the archive query that shape is treated
+ * as "column may be missing" and the legacy query is tried; a real outage fails the legacy query too and that error
+ * is returned. Only a 400 (or an unknown status) counts; auth, permission and server errors are returned as is.
+ */
+export function isBodylessRoutineArchiveProbeError(error: SupabaseLikeError | null | undefined, status?: number): boolean {
+  if (!error) return false;
+  if ((error.message ?? "").trim().length > 0) return false;
+  if ((error.code ?? "").trim().length > 0) return false;
+  return status === undefined || status === 400;
+}
 
 /**
  * Runs a routines read that wants `archived_at`. `run(true)` must build a FRESH query that includes the column (in
  * the select list or as a filter); `run(false)` the same query without it. When the column is missing the legacy
- * query runs and `archiveSupported` is false; any other error is returned as is.
+ * query runs and `archiveSupported` is false; a body-less (HEAD-style) error is treated the same way. Any other error
+ * is returned as is. Prefer a GET select over `head: true` counts so the missing-column text is readable.
  */
 export async function selectWithRoutineArchiveCompat<TData>(
   run: (withArchive: boolean) => PromiseLike<CompatResult<TData>>,
 ): Promise<CompatResult<TData> & { archiveSupported: boolean }> {
   const first = await run(true);
-  if (first.error && isMissingRoutineArchivedAtColumnError(first.error)) {
+  if (
+    first.error
+    && (isMissingRoutineArchivedAtColumnError(first.error) || isBodylessRoutineArchiveProbeError(first.error, first.status))
+  ) {
     const fallback = await run(false);
     return { data: fallback.data, error: fallback.error, count: fallback.count, archiveSupported: false };
   }
