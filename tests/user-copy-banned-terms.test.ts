@@ -65,7 +65,7 @@ function listUserFacingSourceFiles(dir: string, files: string[] = []): string[] 
   return files;
 }
 
-/** Drops block comments (incl. JSX `{/* */}`) and whole-line `//` comments; trailing `//` stays, so URLs in strings survive. */
+// Drops block comments (JSX comment blocks too) and whole-line `//` comments; a trailing `//` stays, so URLs in strings survive.
 export function stripSourceComments(text: string) {
   return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^[ \t]*\/\/.*$/gm, "");
 }
