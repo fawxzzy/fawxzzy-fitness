@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
 import {
@@ -13,6 +13,7 @@ import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { resolveNumericInputMode } from "@/components/ui/measurements/numericFieldPolicy";
+import { OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
@@ -115,6 +116,7 @@ export function ExerciseGoalForm({
   showInlineStepControls = false,
   inlineFailureToggle = false,
   wrapMeasurementFields = false,
+  simpleLayout = false,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -141,8 +143,20 @@ export function ExerciseGoalForm({
   inlineFailureToggle?: boolean;
   /** Wrap the measurement fields onto a grid so every stepper stays fully visible (add-exercise dock). */
   wrapMeasurementFields?: boolean;
+  /**
+   * The plain "set it up" layout (SIMPLIFY #6): Sets, Reps and Weight only, a "Rep range" switch that reveals Max reps,
+   * and no Reps/Failure pill (the caller puts "To failure" under More options).
+   */
+  simpleLayout?: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const hasDistinctRepRange = Boolean(state.repsMax.trim()) && state.repsMax.trim() !== state.repsMin.trim();
+  const [repRangeOpen, setRepRangeOpen] = useState(hasDistinctRepRange);
+  useEffect(() => {
+    // A goal applied from outside (Same as last time, an existing exercise) with a real range opens the range.
+    if (hasDistinctRepRange) setRepRangeOpen(true);
+  }, [hasDistinctRepRange]);
+  const showRepRange = !simpleLayout || repRangeOpen;
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
   const resolvedMetricOrder = useMemo(
     () => visibleMetricOrder ?? getGoalMeasurementOrder(modality),
@@ -257,7 +271,7 @@ export function ExerciseGoalForm({
   ]);
   const resolvedAuxiliaryFields = useMemo(
     () => {
-      if (!supportsFailure || !failureToggleCard || !inlineFailureToggle) {
+      if (simpleLayout || !supportsFailure || !failureToggleCard || !inlineFailureToggle) {
         return auxiliaryFields;
       }
 
@@ -304,10 +318,29 @@ export function ExerciseGoalForm({
       isFailureMode,
       onStateChange,
       publishFailureToggleInfo,
+      simpleLayout,
       state,
       supportsFailure,
     ],
   );
+  const repRangeSwitchRow = simpleLayout && supportsFailure && !isFailureMode ? (
+    <OptionSwitchRow
+      label="Rep range"
+      hint={repRangeOpen ? "Aim anywhere from Reps to Max reps." : "Add a top of the range, like 8–12."}
+      checked={repRangeOpen}
+      onCheckedChange={(next) => {
+        setRepRangeOpen(next);
+        if (next) {
+          const min = Number.parseInt(state.repsMin, 10);
+          onStateChange({ ...state, repsMax: Number.isFinite(min) && min > 0 ? String(min + 4) : state.repsMax });
+          return;
+        }
+        // One number again: the goal is exactly Reps.
+        onStateChange({ ...state, repsMax: "" });
+      }}
+      className="px-1.5"
+    />
+  ) : null;
   const secondaryToggleRow = resolvedCompanionToggleCards.length > 0 ? (
     <div className={multiToggleLayoutActive ? "flex flex-wrap items-start justify-center gap-2" : "flex justify-center"}>
       {resolvedCompanionToggleCards}
@@ -320,8 +353,9 @@ export function ExerciseGoalForm({
       </div>
     </div>
   ) : null;
-  const resolvedBetweenInputsAndFooterContent = secondaryToggleRow || lowerCompanionToggleRow || betweenInputsAndFooterContent ? (
+  const resolvedBetweenInputsAndFooterContent = repRangeSwitchRow || secondaryToggleRow || lowerCompanionToggleRow || betweenInputsAndFooterContent ? (
     <div className="space-y-2">
+      {repRangeSwitchRow}
       {secondaryToggleRow}
       {lowerCompanionToggleRow}
       {betweenInputsAndFooterContent}
@@ -332,10 +366,14 @@ export function ExerciseGoalForm({
     <div className={stackClassName}>
       {derivedSelections.map((metric) => <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
       {names.failure ? <input type="hidden" name={names.failure} value={isFailureMode ? "true" : "false"} /> : null}
+      {/* Range closed: an older goal stored as an equal min and max keeps its max; otherwise no max is sent. */}
+      {!showRepRange && names.repsMax && supportsFailure && !isFailureMode ? (
+        <input type="hidden" name={names.repsMax} value={state.repsMax.trim() === state.repsMin.trim() ? state.repsMax : ""} />
+      ) : null}
       <MeasurementConfigurator
         values={{
           reps: state.repsMin,
-          repsMax: state.repsMax,
+          ...(showRepRange ? { repsMax: state.repsMax } : {}),
           weight: state.weight,
           duration: state.duration,
           distance: state.distance,
@@ -350,7 +388,8 @@ export function ExerciseGoalForm({
         onChange={(patch) => onStateChange({
           ...state,
           repsMin: patch.reps ?? state.repsMin,
-          repsMax: patch.repsMax ?? state.repsMax,
+          // Without a range, a stored equal max follows Reps so the goal stays one number.
+          repsMax: patch.repsMax ?? (!showRepRange && patch.reps !== undefined && state.repsMax.trim() ? patch.reps : state.repsMax),
           weight: patch.weight ?? state.weight,
           duration: patch.duration ?? state.duration,
           distance: patch.distance ?? state.distance,
@@ -373,9 +412,11 @@ export function ExerciseGoalForm({
         footerContent={footerContent}
         footerClassName={footerClassName}
         auxiliaryFields={resolvedAuxiliaryFields}
-        repRangeFooterContent={!inlineFailureToggle && supportsFailure && !isFailureMode ? failureToggleCard : undefined}
-        repReplacementContent={!inlineFailureToggle && supportsFailure && isFailureMode ? failureToggleCard : undefined}
-        repRangeLabels={{ min: "MIN REPS", max: "MAX REPS" }}
+        repRangeFooterContent={!simpleLayout && !inlineFailureToggle && supportsFailure && !isFailureMode ? failureToggleCard : undefined}
+        repReplacementContent={supportsFailure && isFailureMode && (simpleLayout || !inlineFailureToggle)
+          ? (simpleLayout ? <ToFailureNote /> : failureToggleCard)
+          : undefined}
+        repRangeLabels={simpleLayout ? { min: "Reps", max: "Max reps" } : { min: "MIN REPS", max: "MAX REPS" }}
         metricOrder={resolvedMetricOrder}
         visibleMetrics={resolvedVisibleMetrics}
         layoutMode={measurementLayoutMode}
@@ -442,5 +483,13 @@ export function ExerciseGoalForm({
         )
       ) : null}
     </div>
+  );
+}
+
+function ToFailureNote() {
+  return (
+    <p className="flex min-h-11 items-center justify-center px-2 text-center text-[0.9rem] font-semibold text-[rgb(var(--text-primary))]">
+      Reps: to failure
+    </p>
   );
 }

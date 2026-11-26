@@ -76,6 +76,32 @@ test("routine titles are plain nouns and the routine name is a body field, not t
   assert.match(code("src/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx"), /label="Day name"/);
 });
 
+test("routine settings sum up the schedule in plain words from the resolver's repeat tier (SIMPLIFY #8)", () => {
+  const form = code("src/app/routines/[id]/edit/EditRoutineAutosaveForm.tsx");
+  const settings = code("src/app/routines/[id]/edit/routine-settings.ts");
+  // Wording comes from resolveRoutineSchedule's tier (weekly / every 2 weeks / every 31 days), not the raw cycle length:
+  // a weekday_anchored 5-day routine repeats weekly, so it must never read "Repeats every 5 days" (review P1 #1).
+  // routine-settings.test.ts covers the 5, 7, 10-day and rolling cases.
+  assert.match(form, /describeRoutineSchedule\(draft, props\.restDayIndexes\)/);
+  assert.match(settings, /resolveRoutineSchedule\(/);
+  assert.match(settings, /draft\.scheduleMode === "rolling_n_day"/);
+  assert.doesNotMatch(form, /Repeats every/);
+  assert.match(code("src/app/routines/[id]/edit/page.tsx"), /restDayIndexes=\{restDayIndexes\}/);
+  // The dock reads Saved when nothing is waiting instead of a dimmed Save.
+  assert.match(form, /isSaving \? "Saving\.\.\." : isDirty \? "Save" : "Saved"/);
+});
+
+test("the Auto-progress switch never overwrites per-exercise progress rules (review P1 #2)", () => {
+  const form = code("src/app/routines/[id]/edit/EditRoutineAutosaveForm.tsx");
+  // Apply-to-all is opt-in, confirmed, and the only thing that sets the cascade flag (via buildRoutineSettingsFormData).
+  assert.match(form, /useState\(false\);\s*const \[isConfirmingApplyToAll/);
+  assert.doesNotMatch(form, /applyRoutineDefaultToExercises/);
+  assert.doesNotMatch(form, /autoApplyUpdatesToExercises/);
+  assert.match(form, /label="Apply to all exercises"/);
+  assert.match(form, /role="alertdialog"/);
+  assert.match(form, /Replace all/);
+});
+
 test("routine forms use the C14 FormField recipe: no legend-on-border, no accent-underlined labels", () => {
   const editorShared = code("src/components/routines/RoutineEditorShared.tsx");
   assert.match(editorShared, /<FormField\b/);

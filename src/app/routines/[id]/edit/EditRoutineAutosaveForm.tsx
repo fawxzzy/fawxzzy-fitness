@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -12,12 +12,14 @@ import {
   useRoutineDetailsExitGuard,
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { updateRoutineAction } from "@/app/routines/actions";
 import { ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
+import { MoreOptionsDisclosure, OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import {
   buildRoutineDetailsSnapshot,
   commitRoutineCycleLengthInput,
@@ -33,6 +35,7 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
+import { buildRoutineSettingsFormData, describeRoutineSchedule } from "@/app/routines/[id]/edit/routine-settings";
 
 function getDeviceTimezone(fallback: string) {
   if (typeof window === "undefined") {
@@ -60,6 +63,8 @@ type Props = {
   error?: string;
   /** Opened from the routine menu's Rename: focus the name field. */
   focusName?: boolean;
+  /** 1-based day slots marked rest, so the schedule line names only the training weekdays. */
+  restDayIndexes?: number[];
 };
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {
@@ -90,8 +95,14 @@ export function EditRoutineAutosaveForm(props: Props) {
     config: props.defaultProgressionPlaybookConfig ?? null,
   }));
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
-  const [autoApplyUpdatesToExercises, setAutoApplyUpdatesToExercises] = useState(true);
+  // Overwriting every exercise's progress rules is an explicit, confirmed choice, never a side effect of the simple
+  // Auto-progress switch (review P1 #2). Off by default; it resets after each save.
+  const [applyToAllExercisesConfirmed, setApplyToAllExercisesConfirmed] = useState(false);
+  const [isConfirmingApplyToAll, setIsConfirmingApplyToAll] = useState(false);
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(props.cycleLengthDays));
+  const [showProgressHelp, setShowProgressHelp] = useState(false);
+  // Turning Auto-progress off and on again brings back the rules that were set, not a fresh default.
+  const lastProgressionRulesRef = useRef(progressionDraft.progressionPlaybookId ? progressionDraft : null);
   const [isSaving, startTransition] = useTransition();
 
   useToastMessageEffect("error", props.error, { id: "edit-routine-route-error" });
@@ -128,9 +139,14 @@ export function EditRoutineAutosaveForm(props: Props) {
   const currentProgressionSnapshot = useMemo(() => buildProgressionPlaybookFormSnapshot(progressionDraft), [progressionDraft]);
   const baselineSnapshot = lastSavedSnapshot || initialSnapshot;
   const baselineProgressionSnapshot = lastSavedProgressionSnapshot || initialProgressionSnapshot;
-  const isDirty = currentSnapshot !== baselineSnapshot || currentProgressionSnapshot !== baselineProgressionSnapshot;
+  const isDirty = currentSnapshot !== baselineSnapshot
+    || currentProgressionSnapshot !== baselineProgressionSnapshot
+    || applyToAllExercisesConfirmed;
   const validation = validateRoutineDetailsDraft(draft, { allowLegacyLongName: true });
   const canSave = validation.valid && isDirty && !isSaving;
+  const isAutoProgressOn = progressionDraft.progressionPlaybookId !== "";
+  // The dock says where things stand instead of a dimmed Save: "Saved" when nothing is waiting (SIMPLIFY #8).
+  const saveButtonLabel = isSaving ? "Saving..." : isDirty ? "Save" : "Saved";
   const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
   const routineHeaderTitle = useMemo(() => (
     <RoutineEditorTitleInput
@@ -182,15 +198,9 @@ export function EditRoutineAutosaveForm(props: Props) {
     formData: FormData,
     nextDraft: RoutineDetailsDraft,
     progressionSnapshot: string,
-    applyRoutineDefaultToExercises: boolean,
+    appliedToAllExercises: boolean,
   ) => {
     startTransition(async () => {
-      if (applyRoutineDefaultToExercises) {
-        formData.set("applyRoutineDefaultToExercises", "1");
-      } else {
-        formData.delete("applyRoutineDefaultToExercises");
-      }
-
       const result = await updateRoutineAction(formData);
       if (!result.ok) {
         const nextError = result.error ?? "Could not save routine.";
@@ -200,7 +210,10 @@ export function EditRoutineAutosaveForm(props: Props) {
 
       setLastSavedSnapshot(buildRoutineDetailsSnapshot(nextDraft));
       setLastSavedProgressionSnapshot(progressionSnapshot);
-      toast.success("Routine changes saved");
+      setApplyToAllExercisesConfirmed(false);
+      toast.success(appliedToAllExercises
+        ? "Routine saved. Exercises now use these progress rules."
+        : "Routine changes saved");
     });
   };
 
@@ -218,28 +231,17 @@ export function EditRoutineAutosaveForm(props: Props) {
         return;
       }
 
-      const progressionChanged = currentProgressionSnapshot !== baselineProgressionSnapshot;
+      const formData = buildRoutineSettingsFormData({
+        routineId: props.routineId,
+        existingStartDate: props.existingStartDate,
+        draft: nextDraft,
+        timezone: getDeviceTimezone(nextDraft.timezone),
+        progressionDraft,
+        returnHref: props.returnHref,
+        applyToAllExercisesConfirmed,
+      });
 
-      const formData = new FormData();
-      formData.set("routineId", props.routineId);
-      formData.set("existingStartDate", props.existingStartDate);
-      formData.set("name", nextDraft.name.trim());
-      formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
-      formData.set("scheduleMode", nextDraft.scheduleMode);
-      formData.set("startDate", nextDraft.startDate);
-      formData.set("startWeekday", nextDraft.startWeekday);
-      formData.set("timezone", getDeviceTimezone(nextDraft.timezone));
-      formData.set("weightUnit", nextDraft.weightUnit);
-      formData.set("distanceUnit", nextDraft.distanceUnit);
-      appendProgressionPlaybookFormData(formData, progressionDraft);
-      formData.set("returnTo", props.returnHref);
-
-      submitChanges(
-        formData,
-        nextDraft,
-        currentProgressionSnapshot,
-        progressionChanged && autoApplyUpdatesToExercises,
-      );
+      submitChanges(formData, nextDraft, currentProgressionSnapshot, applyToAllExercisesConfirmed);
     });
   };
 
@@ -252,8 +254,47 @@ export function EditRoutineAutosaveForm(props: Props) {
         <RoutineEditorPageBody>
           <ContentRail className="space-y-2 pt-4">
             {routineHeaderTitle}
+            <p className="px-1 text-[0.9rem] text-[rgb(var(--text-secondary))]" data-routine-schedule-summary="">
+              {describeRoutineSchedule(draft, props.restDayIndexes)}
+            </p>
+            <div className="space-y-1">
+              <OptionSwitchRow
+                label="Auto-progress weights"
+                hint={isAutoProgressOn
+                  ? "Adds weight or reps when you hit the top of your goal."
+                  : "Off: you set each next goal yourself."}
+                checked={isAutoProgressOn}
+                onCheckedChange={(next) => {
+                  setApplyToAllExercisesConfirmed(false);
+                  setIsConfirmingApplyToAll(false);
+                  if (next) {
+                    setProgressionDraft(lastProgressionRulesRef.current ?? createProgressionPlaybookFormState({ playbookId: "double_progression" }));
+                    return;
+                  }
+                  lastProgressionRulesRef.current = progressionDraft;
+                  setProgressionDraft(createProgressionPlaybookFormState({ playbookId: null }));
+                }}
+              />
+              <button
+                type="button"
+                aria-expanded={showProgressHelp}
+                onClick={() => setShowProgressHelp((current) => !current)}
+                className="inline-flex min-h-11 items-center px-1 text-[0.85rem] font-semibold !text-[rgb(var(--accent-strong)/0.96)] underline decoration-[rgb(var(--accent-strong)/0.4)] underline-offset-4 [button&]:border-0 [button&]:bg-transparent [button&]:shadow-none"
+              >
+                How it works
+              </button>
+              {showProgressHelp ? (
+                <p className="px-1 pb-1 text-[0.85rem] leading-snug text-[rgb(var(--text-muted))]">
+                  Each exercise has a goal, like 3 × 8–12. When you hit the top of the range on every set, the next workout
+                  adds a little weight and drops back to the bottom of the range. Fine-tune the steps under More options,
+                  in Progress rules.
+                </p>
+              ) : null}
+            </div>
+            <MoreOptionsDisclosure>
             <RoutineEditorFormFields
-              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
+              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+              sectionsDefaultExpanded
               showCycleSection
               cycleLengthInputValue={cycleLengthInput}
               cycleLengthDefaultValue={draft.cycleLengthDays}
@@ -282,21 +323,63 @@ export function EditRoutineAutosaveForm(props: Props) {
               distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
               cycleLengthDays={draft.cycleLengthDays}
               context="routine-default"
-              title=""
+              title="Progress rules"
               defaultExpanded={false}
               collapsible={false}
-              separateInfoBox
+              showProgressionInfo={false}
               hideDayAdjustmentSettingsSection
-              infoDockPlacement="above-bottom-actions"
               trainingFocusValue={selectedTrainingGoal}
               trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
               onTrainingFocusChange={(goal) => {
                 setSelectedTrainingGoal(goal);
                 setProgressionDraft(createProgressionPlaybookFormStateForTrainingGoal(goal));
               }}
-              autoApplyUpdatesToExercises={autoApplyUpdatesToExercises}
-              onAutoApplyUpdatesToExercisesChange={setAutoApplyUpdatesToExercises}
             />
+            <div className="space-y-2" data-routine-apply-to-all="">
+              <OptionSwitchRow
+                label="Apply to all exercises"
+                hint={applyToAllExercisesConfirmed
+                  ? "On: Save replaces every exercise's progress rules with these."
+                  : "Off: exercises keep their own progress rules."}
+                checked={applyToAllExercisesConfirmed}
+                onCheckedChange={(next) => {
+                  if (next) {
+                    setIsConfirmingApplyToAll(true);
+                    return;
+                  }
+                  setApplyToAllExercisesConfirmed(false);
+                  setIsConfirmingApplyToAll(false);
+                }}
+              />
+              {isConfirmingApplyToAll ? (
+                <div
+                  role="alertdialog"
+                  aria-label="Replace progress rules on all exercises?"
+                  className="space-y-3 rounded-2xl border border-[rgb(var(--border-strong)/0.26)] bg-[rgb(var(--surface-2-rgb)/0.5)] px-3 py-3"
+                >
+                  <p className="text-[0.9rem] leading-snug text-[rgb(var(--text-primary))]">
+                    This replaces the progress rules on every exercise in this routine (stretches are skipped), including
+                    any you set one by one. It happens when you tap Save.
+                  </p>
+                  <div className="flex gap-2">
+                    <SecondaryButton type="button" fullWidth onClick={() => setIsConfirmingApplyToAll(false)}>
+                      Keep mine
+                    </SecondaryButton>
+                    <DestructiveButton
+                      type="button"
+                      fullWidth
+                      onClick={() => {
+                        setApplyToAllExercisesConfirmed(true);
+                        setIsConfirmingApplyToAll(false);
+                      }}
+                    >
+                      Replace all
+                    </DestructiveButton>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            </MoreOptionsDisclosure>
           </ContentRail>
         </RoutineEditorPageBody>
       </form>
@@ -306,8 +389,17 @@ export function EditRoutineAutosaveForm(props: Props) {
       ) : (
         <PublishBottomActions>
           <BottomActionSingle>
-            <BottomDockButton type="button" intent="positive" disabled={!canSave} onClick={saveChanges}>
-              Save
+            {/* "Saved" is a calm status, not a dimmed button: nothing to do, so a tap does nothing. */}
+            <BottomDockButton
+              type="button"
+              intent={!isDirty && !isSaving ? "toggleActive" : "positive"}
+              disabled={isDirty ? !canSave : isSaving}
+              aria-disabled={!canSave}
+              onClick={canSave ? saveChanges : undefined}
+              aria-live="polite"
+              data-routine-save-state={isSaving ? "saving" : isDirty ? "dirty" : "saved"}
+            >
+              {saveButtonLabel}
             </BottomDockButton>
           </BottomActionSingle>
         </PublishBottomActions>

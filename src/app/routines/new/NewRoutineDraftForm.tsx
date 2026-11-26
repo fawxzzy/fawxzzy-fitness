@@ -11,12 +11,24 @@ import {
   RoutineDetailsDiscardConfirmationDock,
   useOptionalRoutineDetailsExitGuard,
 } from "@/components/routines/RoutineDetailsExitGuard";
-import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
+import {
+  RoutineEditorCycleAnchorField,
+  RoutineEditorCycleLengthField,
+  RoutineEditorFormFields,
+} from "@/components/routines/RoutineEditorForm";
+import { ChipButton } from "@/components/ui/Chip";
+import { MoreOptionsDisclosure, OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { CardHeader, CardMeta, CardSurface } from "@/components/ui/card-system";
 import { getRoutineLimitNoticeCopy, isRoutineLimitError } from "@/app/routines/routine-copy";
-import { createRoutineAction } from "@/app/routines/actions";
+import { createRoutineWithDaysAction } from "@/app/routines/new/create-with-days-action";
+import {
+  DEFAULT_TRAINING_WEEKDAYS,
+  TRAINING_WEEKDAY_CHIPS,
+  describeTrainingWeekdays,
+  normalizeTrainingWeekdays,
+} from "@/app/routines/new/training-days";
 import {
   buildRoutineDetailsSnapshot,
   commitRoutineCycleLengthInput,
@@ -24,23 +36,13 @@ import {
   validateRoutineDetailsDraft,
   type RoutineDetailsDraft,
 } from "@/lib/routine-details-form";
-import {
-  appendProgressionPlaybookFormData,
-  createProgressionPlaybookFormState,
-} from "@/lib/progression-playbook-form-state";
 import { hasRoutineNameConflict } from "@/lib/routine-name-conflicts";
 import {
   ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY,
   clearRoutineDraftSession,
 } from "@/lib/routine-draft-session";
-import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
+import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone, type RoutineStartWeekday } from "@/lib/routines";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
-
-function createNewRoutineProgressionDraft() {
-  return createProgressionPlaybookFormState({
-    playbookId: "double_progression",
-  });
-}
 
 type NewRoutineDraftDefaults = Omit<RoutineDetailsDraft, "distanceUnit"> & {
   distanceUnit?: string;
@@ -72,69 +74,53 @@ function getDeviceTimezone(fallback: string) {
   return normalizeRoutineTimezone(resolved || fallback);
 }
 
+// Dock labels stay short (DESIGN C12: 14 characters or fewer) and say what is missing.
 function getCreateRoutineButtonLabel(args: {
   isSaving: boolean;
   trimmedRoutineName: string;
   routineNameConflict: boolean;
   validationError: string | null;
+  hasTrainingDays: boolean;
   canCreate: boolean;
   limitReached?: boolean;
 }) {
-  if (args.isSaving) {
-    return "Creating routine...";
-  }
-
-  if (args.limitReached) {
-    return "Routine limit reached";
-  }
-
-  if (args.canCreate) {
-    return "Create routine";
-  }
-
-  if (!args.trimmedRoutineName) {
-    return "Enter routine name";
-  }
-
-  if (args.routineNameConflict) {
-    return "Routine name exists";
-  }
-
+  if (args.isSaving) return "Creating...";
+  if (args.limitReached) return "Limit reached";
+  if (args.canCreate) return "Create";
+  if (!args.trimmedRoutineName) return "Add a name";
+  if (args.routineNameConflict) return "Name taken";
+  if (!args.hasTrainingDays) return "Pick a day";
   switch (args.validationError) {
     case "Cycle start date is required.":
-      return "Set cycle start date";
+      return "Set start date";
     case "Timezone is required.":
       return "Set time zone";
     case "Cycle length must be between 1 and 365.":
-      return "Set routine length";
-    case "Weight unit must be lbs or kg.":
-      return "Set weight label";
-    case "Distance unit must be mi or km.":
-      return "Set distance label";
-    case "Schedule mode must be week-based or day-based.":
-      return "Set routine type";
+      return "Set day count";
     default:
-      return "Complete routine setup";
+      return "Create";
   }
 }
 
-function buildCreateRoutineFormData(args: {
+function buildCreateRoutineWithDaysFormData(args: {
   draft: RoutineDetailsDraft;
   trimmedRoutineName: string;
-  previewDayCount: number;
+  trainingWeekdays: readonly RoutineStartWeekday[];
 }) {
   const formData = new FormData();
   formData.set("name", args.trimmedRoutineName);
-  formData.set("cycleLengthDays", String(args.draft.cycleLengthDays));
   formData.set("scheduleMode", args.draft.scheduleMode);
+  formData.set("cycleLengthDays", String(args.draft.cycleLengthDays));
   formData.set("startDate", args.draft.startDate);
-  formData.set("startWeekday", args.draft.startWeekday);
   formData.set("timezone", getDeviceTimezone(args.draft.timezone));
   formData.set("weightUnit", args.draft.weightUnit);
   formData.set("distanceUnit", args.draft.distanceUnit);
-  formData.set("previewDays", JSON.stringify(Array.from({ length: args.previewDayCount }, () => ({ isRest: false }))));
-  appendProgressionPlaybookFormData(formData, createNewRoutineProgressionDraft());
+  formData.set("trainingWeekdays", JSON.stringify(args.trainingWeekdays));
   return formData;
+}
+
+function readStoredTrainingWeekdays(raw: unknown) {
+  return Array.isArray(raw) ? normalizeTrainingWeekdays(raw) : null;
 }
 
 export function NewRoutineDraftForm({
@@ -173,6 +159,7 @@ export function NewRoutineDraftForm({
   );
   const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(normalizedDefaults.cycleLengthDays));
+  const [trainingWeekdays, setTrainingWeekdays] = useState<RoutineStartWeekday[]>(() => [...DEFAULT_TRAINING_WEEKDAYS]);
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
   // The name field shows its invalid state only after the user types in it or tries to create (no red on a pristine form).
@@ -187,7 +174,9 @@ export function NewRoutineDraftForm({
       const raw = window.localStorage.getItem(ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY);
       if (raw) {
         loadedDraftFromStorageRef.current = true;
-        const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft>;
+        const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft> & { trainingWeekdays?: unknown };
+        const storedTrainingWeekdays = readStoredTrainingWeekdays(parsed.trainingWeekdays);
+        if (storedTrainingWeekdays) setTrainingWeekdays(storedTrainingWeekdays);
         const normalizedParsed = normalizeRoutineDetailsDraft(parsed, normalizedDefaults);
         const shouldResetStartWeekday =
           normalizedParsed.name.trim().length === 0
@@ -236,7 +225,7 @@ export function NewRoutineDraftForm({
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       try {
-        window.localStorage.setItem(ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        window.localStorage.setItem(ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY, JSON.stringify({ ...draft, trainingWeekdays }));
       } catch {
         toast.error("Could not save local draft.");
       }
@@ -245,7 +234,7 @@ export function NewRoutineDraftForm({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [draft, loadedDraft, toast]);
+  }, [draft, loadedDraft, toast, trainingWeekdays]);
 
   useEffect(() => {
     setCycleLengthInput(String(draft.cycleLengthDays));
@@ -254,7 +243,10 @@ export function NewRoutineDraftForm({
   const validation = validateRoutineDetailsDraft(draft);
   const initialSnapshot = buildRoutineDetailsSnapshot(normalizedDefaults);
   const currentSnapshot = buildRoutineDetailsSnapshot(draft);
-  const isDirty = currentSnapshot !== initialSnapshot;
+  const isWeekly = draft.scheduleMode !== "rolling_n_day";
+  const hasTrainingDays = !isWeekly || trainingWeekdays.length > 0;
+  const isDirty = currentSnapshot !== initialSnapshot
+    || trainingWeekdays.join(",") !== DEFAULT_TRAINING_WEEKDAYS.join(",");
   const hasDirtyChanges = hasUserEdited && isDirty;
   const routineNameConflict = hasRoutineNameConflict({
     candidateName: draft.name,
@@ -262,7 +254,8 @@ export function NewRoutineDraftForm({
     workoutPlanNames: existingWorkoutPlanNames,
   });
   const limitReached = Boolean(routineLimit);
-  const canCreate = validation.valid && !routineNameConflict && isDirty && !isSaving && !limitReached;
+  // A name and at least one training day is enough: every other answer has a default (SIMPLIFY #7).
+  const canCreate = validation.valid && hasTrainingDays && !routineNameConflict && !isSaving && !limitReached;
   const isUsingExitGuard = !embedded && Boolean(exitGuard);
   const isConfirmingDiscard = isUsingExitGuard ? Boolean(exitGuard?.isConfirmingDiscard) : isEmbeddedConfirmingDiscard;
   const trimmedRoutineName = draft.name.trim().slice(0, 15);
@@ -272,6 +265,7 @@ export function NewRoutineDraftForm({
     trimmedRoutineName,
     routineNameConflict,
     validationError: validation.error,
+    hasTrainingDays,
     canCreate,
     limitReached,
   });
@@ -374,16 +368,21 @@ export function NewRoutineDraftForm({
       return;
     }
 
-    const formData = buildCreateRoutineFormData({
+    if (nextDraft.scheduleMode !== "rolling_n_day" && trainingWeekdays.length === 0) {
+      toast.error("Pick at least one day you train.");
+      return;
+    }
+
+    const formData = buildCreateRoutineWithDaysFormData({
       draft: nextDraft,
       trimmedRoutineName: nextDraft.name.trim().slice(0, 15),
-      previewDayCount: Math.max(1, Math.min(31, nextDraft.cycleLengthDays)),
+      trainingWeekdays,
     });
     // A failed request (offline blip, server error) must not throw into the route error boundary:
     // the typed form stays and the in-flow notice says the save failed.
-    let result: Awaited<ReturnType<typeof createRoutineAction>>;
+    let result: Awaited<ReturnType<typeof createRoutineWithDaysAction>>;
     try {
-      result = await createRoutineAction(formData);
+      result = await createRoutineWithDaysAction(formData);
     } catch {
       toast.error("Could not save the routine. Check your connection and try again.");
       return;
@@ -394,7 +393,7 @@ export function NewRoutineDraftForm({
         : result.error ?? "Could not save the routine.");
       return;
     }
-    if (!result.routineId) {
+    if (!("routineId" in result) || !result.routineId) {
       toast.error("Could not save the routine.");
       return;
     }
@@ -409,7 +408,22 @@ export function NewRoutineDraftForm({
     }
 
     router.push("/routines");
-  }, [commitCycleLengthInput, embedded, existingRoutineNames, existingWorkoutPlanNames, onCreated, router, toast]);
+  }, [commitCycleLengthInput, embedded, existingRoutineNames, existingWorkoutPlanNames, onCreated, router, toast, trainingWeekdays]);
+
+  const toggleTrainingWeekday = (weekday: RoutineStartWeekday) => {
+    setHasUserEdited(true);
+    setTrainingWeekdays((current) => normalizeTrainingWeekdays(
+      current.includes(weekday) ? current.filter((value) => value !== weekday) : [...current, weekday],
+    ));
+  };
+
+  const updateDraftField = (field: string, value: string) => {
+    setHasUserEdited(true);
+    setDraft((current) => ({
+      ...current,
+      [field]: resolveRoutineDraftFieldValue(field, value),
+    }));
+  };
 
   const handleCreateRoutine = () => {
     startTransition(async () => {
@@ -447,40 +461,84 @@ export function NewRoutineDraftForm({
             </CardSurface>
           ) : null}
           {routineHeaderTitle}
-          <RoutineEditorFormFields
-            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
-            showCycleSection
-            sectionsDefaultExpanded
-            cycleLengthInputValue={cycleLengthInput}
-            cycleLengthDefaultValue={draft.cycleLengthDays}
-            scheduleModeDefaultValue={draft.scheduleMode}
-            startDateDefaultValue={draft.startDate}
-            startWeekdayDefaultValue={draft.startWeekday}
-            timezoneDefaultValue={draft.timezone}
-            weightUnitDefaultValue={draft.weightUnit}
-            distanceUnitDefaultValue={draft.distanceUnit}
-            values={draft}
-            onCycleLengthInputChange={(value) => {
-              setHasUserEdited(true);
-              setCycleLengthInput(value);
-            }}
-            onCycleLengthInputCommit={commitCycleLengthInput}
-            onCycleLengthStepChange={(nextValue) => {
-              setHasUserEdited(true);
-              setCycleLengthInput(nextValue);
-              setDraft((current) => ({
-                ...current,
-                cycleLengthDays: resolveSteppedCycleLength(nextValue, current.cycleLengthDays),
-              }));
-            }}
-            onFieldChange={(field, value) => {
-              setHasUserEdited(true);
-              setDraft((current) => ({
-                ...current,
-                [field]: resolveRoutineDraftFieldValue(field, value),
-              }));
-            }}
-          />
+          {isWeekly ? (
+            <fieldset className="min-w-0 space-y-2 pt-1" data-training-days="">
+              <legend className="px-1 pb-2 text-[0.95rem] font-semibold text-[rgb(var(--text-primary))]">
+                Which days do you train?
+              </legend>
+              <div className="grid grid-cols-7 gap-1.5">
+                {TRAINING_WEEKDAY_CHIPS.map((chip) => (
+                  <ChipButton
+                    key={chip.weekday}
+                    selected={trainingWeekdays.includes(chip.weekday)}
+                    aria-label={chip.long}
+                    onClick={() => toggleTrainingWeekday(chip.weekday)}
+                    className="w-full min-w-0 justify-center px-0 text-[0.8rem]"
+                  >
+                    {chip.short}
+                  </ChipButton>
+                ))}
+              </div>
+              <p className="px-1 text-[0.8rem] text-[rgb(var(--text-muted))]" aria-live="polite">
+                {trainingWeekdays.length === 0
+                  ? "Pick at least one day. The rest are rest days."
+                  : `${trainingWeekdays.length} ${trainingWeekdays.length === 1 ? "day" : "days"} a week: ${describeTrainingWeekdays(trainingWeekdays)}. The rest are rest days.`}
+              </p>
+            </fieldset>
+          ) : (
+            <p className="px-1 pt-1 text-[0.85rem] text-[rgb(var(--text-muted))]">
+              {`Repeats every ${draft.cycleLengthDays} ${draft.cycleLengthDays === 1 ? "day" : "days"}, not tied to the week.`}
+            </p>
+          )}
+          <MoreOptionsDisclosure className="pt-1">
+            <OptionSwitchRow
+              label="Repeat every few days"
+              hint="For a plan that does not follow the week, like every 4 days."
+              checked={!isWeekly}
+              onCheckedChange={(next) => updateDraftField("scheduleMode", next ? "rolling_n_day" : "weekday_anchored")}
+            />
+            {!isWeekly ? (
+              <div className="flex justify-center pb-1">
+                <RoutineEditorCycleLengthField
+                  value={cycleLengthInput}
+                  onCycleLengthInputChange={(value) => {
+                    setHasUserEdited(true);
+                    setCycleLengthInput(value);
+                  }}
+                  onCycleLengthInputCommit={commitCycleLengthInput}
+                  onCycleLengthStepChange={(nextValue) => {
+                    setHasUserEdited(true);
+                    setCycleLengthInput(nextValue);
+                    setDraft((current) => ({
+                      ...current,
+                      cycleLengthDays: resolveSteppedCycleLength(nextValue, current.cycleLengthDays),
+                    }));
+                  }}
+                  onFieldChange={updateDraftField}
+                />
+              </div>
+            ) : null}
+            <div className="flex justify-center pb-1">
+              <RoutineEditorCycleAnchorField
+                value={draft.startDate}
+                onChange={(nextValue) => updateDraftField("startDate", nextValue)}
+              />
+            </div>
+            <RoutineEditorFormFields
+              fields={["timezone", "weightUnit", "distanceUnit"]}
+              showCycleSection={false}
+              sectionsDefaultExpanded
+              cycleLengthDefaultValue={draft.cycleLengthDays}
+              scheduleModeDefaultValue={draft.scheduleMode}
+              startDateDefaultValue={draft.startDate}
+              startWeekdayDefaultValue={draft.startWeekday}
+              timezoneDefaultValue={draft.timezone}
+              weightUnitDefaultValue={draft.weightUnit}
+              distanceUnitDefaultValue={draft.distanceUnit}
+              values={draft}
+              onFieldChange={updateDraftField}
+            />
+          </MoreOptionsDisclosure>
         </div>
 
       </ContentRail>

@@ -12,8 +12,8 @@ test("routine home keeps inline reorder (pointer drag plus keyboard) and the add
   assert.match(source, /data-routine-day-id=\{day\.id\}/);
   assert.match(source, /orderedRoutineDayIds/);
   assert.match(source, /Add Day/);
-  assert.match(source, /Blank day/);
-  assert.match(source, /Duplicate day/);
+  assert.match(source, /Empty day/);
+  assert.match(source, /Copy a day/);
   assert.match(source, /Choose Day/);
 });
 

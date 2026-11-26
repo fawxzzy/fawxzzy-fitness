@@ -765,14 +765,15 @@ export function RoutineHomeClient({
               />
             </CardSurface>
           ) : null}
+          {/* Start from (SIMPLIFY #9): the same two words as the Create day screen. */}
           <RoutineChooserOptionCard
-            title="Blank day"
+            title="Empty day"
             disabled={isBusy}
             onPress={() => handleCreateDay("blank")}
           />
 
           <RoutineChooserOptionCard
-            title="Duplicate day"
+            title="Copy a day"
             kind="toggle"
             active={isDuplicateSourceListOpen}
             disabled={isCreateDayPending || isDeleteDayPending}
@@ -816,7 +817,7 @@ export function RoutineHomeClient({
                   </RoutineDuplicateChooserListViewport>
                 ) : (
                   <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
-                    No days available to duplicate.
+                    No days to copy yet.
                   </div>
                 )
               )}

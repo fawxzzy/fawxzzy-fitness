@@ -10,6 +10,7 @@ import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { buildFailureToggleInfoPayload, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
 import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/measurements/SharedExerciseGoalForm";
+import { resolveSubmittedGoalState } from "@/components/ui/measurements/goalVisibleMetrics";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
@@ -125,19 +126,25 @@ export function ExercisePicker({
   const initialSelectedExerciseForGoal = resolvedInitialSelectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID
     ? seededCustomExerciseDraftOption
     : uniqueExercises.find((exercise) => exercise.id === resolvedInitialSelectedId);
-  const [goalState, setGoalState] = useState<ExerciseGoalFormState>({
-    sets: isStretchHubExercise(initialSelectedExerciseForGoal) ? "1" : "3",
-    repsMin: "",
-    repsMax: "",
-    failure: false,
-    weight: "",
-    duration: "",
-    distance: "",
-    calories: "",
-    weightUnit: routineTargetConfig?.weightUnit ?? "lbs",
-    distanceUnit: resolveExerciseDistanceUnit(initialSelectedExerciseForGoal?.default_unit),
-    measurements: [],
-  });
+  const [goalState, setGoalState] = useState<ExerciseGoalFormState>(() => initialSelectedExerciseForGoal
+    // A deep-linked exercise starts from the same 3 x 8–12 default as a tapped one.
+    ? buildFreshGoalStateForExercise({
+      exercise: initialSelectedExerciseForGoal,
+      fallbackWeightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+    })
+    : {
+      sets: "3",
+      repsMin: "",
+      repsMax: "",
+      failure: false,
+      weight: "",
+      duration: "",
+      distance: "",
+      calories: "",
+      weightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+      distanceUnit: resolveExerciseDistanceUnit(undefined),
+      measurements: [],
+    });
   const [didApplyLast, setDidApplyLast] = useState(false);
   const lastAutoEstimatedGoalCaloriesRef = useRef<string | null>(null);
   const didDismissAutoEstimatedGoalCaloriesRef = useRef(false);
@@ -577,6 +584,9 @@ export function ExercisePicker({
     }),
     [goalState.distanceUnit, parsedGoalDistance, parsedGoalDurationSeconds, resolvedGoalCaloriesEstimationMethod],
   );
+  // The summary reads what Save sends: with Calories closed an auto-estimate is not submitted, so it is not shown either.
+  const [isGoalCaloriesShown, setIsGoalCaloriesShown] = useState(false);
+  const submittedGoalCalories = resolveSubmittedGoalState(goalState, { simpleLayout: true, caloriesShown: isGoalCaloriesShown }).calories;
   const goalMeasurementSelections = useMemo(
     () => deriveGoalMeasurementSelections(effectiveGoalModality, {
       repsMin: goalState.repsMin,
@@ -585,9 +595,9 @@ export function ExercisePicker({
       weight: goalState.weight,
       duration: goalState.duration,
       distance: goalState.distance,
-      calories: goalState.calories,
+      calories: submittedGoalCalories,
     }),
-    [effectiveGoalModality, goalState.calories, goalState.distance, goalState.duration, goalState.failure, goalState.repsMax, goalState.repsMin, goalState.weight],
+    [effectiveGoalModality, submittedGoalCalories, goalState.distance, goalState.duration, goalState.failure, goalState.repsMax, goalState.repsMin, goalState.weight],
   );
 
   const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
@@ -628,10 +638,10 @@ export function ExercisePicker({
       weight: goalState.weight,
       duration: goalState.duration,
       distance: goalState.distance,
-      calories: goalState.calories,
+      calories: submittedGoalCalories,
       measurementSelections: new Set(goalMeasurementSelections),
     });
-  }, [effectiveGoalModality, goalMeasurementSelections, goalState, isMeasurementOptionalSelected]);
+  }, [effectiveGoalModality, goalMeasurementSelections, goalState, isMeasurementOptionalSelected, submittedGoalCalories]);
   const goalPreviewMissingLabel = !goalValidation.isValid
     ? (
       !hasAnyGoalMeasurementValue(goalState)
@@ -665,7 +675,7 @@ export function ExercisePicker({
     durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
     distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
     distanceUnit: goalState.distanceUnit,
-    calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
+    calories: goalMeasurementSelections.includes("calories") && submittedGoalCalories ? Number(submittedGoalCalories) : null,
     emptyLabel: "Goal missing",
   });
   const selectedCardGoalPreviewTextResolved = goalPreviewMissingLabel ?? selectedCardGoalPreviewText;
@@ -925,12 +935,12 @@ export function ExercisePicker({
       onFocusCapture={publishUseLastInfo}
       onPointerDownCapture={publishUseLastInfo}
     >
-      <span className={embeddedToggleLabelClassName}>{didApplyLast ? "Clear Last" : "Use Last"}</span>
+      <span className={embeddedToggleLabelClassName}>{didApplyLast ? "Reset" : "Same as last time"}</span>
       <button
         type="button"
         className={embeddedToggleButtonClassName}
         aria-pressed={didApplyLast}
-        aria-label={didApplyLast ? "Clear last setup" : "Apply last setup"}
+        aria-label={didApplyLast ? "Reset to a fresh goal" : "Same as last time"}
         onClick={() => {
           publishUseLastInfo();
           if (didApplyLast) {
@@ -1093,13 +1103,13 @@ export function ExercisePicker({
             showInlineStepControls
             inlineFailureToggle={goalInlineFailureToggle}
             wrapMeasurementFields
+            // Ask only what matters (SIMPLIFY #6): the caller's extras (auto-progress, timer) live under More options.
+            simpleLayout
+            includeCalories={didApplyLast && Boolean(goalState.calories.trim())}
+            moreOptionsContent={goalExtraNode ? <div className="space-y-2 pb-1.5 pt-1">{goalExtraNode}</div> : null}
+            onCaloriesShownChange={setIsGoalCaloriesShown}
           />
         </div>
-        {goalExtraNode ? (
-          <div className="px-1 pb-1.5 pt-1">
-            {goalExtraNode}
-          </div>
-        ) : null}
       </VerticalScrollHint>
       </div>
     </section>
@@ -1107,6 +1117,7 @@ export function ExercisePicker({
     goalDockCollapsedSummary,
     goalDockExerciseName,
     goalDockPanelId,
+    didApplyLast,
     isGoalDockCollapsed,
     canManageSelectedCustomExercise,
     activeSelectionCue.dockAccentBarClassName,
@@ -1276,7 +1287,7 @@ export function ExercisePicker({
           isSelected={isCustomExerciseSelected}
           value={customExerciseName}
           onValueChange={setCustomExerciseName}
-          fieldLabel="Exercise Name"
+          fieldLabel="Name"
           helperText={customExerciseHelperText}
           helperTone={customExerciseHelperTone}
           showStatusSeparator={customExerciseShowStatusSeparator}

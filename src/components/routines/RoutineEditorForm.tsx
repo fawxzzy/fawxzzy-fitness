@@ -51,7 +51,7 @@ function withCurrentTimezoneOption(current: string) {
 }
 
 const scheduleModeOptions = [
-  { value: "weekday_anchored", label: "Week-based" },
+  { value: "weekday_anchored", label: "Weekly" },
   { value: "rolling_n_day", label: "#-based" },
 ] as const;
 
@@ -414,10 +414,10 @@ function RoutineEditorWeekdayField({
           fullWidthWhenExpanded
           showLabel={false}
           info={{
-            title: "Schedule Mode",
+            title: "Schedule",
             summary: scheduleMode === "rolling_n_day"
-              ? "Day-based schedules repeat every N days from the Slot 1 anchor date and do not use a weekday cycle anchor."
-              : "Week-based schedules anchor Slot 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
+              ? "Every N days repeats from the start date and is not tied to the week."
+              : "Weekly follows the days of the week. Days you do not train are rest days.",
             sectionKey: "routine_setup",
           }}
           showDivider={false}
@@ -446,11 +446,11 @@ function RoutineEditorWeekdayField({
 
   return (
     <RoutineEditorCollapsibleSection
-      title="Routine Type"
+      title="Schedule"
       defaultExpanded={defaultExpanded}
       info={{
-        title: "Routine Type",
-        summary: "Controls the cycle shape: schedule mode, Slot 1 anchor, cycle length, and weekday anchor behavior for week-based schedules.",
+        title: "Schedule",
+        summary: "How the routine repeats: weekly, or every few days from the start date.",
         sectionKey: "routine_setup",
       }}
     >
@@ -485,16 +485,16 @@ export function RoutineEditorInlineCycleModeControl({
     <div
       className="min-w-0 shrink-0 space-y-[5px]"
       {...routineEditorInfoHandlers({
-        title: "Routine Type",
+        title: "Schedule",
         summary: scheduleMode === "rolling_n_day"
-          ? "Day-based schedules repeat every N days from the Slot 1 anchor date and do not use a weekday cycle anchor."
-          : "Week-based schedules anchor Slot 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
+          ? "Every N days repeats from the start date and is not tied to the week."
+          : "Weekly follows the days of the week. Days you do not train are rest days.",
         sectionKey: "routine_setup",
       })}
     >
-      <p className={routineEditorFieldLabelClassName}>Routine type</p>
+      <p className={routineEditorFieldLabelClassName}>Schedule</p>
       <RoutineEditorBinaryToggleButton
-        label={scheduleMode === "rolling_n_day" ? "# day-based" : "Week-based"}
+        label={scheduleMode === "rolling_n_day" ? "Every N days" : "Weekly"}
         ariaLabel="Routine schedule mode"
         onClick={() => onScheduleModeChange?.(
           scheduleMode === "rolling_n_day" ? "weekday_anchored" : "rolling_n_day",
@@ -812,7 +812,7 @@ export function RoutineEditorInlineCycleControls({
     <section className="px-0 py-0">
       <div className="space-y-3">
         {showSectionTitle ? (
-          <p className={routineEditorFieldLabelClassName}>Routine type</p>
+          <p className={routineEditorFieldLabelClassName}>Schedule</p>
         ) : null}
         {showCycleFields ? (
           <RoutineEditorWeekdayField
@@ -900,8 +900,8 @@ export function RoutineEditorFormFields({
                 label="Routine"
                 className="mx-auto w-full max-w-[24rem]"
                 info={{
-                  title: "Routine Name",
-                  summary: "Name shown on Today, Routines, and edit screens.",
+                  title: "Routine name",
+                  summary: "Shown on Today and Routines.",
                 }}
               >
                 {(control) => (
@@ -932,16 +932,16 @@ export function RoutineEditorFormFields({
       {showTimezone ? (
         <div className="pt-1">
           <RoutineEditorCollapsibleSection
-            title="Time Zone"
+            title="Time zone"
             defaultExpanded={sectionsDefaultExpanded}
             info={{
-              title: "Time Zone",
-              summary: "Keeps routine days, scheduled sessions, and daily rollovers aligned to your local time.",
+              title: "Time zone",
+              summary: "Keeps your routine days and each new day lined up with your local time.",
               sectionKey: "routine_setup",
             }}
           >
             <RoutineEditorSegmentedField
-              label="Time Zone"
+              label="Time zone"
               ariaLabel="Routine time zone"
               value={normalizeRoutineTimezone(values?.timezone ?? timezoneDefaultValue)}
               onChange={(nextValue) => onFieldChange?.("timezone", nextValue)}
@@ -960,17 +960,17 @@ export function RoutineEditorFormFields({
         <div
           className="pt-1"
           {...routineEditorInfoHandlers({
-            title: "Measurement Labels",
-            summary: "Default measurement units used for routine goals, progression values, and logged workout values.",
+            title: "Units",
+            summary: "The units used for goals and what you log.",
             sectionKey: "routine_setup",
           })}
         >
           <RoutineEditorCollapsibleSection
-            title="Measurement Labels"
+            title="Units"
             defaultExpanded={sectionsDefaultExpanded}
             info={{
-              title: "Measurement Labels",
-              summary: "Default measurement units used for routine goals, progression values, and logged workout values.",
+              title: "Units",
+              summary: "The units used for goals and what you log.",
               sectionKey: "routine_setup",
             }}
           >

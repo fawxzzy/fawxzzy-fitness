@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState, type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
-import { deriveGoalMeasurementSelections, type GoalModality } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, type GoalModality } from "@/lib/exercise-goal-validation";
+import { isCardioGoalModality, resolveGoalVisibleMetrics, resolveSubmittedGoalState } from "@/components/ui/measurements/goalVisibleMetrics";
+import { MoreOptionsDisclosure, OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
 export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModality {
@@ -48,6 +50,10 @@ export function SharedExerciseGoalForm({
   showInlineStepControls,
   inlineFailureToggle,
   wrapMeasurementFields,
+  includeCalories,
+  simpleLayout = false,
+  moreOptionsContent,
+  onCaloriesShownChange,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -72,17 +78,49 @@ export function SharedExerciseGoalForm({
   showInlineStepControls?: boolean;
   inlineFailureToggle?: boolean;
   wrapMeasurementFields?: boolean;
+  /** Show the Calories field; a saved calorie value always shows (outside the plain layout). */
+  includeCalories?: boolean;
+  /**
+   * Plain "set it up" goal (SIMPLIFY #6): only the fields the exercise needs, a Rep range switch, and one More options
+   * fold holding To failure, Calories (cardio) and `moreOptionsContent` (auto-progress, timer, ...).
+   */
+  simpleLayout?: boolean;
+  moreOptionsContent?: ReactNode;
+  /** Told whether Calories is shown (and so submitted), so a caller's own summary can match what is saved. */
+  onCaloriesShownChange?: (shown: boolean) => void;
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
     : modality;
+  const [caloriesOpen, setCaloriesOpen] = useState(() => Boolean(state.calories.trim()));
+  const showCalories = simpleLayout ? caloriesOpen || Boolean(includeCalories) : Boolean(includeCalories);
+  // Visibility follows the exercise's BASE modality (goal-schema-matrix.md), so strength never shows cardio fields and a
+  // time-and-distance goal keeps both fields while only one is filled.
+  const resolvedVisibleMetrics = useMemo(
+    () => {
+      if (visibleMetrics) return visibleMetrics;
+      const metrics = resolveGoalVisibleMetrics(modality, state, { includeCalories: showCalories });
+      // In the plain layout Calories is only ever opened from More options (an auto-estimate must not show it).
+      return simpleLayout && !showCalories ? metrics.filter((metric) => metric !== "calories") : metrics;
+    },
+    [modality, showCalories, simpleLayout, state, visibleMetrics],
+  );
+  const resolvedVisibleMetricOrder = useMemo(
+    () => visibleMetricOrder ?? getGoalMeasurementOrder(modality),
+    [modality, visibleMetricOrder],
+  );
+  // A closed Calories option means "no calorie goal": an auto-estimate kept in state must not submit or count as chosen.
+  const formState = resolveSubmittedGoalState(state, { simpleLayout, caloriesShown: showCalories });
+  useEffect(() => {
+    onCaloriesShownChange?.(showCalories);
+  }, [onCaloriesShownChange, showCalories]);
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
 
   return (
     <div className={stackClassName}>
       <ExerciseGoalForm
         modality={effectiveGoalModality}
-        state={state}
+        state={formState}
         onStateChange={onStateChange}
         names={names}
         includeSetsInSummary={includeSetsInSummary}
@@ -93,8 +131,8 @@ export function SharedExerciseGoalForm({
         betweenInputsAndFooterContent={betweenInputsAndFooterContent}
         footerContent={footerContent}
         footerClassName={footerClassName}
-        visibleMetrics={visibleMetrics}
-        visibleMetricOrder={visibleMetricOrder}
+        visibleMetrics={resolvedVisibleMetrics}
+        visibleMetricOrder={resolvedVisibleMetricOrder}
         measurementLayoutMode={measurementLayoutMode}
         onInfoRequest={onInfoRequest}
         companionToggleCard={companionToggleCard}
@@ -104,9 +142,62 @@ export function SharedExerciseGoalForm({
         showInlineStepControls={showInlineStepControls}
         inlineFailureToggle={inlineFailureToggle}
         wrapMeasurementFields={wrapMeasurementFields}
+        simpleLayout={simpleLayout}
       />
+      {simpleLayout && visibleMetrics?.length !== 0 ? (
+        <GoalMoreOptions
+          modality={modality}
+          state={state}
+          onStateChange={onStateChange}
+          caloriesOpen={showCalories}
+          onCaloriesOpenChange={(next) => {
+            setCaloriesOpen(next);
+            if (!next) onStateChange({ ...state, calories: "" });
+          }}
+        >
+          {moreOptionsContent}
+        </GoalMoreOptions>
+      ) : simpleLayout ? moreOptionsContent : null}
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
       <input type="hidden" name="defaultUnit" value={state.distanceUnit} />
     </div>
+  );
+}
+
+function GoalMoreOptions({
+  modality,
+  state,
+  onStateChange,
+  caloriesOpen,
+  onCaloriesOpenChange,
+  children,
+}: {
+  modality: GoalModality;
+  state: ExerciseGoalFormState;
+  onStateChange: (next: ExerciseGoalFormState) => void;
+  caloriesOpen: boolean;
+  onCaloriesOpenChange: (next: boolean) => void;
+  children?: ReactNode;
+}) {
+  const isCardio = isCardioGoalModality(modality);
+  return (
+    <MoreOptionsDisclosure className="px-1.5" defaultOpen={state.failure}>
+      {isCardio ? (
+        <OptionSwitchRow
+          label="Calories"
+          hint="Add a calorie goal."
+          checked={caloriesOpen}
+          onCheckedChange={onCaloriesOpenChange}
+        />
+      ) : (
+        <OptionSwitchRow
+          label="To failure"
+          hint="Go until you can't do another rep."
+          checked={state.failure}
+          onCheckedChange={(next) => onStateChange({ ...state, failure: next })}
+        />
+      )}
+      {children}
+    </MoreOptionsDisclosure>
   );
 }

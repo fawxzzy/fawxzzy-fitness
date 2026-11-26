@@ -18,7 +18,7 @@ Object.defineProperty(globalThis, "FormData", { value: window.FormData, configur
 const EXERCISES = [{ ...detailScreenFixtureExercises[0]!, id: "zed-1", name: "Zed Lift" }];
 const STATS = detailScreenFixtureStats().map((row) => ({ ...row, exerciseId: "zed-1", statsExerciseId: "zed-1" }));
 
-function renderForm(addExerciseAction: (formData: FormData) => Promise<ActionResult>) {
+function renderForm(addExerciseAction: (formData: FormData) => Promise<ActionResult>, stats = STATS) {
   const { router, calls } = createRouterSpy();
   render(
     <AppProviders router={router} pathname="/session/s1/add-exercise">
@@ -27,7 +27,7 @@ function renderForm(addExerciseAction: (formData: FormData) => Promise<ActionRes
           sessionId="s1"
           exercises={EXERCISES}
           weightUnit="lbs"
-          exerciseStats={STATS}
+          exerciseStats={stats}
           backHref="/session/s1"
           addExerciseAction={addExerciseAction}
         />
@@ -57,9 +57,11 @@ test("Add exercise: a slow add shows the pending state at once and a second tap 
     });
   });
 
-  // "Use Last" fills a complete goal so the Add button is allowed to submit.
+  // "Same as last time" fills the goal from history (SIMPLIFY #6).
   selectExercise();
-  fireEvent.click(screen.getByRole("button", { name: "Use Last" }));
+  const lastTime = screen.getByRole("button", { name: "Same as last time" });
+  assert.ok((lastTime.textContent ?? "").trim().length <= 14, "dock label fits DESIGN C12");
+  fireEvent.click(lastTime);
   assert.equal((addButton() as HTMLButtonElement).disabled, false);
 
   fireEvent.click(addButton());
@@ -90,12 +92,42 @@ test("Add exercise: after a failed add the button comes back and another tap can
     attempts += 1;
     return { ok: false, error: "Could not add exercise." } as ActionResult;
   });
+  // The default 3 x 8–12 goal is complete on its own: pick and add, no goal typing.
   selectExercise();
-  fireEvent.click(screen.getByRole("button", { name: "Use Last" }));
   fireEvent.click(addButton());
   await waitFor(() => assert.equal(attempts, 1));
   await waitFor(() => assert.equal(addButton().getAttribute("aria-busy"), "false"));
   assert.equal((addButton() as HTMLButtonElement).disabled, false);
   fireEvent.click(addButton());
   await waitFor(() => assert.equal(attempts, 2));
+});
+
+test("Add exercise: picking a strength exercise and tapping Add submits the 3 x 8–12 default goal", async () => {
+  const received: FormData[] = [];
+  renderForm(async (formData) => {
+    received.push(formData);
+    return { ok: true } as ActionResult;
+  });
+  selectExercise();
+  // Strength shows no time, distance or calorie field at all (docs/goal-schema-matrix.md).
+  for (const name of ["targetDuration", "targetDistance", "targetCalories"]) {
+    assert.equal(document.querySelector(`[name="${name}"]`), null, `${name} is not on screen`);
+  }
+  fireEvent.click(addButton());
+  await waitFor(() => assert.equal(received.length, 1));
+  assert.equal(received[0]?.get("targetSets"), "3");
+  assert.equal(received[0]?.get("targetRepsMin"), "8");
+  assert.equal(received[0]?.get("targetRepsMax"), "12");
+  // Strength asks only Sets, Reps and Weight: no time, distance or calorie goal is sent (docs/goal-schema-matrix.md).
+  assert.equal(received[0]?.get("targetDuration") ?? "", "");
+  assert.equal(received[0]?.get("targetDistance") ?? "", "");
+  assert.equal(received[0]?.get("targetCalories") ?? "", "");
+});
+
+test("Add exercise: without history there is no Same as last time button, only Add", () => {
+  renderForm(async () => ({ ok: true }) as ActionResult, []);
+  selectExercise();
+  assert.equal(screen.queryByRole("button", { name: "Same as last time" }), null);
+  assert.equal(screen.queryByRole("button", { name: /Use Last/u }), null);
+  assert.ok(addButton());
 });
