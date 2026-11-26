@@ -548,7 +548,7 @@ export const VISUAL_FITNESS_SUITES = {
       expectedText: [
         "Highlight",
         "Notes",
-        "No Set Data",
+        "No sets logged",
       ],
       expectedVisibleHrefSubstrings: [
         "/dev/mobile-regression?scenario=history-detail-feedback-note",

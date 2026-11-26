@@ -37,7 +37,7 @@ function formatMonth(monthKey: string) {
 
 function describeCell(cell: HistoryConsistencyHeatmapCell) {
   const day = cell.isToday ? `${formatDay(cell.dayKey)} (today)` : formatDay(cell.dayKey);
-  return `${day}: ${cell.sessionCount} ${cell.sessionCount === 1 ? "session" : "sessions"}`;
+  return `${day}: ${cell.sessionCount} ${cell.sessionCount === 1 ? "workout" : "workouts"}`;
 }
 
 // Green family of the History calendar (same high step). The low and medium steps are lifted so a one-session day
@@ -207,7 +207,7 @@ function HeatmapBody({
       )}
       <HeatmapGrid
         heatmap={heatmap}
-        ariaLabel={`${description} Brighter green squares and higher numbers mean more sessions that day.`}
+        ariaLabel={`${description} Brighter green squares and higher numbers mean more workouts that day.`}
       />
       <ActiveDayList heatmap={heatmap} />
       <HeatmapLegend />

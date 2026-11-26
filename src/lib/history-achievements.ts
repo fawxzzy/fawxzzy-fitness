@@ -19,20 +19,20 @@ export function buildHistoryAchievements(input: {
     },
     {
       id: "ten-sessions",
-      title: "Ten Sessions",
+      title: "Ten Workouts",
       description: "Complete ten workouts over time.",
       unlocked: input.completedWorkoutCount >= 10,
     },
     {
       id: "three-week-streak",
-      title: "Three Session Streak",
+      title: "Three Workout Streak",
       description: "Log three consecutive planned workout days.",
       unlocked: input.bestSessionStreakCount >= 3,
     },
     {
       id: "first-pr",
       title: "PR Logged",
-      description: "Record one history-backed PR moment.",
+      description: "Log your first PR.",
       unlocked: input.prMomentCount >= 1,
     },
   ];

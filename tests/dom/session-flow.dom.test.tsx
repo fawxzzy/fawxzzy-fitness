@@ -40,6 +40,8 @@ function renderSession(options: {
   addSetAction?: (payload: { reps: number; weight: number }) => Promise<unknown>;
   initialIsSessionCompleted?: boolean;
   initialDurationSeconds?: number;
+  sessionId?: string;
+  updateSessionExerciseTimerAction?: (payload: { sessionId: string; sessionExerciseId: string; command: string }) => Promise<unknown>;
 }) {
   const { router } = createRouterSpy();
   const noop = async () => ({ ok: true as const });
@@ -47,7 +49,7 @@ function renderSession(options: {
     <AppProviders router={router} pathname="/session/s1">
         <SessionPageClient
           userId="u1"
-          sessionId="s1"
+          sessionId={options.sessionId ?? "s1"}
           initialDurationSeconds={options.initialDurationSeconds ?? 0}
           initialIsSessionCompleted={options.initialIsSessionCompleted ?? false}
           performedAt={new Date().toISOString()}
@@ -64,6 +66,7 @@ function renderSession(options: {
           removeExerciseAction={noop}
           deleteSetAction={noop}
           updateSessionExerciseProgressionAction={noop as never}
+          updateSessionExerciseTimerAction={options.updateSessionExerciseTimerAction as never}
           disableDraftPersistence
         />
     </AppProviders>,
@@ -249,8 +252,8 @@ test("Session: a saved workout shows the summary with volume, top set, Done and 
   assert.equal(screen.queryByRole("button", { name: "Finish" }), null);
 });
 
-// Zac 2026-11-24: open / close must be discoverable. The header, the bottom-edge grab handle and the logger's Close
-// control all toggle the same card; only one card is open at a time.
+// Zac 2026-11-24: open / close must be discoverable. The header and the bottom-edge grab handle toggle the same card
+// (wave 2, 2026-11-26, dropped the logger's separate Close control); only one card is open at a time.
 // The open logger reads prefers-reduced-motion; jsdom has no matchMedia.
 if (typeof window.matchMedia !== "function") {
   Object.defineProperty(window, "matchMedia", {
@@ -285,30 +288,26 @@ function handleOf(id: string) {
   return handle;
 }
 
-test("Session: header, grab handle and Close all toggle the card; aria-expanded follows; one card open at a time", async () => {
+test("Session: header and grab handle toggle the card; no Close control; aria-expanded follows; one card open at a time", async () => {
   renderSession({ exercises: [exercise({ id: "a", name: "Zed Press" }), exercise({ id: "b", name: "Yew Row" })] });
   const header = screen.getByTestId("session-exercise-toggle-a");
   assert.equal(panelOf("a"), null);
   assert.equal(handleOf("a").getAttribute("aria-expanded"), "false");
   assert.equal(handleOf("a").getAttribute("aria-label"), "Open Zed Press logger");
 
-  // Header opens; the handle flips and Close appears at the top of the logger.
+  // Header opens; the handle flips. The open logger has no Close control (wave 2).
   fireEvent.click(header);
   await waitFor(() => assert.ok(panelOf("a")));
   assert.equal(header.getAttribute("aria-expanded"), "true");
   assert.equal(handleOf("a").getAttribute("aria-expanded"), "true");
   assert.equal(handleOf("a").querySelector("svg")?.getAttribute("data-session-expand-handle-direction"), "up");
-  const close = panelOf("a")?.querySelector<HTMLButtonElement>('[data-session-logger-close="true"]');
-  assert.ok(close, "Close sits inside the open logger");
   assert.equal(handleOf("a").getAttribute("aria-label"), "Collapse Zed Press logger");
-  assert.notEqual(handleOf("a").getAttribute("aria-label"), close.getAttribute("aria-label"), "handle and Close have distinct names");
-  assert.equal(close.textContent, "Close");
-  assert.equal(panelOf("a")?.firstElementChild?.contains(close), true, "Close is at the top of the logger");
+  assert.equal(cardOf("a").querySelector('[data-session-logger-close="true"]'), null, "no Close control");
+  assert.equal(within(cardOf("a")).queryByRole("button", { name: /^Close/ }), null);
 
-  // Close closes and hands focus to the header toggle.
-  fireEvent.click(close);
+  // The header closes it again.
+  fireEvent.click(header);
   await waitFor(() => assert.equal(panelOf("a"), null));
-  await waitFor(() => assert.equal(document.activeElement, header));
   assert.equal(header.getAttribute("aria-expanded"), "false");
   assert.equal(handleOf("a").querySelector("svg")?.getAttribute("data-session-expand-handle-direction"), "down");
 
@@ -326,27 +325,202 @@ test("Session: header, grab handle and Close all toggle the card; aria-expanded 
   assert.equal(panelOf("a"), null, "opening another card closes this one");
 });
 
-test("Session: the chip caption says what the pressed chip does and the Log set button names the set", async () => {
-  renderSession({ exercises: [exercise({ id: "a", name: "Zed Press" })] });
+test("Session: no idle chip caption; the caption says what the pressed chip does and the Log set button names the set", async () => {
+  renderSession({ sessionId: "s-chips", exercises: [exercise({ id: "a", name: "Zed Press" })] });
   fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
   await waitFor(() => assert.ok(panelOf("a")));
   const caption = () => panelOf("a")?.querySelector('[data-logger-chip-caption="true"]')?.textContent ?? null;
   const logButton = () => panelOf("a")?.querySelector('[data-logger-primary="true"]')?.textContent ?? "";
 
-  assert.equal(caption(), "Tap a chip to mark the next set");
+  assert.equal(caption(), null, "nothing until a chip is pressed");
   assert.match(logButton(), /^Log set/);
+  const panel = panelOf("a") as HTMLElement;
+  assert.equal(within(panel).queryByRole("button", { name: "Exercise timer" }), null, "the timer moved to the More menu");
+  assert.equal(within(panel).queryByRole("button", { name: /Log all|Use last|Resync|Clear last/ }), null, "one primary action in the open logger");
 
-  fireEvent.click(within(panelOf("a") as HTMLElement).getByRole("button", { name: "Warm-up set" }));
+  fireEvent.click(within(panel).getByRole("button", { name: "Warm-up set" }));
   await waitFor(() => assert.equal(caption(), "Warm-up: not counted for progression"));
   assert.match(logButton(), /^Log warm-up set/);
 
+  fireEvent.click(within(panelOf("a") as HTMLElement).getByRole("button", { name: "Warm-up set" }));
   fireEvent.click(within(panelOf("a") as HTMLElement).getByRole("button", { name: "Failure" }));
   await waitFor(() => assert.equal(caption(), "Failure: a tag only. Enter reps reached"));
   assert.match(logButton(), /^Log failure set/);
   assert.doesNotMatch(panelOf("a")?.textContent ?? "", /Target/, "plain words, never Target");
 
   fireEvent.click(within(panelOf("a") as HTMLElement).getByRole("button", { name: "Failure" }));
-  await waitFor(() => assert.equal(caption(), "Tap a chip to mark the next set"));
+  await waitFor(() => assert.equal(caption(), null));
+});
+
+function lastHint(): NonNullable<SessionExerciseFocusItem["targetHint"]> {
+  const values = { measurementType: "reps" as const, weight: 205, reps: 6, durationSeconds: null, distance: null, distanceUnit: null, calories: null, weightUnit: "lbs" as const };
+  return {
+    shortLabel: "Next: 6 reps",
+    reason: "Last time",
+    source: "fallback_last_successful_set",
+    confidence: "medium",
+    suggestedValues: values,
+    lastSummary: "205 lbs x 6",
+    lastSuggestedValues: values,
+    lastPerformedAt: "2026-11-19T12:00:00.000Z",
+    lastPerformedAtLabel: "Nov 19",
+    recentBestSummary: null,
+    recentBestSuggestedValues: null,
+    recentBestPerformedAt: null,
+    recentBestPerformedAtLabel: null,
+  };
+}
+
+test("Session: the Last time line reads reps x weight and the date; tapping it fills the fields", async () => {
+  const calls: AddSetPayload[] = [];
+  renderSession({
+    sessionId: "s-last",
+    exercises: [exercise({ id: "a", name: "Zed Press", targetHint: lastHint() })],
+    addSetAction: acceptingAddSet(calls) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
+  await waitFor(() => assert.ok(panelOf("a")));
+  const line = panelOf("a")?.querySelector<HTMLButtonElement>('[data-logger-last-time="true"]');
+  assert.ok(line, "one Last time line in the open logger");
+  assert.match(line.textContent ?? "", /^Last time: 6 × 205 lbs · Nov 19/);
+  assert.match(line.getAttribute("aria-label") ?? "", /Tap to fill reps and weight/);
+
+  fireEvent.click(line);
+  const logButton = () => panelOf("a")?.querySelector<HTMLButtonElement>('[data-logger-primary="true"]');
+  await waitFor(() => assert.match(logButton()?.textContent ?? "", /6 reps/));
+  assert.match(logButton()?.textContent ?? "", /205 lbs/);
+  fireEvent.click(logButton() as HTMLButtonElement);
+  await waitFor(() => assert.equal(calls.length, 1));
+  assert.equal(calls[0].reps, 6);
+  assert.equal(calls[0].weight, 205);
+});
+
+test("Session: logging the last planned set in the open logger closes the card and opens the next unfinished one", async () => {
+  const calls: AddSetPayload[] = [];
+  renderSession({
+    sessionId: "s-advance",
+    exercises: [
+      exercise({ id: "a", name: "Zed Press", targetSetsMin: 2, targetSetsMax: 2 }),
+      exercise({ id: "b", name: "Yew Row", isSkipped: true }),
+      exercise({ id: "c", name: "Xen Curl" }),
+    ],
+    addSetAction: acceptingAddSet(calls) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
+  await waitFor(() => assert.ok(panelOf("a")));
+  const logInPanel = () => fireEvent.click(panelOf("a")?.querySelector('[data-logger-primary="true"]') as HTMLButtonElement);
+
+  // Set 1 of 2: the card stays open.
+  logInPanel();
+  await waitFor(() => assert.equal(calls.length, 1));
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.ok(panelOf("a"), "not the last planned set: stay on the card");
+
+  // Set 2 of 2: this card closes, the skipped one is passed over, the next unfinished one opens.
+  logInPanel();
+  await waitFor(() => assert.equal(calls.length, 2));
+  await waitFor(() => assert.ok(panelOf("c"), "the next unfinished exercise opens"));
+  assert.equal(panelOf("a"), null, "the finished card closes");
+  assert.equal(panelOf("b"), null, "a skipped exercise is passed over");
+  assert.equal(document.querySelectorAll('[data-testid^="session-exercise-panel-"]').length, 1, "one open card at a time");
+});
+
+test("Session: a failed save never auto-advances", async () => {
+  let calls = 0;
+  renderSession({
+    sessionId: "s-fail",
+    exercises: [exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1 }), exercise({ id: "b", name: "Yew Row" })],
+    addSetAction: (async () => {
+      calls += 1;
+      return { ok: false as const, error: "Could not log set." };
+    }) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
+  await waitFor(() => assert.ok(panelOf("a")));
+  fireEvent.click(panelOf("a")?.querySelector('[data-logger-primary="true"]') as HTMLButtonElement);
+  await waitFor(() => assert.equal(calls, 1));
+  await screen.findByText("Could not log set.");
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.ok(panelOf("a"), "the card stays open after a failed save");
+  assert.equal(panelOf("b"), null, "the next card did not open");
+});
+
+test("Session: the last planned set of the last unfinished exercise just closes the card (no next)", async () => {
+  const calls: AddSetPayload[] = [];
+  renderSession({
+    sessionId: "s-last-card",
+    exercises: [
+      exercise({ id: "a", name: "Zed Press", isSkipped: true }),
+      exercise({ id: "b", name: "Yew Row", targetSetsMin: 1, targetSetsMax: 1 }),
+    ],
+    addSetAction: acceptingAddSet(calls) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-b"));
+  await waitFor(() => assert.ok(panelOf("b")));
+  fireEvent.click(panelOf("b")?.querySelector('[data-logger-primary="true"]') as HTMLButtonElement);
+  await waitFor(() => assert.equal(calls.length, 1));
+  await waitFor(() => assert.equal(panelOf("b"), null, "the finished card closes"));
+  assert.equal(document.querySelectorAll('[data-testid^="session-exercise-panel-"]').length, 0, "nothing else opens");
+});
+
+test("Session: a save that lands after the user opened another card never yanks the selection", async () => {
+  const calls: AddSetPayload[] = [];
+  const accept = acceptingAddSet(calls);
+  let release: (() => void) | null = null;
+  renderSession({
+    sessionId: "s-late",
+    exercises: [
+      exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1 }),
+      exercise({ id: "b", name: "Yew Row" }),
+      exercise({ id: "c", name: "Xen Curl" }),
+    ],
+    addSetAction: (async (payload: AddSetPayload) => {
+      await new Promise<void>((resolve) => { release = resolve; });
+      return accept(payload);
+    }) as never,
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
+  await waitFor(() => assert.ok(panelOf("a")));
+  fireEvent.click(panelOf("a")?.querySelector('[data-logger-primary="true"]') as HTMLButtonElement);
+  await waitFor(() => assert.ok(release, "the save is in flight"));
+
+  // The user moves to Xen Curl by hand while Zed Press's last set is still saving.
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-c"));
+  await waitFor(() => assert.ok(panelOf("c")));
+  (release as unknown as () => void)();
+  await waitFor(() => assert.equal(calls.length, 1));
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.ok(panelOf("c"), "the card the user chose stays open");
+  assert.equal(panelOf("b"), null, "the late save did not advance to the next card");
+  assert.equal(panelOf("a"), null);
+});
+
+test("Session: the timer is shown and hidden from the open card's More menu", async () => {
+  const commands: string[] = [];
+  renderSession({
+    sessionId: "s-timer",
+    exercises: [exercise({ id: "a", name: "Zed Press" })],
+    updateSessionExerciseTimerAction: async (payload) => {
+      commands.push(payload.command);
+      return {
+        ok: true as const,
+        data: { timer: { enabled: payload.command === "enable", mode: "count_up", targetSeconds: null, elapsedSeconds: 0, status: "idle", startedAt: null, completedAt: null } },
+      };
+    },
+  });
+  fireEvent.click(screen.getByTestId("session-exercise-toggle-a"));
+  await waitFor(() => assert.ok(panelOf("a")));
+  const panel = panelOf("a") as HTMLElement;
+  const more = panel.querySelector<HTMLButtonElement>('[data-logger-actions="true"] button[aria-haspopup]');
+  assert.ok(more, "the More menu sits next to Log set");
+
+  fireEvent.click(more);
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Show timer" }));
+  await waitFor(() => assert.deepEqual(commands, ["enable"]));
+
+  fireEvent.click(more);
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Hide timer" }));
+  await waitFor(() => assert.deepEqual(commands, ["enable", "disable"]));
 });
 
 test("Session: a set notice shows in the overlay above the dock and leaves the card list untouched", async () => {

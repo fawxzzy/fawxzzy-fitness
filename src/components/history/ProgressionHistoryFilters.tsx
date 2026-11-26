@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { HistoryFilterBar, type HistoryActiveFilterChip, type HistoryFilterGroup } from "@/components/history/HistoryFilterBar";
+import { toPlainEventLabel } from "@/components/history/progression-dashboard-copy";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import type { ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
 import { serializeProgressionHistoryFilters, type ProgressionHistoryFilters as Filters } from "@/lib/progression-history-filters";
@@ -44,7 +45,7 @@ export function ProgressionHistoryFilters({
       title: "Change",
       options: filterOptions.eventTypes.map((option) => ({
         key: option.value,
-        label: option.label,
+        label: toPlainEventLabel(option.value, option.label),
         selected: filters.eventType === option.value,
         onSelect: () => apply({ eventType: filters.eventType === option.value ? null : option.value as Filters["eventType"] }),
       })),
@@ -76,7 +77,7 @@ export function ProgressionHistoryFilters({
     value ? options.find((option) => option.value === value)?.label ?? null : null
   );
   const activeChips: HistoryActiveFilterChip[] = [];
-  const eventLabel = labelFor(filterOptions.eventTypes, filters.eventType);
+  const eventLabel = filters.eventType ? toPlainEventLabel(filters.eventType, labelFor(filterOptions.eventTypes, filters.eventType) ?? undefined) : null;
   if (eventLabel) activeChips.push({ key: "eventType", label: eventLabel, onRemove: () => apply({ eventType: null }) });
   const routineLabel = labelFor(filterOptions.routines, filters.routineId);
   if (routineLabel) activeChips.push({ key: "routine", label: routineLabel, onRemove: () => apply({ routineId: null }) });

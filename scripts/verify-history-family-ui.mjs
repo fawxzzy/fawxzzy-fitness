@@ -172,7 +172,7 @@ async function main() {
         { type: "navigate", url: `${BASE_URL}${SESSIONS_ROUTE}` },
         { type: "waitForSelector", selector: `a[href='/history/${HISTORY_DETAIL_SESSION_ID}?returnTab=sessions']`, timeoutMs: 10000 },
         { type: "waitForSelector", selector: "input[placeholder^='Search ']", timeoutMs: 10000 },
-        { type: "waitForSelector", selector: "[data-history-retention-surface='calendar']", timeoutMs: 10000 },
+        { type: "waitForSelector", selector: "[data-history-week-strip='true']", timeoutMs: 10000 },
         {
           type: "assertExpression",
           message: "History sessions must use the count-aware search and filter rail.",
@@ -184,11 +184,13 @@ async function main() {
         },
         {
           type: "assertExpression",
-          message: "History sessions must render the complete retention review stack without page overflow.",
+          // Wave 2 (SIMPLIFY #11): Workouts shows one "This week" line; the summary cards live on Progress.
+          message: "History workouts must show the week strip, no summary cards, and no page overflow.",
           expression: `(() => {
-            const surfaceNames = ["calendar", "monthly", "streak", "heatmap"];
-            const hasSurfaces = surfaceNames.every((name) => document.querySelector("[data-history-retention-surface='" + name + "']"));
-            return hasSurfaces && document.documentElement.scrollWidth <= window.innerWidth + 1;
+            const strip = document.querySelector("[data-history-week-strip='true']");
+            const summaryCards = document.querySelector("[data-history-retention-surface]");
+            return Boolean(strip?.textContent?.startsWith("This week:")) && !summaryCards
+              && document.documentElement.scrollWidth <= window.innerWidth + 1;
           })()`,
         },
         {
@@ -206,8 +208,8 @@ async function main() {
         },
         {
           type: "assertExpression",
-          message: "History sessions must keep the search rail and calendar in the recovered top rhythm.",
-          expression: buildTopAreaFirstCardRhythmExpression("input[placeholder^='Search ']", "[data-history-retention-surface='calendar']"),
+          message: "History workouts must keep the week strip and search rail in the recovered top rhythm.",
+          expression: buildTopAreaFirstCardRhythmExpression("[data-history-week-strip='true']", "input[placeholder^='Search ']"),
         },
         {
           type: "assertExpression",
@@ -234,6 +236,35 @@ async function main() {
       ],
       finalWaitMs: 900,
       outPath: path.join(OUTPUT_DIR, "history-sessions.png"),
+    });
+
+    await writeCaptureConfig(inputDir, "history-progress", {
+      url: buildPreviewUrl("/history/progression"),
+      width: 430,
+      height: 932,
+      mobile: true,
+      deviceScaleFactor: 1,
+      initialWaitMs: 1200,
+      actions: [
+        { type: "navigate", url: `${BASE_URL}/history/progression` },
+        { type: "waitForSelector", selector: "[data-progress-lifts-up]", timeoutMs: 10000 },
+        { type: "waitForSelector", selector: "[data-history-retention-surface='calendar']", timeoutMs: 10000 },
+        {
+          type: "assertExpression",
+          message: "Progress must lead with Lifts that went up, then the complete training summary stack, without page overflow.",
+          expression: `(() => {
+            const lifts = document.querySelector("[data-progress-lifts-up]");
+            const summaries = document.querySelector("[data-history-summaries='true']");
+            const surfaceNames = ["calendar", "monthly", "streak", "heatmap"];
+            const hasSurfaces = surfaceNames.every((name) => document.querySelector("[data-history-retention-surface='" + name + "']"));
+            const leadsWithLifts = Boolean(lifts && summaries
+              && (lifts.compareDocumentPosition(summaries) & Node.DOCUMENT_POSITION_FOLLOWING));
+            return hasSurfaces && leadsWithLifts && document.documentElement.scrollWidth <= window.innerWidth + 1;
+          })()`,
+        },
+      ],
+      finalWaitMs: 900,
+      outPath: path.join(OUTPUT_DIR, "history-progress.png"),
     });
 
     await writeCaptureConfig(inputDir, "history-exercises", {
@@ -344,7 +375,7 @@ async function main() {
             return Boolean(
               card
               && card.getAttribute("data-history-density") === "detailed"
-              && card.textContent?.includes("Session Time")
+              && card.textContent?.includes("Workout Time")
               && card.textContent?.includes("Completion")
             );
           })()`,

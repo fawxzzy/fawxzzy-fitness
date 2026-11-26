@@ -545,9 +545,9 @@ test("buildHistorySessionCardViewModel favors PR progress language when a sessio
   }));
 
   assert.equal(viewModel.outcome, "Best: Back Squat | 315 lbs x 5");
-  assert.equal(viewModel.progress, "2 PRs this session");
-  assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "2 PRs this session"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Session Time", "Completion", "Exercises", "Sets", "PRs"]);
+  assert.equal(viewModel.progress, "2 PRs this workout");
+  assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "2 PRs this workout"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Workout Time", "Completion", "Exercises", "Sets", "PRs"]);
   assert.equal(viewModel.detailedMetrics.find((metric) => metric.label === "Completion")?.value, "100%");
 });
 
@@ -590,7 +590,7 @@ test("buildHistorySessionCardViewModel prioritizes progression changes when a se
 
   assert.equal(viewModel.progress, "2 promotions applied");
   assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "2 promotions"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Session Time", "Completion", "Exercises", "Sets", "Promotions"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Workout Time", "Completion", "Exercises", "Sets", "Promotions"]);
   assert.equal(viewModel.detailedMetrics[4]?.value, "2");
 });
 
@@ -617,7 +617,7 @@ test("buildHistorySessionCardViewModel separates regression, watch, and manual p
 
   assert.equal(viewModel.progress, "3 target changes");
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => `${metric.label}:${metric.value}`), [
-    "Session Time:45m",
+    "Workout Time:45m",
     "Completion:100%",
     "Exercises:2",
     "Sets:6",

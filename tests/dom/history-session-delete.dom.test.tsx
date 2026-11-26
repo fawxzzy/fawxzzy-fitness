@@ -43,7 +43,7 @@ function renderSessionDelete(action: (formData: FormData) => Promise<unknown>) {
 
 function openDeleteConfirm() {
   fireEvent.click(screen.getByRole("button", { name: "Actions for Day 5" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "Delete session" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete workout" }));
 }
 
 test("delete copy names the session and counts what goes with it", () => {
@@ -51,10 +51,10 @@ test("delete copy names the session and counts what goes with it", () => {
     name: "Day 5",
     triggerAriaLabel: "Delete Day 5",
     title: "Delete Day 5?",
-    consequence: "Removes the Nov 21 session and its 4 exercises. This cannot be undone.",
+    consequence: "Removes the Nov 21 workout and its 4 exercises. This cannot be undone.",
   });
-  assert.equal(buildHistorySessionDeleteCopy({ dayTitle: " ", dayName: "Legs", exerciseCount: 1 }).consequence, "Removes this session and its 1 exercise. This cannot be undone.");
-  assert.equal(buildHistorySessionDeleteCopy({ exerciseCount: 0 }).title, "Delete this session?");
+  assert.equal(buildHistorySessionDeleteCopy({ dayTitle: " ", dayName: "Legs", exerciseCount: 1 }).consequence, "Removes this workout and its 1 exercise. This cannot be undone.");
+  assert.equal(buildHistorySessionDeleteCopy({ exerciseCount: 0 }).title, "Delete this workout?");
 });
 
 test("History session delete: the confirm names the day, states the consequence, and a double tap submits once", async () => {
@@ -66,7 +66,7 @@ test("History session delete: the confirm names the day, states the consequence,
   openDeleteConfirm();
   const dialog = await screen.findByRole("dialog");
   assert.ok(within(dialog).getByText("Delete Day 5?"), "the title names the day");
-  assert.ok(within(dialog).getByText("Removes the Nov 21 session and its 4 exercises. This cannot be undone."));
+  assert.ok(within(dialog).getByText("Removes the Nov 21 workout and its 4 exercises. This cannot be undone."));
 
   const confirm = within(dialog).getByRole("button", { name: "Delete" });
   await act(async () => {

@@ -574,7 +574,7 @@ export default async function HistoryLogDetailsPage(props: PageProps) {
         floatingHeader={<ScreenHeader kind="detail" title="Workout" back={<ScreenHeaderBackButton href="/history" historyBehavior="history-first" label="Back to History" />} />}
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <HistoryLoadErrorState title="Could not load this session" backHref="/history" backLabel="Back to History" />
+        <HistoryLoadErrorState title="Could not load this workout" backHref="/history" backLabel="Back to History" />
       </HistoryRouteScaffold>
     );
   }

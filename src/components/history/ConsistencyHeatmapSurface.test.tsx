@@ -7,7 +7,7 @@ import { buildHistoryConsistencyHeatmap } from "@/lib/history-consistency-heatma
 import { ConsistencyHeatmapSurface } from "./ConsistencyHeatmapSurface";
 
 const surfaceSource = readFileSync(new URL("./ConsistencyHeatmapSurface.tsx", import.meta.url), "utf8");
-const historyClientSource = readFileSync(new URL("../../app/history/HistorySessionsClient.tsx", import.meta.url), "utf8");
+const progressOverviewSource = readFileSync(new URL("./HistoryProgressOverview.tsx", import.meta.url), "utf8");
 
 const NOW = "2026-11-12T15:00:00.000Z";
 const TIMEZONE = "America/New_York";
@@ -53,7 +53,7 @@ test("heatmap renders one labelled square per day for the whole 16-week window",
 
   assert.equal(countMatches(html, /data-heatmap-day="/g), 16 * 7);
   assert.match(html, /role="img"/);
-  assert.match(html, /aria-label="7 sessions on 4 active days in the last 16 weeks\. Brighter green squares and higher numbers mean more sessions that day\."/);
+  assert.match(html, /aria-label="7 workouts on 4 active days in the last 16 weeks\. Brighter green squares and higher numbers mean more workouts that day\."/);
   assert.match(html, /data-heatmap-day="2026-11-05" data-heatmap-count="1"/);
   assert.match(html, /data-heatmap-day="2026-11-06" data-heatmap-count="0"/);
   assert.match(html, /data-heatmap-day="2026-11-10" data-heatmap-count="2" data-heatmap-tone="medium"/);
@@ -89,21 +89,21 @@ test("heatmap exposes the active days to assistive tech as text", () => {
   const html = render(ACTIVE_SESSIONS, "detailed");
 
   assert.match(html, /<ul class="sr-only" aria-label="Active days">/);
-  assert.match(html, /<li>Nov 11, 2026: 3 sessions<\/li><li>Nov 10, 2026: 2 sessions<\/li><li>Nov 9, 2026: 1 session<\/li>/);
-  assert.match(html, /<li>Nov 5, 2026: 1 session<\/li>/);
+  assert.match(html, /<li>Nov 11, 2026: 3 workouts<\/li><li>Nov 10, 2026: 2 workouts<\/li><li>Nov 9, 2026: 1 workout<\/li>/);
+  assert.match(html, /<li>Nov 5, 2026: 1 workout<\/li>/);
 });
 
 test("heatmap names today for assistive tech, listed first even before today has a session", () => {
   const html = render(ACTIVE_SESSIONS, "detailed");
 
-  assert.match(html, /aria-label="Active days"><li>Nov 12, 2026 \(today\): 0 sessions<\/li><li>Nov 11, 2026: 3 sessions<\/li>/);
-  assert.match(html, /title="Nov 12, 2026 \(today\): 0 sessions" data-heatmap-day="2026-11-12"/);
+  assert.match(html, /aria-label="Active days"><li>Nov 12, 2026 \(today\): 0 workouts<\/li><li>Nov 11, 2026: 3 workouts<\/li>/);
+  assert.match(html, /title="Nov 12, 2026 \(today\): 0 workouts" data-heatmap-day="2026-11-12"/);
 
   const withToday = render([...ACTIVE_SESSIONS, session("today", "2026-11-12T13:00:00.000Z")], "detailed");
-  assert.match(withToday, /<li>Nov 12, 2026 \(today\): 1 session<\/li>/);
+  assert.match(withToday, /<li>Nov 12, 2026 \(today\): 1 workout<\/li>/);
 
   // A brand new user still gets today named, and nothing else.
-  assert.match(render([], "detailed"), /aria-label="Active days"><li>Nov 12, 2026 \(today\): 0 sessions<\/li><\/ul>/);
+  assert.match(render([], "detailed"), /aria-label="Active days"><li>Nov 12, 2026 \(today\): 0 workouts<\/li><\/ul>/);
 });
 
 test("heatmap shows month labels without shifting days across the UTC boundary", () => {
@@ -122,7 +122,7 @@ test("empty heatmap for a new user is encouraging, not sad", () => {
   assert.match(html, /Finish your first workout and it lights up the first square\./);
   assert.equal(countMatches(html, /data-heatmap-day="/g), 16 * 7);
   assert.doesNotMatch(html, /nothing|no data|failed|inactive|missed/i);
-  // The invitation takes the summary slot: no visible "No sessions yet." line above the empty grid.
+  // The invitation takes the summary slot: no visible "No workouts yet." line above the empty grid.
   assert.doesNotMatch(html, /data-history-consistency-heatmap="summary"/);
 });
 
@@ -130,7 +130,7 @@ test("a quiet stretch keeps the map and invites the next workout", () => {
   const html = render([session("old", "2026-01-05T15:00:00.000Z")], "detailed");
 
   assert.match(html, /A quiet stretch\. Your next workout puts a square back on the map\./);
-  assert.match(html, /aria-label="No sessions in the last 16 weeks\. Brighter green squares/);
+  assert.match(html, /aria-label="No workouts in the last 16 weeks\. Brighter green squares/);
   assert.doesNotMatch(html, /data-history-consistency-heatmap="summary"/);
   assert.doesNotMatch(html, /first workout/);
 });
@@ -139,7 +139,7 @@ test("active heatmap has no empty-state message", () => {
   const html = render(ACTIVE_SESSIONS, "detailed");
 
   assert.doesNotMatch(html, /data-history-consistency-heatmap="empty"/);
-  assert.match(html, /data-history-consistency-heatmap="summary"[^>]*>7 sessions on 4 active days in the last 16 weeks\.</);
+  assert.match(html, /data-history-consistency-heatmap="summary"[^>]*>7 workouts on 4 active days in the last 16 weeks\.</);
 });
 
 test("compact History view collapses into the canonical disclosure card with every summary fact visible", () => {
@@ -149,7 +149,7 @@ test("compact History view collapses into the canonical disclosure card with eve
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /Consistency/);
   assert.match(html, /16 weeks/);
-  assert.match(html, />7 sessions</);
+  assert.match(html, />7 workouts</);
   // The grid is rendered but hidden until the disclosure opens.
   assert.match(html, /<div id="[^"]+" hidden="" class="border-t /);
   assert.equal(countMatches(html, /data-heatmap-day="/g), 16 * 7);
@@ -175,22 +175,19 @@ test("heatmap uses the shared History disclosure and section shells and the cale
   assert.doesNotMatch(surfaceSource, /blue|sky-|indigo/);
 });
 
-test("History mounts the heatmap right after the streak, as the surface the History UI verifier expects", () => {
-  assert.ok(historyClientSource.includes('from "@/components/history/ConsistencyHeatmapSurface"'));
-  assert.ok(historyClientSource.includes("<ConsistencyHeatmapSurface"));
-  assert.ok(historyClientSource.includes("shouldShowHistoryConsistencyHeatmap("));
+test("Progress mounts the heatmap right after the calendar, as the surface the History UI verifier expects", () => {
+  // Wave 2 (SIMPLIFY #11): the summary cards moved from the Workouts list to Progress.
+  assert.ok(progressOverviewSource.includes('from "@/components/history/ConsistencyHeatmapSurface"'));
+  assert.ok(progressOverviewSource.includes("<ConsistencyHeatmapSurface"));
 
-  const calendarIndex = historyClientSource.indexOf('data-history-retention-surface="calendar"');
-  const streakIndex = historyClientSource.indexOf('data-history-retention-surface="streak"');
-  const heatmapIndex = historyClientSource.indexOf('data-history-retention-surface="heatmap"');
-  const summaryIndex = historyClientSource.indexOf("<HistoryScopeSummarySurface");
-  assert.ok(calendarIndex >= 0);
-  assert.ok(calendarIndex < streakIndex);
-  assert.ok(streakIndex < heatmapIndex);
+  const streakIndex = progressOverviewSource.indexOf('data-history-retention-surface="streak"');
+  const calendarIndex = progressOverviewSource.indexOf('data-history-retention-surface="calendar"');
+  const heatmapIndex = progressOverviewSource.indexOf('data-history-retention-surface="heatmap"');
+  const summaryIndex = progressOverviewSource.indexOf("<HistoryScopeSummarySurface");
+  assert.ok(streakIndex >= 0);
+  assert.ok(streakIndex < calendarIndex);
+  assert.ok(calendarIndex < heatmapIndex);
   assert.ok(heatmapIndex < summaryIndex);
-  // The surface is only rendered behind the visibility helper, never unconditionally.
-  const showIndex = historyClientSource.indexOf("{showConsistencyHeatmap ?");
-  assert.ok(showIndex >= 0 && showIndex < heatmapIndex);
   // scripts/verify-history-family-ui.mjs asserts this exact surface name in the History retention stack.
   assert.ok(readFileSync(new URL("../../../scripts/verify-history-family-ui.mjs", import.meta.url), "utf8").includes('["calendar", "monthly", "streak", "heatmap"]'));
 });

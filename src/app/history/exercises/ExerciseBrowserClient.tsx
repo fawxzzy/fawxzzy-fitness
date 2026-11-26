@@ -176,7 +176,7 @@ function HistoryExerciseFilters({
       key: "scope",
       title: "Show",
       options: [
-        { key: "all_time", label: "All sessions", selected: !isRoutineScope, onSelect: resetScope },
+        { key: "all_time", label: "All workouts", selected: !isRoutineScope, onSelect: resetScope },
         {
           key: "routine",
           label: "One routine",

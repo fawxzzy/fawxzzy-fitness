@@ -11,7 +11,7 @@ export function HistorySessionMissingState() {
     <div data-history-session-missing="true" className="pt-2">
       <CardEmptyState
         headingLevel={2}
-        title="This session is no longer here"
+        title="This workout is no longer here"
         body="It may have been deleted."
         action={(
           <Link href="/history" className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>

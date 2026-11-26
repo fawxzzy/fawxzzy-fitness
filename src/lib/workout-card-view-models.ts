@@ -749,7 +749,7 @@ function buildSessionOutcome(session: SessionSummary) {
     return `${formatCount(session.setCount, "set")} logged`;
   }
 
-  return "No set data recorded";
+  return "No sets logged";
 }
 
 function buildSessionProgress(session: SessionSummary, previousSession?: SessionSummary | null) {
@@ -762,7 +762,7 @@ function buildSessionProgress(session: SessionSummary, previousSession?: Session
   }
 
   if (session.prCounts.total > 0) {
-    return `${session.prCounts.total} ${session.prCounts.total === 1 ? "PR" : "PRs"} this session`;
+    return `${session.prCounts.total} ${session.prCounts.total === 1 ? "PR" : "PRs"} this workout`;
   }
 
   if (
@@ -856,7 +856,7 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
   const metrics: MetricDatum[] = [
     ...(duration && duration !== "0m"
       ? [{
-          label: "Session Time",
+          label: "Workout Time",
           value: duration,
         }]
       : []),
@@ -896,7 +896,7 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
 
   if (metrics.length <= 2) {
     metrics.unshift({
-      label: "Session Time",
+      label: "Workout Time",
       value: duration ?? "Open",
     });
   }

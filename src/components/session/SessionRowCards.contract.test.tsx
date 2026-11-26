@@ -10,7 +10,6 @@ import {
   formatLoggerSummary,
   LoggedSetDeleteButton,
   LoggerPrimaryLogButton,
-  LoggerSecondaryButton,
   LoggerToggleChip,
 } from "./SetLoggerControls.tsx";
 import { describeLoggerChips, LOGGER_CHIP_CAPTIONS, resolveLoggerLogPrefix } from "./loggerChipCaption.ts";
@@ -337,11 +336,12 @@ test("feedback prompt: 44px effort and signal buttons, 11px text, named groups, 
   assert.doesNotMatch(source, /h-6 w-6|h-7 |text-\[(9|10)px\]|overflow-x-auto/);
 });
 
-test("set logger (Zac 2026-11-23): toggle chips, quiet secondaries, one Log set primary, trash + confirm, no red inline error", () => {
+test("set logger (Zac 2026-11-23, wave 2 2026-11-26): two chips, one Log set primary, trash + confirm, no red inline error", () => {
   const timers = readSource("./SetLoggerCard.tsx");
 
   assert.doesNotMatch(timers, /<GlowSwitch/, "sliding switches clipped at the card edge; chips replace them");
-  assert.equal((timers.match(/<LoggerToggleChip/g) ?? []).length, 3, "Warm-up, Failure, Timer");
+  assert.equal((timers.match(/<LoggerToggleChip/g) ?? []).length, 2, "Warm-up and Failure; the timer moved to the More menu");
+  assert.doesNotMatch(timers, /exerciseTimerVisible|onExerciseTimerVisibilityChange|ariaLabel="Exercise timer"/, "no Timer chip in the logger");
   assert.match(timers, /<LoggerPrimaryLogButton/);
   assert.match(timers, /\swrapHorizontalFields\s/, "the logger opts into the wrapping field grid");
   assert.match(timers, /onPress=\{\(\) => setConfirmDeleteSet\(\{ set, index \}\)\}/, "Delete asks first");
@@ -361,10 +361,9 @@ test("logger controls: 44px chips with aria-pressed, Log set primary with the Pr
   const chip = renderToStaticMarkup(<LoggerToggleChip pressed label="Warm-up" ariaLabel="Warm-up set" onPress={() => {}} />);
   assert.match(chip, /aria-pressed="true"/);
   assert.match(chip, /aria-label="Warm-up set"/);
-  assert.match(renderToStaticMarkup(<LoggerToggleChip pressed={false} label="Timer" ariaLabel="Exercise timer" onPress={() => {}} />), /aria-pressed="false"/);
+  assert.match(renderToStaticMarkup(<LoggerToggleChip pressed={false} label="Failure" ariaLabel="Failure" onPress={() => {}} />), /aria-pressed="false"/);
   const timers = readSource("./SetLoggerCard.tsx");
   assert.doesNotMatch(timers, /Active set enabled|target disabled|timer disabled/, "state lives in aria-pressed, not a name that contradicts the visible word");
-  assert.match(timers, /const showLogAllAction = remainingTargetSetCount > 1;/, "one remaining set: Log set already does it");
   assert.match(chip, /\bh-11\b/);
   assert.match(chip, />Warm-up</);
 
@@ -376,10 +375,6 @@ test("logger controls: 44px chips with aria-pressed, Log set primary with the Pr
   const idle = renderToStaticMarkup(<LoggerPrimaryLogButton prefix="Log" summaryItems={[]} inactive onPress={() => {}} />);
   assert.doesNotMatch(idle, /promote-shine/);
   assert.match(idle, /aria-disabled="true"/);
-
-  const secondary = renderToStaticMarkup(<LoggerSecondaryButton onPress={() => {}} inactive>Log all (3)</LoggerSecondaryButton>);
-  assert.match(secondary, /\bh-11\b/);
-  assert.match(secondary, /aria-disabled="true"/);
 
   const trash = renderToStaticMarkup(<LoggedSetDeleteButton ariaLabel="Delete set 1" pending={false} inactive={false} onPress={() => {}} />);
   assert.match(trash, /aria-label="Delete set 1"/);
@@ -529,7 +524,7 @@ test("offline shell: a cached finished workout shows Back, not Pause (2026-11-24
   assert.match(page, /completed: sessionRow\.status === "completed"/, "the snapshot records completion when it is cached");
 });
 
-test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close at the top of the open logger, no chevron", () => {
+test("open / close (Zac 2026-11-24, wave 2 2026-11-26): header and bottom-edge grab handle, no Close control, no chevron", () => {
   const collapsed = renderRow(false);
   const handle = collapsed.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
   assert.ok(handle, "the collapsed card has the grab handle");
@@ -543,7 +538,6 @@ test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close a
   assert.match(handle, /\bw-16\b/, "64px wide target");
   assert.match(collapsed, /data-session-expand-handle-direction="down"/);
   assert.ok(collapsed.indexOf("footer-stub") < collapsed.indexOf("data-session-expand-handle="), "the handle is on the bottom edge, after the bar");
-  assert.doesNotMatch(collapsed, /data-session-logger-close/);
 
   // 16px under the pill: the 44px target ends 3px into the 8px card gap, never under the next card (2026-11-24 review;
   // with pb-1 the next card took the bottom 8px, measured with elementFromPoint at 390 and 320).
@@ -553,15 +547,11 @@ test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close a
   const openHandle = expanded.match(/<button[^>]*data-session-expand-handle="true"[^>]*>/)?.[0];
   assert.ok(openHandle);
   assert.match(openHandle, /aria-expanded="true"/);
-  assert.match(openHandle, /aria-label="Collapse Zed Press logger"/, "never the same name as the Close button");
+  assert.match(openHandle, /aria-label="Collapse Zed Press logger"/);
   assert.match(expanded, /data-session-expand-handle-direction="up"[^>]*rotate-180/, "flips to point up while open");
-  const close = expanded.match(/<button[^>]*data-session-logger-close="true"[^>]*>Close<\/button>/)?.[0];
-  assert.ok(close, "Close is a visible text control");
-  assert.match(close, /aria-expanded="true"/);
-  assert.match(close, /\bh-11\b/);
-  assert.match(close, /aria-label="Close Zed Press logger"/, "label in name");
-  assert.ok(expanded.indexOf("data-session-logger-close=") < expanded.indexOf("logger-stub"), "Close sits above the logger");
+  assert.match(expanded, /logger-stub/, "the open card shows the logger");
   for (const html of [collapsed, expanded]) {
+    assert.doesNotMatch(html, /data-session-logger-close|>Close</, "wave 2: no Close control; the header and the handle close the card");
     assert.doesNotMatch(html, /data-card-affordance|chevron|data-exercise-done-check/i, "still no chevron or check on the card");
   }
 
@@ -569,17 +559,15 @@ test("open / close (Zac 2026-11-24): bottom-edge grab handle that flips, Close a
   const handleOnly = renderToStaticMarkup(<SessionCardExpandHandle expanded={false} controlsId="p" exerciseName="Zed Press" onToggle={() => { toggles += 1; }} />);
   assert.match(handleOnly, /type="button"/);
   assert.equal(toggles, 0);
-  assert.match(readSource("../SessionExerciseFocus.tsx"), /onToggle=\{\(\) => toggleExercise\(exercise\.id\)\}/, "header, handle and Close share the one toggle");
+  assert.match(readSource("../SessionExerciseFocus.tsx"), /onToggle=\{\(\) => toggleExercise\(exercise\.id\)\}/, "header and handle share the one toggle");
 });
 
-test("logger chips (Zac 2026-11-24): a plain caption for the pressed chip(s) and a Log set label that names the set", () => {
-  const base = { warmup: false, failure: false, timer: false, hasMarkChips: true };
-  assert.equal(describeLoggerChips(base), "Tap a chip to mark the next set");
-  assert.equal(describeLoggerChips({ ...base, warmup: true }), "Warm-up: not counted for progression");
-  assert.equal(describeLoggerChips({ ...base, failure: true }), "Failure: a tag only. Enter reps reached");
-  assert.equal(describeLoggerChips({ ...base, timer: true }), "Timer: shown on this card");
-  assert.equal(describeLoggerChips({ ...base, warmup: true, timer: true }), "Warm-up: not counted for progression", "the mark only, so it stays one line");
-  assert.equal(describeLoggerChips({ ...base, hasMarkChips: false }), null, "nothing to say on a timer-only logger with the timer off");
+test("logger chips (Zac 2026-11-24, wave 2 2026-11-26): a caption only for the pressed chip, a Log set label that names the set", () => {
+  assert.equal(describeLoggerChips({ warmup: false, failure: false }), null, "no idle caption: nothing shows until a chip is pressed");
+  assert.equal(describeLoggerChips({ warmup: true, failure: false }), "Warm-up: not counted for progression");
+  assert.equal(describeLoggerChips({ warmup: false, failure: true }), "Failure: a tag only. Enter reps reached");
+  assert.equal(describeLoggerChips({ warmup: true, failure: true }), "Warm-up: not counted for progression", "one line, so warm-up wins");
+  assert.deepEqual(Object.keys(LOGGER_CHIP_CAPTIONS).sort(), ["failure", "warmup"], "no Timer or idle caption left");
   for (const caption of Object.values(LOGGER_CHIP_CAPTIONS)) {
     assert.doesNotMatch(caption, /target/i, "never the word Target");
     assert.ok(caption.length <= 40, `fits one line at 320px: ${caption}`);
@@ -597,4 +585,37 @@ test("logger chips (Zac 2026-11-24): a plain caption for the pressed chip(s) and
   assert.ok(panel.indexOf('data-measurement-aux-caption="true"') < panel.indexOf('data-measurement-field-wrap="true"'), "and before the fields");
   // The verified data rules the caption relies on: progression skips warm-ups; nothing reads the failure marker.
   assert.match(readSource("../../lib/progression-progress-percent.ts"), /filter\(\(row\) => !row\.isWarmup\)/);
+});
+
+test("open logger (wave 2, SIMPLIFY #3/#4): one Last time line that fills the fields, no Use last / Resync / Log all", () => {
+  const logger = readSource("./SetLoggerCard.tsx");
+  assert.match(logger, /data-logger-last-time="true"/);
+  assert.match(logger, /formatLastTimeLine\(targetHint\.lastSummary, targetHint\.lastPerformedAtLabel\)/);
+  assert.match(logger, /onClick=\{handleApplyLastTime\}/, "tapping the line fills reps and weight");
+  const loggerCode = logger.split(/\r?\n/).filter((line) => !line.trim().startsWith("//")).join("\n");
+  assert.doesNotMatch(loggerCode, /Use last|Resync|Clear last|Log all|LoggerSecondaryButton/, "Log all lives only on the closed card bar");
+  assert.doesNotMatch(readSource("./SetLoggerControls.tsx"), /LoggerSecondaryButton/, "the quiet secondary pill has no caller left");
+  assert.match(readSource("./SessionRowCards.tsx"), /logAllCount > 1/, "the closed bar keeps Log all");
+});
+
+test("More menu (wave 2, SIMPLIFY #4): Show timer / Hide timer sits first, before Skip and Remove", () => {
+  const rowCards = readSource("./SessionRowCards.tsx");
+  assert.match(rowCards, /id: "timer",\s*label: timerVisible \? "Hide timer" : "Show timer"/);
+  assert.ok(rowCards.indexOf('id: "timer"') < rowCards.indexOf('id: "skip"'), "timer before skip");
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  // Stretch hubs keep the Timer too (they had it before wave 2; the review of PR #322 caught its removal).
+  assert.match(focus, /onToggleTimer=\{updateSessionExerciseTimerAction\s*\?/);
+  assert.doesNotMatch(focus, /onToggleTimer=\{[^}]*isStretchHub/, "every card, stretch hubs included, offers the Timer");
+  assert.match(focus, /timerInactive=\{timerTogglePendingIds\.includes\(exercise\.id\)\}/, "no double toggle while one is saving");
+  assert.match(focus, /toast\.error\(\(!result\.ok && result\.error\) \|\| "Could not update exercise timer\."\)/, "a failed toggle uses the in-flow notice");
+});
+
+test("auto-advance (wave 2, SIMPLIFY #5): only a saved Log set that reaches the plan moves on, from the open logger only", () => {
+  const logger = readSource("./SetLoggerCard.tsx");
+  assert.equal((logger.match(/if \(queued\) notifySetSaved\(\);/g) ?? []).length, 3, "queued sets count as saved; a failed save never does");
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  assert.match(focus, /onSetSaved=\{\(count\) => \{\s*handleLoggerSetSaved\(exercise\.id, count\);/);
+  assert.match(focus, /if \(openExerciseId !== exerciseId\) \{\s*return;/, "a late save never moves a card the user already left");
+  assert.match(focus, /if \(!isLastPlannedSet\(savedSetCount, goalSetTarget\)\) \{\s*return;/);
+  assert.match(focus, /onSelectedExerciseIdChange\(nextExerciseId\);/, "one open card: selecting the next closes this one");
 });

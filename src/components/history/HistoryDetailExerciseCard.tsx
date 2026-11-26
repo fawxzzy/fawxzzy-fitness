@@ -22,10 +22,11 @@ const HISTORY_EXERCISE_THUMB_SIZE = 56;
 const SIGNAL_CHIPS: Record<string, { label: string; tone: CardChipTone }> = {
   PR: { label: "PR", tone: "success" },
   BEST: { label: "Best", tone: "success" },
-  PROMO: { label: "Promotion", tone: "success" },
-  REG: { label: "Regression", tone: "attention" },
-  WATCH: { label: "Watch", tone: "attention" },
-  MANUAL: { label: "Manual", tone: "neutral" },
+  // Plain words (wave 2 copy pass #12): Promotion -> "Went up", a deload or undo -> "Went down".
+  PROMO: { label: "Went up", tone: "success" },
+  REG: { label: "Went down", tone: "attention" },
+  WATCH: { label: "Watching", tone: "attention" },
+  MANUAL: { label: "Goal changed", tone: "neutral" },
   // Same word and tone as the shared status vocabulary (`cardStatusChips.skipped`), so a skipped exercise never reads
   // as an empty one (History review item 9).
   SKIPPED: { label: "Skipped", tone: "attention" },

@@ -81,6 +81,8 @@ import {
 import { useSessionSetLogSync } from "@/components/session/useSessionSetLogSync";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
+import { findNextUnfinishedExerciseId, isLastPlannedSet } from "@/components/session/sessionAutoAdvance";
+import { getLoggerRevealShift } from "@/components/session/loggerReveal";
 import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
@@ -313,6 +315,27 @@ function resolveSessionExerciseTone(args: {
   return "neutral";
 }
 
+// Bring the open logger's Log set above the floating Add / Finish dock on short phones, keeping the logger box itself
+// on screen (getLoggerRevealShift). Runs after the row anchor; no-op when Log set already shows.
+function revealOpenLoggerActions(scrollContainer: HTMLElement, exerciseId: string) {
+  const panel = document.querySelector(`[data-testid="session-exercise-panel-${exerciseId}"]`);
+  const actions = panel?.querySelector("[data-logger-actions='true']");
+  if (!(panel instanceof HTMLElement) || !(actions instanceof HTMLElement)) {
+    return;
+  }
+  const scrollRect = scrollContainer.getBoundingClientRect();
+  const dockTop = document.querySelector("[data-app-bottom-dock]")?.getBoundingClientRect().top ?? scrollRect.bottom;
+  const shift = getLoggerRevealShift({
+    actionsBottom: actions.getBoundingClientRect().bottom,
+    panelTop: panel.getBoundingClientRect().top,
+    visibleTop: scrollRect.top,
+    visibleBottom: Math.min(scrollRect.bottom, dockTop),
+  });
+  if (shift > 0) {
+    scrollContainer.scrollTop += shift;
+  }
+}
+
 export function SessionExerciseFocus({
   userId,
   sessionId,
@@ -418,6 +441,7 @@ export function SessionExerciseFocus({
       .filter((exercise) => exercise.exerciseTimer?.enabled)
       .map((exercise) => [exercise.id, true])),
   );
+  const [timerTogglePendingIds, setTimerTogglePendingIds] = useState<readonly string[]>([]);
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const [answeredFeedbackExerciseIds, setAnsweredFeedbackExerciseIds] = useState<Set<string>>(() => new Set(
     Object.entries(cachedSessionState?.savedFeedbackByExerciseId ?? {})
@@ -604,7 +628,7 @@ export function SessionExerciseFocus({
     const previousSelectedExerciseId = previousSelectedExerciseIdRef.current;
     previousSelectedExerciseIdRef.current = selectedExerciseId;
 
-    if (!shouldAnchorExpandedSessionExercise(previousSelectedExerciseId, selectedExerciseId)) {
+    if (!selectedExerciseId || !shouldAnchorExpandedSessionExercise(previousSelectedExerciseId, selectedExerciseId)) {
       return;
     }
 
@@ -621,6 +645,7 @@ export function SessionExerciseFocus({
         }
 
         scrollDockAwareIntoView(scrollContainer, activeRow);
+        revealOpenLoggerActions(scrollContainer, selectedExerciseId);
       });
     });
 
@@ -629,6 +654,30 @@ export function SessionExerciseFocus({
       window.cancelAnimationFrame(frameB);
     };
   }, [selectedExerciseId]);
+
+  // A logger that is already open when the workout loads gets the same Log set reveal once (no row anchor: the page
+  // keeps its own starting scroll otherwise).
+  const initialOpenExerciseIdRef = useRef(selectedExerciseId);
+  useEffect(() => {
+    const openExerciseId = initialOpenExerciseIdRef.current;
+    if (!openExerciseId) {
+      return;
+    }
+    let frameA = 0;
+    let frameB = 0;
+    frameA = window.requestAnimationFrame(() => {
+      frameB = window.requestAnimationFrame(() => {
+        const scrollContainer = document.querySelector("[data-app-scroll-container='true']");
+        if (scrollContainer instanceof HTMLElement) {
+          revealOpenLoggerActions(scrollContainer, openExerciseId);
+        }
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+    };
+  }, []);
 
   const patchRowState = useCallback((
     sessionExerciseId: string,
@@ -886,6 +935,92 @@ export function SessionExerciseFocus({
     }
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
   }, [answeredFeedbackExerciseIds, exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, rowViewModelBySessionExerciseId, selectedExerciseId]);
+
+  // Auto-advance (SIMPLIFY #5): the logger reports each saved Log set tap; the one that reaches the plan closes this card
+  // and opens the next unfinished exercise. Read from a ref so a save that lands after the user moved on never yanks
+  // the selection back.
+  const autoAdvanceStateRef = useRef({ selectedExerciseId, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId });
+  autoAdvanceStateRef.current = { selectedExerciseId, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId };
+  const handleLoggerSetSaved = useCallback((exerciseId: string, savedSetCount: number) => {
+    const {
+      selectedExerciseId: openExerciseId,
+      rowClientStateBySessionExerciseId: rowStates,
+      setSnapshotsBySessionExerciseId: setSnapshots,
+    } = autoAdvanceStateRef.current;
+    if (openExerciseId !== exerciseId) {
+      return;
+    }
+    const exercise = exercises.find((item) => item.id === exerciseId);
+    if (!exercise) {
+      return;
+    }
+    const { goalSetTarget } = deriveSessionExerciseProgressState({
+      loggedSetCount: savedSetCount,
+      isSkipped: false,
+      targetSetsMin: exercise.targetSetsMin,
+      targetSetsMax: exercise.targetSetsMax,
+    });
+    if (!isLastPlannedSet(savedSetCount, goalSetTarget)) {
+      return;
+    }
+
+    const nextExerciseId = findNextUnfinishedExerciseId(exercises.map((item) => {
+      const isSkipped = rowStates[item.id]?.isSkipped ?? item.isSkipped;
+      const loggedSetCount = item.id === exerciseId
+        ? savedSetCount
+        : (setSnapshots[item.id]?.length ?? rowStates[item.id]?.loggedSetCount ?? item.loggedSetCount);
+      return {
+        id: item.id,
+        isSkipped,
+        isGoalCompleted: deriveSessionExerciseProgressState({
+          loggedSetCount,
+          isSkipped,
+          targetSetsMin: item.targetSetsMin,
+          targetSetsMax: item.targetSetsMax,
+        }).isGoalCompleted,
+      };
+    }), exerciseId);
+
+    // Close exactly as a header tap on a done card does: keep it on screen while its feedback is still unanswered.
+    handleSetCountChange(exerciseId, savedSetCount);
+    const shouldRetainCompletedCard = !answeredFeedbackExerciseIds.has(exerciseId) && !hasSavedSessionExerciseFeedback({
+      signal: exercise.copilotFeedbackSignal,
+      note: exercise.copilotFeedbackNote,
+      effort: exercise.copilotFeedbackEffort,
+    });
+    patchRowState(exerciseId, (current) => ({ ...current, showWhenCompleted: shouldRetainCompletedCard }));
+    if (nextExerciseId) {
+      setPersistedLoggerExerciseId(nextExerciseId);
+    }
+    onSelectedExerciseIdChange(nextExerciseId);
+  }, [answeredFeedbackExerciseIds, exercises, handleSetCountChange, onSelectedExerciseIdChange, patchRowState]);
+
+  // The exercise timer is shown or hidden from the card's More menu (SIMPLIFY #4): the open logger keeps only Warm-up
+  // and Failure. Turning it on enables the server timer; a failed toggle shows the in-flow notice and changes nothing.
+  const handleExerciseTimerToggle = useCallback(async (exerciseId: string, nextVisible: boolean) => {
+    if (!updateSessionExerciseTimerAction) {
+      return;
+    }
+    setTimerTogglePendingIds((current) => (current.includes(exerciseId) ? current : [...current, exerciseId]));
+    try {
+      const result = await updateSessionExerciseTimerAction({
+        sessionId,
+        sessionExerciseId: exerciseId,
+        command: nextVisible ? "enable" : "disable",
+      });
+      if (!result.ok || !result.data?.timer) {
+        toast.error((!result.ok && result.error) || "Could not update exercise timer.");
+        return;
+      }
+      const nextTimer = result.data.timer;
+      setTimerSnapshotsBySessionExerciseId((current) => ({ ...current, [exerciseId]: nextTimer }));
+      setTimerVisibilityBySessionExerciseId((current) => ({ ...current, [exerciseId]: nextVisible }));
+    } catch {
+      toast.error("Could not update exercise timer.");
+    } finally {
+      setTimerTogglePendingIds((current) => current.filter((id) => id !== exerciseId));
+    }
+  }, [sessionId, toast, updateSessionExerciseTimerAction]);
 
   const handleSkipToggle = useCallback(async (
     exerciseId: string,
@@ -1257,26 +1392,6 @@ export function SessionExerciseFocus({
                   copilotFeedbackUpdatedAt={exercise.copilotFeedbackUpdatedAt ?? null}
                   initialEffortRating={draftState?.copilotFeedbackEffort ?? exercise.copilotFeedbackEffort ?? null}
                   updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
-                  exerciseTimerVisible={isExerciseTimerVisible}
-                  onExerciseTimerVisibilityChange={updateSessionExerciseTimerAction ? async (nextVisible) => {
-                    const result = await updateSessionExerciseTimerAction({
-                      sessionId,
-                      sessionExerciseId: exercise.id,
-                      command: nextVisible ? "enable" : "disable",
-                    });
-                    if (!result.ok) {
-                      toast.error(result.error || "Could not update exercise timer.");
-                      return false;
-                    }
-                    if (!result.data?.timer) {
-                      toast.error("Could not update exercise timer.");
-                      return false;
-                    }
-                    const nextTimer = result.data.timer;
-                    setTimerSnapshotsBySessionExerciseId((current) => ({ ...current, [exercise.id]: nextTimer }));
-                    setTimerVisibilityBySessionExerciseId((current) => ({ ...current, [exercise.id]: nextVisible }));
-                    return true;
-                  } : undefined}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
@@ -1324,6 +1439,11 @@ export function SessionExerciseFocus({
                         );
                       }}
                       onRemove={canOfferRemove ? () => handleRemoveExercise(exercise.id) : undefined}
+                      timerVisible={isExerciseTimerVisible}
+                      timerInactive={timerTogglePendingIds.includes(exercise.id)}
+                      onToggleTimer={updateSessionExerciseTimerAction
+                        ? () => handleExerciseTimerToggle(exercise.id, !isExerciseTimerVisible)
+                        : undefined}
                     />
                   )}
                   fallbackGoalLabel={exercise.goalLabel}
@@ -1345,6 +1465,9 @@ export function SessionExerciseFocus({
                   }}
                   onSetCountChange={(count) => {
                     handleSetCountChange(exercise.id, count);
+                  }}
+                  onSetSaved={(count) => {
+                    handleLoggerSetSaved(exercise.id, count);
                   }}
                   onLogRequestPendingChange={(pending) => {
                     handleLoggerSavingChange(exercise.id, pending);

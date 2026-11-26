@@ -226,7 +226,7 @@ export function HistoryFilterBar({
           {groups.length > 0 ? (
             groups.map((group) => <HistoryFilterGroupSection key={group.key} group={group} />)
           ) : (
-            <p className="px-1 text-sm text-[rgb(var(--text-muted))]">No filters yet. They appear once you log sessions.</p>
+            <p className="px-1 text-sm text-[rgb(var(--text-muted))]">No filters yet. They appear once you log workouts.</p>
           )}
           {sheetExtra}
         </div>

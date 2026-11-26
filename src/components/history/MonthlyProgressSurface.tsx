@@ -15,7 +15,7 @@ function formatVolume(summary: HistoryMonthlyProgressSummary) {
 
 function buildMetrics(summary: HistoryMonthlyProgressSummary): MetricDatum[] {
   return [
-    { label: "Sessions", value: String(summary.completedWorkoutCount), valueTone: summary.completedWorkoutCount > 0 ? "success" : "muted" },
+    { label: "Workouts", value: String(summary.completedWorkoutCount), valueTone: summary.completedWorkoutCount > 0 ? "success" : "muted" },
     { label: "Active Days", value: String(summary.activeDayCount), valueTone: summary.activeDayCount > 0 ? "default" : "muted" },
     { label: "Sets", value: String(summary.setCount), valueTone: summary.setCount > 0 ? "default" : "muted" },
     { label: "Reps", value: String(summary.repCount), valueTone: summary.repCount > 0 ? "default" : "muted" },
@@ -32,7 +32,7 @@ export function MonthlyProgressSurface({ summary, viewMode }: { summary: History
     : undefined;
   const compactSummaryItems = [
     summary.trend.label,
-    `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`,
+    `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "workout" : "workouts"}`,
     `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`,
   ];
 

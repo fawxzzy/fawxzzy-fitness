@@ -856,7 +856,7 @@ function SessionNotesCard({ notes }: { notes: string }) {
 
   return (
     <CardSurface showRail={false} data-history-session-notes="true">
-      <CardHeader headingLevel={2} title="Session notes" />
+      <CardHeader headingLevel={2} title="Workout notes" />
       <div className={cn(cardTokens.body, isLong ? "pb-1" : "pb-4")}>
         <p
           id={bodyId}
@@ -1316,7 +1316,7 @@ export function LogAuditClient({
                 // Named confirm (History review item 3): the title is the session and the line says what goes with it.
                 title={deleteCopy.title}
                 consequence={deleteSessionConsequence}
-                failureMessage="Could not delete this session. Try again."
+                failureMessage="Could not delete this workout. Try again."
               />
             )}
             back={(
@@ -1345,14 +1345,14 @@ export function LogAuditClient({
       <div ref={detailTopRef} data-history-detail-flow="true" className="grid min-w-0 scroll-mt-28 gap-2">
         {isEditing ? (
           <CardSurface showRail={false} data-history-detail-editor="true">
-            <CardHeader headingLevel={2} title="Edit session" meta={<CardMeta items={["Changes save when you tap Save"]} />} />
+            <CardHeader headingLevel={2} title="Edit workout" meta={<CardMeta items={["Changes save when you tap Save"]} />} />
             <div className={cn(cardTokens.body, "grid gap-2 pb-4")}>
               <FormField label="Day name">
                 {(control) => (
                   <input {...control} value={dayName} onChange={(event) => setDayName(event.target.value)} className={formFieldControlClassName} />
                 )}
               </FormField>
-              <FormField label="Session notes">
+              <FormField label="Workout notes">
                 {(control) => (
                   <textarea
                     {...control}
@@ -1407,8 +1407,8 @@ export function LogAuditClient({
           {displayExercises.length === 0 ? (
             <CardEmptyState
               headingLevel={3}
-              title="No exercises in this session"
-              body="It was saved without any exercises, so there are no sets to show. If you do not need it, open the menu at the top right and choose Delete session."
+              title="No exercises in this workout"
+              body="It was saved without any exercises, so there are no sets to show. If you do not need it, open the menu at the top right and choose Delete workout."
             />
           ) : null}
 
@@ -1627,7 +1627,7 @@ export function LogAuditClient({
                         ) : (
                           <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">
                             {isSkipped
-                              ? "Skipped in this session, so no sets were logged."
+                              ? "Skipped in this workout, so no sets were logged."
                               : isEditing
                                 ? "No sets yet. Tap Add set to log one."
                                 : "No sets were logged for this exercise."}

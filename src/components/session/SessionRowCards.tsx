@@ -64,10 +64,10 @@ function SessionTitleStatus({ status }: { status: SessionStatusChip }) {
  * thumbnail, the logger as the panel, and, while collapsed, the footer (feedback, rest note, action bar). The toggle
  * keeps `session-exercise-toggle-<id>` / `session-exercise-panel-<id>` ids.
  *
- * Open / close is discoverable three ways (Zac 2026-11-24), all calling the same `onToggle`: the header, a thin
- * grab handle centred on the card's bottom edge (a shallow V that flips to point up while open), and a "Close" text
- * control at the top of the open logger. Still no chevron or check on the card. Only one card is open at a time
- * (the session keeps one selected exercise).
+ * Open / close works two ways (Zac 2026-11-24; the separate Close text control was dropped in wave 2, 2026-11-26),
+ * both calling the same `onToggle`: the header, and a thin grab handle centred on the card's bottom edge (a shallow V
+ * that flips to point up while open). Still no chevron or check on the card. Only one card is open at a time (the
+ * session keeps one selected exercise), and logging the last planned set moves on to the next exercise by itself.
  */
 export function SessionExerciseRowCard({
   itemId,
@@ -101,34 +101,7 @@ export function SessionExerciseRowCard({
   footer?: ReactNode;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope: "session-exercise" });
-  const focusHeaderToggle = () => {
-    // The Close control unmounts with the panel; hand focus to the header toggle so it never drops to the page.
-    window.requestAnimationFrame(() => {
-      const toggle = document.querySelector<HTMLElement>(`[data-testid="${contract.buttonTestId}"]`);
-      toggle?.focus({ preventScroll: true });
-    });
-  };
-  const openPanel = expanded && panel ? (
-    <>
-      <div data-session-logger-close-row="true" className="-mr-1.5 -mt-1 flex justify-end">
-        <button
-          type="button"
-          data-session-logger-close="true"
-          aria-expanded="true"
-          aria-controls={contract.panelId}
-          aria-label={`Close ${exercise.name} logger`}
-          onClick={() => {
-            onToggle();
-            focusHeaderToggle();
-          }}
-          className="inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-[13px] font-semibold text-[rgb(var(--text-secondary))] transition-colors hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]"
-        >
-          Close
-        </button>
-      </div>
-      {panel}
-    </>
-  ) : undefined;
+  const openPanel = expanded && panel ? panel : undefined;
   const expandHandle = (
     <SessionCardExpandHandle
       expanded={expanded}
@@ -178,7 +151,7 @@ export function SessionExerciseRowCard({
  * so the next card (relative isolate, later in the DOM) never covers it: 44px measured at 390 and 320 wide. With 4px
  * padding the next card took the bottom 8px and the real target was 36px (elementFromPoint, 2026-11-24 review).
  *
- * Name: "Open X logger" while closed, "Collapse X logger" while open, so it never shares a name with the Close button.
+ * Name: "Open X logger" while closed, "Collapse X logger" while open.
  */
 // 44px tall target that starts 4px above the pill (the bar's bottom edge) and grows down, not centred like HIT_AREA.
 const SESSION_HANDLE_HIT_AREA = "relative before:absolute before:inset-x-0 before:-top-1 before:h-11 before:content-['']";
@@ -405,9 +378,10 @@ function MoreIcon() {
 
 /**
  * The card's More control: the shared Menu (components/ui/Menu.tsx, FOUNDATION "Menu"), a 44px trigger that opens a
- * small popover with Skip/Hide and (optionally) Remove. Used by the
+ * small popover with (optionally) Show / Hide timer, Skip/Hide and (optionally) Remove. Used by the
  * collapsed bar and by the expanded logger, so every card action lives in the card's own bar. Remove always asks first
  * (ConfirmDestructiveModal); nothing here shows a success notice. Handlers are the session screen's own.
+ * Wave 2 (2026-11-26): the exercise timer toggle moved here from the open logger's chip row.
  */
 export function SessionCardMoreMenu({
   exerciseName,
@@ -417,6 +391,9 @@ export function SessionCardMoreMenu({
   removeInactive,
   onSkip,
   onRemove,
+  timerVisible = false,
+  timerInactive = false,
+  onToggleTimer,
 }: {
   exerciseName: string;
   skipLabel: string;
@@ -428,6 +405,11 @@ export function SessionCardMoreMenu({
   onSkip: () => Promise<void> | void;
   /** Removes the exercise from this workout (after the confirm). Omitted: the menu has no Remove. */
   onRemove?: () => Promise<void> | void;
+  /** Whether this card's exercise timer is showing (labels the timer row Show / Hide). */
+  timerVisible?: boolean;
+  timerInactive?: boolean;
+  /** Shows or hides this card's exercise timer. Omitted: the menu has no timer row. */
+  onToggleTimer?: () => Promise<void> | void;
 }) {
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const skipMenuLabel = isSkipPending ? "Saving..." : getSessionSkipMenuLabel(skipLabel);
@@ -442,6 +424,18 @@ export function SessionCardMoreMenu({
           triggerClassName={getSessionCardBarButtonClassName("icon")}
           minWidth={200}
           items={[
+            ...(onToggleTimer
+              ? [{
+                id: "timer",
+                label: timerVisible ? "Hide timer" : "Show timer",
+                disabled: timerInactive,
+                onSelect: () => {
+                  if (!timerInactive) {
+                    void onToggleTimer();
+                  }
+                },
+              }]
+              : []),
             {
               id: "skip",
               label: skipMenuLabel,

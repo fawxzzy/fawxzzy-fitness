@@ -114,7 +114,7 @@ export function buildHistoryMonthlyProgress({
   const completedWorkoutCount = currentSessions.length;
   const delta = completedWorkoutCount - previousMonthWorkoutCount;
   let direction: HistoryMonthlyProgressSummary["trend"]["direction"] = "none";
-  let label = "No sessions this month";
+  let label = "No workouts this month";
   let detail = `No completed workouts are stored for ${formatMonth(monthKey)}.`;
 
   if (completedWorkoutCount > 0 && previousMonthWorkoutCount === 0) {

@@ -215,7 +215,7 @@ test("consistency heatmap copy separates never-trained, quiet-stretch and active
     now: "2026-11-12T15:00:00.000Z",
   }));
   assert.match(quiet.emptyMessage ?? "", /next workout/);
-  assert.equal(quiet.description, "No sessions in the last 16 weeks.");
+  assert.equal(quiet.description, "No workouts in the last 16 weeks.");
 
   const one = describeHistoryConsistencyHeatmap(buildHistoryConsistencyHeatmap({
     sessions: [session("one", "2026-11-10T15:00:00.000Z")],
@@ -223,8 +223,8 @@ test("consistency heatmap copy separates never-trained, quiet-stretch and active
     now: "2026-11-12T15:00:00.000Z",
   }));
   assert.equal(one.emptyMessage, null);
-  assert.equal(one.description, "1 session on 1 active day in the last 16 weeks.");
-  assert.deepEqual(one.compactSummaryItems, ["1 session", "1 active day"]);
+  assert.equal(one.description, "1 workout on 1 active day in the last 16 weeks.");
+  assert.deepEqual(one.compactSummaryItems, ["1 workout", "1 active day"]);
 
   const many = describeHistoryConsistencyHeatmap(buildHistoryConsistencyHeatmap({
     sessions: [
@@ -235,7 +235,7 @@ test("consistency heatmap copy separates never-trained, quiet-stretch and active
     timezone: "America/New_York",
     now: "2026-11-12T15:00:00.000Z",
   }));
-  assert.equal(many.description, "3 sessions on 2 active days in the last 16 weeks.");
+  assert.equal(many.description, "3 workouts on 2 active days in the last 16 weeks.");
 });
 
 test("consistency heatmap keeps a month label in the second-to-last column but not the last", () => {

@@ -2,14 +2,10 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { ConsistencyHeatmapSurface } from "@/components/history/ConsistencyHeatmapSurface";
-import { HistoryCalendarSurface } from "@/components/history/HistoryCalendarSurface";
-import { MonthlyProgressSurface } from "@/components/history/MonthlyProgressSurface";
-import { WorkoutStreakSurface } from "@/components/history/WorkoutStreakSurface";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { HistoryFilterBar, type HistoryActiveFilterChip, type HistoryFilterGroup } from "@/components/history/HistoryFilterBar";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
-import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
+import { buildHistoryWeekStrip } from "@/components/history/historyWeekStrip";
 import { HistoryHeaderDensityToggle } from "@/components/history/HistoryHeaderDensityToggle";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import Link from "next/link";
@@ -20,14 +16,6 @@ import { SkeletonRow } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
-import { buildHistoryCalendarView } from "@/lib/history-calendar";
-import { buildHistoryConsistencyHeatmap, shouldShowHistoryConsistencyHeatmap } from "@/lib/history-consistency-heatmap";
-import { buildHistoryMonthlyProgress } from "@/lib/history-monthly-progress";
-import {
-  buildHistoryWorkoutStreak,
-  filterHistorySkippedDayKeysForTimeline,
-  shouldShowHistoryWorkoutStreak,
-} from "@/lib/history-workout-streak";
 import { getWeeklyProgressDayKey, getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
@@ -207,7 +195,7 @@ function HistorySessionFilters({
       key: "scope",
       title: "Show",
       options: [
-        { key: "all_time", label: "All sessions", selected: !isRoutineScope, onSelect: resetScope },
+        { key: "all_time", label: "All workouts", selected: !isRoutineScope, onSelect: resetScope },
         {
           key: "routine",
           label: "One routine",
@@ -274,7 +262,7 @@ function HistorySessionFilters({
   if (calendarDayOptions.length > 0) {
     sheetGroups.push({
       key: "session-date",
-      title: "Session date",
+      title: "Workout date",
       collapsedLimit: 8,
       options: calendarDayOptions.map((option) => ({
         key: option.key,
@@ -325,15 +313,15 @@ function HistorySessionFilters({
     <HistoryFilterBar
       query={query}
       onQueryChange={onQueryChange}
-      searchPlaceholder="Search sessions…"
-      searchLabel="Search sessions"
+      searchPlaceholder="Search workouts…"
+      searchLabel="Search workouts"
       activeFilterCount={activeChips.length}
       activeChips={activeChips}
       onClearAll={onClearAll}
       groups={sheetGroups}
       resultCount={resultCount}
-      resultSingularLabel="session"
-      resultPluralLabel="sessions"
+      resultSingularLabel="workout"
+      resultPluralLabel="workouts"
       initialSheetOpen={initialOpen}
     />
   );
@@ -365,7 +353,6 @@ export function HistorySessionsClient({
   initialSelectedTags = [],
   showHeaderDensityToggle = true,
   sessionHrefOverrides,
-  calendarNow,
 }: {
   sessions: SessionSummary[];
   filterOptions?: ExerciseInfoFilterOptions;
@@ -393,7 +380,6 @@ export function HistorySessionsClient({
   /** Portal the Compact / Detailed toggle into the History header (off on dev fixtures without that header). */
   showHeaderDensityToggle?: boolean;
   sessionHrefOverrides?: Record<string, string>;
-  calendarNow?: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
@@ -468,24 +454,13 @@ export function HistorySessionsClient({
   ), [filterKey, lastVisiblePayload, normalizedFilterState.analyticsScope, payloadsByFilterKey]);
   const scopedSessions = scopedPayload?.sessionItems ?? EMPTY_SESSION_ITEMS;
   const scopedPlannedSkippedDayKeys = scopedPayload?.plannedSkippedDayKeys;
-  const scopedScopeSummary = scopedPayload?.scopeSummary ?? scopeSummary;
   const scopedWeeklyProgress = scopedPayload?.weeklyProgress ?? weeklyProgress;
   const scopedWeeklyProgressByWeek = scopedPayload?.weeklyProgressByWeek ?? weeklyProgressByWeek ?? EMPTY_WEEKLY_PROGRESS_BY_WEEK;
-  const scopedRoutineTitle = scopedPayload?.routineTitle ?? activeRoutineTitle;
   const handleCalendarDayChange = (nextDayKey: string | null) => {
     setSelectedDayKey(nextDayKey);
     if (nextDayKey) {
       setSelectedMonthKey(null);
       setFilterState(createDefaultExerciseInfoFilterState());
-    }
-  };
-  // The calendar sits below the list (list first), so picking a day brings the filtered list back into view.
-  const handleCalendarSurfaceDayChange = (nextDayKey: string | null) => {
-    handleCalendarDayChange(nextDayKey);
-    if (nextDayKey && typeof document !== "undefined") {
-      requestAnimationFrame(() => {
-        document.querySelector("[data-history-sticky-filters]")?.scrollIntoView({ block: "start" });
-      });
     }
   };
   const handleMonthChange = (nextMonthKey: string | null) => {
@@ -635,13 +610,13 @@ export function HistorySessionsClient({
         highlights.set("highlight:prs", "PRs");
       }
       if (session.progressionSummary?.promotionCount) {
-        highlights.set("highlight:progressed", "Progressed");
+        highlights.set("highlight:progressed", "Went up");
       }
       if (session.hasNote) {
         highlights.set("highlight:notes", "Notes");
       }
       if (!session.hasSetData) {
-        highlights.set("highlight:no-set-data", "No Set Data");
+        highlights.set("highlight:no-set-data", "No sets logged");
       }
     }
 
@@ -727,35 +702,6 @@ export function HistorySessionsClient({
     }
   }, [selectableDayKeys, selectedDayKey]);
 
-  const calendarView = useMemo(() => buildHistoryCalendarView({
-    sessions: monthFilteredSessions,
-    timezone: scopedWeeklyProgress.timezone,
-    selectedDayKey: effectiveSelectedDayKey,
-    selectedMonthKey,
-    skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
-    now: calendarNow,
-  }), [calendarNow, effectiveSelectedDayKey, monthFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone, selectedMonthKey]);
-
-  const monthlyProgress = useMemo(() => buildHistoryMonthlyProgress({
-    sessions: queryFilteredSessions,
-    timezone: scopedWeeklyProgress.timezone,
-    monthKey: selectedMonthKey,
-  }), [queryFilteredSessions, scopedWeeklyProgress.timezone, selectedMonthKey]);
-
-  const workoutStreak = useMemo(() => buildHistoryWorkoutStreak({
-    sessions: queryFilteredSessions,
-    timezone: scopedWeeklyProgress.timezone,
-    skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
-  }), [queryFilteredSessions, scopedPlannedSkippedDayKeys, scopedWeeklyProgress.timezone]);
-
-  // Whole-history view: every completed session in scope (never the search/tag-filtered rows), on the same
-  // local-day timezone as the streak. It is only shown while no filter is active, so these rows are all of them.
-  const consistencyHeatmap = useMemo(() => buildHistoryConsistencyHeatmap({
-    sessions: scopedSessions,
-    timezone: scopedWeeklyProgress.timezone,
-    now: calendarNow,
-  }), [calendarNow, scopedSessions, scopedWeeklyProgress.timezone]);
-
   const filteredSessions = useMemo(() => {
     if (!effectiveSelectedDayKey) {
       return monthFilteredSessions;
@@ -763,20 +709,6 @@ export function HistorySessionsClient({
 
     return monthFilteredSessions.filter((session) => scopedSessionDayKeysById.get(session.id) === effectiveSelectedDayKey);
   }, [effectiveSelectedDayKey, monthFilteredSessions, scopedSessionDayKeysById]);
-
-  const filteredTimelineSkippedDayKeys = useMemo(() => {
-    return filterHistorySkippedDayKeysForTimeline({
-      skippedDayKeys: scopedPlannedSkippedDayKeys ?? [],
-      selectedDayKey: effectiveSelectedDayKey,
-      selectedMonthKey,
-    });
-  }, [effectiveSelectedDayKey, scopedPlannedSkippedDayKeys, selectedMonthKey]);
-
-  const filteredTimelineWorkoutStreak = useMemo(() => buildHistoryWorkoutStreak({
-    sessions: filteredSessions,
-    timezone: scopedWeeklyProgress.timezone,
-    skippedDayKeys: filteredTimelineSkippedDayKeys,
-  }), [filteredSessions, filteredTimelineSkippedDayKeys, scopedWeeklyProgress.timezone]);
 
   const sessionWeekStarts = useMemo(
     () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, scopedWeeklyProgress.timezone)])),
@@ -790,30 +722,31 @@ export function HistorySessionsClient({
     () => new Map(scopedWeeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
     [scopedWeeklyProgressByWeek],
   );
-  const hasCycleTimelineFilter = normalizedFilterState.analyticsScope === "current_cycle";
-  const hasSpecificTimelineFilter = Boolean(effectiveSelectedDayKey || selectedMonthKey || hasCycleTimelineFilter);
-  const displayedWorkoutStreak = hasSpecificTimelineFilter ? filteredTimelineWorkoutStreak : workoutStreak;
-  const showWorkoutStreak = shouldShowHistoryWorkoutStreak({
-    hasSpecificTimelineFilter,
-    visibleSessionCount: filteredSessions.length,
-  });
-  const showConsistencyHeatmap = shouldShowHistoryConsistencyHeatmap({
-    query,
-    selectedTagCount: selectedTags.length,
-    analyticsScope: normalizedFilterState.analyticsScope,
-    selectedDayKey: effectiveSelectedDayKey,
-    selectedMonthKey,
-  });
   const hasStructuredFilters = selectedTags.length > 0
     || normalizedFilterState.analyticsScope !== "all_time"
     || Boolean(effectiveSelectedDayKey)
     || Boolean(selectedMonthKey);
 
-  // No summary block for a brand-new history: the one empty state says what to do.
-  const summariesVisible = sessions.length > 0;
+  // Wave 2 (SIMPLIFY #11): one line on top instead of six summary cards under the list (those live on Progress now).
+  // Always the whole history, never the filtered rows.
+  const weekStrip = useMemo(() => buildHistoryWeekStrip({
+    sessionStartedAts: sessions.map((session) => session.startedAt),
+    timezone: weeklyProgress.timezone,
+    currentWeekStart: weeklyProgress.weekStart,
+    completedThisWeek: weeklyProgress.completedWorkoutCount,
+    weeklyTarget: weeklyProgress.primaryRoutineTargetCount,
+  }), [sessions, weeklyProgress.completedWorkoutCount, weeklyProgress.primaryRoutineTargetCount, weeklyProgress.timezone, weeklyProgress.weekStart]);
 
   return (
     <div className={cn(appTokens.historyBrowserStack, "!gap-2 pt-2")}>
+      {sessions.length > 0 ? (
+        <p
+          data-history-week-strip="true"
+          className="mx-1 rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-[13px] font-semibold leading-5 text-[rgb(var(--text-primary)/0.95)]"
+        >
+          {weekStrip.label}
+        </p>
+      ) : null}
       {sessions.length > 0 ? (
         <div data-history-sticky-filters="true" className="sticky top-0 z-30 -mx-1 px-1 pt-0">
           {/* Opaque so cards never show through around the search row (History review item 15). */}
@@ -893,7 +826,7 @@ export function HistorySessionsClient({
           {scopedSessions.length > 0 ? (
             <CardEmptyState
               headingLevel={2}
-              title="No sessions match"
+              title="No workouts match"
               body="Try a different search or remove a filter."
               action={(
                 <AppButton type="button" variant="secondary" size="sm" onClick={clearAllFilters}>
@@ -905,18 +838,18 @@ export function HistorySessionsClient({
             <CardEmptyState
               headingLevel={2}
               title={normalizedFilterState.analyticsScope === "current_cycle"
-                ? "No sessions in this cycle yet"
+                ? "No workouts in this cycle yet"
                 : normalizedFilterState.analyticsScope === "current_routine"
-                  ? "No sessions in this routine yet"
-                  : "No sessions yet"}
+                  ? "No workouts in this routine yet"
+                  : "No workouts yet"}
               body={normalizedFilterState.analyticsScope === "all_time"
-                ? "Finish a workout and it lands here with its sets, PRs and progression."
-                : "Sessions you finish in this routine land here."}
+                ? "Finish a workout and it lands here with its sets and PRs."
+                : "Workouts you finish in this routine land here."}
               action={normalizedFilterState.analyticsScope === "all_time" ? (
                 <Link href="/today" className={getAppButtonClassName({ variant: "primary", size: "sm" })}>Go to Today</Link>
               ) : (
                 <AppButton type="button" variant="secondary" size="sm" onClick={clearAllFilters}>
-                  Show all sessions
+                  Show all workouts
                 </AppButton>
               )}
             />
@@ -924,51 +857,11 @@ export function HistorySessionsClient({
         </div>
       )}
       {isScopeLoading ? (
-        <div role="status" aria-label="Loading sessions" data-history-scope-loading="true" className="grid gap-2" aria-busy="true">
+        <div role="status" aria-label="Loading workouts" data-history-scope-loading="true" className="grid gap-2" aria-busy="true">
           {[0, 1].map((index) => (
             <SkeletonRow key={index} />
           ))}
         </div>
-      ) : null}
-      {/* DESIGN #7: list first. The summary cards (calendar, streak, heatmap, scope, monthly, weekly) follow the
-          sessions; each is a collapsed disclosure in compact view. */}
-      {summariesVisible ? (
-        <section aria-labelledby="history-summaries-title" data-history-summaries="true" className="grid gap-2">
-          <HistoryCycleSectionSeparator />
-          <h2 id="history-summaries-title" className="px-1.5 text-[13px] font-semibold text-[rgb(var(--text-secondary)/0.95)]">Summary</h2>
-          {queryFilteredSessions.length > 0 ? (
-            <div data-history-retention-surface="calendar">
-              <HistoryCalendarSurface
-                calendarView={calendarView}
-                onSelectDayKey={handleCalendarSurfaceDayChange}
-                viewMode={viewMode}
-              />
-            </div>
-          ) : null}
-          {showWorkoutStreak ? (
-            <div data-history-retention-surface="streak">
-              <WorkoutStreakSurface summary={displayedWorkoutStreak} viewMode={viewMode} />
-            </div>
-          ) : null}
-          {showConsistencyHeatmap ? (
-            <div data-history-retention-surface="heatmap">
-              <ConsistencyHeatmapSurface heatmap={consistencyHeatmap} viewMode={viewMode} />
-            </div>
-          ) : null}
-          {!effectiveSelectedDayKey && !selectedMonthKey ? (
-            <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-          ) : null}
-          {!effectiveSelectedDayKey && !hasCycleTimelineFilter ? (
-            <div data-history-retention-surface="monthly">
-              <MonthlyProgressSurface summary={monthlyProgress} viewMode={viewMode} />
-            </div>
-          ) : null}
-          {!effectiveSelectedDayKey && !selectedMonthKey ? (
-            <div data-history-retention-surface="current-week-progression">
-              <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
-            </div>
-          ) : null}
-        </section>
       ) : null}
       {showHeaderDensityToggle ? (
         <HistoryHeaderDensityToggle scope="sessions" viewMode={viewMode} onViewModeChange={setViewMode} />

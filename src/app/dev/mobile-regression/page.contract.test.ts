@@ -30,13 +30,17 @@ test("exercise-detail fixtures preserve the standard regression root marker cont
 test("history fixtures preserve selected-session identity and fixture-relative calendar framing", async () => {
   const source = await readFile(new URL("./DevMobileRegressionRoute.tsx", import.meta.url), "utf8");
   const historyClientSource = await readFile(new URL("../../history/HistorySessionsClient.tsx", import.meta.url), "utf8");
+  const progressOverviewSource = await readFile(new URL("../../../components/history/HistoryProgressOverview.tsx", import.meta.url), "utf8");
 
   assert.match(source, /const historySession = scenario\.fixture === "progression-expanded"[\s\S]*?mockHistorySessions\[0\]/);
   assert.match(source, /logId=\{historySession\.id\}/);
   assert.match(source, /sessionSummary=\{historySession\}/);
   assert.match(source, /calendarNow="2026-04-10T12:00:00\.000Z"/);
-  assert.match(historyClientSource, /calendarNow\?: string/);
-  assert.match(historyClientSource, /now: calendarNow/);
+  // Wave 2: the calendar and heatmap moved to Progress, which frames them on the same fixture clock; the Workouts list
+  // no longer takes a clock at all.
+  assert.doesNotMatch(historyClientSource, /calendarNow/);
+  assert.match(progressOverviewSource, /calendarNow\?: string/);
+  assert.match(progressOverviewSource, /now: calendarNow/);
 });
 
 test("session completion never promotes: no promotions receipt, straight back to Today (manual progression, 2026-11-19)", async () => {
