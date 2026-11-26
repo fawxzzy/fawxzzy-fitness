@@ -9,6 +9,7 @@ import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutineHomeClient } from "@/app/routines/RoutineHomeClient";
+import { withPlainProgressionLabels } from "@/app/routines/routine-copy";
 import {
   appendRoutineDayAction,
   createRoutineDayAction,
@@ -359,7 +360,8 @@ export default async function RoutineHomePage({ params }: PageProps) {
             days={sortedRoutineDays.map((day, index) => {
               const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
               const canonicalDaySummary = canonicalSummaryByDayId.get(day.id);
-              const recapExercises = buildRoutinePlanRecapExercises(canonicalDaySummary?.runnableExercises ?? []);
+              // F-020: plain "Auto progression" instead of the engine flags (AUTO • SESSION • SET).
+              const recapExercises = withPlainProgressionLabels(buildRoutinePlanRecapExercises(canonicalDaySummary?.runnableExercises ?? []));
 
               return {
                 id: day.id,

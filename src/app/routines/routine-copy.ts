@@ -90,3 +90,38 @@ export function toPlainActionError(error: ErrorLike, fallback: string): string {
   }
   return message;
 }
+
+/**
+ * Plain words for the exercise progression tag on day recaps (FUNCTIONAL.md F-020). The shared recap builder
+ * emits engine flags ("AUTO • SESSION • SET", "MANUAL"); routine screens show "Auto progression" for an
+ * exercise with an auto-progression plan and nothing for manual (the default needs no tag).
+ */
+export function toPlainProgressionLabel(label: string | null | undefined): string | null {
+  const flags = (label ?? "").toUpperCase().split(/[\s•|·,]+/).filter(Boolean);
+  return flags.includes("AUTO") ? "Auto progression" : null;
+}
+
+/** Applies `toPlainProgressionLabel` to recap rows, including `setLabel` when it carries the same flags. */
+export function withPlainProgressionLabels<T extends { progressionStateLabel?: string | null; setLabel?: string | null }>(
+  exercises: T[] | undefined,
+): T[] | undefined {
+  return exercises?.map((exercise) => ({
+    ...exercise,
+    progressionStateLabel: toPlainProgressionLabel(exercise.progressionStateLabel),
+    setLabel: exercise.setLabel && exercise.setLabel === exercise.progressionStateLabel
+      ? toPlainProgressionLabel(exercise.setLabel)
+      : exercise.setLabel,
+  }));
+}
+
+/**
+ * Title for a day in the Days library: the custom name, else "Day N · Routine" (never a bare "Day").
+ * The library lists days from every routine, so the routine name tells two "Day 1"s apart.
+ */
+export function getLibraryDayTitle(args: { title: string | null | undefined; dayIndex: number; sourceRoutineName?: string | null }) {
+  const custom = (args.title ?? "").trim();
+  if (custom && !/^day(\s+\d+)?$/i.test(custom)) return custom;
+  const dayLabel = Number.isFinite(args.dayIndex) && args.dayIndex > 0 ? `Day ${args.dayIndex}` : custom || "Day";
+  const routineName = (args.sourceRoutineName ?? "").trim();
+  return routineName ? `${dayLabel} · ${routineName}` : dayLabel;
+}

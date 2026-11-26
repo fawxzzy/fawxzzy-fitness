@@ -48,3 +48,22 @@ test("authored messages and empty errors are handled", () => {
   assert.equal(isDatabaseError({ message: "Anything", code: "23505" }), true);
   assert.equal(isDatabaseError("Routine not found."), false);
 });
+
+test("progression tags read as plain words; manual shows nothing", async () => {
+  const { toPlainProgressionLabel, withPlainProgressionLabels } = await import("./routine-copy");
+  assert.equal(toPlainProgressionLabel("AUTO • SESSION • SET"), "Auto progression");
+  assert.equal(toPlainProgressionLabel("AUTO | SESSION"), "Auto progression");
+  assert.equal(toPlainProgressionLabel("MANUAL"), null);
+  assert.equal(toPlainProgressionLabel(null), null);
+  const [row] = withPlainProgressionLabels([{ id: "e1", progressionStateLabel: "AUTO • SET", setLabel: "AUTO • SET", targetLabel: "3 sets" }]) ?? [];
+  assert.equal(row.progressionStateLabel, "Auto progression");
+  assert.equal(row.setLabel, "Auto progression");
+  assert.equal(row.targetLabel, "3 sets");
+});
+
+test("Days library titles are never a bare Day", async () => {
+  const { getLibraryDayTitle } = await import("./routine-copy");
+  assert.equal(getLibraryDayTitle({ title: "Day", dayIndex: 3, sourceRoutineName: "Atlas" }), "Day 3 · Atlas");
+  assert.equal(getLibraryDayTitle({ title: "", dayIndex: 1, sourceRoutineName: "" }), "Day 1");
+  assert.equal(getLibraryDayTitle({ title: "Legs", dayIndex: 2, sourceRoutineName: "Atlas" }), "Legs");
+});
