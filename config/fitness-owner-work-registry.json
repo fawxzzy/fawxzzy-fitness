@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "projectId": "fitness",
   "state": "active",
-  "updatedAt": "2026-11-26T11:46:39.000Z",
+  "updatedAt": "2026-11-26T21:19:54.000Z",
   "provenance": {
     "selectedOwnerSnapshot": { "recordCount": 55, "stableCardCount": 37, "sha256": "81dfbcc05dd3169bac7602f5840c716bcab3d8eec744d22e3a8939eb5341e85c" },
     "deferredBoardJournal": {
@@ -15,7 +15,7 @@
     },
     "researchCandidateImport": { "recordCount": 64, "adoptedCount": 0, "stableIdOverlapCount": 0, "sha256": "6bdeb360433a8413edda9e7f094728120f37eae2f9223e4cca00a975e1d6dca1" },
     "excludedOwnerRecords": { "recordCount": 18, "reason": "missing stable Fitness card identity or belongs to another product" },
-    "boardSync": { "at": "2026-11-26T11:46:39.000Z", "appliedEventCount": 69, "lastEventId": "6c7e653c2be1" }
+    "boardSync": { "at": "2026-11-26T21:19:54.000Z", "appliedEventCount": 75, "lastEventId": "dfaa3b63e267" }
   },
   "acceptedPublicCardIds": [
     "FF-ANALYTICS-001",
@@ -355,12 +355,12 @@
         "acceptanceCriteria": ["Exercise cards show the image top right, info bottom right and a left-anchored progression bar with no Target wording.","Promote appears only at a full bar and raises the goal as designed.","After a promote the bar resets and Revert is offered."]
       }
     },
-    { "id": "FF-DESIGN-005", "status": "review", "updatedAt": "2026-11-24T02:04:11.000Z", "visibility": "public",
+    { "id": "FF-DESIGN-005", "status": "review", "updatedAt": "2026-11-26T21:19:54.000Z", "visibility": "public",
       "card": {
         "title": "Move app navigation into a top-right menu with green header titles",
         "priority": "P2",
         "dependsOn": [],
-        "description": "Top nav buttons move into a Mazer-style dropdown anchored top right, header titles sit top left in the app green, and error notices anchor just below the menu button. Board update 2026-11-20: Menu header live on the screens that use it. Headless only; the rest of the screens and a phone check are still open. PR #293 merged (41dd099a), PR #294 merged (f529c270). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone. Board update 2026-11-24: Shared in-flow notice and header-slot design carried into production with the Today polish release; headless checks only, no device check yet. PR #298 merged (aea49e1c). Deployed: production build aea49e1c. Checked only in headless Chromium, not on a real phone.",
+        "description": "Top nav buttons move into a Mazer-style dropdown anchored top right, header titles sit top left in the app green, and error notices anchor just below the menu button. Board update 2026-11-20: Menu header live on the screens that use it. Headless only; the rest of the screens and a phone check are still open. PR #293 merged (41dd099a), PR #294 merged (f529c270). Deployed: production build aa3e78be. Checked only in headless Chromium, not on a real phone. Board update 2026-11-24: Shared in-flow notice and header-slot design carried into production with the Today polish release; headless checks only, no device check yet. PR #298 merged (aea49e1c). Deployed: production build aea49e1c. Checked only in headless Chromium, not on a real phone. Board update 2026-11-26: The top-right menu was replaced by the bottom tab bar (see FF-NAV-001), live in production build e25e953a. Checked only in headless Chromium, not on a real phone. PR #321 merged (a4922e3a). Deployed: production build e25e953a. Checked only in headless Chromium, not on a real phone.",
         "acceptanceCriteria": ["Navigation lives in a top-right dropdown on the screens that use the app header.","Header titles use the shared app green from the color scheme.","Error notices anchor just below the menu button and use the available width."]
       }
     },
@@ -461,6 +461,51 @@
         "dependsOn": [],
         "description": "A full-app audit fix round: adding an exercise mid-workout works again, the workout summary, clock and rest timer are clearer, Today shows what is next, and routines, History and the exercise picker are tidier.",
         "acceptanceCriteria": ["Adding an exercise in the middle of a workout works.","Workout summary, clock and rest timer show clear plain-language information.","Routines menu, History list and exercise picker work with comma decimals and no double-tap on Finish."]
+      }
+    },
+    { "id": "FF-ROUTINE-003", "status": "review", "updatedAt": "2026-11-26T21:19:54.000Z", "visibility": "public",
+      "card": {
+        "title": "Archive routines instead of deleting them",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "Removing a routine archives it so it can be restored later, instead of deleting it for good.",
+        "acceptanceCriteria": ["Removing a routine archives it instead of deleting it.","An archived routine can be restored from the routines screen.","Archived routines no longer show on Today."]
+      }
+    },
+    { "id": "FF-NAV-001", "status": "review", "updatedAt": "2026-11-26T21:19:54.000Z", "visibility": "public",
+      "card": {
+        "title": "Bottom tab bar for Today, Routines, History and Settings",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "A bottom tab bar with Today, Routines, History and Settings replaces the top-right menu, and is hidden during a live workout.",
+        "acceptanceCriteria": ["The tab bar shows Today, Routines, History and Settings.","The tab bar is hidden while a workout is in progress.","The top-right menu is gone."]
+      }
+    },
+    { "id": "FF-SESSION-007", "status": "review", "updatedAt": "2026-11-26T21:19:54.000Z", "visibility": "public",
+      "card": {
+        "title": "Simpler workout logging",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "The workout logger shows a Last time line and one Log set button, with Warm-up and Failure chips. History gets a This week strip and Progress lists the lifts that went up.",
+        "acceptanceCriteria": ["Each exercise shows a Last time line and one Log set button.","Warm-up and Failure are chips on a set.","History shows a This week strip and Progress lists lifts that went up."]
+      }
+    },
+    { "id": "FF-ROUTINE-004", "status": "review", "updatedAt": "2026-11-26T21:19:54.000Z", "visibility": "public",
+      "card": {
+        "title": "Simpler set-up flows for exercises and routines",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "Adding an exercise asks for a goal, a new routine needs only a name and weekday chips, routine settings use plain words, and adding a day uses a sheet.",
+        "acceptanceCriteria": ["Add exercise uses a short goal form.","A new routine needs only a name and weekday chips.","Routine settings and add a day use plain words and a sheet."]
+      }
+    },
+    { "id": "FF-TODAY-007", "status": "review", "updatedAt": "2026-11-26T21:19:54.000Z", "visibility": "public",
+      "card": {
+        "title": "Starter plans and a calm Today",
+        "priority": "P2",
+        "dependsOn": [],
+        "description": "A first run offers 3 starter plans, Today shows one clear next action, and Settings has Units and time zone. The Achievements row is removed from Settings.",
+        "acceptanceCriteria": ["A first run offers 3 starter plans.","Today shows one clear next action.","Settings has a Units and time zone section."]
       }
     }
   ]
