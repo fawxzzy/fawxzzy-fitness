@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   deriveInitialExperienceStage,
   destinationToHref,
+  getInitialExperienceStageCopy,
   getNextInitialExperienceRecoveryStep,
   hasCommittedToTargetRoute,
   INITIAL_EXPERIENCE_RECOVERY_DELAY_MS,
@@ -82,4 +83,15 @@ test("recovery stays suppressed while a service-worker update is already applyin
 test("target route matching treats identical relative routes as committed", () => {
   assert.equal(hasCommittedToTargetRoute("/today?tab=plan", "/today?tab=plan"), true);
   assert.equal(hasCommittedToTargetRoute("/today?tab=plan", "/today?tab=history"), false);
+});
+
+test("stage copy is plain words a member understands, never developer wording", () => {
+  const stages = ["checking-session", "preparing-experience", "redirecting", "recovery", "error"] as const;
+  for (const stage of stages) {
+    const copy = getInitialExperienceStageCopy(stage);
+    for (const text of Object.values(copy)) {
+      assert.ok(text.trim().length > 0);
+      assert.doesNotMatch(text, /handoff|hand off|handing|history noise|post-login|post-auth|committ?ed? cleanly|destination is locked|launch/i, `${stage}: ${text}`);
+    }
+  }
 });

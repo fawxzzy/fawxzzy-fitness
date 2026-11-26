@@ -213,7 +213,7 @@ test("Data: cards for snapshot, export options and preview; real radio groups; p
     />,
   );
 
-  assert.match(html, /<h3[^>]*>Stored snapshot<\/h3>/);
+  assert.match(html, /<h3[^>]*>Your saved data<\/h3>/);
   assert.match(html, /<h3[^>]*>Export<\/h3>/);
   assert.match(html, /<h3[^>]*>Export preview<\/h3>/);
   assert.match(html, /<legend[^>]*>Type<\/legend>/);

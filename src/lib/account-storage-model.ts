@@ -24,9 +24,9 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
   const visibleSessionExercises = Math.max(0, preview.counts.visibleSessionExercises ?? preview.counts.sessionExercises);
   const visibleSets = Math.max(0, preview.counts.visibleSets ?? preview.counts.sets);
   const progressionMetrics = [
-    { label: "Stored Progression Events", value: String(preview.counts.progressionEvents) },
-    { label: "Applied Promotions", value: String(preview.progressionSummary.promotionCount) },
-    { label: "Progressed Exercises", value: String(preview.progressionSummary.distinctExerciseCount) },
+    { label: "Progression changes", value: String(preview.counts.progressionEvents) },
+    { label: "Promotions", value: String(preview.progressionSummary.promotionCount) },
+    { label: "Exercises progressed", value: String(preview.progressionSummary.distinctExerciseCount) },
   ];
   const historyRecordCount =
     preview.counts.sessions
@@ -45,15 +45,15 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
     sections = [{
       title: "History",
       metrics: [
-        { label: "History Sessions", value: String(visibleCompletedSessions) },
-        { label: "Stored Sessions", value: String(preview.counts.sessions) },
-        { label: "Completed Sessions", value: String(preview.counts.completedSessions) },
-        ...(hiddenQaCompletedSessions > 0 ? [{ label: "Hidden QA", value: String(hiddenQaCompletedSessions) }] : []),
-        ...(inProgressSessions > 0 ? [{ label: "In Progress", value: String(inProgressSessions) }] : []),
-        { label: "History Exercises", value: String(visibleSessionExercises) },
-        { label: "Stored Exercise Rows", value: String(preview.counts.sessionExercises) },
-        { label: "History Sets", value: String(visibleSets) },
-        { label: "Stored Sets", value: String(preview.counts.sets) },
+        { label: "Workouts in History", value: String(visibleCompletedSessions) },
+        { label: "All saved workouts", value: String(preview.counts.sessions) },
+        { label: "Finished workouts", value: String(preview.counts.completedSessions) },
+        ...(hiddenQaCompletedSessions > 0 ? [{ label: "Hidden test data", value: String(hiddenQaCompletedSessions) }] : []),
+        ...(inProgressSessions > 0 ? [{ label: "In progress", value: String(inProgressSessions) }] : []),
+        { label: "Exercises in History", value: String(visibleSessionExercises) },
+        { label: "All saved exercises", value: String(preview.counts.sessionExercises) },
+        { label: "Sets in History", value: String(visibleSets) },
+        { label: "All saved sets", value: String(preview.counts.sets) },
         ...progressionMetrics,
       ],
     }];
@@ -63,8 +63,8 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
       title: "Routines",
       metrics: [
         { label: "Routines", value: String(preview.counts.routines) },
-        { label: "Routine Days", value: String(preview.counts.routineDays) },
-        { label: "Routine Exercises", value: String(preview.counts.routineExercises) },
+        { label: "Routine days", value: String(preview.counts.routineDays) },
+        { label: "Routine exercises", value: String(preview.counts.routineExercises) },
       ],
     }];
     totalRecordCount = routineRecordCount;
@@ -73,15 +73,15 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
       {
         title: "History",
         metrics: [
-          { label: "History Sessions", value: String(visibleCompletedSessions) },
-          { label: "Stored Sessions", value: String(preview.counts.sessions) },
-          { label: "Completed Sessions", value: String(preview.counts.completedSessions) },
-          ...(hiddenQaCompletedSessions > 0 ? [{ label: "Hidden QA", value: String(hiddenQaCompletedSessions) }] : []),
-          ...(inProgressSessions > 0 ? [{ label: "In Progress", value: String(inProgressSessions) }] : []),
-          { label: "History Exercises", value: String(visibleSessionExercises) },
-          { label: "Stored Exercise Rows", value: String(preview.counts.sessionExercises) },
-          { label: "History Sets", value: String(visibleSets) },
-          { label: "Stored Sets", value: String(preview.counts.sets) },
+          { label: "Workouts in History", value: String(visibleCompletedSessions) },
+          { label: "All saved workouts", value: String(preview.counts.sessions) },
+          { label: "Finished workouts", value: String(preview.counts.completedSessions) },
+          ...(hiddenQaCompletedSessions > 0 ? [{ label: "Hidden test data", value: String(hiddenQaCompletedSessions) }] : []),
+          ...(inProgressSessions > 0 ? [{ label: "In progress", value: String(inProgressSessions) }] : []),
+          { label: "Exercises in History", value: String(visibleSessionExercises) },
+          { label: "All saved exercises", value: String(preview.counts.sessionExercises) },
+          { label: "Sets in History", value: String(visibleSets) },
+          { label: "All saved sets", value: String(preview.counts.sets) },
           ...progressionMetrics,
         ],
       },
@@ -89,8 +89,8 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
         title: "Routines",
         metrics: [
           { label: "Routines", value: String(preview.counts.routines) },
-          { label: "Routine Days", value: String(preview.counts.routineDays) },
-          { label: "Routine Exercises", value: String(preview.counts.routineExercises) },
+          { label: "Routine days", value: String(preview.counts.routineDays) },
+          { label: "Routine exercises", value: String(preview.counts.routineExercises) },
         ],
       },
     ];
