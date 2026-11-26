@@ -47,6 +47,7 @@ export function SharedExerciseGoalForm({
   auxiliaryFields,
   showInlineStepControls,
   inlineFailureToggle,
+  wrapMeasurementFields,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -70,6 +71,7 @@ export function SharedExerciseGoalForm({
   auxiliaryFields?: MeasurementPanelAuxiliaryField[];
   showInlineStepControls?: boolean;
   inlineFailureToggle?: boolean;
+  wrapMeasurementFields?: boolean;
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
@@ -101,6 +103,7 @@ export function SharedExerciseGoalForm({
         auxiliaryFields={auxiliaryFields}
         showInlineStepControls={showInlineStepControls}
         inlineFailureToggle={inlineFailureToggle}
+        wrapMeasurementFields={wrapMeasurementFields}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
       <input type="hidden" name="defaultUnit" value={state.distanceUnit} />

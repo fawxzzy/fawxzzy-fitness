@@ -33,6 +33,7 @@ export function MeasurementConfigurator({
   layoutMode,
   labelTreatment,
   showInlineStepControls,
+  wrapHorizontalFields,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -100,6 +101,8 @@ export function MeasurementConfigurator({
   layoutMode?: "grid" | "horizontal-scroll";
   labelTreatment?: "inline" | "floating-border";
   showInlineStepControls?: boolean;
+  /** Lay the fields on a wrapping grid instead of the sideways-scrolling rail (see MeasurementPanelV2). */
+  wrapHorizontalFields?: boolean;
 }) {
   return (
     <MeasurementPanelV2
@@ -131,6 +134,7 @@ export function MeasurementConfigurator({
       layoutMode={layoutMode}
       labelTreatment={labelTreatment}
       showInlineStepControls={showInlineStepControls}
+      wrapHorizontalFields={wrapHorizontalFields}
     />
   );
 }

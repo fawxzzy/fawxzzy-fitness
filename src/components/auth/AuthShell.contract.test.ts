@@ -57,3 +57,15 @@ test("the notice slot always holds its height and every notice is role=alert", (
   assert.match(readFileSync(new URL("./NoticeScrollIntoView.tsx", import.meta.url), "utf8"), /scrollIntoView\(\{ block: "nearest" \}\)/);
   assert.doesNotMatch(shellSource, /role="status"[^}]*data-testid="auth-notice"/);
 });
+
+test("the inline notice action (e.g. Sign in on 'That email already has an account') is a real 44px-high box", () => {
+  const act = cssBlock(".fx-notice__act");
+  assert.match(act, /display: inline-block;/);
+  assert.match(act, /min-height: 44px;/);
+  assert.match(act, /min-width: 44px;/);
+  assert.match(act, /line-height: 44px;/, "text stays centred in the 44px box");
+  // The box overlaps the notice's own padding instead of growing the notice, so the text and notice height do not change.
+  assert.match(act, /margin: -12px 0 -12px 6px;/);
+  // The earlier ::after outset only extended the hit area (the element measured 45x20) and was 42px tall.
+  assert.doesNotMatch(cssSource, /\.fx-notice__act::after/);
+});

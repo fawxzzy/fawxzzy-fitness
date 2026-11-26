@@ -455,7 +455,7 @@ function resolveDerivedProgressionSignal(args: {
   }
 
   if (!args.hasPlaybook) {
-    return { label: "Manual Target", tone: "muted" as const };
+    return { label: "Manual Goal", tone: "muted" as const };
   }
 
   if (args.historySessionCount === 0) {

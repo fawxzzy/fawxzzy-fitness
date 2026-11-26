@@ -113,6 +113,7 @@ export function ExerciseGoalForm({
   auxiliaryFields,
   showInlineStepControls = false,
   inlineFailureToggle = false,
+  wrapMeasurementFields = false,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -137,6 +138,8 @@ export function ExerciseGoalForm({
   auxiliaryFields?: MeasurementPanelAuxiliaryField[];
   showInlineStepControls?: boolean;
   inlineFailureToggle?: boolean;
+  /** Wrap the measurement fields onto a grid so every stepper stays fully visible (add-exercise dock). */
+  wrapMeasurementFields?: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
@@ -377,6 +380,7 @@ export function ExerciseGoalForm({
         layoutMode={measurementLayoutMode}
         labelTreatment="floating-border"
         showInlineStepControls={showInlineStepControls}
+        wrapHorizontalFields={wrapMeasurementFields}
         topField={{
           title: "Sets",
           suffix: "goal",

@@ -364,6 +364,18 @@ test("measurement panel: wrapHorizontalFields is opt-in and lays fields on a wra
   assert.equal((panel.match(/className="!(?:left|right)-0 !h-11 !w-11 z-20"/g) ?? []).length, 2, "both steppers stay 44x44");
 });
 
+test("add-exercise dock: the goal fields wrap instead of scrolling sideways, so no stepper is clipped at 320 or 390", () => {
+  const picker = readSource("../ExercisePicker.tsx");
+  const shared = readSource("../ui/measurements/SharedExerciseGoalForm.tsx");
+  const goal = readSource("../ui/measurements/ExerciseGoalForm.tsx");
+  const configurator = readSource("../ui/measurements/MeasurementConfigurator.tsx");
+
+  assert.match(picker, /<SharedExerciseGoalForm[\s\S]*?wrapMeasurementFields[\s\S]*?\/>/, "the picker dock opts into the wrapping field grid");
+  assert.match(shared, /wrapMeasurementFields=\{wrapMeasurementFields\}/, "shared form forwards it");
+  assert.match(goal, /wrapHorizontalFields=\{wrapMeasurementFields\}/, "goal form hands it to the configurator");
+  assert.match(configurator, /wrapHorizontalFields=\{wrapHorizontalFields\}/, "configurator hands it to the panel");
+});
+
 test("offline session shell renders the shared Today exercise rows; the legacy planned row is gone", () => {
   const shell = readSource("../../app/session/[id]/SessionOfflineShell.tsx");
 

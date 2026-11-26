@@ -59,8 +59,8 @@ function getWeightUnitInfoPayload(value: string): RoutineEditorInfoPayload {
   return {
     title: "Weight Unit",
     summary: value === "kg"
-      ? "Kilograms become the default weight unit for routine targets and workout logging."
-      : "Pounds become the default weight unit for routine targets and workout logging.",
+      ? "Kilograms become the default weight unit for routine goals and workout logging."
+      : "Pounds become the default weight unit for routine goals and workout logging.",
     sectionKey: "routine_setup",
   };
 }
@@ -69,8 +69,8 @@ function getDistanceUnitInfoPayload(value: string): RoutineEditorInfoPayload {
   return {
     title: "Distance Unit",
     summary: value === "km"
-      ? "Kilometers become the default distance unit for cardio targets and logged workout values."
-      : "Miles become the default distance unit for cardio targets and logged workout values.",
+      ? "Kilometers become the default distance unit for cardio goals and logged workout values."
+      : "Miles become the default distance unit for cardio goals and logged workout values.",
     sectionKey: "routine_setup",
   };
 }
@@ -961,7 +961,7 @@ export function RoutineEditorFormFields({
           className="pt-1"
           {...routineEditorInfoHandlers({
             title: "Measurement Labels",
-            summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
+            summary: "Default measurement units used for routine goals, progression values, and logged workout values.",
             sectionKey: "routine_setup",
           })}
         >
@@ -970,7 +970,7 @@ export function RoutineEditorFormFields({
             defaultExpanded={sectionsDefaultExpanded}
             info={{
               title: "Measurement Labels",
-              summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
+              summary: "Default measurement units used for routine goals, progression values, and logged workout values.",
               sectionKey: "routine_setup",
             }}
           >

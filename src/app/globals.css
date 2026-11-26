@@ -3082,13 +3082,18 @@ a:focus-visible {
 
 .fx-notice__act {
   position: relative;
-  display: inline;
-  margin-left: 6px;
+  display: inline-block;
+  min-width: 44px;
+  min-height: 44px;
+  /* A real 44px box (not an ::after outset: the element itself measured 45x20). The negative vertical margins
+     cancel the extra 24px, so the notice, its text and the line height look exactly as before. */
+  margin: -12px 0 -12px 6px;
   padding: 0;
   border: 0;
   background: none;
   font: inherit;
   font-weight: 600;
+  line-height: 44px;
   color: #fff;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -3145,12 +3150,6 @@ a:focus-visible {
    ::after reached 11px past a 24px / 20px text line and overlapped the row below at 390 and 320). Inside a row the
    second link reserves the separator gap as its own margin (34px / 30px) and draws the divider in it, so two links in
    one row touch edge to edge and never overlap. */
-.fx-notice__act::after {
-  content: "";
-  position: absolute;
-  inset: -11px -8px;
-}
-
 .fx-link,
 .fx-legal a {
   position: relative;

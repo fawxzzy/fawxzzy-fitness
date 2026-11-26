@@ -1060,7 +1060,7 @@ test("progression review treats manual targets as no candidate", () => {
 
   assert.equal(candidate.type, "none");
   assert.equal(candidate.playbookId, null);
-  assert.match(candidate.reason, /Manual target/i);
+  assert.match(candidate.reason, /Manual goal/i);
 });
 
 test("progression review does not create candidate for incomplete range", () => {

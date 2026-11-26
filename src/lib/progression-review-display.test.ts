@@ -161,7 +161,7 @@ test("does not format empty candidates", () => {
       playbookId: null,
       label: null,
       proposedTarget: null,
-      reason: "Manual target: no progression review candidate.",
+      reason: "Manual goal: no progression review candidate.",
     }),
   });
 

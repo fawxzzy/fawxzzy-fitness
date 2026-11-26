@@ -11,6 +11,9 @@ import { cn } from "@/lib/cn";
 // wrap, Home/End jump; Escape closes and returns focus to the trigger; Tab closes; a tap outside only closes (the
 // click under the finger is swallowed, like a scrim); picking a row closes, returns focus, then runs the action.
 // The panel is portaled to <body> (z 115 = --z-menu) so toasts never cover it and a sheet (120) always does.
+// Placement (resolveMenuPlacement): below the trigger and right-aligned; flips above when there is no room below;
+// always clamped inside the viewport (8px margin). Callers keep the panel compact (minWidth) so it covers as little
+// of the object as possible (the routine card passes 128, so it stays clear of the week cells beside the trigger).
 
 export type MenuItemTone = "default" | "danger";
 
@@ -54,6 +57,31 @@ export const menuTokens = {
 
 const PANEL_GAP_PX = 6;
 const VIEWPORT_MARGIN_PX = 8;
+
+export type MenuPlacement = { top: number; right: number; placement: "below" | "above" };
+
+/**
+ * Where to put the panel (fixed, anchored by its top and right edges). Pure, exported for tests.
+ * Right-aligned under the trigger; flips above when it would run off the bottom; clamps inside the viewport.
+ */
+export function resolveMenuPlacement({
+  trigger,
+  viewport,
+  panel,
+}: {
+  trigger: { top: number; bottom: number; left: number; right: number };
+  viewport: { width: number; height: number };
+  panel: { width: number; height: number };
+}): MenuPlacement {
+  const maxRight = Math.max(VIEWPORT_MARGIN_PX, viewport.width - VIEWPORT_MARGIN_PX - panel.width);
+  const right = Math.min(maxRight, Math.max(VIEWPORT_MARGIN_PX, Math.round(viewport.width - trigger.right)));
+  const below = Math.round(trigger.bottom + PANEL_GAP_PX);
+  const above = Math.round(trigger.top - PANEL_GAP_PX - panel.height);
+  const maxTop = viewport.height - VIEWPORT_MARGIN_PX - panel.height;
+  if (below <= maxTop) return { top: below, right, placement: "below" };
+  if (above >= VIEWPORT_MARGIN_PX) return { top: above, right, placement: "above" };
+  return { top: Math.max(VIEWPORT_MARGIN_PX, Math.min(below, maxTop)), right, placement: "below" };
+}
 
 let cancelPendingClickSwallow: (() => void) | null = null;
 
@@ -111,7 +139,7 @@ export function Menu({ label, items, triggerIcon, triggerClassName, onOpenChange
   const panelRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
+  const [position, setPosition] = useState<MenuPlacement | null>(null);
 
   const setOpenState = useCallback(
     (next: boolean) => {
@@ -133,16 +161,30 @@ export function Menu({ label, items, triggerIcon, triggerClassName, onOpenChange
     const trigger = triggerRef.current;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
-    setPosition({
-      top: Math.round(rect.bottom + PANEL_GAP_PX),
-      right: Math.max(VIEWPORT_MARGIN_PX, Math.round(viewportWidth - rect.right)),
-    });
+    const panelRect = panelRef.current?.getBoundingClientRect();
+    setPosition(
+      resolveMenuPlacement({
+        trigger: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+        viewport: {
+          width: document.documentElement.clientWidth || window.innerWidth,
+          height: window.innerHeight || document.documentElement.clientHeight,
+        },
+        panel: {
+          width: panelRect && panelRect.width > 0 ? panelRect.width : minWidth,
+          height: panelRect && panelRect.height > 0 ? panelRect.height : items.length * 44 + 12,
+        },
+      }),
+    );
+    // items/minWidth only seed the first (hidden) measuring pass; the real panel size is read once it is mounted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useLayoutEffect(() => {
     if (!open) return;
     place();
+    // Second pass with the real panel size (the first render had no panel to measure).
+    const frame = window.requestAnimationFrame(place);
+    return () => window.cancelAnimationFrame(frame);
   }, [open, place]);
 
   useEffect(() => {
@@ -207,6 +249,7 @@ export function Menu({ label, items, triggerIcon, triggerClassName, onOpenChange
       aria-label={label}
       tabIndex={-1}
       data-menu-panel=""
+      data-menu-placement={position?.placement}
       className={menuTokens.panel}
       style={{ top: position?.top ?? 0, right: position?.right ?? VIEWPORT_MARGIN_PX, minWidth, visibility: position ? "visible" : "hidden" }}
       onKeyDown={handlePanelKeyDown}
