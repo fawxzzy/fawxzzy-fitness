@@ -44,7 +44,7 @@ function openConfirm() {
 
 function confirmSignOut() {
   const dialog = openConfirm();
-  fireEvent.click(within(dialog).getByRole("button", { name: "Confirm" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Sign out" }));
 }
 
 test("Settings: Sign out asks the server to revoke this device once, and a second tap while pending is ignored", async () => {
@@ -95,12 +95,13 @@ test("Settings: a network error on revoke is also a failure, never a silent sign
   assert.equal(screen.getByRole("button", { name: "Sign out" }).hasAttribute("disabled"), false);
 });
 
-test("Settings: Sign out opens a confirm sheet that names who is signed in and sends nothing until Confirm", async () => {
+test("Settings: Sign out opens a confirm sheet that names who is signed in and sends nothing until Sign out is confirmed", async () => {
   const { requests } = stubRevoke();
   renderSignOut();
 
   const dialog = openConfirm();
-  assert.ok(within(dialog).getByText("Confirm sign out"));
+  assert.ok(within(dialog).getByText("Sign out?"));
+  assert.equal(within(dialog).queryByRole("button", { name: "Confirm" }), null, "the confirm button names the action");
   assert.equal(dialog.querySelector("[data-confirm-object-name]")?.textContent, "zac@example.com");
   assert.ok(within(dialog).getByText(/this device only/i));
   assert.equal(requests.length, 0);

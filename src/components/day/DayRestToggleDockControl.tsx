@@ -1,7 +1,7 @@
 "use client";
 
 import { DockButton } from "@/components/layout/BottomActionDock";
-import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
+import { REST_DAY_TOGGLE_LABEL } from "@/lib/action-labels";
 
 type Props = {
   isRest: boolean;
@@ -18,7 +18,7 @@ export function DayRestToggleDockControl({ isRest, onToggle, disabled }: Props) 
       onClick={onToggle}
       disabled={disabled}
     >
-      {isRest ? NORMALIZED_ACTION_LABELS.resting : NORMALIZED_ACTION_LABELS.training}
+      {REST_DAY_TOGGLE_LABEL}
     </DockButton>
   );
 }

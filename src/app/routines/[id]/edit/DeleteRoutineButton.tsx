@@ -1,5 +1,6 @@
 "use client";
 
+import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -35,7 +36,7 @@ export function DeleteRoutineButton({
         title="Delete routine?"
         objectName={routineName}
         consequenceText="This permanently deletes the routine, its days and exercises, and the workouts you logged with it, along with their progression history. It can't be undone."
-        confirmLabel="Delete"
+        confirmLabel={CONFIRM_ACTION_LABELS.deleteRoutine}
         titleVariant="raw"
         isLoading={isPending}
         onCancel={() => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
 import { useEffect, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -617,8 +618,8 @@ export function AppThemeSettings({
 
       <ConfirmDestructiveModal
         open={confirmDeleteOpen}
-        title="Delete theme"
-        confirmLabel="Delete"
+        title="Delete theme?"
+        confirmLabel={CONFIRM_ACTION_LABELS.deleteTheme}
         objectName={selectedSavedTheme?.name}
         consequenceText="This removes the saved theme from this device. The colors on screen stay until you pick another theme."
         onCancel={() => setConfirmDeleteOpen(false)}

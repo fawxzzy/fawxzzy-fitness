@@ -64,8 +64,8 @@ function renderDiscard(action: (formData: FormData) => unknown, failureMessage: 
 async function confirmDiscard() {
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
   const dialog = await screen.findByRole("dialog");
-  assert.ok(within(dialog).getByText("Confirm discard workout"));
-  fireEvent.click(within(dialog).getByRole("button", { name: "Confirm" }));
+  assert.ok(within(dialog).getByText("Discard workout?"));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Discard Workout" }));
 }
 
 test("Today discard: an { ok: false } result closes the dialog and shows the server's error notice", async () => {

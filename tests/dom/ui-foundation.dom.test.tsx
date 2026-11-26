@@ -206,14 +206,39 @@ test("Confirm names the object, starts focus on Cancel, and confirms or cancels"
       onConfirm={() => events.push("confirm")}
     />,
   );
-  assert.ok(screen.getByRole("dialog", { name: "Confirm delete" }));
+  assert.ok(screen.getByRole("dialog", { name: "Delete routine" }));
   const objectName = document.querySelector("[data-confirm-object-name]");
   assert.ok(objectName && objectName.textContent === "Push Pull Legs");
   const cancel = screen.getByRole("button", { name: "Cancel" });
   await waitFor(() => assert.ok(document.activeElement === cancel));
-  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
   fireEvent.click(cancel);
   assert.deepEqual(events, ["confirm", "cancel"]);
+});
+
+test("Confirm: the button reads confirmLabel, confirmActionLabel wins, a blank label falls back to Confirm, and the title is shown as passed", () => {
+  const noop = () => {};
+  const { rerender } = render(
+    <ConfirmDestructiveModal open title="Sign out?" titleVariant="raw" confirmLabel="Sign out" confirmVariant="primary" onCancel={noop} onConfirm={noop} />,
+  );
+  assert.ok(screen.getByRole("dialog", { name: "Sign out?" }));
+  assert.ok(screen.getByRole("button", { name: "Sign out" }));
+  assert.equal(screen.queryByRole("button", { name: "Confirm" }), null);
+
+  // The default titleVariant no longer rewrites the title to "Confirm <label>".
+  rerender(<ConfirmDestructiveModal open title="Discard workout?" confirmLabel="Discard workout" onCancel={noop} onConfirm={noop} />);
+  assert.ok(screen.getByRole("dialog", { name: "Discard workout?" }));
+  assert.ok(screen.getByRole("button", { name: "Discard workout" }));
+
+  rerender(<ConfirmDestructiveModal open title="Save your changes" confirmLabel="Confirm" confirmActionLabel="Update Day" onCancel={noop} onConfirm={noop} />);
+  assert.ok(screen.getByRole("button", { name: "Update Day" }));
+  assert.equal(screen.queryByRole("button", { name: "Confirm" }), null);
+
+  rerender(<ConfirmDestructiveModal open title="Remove it?" confirmLabel="  " onCancel={noop} onConfirm={noop} />);
+  assert.ok(screen.getByRole("button", { name: "Confirm" }));
+
+  rerender(<ConfirmDestructiveModal open title="" confirmLabel="Delete" onCancel={noop} onConfirm={noop} />);
+  assert.ok(screen.getByRole("dialog", { name: "Confirm delete" }), "a blank title falls back to Confirm <label>");
 });
 
 test("Chip: the remove control is named after the chip and calls onRemove", () => {
@@ -412,7 +437,7 @@ test("Confirm: while isLoading, a double tap on Confirm, Cancel, Escape and a sc
   assert.ok(scrim);
   fireEvent.click(scrim);
   assert.deepEqual(events, []);
-  assert.ok(screen.getByRole("dialog", { name: "Confirm delete" }));
+  assert.ok(screen.getByRole("dialog", { name: "Delete routine" }));
 });
 
 function cssRule(css: string, selector: string) {

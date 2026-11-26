@@ -11,7 +11,24 @@ export const NORMALIZED_ACTION_LABELS = {
   new: "New",
   routines: "Routines",
   sessions: "Sessions",
-  training: "Training",
-  resting: "Resting",
   view: "Inspect",
+} as const;
+
+/** The day-type toggle names the thing it switches (pressed = this is a rest day); it never shows a state as a verb. */
+export const REST_DAY_TOGGLE_LABEL = "Rest day";
+
+/**
+ * Confirm-dialog verbs. ConfirmDestructiveModal shows `confirmLabel` on the confirm button as passed, so callers use
+ * these instead of a generic "Confirm"/"Delete" that does not say what is being deleted.
+ */
+export const CONFIRM_ACTION_LABELS = {
+  deleteRoutine: "Delete routine",
+  deleteDay: "Delete day",
+  deleteExercise: "Delete exercise",
+  deleteSet: "Delete set",
+  deleteTheme: "Delete theme",
+  discardWorkout: "Discard workout",
+  discardChanges: "Discard changes",
+  finishWorkout: "Finish workout",
+  signOut: "Sign out",
 } as const;
