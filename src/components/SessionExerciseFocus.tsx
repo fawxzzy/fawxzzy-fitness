@@ -18,6 +18,7 @@ import {
   SessionCardMoreMenu,
   SessionQuickLogRow,
   SessionRowNote,
+  resolveSessionSkippedStatus,
   type SessionFinishedExercise,
   type SessionStatusChip,
 } from "@/components/session/SessionRowCards";
@@ -513,7 +514,7 @@ export function SessionExerciseFocus({
       return;
     }
     const row = document.querySelector<HTMLElement>(`[data-session-exercise-row-id="${pending.exerciseId}"]`);
-    const selector = pending.target === "restore" ? '[data-session-restore="true"]' : '[data-session-more="true"]';
+    const selector = pending.target === "restore" ? '[data-session-restore="true"]' : '[data-session-more="true"] [data-menu-trigger]';
     const target = row?.querySelector<HTMLElement>(selector);
     if (!row || !target) {
       return;
@@ -546,7 +547,12 @@ export function SessionExerciseFocus({
   }, [exercises, liveProgressRef, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId]);
 
   // Rest timer trigger: compare the total of set snapshots with the previous render (never fires on the first one).
-  const loggedSetTotal = Object.values(setSnapshotsBySessionExerciseId).reduce((total, sets) => total + sets.length, 0);
+  // The snapshot map starts empty and is filled by an effect after mount, so fall back to each exercise's server sets:
+  // otherwise the first fill (0 -> N) reads as "a set was just logged" and a rest starts on page load.
+  const loggedSetTotal = exercises.reduce(
+    (total, exercise) => total + (setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets).length,
+    0,
+  );
   const previousLoggedSetTotalRef = useRef<number | null>(null);
   const onSetLoggedRef = useRef(onSetLogged);
   useEffect(() => {
@@ -1204,7 +1210,7 @@ export function SessionExerciseFocus({
             image_howto_path: exercise.image_howto_path,
           };
           const rowStatus: SessionStatusChip = rowViewModel.isSkipped
-            ? "skipped"
+            ? resolveSessionSkippedStatus(setCount)
             : isCompletedRow
               ? "done"
               : exercise.routineDayExerciseId === null
@@ -1576,7 +1582,7 @@ export function SessionExerciseFocus({
                 {shouldRenderCompactSkippedRow ? (
                   <SessionHiddenRowCard
                     exercise={exerciseVisual}
-                    status={baseRowViewModel.isSkipped ? "skipped" : "done"}
+                    status={baseRowViewModel.isSkipped ? resolveSessionSkippedStatus(setCount) : "done"}
                     progress={buildTodayExerciseLoggedProgress(progressState, baseRowViewModel.isSkipped)}
                     action={(
                       <SessionCardBarButton

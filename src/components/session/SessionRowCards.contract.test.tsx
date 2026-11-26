@@ -26,6 +26,7 @@ import {
   SessionQuickLogRow,
   SessionRowActionButton,
   getSessionSkipMenuLabel,
+  resolveSessionSkippedStatus,
 } from "./SessionRowCards.tsx";
 
 function readSource(path: string) {
@@ -128,6 +129,17 @@ test("status (Zac 2026-11-23): no check and no chevron; Skipped and Added sit on
   assert.match(skipped, /<h2[^>]*data-card-title="true"[^>]*>[\s\S]*Zed Press[\s\S]*⊘[\s\S]*Skipped[\s\S]*<\/h2>/, "Skipped is on the title line");
   assert.match(skipped, /data-exercise-thumb-slot|data-card-leading|<img/, "skipped card keeps the image top right");
   assert.match(skipped, /data-session-card-bar="true"[\s\S]*Unskip/, "the restore action sits in the card bar");
+
+  // DESIGN (timers-session-cardio): a skipped exercise with sets logged reads Partial, never SKIPPED next to "1/3 sets".
+  assert.equal(resolveSessionSkippedStatus(0), "skipped");
+  assert.equal(resolveSessionSkippedStatus(1), "partial");
+  const partial = renderToStaticMarkup(
+    <SessionHiddenRowCard exercise={exercise} status="partial" progress={{ label: "1 / 3 sets", percent: 33 }} action={<button type="button">Unskip</button>} />,
+  );
+  assert.match(partial, /<h2[^>]*data-card-title="true"[^>]*>[\s\S]*Zed Press[\s\S]*Partial[\s\S]*<\/h2>/);
+  assert.doesNotMatch(partial, /Skipped/);
+  const focus = readSource("../SessionExerciseFocus.tsx");
+  assert.equal((focus.match(/resolveSessionSkippedStatus\(setCount\)/g) ?? []).length, 2, "open card and compact card");
 });
 
 test("card bar: More, Log all and Log set in that order, every control a 44px pill inside the card, label-in-name", () => {
@@ -138,7 +150,7 @@ test("card bar: More, Log all and Log set in that order, every control a 44px pi
 
   assert.equal(buttons.length, 3);
   assert.match(buttons[0], /aria-label="More actions for Zed Press"/);
-  assert.match(buttons[0], /aria-haspopup="dialog"/);
+  assert.match(buttons[0], /aria-haspopup="menu"/, "the shared Menu trigger");
   assert.match(buttons[0], /aria-expanded="false"/);
   assert.match(buttons[1], /aria-label="Log all remaining sets: Zed Press"/);
   assert.match(buttons[1], />Log all</);
@@ -183,7 +195,7 @@ test("card bar without remaining sets drops Log all; pending and disabled states
   assert.match(blocked, /Unskip to log/);
 });
 
-test("More menu: one sheet for Skip/Hide and Remove; Remove asks first and is offered only before any set is logged", () => {
+test("More menu: the shared Menu with Skip/Hide and Remove; Remove asks first and is offered only before any set is logged", () => {
   assert.equal(getSessionSkipMenuLabel("Skip"), "Skip exercise");
   assert.equal(getSessionSkipMenuLabel("Hide"), "Hide exercise");
   const closed = renderToStaticMarkup(
@@ -193,9 +205,12 @@ test("More menu: one sheet for Skip/Hide and Remove; Remove asks first and is of
   assert.match(closed, /data-session-more="true"/);
 
   const rows = readSource("./SessionRowCards.tsx");
-  assert.match(rows, /<BottomSheet open=\{menuOpen\} title=\{exerciseName\} eyebrow=\{null\}/);
-  assert.match(rows, /aria-label=\{`\$\{skipNameLabel\}: \$\{exerciseName\}`\}/, "Skip keeps its named action");
-  assert.match(rows, /data-session-remove="true"/);
+  assert.match(closed, /aria-haspopup="menu"/, "the shared Menu trigger, not a hand-rolled sheet");
+  assert.match(closed, /aria-label="More actions for Zed Press"/);
+  assert.doesNotMatch(rows, /BottomSheet/, "no hand-rolled kebab sheet");
+  assert.match(rows, /<Menu\s+label=\{`More actions for \$\{exerciseName\}`\}/);
+  assert.match(rows, /id: "skip",\s+label: skipMenuLabel,\s+disabled: skipInactive/, "Skip keeps its named action");
+  assert.match(rows, /id: "remove",\s+label: "Remove from workout",\s+tone: "danger" as const/);
   assert.match(rows, /setConfirmRemoveOpen\(true\)/, "Remove opens the confirm, never removes on the first tap");
   assert.match(rows, /<ConfirmDestructiveModal[\s\S]*title=\{`Remove \$\{exerciseName\}\?`\}[\s\S]*cancelLabel="Keep"/);
 
@@ -215,7 +230,7 @@ test("Skip / Hide / Unskip hands focus to the swapped card (restore action or Mo
   assert.match(focus, /requestCardFocus\(exerciseId, nextSkipped \? "restore" : "more"\);/, "skip and unskip");
   assert.match(focus, /requestCardFocus\(exerciseId, nextShowWhenCompleted \? "more" : "restore"\);/, "hide and show of a finished exercise");
   assert.match(focus, /buttonProps=\{\{ "data-session-restore": "true" \}\}/, "the compact card's restore action is findable");
-  assert.ok(focus.includes(`'[data-session-restore="true"]' : '[data-session-more="true"]'`));
+  assert.ok(focus.includes(`'[data-session-restore="true"]' : '[data-session-more="true"] [data-menu-trigger]'`));
   assert.match(focus, /active !== document\.body && active\.isConnected && !row\.contains\(active\)/, "never steals focus moved elsewhere");
   assert.match(focus, /SESSION_CARD_FOCUS_HANDOFF_MS/, "a handoff that never renders (rolled back) expires");
 });
@@ -369,6 +384,7 @@ test("logger controls: 44px chips with aria-pressed, Log set primary with the Pr
   const trash = renderToStaticMarkup(<LoggedSetDeleteButton ariaLabel="Delete set 1" pending={false} inactive={false} onPress={() => {}} />);
   assert.match(trash, /aria-label="Delete set 1"/);
   assert.match(trash, /h-11 w-11/);
+  assert.doesNotMatch(trash, /[\s"]!(bg|text)-\[rgb\(var\(--danger-rgb\)/, "quiet at rest: red only on hover/press, not on every logged row");
   assert.doesNotMatch(trash, /\sdisabled(=|\s|>)/);
 });
 

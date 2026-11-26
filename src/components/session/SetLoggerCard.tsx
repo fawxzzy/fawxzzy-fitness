@@ -1393,8 +1393,8 @@ export function SetLoggerCard({
   const historyRows = historyRowsSource.filter((value): value is HistoryRow => value !== null && value.items.length > 0);
   const applyLastRow = historyRows.find((row) => row.key === "last-time" && row.applyValues !== null) ?? null;
   const lastTargetButtonLabel = didApplyLastTarget
-    ? "Clear Last"
-    : (isEditedFromCurrentTarget ? "Resync" : (applyLastRow ? "Use Last" : "No Last Setup"));
+    ? "Clear last"
+    : (isEditedFromCurrentTarget ? "Resync" : (applyLastRow ? "Use last" : "No last setup"));
   const isLastTargetButtonDisabled = !didApplyLastTarget && !isEditedFromCurrentTarget && !applyLastRow;
   const handleToggleLastTarget = useCallback(() => {
     if (didApplyLastTarget || isEditedFromCurrentTarget) {
@@ -1882,7 +1882,8 @@ export function SetLoggerCard({
             layoutMode="horizontal-scroll"
             labelTreatment="floating-border"
             metricLabelOverrides={{
-              time: "Time (s)",
+              // The time field steps and reads as m:ss (MeasurementPanelV2), so the label says so; "(s)" was wrong.
+              time: "Time (m:ss)",
               distance: `Dist (${distanceUnit})`,
             }}
             visibleMetrics={liveSetInputOrder.visibleMetrics}

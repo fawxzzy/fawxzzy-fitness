@@ -915,7 +915,9 @@ export default async function TodayPage(
                 action={discardInProgressSessionAction}
                 hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
                 triggerLabel="Discard"
-                triggerIntent="danger"
+                // Secondary, not a red twin of Resume (DESIGN Today in-session): the red and the real verb live in
+                // the confirm ("Discard workout"), which still guards the action.
+                triggerIntent="info"
                 triggerClassName="h-full w-full"
                 size="md"
                 modalTitle="Discard workout?"

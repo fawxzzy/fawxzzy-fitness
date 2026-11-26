@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Menu } from "@/components/ui/Menu";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import {
   CardChip,
@@ -32,7 +32,13 @@ import { buildSessionSummaryDetails, type SessionSummaryDetails, type SessionSum
  * set, queues, syncs or reads the clock.
  */
 
-export type SessionStatusChip = "done" | "skipped" | "added" | null;
+/** "partial" = skipped after at least one set was logged (DESIGN: a 1/3 Plank reads Partial, never SKIPPED). */
+export type SessionStatusChip = "done" | "skipped" | "partial" | "added" | null;
+
+/** Skipped with sets logged is partial, not skipped; the summary (sessionSummary.ts) uses the same rule. */
+export function resolveSessionSkippedStatus(loggedSetCount: number): "skipped" | "partial" {
+  return loggedSetCount > 0 ? "partial" : "skipped";
+}
 
 /**
  * Inline status on the title line, after the name: Skipped keeps its glyph chip, Added is a quiet chip. A finished row
@@ -43,9 +49,13 @@ function SessionTitleStatus({ status }: { status: SessionStatusChip }) {
     return null;
   }
 
-  return status === "added"
-    ? <CardChip tone="neutral" className="shrink-0">Added</CardChip>
-    : <CardStatusChip status={status} className="shrink-0" />;
+  if (status === "added") {
+    return <CardChip tone="neutral" className="shrink-0">Added</CardChip>;
+  }
+  if (status === "partial") {
+    return <CardChip tone="attention" className="shrink-0">Partial</CardChip>;
+  }
+  return <CardStatusChip status={status} className="shrink-0" />;
 }
 
 /**
@@ -134,7 +144,7 @@ export function SessionExerciseRowCard({
       metaItems={metaItems}
       targetValues={targetValues}
       progress={progress}
-      titleAccessory={status === "skipped" || status === "added" ? <SessionTitleStatus status={status} /> : undefined}
+      titleAccessory={status === "skipped" || status === "partial" || status === "added" ? <SessionTitleStatus status={status} /> : undefined}
       showMedia={showMedia}
       showAffordance={false}
       tone={tone}
@@ -232,10 +242,10 @@ export function SessionHiddenRowCard({
       metaItems={[]}
       targetValues={[]}
       progress={progress}
-      titleAccessory={status === "skipped" ? <SessionTitleStatus status={status} /> : undefined}
+      titleAccessory={status === "skipped" || status === "partial" ? <SessionTitleStatus status={status} /> : undefined}
       showMedia
       showAffordance={false}
-      tone={status === "skipped" ? "attention" : "completed"}
+      tone={status === "skipped" || status === "partial" ? "attention" : "completed"}
       interaction={{ kind: "none" }}
       footer={<SessionCardActionBar label={`${exercise.name} actions`}>{action}</SessionCardActionBar>}
     />
@@ -393,18 +403,15 @@ function MoreIcon() {
   );
 }
 
-const SESSION_MENU_ITEM_CLASS_NAME =
-  "flex min-h-12 w-full items-center justify-between gap-3 rounded-[0.9rem] !border !border-[rgb(var(--border-strong)/0.2)] !bg-[rgb(var(--surface-2)/0.45)] px-4 text-left text-[15px] font-semibold !text-[rgb(var(--text-primary))] shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.45)] aria-disabled:cursor-not-allowed aria-disabled:opacity-55";
-
 /**
- * The card's More control: a 44px icon button that opens a sheet with Skip/Hide and (optionally) Remove. Used by the
+ * The card's More control: the shared Menu (components/ui/Menu.tsx, FOUNDATION "Menu"), a 44px trigger that opens a
+ * small popover with Skip/Hide and (optionally) Remove. Used by the
  * collapsed bar and by the expanded logger, so every card action lives in the card's own bar. Remove always asks first
  * (ConfirmDestructiveModal); nothing here shows a success notice. Handlers are the session screen's own.
  */
 export function SessionCardMoreMenu({
   exerciseName,
   skipLabel,
-  skipActionIntent,
   isSkipPending,
   skipInactive,
   removeInactive,
@@ -413,6 +420,7 @@ export function SessionCardMoreMenu({
 }: {
   exerciseName: string;
   skipLabel: string;
+  /** Kept for callers; menu rows have one neutral tone (Remove is the only danger row). */
   skipActionIntent?: "danger" | "info" | "positive" | "toggleInactive" | "toggleActive";
   isSkipPending: boolean;
   skipInactive: boolean;
@@ -421,59 +429,45 @@ export function SessionCardMoreMenu({
   /** Removes the exercise from this workout (after the confirm). Omitted: the menu has no Remove. */
   onRemove?: () => Promise<void> | void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
-  const skipNameLabel = isSkipPending ? "Saving..." : skipLabel;
   const skipMenuLabel = isSkipPending ? "Saving..." : getSessionSkipMenuLabel(skipLabel);
 
   return (
     <>
-      <SessionCardBarButton
-        variant="icon"
-        label={<MoreIcon />}
-        ariaLabel={`More actions for ${exerciseName}`}
-        buttonProps={{ "aria-haspopup": "dialog", "aria-expanded": menuOpen ? "true" : "false", "data-session-more": "true" }}
-        onPress={() => setMenuOpen(true)}
-      />
-      <BottomSheet open={menuOpen} title={exerciseName} eyebrow={null} onClose={() => setMenuOpen(false)}>
-        <div className="grid gap-2 pb-1" role="group" aria-label={`Actions for ${exerciseName}`}>
-          <button
-            type="button"
-            aria-label={`${skipNameLabel}: ${exerciseName}`}
-            aria-disabled={skipInactive || undefined}
-            data-bottom-action-intent={skipActionIntent}
-            data-session-skip="true"
-            className={SESSION_MENU_ITEM_CLASS_NAME}
-            onClick={() => {
-              if (skipInactive) {
-                return;
-              }
-              setMenuOpen(false);
-              void onSkip();
-            }}
-          >
-            <span>{skipMenuLabel}</span>
-          </button>
-          {onRemove ? (
-            <button
-              type="button"
-              data-bottom-action-intent="danger"
-              data-session-remove="true"
-              aria-disabled={removeInactive || undefined}
-              className={cn(SESSION_MENU_ITEM_CLASS_NAME, "!text-[rgb(var(--danger-rgb))]")}
-              onClick={() => {
-                if (removeInactive) {
-                  return;
+      {/* data-session-more marks the trigger's wrapper so Skip/Unskip can hand focus back to it. */}
+      <span className="inline-flex shrink-0" data-session-more="true">
+        <Menu
+          label={`More actions for ${exerciseName}`}
+          triggerIcon={<MoreIcon />}
+          triggerClassName={getSessionCardBarButtonClassName("icon")}
+          minWidth={200}
+          items={[
+            {
+              id: "skip",
+              label: skipMenuLabel,
+              disabled: skipInactive,
+              onSelect: () => {
+                if (!skipInactive) {
+                  void onSkip();
                 }
-                setMenuOpen(false);
-                setConfirmRemoveOpen(true);
-              }}
-            >
-              <span>Remove from workout</span>
-            </button>
-          ) : null}
-        </div>
-      </BottomSheet>
+              },
+            },
+            ...(onRemove
+              ? [{
+                id: "remove",
+                label: "Remove from workout",
+                tone: "danger" as const,
+                disabled: removeInactive,
+                onSelect: () => {
+                  if (!removeInactive) {
+                    setConfirmRemoveOpen(true);
+                  }
+                },
+              }]
+              : []),
+          ]}
+        />
+      </span>
       {onRemove ? (
         <ConfirmDestructiveModal
           open={confirmRemoveOpen}

@@ -165,6 +165,16 @@ test("Session: logging a set starts the rest timer; +15 adds time and Skip hides
   assert.equal(window.sessionStorage.getItem("fitness:session-rest-timer:s1"), null);
 });
 
+test("Session: opening a workout that already has logged sets does not start a rest", async () => {
+  window.sessionStorage.clear();
+  const set = { session_exercise_id: "a", user_id: "u1", is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" as const };
+  renderSession({
+    exercises: [exercise({ id: "a", name: "Zed Press", loggedSetCount: 2, initialSets: [{ ...set, id: "s-0", set_index: 0, weight: 225, reps: 5 }, { ...set, id: "s-1", set_index: 1, weight: 225, reps: 4 }] })],
+  });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(document.querySelector("[data-rest-timer]"), null);
+});
+
 test("Session: Finish with every planned set logged submits once and shows no confirm sheet", async () => {
   const { container } = renderSession({
     exercises: [exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1, loggedSetCount: 1, initialSets: [{ id: "set-0", session_exercise_id: "a", user_id: "u1", set_index: 0, weight: 225, reps: 5, is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" }] })],

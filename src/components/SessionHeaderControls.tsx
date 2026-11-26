@@ -56,8 +56,9 @@ export function SessionPauseButton({ backHref }: { backHref?: string }) {
         }}
         className="inline-flex h-11 min-w-11 items-center gap-1 rounded-full !border !border-[rgb(var(--border-strong)/0.26)] !bg-[rgb(var(--surface-2)/0.42)] pl-2.5 pr-3.5 text-sm font-semibold leading-none text-[rgb(var(--text-primary))] shadow-none transition-colors hover:!bg-[rgb(var(--surface-2)/0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-bg)/0.6)] active:scale-[0.98] motion-reduce:active:scale-100"
       >
-        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-[rgb(var(--text-secondary))]">
-          <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Pause glyph (two bars), not a back chevron: the workout stays open and Today offers Resume. */}
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-[rgb(var(--text-secondary))]" data-session-pause-icon="true">
+          <path d="M7.5 5v10M12.5 5v10" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
         </svg>
         <span>{SESSION_PAUSE_LABEL}</span>
       </button>
