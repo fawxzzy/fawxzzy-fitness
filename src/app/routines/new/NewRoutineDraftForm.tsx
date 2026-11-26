@@ -14,6 +14,8 @@ import {
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
+import { CardHeader, CardMeta, CardSurface } from "@/components/ui/card-system";
+import { getRoutineLimitNoticeCopy, isRoutineLimitError } from "@/app/routines/routine-copy";
 import { createRoutineAction } from "@/app/routines/actions";
 import {
   buildRoutineDetailsSnapshot,
@@ -22,7 +24,6 @@ import {
   validateRoutineDetailsDraft,
   type RoutineDetailsDraft,
 } from "@/lib/routine-details-form";
-import { RoutineDetailsSaveState } from "@/components/routines/RoutineDetailsFormState";
 import {
   appendProgressionPlaybookFormData,
   createProgressionPlaybookFormState,
@@ -77,9 +78,14 @@ function getCreateRoutineButtonLabel(args: {
   routineNameConflict: boolean;
   validationError: string | null;
   canCreate: boolean;
+  limitReached?: boolean;
 }) {
   if (args.isSaving) {
     return "Creating routine...";
+  }
+
+  if (args.limitReached) {
+    return "Routine limit reached";
   }
 
   if (args.canCreate) {
@@ -136,6 +142,7 @@ export function NewRoutineDraftForm({
   existingRoutineNames = [],
   existingWorkoutPlanNames = [],
   embedded = false,
+  routineLimit = null,
   onCancel,
   onCreated,
 }: {
@@ -143,6 +150,8 @@ export function NewRoutineDraftForm({
   existingRoutineNames?: Array<string | null | undefined>;
   existingWorkoutPlanNames?: Array<string | null | undefined>;
   embedded?: boolean;
+  /** Free-plan cap reached (resolved on the server before render): one notice with an upgrade link, Create disabled. */
+  routineLimit?: { message: string; upgradeHref: string } | null;
   onCancel?: () => void;
   onCreated?: (routineId: string) => void;
 }) {
@@ -166,7 +175,8 @@ export function NewRoutineDraftForm({
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(normalizedDefaults.cycleLengthDays));
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The name field shows its invalid state only after the user types in it or tries to create (no red on a pristine form).
+  const [hasTouchedName, setHasTouchedName] = useState(false);
   const [isEmbeddedConfirmingDiscard, setIsEmbeddedConfirmingDiscard] = useState(false);
   const loadedDraftFromStorageRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,9 +237,7 @@ export function NewRoutineDraftForm({
     saveTimer.current = setTimeout(() => {
       try {
         window.localStorage.setItem(ROUTINE_NEW_LOCAL_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-        setError(null);
       } catch {
-        setError("Could not save local draft.");
         toast.error("Could not save local draft.");
       }
     }, 400);
@@ -253,17 +261,19 @@ export function NewRoutineDraftForm({
     routineNames: existingRoutineNames,
     workoutPlanNames: existingWorkoutPlanNames,
   });
-  const canCreate = validation.valid && !routineNameConflict && isDirty && !isSaving;
+  const limitReached = Boolean(routineLimit);
+  const canCreate = validation.valid && !routineNameConflict && isDirty && !isSaving && !limitReached;
   const isUsingExitGuard = !embedded && Boolean(exitGuard);
   const isConfirmingDiscard = isUsingExitGuard ? Boolean(exitGuard?.isConfirmingDiscard) : isEmbeddedConfirmingDiscard;
   const trimmedRoutineName = draft.name.trim().slice(0, 15);
-  const isRoutineNameInvalid = trimmedRoutineName.length === 0 || routineNameConflict;
+  const isRoutineNameInvalid = hasTouchedName && (trimmedRoutineName.length === 0 || routineNameConflict);
   const createRoutineButtonLabel = getCreateRoutineButtonLabel({
     isSaving,
     trimmedRoutineName,
     routineNameConflict,
     validationError: validation.error,
     canCreate,
+    limitReached,
   });
   const routineHeaderTitle = useMemo(() => (
     <RoutineEditorTitleInput
@@ -271,6 +281,7 @@ export function NewRoutineDraftForm({
         value={draft.name}
         onChange={(nextValue) => {
           setHasUserEdited(true);
+          setHasTouchedName(true);
           setDraft((current) => ({
             ...current,
             name: resolveRoutineDraftFieldValue("name", nextValue),
@@ -347,13 +358,11 @@ export function NewRoutineDraftForm({
   };
 
   const submitRoutineDraft = useCallback(async () => {
-    setError(null);
+    setHasTouchedName(true);
     const nextDraft = commitCycleLengthInput();
     const nextValidation = validateRoutineDetailsDraft(nextDraft);
     if (!nextValidation.valid) {
-      const nextError = nextValidation.error ?? "Please complete all required routine fields.";
-      setError(nextError);
-      toast.error(nextError);
+      toast.error(nextValidation.error ?? "Please complete all required routine fields.");
       return;
     }
     if (hasRoutineNameConflict({
@@ -361,9 +370,7 @@ export function NewRoutineDraftForm({
       routineNames: existingRoutineNames,
       workoutPlanNames: existingWorkoutPlanNames,
     })) {
-      const nextError = "Routine name already exists.";
-      setError(nextError);
-      toast.error(nextError);
+      toast.error("Routine name already exists.");
       return;
     }
 
@@ -372,17 +379,23 @@ export function NewRoutineDraftForm({
       trimmedRoutineName: nextDraft.name.trim().slice(0, 15),
       previewDayCount: Math.max(1, Math.min(31, nextDraft.cycleLengthDays)),
     });
-    const result = await createRoutineAction(formData);
+    // A failed request (offline blip, server error) must not throw into the route error boundary:
+    // the typed form stays and the in-flow notice says the save failed.
+    let result: Awaited<ReturnType<typeof createRoutineAction>>;
+    try {
+      result = await createRoutineAction(formData);
+    } catch {
+      toast.error("Could not save the routine. Check your connection and try again.");
+      return;
+    }
     if (!result.ok) {
-      const nextError = result.error ?? "Could not create routine.";
-      setError(nextError);
-      toast.error(nextError);
+      toast.error(isRoutineLimitError(result.error)
+        ? getRoutineLimitNoticeCopy()
+        : result.error ?? "Could not save the routine.");
       return;
     }
     if (!result.routineId) {
-      const nextError = "Could not create routine.";
-      setError(nextError);
-      toast.error(nextError);
+      toast.error("Could not save the routine.");
       return;
     }
 
@@ -423,6 +436,16 @@ export function NewRoutineDraftForm({
     <>
       <ContentRail className="space-y-3">
         <div className="space-y-2 pt-4">
+          {routineLimit ? (
+            <CardSurface tone="attention" data-routine-limit-notice="true">
+              <CardHeader
+                headingLevel={2}
+                title="Routine limit reached"
+                meta={<CardMeta items={[routineLimit.message, "Tap to see Pro"]} />}
+                interaction={{ kind: "link", href: routineLimit.upgradeHref }}
+              />
+            </CardSurface>
+          ) : null}
           {routineHeaderTitle}
           <RoutineEditorFormFields
             fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
@@ -458,7 +481,6 @@ export function NewRoutineDraftForm({
               }));
             }}
           />
-          <RoutineDetailsSaveState error={error} />
         </div>
 
       </ContentRail>

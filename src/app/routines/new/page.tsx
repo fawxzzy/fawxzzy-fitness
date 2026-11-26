@@ -3,7 +3,9 @@ import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorSh
 import { NewRoutineDraftForm } from "@/app/routines/new/NewRoutineDraftForm";
 import { RoutineHomeEditorClient } from "@/app/routines/RoutineHomeEditorClient";
 import { appendRoutineDayAction, createRoutineDayAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
+import { resolveRoutineLimitNotice } from "@/app/routines/routine-copy";
 import { requireUser } from "@/lib/auth";
+import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { ensureProfile } from "@/lib/profile";
 import { buildRoutinePlanRecapExercises } from "@/lib/routine-plan-preview";
@@ -298,6 +300,13 @@ export default async function NewRoutinePage({
     }
   }
 
+  // F-004: show the Free-plan cap before submit (same rule as enforceRoutineCapacityForCreate).
+  const proAccess = await loadProAccessSnapshot(user.id);
+  const routineLimit = resolveRoutineLimitNotice({
+    accessState: proAccess.accessState,
+    routineCount: existingRoutineRows?.length ?? null,
+  });
+
   return (
     <RoutineDetailsScreenShell
       backHref="/routines"
@@ -316,6 +325,7 @@ export default async function NewRoutinePage({
         }}
         existingRoutineNames={(existingRoutineRows ?? []).map((routine) => routine.name)}
         existingWorkoutPlanNames={existingWorkoutPlanNames}
+        routineLimit={routineLimit}
       />
     </RoutineDetailsScreenShell>
   );
