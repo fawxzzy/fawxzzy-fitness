@@ -119,6 +119,12 @@ test("the boot failsafe is pinned: a cover that scripts never take over removes 
   assert.ok(layout.indexOf("<noscript") < layout.indexOf("</head>"), "in the head, before first paint");
 });
 
+test("boot cover: a wait that arrives after the cover began to leave gives the icon back", () => {
+  const host = read("src/components/AppLoaderHost.tsx");
+  assert.match(host, /if \(stageHidden && active && phase !== "fading-out" && phase !== "idle" && root\.dataset\.state === "boot"\)/);
+  assert.match(host, /stage\.style\.removeProperty\("animation"\);\s*stage\.style\.removeProperty\("opacity"\);\s*\}\s*stageHidden = false;/);
+});
+
 test("input: the visible cover takes taps, lets them through while leaving, and nothing is made inert", () => {
   const block = loaderCssBlock();
   assert.match(block, /\.app-loader \{[^}]*pointer-events: none;/);

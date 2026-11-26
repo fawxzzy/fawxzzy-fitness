@@ -108,7 +108,7 @@ export function SessionCardsGallery() {
           />
         </li>
       </Section>
-      <Section title="Exercise row, added today, long name, no target, quick log pending">
+      <Section title="Exercise row, added today, long name, no goal, quick log pending">
         <li>
           <SessionExerciseRowCard
             itemId="g3"

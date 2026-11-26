@@ -5,6 +5,7 @@ import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import type { AuthNotice } from "@/components/auth/authMessages";
 import { APP_LOADER_ICON_DATA_URI } from "@/lib/app-loader-icon";
 import { cn } from "@/lib/cn";
+import { NoticeScrollIntoView } from "@/components/auth/NoticeScrollIntoView";
 
 // Auth Surface v2 (approved by Zac 2026-11-15). One anatomy for every auth, account, install, loading and error
 // screen: app icon, kicker, title, optional lead, a body (fields + ONE reserved notice slot), links, legal, dock.
@@ -137,6 +138,7 @@ export function AuthNoticeSlot({
           aria-live="assertive"
           data-testid="auth-notice"
         >
+          <NoticeScrollIntoView />
           <NoticeIcon tone={notice.tone} />
           <span className="fx-notice__t">
             {notice.text}
