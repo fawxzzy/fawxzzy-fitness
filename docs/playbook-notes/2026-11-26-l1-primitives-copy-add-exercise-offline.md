@@ -1,0 +1,9 @@
+## 2026-11-26 - L1 primitives, plain-words copy, add-exercise fallback, offline page
+
+- Type: Pattern / Failure Mode
+- WHAT changed: (1) `addExerciseToSession` composes a timer fallback and a progression fallback so an add still works when `session_exercises` lacks those columns. (2) `ConfirmDestructiveModal` shows `confirmLabel` and `title` as passed; callers use the verbs in `CONFIRM_ACTION_LABELS`. (3) Settings Data, sign-up, gate and Add exercise guide copy moved to plain words; the disabled primary button is a muted outline. (4) The service worker's offline page is generated from `scripts/offline-page.mjs` in the app's look with Retry and a link to /today.
+- WHY it changed: production Add exercise failed on a database without the progression columns (F-001); confirm dialogs rewrote their own title and ignored the label (a silent prop); the QA audit found developer wording and a bare offline page.
+- Rule: a prop a caller sets must change what renders, or be removed (a test per prop). Fallbacks for a missing column are composed (each retried independently), never an either/or chain. Copy shown to a person never uses stored/snapshot/handoff/scope wording; a guide describes only controls and features that exist today.
+- Failure Mode / Decision: `ConfirmDestructiveModal.titleVariant` was read but overwritten with "Confirm <label>"; it is now a no-op kept for compatibility. Sign out stays on the Settings hub only (the Account screen no longer repeats it).
+- Evidence: `tests/add-exercise-actions.test.mjs` (31 pass; the old action fails 10), `tests/dom/ui-foundation.dom.test.tsx`, `tests/build-contracts.test.mjs` (offline page through a faked service worker), phone shots chrome+webkit 390 and chrome 320 in `C:\ATLAS	mpitness-sectionsix-l1\`.
+- Status: source only; not deployed. Real-phone check (offline page in the installed app) pending.

@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 import path from "node:path";
 import { renderServiceWorkerSource } from "../scripts/generate-service-worker.mjs";
+import { renderOfflineHtml as renderOfflineHtmlForTest } from "../scripts/offline-page.mjs";
 
 const repoRoot = process.cwd();
 
@@ -81,4 +83,40 @@ test("silent update: input listeners attach at mount and link clicks are judged 
   assert.doesNotMatch(bootstrap, /addEventListener\("click", handleDocumentClick, true\)/);
   assert.match(bootstrap, /resolveUpdateNavigationTarget\(\{\s*defaultPrevented: event\.defaultPrevented/);
   assert.match(bootstrap, /removeInputListeners\(\);/);
+});
+
+async function runOfflineNavigation(request) {
+  const listeners = {};
+  const sandbox = {
+    self: { addEventListener: (type, handler) => { listeners[type] = handler; }, skipWaiting() {}, clients: { claim() {} } },
+    fetch: async () => { throw new TypeError("offline"); },
+    Response,
+  };
+  vm.runInNewContext(renderServiceWorkerSource("build-a"), sandbox);
+  let responded;
+  listeners.fetch({ request, respondWith: (value) => { responded = value; } });
+  return responded ? await responded : null;
+}
+
+test("offline navigations (including a bottom-tab tap that falls back to a full page load) get the styled in-app page", async () => {
+  const response = await runOfflineNavigation({ method: "GET", mode: "navigate", url: "https://fitness.fawxzzy.com/history" });
+  const html = await response.text();
+  assert.match(response.headers.get("Content-Type"), /text\/html/);
+  assert.match(html, /<h1>You are offline<\/h1>/);
+  assert.match(html, /<button type="button" class="btn btn--primary" id="retry">Retry<\/button>/);
+  assert.match(html, /window\.location\.reload\(\)/);
+  assert.match(html, /<a class="btn btn--quiet" href="\/today">Back to Today<\/a>/);
+  assert.match(html, /Build: build-a/);
+  assert.doesNotMatch(html, /needs a connection<\/h1>|danger|#f00|red/i, "no inline red error text");
+  assert.doesNotMatch(html, /(src|href)="https?:/, "the page needs no network asset to render");
+});
+
+test("only GET page navigations are answered by the worker; other requests pass through untouched", async () => {
+  assert.equal(await runOfflineNavigation({ method: "GET", mode: "cors", url: "https://fitness.fawxzzy.com/_next/data" }), null);
+  assert.equal(await runOfflineNavigation({ method: "POST", mode: "navigate", url: "https://fitness.fawxzzy.com/today" }), null);
+});
+
+test("the offline page escapes the build id", () => {
+  assert.doesNotMatch(renderServiceWorkerSource('<img src=x>'), /Build: <img/);
+  assert.match(renderOfflineHtmlForTest('<img src=x>'), /Build: &lt;img src=x&gt;/);
 });

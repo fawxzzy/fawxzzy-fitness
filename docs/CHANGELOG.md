@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-11-26 (L1: add-exercise bug, real confirm verbs, plain-words copy, offline page)
+
+### WHAT
+- Add exercise no longer fails when `session_exercises` has no progression columns (F-001): the add retries without the missing timer and progression columns (also when a playbook was selected), and a failure shows plain words in the in-flow notice.
+- Every confirm dialog names its action ("Sign out", "Delete routine", "Delete theme", "Discard workout") and keeps the title it was given; `titleVariant` is now ignored. The day toggle always reads "Rest day" (pressed = rest day) instead of flipping between "Training" and "Resting".
+- Settings Data card: "Stored snapshot" and the Stored / History / Applied labels are plain words ("Your saved data", "All saved workouts", "Progression changes").
+- Create account: a "10+ characters" line under the password, and a disabled primary button is a muted outlined surface, not a faded green.
+- The Account screen no longer repeats Sign out; it lives on Settings only.
+- The sign-in gate copy says what is happening ("Getting your workouts ready") instead of handoff wording; the Add exercise guide describes only what exists ("Failure" / "Reps", no workout clock).
+- Offline: the page the service worker shows when a page cannot load is now the in-app look (Fitness mark, "You are offline", a Retry button that reloads, a Back to Today link). It reloads by itself when the connection returns.
+
+### WHY
+Zac's 2026-11-23 full-app redesign approval, lane L1 (primitives, copy and the production add-exercise bug from the QA audit: F-001, F-006).
+
 ## Unreleased - 2026-11-24 (App-wide states)
 
 ### WHAT
