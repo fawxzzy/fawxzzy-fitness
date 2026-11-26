@@ -41,8 +41,10 @@ test("picker info button, search clear and info-sheet chart points are real 44px
   assert.match(sheet, /className="absolute h-11 w-11 -translate-x-1\/2 -translate-y-1\/2/);
 });
 
-test("the edit-day Required / Optional / Rest choice uses the shared 44px SegmentedControl (F-009)", () => {
+test("the edit-day type is a plain Rest day switch with Bonus day under More options (F-009, SIMPLIFY #9)", () => {
   const form = read("../../app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx");
   assert.doesNotMatch(form, /<RoutineDayKindSelector/);
-  assert.match(form, /<SegmentedControl\s+ariaLabel="Day type"\s+size="sm"/);
+  assert.doesNotMatch(form, /label: "Required"/, "no Required / Optional / Rest jargon on top of every day");
+  assert.match(form, /<OptionSwitchRow\s+label="Rest day"/);
+  assert.match(form, /<MoreOptionsDisclosure[^>]*>\s+<OptionSwitchRow\s+label="Bonus day"\s+hint="Not counted if skipped\."/);
 });

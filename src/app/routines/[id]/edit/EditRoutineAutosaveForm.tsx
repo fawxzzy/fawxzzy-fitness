@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { updateRoutineAction } from "@/app/routines/actions";
 import { ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
+import { MoreOptionsDisclosure, OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import {
   buildRoutineDetailsSnapshot,
   commitRoutineCycleLengthInput,
@@ -33,6 +34,19 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
+
+/** One plain line for the schedule (SIMPLIFY #8): "Weekly, from Thu, Nov 26" / "Every 4 days, from Thu, Nov 26". */
+export function describeRoutineSchedule(draft: Pick<RoutineDetailsDraft, "scheduleMode" | "cycleLengthDays" | "startDate">) {
+  const timestamp = Date.parse(`${draft.startDate}T00:00:00Z`);
+  const fromLabel = Number.isFinite(timestamp)
+    ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(timestamp))
+    : null;
+  // Only a 7-day cycle lines up with the week; any other length rotates across weekdays, so say how often it repeats.
+  const shape = draft.cycleLengthDays === 7 && draft.scheduleMode !== "rolling_n_day"
+    ? "Weekly"
+    : `Repeats every ${draft.cycleLengthDays} ${draft.cycleLengthDays === 1 ? "day" : "days"}`;
+  return fromLabel ? `${shape}, from ${fromLabel}` : shape;
+}
 
 function getDeviceTimezone(fallback: string) {
   if (typeof window === "undefined") {
@@ -92,6 +106,9 @@ export function EditRoutineAutosaveForm(props: Props) {
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
   const [autoApplyUpdatesToExercises, setAutoApplyUpdatesToExercises] = useState(true);
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(props.cycleLengthDays));
+  const [showProgressHelp, setShowProgressHelp] = useState(false);
+  // Turning Auto-progress off and on again brings back the rules that were set, not a fresh default.
+  const lastProgressionRulesRef = useRef(progressionDraft.progressionPlaybookId ? progressionDraft : null);
   const [isSaving, startTransition] = useTransition();
 
   useToastMessageEffect("error", props.error, { id: "edit-routine-route-error" });
@@ -131,6 +148,9 @@ export function EditRoutineAutosaveForm(props: Props) {
   const isDirty = currentSnapshot !== baselineSnapshot || currentProgressionSnapshot !== baselineProgressionSnapshot;
   const validation = validateRoutineDetailsDraft(draft, { allowLegacyLongName: true });
   const canSave = validation.valid && isDirty && !isSaving;
+  const isAutoProgressOn = progressionDraft.progressionPlaybookId !== "";
+  // The dock says where things stand instead of a dimmed Save: "Saved" when nothing is waiting (SIMPLIFY #8).
+  const saveButtonLabel = isSaving ? "Saving..." : isDirty ? "Save" : "Saved";
   const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
   const routineHeaderTitle = useMemo(() => (
     <RoutineEditorTitleInput
@@ -252,8 +272,45 @@ export function EditRoutineAutosaveForm(props: Props) {
         <RoutineEditorPageBody>
           <ContentRail className="space-y-2 pt-4">
             {routineHeaderTitle}
+            <p className="px-1 text-[0.9rem] text-[rgb(var(--text-secondary))]" data-routine-schedule-summary="">
+              {describeRoutineSchedule(draft)}
+            </p>
+            <div className="space-y-1">
+              <OptionSwitchRow
+                label="Auto-progress weights"
+                hint={isAutoProgressOn
+                  ? "Adds weight or reps when you hit the top of your goal."
+                  : "Off: you set each next goal yourself."}
+                checked={isAutoProgressOn}
+                onCheckedChange={(next) => {
+                  if (next) {
+                    setProgressionDraft(lastProgressionRulesRef.current ?? createProgressionPlaybookFormState({ playbookId: "double_progression" }));
+                    return;
+                  }
+                  lastProgressionRulesRef.current = progressionDraft;
+                  setProgressionDraft(createProgressionPlaybookFormState({ playbookId: null }));
+                }}
+              />
+              <button
+                type="button"
+                aria-expanded={showProgressHelp}
+                onClick={() => setShowProgressHelp((current) => !current)}
+                className="inline-flex min-h-11 items-center px-1 text-[0.85rem] font-semibold !text-[rgb(var(--accent-strong)/0.96)] underline decoration-[rgb(var(--accent-strong)/0.4)] underline-offset-4 [button&]:border-0 [button&]:bg-transparent [button&]:shadow-none"
+              >
+                How it works
+              </button>
+              {showProgressHelp ? (
+                <p className="px-1 pb-1 text-[0.85rem] leading-snug text-[rgb(var(--text-muted))]">
+                  Each exercise has a goal, like 3 × 8–12. When you hit the top of the range on every set, the next workout
+                  adds a little weight and drops back to the bottom of the range. Fine-tune the steps under More options,
+                  in Progress rules.
+                </p>
+              ) : null}
+            </div>
+            <MoreOptionsDisclosure>
             <RoutineEditorFormFields
-              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
+              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+              sectionsDefaultExpanded
               showCycleSection
               cycleLengthInputValue={cycleLengthInput}
               cycleLengthDefaultValue={draft.cycleLengthDays}
@@ -282,12 +339,11 @@ export function EditRoutineAutosaveForm(props: Props) {
               distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
               cycleLengthDays={draft.cycleLengthDays}
               context="routine-default"
-              title=""
+              title="Progress rules"
               defaultExpanded={false}
               collapsible={false}
-              separateInfoBox
+              showProgressionInfo={false}
               hideDayAdjustmentSettingsSection
-              infoDockPlacement="above-bottom-actions"
               trainingFocusValue={selectedTrainingGoal}
               trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
               onTrainingFocusChange={(goal) => {
@@ -297,6 +353,7 @@ export function EditRoutineAutosaveForm(props: Props) {
               autoApplyUpdatesToExercises={autoApplyUpdatesToExercises}
               onAutoApplyUpdatesToExercisesChange={setAutoApplyUpdatesToExercises}
             />
+            </MoreOptionsDisclosure>
           </ContentRail>
         </RoutineEditorPageBody>
       </form>
@@ -306,8 +363,17 @@ export function EditRoutineAutosaveForm(props: Props) {
       ) : (
         <PublishBottomActions>
           <BottomActionSingle>
-            <BottomDockButton type="button" intent="positive" disabled={!canSave} onClick={saveChanges}>
-              Save
+            {/* "Saved" is a calm status, not a dimmed button: nothing to do, so a tap does nothing. */}
+            <BottomDockButton
+              type="button"
+              intent={!isDirty && !isSaving ? "toggleActive" : "positive"}
+              disabled={isDirty ? !canSave : isSaving}
+              aria-disabled={!canSave}
+              onClick={canSave ? saveChanges : undefined}
+              aria-live="polite"
+              data-routine-save-state={isSaving ? "saving" : isDirty ? "dirty" : "saved"}
+            >
+              {saveButtonLabel}
             </BottomDockButton>
           </BottomActionSingle>
         </PublishBottomActions>

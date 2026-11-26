@@ -5,15 +5,12 @@ import { useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import {
-  RoutineChooserOptionCard,
-  RoutineDuplicateChooserPanel,
-} from "@/components/routines/RoutineChooserMenu";
+import { RoutineDuplicateChooserPanel } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
 import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
-import { CardChips, CardHeader, CardMeta, CardStatusChip, CardSurface } from "@/components/ui/card-system";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
-import { GlowSwitch } from "@/components/ui/GlowSwitch";
+import { OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ActionResult } from "@/lib/action-result";
 import { ROUTINE_COPY_NAME_MAX_LENGTH } from "@/lib/routine-copy-name";
@@ -23,7 +20,8 @@ import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
 type Props = {
   routineId: string;
   backHref: string;
-  routineEditHref: string;
+  /** Kept for callers; the cycle-settings link card it fed is gone (SIMPLIFY #9). */
+  routineEditHref?: string;
   days: WorkoutPlanSourceListItem[];
   createRoutineDayAction: (formData: FormData) => Promise<ActionResult & { routineDayId?: string }>;
   populateRoutineDayFromSourceAction?: (formData: FormData) => Promise<ActionResult & { routineDayId?: string }>;
@@ -34,7 +32,6 @@ type Props = {
 export function CreateRoutineDayClient({
   routineId,
   backHref,
-  routineEditHref,
   days,
   createRoutineDayAction,
   populateRoutineDayFromSourceAction,
@@ -54,15 +51,11 @@ export function CreateRoutineDayClient({
     () => days.find((day) => day.id === selectedSourceId) ?? null,
     [days, selectedSourceId],
   );
-  const canCreate = isTargetMode
-    ? Boolean(selectedSource?.workoutPlanTemplateId)
-    : creationMode === "blank" || Boolean(selectedSource?.workoutPlanTemplateId);
-  // Real verbs on the one primary (DESIGN #8; dock labels are Title Case per DESIGN-CONTRACT C12).
-  const primaryLabel = isTargetMode
-    ? "Copy Day"
-    : creationMode === "duplicate"
-      ? "Duplicate Day"
-      : "Create Day";
+  // Copying needs a source the server can read: the day itself or its template (both actions accept either).
+  const hasCopySource = Boolean(selectedSource?.sourceRoutineDayId || selectedSource?.workoutPlanTemplateId);
+  const canCreate = isTargetMode ? hasCopySource : creationMode === "blank" || hasCopySource;
+  // One plain verb on the primary (SIMPLIFY #9); copying into an existing day keeps its own verb.
+  const primaryLabel = isTargetMode ? "Copy Day" : "Create";
 
   const actionsNode = useMemo(() => (
     <BottomActionSplit
@@ -85,9 +78,8 @@ export function CreateRoutineDayClient({
                   formData.set("targetRoutineDayId", targetRoutineDayId ?? "");
                 } else {
                   formData.set("creationMode", creationMode);
-                  if (creationMode === "blank") {
-                    formData.set("name", name.trim());
-                  }
+                  // The name is optional in both cases; a copied day keeps its source name when it is blank.
+                  formData.set("name", name.trim());
                   if (creationMode === "blank" && isRest) {
                     formData.set("isRest", "on");
                   }
@@ -146,76 +138,54 @@ export function CreateRoutineDayClient({
   return (
     <div className="space-y-3">
       {!isTargetMode ? (
-        <>
-          <div className="space-y-2">
-            <RoutineChooserOptionCard
-              title="Blank day"
-              kind="select"
-              active={creationMode === "blank"}
-              onPress={() => setCreationMode("blank")}
-            />
-            <RoutineChooserOptionCard
-              title="Duplicate day"
-              kind="toggle"
-              active={creationMode === "duplicate"}
-              disabled={days.length === 0}
-              onPress={days.length > 0 ? () => {
-                setCreationMode("duplicate");
-              } : undefined}
-            />
-          </div>
-
-          {creationMode === "blank" ? (
-            <CardSurface as="section" aria-labelledby="create-day-setup-title">
-              <CardHeader headingLevel={2} title={<span id="create-day-setup-title">Day setup</span>} />
-              <div className="space-y-3 px-4 pb-4">
-                <FormField label="Day name" helper="Optional. Leave blank to use the day number.">
-                  {(control) => (
-                    <input
-                      {...control}
-                      type="text"
-                      value={name}
-                      onChange={(event) => setName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH))}
-                      placeholder="Legs, Push, Hotel Gym..."
-                      className={formFieldControlClassName}
-                      maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                    />
-                  )}
-                </FormField>
-              </div>
-            </CardSurface>
-          ) : null}
-
-          {creationMode === "blank" ? (
-            // A real on/off switch (DESIGN #8), the same card + GlowSwitch shape as Settings switches.
-            <CardSurface tone={isRest ? "attention" : "neutral"} data-create-day-rest-toggle={isRest ? "on" : "off"}>
-              <CardHeader
-                headingLevel={3}
-                title="Rest day"
-                meta={(
-                  <CardMeta
-                    items={[isRest
-                      ? "Created as a rest day. You can switch it back later."
-                      : "Off: a training day. Add exercises in the day editor."]}
-                  />
-                )}
-                chips={isRest ? <CardChips><CardStatusChip status="rest" /></CardChips> : undefined}
-                trailing={(
-                  <GlowSwitch
-                    checked={isRest}
-                    ariaLabel="Rest day"
-                    onClick={() => setIsRest((current) => !current)}
-                  />
-                )}
+        // Add a day with one short sheet (SIMPLIFY #9): Name (optional), Start from, Rest day, Create.
+        <div className="space-y-3" data-create-day-sheet="">
+          <FormField label="Day name" helper="Optional. Leave blank to use the day number.">
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH))}
+                placeholder="Legs, Push, Hotel Gym..."
+                className={formFieldControlClassName}
+                maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
               />
-            </CardSurface>
+            )}
+          </FormField>
+
+          {days.length > 0 ? (
+            <div className="space-y-1.5" data-create-day-start-from="">
+              <p className="px-1 text-[0.85rem] font-semibold text-[rgb(var(--text-secondary))]">Start from</p>
+              <SegmentedControl
+                ariaLabel="Start from"
+                size="sm"
+                value={creationMode}
+                options={[
+                  { label: "Empty", value: "blank" },
+                  { label: "Copy a day", value: "duplicate" },
+                ]}
+                onChange={(next) => setCreationMode(next === "duplicate" ? "duplicate" : "blank")}
+              />
+            </div>
           ) : null}
-        </>
+
+          {creationMode === "blank" ? (
+            <div data-create-day-rest-toggle={isRest ? "on" : "off"}>
+              <OptionSwitchRow
+                label="Rest day"
+                hint={isRest ? "No exercises. You can switch it back later." : "Off: a training day."}
+                checked={isRest}
+                onCheckedChange={setIsRest}
+              />
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {(isTargetMode || creationMode === "duplicate") && days.length > 0 ? (
         <RoutineDuplicateChooserPanel
-          title="Choose Day"
+          title={isTargetMode ? "Choose Day" : "Copy which day?"}
           list={(
                   <RoutineDuplicateChooserListViewport scrollClassName="max-h-[min(22rem,46dvh)]">
                     {days.map((day) => (
@@ -241,16 +211,6 @@ export function CreateRoutineDayClient({
         />
       ) : null}
 
-      {!isTargetMode ? (
-        <CardSurface>
-          <CardHeader
-            headingLevel={3}
-            title="Manage cycle settings"
-            meta={<CardMeta items={["Adjust cycle length, start anchor and progression defaults before you add the next day or duplicate a day into a different cycle position."]} />}
-            interaction={{ kind: "link", href: routineEditHref }}
-          />
-        </CardSurface>
-      ) : null}
     </div>
   );
 }

@@ -20,18 +20,18 @@ export function buildUseLastInfoPayload(args: {
   const usesCompletedHistory = Boolean(
     formatLoggedMeasurementStat(args.stats.lastWeight, args.stats.lastReps, args.stats.lastUnit),
   );
-  const progressionMode = args.stats.lastProgressionPlaybookId ? "Progression saved" : "No progression saved";
+  const progressionMode = args.stats.lastProgressionPlaybookId ? "On" : "Off";
 
   return {
-    title: args.didApplyLast ? "Clear Last Setup" : "Use Last Setup",
+    title: args.didApplyLast ? "Reset" : "Same as last time",
     summary: args.didApplyLast
-      ? "Clear removes the copied last setup and returns the exercise to a fresh starting draft."
-      : "Use copies the most recent goal setup for this exercise into the current add flow.",
+      ? "Reset puts the goal back to a fresh 3 × 8–12 start."
+      : "Fills in the goal you used last time for this exercise.",
     rows: [
-      { label: "Current action", value: args.didApplyLast ? "Clear copied setup" : "Apply last setup" },
-      { label: "Source", value: usesCompletedHistory ? "Latest completed history" : "Latest saved routine setup" },
-      { label: "Snapshot", value: args.lastSummaryText },
-      { label: "Progression", value: progressionMode },
+      { label: "Tap to", value: args.didApplyLast ? "Start fresh" : "Copy last time" },
+      { label: "From", value: usesCompletedHistory ? "Your last workout" : "Your saved routine" },
+      { label: "Last time", value: args.lastSummaryText },
+      { label: "Auto-progress", value: progressionMode },
     ],
     sectionKey: null,
   };
@@ -102,6 +102,17 @@ export function applyConfiguredSetupToGoalState({
   } satisfies ExerciseGoalFormState;
 }
 
+/** Starting goal for a reps exercise (SIMPLIFY #6): 3 x 8–12, so picking an exercise and tapping Add is enough. */
+export const DEFAULT_GOAL_REPS_MIN = "8";
+export const DEFAULT_GOAL_REPS_MAX = "12";
+
+export function resolveDefaultGoalReps(modality: GoalModality, options: { isStretch?: boolean; isOptional?: boolean } = {}) {
+  if (options.isStretch || options.isOptional) return { repsMin: "", repsMax: "" };
+  return modality === "strength" || modality === "bodyweight"
+    ? { repsMin: DEFAULT_GOAL_REPS_MIN, repsMax: DEFAULT_GOAL_REPS_MAX }
+    : { repsMin: "", repsMax: "" };
+}
+
 export function buildFreshGoalStateForExercise(args: {
   exercise: ExerciseOption | null | undefined;
   fallbackWeightUnit: "lbs" | "kg";
@@ -124,8 +135,7 @@ export function buildFreshGoalStateForExercise(args: {
 
   return {
     sets: isStretch ? "1" : "3",
-    repsMin: "",
-    repsMax: "",
+    ...resolveDefaultGoalReps(modality, { isStretch, isOptional }),
     failure: false,
     weight: "",
     duration: "",

@@ -7,6 +7,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { type ExerciseOption, type ExerciseRowProps, type ExerciseRowCueClasses } from "./types";
 import { normalizeTagValue } from "./filter";
@@ -442,15 +443,13 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
               />
             </div>
           </div>
-          <span
-            aria-hidden="true"
+          {/* The whole row selects (SIMPLIFY #6): a chevron, not a SELECT word. */}
+          <ChevronRightIcon
             className={cn(
-              "flex min-w-[4.7rem] shrink-0 items-center justify-end whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.14em] leading-none tabular-nums",
+              "h-4 w-4 shrink-0",
               hasStats ? "text-[rgb(var(--accent-strong)/0.96)]" : "text-[rgb(var(--text-muted)/0.92)]",
             )}
-          >
-            Select
-          </span>
+          />
         </button>
       </li>
     );
@@ -555,7 +554,7 @@ export const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, has
                   : "text-[rgb(var(--text-muted)/0.96)]",
             )}
           >
-              {"Select"}
+              <ChevronRightIcon className="h-4 w-4" />
           </span>
         )}
         trailingClassName={cn(
@@ -585,7 +584,7 @@ export function EmptyExerciseRow({ onClearFilters, libraryEmpty = false }: { onC
     <li>
       <ExerciseCard
         title={libraryEmpty ? "No exercises yet" : "No exercises match your filters"}
-        subtitle={libraryEmpty ? "Use Custom Exercise above to create your first one." : "Clear search or remove a filter to widen the library."}
+        subtitle={libraryEmpty ? "Use Create your own above to make your first one." : "Clear search or remove a filter to widen the library."}
         variant="compact"
         state="empty"
         leadingVisual={(

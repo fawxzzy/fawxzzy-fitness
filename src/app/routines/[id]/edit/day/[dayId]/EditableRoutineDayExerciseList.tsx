@@ -14,15 +14,9 @@ import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerc
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
-import {
-  GlowSwitch,
-  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
-  GLOW_SWITCH_STANDARD_CLASS_NAME,
-  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
-} from "@/components/ui/GlowSwitch";
+import { OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { CardEmptyState, CardLiveRegion, CardReorderHint, DragHandle, formatReorderAnnouncement } from "@/components/ui/card-system";
-import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -170,15 +164,13 @@ function RoutineTargetInputs({
   onStateChange,
   modality,
   onInfoRequest,
-  auxiliaryFields,
-  inlineFailureToggle,
+  moreOptionsContent,
 }: {
   state: ExerciseGoalFormState;
   onStateChange: (next: ExerciseGoalFormState) => void;
   modality: GoalModality;
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
-  auxiliaryFields?: MeasurementPanelAuxiliaryField[];
-  inlineFailureToggle?: boolean;
+  moreOptionsContent?: ReactNode;
 }) {
   return (
     <div className={appTokens.routineEditorCompactStack}>
@@ -203,9 +195,10 @@ function RoutineTargetInputs({
         // Wrap the goal fields into rows so Max reps and the Reps toggle are never cut off at 320-390px (F-013).
         wrapMeasurementFields
         onInfoRequest={onInfoRequest}
-        auxiliaryFields={auxiliaryFields}
         showInlineStepControls
-        inlineFailureToggle={inlineFailureToggle}
+        // Same plain goal as Add exercise (SIMPLIFY #6): Rep range switch, auto-progress and To failure under More options.
+        simpleLayout
+        moreOptionsContent={moreOptionsContent}
       />
     </div>
   );
@@ -1445,36 +1438,20 @@ export function EditableRoutineDayExerciseList({
                 detail: createEditDayProgressionMethodInfoPayload(playbookId),
               }));
             };
-            const progressionAuxiliaryField: MeasurementPanelAuxiliaryField = {
-              title: "Progression",
-              input: null,
-              inlineLabel: "PROGRESSION",
-              useInlineFieldShell: false,
-              showEmptyValue: false,
-              hasValue: true,
-              renderInput: () => (
-                <div
-                  className={GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME}
-                  onFocusCapture={() => publishProgressionMethodInfo()}
-                  onPointerDownCapture={() => publishProgressionMethodInfo()}
-                >
-                  <GlowSwitch
-                    checked={Boolean(draft.progressionPlaybookId)}
-                    ariaLabel={draft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
-                    onLabel="Auto"
-                    offLabel="Manual"
-                    onClick={() => {
-                      const nextPlaybookId: EditDayProgressionMethodId = draft.progressionPlaybookId ? "" : "double_progression";
-                      const nextDraft = applyEditDayProgressionMethod(draft, nextPlaybookId);
-                      updateExerciseDraft(exercise, () => nextDraft);
-                      publishProgressionMethodInfo(nextPlaybookId);
-                    }}
-                    className={GLOW_SWITCH_STANDARD_CLASS_NAME}
-                    stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
-                  />
-                </div>
-              ),
-            };
+            const isAutoProgressOn = Boolean(draft.progressionPlaybookId);
+            const autoProgressSwitch = (
+              <OptionSwitchRow
+                label="Auto-progress"
+                hint={isAutoProgressOn ? "Adds weight or reps when you hit the top of your goal." : "You set the next goal yourself."}
+                checked={isAutoProgressOn}
+                onCheckedChange={(next) => {
+                  const nextPlaybookId: EditDayProgressionMethodId = next ? "double_progression" : "";
+                  const nextDraft = applyEditDayProgressionMethod(draft, nextPlaybookId);
+                  updateExerciseDraft(exercise, () => nextDraft);
+                  publishProgressionMethodInfo(nextPlaybookId);
+                }}
+              />
+            );
             return (
               <div className={appTokens.routineEditorCompactStack}>
                 <form
@@ -1509,11 +1486,12 @@ export function EditableRoutineDayExerciseList({
                           goalState: nextState,
                         }))}
                         modality={modality}
-                        auxiliaryFields={showProgressionInputs ? [progressionAuxiliaryField] : undefined}
-                        inlineFailureToggle
+                        moreOptionsContent={showProgressionInputs ? autoProgressSwitch : null}
                       />
                     ) : null}
                     {showProgressionInputs ? (
+                      // Stays mounted while Auto-progress is off so its fields still submit "no progression".
+                      <div hidden={!isAutoProgressOn}>
                       <ExerciseProgressionEditorSurface
                         draft={draft}
                         onChange={(nextValue) => updateExerciseDraft(exercise, (current) => ({ ...current, ...nextValue }))}
@@ -1553,6 +1531,7 @@ export function EditableRoutineDayExerciseList({
                         dropdownPreset="exercise-inline"
                         infoDockPlacement="above-bottom-actions"
                       />
+                      </div>
                     ) : null}
                 </form>
               </div>

@@ -2,19 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
-import {
-  GlowSwitch,
-  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
-  GLOW_SWITCH_STANDARD_CLASS_NAME,
-  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
-} from "@/components/ui/GlowSwitch";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
-import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -221,36 +215,21 @@ export function ExerciseChooserAddFlowForm({
       detail: createAddExerciseProgressionMethodInfoPayload(playbookId),
     }));
   };
-  const progressionAuxiliaryField: MeasurementPanelAuxiliaryField = {
-    title: "Progression",
-    input: null,
-    inlineLabel: "PROGRESSION",
-    useInlineFieldShell: false,
-    showEmptyValue: false,
-    hasValue: true,
-    renderInput: () => (
-      <div
-        className={GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME}
-        onFocusCapture={() => publishProgressionMethodInfo()}
-        onPointerDownCapture={() => publishProgressionMethodInfo()}
-      >
-        <GlowSwitch
-          checked={Boolean(progressionDraft.progressionPlaybookId)}
-          ariaLabel={progressionDraft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
-          onLabel="Auto"
-          offLabel="Manual"
-          onClick={() => {
-            const nextPlaybookId: AddExerciseProgressionMethodId = progressionDraft.progressionPlaybookId ? "" : "double_progression";
-            setHasCustomizedProgression(true);
-            setProgressionDraft(applyAddExerciseProgressionMethod(progressionDraft, nextPlaybookId));
-            publishProgressionMethodInfo(nextPlaybookId);
-          }}
-          className={GLOW_SWITCH_STANDARD_CLASS_NAME}
-          stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
-        />
-      </div>
-    ),
-  };
+  const isAutoProgressOn = Boolean(progressionDraft.progressionPlaybookId);
+  // One plain switch (SIMPLIFY #6) instead of the amber Auto/Manual pill; the rules editor only shows while it is on.
+  const autoProgressSwitch = (
+    <OptionSwitchRow
+      label="Auto-progress"
+      hint={isAutoProgressOn ? "Adds weight or reps when you hit the top of your goal." : "You set the next goal yourself."}
+      checked={isAutoProgressOn}
+      onCheckedChange={(next) => {
+        const nextPlaybookId: AddExerciseProgressionMethodId = next ? "double_progression" : "";
+        setHasCustomizedProgression(true);
+        setProgressionDraft(applyAddExerciseProgressionMethod(progressionDraft, nextPlaybookId));
+        publishProgressionMethodInfo(nextPlaybookId);
+      }}
+    />
+  );
 
   return (
     <>
@@ -313,21 +292,8 @@ export function ExerciseChooserAddFlowForm({
             setHasCustomizedProgression(false);
             setProgressionDraft(seededExerciseProgression);
           }}
-          goalAuxiliaryFields={shouldShowProgression ? [progressionAuxiliaryField] : []}
-          goalInlineFailureToggle
-          renderFooter={({ goalValidation, isCustomExerciseSelected, customExerciseError, canToggleLastSelection, didApplyLastSelection, onToggleLastSelection }) => (
-            <BottomActionSplit
-              secondary={(
-                <BottomDockButton
-                  type="button"
-                  intent="info"
-                  onClick={onToggleLastSelection}
-                  disabled={!canToggleLastSelection || isSubmitting}
-                >
-                  {didApplyLastSelection ? "Clear Last" : "Use Last"}
-                </BottomDockButton>
-              )}
-              primary={(
+          renderFooter={({ goalValidation, isCustomExerciseSelected, customExerciseError, canToggleLastSelection, didApplyLastSelection, onToggleLastSelection }) => {
+            const addButton = (
                 <BottomDockButton
                   type="submit"
                   form={formId}
@@ -350,15 +316,38 @@ export function ExerciseChooserAddFlowForm({
                 >
                   Add Exercise
                 </BottomDockButton>
-              )}
-            />
-          )}
+            );
+            // "Same as last time" only exists when this exercise has history (SIMPLIFY #6); otherwise Add is the one action.
+            if (!canToggleLastSelection) {
+              return <BottomActionSingle>{addButton}</BottomActionSingle>;
+            }
+            return (
+              <BottomActionSplit
+                secondary={(
+                  <BottomDockButton
+                    type="button"
+                    intent="info"
+                    onClick={onToggleLastSelection}
+                    disabled={isSubmitting}
+                    aria-label={didApplyLastSelection ? "Reset" : "Same as last time"}
+                  >
+                    {/* Dock labels stay at 14 characters or fewer (DESIGN C12); the full words are the accessible name. */}
+                    {didApplyLastSelection ? "Reset" : "Last time"}
+                  </BottomDockButton>
+                )}
+                primary={addButton}
+              />
+            );
+          }}
           goalExtraContent={({ selectedExercise: activeExercise, goalState, effectiveGoalModality }) => {
             return (
               <div className="space-y-2">
+                {shouldShowProgression ? autoProgressSwitch : null}
                 {additionalGoalExtraContent}
                 {shouldShowProgression ? <AddExerciseGuide showTimer={Boolean(additionalGoalExtraContent)} /> : null}
                 {shouldShowProgression ? (
+                  // Stays mounted while Auto-progress is off so its fields still submit "no progression".
+                  <div hidden={!isAutoProgressOn}>
                   <ExerciseProgressionEditorSurface
                     draft={progressionDraft}
                     onChange={(nextValue) => {
@@ -394,6 +383,7 @@ export function ExerciseChooserAddFlowForm({
                     // covered the bottom of the goal sheet and its folded header.
                     showProgressionInfo={false}
                   />
+                  </div>
                 ) : null}
               </div>
             );

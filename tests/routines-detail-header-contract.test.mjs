@@ -76,6 +76,16 @@ test("routine titles are plain nouns and the routine name is a body field, not t
   assert.match(code("src/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx"), /label="Day name"/);
 });
 
+test("routine settings sum up the schedule in plain words (SIMPLIFY #8)", () => {
+  const form = code("src/app/routines/[id]/edit/EditRoutineAutosaveForm.tsx");
+  // Only a 7-day cycle is "Weekly"; other lengths rotate across weekdays, so the line says how often it repeats.
+  assert.match(form, /"Weekly"/);
+  assert.match(form, /Repeats every \$\{draft\.cycleLengthDays\}/);
+  assert.doesNotMatch(form, /Weekly, \$\{/);
+  // The dock reads Saved when nothing is waiting instead of a dimmed Save.
+  assert.match(form, /isSaving \? "Saving\.\.\." : isDirty \? "Save" : "Saved"/);
+});
+
 test("routine forms use the C14 FormField recipe: no legend-on-border, no accent-underlined labels", () => {
   const editorShared = code("src/components/routines/RoutineEditorShared.tsx");
   assert.match(editorShared, /<FormField\b/);

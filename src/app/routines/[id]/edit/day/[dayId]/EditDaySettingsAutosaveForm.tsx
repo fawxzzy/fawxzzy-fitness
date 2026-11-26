@@ -5,8 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useFieldErrorNotice } from "@/components/ui/FieldNotice";
 import { AppButton } from "@/components/ui/AppButton";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import type { RoutineDayKind } from "@/components/routines/RoutineDayKindSelector";
+import { MoreOptionsDisclosure, OptionSwitchRow } from "@/components/ui/measurements/OptionControls";
 import { RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
@@ -476,28 +475,32 @@ export function EditDaySettingsAutosaveForm({
         placeholder={`Day ${dayIndex}`}
         maxLength={15}
       />
-      {/* Day type on the shared SegmentedControl: 44px segments and the strong selected look (F-009). */}
-      <SegmentedControl
-        ariaLabel="Day type"
-        size="sm"
-        className="mx-auto max-w-sm"
-        value={(draft.isRest ? "rest" : draft.isOptional ? "optional" : "required") satisfies RoutineDayKind}
-        options={[
-          { label: "Required", value: "required" },
-          { label: "Optional", value: "optional" },
-          { label: "Rest", value: "rest" },
-        ]}
-        onChange={(next) => {
-          const kind: RoutineDayKind = next === "rest" ? "rest" : next === "optional" ? "optional" : "required";
-          const nextSnapshot = {
-            ...draft,
-            isRest: kind === "rest",
-            isOptional: kind === "optional",
-          };
-          setDraft(nextSnapshot);
-          scheduleAutosave(nextSnapshot);
-        }}
-      />
+      {/* Plain day type (SIMPLIFY #9): a Rest day switch; a bonus day is the rare case, so it waits under More options. */}
+      <div className="mx-auto w-full max-w-sm space-y-1" data-day-type="">
+        <OptionSwitchRow
+          label="Rest day"
+          hint={draft.isRest ? "No exercises. Rest days are not counted." : "Off: a training day."}
+          checked={draft.isRest}
+          onCheckedChange={(next) => {
+            const nextSnapshot = { ...draft, isRest: next, isOptional: next ? false : draft.isOptional };
+            setDraft(nextSnapshot);
+            scheduleAutosave(nextSnapshot);
+          }}
+        />
+        <MoreOptionsDisclosure defaultOpen={draft.isOptional}>
+          <OptionSwitchRow
+            label="Bonus day"
+            hint="Not counted if skipped."
+            checked={draft.isOptional && !draft.isRest}
+            disabled={draft.isRest}
+            onCheckedChange={(next) => {
+              const nextSnapshot = { ...draft, isOptional: next, isRest: false };
+              setDraft(nextSnapshot);
+              scheduleAutosave(nextSnapshot);
+            }}
+          />
+        </MoreOptionsDisclosure>
+      </div>
     </form>
   );
 }

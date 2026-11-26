@@ -6,6 +6,7 @@ import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { FormField, formFieldControlClassName } from "@/components/ui/FormField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { inferCaloriesEstimationMethodFromExercise } from "@/lib/calorie-estimation";
 import { getMissingGoalPreviewLabel, type GoalValidationResult } from "@/lib/exercise-goal-validation";
 import { type ExerciseOption, type CustomExerciseRowProps } from "./types";
@@ -348,7 +349,7 @@ export function buildCustomExerciseDraftOption(
 
   return {
     id: EXERCISE_PICKER_CUSTOM_EXERCISE_ID,
-    name: name.trim().replace(/\s+/g, " ") || "Custom Exercise",
+    name: name.trim().replace(/\s+/g, " ") || "Your exercise",
     user_id: null,
     is_global: false,
     primary_muscle: primaryMuscle,
@@ -381,7 +382,7 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
 }: CustomExerciseRowProps) {
   const hasDraftName = value.trim().length > 0;
   const hasDraftTags = selectedTags.length > 0;
-  const draftMetaItems = hasDraftTags ? selectedTags : ["Create one not in library"];
+  const draftMetaItems = hasDraftTags ? selectedTags : ["Not in the list? Make it here"];
   const draftHelperText = helperText;
   // A warning helper is shown only for a blocking name problem (duplicate name), so it marks the field invalid.
   const isDraftNameInvalid = helperTone === "warning" && Boolean(draftHelperText);
@@ -415,8 +416,8 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
           />
           <div className="min-w-0 flex-1 pl-2">
             <ExerciseTitleInline
-              name="Custom Exercise"
-              metadataItems={["Create one not in library"]}
+              name="Create your own"
+              metadataItems={["Not in the list? Make it here"]}
               nameClassName="text-[0.96rem] font-semibold text-[rgb(var(--text)/0.98)]"
               metadataClassName="!flex-nowrap text-[length:var(--type-caption)] text-[rgb(var(--accent-strong)/0.88)]"
               emphasizeLeadMetadata
@@ -425,12 +426,8 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
               underlineClassName="opacity-75"
             />
           </div>
-          <span
-            aria-hidden="true"
-            className="flex min-w-[4.7rem] shrink-0 items-center justify-end whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.14em] leading-none tabular-nums text-[rgb(var(--accent-strong)/0.98)]"
-          >
-            Build
-          </span>
+          {/* The whole row is the action (SIMPLIFY #6): a chevron, not a BUILD word. */}
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-[rgb(var(--accent-strong)/0.9)]" />
         </button>
       </li>
     );
@@ -441,13 +438,13 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
       <ExerciseCard
         title={(
           <ExerciseTitleWithCompanion
-            name={hasDraftName ? "Custom Exercise Draft" : "Start Custom Exercise"}
+            name={hasDraftName ? "Your exercise" : "Create your own"}
             metadataItems={draftMetaItems}
             companion={targetSummaryText ? (
               <>
                 <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
                   <span className="min-w-0 max-w-full whitespace-nowrap text-[0.9rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]">
-                    Your Goal
+                    Goal
                   </span>
                   <MetricAccentBar variant="thin" className="w-full opacity-75" />
                 </span>
@@ -482,7 +479,7 @@ export const CustomExerciseRow = memo(function CustomExerciseRow({
                 name="customExerciseNameDisplay"
                 value={value}
                 onChange={(event) => onValueChange(event.target.value)}
-                placeholder="Custom Exercise"
+                placeholder="Exercise name"
                 maxLength={80}
                 className={cn(formFieldControlClassName, "font-semibold")}
               />
