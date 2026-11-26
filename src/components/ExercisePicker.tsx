@@ -1035,6 +1035,7 @@ export function ExercisePicker({
             auxiliaryFields={callerAuxiliaryFields}
             showInlineStepControls
             inlineFailureToggle={goalInlineFailureToggle}
+            wrapMeasurementFields
           />
         </div>
         {goalExtraNode ? (

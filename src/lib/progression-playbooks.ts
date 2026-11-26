@@ -362,7 +362,7 @@ export const TRAINING_GOAL_DEFINITIONS: Record<TrainingGoalId, {
     id: "technique_rehab",
     label: "Technique / Rehab",
     meaning: "Prioritizes control, form, and consistency.",
-    affects: "Seeds Manual targets and avoids failure defaults.",
+    affects: "Seeds Manual goals and avoids failure defaults.",
     example: "Hold the target steady until movement quality is reliable.",
     defaultModel: {
       progressionMethod: "manual",
@@ -420,7 +420,7 @@ export const PROGRESSION_INFO_TERM_DEFINITIONS: ProgressionInfoTermDefinition[] 
   {
     term: "Pace / volume step",
     meaning: "How a time + distance target changes when promoted.",
-    affects: "Combined cardio targets that track both duration and distance.",
+    affects: "Combined cardio goals that track both duration and distance.",
     example: "Hold 20:00 and increase distance from 2.0 mi to 2.1 mi.",
   },
   {
@@ -741,7 +741,7 @@ export const PROGRESSION_METHOD_DEFINITIONS: Record<ProgressionMethodId | "manua
     whatItDoes: "Uses the target you enter. No playbook adjusts this exercise.",
     useItFor: "New movements, stretch/mobility, cardio, or anything you want to control directly.",
     inputMeanings: ["Sets/reps/load are just targets."],
-    pattern: "Manual targets are stable until you edit them.",
+    pattern: "Manual goals are stable until you edit them.",
   },
   double_progression: {
     id: "double_progression",
@@ -2842,7 +2842,7 @@ export function describeProgressionPlaybookSelection(args: {
 }) {
   const selection = validateProgressionPlaybookSelection(args);
   if (!selection) {
-    return "Manual target only. No progression playbook will adjust this exercise.";
+    return "Manual goal only. No progression playbook will adjust this exercise.";
   }
 
   const incrementLabel = `${formatNumber(selection.config.loadIncrement)} ${args.weightUnit}`;
@@ -3257,7 +3257,7 @@ export function deriveProgressionReviewCandidate(args: {
   if (!selection) {
     return buildNoProgressionReviewCandidate({
       currentTarget: args.plan,
-      reason: "Manual target: no progression review candidate.",
+      reason: "Manual goal: no progression review candidate.",
       cycleWindow: args.cycleWindow,
     });
   }

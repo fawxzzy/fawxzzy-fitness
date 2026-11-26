@@ -143,7 +143,7 @@ export function RoutineBrowseCard({
         meta={<CardMeta items={metaItems} />}
         chips={routine.isActive ? <CardChips><CardStatusChip status="active" /></CardChips> : undefined}
         interaction={onPress ? { kind: "press", onPress } : { kind: "none" }}
-        trailing={hasActions ? <Menu label={`Actions for ${routine.name}`} items={menuItems} /> : undefined}
+        trailing={hasActions ? <Menu label={`Actions for ${routine.name}`} items={menuItems} minWidth={80} /> : undefined}
       />
       {previewDays.length > 0 ? (
         <div className="px-4 pb-3">

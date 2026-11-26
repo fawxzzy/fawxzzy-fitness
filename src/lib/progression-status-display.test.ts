@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -522,4 +523,20 @@ test("fingerprint links only identical exercise targets and config", () => {
 
   assert.equal(first, same);
   assert.notEqual(first, differentTarget);
+});
+
+test("in-app progression copy says goal, never 'Manual target(s)' (event ids and legal copy are out of scope)", () => {
+  const files = [
+    "./progression-playbooks.ts",
+    "./progression-status-display.ts",
+    "./progression-scenarios.ts",
+    "./exercise-info.ts",
+    "../components/routines/ProgressionPlaybookEditor.tsx",
+    "../components/routines/RoutineEditorForm.tsx",
+  ];
+  for (const file of files) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /Manual targets?/i, `${file} still shows Manual target(s) wording`);
+    assert.doesNotMatch(source, /(routine|cardio) targets/i, `${file} still says routine/cardio targets in UI copy`);
+  }
 });

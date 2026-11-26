@@ -527,7 +527,7 @@ export function buildProgressionScenarioFixtures(): ProgressionScenario[] {
       title: "No candidate",
       exerciseName: "Manual Row",
       simulatedState: [
-        "Manual target",
+        "Manual goal",
         "No progression playbook selected",
       ],
       expectedUi: [

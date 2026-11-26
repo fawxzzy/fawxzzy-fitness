@@ -11,7 +11,7 @@ import { getAppButtonClassName, normalizeAppButtonVariant } from "../../src/comp
 import { Chip } from "../../src/components/ui/Chip.tsx";
 import { ConfirmDestructiveModal } from "../../src/components/ui/ConfirmDestructiveModal.tsx";
 import { FormField } from "../../src/components/ui/FormField.tsx";
-import { Menu, nextEnabledMenuIndex } from "../../src/components/ui/Menu.tsx";
+import { Menu, nextEnabledMenuIndex, resolveMenuPlacement } from "../../src/components/ui/Menu.tsx";
 import { SegmentedControl } from "../../src/components/ui/SegmentedControl.tsx";
 import { Sheet } from "../../src/components/ui/Sheet.tsx";
 import { BottomSheet } from "../../src/components/ui/BottomSheet.tsx";
@@ -109,6 +109,34 @@ test("nextEnabledMenuIndex wraps and skips disabled rows", () => {
   assert.equal(nextEnabledMenuIndex(enabled, 2, "Home"), 0);
   assert.equal(nextEnabledMenuIndex(enabled, 0, "End"), 3);
   assert.equal(nextEnabledMenuIndex([false, false], -1, "ArrowDown"), -1);
+});
+
+test("resolveMenuPlacement: opens below and right-aligned when it fits, flips above near the bottom, and clamps inside the viewport", () => {
+  const viewport = { width: 390, height: 844 };
+  const panel = { width: 128, height: 58 };
+  const roomy = resolveMenuPlacement({ trigger: { top: 100, bottom: 144, left: 291, right: 335 }, viewport, panel });
+  assert.deepEqual(roomy, { top: 150, right: 55, placement: "below" });
+
+  const bottom = resolveMenuPlacement({ trigger: { top: 780, bottom: 824, left: 291, right: 335 }, viewport, panel });
+  assert.equal(bottom.placement, "above");
+  assert.equal(bottom.top, 780 - 6 - 58);
+
+  // No room above or below (tiny viewport): the panel is clamped to the margin, never off screen.
+  const cramped = resolveMenuPlacement({ trigger: { top: 20, bottom: 64, left: 291, right: 335 }, viewport: { width: 390, height: 100 }, panel });
+  assert.ok(cramped.top >= 8 && cramped.top + panel.height <= 100 - 8, "clamped to the viewport");
+
+  // A trigger near the left edge: the panel's left edge never goes under the 8px margin.
+  const leftEdge = resolveMenuPlacement({ trigger: { top: 100, bottom: 144, left: 8, right: 52 }, viewport: { width: 320, height: 568 }, panel: { width: 176, height: 58 } });
+  assert.ok(leftEdge.right <= 320 - 8 - 176, "right offset keeps the panel's left edge inside the viewport");
+  assert.ok(leftEdge.right >= 8);
+});
+
+test("Menu: the card menu is compact so it covers as little of the card as possible", () => {
+  const browse = readFileSync(new URL("../../src/components/routines/RoutineBrowseCard.tsx", import.meta.url), "utf8");
+  assert.match(browse, /<Menu[^>]*minWidth=\{([5-9][0-9]|1[0-2][0-9])\}/, "routine card Menu passes a compact minWidth (<=129)");
+  const menu = readFileSync(new URL("../../src/components/ui/Menu.tsx", import.meta.url), "utf8");
+  assert.match(menu, /resolveMenuPlacement/);
+  assert.match(menu, /data-menu-placement/);
 });
 
 function SheetHarness({ onClose }: { onClose: () => void }) {

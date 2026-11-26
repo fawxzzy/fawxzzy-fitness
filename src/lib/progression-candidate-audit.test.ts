@@ -57,7 +57,7 @@ test("does not return a rejection reason for a live candidate", () => {
 
 test("classifies manual and invalid progression configs", () => {
   assert.equal(inferProgressionAuditRejectionReason({
-    candidate: buildNoneCandidate("Manual target: no progression review candidate."),
+    candidate: buildNoneCandidate("Manual goal: no progression review candidate."),
     hasConfiguredPlaybook: false,
     hasValidSelection: false,
     historySource: "none",
@@ -67,7 +67,7 @@ test("classifies manual and invalid progression configs", () => {
   }), "manual_method");
 
   assert.equal(inferProgressionAuditRejectionReason({
-    candidate: buildNoneCandidate("Manual target: no progression review candidate."),
+    candidate: buildNoneCandidate("Manual goal: no progression review candidate."),
     hasConfiguredPlaybook: true,
     hasValidSelection: false,
     historySource: "none",

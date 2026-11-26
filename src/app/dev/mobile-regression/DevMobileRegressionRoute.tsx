@@ -1087,7 +1087,7 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
         bars: [
           { id: "promotion_applied", label: "Promotion applied", value: 2, valueLabel: "2 events", detail: null },
           { id: "deload_applied", label: "Deload applied", value: 1, valueLabel: "1 event", detail: null },
-          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+          { id: "manual_target_change", label: "Manual goal change", value: 1, valueLabel: "1 event", detail: null },
         ],
       },
       {
@@ -1132,11 +1132,11 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
         revertCount: 0,
         items: [
           "Bench Press regressed | 225 lbs -> 215 lbs",
-          "Incline Walk manual target change | 12:00 -> 15:00",
+          "Incline Walk manual goal change | 12:00 -> 15:00",
         ],
         hotspotItems: [
           "Bench Press had the most regressions.",
-          "Incline Walk had the most manual target changes.",
+          "Incline Walk had the most manual goal changes.",
         ],
       },
       {
@@ -1165,7 +1165,7 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
     hotspotItems: [
       "Back Squat drove the most promotions.",
       "Bench Press had the most regressions.",
-      "Incline Walk had the most manual target changes.",
+      "Incline Walk had the most manual goal changes.",
     ],
     timelineItems: [
       "Active progression days: 3 days.",
@@ -1177,7 +1177,7 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
   hotspotItems: [
     "Back Squat led the cycle with 2 sessions, had the strongest PR signal, and drove the most promotions.",
     "Bench Press had the most regressions.",
-    "Incline Walk had the most manual target changes.",
+    "Incline Walk had the most manual goal changes.",
   ],
   attentionItems: [
     "1 planned day is still open this cycle.",
@@ -1241,7 +1241,7 @@ const mockHistoryScopeSummary: HistoryScopeSummary = {
         bars: [
           { id: "promotion_applied", label: "Promotion applied", value: 2, valueLabel: "2 events", detail: null },
           { id: "deload_applied", label: "Deload applied", value: 1, valueLabel: "1 event", detail: null },
-          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+          { id: "manual_target_change", label: "Manual goal change", value: 1, valueLabel: "1 event", detail: null },
         ],
       },
       {
@@ -1287,12 +1287,12 @@ const mockHistoryScopeSummary: HistoryScopeSummary = {
         items: [
           "Bench Press promoted | 215 lbs -> 225 lbs",
           "Bench Press regressed | 225 lbs -> 215 lbs",
-          "Incline Walk manual target change | 12:00 -> 15:00",
+          "Incline Walk manual goal change | 12:00 -> 15:00",
         ],
         hotspotItems: [
           "Bench Press drove the most promotions.",
           "Bench Press had the most regressions.",
-          "Incline Walk had the most manual target changes.",
+          "Incline Walk had the most manual goal changes.",
         ],
       },
     ],
@@ -1304,7 +1304,7 @@ const mockHistoryScopeSummary: HistoryScopeSummary = {
     hotspotItems: [
       "Back Squat drove the most promotions.",
       "Bench Press had the most regressions.",
-      "Incline Walk had the most manual target changes.",
+      "Incline Walk had the most manual goal changes.",
     ],
     timelineItems: [
       "Active weeks: 3 weeks.",
@@ -1317,7 +1317,7 @@ const mockHistoryScopeSummary: HistoryScopeSummary = {
     "Back Squat led progress across this scope and drove the most promotions.",
     "Incline Walk appeared in 1 session without a PR or progression signal.",
     "Bench Press had the most regressions.",
-    "Incline Walk had the most manual target changes.",
+    "Incline Walk had the most manual goal changes.",
   ],
   reviewItems: [
     "3 completed workout days across 3 routines.",
@@ -2023,7 +2023,7 @@ const mockProgressionHistoryEvents: ProgressionAnalyticsEvent[] = [
       vector: "load",
       loadDelta: 5,
     },
-    reason: "Manual target increase after accessory block review.",
+    reason: "Manual goal increase after accessory block review.",
     source_session_id: null,
     created_at: "2026-05-08T11:15:00.000Z",
   },
@@ -3237,8 +3237,8 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
               manualChangeCount: 1,
               revertCount: 0,
               items: [isLongTargetStressScenario
-                ? "Manual target change | Pause target adjusted | 4 reps | 225 lbs | 1 sec pause -> 4 reps | 225 lbs | 2 sec pause"
-                : "Manual target change | Load adjusted | 4 reps | 220 lbs -> 4 reps | 225 lbs"],
+                ? "Manual goal change | Pause goal adjusted | 4 reps | 225 lbs | 1 sec pause -> 4 reps | 225 lbs | 2 sec pause"
+                : "Manual goal change | Load adjusted | 4 reps | 220 lbs -> 4 reps | 225 lbs"],
             },
           ],
         },

@@ -293,7 +293,7 @@ function getStatusLabel(statusType: ProgressionStatusType) {
   case "incomplete_sets":
     return "Incomplete checked sets";
   case "manual":
-    return "Manual target";
+    return "Manual goal";
   case "unsupported":
     return "Not progression-tracked";
   case "partial_progress":
@@ -340,7 +340,7 @@ function getDetailLine(args: {
       ? `Result: ${Math.min(workSetCount, targetSets)}/${targetSets} checked sets logged.`
       : "Result: more checked sets are needed before review.";
   case "manual":
-    return "Result: manual targets do not create automatic updates.";
+    return "Result: manual goals do not create automatic updates.";
   case "unsupported":
     return "Result: this exercise does not use progression updates.";
   case "partial_progress":

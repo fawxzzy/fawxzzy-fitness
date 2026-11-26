@@ -6428,7 +6428,7 @@ export function ProgressionPlaybookEditor({
                   { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Slot 1 anchors to. Covered weekdays show how the current cycle spans forward from that anchor." },
                   { label: "Cycle Length", value: "Total days before the cycle repeats. In week-based mode, extra days continue into the next week." },
                   { label: "Timezone", value: "Controls Today rollover, day slot rollover, and routine occurrence dates." },
-                  { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
+                  { label: "Units", value: "Default weight and distance units used for routine goals, progression values, and logged workout values." },
                 ]}
               />
             ),
@@ -6665,7 +6665,7 @@ export function ProgressionPlaybookEditor({
             progressionSettingsPanels.push({
               key: "progression",
               title: "Progression",
-              summary: selectedPlaybookId ? selectedMethodInfo.label : "Manual targets",
+              summary: selectedPlaybookId ? selectedMethodInfo.label : "Manual goals",
               widthClassName: "w-[11rem] min-w-[11rem]",
               content: (
                 <div className="space-y-3" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>

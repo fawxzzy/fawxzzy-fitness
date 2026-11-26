@@ -72,6 +72,10 @@ End move between enabled rows, Escape closes and returns focus to the trigger, a
 swallowed (it does not activate what is under it), rows are 44px. Use a Menu for 2-6 secondary actions on one object;
 use a Sheet when the choice needs explanation or a form.
 
+Placement is resolved by the pure `resolveMenuPlacement`: right-aligned under the trigger, flipped above it when it does not fit
+below, and always clamped inside the viewport (8px margin). A caller whose panel sits over content it should not cover passes a
+compact `minWidth` (the routine card uses 80, so the Delete panel stays clear of the day chips at 390 and 320).
+
 ### Chips (`src/components/ui/Chip.tsx`)
 
 - `Chip`: a non-interactive label/badge. `tone`: `neutral`, `accent`, `success`, `attention`, `danger`; `variant`:
