@@ -29,9 +29,13 @@ export function formatStarterDaysChip(daysPerWeek: number) {
   return `${daysPerWeek} days a week`;
 }
 
+export type StarterPlanCreated = { routineId: string; activated: boolean };
+
 /**
- * The three starter plans as tap targets. One tap creates the routine with its days and exercises and makes it the
- * active routine; `onCreated` decides where to go next (Today refreshes in place, New routine goes to Today).
+ * The three starter plans as tap targets. One tap creates the routine with its days and exercises; the server makes
+ * it the active routine only when nothing live is active and no workout is open (start-fast-guards.ts). When it was
+ * only added, the notice says so ("Added. Switch to it from Routines.") and `onCreated` gets `activated: false`, so
+ * the caller can go to Routines instead of Today. `onCreated` decides where to go next.
  * A second tap while one is setting up is ignored (ref guard, then every card disables), and the server adopts an
  * identical routine made a moment ago, so a double tap makes one routine. Failures use the in-flow notice (toast).
  */
@@ -41,7 +45,7 @@ export function StarterPlanList({
   headingLevel = 3,
 }: {
   createAction?: StarterPlanCreateAction;
-  onCreated: (routineId: string) => void;
+  onCreated: (created: StarterPlanCreated) => void;
   headingLevel?: 2 | 3 | 4;
 }) {
   const toast = useToast();
@@ -65,8 +69,11 @@ export function StarterPlanList({
       toast.error(isRoutineLimitError(result.error) ? getRoutineLimitNoticeCopy() : result.error, { id: STARTER_TOAST_ID });
       return;
     }
+    if (!result.activated && result.notice) {
+      toast.success(result.notice, { id: STARTER_TOAST_ID });
+    }
     // Stays pending (cards disabled) until the next screen replaces this one.
-    onCreated(result.routineId);
+    onCreated({ routineId: result.routineId, activated: result.activated });
   }
 
   return (
@@ -105,24 +112,42 @@ export function StarterPlanList({
 const quietLinkClassName = "inline-flex min-h-11 items-center px-2 text-sm font-medium text-[rgb(var(--text-secondary))] underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--accent))]";
 
 /**
- * First-run Today (no active routine): "Pick a plan to start", three plans, then two quiet links for people who
- * want to build their own or already have routines. Replaces the old "Choose a routine / Go to Routines" dead end.
+ * Today with no routines at all: "Pick a plan to start", three plans, then two quiet links. Shown only on a true
+ * first run (no routines, no finished workouts) or, as `variant="restore"`, when every routine is archived: then
+ * the copy says so and "Restore a routine" (the Archived list on Routines) sits beside "Build my own".
+ * TodayNoRoutinePanel picks the variant; people with live routines never see this card.
  */
-export function StarterPlanCard({ createAction }: { createAction?: StarterPlanCreateAction }) {
+export function StarterPlanCard({
+  createAction,
+  variant = "first-run",
+}: {
+  createAction?: StarterPlanCreateAction;
+  variant?: "first-run" | "restore";
+}) {
   const router = useRouter();
+  const isRestore = variant === "restore";
 
   return (
     <section aria-labelledby="starter-plan-heading" className="space-y-3" data-starter-plan-card="true">
       <div className="space-y-1 px-1">
         <h2 id="starter-plan-heading" className="m-0 text-lg font-semibold text-[rgb(var(--text-primary))]">Pick a plan to start</h2>
         <p className="m-0 text-sm leading-snug text-[rgb(var(--text-secondary)/0.95)]">
-          One tap sets it up with today as Day 1. You can change anything later.
+          {isRestore
+            ? "Your routines are archived. Restore one, or pick a plan with today as Day 1."
+            : "One tap sets it up with today as Day 1. You can change anything later."}
         </p>
       </div>
-      <StarterPlanList createAction={createAction} onCreated={() => router.refresh()} />
+      <StarterPlanList
+        createAction={createAction}
+        onCreated={({ activated }) => (activated ? router.refresh() : router.push("/routines"))}
+      />
       <div className="flex flex-wrap items-center justify-center gap-x-4">
         <Link href="/routines/new?mode=blank" className={quietLinkClassName}>Build my own</Link>
-        <Link href="/routines" className={quietLinkClassName}>Your routines</Link>
+        {isRestore ? (
+          <Link href="/routines" className={quietLinkClassName} data-starter-restore-link="true">Restore a routine</Link>
+        ) : (
+          <Link href="/routines" className={quietLinkClassName}>Your routines</Link>
+        )}
       </div>
     </section>
   );

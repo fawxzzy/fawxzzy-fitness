@@ -1,13 +1,31 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { StarterPlanCard } from "@/app/today/StarterPlanCard";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayInSessionCard } from "@/app/today/TodayInSessionCard";
+import { TodayNoRoutinePanel } from "@/app/today/TodayNoRoutinePanel";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
+import type { TodayNoRoutineState } from "@/lib/start-fast-guards";
 
-export type DevTodayStartFastState = "first-run" | "plan" | "in-session" | "done";
+export type DevTodayStartFastState = "first-run" | "restore" | "pick-routine" | "choose" | "plan" | "in-session" | "done";
+
+const NO_ROUTINE_STATES: Partial<Record<DevTodayStartFastState, TodayNoRoutineState>> = {
+  "first-run": { kind: "starters" },
+  restore: { kind: "starters-with-restore" },
+  "pick-routine": {
+    kind: "pick-routine",
+    routines: [
+      { id: "sf-r-1", name: "Upper / lower" },
+      { id: "sf-r-2", name: "Home dumbbells" },
+      { id: "sf-r-3", name: "Full body · 3 days" },
+    ],
+    moreCount: 2,
+  },
+  choose: { kind: "choose" },
+};
+
+const fixtureDelay = () => new Promise((resolve) => window.setTimeout(resolve, 600));
 
 type PickerDays = ComponentProps<typeof TodayDayPicker>["days"];
 type PickerExercise = PickerDays[number]["exercises"][number];
@@ -69,14 +87,20 @@ const DAYS: PickerDays = [
  * cannot cross from the server page). Picking a starter plan answers locally and never writes anything.
  */
 export function DevTodayStartFastFixture({ state }: { state: DevTodayStartFastState }) {
-  if (state === "first-run") {
+  const noRoutineState = NO_ROUTINE_STATES[state];
+  if (noRoutineState) {
     return (
       <TodayOverviewContent>
         <TodayOverviewScaffold>
-          <StarterPlanCard
+          <TodayNoRoutinePanel
+            state={noRoutineState}
             createAction={async () => {
-              await new Promise((resolve) => window.setTimeout(resolve, 600));
+              await fixtureDelay();
               return { ok: false, error: "Dev fixture: nothing was created." };
+            }}
+            chooseAction={async () => {
+              await fixtureDelay();
+              return { ok: false, error: "Dev fixture: nothing was changed." };
             }}
           />
         </TodayOverviewScaffold>

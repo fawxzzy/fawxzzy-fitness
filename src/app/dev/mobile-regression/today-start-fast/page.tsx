@@ -24,11 +24,13 @@ export const metadata: Metadata = {
   },
 };
 
-const STATES: readonly DevTodayStartFastState[] = ["first-run", "plan", "in-session", "done"];
+const STATES: readonly DevTodayStartFastState[] = ["first-run", "restore", "pick-routine", "choose", "plan", "in-session", "done"];
 
 /**
  * Wave 2 "Start fast" Today states inside the real Today screen (header slots, dock, tab bar), drawn with the live
- * components: `?state=first-run` (no active routine: three starter plans), `plan` (a just-picked plan, compact list
+ * components: `?state=first-run` (no routines, no workouts: three starter plans), `restore` (every routine archived:
+ * plans plus "Restore a routine"), `pick-routine` (routines exist, none active: pick one of yours), `choose` (an
+ * unreadable count, or workouts but no routines: the plain Routines card), `plan` (a just-picked plan, compact list
  * with "Last:" lines, Start on the dock), `in-session` (one in-progress card with Discard in its ⋯ menu, Resume on
  * the dock) and `done` (today's workout finished). Static fixtures only: no Supabase client, no session; the starter
  * pick and Discard answer locally. Availability is the shared dev-route guard (`src/lib/dev-route-guard.ts`).

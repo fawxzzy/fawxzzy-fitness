@@ -12,6 +12,8 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import { isRoutineArchived, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
+import { describeStarterAddOnly, resolveStarterActivation } from "@/lib/start-fast-guards";
+import { clearActiveRoutineIfMatches, findStarterRaceWinner, readStarterActivationInput } from "@/lib/start-fast-state.server";
 import {
   doesRoutineMatchStarterTemplate,
   getStarterTemplate,
@@ -25,7 +27,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { isValidIanaTimeZone, normalizeRoutineTimezone } from "@/lib/timezones";
 
 export type CreateStarterRoutineResult =
-  | { ok: true; routineId: string; routineName: string }
+  /** `activated: false` means it was only added (an active routine or an open workout exists); `notice` says so. */
+  | { ok: true; routineId: string; routineName: string; activated: boolean; notice: string | null }
   | { ok: false; error: string };
 
 // A "use server" module may only export async functions, so these stay module-private.
@@ -97,18 +100,42 @@ async function findReplayableStarterRoutineId(supabase: SupabaseClient, userId: 
   return null;
 }
 
-async function activate(routineId: string) {
+type ActivationOutcome = { ok: true; activated: boolean; notice: string | null } | { ok: false; error: string };
+
+type CreatedRoutine = { userId: string | null; routineId: string | null; supabase: SupabaseClient | null };
+
+/**
+ * Makes `routineId` the active routine only when resolveStarterActivation allows it: nothing live is active and no
+ * workout is open (read fresh here, so New routine's "Start from a plan" never replaces a routine or strands an
+ * open workout). Otherwise the routine is only added and the notice says how to switch. The read and the write are
+ * not one transaction (no DB change in this lane); the gap is one round trip and is accepted (PLAYBOOK_NOTES).
+ */
+async function activateIfAllowed(supabase: SupabaseClient, userId: string, routineId: string): Promise<ActivationOutcome> {
+  const decision = resolveStarterActivation(await readStarterActivationInput(supabase, userId, routineId));
+  if (decision.kind === "already-active") {
+    return { ok: true, activated: true, notice: null };
+  }
+  if (decision.kind === "add-only") {
+    return { ok: true, activated: false, notice: describeStarterAddOnly(decision.reason) };
+  }
   const formData = new FormData();
   formData.set("routineId", routineId);
-  return await setActiveRoutineAction(formData);
+  const result = await setActiveRoutineAction(formData);
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, activated: true, notice: null };
 }
 
 /**
  * One tap on a starter plan (Today first run, or "Start from a plan" in New routine): creates the routine with its
- * days and catalog exercises, then makes it the active routine. createRoutineAction never sets the active routine,
- * so activation is an explicit second step. Any failure after the routine row exists deletes it again, so a failed
- * tap leaves nothing behind. The Free routine limit is enforced by createRoutineAction (archived routines do not
- * count) and comes back as ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE for the client's in-flow notice.
+ * days and catalog exercises, then makes it the active routine when nothing live is active and no workout is open
+ * (activateIfAllowed); otherwise it is only added. createRoutineAction never sets the active routine, so activation
+ * is an explicit last step. Any failure after the routine row exists deletes it again (and clears the active pointer
+ * if this call set it), so a failed tap leaves nothing behind. The Free routine limit is enforced by
+ * createRoutineAction (archived routines do not count) and comes back as ROUTINE_LIMIT_PRO_REQUIRED_MESSAGE.
+ *
+ * Duplicate taps: a retry within 15 minutes adopts the matching routine (findReplayableStarterRoutineId). Two taps
+ * that pass that check at the same moment (two tabs) are settled right after the insert: the earliest identical
+ * routine made in the last minute wins (findStarterRaceWinner) and the later one deletes itself and adopts it.
  */
 export async function createStarterRoutineAction(templateId: string, deviceTimeZone?: string | null): Promise<CreateStarterRoutineResult> {
   const template = getStarterTemplate(templateId);
@@ -116,7 +143,7 @@ export async function createStarterRoutineAction(templateId: string, deviceTimeZ
     return { ok: false, error: STARTER_CREATE_FAILED_MESSAGE };
   }
 
-  const created: { userId: string | null; routineId: string | null; supabase: SupabaseClient | null } = { userId: null, routineId: null, supabase: null };
+  const created: CreatedRoutine = { userId: null, routineId: null, supabase: null };
 
   try {
     const user = await requireUser();
@@ -126,21 +153,27 @@ export async function createStarterRoutineAction(templateId: string, deviceTimeZ
     created.supabase = supabase;
 
     const abort = async (message: string): Promise<CreateStarterRoutineResult> => {
-      if (created.routineId && !(await deleteRoutine(supabase, user.id, created.routineId))) {
+      if (created.routineId && !(await rollbackCreatedRoutine(created))) {
         return { ok: false, error: STARTER_CREATE_PARTIAL_MESSAGE };
       }
       return { ok: false, error: message };
     };
 
-    const replayId = await findReplayableStarterRoutineId(supabase, user.id, template);
-    if (replayId) {
-      const replayActivation = await activate(replayId);
-      if (!replayActivation.ok) {
-        logStarterFailure("replay activation failed", new Error(replayActivation.error));
+    // Adopting an existing routine (replay or race loser): same activation rule, nothing to roll back.
+    const adopt = async (routineId: string, stage: string): Promise<CreateStarterRoutineResult> => {
+      const adoption = await activateIfAllowed(supabase, user.id, routineId);
+      if (!adoption.ok) {
+        logStarterFailure(`${stage} activation failed`, new Error(adoption.error));
         return { ok: false, error: STARTER_CREATE_FAILED_MESSAGE };
       }
       revalidatePath("/today");
-      return { ok: true, routineId: replayId, routineName: template.name };
+      revalidatePath("/routines");
+      return { ok: true, routineId, routineName: template.name, activated: adoption.activated, notice: adoption.notice };
+    };
+
+    const replayId = await findReplayableStarterRoutineId(supabase, user.id, template);
+    if (replayId) {
+      return await adopt(replayId, "replay");
     }
 
     // Catalog lookup happens before any write, so a missing exercise never leaves a half-made routine.
@@ -190,6 +223,18 @@ export async function createStarterRoutineAction(templateId: string, deviceTimeZ
       return { ok: false, error: STARTER_CREATE_FAILED_MESSAGE };
     }
     const routineId = createResult.routineId;
+
+    // Race guard (two tabs past the replay check together): the earliest identical routine from the last minute
+    // stays; this one is removed before any more work and the winner is adopted. An unreadable check keeps ours.
+    const raceWinnerId = await findStarterRaceWinner(supabase, user.id, template.name);
+    if (raceWinnerId && raceWinnerId !== routineId) {
+      if (!(await rollbackCreatedRoutine(created))) {
+        return { ok: false, error: STARTER_CREATE_PARTIAL_MESSAGE };
+      }
+      created.routineId = null;
+      return await adopt(raceWinnerId, "race");
+    }
+
     const createdDayByIndex = new Map((createResult.createdDays ?? []).map((day) => [day.dayIndex, day]));
 
     for (const [offset, planDay] of template.week.entries()) {
@@ -229,21 +274,34 @@ export async function createStarterRoutineAction(templateId: string, deviceTimeZ
       }
     }
 
-    const activation = await activate(routineId);
+    const activation = await activateIfAllowed(supabase, user.id, routineId);
     if (!activation.ok) {
       logStarterFailure("activation failed", new Error(activation.error));
       return await abort(STARTER_CREATE_FAILED_MESSAGE);
     }
 
     revalidatePath("/today");
-    return { ok: true, routineId, routineName: template.name };
+    revalidatePath("/routines");
+    return { ok: true, routineId, routineName: template.name, activated: activation.activated, notice: activation.notice };
   } catch (error) {
     // requireUser signals a signed-out request by throwing a redirect; that must reach Next.
     if (isRedirectError(error)) throw error;
     logStarterFailure("create failed", error);
-    const cleanedUp = created.routineId && created.userId && created.supabase
-      ? await deleteRoutine(created.supabase, created.userId, created.routineId)
-      : true;
+    const cleanedUp = created.routineId ? await rollbackCreatedRoutine(created) : true;
     return { ok: false, error: cleanedUp ? STARTER_CREATE_FAILED_MESSAGE : STARTER_CREATE_PARTIAL_MESSAGE };
   }
+}
+
+/**
+ * Removes the routine this call made. The active pointer is cleared first, but only while it still names this
+ * routine: profiles.active_routine_id has no foreign key, so if activation (or a throw after its write) already
+ * pointed at the routine, deleting the routine alone would leave the pointer dangling. When the pointer names
+ * anything else the conditional update matches nothing. Returns false when the routine could not be removed.
+ */
+async function rollbackCreatedRoutine(created: CreatedRoutine) {
+  if (!created.routineId || !created.userId || !created.supabase) return true;
+  if (!(await clearActiveRoutineIfMatches(created.supabase, created.userId, created.routineId))) {
+    logStarterFailure(`clearing the active pointer for ${created.routineId} failed`, new Error("profile update failed"));
+  }
+  return await deleteRoutine(created.supabase, created.userId, created.routineId);
 }

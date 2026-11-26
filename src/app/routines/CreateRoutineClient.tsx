@@ -305,8 +305,13 @@ export function CreateRoutineClient({
         />
         {isStarterExpanded ? (
           <div className="pl-2" data-create-routine-starter-plans="true">
-            {/* One tap creates the routine and makes it active, then Today opens on Day 1. */}
-            <StarterPlanList headingLevel={4} onCreated={() => router.push("/today")} />
+            {/* One tap creates the routine. It becomes active (then Today opens on Day 1) only when no routine is
+                active and no workout is open; otherwise it is only added, the notice says "Added. Switch to it from
+                Routines." and Routines opens. An active routine is never replaced silently. */}
+            <StarterPlanList
+              headingLevel={4}
+              onCreated={({ activated }) => router.push(activated ? "/today" : "/routines")}
+            />
           </div>
         ) : null}
         <RoutineChooserOptionCard

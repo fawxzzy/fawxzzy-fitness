@@ -64,6 +64,8 @@ import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-sha
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { guardLiveSessionMutation, parseLiveSessionStatus } from "@/lib/session-live-mutation";
 import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-shadow-placement.server";
+import type { TodayNoRoutineState } from "@/lib/start-fast-guards";
+import { loadTodayNoRoutineState } from "@/lib/start-fast-state.server";
 
 export const dynamic = "force-dynamic";
 
@@ -322,7 +324,7 @@ export default async function TodayPage(
         }
 
         // Archiving clears the active pointer; an archived routine that is still referenced is treated as no
-        // active routine, so Today shows the starter plans ("Pick a plan to start") instead of a plan the person archived.
+        // active routine, so Today shows the no-routine panel (loadTodayNoRoutineState) instead of a plan the person archived.
         return routine && !isRoutineArchived(routine) ? routine : null;
       }, {
         blockingReason: "Waiting for Today active routine lookup.",
@@ -334,6 +336,18 @@ export default async function TodayPage(
       });
     } catch (error) {
       markBootstrapFailure("routine fetch", error, profile.active_routine_id);
+    }
+  }
+
+  // No active routine: starter plans only on a true first run (no routines, no finished workouts). People with
+  // routines pick one of theirs; all-archived adds "Restore a routine"; any failed read shows the plain Routines card.
+  let noRoutineState: TodayNoRoutineState | null = null;
+  if (!activeRoutine && !fetchFailed) {
+    try {
+      noRoutineState = await loadTodayNoRoutineState(supabase, user.id);
+    } catch (error) {
+      logTodayBootstrapFailure({ step: "routine fetch", userId: user.id, routineId: null, activeRoutineId: profile.active_routine_id, error });
+      noRoutineState = { kind: "choose" };
     }
   }
 
@@ -921,7 +935,7 @@ export default async function TodayPage(
           )}
         </TodayOverviewContent>
       ) : (
-        <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} />
+        <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} noRoutineState={noRoutineState} />
       )}
 
       {todayPayload.routine && todayPayload.inProgressSessionId && hasDetailedRoutineState ? (

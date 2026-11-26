@@ -9,8 +9,9 @@ import { fileURLToPath } from "node:url";
  * stays gone: this test fails if it comes back anywhere in user-facing source.
  *
  * Scope: every .ts/.tsx file under src/, except tests and the dev fixtures under src/app/dev (not shipped to people).
- * Matching is case-insensitive and literal, so CSS-uppercased labels ("TIME (S)") are caught as well. Comments
- * count too: write the code name (e.g. `session`) in comments, not the retired UI word.
+ * Matching is case-insensitive and literal, so CSS-uppercased labels ("TIME (S)") are caught as well. Comments are
+ * skipped (block comments, JSX comment blocks and whole-line `//` comments, via stripSourceComments), so only copy
+ * in strings and JSX text counts; a trailing `//` comment after code is still scanned.
  *
  * HOW TO EXTEND: when your PR removes a glossary term from the UI, move it from PENDING_GLOSSARY_TERMS into
  * BANNED_UI_TERMS in the same PR, with what to say instead. Only list a term once `git grep -i` finds it nowhere in

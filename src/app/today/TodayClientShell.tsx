@@ -2,14 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { StarterPlanCard } from "@/app/today/StarterPlanCard";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
+import { TodayNoRoutinePanel } from "@/app/today/TodayNoRoutinePanel";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { CardEmptyState, CardNotice } from "@/components/ui/card-system";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import type { TodayNoRoutineState } from "@/lib/start-fast-guards";
 
 type TodayPayload = {
   routine: {
@@ -53,10 +54,13 @@ export function TodayClientShell({
   userId,
   payload,
   fetchFailed,
+  noRoutineState = null,
 }: {
   userId: string;
   payload: TodayPayload;
   fetchFailed: boolean;
+  /** Read by page.tsx only when there is no active routine; null shows the plain Routines card, never plans. */
+  noRoutineState?: TodayNoRoutineState | null;
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
   const router = useRouter();
@@ -136,7 +140,8 @@ export function TodayClientShell({
               )}
             />
           ) : (
-            <StarterPlanCard />
+            // Starter plans only on a true first run; routines that exist are picked, not re-created.
+            <TodayNoRoutinePanel state={noRoutineState} />
           )}
         </TodayOverviewScaffold>
       </TodayOverviewContent>
