@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { usePathname } from "next/navigation";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -40,6 +41,7 @@ import { type ExercisePickerProps, type TagFilterGroup, type CustomExerciseFilte
 import { tagGroupLabels, customExerciseFilterStageClassName, ensureSelectedTagsInGroups, normalizeTagValue, normalizeExerciseTags, appendTagsWithGroup, buildScopedFilterTagValue, appendScopedFilterTags, formatTagLabel, buildSingleSelectTags, buildCustomExerciseTagGroups, CustomExerciseFilterRailCard } from "./exercise-picker/filter";
 import { EXERCISE_PICKER_CUSTOM_EXERCISE_ID, buildCustomExerciseTargetSummary, normalizeExerciseNameKey, buildCustomExerciseDraftOption, CustomExerciseRow } from "./exercise-picker/custom";
 import { resolveExerciseDistanceUnit, buildUseLastInfoPayload, applyConfiguredSetupToGoalState, buildFreshGoalStateForExercise, parseDurationInput, hasAnyGoalMeasurementValue } from "./exercise-picker/goal";
+import { CustomExerciseManageMenu, shouldOfferCustomExerciseManagement } from "./exercise-picker/CustomExerciseManageMenu";
 import { formatLoggedMeasurementStat, hasConfiguredSetupSnapshot, collectConfiguredMeasurementSummaryParts, hasExerciseStatsSignal, resolveExerciseRowCueClasses, ExerciseRow, EmptyExerciseRow } from "./exercise-picker/list";
 
 export { EXERCISE_PICKER_CUSTOM_EXERCISE_ID } from "./exercise-picker/custom";
@@ -77,6 +79,7 @@ export function ExercisePicker({
   // The goal sheet can fold down to one line (exercise name + goal) so the library stays usable on small phones.
   const [isGoalDockCollapsed, setIsGoalDockCollapsed] = useState(false);
   const goalDockPanelId = useId();
+  const pathname = usePathname();
   const [customExerciseName, setCustomExerciseName] = useState(seededCustomExerciseName);
   const [customExerciseMuscleTags, setCustomExerciseMuscleTags] = useState<string[]>(
     seededCustomExerciseMuscleValue ? [`muscle:${seededCustomExerciseMuscleValue}`] : [],
@@ -992,6 +995,7 @@ export function ExercisePicker({
     ? (customExerciseName.trim().replace(/\s+/g, " ") || "New exercise")
     : (selectedExercise?.name ?? "");
   const goalDockCollapsedSummary = isStretchHubSelected ? null : selectedCardGoalPreviewTextResolved;
+  const canManageSelectedCustomExercise = !isCustomExerciseSelected && shouldOfferCustomExerciseManagement(selectedExercise, pathname);
   const configureGoalDockNode = useMemo(() => routineTargetConfig && (selectedExercise || isCustomExerciseSelected) ? (
     <section
       data-exercise-picker-goal-dock=""
@@ -1006,7 +1010,7 @@ export function ExercisePicker({
     >
       {/* Names the exercise this goal is for (F-003) and folds the sheet to this one row. */}
       <div data-exercise-picker-goal-header="" className="flex min-h-11 w-full min-w-0 items-center gap-2 pb-0.5 pl-4 pr-1.5 pt-1.5">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[5.5rem] flex-1">
           <p className="text-[length:var(--type-caption)] font-semibold uppercase leading-none tracking-[0.1em] text-[rgb(var(--text-muted)/0.92)]">
             Goal for
           </p>
@@ -1015,9 +1019,13 @@ export function ExercisePicker({
           </p>
         </div>
         {isGoalDockCollapsed && goalDockCollapsedSummary ? (
-          <p className="max-w-[42%] shrink truncate text-right text-[length:var(--type-caption)] font-semibold tabular-nums text-[rgb(var(--accent-strong)/0.96)]">
+          // With the manage menu in the row a 320px phone has no room for the summary; the name wins.
+          <p className={cn("max-w-[42%] min-w-0 shrink truncate text-right text-[length:var(--type-caption)] font-semibold tabular-nums text-[rgb(var(--accent-strong)/0.96)]", canManageSelectedCustomExercise ? "max-[359px]:hidden" : undefined)}>
             {goalDockCollapsedSummary}
           </p>
+        ) : null}
+        {canManageSelectedCustomExercise && selectedExercise ? (
+          <CustomExerciseManageMenu exerciseId={selectedExercise.id} exerciseName={selectedExercise.name} />
         ) : null}
         <button
           type="button"
@@ -1100,6 +1108,7 @@ export function ExercisePicker({
     goalDockExerciseName,
     goalDockPanelId,
     isGoalDockCollapsed,
+    canManageSelectedCustomExercise,
     activeSelectionCue.dockAccentBarClassName,
     activeSelectionCue.dockShellClassName,
     callerAuxiliaryFields,
