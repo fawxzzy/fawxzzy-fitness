@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth";
+import { ROUTINE_ARCHIVE_COPY, isRoutineArchived, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import type { ActionResult } from "@/lib/action-result";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
@@ -80,15 +81,27 @@ export async function startSessionForActiveRoutineDay(payload?: { dayIndex?: num
     return { ok: false, error: "No active routine selected" };
   }
 
-  const { data: activeRoutine, error: routineError } = await supabase
+  const activeRoutineId = profile.active_routine_id;
+  const { data: activeRoutine, error: routineError } = await selectWithRoutineArchiveCompat<{
+    id: string;
+    name: string;
+    cycle_length_days: number;
+    start_date: string;
+    timezone: string;
+    archived_at?: string | null;
+  }>((withArchive) => supabase
     .from("routines")
-    .select("id, name, cycle_length_days, start_date, timezone")
-    .eq("id", profile.active_routine_id)
+    .select(withArchive ? "id, name, cycle_length_days, start_date, timezone, archived_at" : "id, name, cycle_length_days, start_date, timezone")
+    .eq("id", activeRoutineId)
     .eq("user_id", user.id)
-    .single();
+    .single());
 
   if (routineError || !activeRoutine) {
     return { ok: false, error: "Your active routine could not be loaded." };
+  }
+
+  if (isRoutineArchived(activeRoutine)) {
+    return { ok: false, error: ROUTINE_ARCHIVE_COPY.archivedLocked };
   }
 
   const defaultDay = getRoutineDayComputation({
@@ -129,15 +142,25 @@ export async function startSessionForRoutineDay(payload: { routineId: string; da
   const supabase = await supabaseServer();
   await ensureProfile(user.id);
 
-  const { data: routine, error: routineError } = await supabase
+  const { data: routine, error: routineError } = await selectWithRoutineArchiveCompat<{
+    id: string;
+    user_id: string;
+    name: string;
+    start_date: string;
+    archived_at?: string | null;
+  }>((withArchive) => supabase
     .from("routines")
-    .select("id, user_id, name, start_date")
+    .select(withArchive ? "id, user_id, name, start_date, archived_at" : "id, user_id, name, start_date")
     .eq("id", payload.routineId)
     .eq("user_id", user.id)
-    .single();
+    .single());
 
   if (routineError || !routine) {
     return { ok: false, error: "That routine could not be loaded." };
+  }
+
+  if (isRoutineArchived(routine)) {
+    return { ok: false, error: ROUTINE_ARCHIVE_COPY.archivedLocked };
   }
 
   const { data: day, error: dayError } = await supabase

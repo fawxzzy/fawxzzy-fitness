@@ -4,6 +4,7 @@ import { WorkoutPlansPageClient } from "@/app/routines/WorkoutPlansPageClient";
 import { DaysLibraryScreen } from "@/app/routines/workout-plans/DaysLibraryScreen";
 import { deleteWorkoutPlanSourceAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
+import { excludeArchivedRoutines, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import {
@@ -41,11 +42,15 @@ export default async function WorkoutPlansPage() {
     resolveQaLlelVisibilityOverride((await cookies()).get(QA_LLEL_VISIBILITY_COOKIE)?.value),
   );
 
-  const { data: routineRows } = await diagnostics.measure("workout-plans.routines.fetch", async () => await supabase
-    .from("routines")
-    .select("id, user_id, name, updated_at")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false }), {
+  // Archived routines never become the target of "New day" (pre-migration every routine is listed).
+  const { data: routineRows } = await diagnostics.measure("workout-plans.routines.fetch", async () => await selectWithRoutineArchiveCompat<Array<Pick<RoutineRow, "id" | "user_id" | "name" | "updated_at" | "archived_at">>>(
+    (withArchive) => supabase
+      .from("routines")
+      .select(withArchive ? "id, user_id, name, updated_at, archived_at" : "id, user_id, name, updated_at")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .returns<Array<Pick<RoutineRow, "id" | "user_id" | "name" | "updated_at" | "archived_at">>>(),
+  ), {
     blockingReason: "Waiting for workout-plan routine context.",
     metadata: {
       userId: user.id,
@@ -53,7 +58,7 @@ export default async function WorkoutPlansPage() {
     timeoutMs: 7000,
   });
 
-  const routines = (routineRows ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "updated_at">>;
+  const routines = excludeArchivedRoutines(routineRows ?? []);
   const visibleRoutines = showQaLlelData
     ? routines
     : filterQaLlelRows(routines, (routine) => [routine.name]);

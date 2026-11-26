@@ -32,3 +32,28 @@ Order of operations:
 Rollback: if the app change is deployed, roll the deployment back first, then run
 the `.rollback.sql` file. Without the function the app's session start fails
 loudly by design (no fallback to direct inserts).
+
+## 20261126000000_routine_archive_fitness_v1
+
+Adds the nullable column `fitness.routines.archived_at timestamptz` (routines
+are archived instead of deleted; restoring sets it back to NULL). Additive only:
+no default, backfill, index, grant or policy change. Repo-chain twin:
+`supabase/migrations/20261126000000_routine_archive_v1.sql`.
+
+Files: `.sql` (apply), `.preimage.sql` and `.readback.sql` (read-only),
+`.rollback.sql` (drops only the column).
+
+Order of operations:
+
+1. Run the preimage. Require `routines_table_present = 1`, `column_present = 0`.
+2. Approve the apply file hash; apply it (one transaction, idempotent).
+3. Run the readback; require `column_present = 1`, `data_type = timestamp with
+   time zone`, `is_nullable = YES`, `column_default` null, `archived_total = 0`,
+   and `routines_total` / `routines_policy_count` equal to the preimage.
+4. Then merge and deploy the application change. Old code never names the
+   column, so applying first is safe; the new code also runs without the column
+   (it hides Archive until the column exists, see `src/lib/routine-archive.ts`).
+
+Rollback: roll the deployment back first if archived routines must stay hidden,
+then run `.rollback.sql`. Dropping the column lists every archived routine again;
+no routine, day or session is deleted.

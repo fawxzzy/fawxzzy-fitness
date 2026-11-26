@@ -12,6 +12,10 @@ const STATES: RoutinesLabState[] = [
   "list-empty",
   "list-create",
   "list-create-duplicate",
+  "list-archived",
+  "list-archived-open",
+  "list-archived-limit",
+  "list-empty-archived",
   "detail",
   "detail-add-day",
 ];

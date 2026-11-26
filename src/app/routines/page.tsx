@@ -8,13 +8,15 @@ import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { RoutinesOfflineBridge } from "@/app/routines/RoutinesOfflineBridge";
 import { RoutinesOfflineShell } from "@/app/routines/RoutinesOfflineShell";
-import { deleteRoutineAction, duplicateRoutineAction, setActiveRoutineAction } from "@/app/routines/actions";
+import { archiveRoutineAction, duplicateRoutineAction, restoreRoutineAction, setActiveRoutineAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { selectAccessibleRoutineIdsForTier } from "@/lib/pro-tier-limits";
+import { formatRoutineArchivedLabel, partitionRoutinesByArchiveState, selectWithRoutineArchiveCompat, sortArchivedRoutines } from "@/lib/routine-archive";
+import type { ArchivedRoutineListItem } from "@/components/routines/ArchivedRoutinesSection";
 import {
   filterQaLlelRows,
   QA_LLEL_VISIBILITY_COOKIE,
@@ -73,6 +75,12 @@ type RoutinesBrowsePageModel = {
   activeRoutineName: string | null;
   draftRoutineName: string | null;
   routineBrowseItems: RoutineBrowseCardItem[];
+  /** Archived routines (newest first) for the collapsed Archived section; empty before the archive migration. */
+  archivedRoutines: ArchivedRoutineListItem[];
+  /** False until routines.archived_at exists (see src/lib/routine-archive.ts): Archive is then not offered. */
+  archiveSupported: boolean;
+  /** Non-archived routines (Free plan restore limit counts these). */
+  listedRoutineCount: number;
 };
 
 async function loadRoutinesBrowsePageModel(args: {
@@ -84,11 +92,15 @@ async function loadRoutinesBrowsePageModel(args: {
   draftRoutineId: string | null;
   accessState: "free" | "pro";
 }): Promise<RoutinesBrowsePageModel> {
-  const { data } = await args.diagnostics.measure("routines.list.fetch", async () => await args.supabase
-    .from("routines")
-    .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, created_at, updated_at")
-    .eq("user_id", args.userId)
-    .order("updated_at", { ascending: false }), {
+  const ROUTINE_LIST_SELECT = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, created_at, updated_at";
+  const { data, archiveSupported } = await args.diagnostics.measure("routines.list.fetch", async () => await selectWithRoutineArchiveCompat<Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "created_at" | "updated_at" | "archived_at">>>(
+    (withArchive) => args.supabase
+      .from("routines")
+      .select(withArchive ? `${ROUTINE_LIST_SELECT}, archived_at` : ROUTINE_LIST_SELECT)
+      .eq("user_id", args.userId)
+      .order("updated_at", { ascending: false })
+      .returns<Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "created_at" | "updated_at" | "archived_at">>>(),
+  ), {
     blockingReason: "Waiting for routines overview list.",
     metadata: {
       userId: args.userId,
@@ -96,10 +108,14 @@ async function loadRoutinesBrowsePageModel(args: {
     timeoutMs: 7000,
   });
 
-  const routines = (data ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "created_at" | "updated_at">>;
+  // Archived routines leave the list (and the Free plan count) and show only in the Archived section.
+  const { active: routines, archived: archivedRoutineRows } = partitionRoutinesByArchiveState(data ?? []);
   const visibleRoutines = args.showQaLlelData
     ? routines
     : filterQaLlelRows(routines, (routine) => [routine.name]);
+  const visibleArchivedRoutines = args.showQaLlelData
+    ? archivedRoutineRows
+    : filterQaLlelRows(archivedRoutineRows, (routine) => [routine.name]);
   const draftRoutineName = args.draftRoutineId
     ? visibleRoutines.find((routine) => routine.id === args.draftRoutineId)?.name ?? null
     : null;
@@ -374,6 +390,13 @@ async function loadRoutinesBrowsePageModel(args: {
     activeRoutineName,
     draftRoutineName,
     routineBrowseItems,
+    archivedRoutines: sortArchivedRoutines(visibleArchivedRoutines).map((routine) => ({
+      id: routine.id,
+      name: routine.name,
+      archivedLabel: formatRoutineArchivedLabel(routine.archived_at, args.profile.timezone),
+    })),
+    archiveSupported,
+    listedRoutineCount: routines.length,
   };
 }
 
@@ -451,7 +474,11 @@ export default async function RoutinesPage() {
               curatedOnboardingUserId={user.id}
               duplicateRoutineAction={duplicateRoutineAction}
               setActiveRoutineAction={setActiveRoutineAction}
-              deleteRoutineAction={deleteRoutineAction}
+              archiveRoutineAction={pageModel.archiveSupported ? archiveRoutineAction : undefined}
+              restoreRoutineAction={pageModel.archiveSupported ? restoreRoutineAction : undefined}
+              archivedRoutines={pageModel.archivedRoutines}
+              listedRoutineCount={pageModel.listedRoutineCount}
+              accessState={proAccess.accessState}
             />
           )}
         </ContentRail>

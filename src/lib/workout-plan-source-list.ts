@@ -1,4 +1,5 @@
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
+import { excludeArchivedRoutines, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import { selectAccessibleWorkoutPlanTemplateIdsForTier } from "@/lib/pro-tier-limits";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
@@ -67,6 +68,20 @@ type LoadWorkoutPlanSourceListArgs = {
 };
 
 const SOURCE_ROUTINE_SELECT = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at";
+
+type SourceRoutine = Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "updated_at" | "archived_at">;
+
+/** Routines a day can be copied from: archived routines are left out (pre-migration every routine is listed). */
+async function loadListedSourceRoutines(supabase: LoadWorkoutPlanSourceListArgs["supabase"], userId: string): Promise<SourceRoutine[]> {
+  const { data } = await selectWithRoutineArchiveCompat<SourceRoutine[]>((withArchive) => supabase
+    .from("routines")
+    .select(withArchive ? `${SOURCE_ROUTINE_SELECT}, archived_at` : SOURCE_ROUTINE_SELECT)
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .returns<SourceRoutine[]>());
+
+  return excludeArchivedRoutines(data ?? []);
+}
 
 function chooseRepresentativeTemplateDay(args: {
   linkedDays: RoutineDayRow[];
@@ -145,13 +160,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
     return null;
   }
 
-  const { data: sourceRoutinesData } = await supabase
-    .from("routines")
-    .select(SOURCE_ROUTINE_SELECT)
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
-
-  const sourceRoutines = (sourceRoutinesData ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "updated_at">>;
+  const sourceRoutines = await loadListedSourceRoutines(supabase, userId);
   const sourceRoutineById = new Map(sourceRoutines.map((routine) => [routine.id, routine]));
 
   const routineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
@@ -301,13 +310,7 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
   const { supabase, userId, excludeDayId } = args;
   const currentRoutineId = args.routineId?.trim() ?? "";
 
-  const { data: sourceRoutinesData } = await supabase
-    .from("routines")
-    .select(SOURCE_ROUTINE_SELECT)
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
-
-  const sourceRoutines = (sourceRoutinesData ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "updated_at">>;
+  const sourceRoutines = await loadListedSourceRoutines(supabase, userId);
   const sourceRoutineIds = sourceRoutines.map((routine) => routine.id);
   if (sourceRoutineIds.length === 0) {
     return [];

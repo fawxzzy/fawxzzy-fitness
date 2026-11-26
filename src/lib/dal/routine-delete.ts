@@ -1,3 +1,9 @@
+/**
+ * NOT WIRED (2026-11-26): routines are archived, never deleted (src/lib/dal/routine-archive.ts). The
+ * deleteRoutineAction server action and the unused DeleteRoutineButton were removed, so nothing in the app calls
+ * this. It is kept only as the record of what a delete removed (the routine, its days and exercises, every session
+ * logged with it and their exercises/sets/follow-up jobs, and its progression events). Do not wire it to UI.
+ */
 import { resolveReplacementActiveRoutineId } from "@/lib/active-routine-fallback";
 
 type RoutineDeleteError = {

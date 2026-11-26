@@ -7,8 +7,8 @@ import type { ActionResult } from "@/lib/action-result";
 import { getRoutineEditPath, getRoutineHomePath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
-import { deleteRoutineMutation, type RoutineDeleteClient } from "@/lib/dal/routine-delete";
-import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { archiveRoutineMutation, restoreRoutineMutation, type RoutineArchiveClient } from "@/lib/dal/routine-archive";
+import { ROUTINE_ARCHIVE_COPY, isRoutineArchived, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import { appendProgressionPlaybookFormData, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { ROUTINE_SCHEDULE_MODE_VALUES, type RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
 import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday, getRoutineStartWeekdayFromDate } from "@/lib/routines";
@@ -1746,10 +1746,14 @@ async function enforceRoutineCapacityForCreate(args: {
     return { ok: true };
   }
 
-  const { count, error } = await args.supabase
-    .from("routines")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", args.userId);
+  // Archived routines do not count toward the Free plan limit (pre-migration fallback counts every routine).
+  const { count, error } = await selectWithRoutineArchiveCompat<unknown>((withArchive) => {
+    const query = args.supabase
+      .from("routines")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", args.userId);
+    return withArchive ? query.is("archived_at", null) : query;
+  });
 
   if (error) {
     return { ok: false, error: "Could not verify routine capacity." };
@@ -1767,8 +1771,25 @@ async function enforceRoutineAccessForCurrentTier(args: {
   userId: string;
   routineId: string;
 }): Promise<ActionResult> {
+  // An archived routine is read-only on every plan until it is restored (pre-migration: nothing is archived).
   const proAccess = await loadProAccessSnapshot(args.userId);
   if (proAccess.accessState === "pro") {
+    const { data: targetRows, error: targetError } = await selectWithRoutineArchiveCompat<Array<{ id: string; archived_at?: string | null }>>(
+      (withArchive) => withArchive
+        ? args.supabase
+          .from("routines")
+          .select("id, archived_at")
+          .eq("id", args.routineId)
+          .eq("user_id", args.userId)
+          .limit(1)
+        : Promise.resolve({ data: [], error: null }),
+    );
+    if (targetError) {
+      return { ok: false, error: "Could not verify routine access." };
+    }
+    if (isRoutineArchived(targetRows?.[0])) {
+      return { ok: false, error: ROUTINE_ARCHIVE_COPY.archivedLocked };
+    }
     return { ok: true };
   }
 
@@ -1778,15 +1799,27 @@ async function enforceRoutineAccessForCurrentTier(args: {
       .select("active_routine_id")
       .eq("id", args.userId)
       .maybeSingle(),
-    args.supabase
-      .from("routines")
-      .select("id, name, updated_at, created_at")
-      .eq("user_id", args.userId)
-      .order("updated_at", { ascending: false }),
+    selectWithRoutineArchiveCompat<Array<{ id: string; name: string; updated_at: string; created_at: string; archived_at?: string | null }>>(
+      (withArchive) => withArchive
+        ? args.supabase
+          .from("routines")
+          .select("id, name, updated_at, created_at, archived_at")
+          .eq("user_id", args.userId)
+          .order("updated_at", { ascending: false })
+        : args.supabase
+          .from("routines")
+          .select("id, name, updated_at, created_at")
+          .eq("user_id", args.userId)
+          .order("updated_at", { ascending: false }),
+    ),
   ]);
 
   if (error) {
     return { ok: false, error: "Could not verify routine access." };
+  }
+
+  if (isRoutineArchived((routines ?? []).find((routine) => routine.id === args.routineId))) {
+    return { ok: false, error: ROUTINE_ARCHIVE_COPY.archivedLocked };
   }
 
   const accessibleRoutineIds = selectAccessibleRoutineIdsForTier({
@@ -2179,56 +2212,83 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
   return { ok: true };
 }
 
-export async function deleteRoutineAction(payload: { routineId: string }): Promise<ActionResult> {
+/**
+ * Archive a routine (replaces delete, 2026-11-26). Nothing is deleted: the routine, its days, and every workout
+ * logged with it stay, so History is unchanged. Blocked while the routine has a workout in progress. Archiving
+ * the active routine clears the active routine (Today then asks to choose one). See src/lib/dal/routine-archive.ts.
+ * Not gated by the Free plan routine limit: archiving only ever reduces the listed count.
+ */
+export async function archiveRoutineAction(payload: { routineId: string }): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = await supabaseServer();
 
   const routineId = payload.routineId?.trim();
-
   if (!routineId) {
     return { ok: false, error: "Missing routine ID." };
   }
 
-  const accessResult = await enforceRoutineAccessForCurrentTier({
-    supabase,
-    userId: user.id,
+  const result = await archiveRoutineMutation({
     routineId,
-  });
-  if (!accessResult.ok) return accessResult;
-
-  const { data: affectedExerciseRows, error: affectedExerciseError } = await supabase
-    .from("session_exercises")
-    .select("exercise_id, session:sessions!inner(routine_id, status, user_id)")
-    .eq("user_id", user.id)
-    .eq("session.user_id", user.id)
-    .eq("session.routine_id", routineId)
-    .eq("session.status", "completed");
-
-  if (affectedExerciseError) {
-    return { ok: false, error: toPlainActionError(affectedExerciseError, "Could not check this routine's exercise history. Try again.") };
-  }
-
-  const affectedExerciseIds = Array.from(new Set(
-    (affectedExerciseRows ?? []).map((row) => row.exercise_id).filter((value): value is string => Boolean(value)),
-  ));
-
-  const result = await deleteRoutineMutation({
-    routineId,
-    supabase: supabase as unknown as RoutineDeleteClient,
     userId: user.id,
+    supabase: supabase as unknown as RoutineArchiveClient,
   });
 
   if (!result.ok) {
-    return { ok: false, error: result.error };
-  }
-
-  if (affectedExerciseIds.length > 0) {
-    await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds, supabase);
+    switch (result.reason) {
+      case "in-progress-session":
+        return { ok: false, error: ROUTINE_ARCHIVE_COPY.inProgressBlocked };
+      case "archive-unsupported":
+        return { ok: false, error: ROUTINE_ARCHIVE_COPY.unavailable };
+      case "routine-not-found":
+        return { ok: false, error: "That routine is no longer available." };
+      default:
+        return { ok: false, error: ROUTINE_ARCHIVE_COPY.archiveFailed };
+    }
   }
 
   revalidateRoutinesViews();
   revalidatePath(getRoutineHomePath(routineId));
   revalidatePath(`/routines/${routineId}/edit`);
+
+  return { ok: true };
+}
+
+/**
+ * Restore an archived routine to the list. Free keeps at most 3 listed routines, so restore is refused at the limit
+ * with plain copy. Restore does not make the routine active.
+ */
+export async function restoreRoutineAction(payload: { routineId: string }): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = await supabaseServer();
+
+  const routineId = payload.routineId?.trim();
+  if (!routineId) {
+    return { ok: false, error: "Missing routine ID." };
+  }
+
+  const proAccess = await loadProAccessSnapshot(user.id);
+  const result = await restoreRoutineMutation({
+    routineId,
+    userId: user.id,
+    supabase: supabase as unknown as RoutineArchiveClient,
+    accessState: proAccess.accessState,
+  });
+
+  if (!result.ok) {
+    switch (result.reason) {
+      case "routine-limit":
+        return { ok: false, error: ROUTINE_ARCHIVE_COPY.restoreLimit };
+      case "archive-unsupported":
+        return { ok: false, error: ROUTINE_ARCHIVE_COPY.unavailable };
+      case "routine-not-found":
+        return { ok: false, error: "That routine is no longer available." };
+      default:
+        return { ok: false, error: ROUTINE_ARCHIVE_COPY.restoreFailed };
+    }
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
 
   return { ok: true };
 }

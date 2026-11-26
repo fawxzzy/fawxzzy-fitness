@@ -1,8 +1,12 @@
+import { excludeArchivedRoutines } from "@/lib/routine-archive";
+
 type RoutineLimitCandidate = {
   id: string;
   name?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
+  /** Archived routines never count toward the Free plan limit and are not accessible until restored. */
+  archived_at?: string | null;
 };
 
 type WorkoutPlanLimitCandidate = {
@@ -48,12 +52,13 @@ export function selectAccessibleRoutineIdsForTier(args: {
   accessState: "free" | "pro";
   activeRoutineId?: string | null;
 }) {
+  const listedRoutines = excludeArchivedRoutines(args.routines);
   if (args.accessState === "pro") {
-    return new Set(args.routines.map((routine) => routine.id));
+    return new Set(listedRoutines.map((routine) => routine.id));
   }
 
   const activeRoutineId = args.activeRoutineId?.trim() || null;
-  const ordered = args.routines
+  const ordered = listedRoutines
     .slice()
     .sort((left, right) => {
       if (activeRoutineId) {
@@ -79,6 +84,14 @@ export function selectAccessibleRoutineIdsForTier(args: {
     });
 
   return new Set(ordered.slice(0, BASE_ROUTINE_LIMIT).map((routine) => routine.id));
+}
+
+/**
+ * Whether one more routine may join the list (restore from Archived). Free keeps at most BASE_ROUTINE_LIMIT
+ * non-archived routines; Pro has no limit. `listedRoutineCount` counts non-archived routines only.
+ */
+export function canAddListedRoutineForTier(args: { listedRoutineCount: number; accessState: "free" | "pro" }) {
+  return args.accessState === "pro" || args.listedRoutineCount < BASE_ROUTINE_LIMIT;
 }
 
 export function selectAccessibleWorkoutPlanTemplateIdsForTier(args: {

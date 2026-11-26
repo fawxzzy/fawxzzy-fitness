@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CONFIRM_ACTION_LABELS } from "@/lib/action-labels";
+import { isRoutineArchived, selectWithRoutineArchiveCompat } from "@/lib/routine-archive";
 import { revalidatePath } from "next/cache";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
@@ -308,18 +309,21 @@ export default async function TodayPage(
     const activeRoutineId = profile.active_routine_id;
     try {
       activeRoutine = await diagnostics.measure("today.active-routine.fetch", async () => {
-        const { data: routine, error: routineError } = await supabase
+        const TODAY_ROUTINE_SELECT = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit";
+        const { data: routine, error: routineError } = await selectWithRoutineArchiveCompat<RoutineRow>((withArchive) => supabase
           .from("routines")
-      .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit")
+          .select(withArchive ? `${TODAY_ROUTINE_SELECT}, archived_at` : TODAY_ROUTINE_SELECT)
           .eq("id", activeRoutineId)
           .eq("user_id", user.id)
-          .maybeSingle();
+          .maybeSingle<RoutineRow>());
 
         if (routineError) {
           throw routineError;
         }
 
-        return (routine as RoutineRow | null) ?? null;
+        // Archiving clears the active pointer; an archived routine that is still referenced is treated as no
+        // active routine, so Today shows "Choose a routine" instead of a plan the person archived.
+        return routine && !isRoutineArchived(routine) ? routine : null;
       }, {
         blockingReason: "Waiting for Today active routine lookup.",
         metadata: {

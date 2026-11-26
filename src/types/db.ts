@@ -144,6 +144,8 @@ export type RoutineRow = {
   weight_unit: "lbs" | "kg";
   default_progression_playbook_id?: "double_progression" | "fixed_load_rep_range_progression" | "deload_after_stall" | null;
   default_progression_playbook_config?: Record<string, unknown> | null;
+  /** Set when the routine is archived (kept with its history, hidden from lists). Absent before the archive migration. */
+  archived_at?: string | null;
 };
 
 export type RoutineDayRow = {

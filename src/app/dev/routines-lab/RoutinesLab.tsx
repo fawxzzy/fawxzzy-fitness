@@ -16,6 +16,10 @@ export type RoutinesLabState =
   | "list-empty"
   | "list-create"
   | "list-create-duplicate"
+  | "list-archived"
+  | "list-archived-open"
+  | "list-archived-limit"
+  | "list-empty-archived"
   | "detail"
   | "detail-add-day";
 
@@ -44,6 +48,21 @@ const routines = [
     createdAt: "2026-10-12T12:00:00Z",
     previewDays: previewDays.slice(0, 2),
   },
+];
+
+const thirdRoutine = {
+  id: "routine-3",
+  name: "Atlas Conditioning",
+  summaryParts: ["9 exercises", "3 train", "2 rest"],
+  href: "/dev/routines-lab?state=detail",
+  isActive: false,
+  createdAt: "2026-09-02T12:00:00Z",
+  previewDays: previewDays.slice(0, 3),
+};
+
+const archivedRoutines = [
+  { id: "routine-archived-1", name: "Summer Cut 2026", archivedLabel: "Archived Nov 24" },
+  { id: "routine-archived-2", name: "Atlas Strength Block With A Long Name", archivedLabel: "Archived Oct 3" },
 ];
 
 const days = [
@@ -107,6 +126,16 @@ export function RoutinesLab({ state, fail, hang }: { state: RoutinesLabState; fa
     );
   }
 
+  const listedRoutines = state === "list-empty" || state === "list-empty-archived"
+    ? []
+    : state === "list-archived-limit"
+      ? [...routines, thirdRoutine]
+      : routines;
+  const showArchived = state === "list-archived"
+    || state === "list-archived-open"
+    || state === "list-archived-limit"
+    || state === "list-empty-archived";
+
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <AppTabBarPreview pathname="/routines" />
@@ -116,10 +145,14 @@ export function RoutinesLab({ state, fail, hang }: { state: RoutinesLabState; fa
         <ContentRail className="space-y-3">
           <RoutinesPageClient
             newRoutineHref="/routines/new"
-            routines={state === "list-empty" ? [] : routines}
+            routines={listedRoutines}
             duplicateRoutineAction={duplicateRoutineAction}
             setActiveRoutineAction={() => fake("Could not set the active routine.")}
-            deleteRoutineAction={() => fake("Could not delete the routine. Try again.")}
+            archiveRoutineAction={() => fake("Could not archive the routine. Try again.")}
+            restoreRoutineAction={() => fake("Could not restore the routine. Try again.")}
+            archivedRoutines={showArchived ? archivedRoutines : []}
+            accessState="free"
+            initialArchivedExpanded={state === "list-archived-open" || state === "list-archived-limit" || state === "list-empty-archived"}
             initialCreateRoutineOpen={state === "list-create" || state === "list-create-duplicate"}
             initialCreateRoutineDuplicateExpanded={state === "list-create-duplicate"}
           />
