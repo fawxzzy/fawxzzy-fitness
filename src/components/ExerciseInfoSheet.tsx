@@ -1653,7 +1653,7 @@ function ExerciseHistoryGraph({
             key={`hit-${point.point.id}`}
             type="button"
             onClick={() => onSelectedPointChange(point.point.id)}
-            className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 appearance-none rounded-full !border-0 !border-transparent !bg-transparent !p-0 !shadow-none outline-none ring-0 [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-strong)/0.34)]"
+            className="absolute h-11 w-11 -translate-x-1/2 -translate-y-1/2 appearance-none rounded-full !border-0 !border-transparent !bg-transparent !p-0 !shadow-none outline-none ring-0 [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-strong)/0.34)]"
             style={{
               left: `${point.leftPercent}%`,
               top: `${point.topPercent}%`,

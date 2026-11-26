@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -74,6 +74,9 @@ export function ExercisePicker({
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isExerciseInfoOpen, setIsExerciseInfoOpen] = useState(false);
+  // The goal sheet can fold down to one line (exercise name + goal) so the library stays usable on small phones.
+  const [isGoalDockCollapsed, setIsGoalDockCollapsed] = useState(false);
+  const goalDockPanelId = useId();
   const [customExerciseName, setCustomExerciseName] = useState(seededCustomExerciseName);
   const [customExerciseMuscleTags, setCustomExerciseMuscleTags] = useState<string[]>(
     seededCustomExerciseMuscleValue ? [`muscle:${seededCustomExerciseMuscleValue}`] : [],
@@ -113,7 +116,8 @@ export function ExercisePicker({
     ? EXERCISE_PICKER_CUSTOM_EXERCISE_ID
     : initialSelectedId && uniqueExercises.some((exercise) => exercise.id === initialSelectedId)
       ? initialSelectedId
-      : uniqueExercises[0]?.id ?? "";
+      // Nothing is pre-selected (F-003): the person picks the exercise; a deep link (?exerciseId=) still restores one.
+      : "";
   const [selectedId, setSelectedId] = useState(resolvedInitialSelectedId);
   const initialSelectedExerciseForGoal = resolvedInitialSelectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID
     ? seededCustomExerciseDraftOption
@@ -343,11 +347,10 @@ export function ExercisePicker({
       if (!tags || tags.size === 0) return false;
       return selectedTags.every((tag) => tags.has(tag));
     });
-    if (selectedExercise && !matches.some((exercise) => exercise.id === selectedExercise.id)) {
-      return [selectedExercise, ...matches];
-    }
+    // The selection is not pinned into the results: a search shows only what matches. The goal sheet names the
+    // selected exercise, so it stays visible while the list is filtered.
     return matches;
-  }, [exerciseTagsById, search, selectedExercise, selectedTags, uniqueExercises]);
+  }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
   useEffect(() => {
     if (customExerciseEnabled && selectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID) {
@@ -589,7 +592,16 @@ export function ExercisePicker({
       return;
     }
     setSelectedId(exerciseId);
+    setIsGoalDockCollapsed(false);
   }, []);
+
+  // Typing a search folds the goal sheet so the results get the room; picking an exercise opens it again.
+  const hasSearchQuery = search.trim().length > 0;
+  useEffect(() => {
+    if (hasSearchQuery) {
+      setIsGoalDockCollapsed(true);
+    }
+  }, [hasSearchQuery]);
 
   const openExerciseInfo = useCallback(() => {
     if (!selectedCanonicalExerciseId) return;
@@ -976,13 +988,50 @@ export function ExercisePicker({
     onToggleLastSelection: handleUseLastSelectionToggle,
   }) : footerSlot;
   const activeSelectionCue = resolveExerciseRowCueClasses(activeSelectedExercise ?? customExerciseDraftOption);
+  const goalDockExerciseName = isCustomExerciseSelected
+    ? (customExerciseName.trim().replace(/\s+/g, " ") || "New exercise")
+    : (selectedExercise?.name ?? "");
+  const goalDockCollapsedSummary = isStretchHubSelected ? null : selectedCardGoalPreviewTextResolved;
   const configureGoalDockNode = useMemo(() => routineTargetConfig && (selectedExercise || isCustomExerciseSelected) ? (
-    <section className={cn(
-      appTokens.exercisePickerGoalCompact,
-      measurementDockSurfaceClassName,
-      "mx-0 -mb-px flex w-full min-w-0 max-w-none flex-col space-y-0 overflow-visible rounded-t-[1.7rem] rounded-b-none px-0 pb-px pt-0",
-      activeSelectionCue.dockShellClassName,
-    )}>
+    <section
+      data-exercise-picker-goal-dock=""
+      data-collapsed={isGoalDockCollapsed ? "true" : "false"}
+      aria-label={`Goal for ${goalDockExerciseName}`}
+      className={cn(
+        appTokens.exercisePickerGoalCompact,
+        measurementDockSurfaceClassName,
+        "mx-0 -mb-px flex w-full min-w-0 max-w-none flex-col space-y-0 overflow-visible rounded-t-[1.7rem] rounded-b-none px-0 pb-px pt-0",
+        activeSelectionCue.dockShellClassName,
+      )}
+    >
+      {/* Names the exercise this goal is for (F-003) and folds the sheet to this one row. */}
+      <div data-exercise-picker-goal-header="" className="flex min-h-11 w-full min-w-0 items-center gap-2 pb-0.5 pl-4 pr-1.5 pt-1.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-[length:var(--type-caption)] font-semibold uppercase leading-none tracking-[0.1em] text-[rgb(var(--text-muted)/0.92)]">
+            Goal for
+          </p>
+          <p className="mt-1 truncate text-[0.98rem] font-semibold leading-tight text-[rgb(var(--text-primary))]">
+            {goalDockExerciseName}
+          </p>
+        </div>
+        {isGoalDockCollapsed && goalDockCollapsedSummary ? (
+          <p className="max-w-[42%] shrink truncate text-right text-[length:var(--type-caption)] font-semibold tabular-nums text-[rgb(var(--accent-strong)/0.96)]">
+            {goalDockCollapsedSummary}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          aria-expanded={!isGoalDockCollapsed}
+          aria-controls={goalDockPanelId}
+          onClick={() => setIsGoalDockCollapsed((current) => !current)}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3 text-[length:var(--type-caption)] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--accent-strong)/0.96)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.25)] [button&]:border-0 [button&]:bg-transparent [button&]:shadow-none"
+        >
+          {isGoalDockCollapsed ? "Edit goal" : "Hide"}
+          <ChevronDownIcon className={cn("h-3.5 w-3.5 transition-transform", isGoalDockCollapsed ? "rotate-180" : undefined)} />
+        </button>
+      </div>
+      {/* Folded with `hidden`, not unmounted: the goal inputs stay in the form and still submit. */}
+      <div id={goalDockPanelId} hidden={isGoalDockCollapsed} className="w-full min-w-0">
       <VerticalScrollHint
         className="min-h-0 w-full rounded-[0.65rem]"
         scrollClassName={cn(
@@ -991,7 +1040,7 @@ export function ExercisePicker({
             : goalExtraNode
               ? "w-full max-h-[min(46dvh,26rem)] pr-1"
               : "w-full max-h-[min(40dvh,24rem)] pr-1",
-          goalExtraNode ? (compactGoalDockViewport ? "pb-[3.25rem]" : "pb-[5.25rem]") : undefined,
+          goalExtraNode ? "pb-2" : undefined,
         )}
         contentClassName="w-full"
         railClassName="left-auto right-0"
@@ -1044,8 +1093,13 @@ export function ExercisePicker({
           </div>
         ) : null}
       </VerticalScrollHint>
+      </div>
     </section>
   ) : null, [
+    goalDockCollapsedSummary,
+    goalDockExerciseName,
+    goalDockPanelId,
+    isGoalDockCollapsed,
     activeSelectionCue.dockAccentBarClassName,
     activeSelectionCue.dockShellClassName,
     callerAuxiliaryFields,
@@ -1220,7 +1274,10 @@ export function ExercisePicker({
           selectedTags={customExerciseDisplayTags}
           targetSummaryText={customExerciseTargetState.targetSummaryText}
           targetSummaryTone={customExerciseTargetState.targetSummaryTone}
-          onPress={() => setSelectedId(EXERCISE_PICKER_CUSTOM_EXERCISE_ID)}
+          onPress={() => {
+            setSelectedId(EXERCISE_PICKER_CUSTOM_EXERCISE_ID);
+            setIsGoalDockCollapsed(false);
+          }}
         />
       ) : null}
       {filteredExercises.map((exercise) => (

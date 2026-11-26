@@ -3064,6 +3064,7 @@ export function ProgressionPlaybookEditor({
   collapsible = false,
   defaultExpanded = true,
   separateInfoBox = false,
+  showProgressionInfo = true,
   portalProgressionSettings = false,
   portalTriggerMode = "inline",
   progressionStepLabel,
@@ -3109,6 +3110,8 @@ export function ProgressionPlaybookEditor({
   collapsible?: boolean;
   defaultExpanded?: boolean;
   separateInfoBox?: boolean;
+  /** false drops the INFO row/dock; the caller owns the one explainer (add-exercise uses AddExerciseGuide). */
+  showProgressionInfo?: boolean;
   portalProgressionSettings?: boolean;
   portalTriggerMode?: "inline" | "fixed" | "dock";
   progressionStepLabel?: string | null;
@@ -3339,7 +3342,7 @@ export function ProgressionPlaybookEditor({
     && Boolean(onApplyRoutineDefault);
   const isRoutineDefaultContext = context === "routine-default";
   const showLegacyTopMethodRail = true;
-  const shouldRenderProgressionInfo = true;
+  const shouldRenderProgressionInfo = showProgressionInfo;
   const supportsPromotionQualificationControls = isRoutineDefaultContext
     || (context === "exercise" && showDefaultState && Boolean(onApplyRoutineDefault));
   const visiblePromotionStepFieldIds = visiblePromotionStepFields ?? getVisiblePromotionStepFieldIds({
