@@ -145,6 +145,26 @@ test("Session: tapping Log sends one set with the planned reps and weight, and F
   assert.ok(within(sheet).getByText("1 of 4 sets logged."), "the Finish sheet counts the set that was just logged");
 });
 
+// DESIGN #2 (2026-11-26): logging a set starts a local 90s rest countdown above Finish; +15 adds time, Skip hides it.
+test("Session: logging a set starts the rest timer; +15 adds time and Skip hides it; the header shows the workout clock", async () => {
+  window.sessionStorage.clear();
+  const calls: AddSetPayload[] = [];
+  renderSession({ exercises: [exercise({ id: "a", name: "Zed Press" })], addSetAction: acceptingAddSet(calls) as never });
+  assert.ok(document.querySelector('[data-session-clock="true"]'), "workout clock in the header");
+  assert.equal(document.querySelector("[data-rest-timer]"), null, "no rest before the first set");
+
+  fireEvent.click(screen.getByRole("button", { name: /^Log set\s*5 reps/ }));
+  const timer = await screen.findByRole("timer", { name: /^Rest, 1 minute 30 seconds left$|^Rest, 1 minute 29 seconds left$/ });
+  assert.ok(timer);
+  fireEvent.click(screen.getByRole("button", { name: "15 seconds more rest" }));
+  await screen.findByRole("timer", { name: /^Rest, 1 minute 4[45] seconds left$/ });
+  assert.ok(window.sessionStorage.getItem("fitness:session-rest-timer:s1"), "the countdown survives a reload");
+
+  fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+  await waitFor(() => assert.equal(document.querySelector("[data-rest-timer]"), null));
+  assert.equal(window.sessionStorage.getItem("fitness:session-rest-timer:s1"), null);
+});
+
 test("Session: Finish with every planned set logged submits once and shows no confirm sheet", async () => {
   const { container } = renderSession({
     exercises: [exercise({ id: "a", name: "Zed Press", targetSetsMin: 1, targetSetsMax: 1, loggedSetCount: 1, initialSets: [{ id: "set-0", session_exercise_id: "a", user_id: "u1", set_index: 0, weight: 225, reps: 5, is_warmup: false, notes: null, duration_seconds: null, distance: null, distance_unit: null, calories: null, rpe: null, weight_unit: "lbs" }] })],

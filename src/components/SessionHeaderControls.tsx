@@ -12,10 +12,25 @@ import {
   shouldPauseUseHistoryBack,
 } from "@/components/sessionBackAction";
 import { APP_NOTICE_ANCHOR_ATTRIBUTE } from "@/lib/app-notice-anchor";
+import { describeDuration, formatElapsedClock } from "@/components/session/restTimerModel";
 
 /** "Lower A · QA Routine": the day first, then the routine, in plain words. */
 export function formatSessionHeaderSubtitle(sessionDayName: string, routineName: string) {
   return [sessionDayName.trim(), routineName.trim()].filter(Boolean).join(" · ");
+}
+
+/** Elapsed workout time, "12:34" (h:mm:ss past an hour). role="timer" is not live, so it never chatters. */
+export function SessionWorkoutClock({ elapsedSeconds }: { elapsedSeconds: number }) {
+  return (
+    <span
+      role="timer"
+      aria-label={`Workout time ${describeDuration(elapsedSeconds)}`}
+      data-session-clock="true"
+      className="inline-flex h-11 shrink-0 items-center px-1 text-[15px] font-semibold leading-none tabular-nums text-[rgb(var(--text-secondary))]"
+    >
+      {formatElapsedClock(elapsedSeconds)}
+    </span>
+  );
 }
 
 /**
@@ -53,7 +68,8 @@ export function SessionPauseButton({ backHref }: { backHref?: string }) {
 // The live workout is a detail screen (DESIGN-CONTRACT.md section 15) with its own exit rules: title "Workout",
 // one subtitle line (day · routine), the inline sync status on the title line ("– Offline"), and Pause top right.
 // No app menu and no left Back: the only ways out are Pause (back to Today, workout keeps running) and Finish.
-// Progress counts live in the exercise list, not in the header.
+// Progress counts live in the exercise list, not in the header. The workout clock (DESIGN #2) sits left of Pause: it is
+// derived from the session start time, so it survives a reload, and it is local display only (nothing is saved).
 // A completed workout (opened from a link after Finish) has nothing to pause: it shows the plain left Back instead,
 // and the dock shows Continue.
 export function SessionHeaderControls({
@@ -62,12 +78,15 @@ export function SessionHeaderControls({
   backHref,
   statusBadge,
   completed = false,
+  elapsedSeconds,
 }: {
   routineName: string;
   sessionDayName: string;
   backHref?: string;
   statusBadge?: ReactNode;
   completed?: boolean;
+  /** Seconds since the workout started; omitted, no clock. */
+  elapsedSeconds?: number;
 }) {
   const subtitle = formatSessionHeaderSubtitle(sessionDayName, routineName);
   if (completed) {
@@ -86,7 +105,12 @@ export function SessionHeaderControls({
       kind="detail"
       title="Workout"
       subtitle={subtitle}
-      trailing={<SessionPauseButton backHref={backHref} />}
+      trailing={(
+        <span className="inline-flex items-center gap-1">
+          {typeof elapsedSeconds === "number" ? <SessionWorkoutClock elapsedSeconds={elapsedSeconds} /> : null}
+          <SessionPauseButton backHref={backHref} />
+        </span>
+      )}
       status={statusBadge}
     />
   );

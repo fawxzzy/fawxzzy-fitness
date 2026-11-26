@@ -5,11 +5,14 @@ import { AppButton } from "@/components/ui/AppButton";
 import { Sheet } from "@/components/ui/Sheet";
 
 // Plain-words explainer for every add-exercise flow (session, quick add, routine day). One visible row in the goal
-// panel opens a Sheet that explains Warm-up, Failure and (in a workout) the Exercise Timer. It is the one
+// panel opens a Sheet that explains Warm-up, Failure and (in a workout) the Exercise Timer and the workout clock and
+// rest timer. It is the one
 // plain-words home for these ideas when adding an exercise. The INFO dock row still renders: it explains the goal
 // fields and the Reps / Failure toggle in short, so this guide adds to it and does not replace it.
 // Every row describes something the app does today, in the words the controls use ("Failure" and "Reps" on the toggle).
-// There is no whole-workout clock yet: do not describe one here until it ships.
+// The workout clock and rest timer shipped 2026-11-26 (DESIGN #2): the clock sits left of Pause in the workout header,
+// the rest countdown appears above Finish after each logged set. Keep this row in step with SessionHeaderControls and
+// RestTimer.
 export const ADD_EXERCISE_GUIDE_ROWS = {
   warmup: {
     term: "Warm-up",
@@ -21,7 +24,11 @@ export const ADD_EXERCISE_GUIDE_ROWS = {
   },
   timer: {
     term: "Exercise Timer",
-    body: "A stopwatch for this one exercise. It is not a rest timer, and you start, pause and finish it yourself.",
+    body: "A stopwatch for this one exercise. You start, pause and finish it yourself. It is separate from the rest timer.",
+  },
+  clock: {
+    term: "Workout clock and rest",
+    body: "The clock at the top of a workout shows how long you have been going. After you log a set, a 90-second rest countdown appears above Finish: tap -15 or +15 to change it, or Skip to hide it.",
   },
 } as const;
 
@@ -30,7 +37,7 @@ export function AddExerciseGuide({ showTimer }: { showTimer: boolean }) {
   const rows = [
     ADD_EXERCISE_GUIDE_ROWS.warmup,
     ADD_EXERCISE_GUIDE_ROWS.failure,
-    ...(showTimer ? [ADD_EXERCISE_GUIDE_ROWS.timer] : []),
+    ...(showTimer ? [ADD_EXERCISE_GUIDE_ROWS.timer, ADD_EXERCISE_GUIDE_ROWS.clock] : []),
   ];
   return (
     <>

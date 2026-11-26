@@ -7,6 +7,7 @@ import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/component
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { buildSessionFinishedDetails, buildSessionFinishedFacts, SessionFinishedCard, type SessionFinishedExercise } from "@/components/session/SessionRowCards";
 import { toSessionSummarySets } from "@/components/session/sessionSummary";
+import { RestTimer, useRestTimer } from "@/components/session/RestTimer";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
@@ -154,6 +155,8 @@ export function SessionPageClient({
   // Set only when Finish is tapped with planned sets still unlogged; null means the sheet is closed.
   const [finishConfirm, setFinishConfirm] = useState<SessionFinishCheck | null>(null);
   const finishFormRef = useRef<HTMLFormElement>(null);
+  // Rest timer (DESIGN #2): local only, started by SessionExerciseFocus when a set is logged; cleared on finish.
+  const restTimer = useRestTimer(sessionId, !isSessionCompleted);
   const toast = useToast();
   useToastMessageEffect("error", searchError, { id: "session-search-error" });
   const fallbackReturnHref = useMemo(
@@ -220,6 +223,7 @@ export function SessionPageClient({
       backHref={fallbackReturnHref ?? "/today"}
       statusBadge={<OfflineSyncBadge userId={userId} variant="header" />}
       completed={isSessionCompleted}
+      elapsedSeconds={isSessionCompleted ? undefined : durationSeconds}
     />
   );
 
@@ -303,7 +307,14 @@ export function SessionPageClient({
 
   return (
     <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader} noticePlacement="above-dock">
-      <PublishBottomActions>{sessionActions}</PublishBottomActions>
+      <PublishBottomActions>
+        {restTimer.state && !isSessionCompleted ? (
+          <div className="grid w-full gap-2">
+            <RestTimer state={restTimer.state} now={restTimer.now} onAdjust={restTimer.adjust} onSkip={restTimer.skip} />
+            {sessionActions}
+          </div>
+        ) : sessionActions}
+      </PublishBottomActions>
 
       <ContentRail className={cn(appTokens.currentSessionContentRail, "!gap-0 !py-0")}>
         <section
@@ -341,6 +352,7 @@ export function SessionPageClient({
               disableDraftPersistence={disableDraftPersistence}
               bottomDockCenter={null}
               liveProgressRef={liveProgressRef}
+              onSetLogged={restTimer.start}
             />
           ) : null}
 

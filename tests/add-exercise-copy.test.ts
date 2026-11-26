@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { ADD_EXERCISE_GUIDE_ROWS } from "@/components/exercises/AddExerciseGuide";
+import { REST_TIMER_DEFAULT_SECONDS, REST_TIMER_STEP_SECONDS } from "@/components/session/restTimerModel";
 
 const root = path.resolve(import.meta.dirname, "..");
 const addFlowFiles = [
@@ -38,15 +39,23 @@ test("the guide explains warm-up, failure and the exercise timer in plain words,
   assert.equal(ADD_EXERCISE_GUIDE_ROWS.failure.term, "Failure", "the toggle reads Failure / Reps");
   assert.match(ADD_EXERCISE_GUIDE_ROWS.failure.body, /Switch back to Reps to set a rep range/u);
   assert.equal(ADD_EXERCISE_GUIDE_ROWS.timer.term, "Exercise Timer");
-  assert.match(ADD_EXERCISE_GUIDE_ROWS.timer.body, /not a rest timer/u);
+  assert.match(ADD_EXERCISE_GUIDE_ROWS.timer.body, /separate from the rest timer/u);
 });
 
-test("the guide only describes what exists: no workout clock until one ships", () => {
+test("the guide only describes what exists: the workout clock and rest timer row matches what ships (DESIGN #2)", () => {
   const rows = Object.values(ADD_EXERCISE_GUIDE_ROWS);
-  assert.equal(rows.length, 3);
+  assert.equal(rows.length, 4);
   for (const row of rows) {
-    assert.doesNotMatch(`${row.term} ${row.body}`, /clock|Till Failure|Reps-Based/u);
+    assert.doesNotMatch(`${row.term} ${row.body}`, /Till Failure|Reps-Based/u);
   }
+  // Numbers in the copy come from the timer model, so the guide cannot drift from the strip.
+  assert.match(ADD_EXERCISE_GUIDE_ROWS.clock.body, new RegExp(`${REST_TIMER_DEFAULT_SECONDS}-second rest`, "u"));
+  assert.ok(ADD_EXERCISE_GUIDE_ROWS.clock.body.includes(`-${REST_TIMER_STEP_SECONDS} or +${REST_TIMER_STEP_SECONDS}`));
+  assert.match(ADD_EXERCISE_GUIDE_ROWS.clock.body, /Skip/u);
+  const restTimer = fs.readFileSync(path.join(root, "src/components/session/RestTimer.tsx"), "utf8");
+  assert.match(restTimer, /"Skip"/u);
+  const header = fs.readFileSync(path.join(root, "src/components/SessionHeaderControls.tsx"), "utf8");
+  assert.ok(header.includes("<SessionWorkoutClock elapsedSeconds={elapsedSeconds} />"));
 });
 
 test("the old unused SessionAddExerciseForm stays deleted", () => {
