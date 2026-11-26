@@ -11,8 +11,6 @@ import { CreateRoutineClient } from "@/app/routines/CreateRoutineClient";
 import { CardEmptyState } from "@/components/ui/card-system";
 import { buildRoutineCardActions } from "@/components/routines/routineCardActions";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { AppButton } from "@/components/ui/AppButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   RoutinesCardList,
@@ -21,6 +19,7 @@ import {
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
 import type { ActionResult } from "@/lib/action-result";
+import { getRoutineEditHref } from "@/lib/routine-day-navigation";
 
 /**
  * What deleting a routine does, in the words the confirm shows. Mirrors deleteRoutineMutation (src/lib/dal/routine-delete.ts):
@@ -33,6 +32,12 @@ export function describeRoutineDeleteConsequence(routine: { name: string; isActi
   return otherRoutineCount > 0
     ? `${base} Another routine becomes your active one.`
     : `${base} You will have no active routine until you create one.`;
+}
+
+/** Rename opens the routine settings screen with the name field focused (saved by the existing autosave). */
+export function getRoutineRenameHref(routineId: string) {
+  const editHref = getRoutineEditHref(routineId, "/routines");
+  return `${editHref}${editHref.includes("?") ? "&" : "?"}focus=name`;
 }
 
 export function RoutinesPageClient({
@@ -63,6 +68,8 @@ export function RoutinesPageClient({
   const router = useRouter();
   const toast = useToast();
   const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(initialCreateRoutineOpen);
+  // Set by a card's Duplicate: the New routine chooser opens on Duplicate with that routine preselected.
+  const [duplicateSourceRoutineId, setDuplicateSourceRoutineId] = useState<string | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<RoutineBrowseCardItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const canOpenInlineCreate = Boolean(duplicateRoutineAction);
@@ -124,25 +131,10 @@ export function RoutinesPageClient({
     <RoutinesPageScaffold>
       <SharedDayListSection>
         {routines.length === 0 ? (
+          // One create action: the dock's New Routine. The empty state only says what a routine is.
           <CardEmptyState
             title="No routines yet"
-            body="Create a routine to unify Today, session tracking, and history around the same training plan."
-            action={canOpenInlineCreate
-              ? (
-                // The dock holds the screen's one primary (New Routine); the empty-state action is secondary.
-                <AppButton type="button" variant="secondary" fullWidth onClick={() => setIsCreateRoutineOpen(true)}>
-                  Create your first routine
-                </AppButton>
-              )
-              : (
-                <BottomDockLink
-                  href={newRoutineHref ?? "/routines/new"}
-                  intent="toggleInactive"
-                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
-                >
-                  Create your first routine
-                </BottomDockLink>
-              )}
+            body="A routine is your weekly plan: the days you train and the exercises on each day. Tap New Routine to make one."
           />
         ) : (
           <RoutinesCardList>
@@ -154,6 +146,14 @@ export function RoutinesPageClient({
                 canDelete: Boolean(deleteRoutineAction),
                 canSetActive: Boolean(setActiveRoutineAction),
                 onRequestDelete: () => setRoutinePendingDelete(routine),
+                onEdit: (routineId) => router.push(getRoutineEditHref(routineId, "/routines")),
+                onRename: (routineId) => router.push(getRoutineRenameHref(routineId)),
+                onDuplicate: duplicateRoutineAction
+                  ? (routineId) => {
+                    setDuplicateSourceRoutineId(routineId);
+                    setIsCreateRoutineOpen(true);
+                  }
+                  : undefined,
                 onSetActive: (routineId) => {
                   if (!setActiveRoutineAction) {
                     return;
@@ -231,8 +231,12 @@ export function RoutinesPageClient({
           curatedOnboardingEnabled={curatedOnboardingEnabled}
           curatedOnboardingUserId={curatedOnboardingUserId}
           duplicateRoutineAction={duplicateRoutineAction}
-          onRequestClose={() => setIsCreateRoutineOpen(false)}
+          onRequestClose={() => {
+            setIsCreateRoutineOpen(false);
+            setDuplicateSourceRoutineId(null);
+          }}
           initialDuplicateExpanded={initialCreateRoutineDuplicateExpanded}
+          initialDuplicateSourceRoutineId={duplicateSourceRoutineId}
         />
       ) : null}
     </RoutinesPageScaffold>

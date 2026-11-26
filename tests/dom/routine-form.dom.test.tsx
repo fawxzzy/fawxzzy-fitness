@@ -16,7 +16,10 @@ const routines: RoutineBrowseCardItem[] = [
 
 type DuplicateResult = { ok: true; routineId?: string } | { ok: false; error: string };
 
-function renderChooser(duplicate: (formData: FormData) => Promise<DuplicateResult>, extra: { onRequestClose?: () => void } = {}) {
+function renderChooser(
+  duplicate: (formData: FormData) => Promise<DuplicateResult>,
+  extra: { onRequestClose?: () => void; initialDuplicateSourceRoutineId?: string | null } = {},
+) {
   const { router, calls } = createRouterSpy();
   render(
     <AppProviders router={router} pathname="/routines">
@@ -36,7 +39,7 @@ async function nameField() {
   return (await screen.findByLabelText("New routine name")) as HTMLInputElement;
 }
 
-test("Routine form: the duplicate name starts as a unique copy of the active routine and Confirm sends it", async () => {
+test("Routine form: the duplicate name starts as a unique copy of the active routine and Duplicate sends it", async () => {
   const sent: Array<{ source: string; name: string }> = [];
   const calls = renderChooser(async (formData) => {
     sent.push({ source: String(formData.get("sourceRoutineId")), name: String(formData.get("name")) });
@@ -47,13 +50,26 @@ test("Routine form: the duplicate name starts as a unique copy of the active rou
   assert.notEqual(input.value.trim(), "");
   assert.notEqual(input.value.trim().toLowerCase(), "atlas routine", "the suggested name must not collide with the source");
   fireEvent.change(input, { target: { value: "  Push Day  " } });
-  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+  fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
 
   await waitFor(() => assert.deepEqual(calls.push, ["/routines"]));
   assert.deepEqual(sent, [{ source: "r1", name: "Push Day" }], "the name is trimmed and the active routine is the source");
 });
 
-test("Routine form: an empty name disables Confirm and sends nothing", async () => {
+test("Routine form: a card's Duplicate preselects that routine as the source", async () => {
+  const sent: string[] = [];
+  renderChooser(async (formData) => {
+    sent.push(String(formData.get("sourceRoutineId")));
+    return { ok: true, routineId: "r3" };
+  }, { initialDuplicateSourceRoutineId: "r2" });
+
+  const input = await nameField();
+  assert.match(input.value, /Hypertrophy/);
+  fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+  await waitFor(() => assert.deepEqual(sent, ["r2"]));
+});
+
+test("Routine form: an empty name disables Duplicate and sends nothing", async () => {
   let calledAction = 0;
   renderChooser(async () => {
     calledAction += 1;
@@ -62,7 +78,7 @@ test("Routine form: an empty name disables Confirm and sends nothing", async () 
 
   const input = await nameField();
   fireEvent.change(input, { target: { value: "   " } });
-  const confirm = screen.getByRole("button", { name: "Confirm" });
+  const confirm = screen.getByRole("button", { name: "Duplicate" });
   assert.ok(confirm.hasAttribute("disabled") || confirm.getAttribute("aria-disabled") === "true");
   fireEvent.click(confirm);
   assert.equal(calledAction, 0);
@@ -77,7 +93,7 @@ test("Routine form: a name that already exists (any case) shows the error, sends
 
   const input = await nameField();
   fireEvent.change(input, { target: { value: "HYPERTROPHY" } });
-  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+  fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
 
   assert.ok((await screen.findAllByText("Routine name already exists.")).length >= 1);
   assert.equal(calledAction, 0);
@@ -93,7 +109,7 @@ test("Routine form: a server error is shown and the chooser stays open", async (
   const calls = renderChooser(async () => ({ ok: false, error: "Could not duplicate that routine." }));
 
   fireEvent.change(await nameField(), { target: { value: "Fresh Name" } });
-  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+  fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
 
   assert.ok(await screen.findByText("Could not duplicate that routine."));
   assert.deepEqual(calls.push, []);

@@ -312,12 +312,11 @@ export function EditDaySettingsAutosaveForm({
       {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
       <ConfirmDestructiveModal
         open={workoutPlanDecisionOpen}
-        title="Day"
+        title="Save day changes?"
         description={workoutPlanDecisionMode === "update_existing"
           ? "Update this shared day so linked days stay in sync."
           : "Save this as a new day before these edits continue autosaving."}
-        confirmLabel="Confirm"
-        confirmActionLabel={workoutPlanDecisionMode === "update_existing" ? "Update Day" : "Save New Day"}
+        confirmLabel={workoutPlanDecisionMode === "update_existing" ? "Update day" : "Save new day"}
         cancelLabel="Cancel"
         confirmVariant="primary"
         confirmDisabled={workoutPlanDecisionMode === "save_new" && normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName).length === 0}

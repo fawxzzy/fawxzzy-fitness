@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { resolveCuratedRoutineMenuOption, type CuratedRoutineMenuOption } from "@/features/curated-onboarding/selectors";
 import { loadCuratedOnboardingGateState } from "@/features/curated-onboarding/storage";
 import type { ActionResult } from "@/lib/action-result";
+import { getRoutineLimitNoticeCopy, isRoutineLimitError } from "@/app/routines/routine-copy";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
 import { ROUTINE_COPY_NAME_MAX_LENGTH, resolveUniqueRoutineCopyName } from "@/lib/routine-copy-name";
@@ -30,6 +31,8 @@ type Props = {
   duplicateRoutineAction: (formData: FormData) => Promise<ActionResult & { routineId?: string }>;
   onRequestClose?: () => void;
   initialDuplicateExpanded?: boolean;
+  /** Opened from a routine card's Duplicate: the chooser starts expanded with this routine as the source. */
+  initialDuplicateSourceRoutineId?: string | null;
 };
 
 function buildRoutineSourceMeta(routine: RoutineBrowseCardItem): string[] {
@@ -82,11 +85,16 @@ export function CreateRoutineClient({
   curatedOnboardingUserId = null,
   duplicateRoutineAction,
   onRequestClose,
-  initialDuplicateExpanded = false,
+  initialDuplicateExpanded: initialDuplicateExpandedProp = false,
+  initialDuplicateSourceRoutineId = null,
 }: Props) {
   const router = useRouter();
   const toast = useToast();
-  const preferredDuplicateSourceRoutineId = resolvePreferredDuplicateSourceRoutine(routines)?.id ?? "";
+  const requestedSourceRoutineId = initialDuplicateSourceRoutineId && routines.some((routine) => routine.id === initialDuplicateSourceRoutineId)
+    ? initialDuplicateSourceRoutineId
+    : null;
+  const initialDuplicateExpanded = initialDuplicateExpandedProp || Boolean(requestedSourceRoutineId);
+  const preferredDuplicateSourceRoutineId = requestedSourceRoutineId ?? resolvePreferredDuplicateSourceRoutine(routines)?.id ?? "";
   const [isDuplicateExpanded, setIsDuplicateExpanded] = useState(initialDuplicateExpanded);
   const [selectedSourceRoutineId, setSelectedSourceRoutineId] = useState<string>(
     initialDuplicateExpanded ? preferredDuplicateSourceRoutineId : "",
@@ -149,9 +157,17 @@ export function CreateRoutineClient({
       formData.set("sourceRoutineId", selectedSourceRoutineId);
       formData.set("name", duplicateName.trim());
 
-      const result = await duplicateRoutineAction(formData);
+      let result: Awaited<ReturnType<typeof duplicateRoutineAction>>;
+      try {
+        result = await duplicateRoutineAction(formData);
+      } catch {
+        toast.error("Could not duplicate the routine. Check your connection and try again.");
+        return;
+      }
       if (!result.ok) {
-        toast.error(result.error ?? "Could not duplicate routine.");
+        toast.error(isRoutineLimitError(result.error)
+          ? getRoutineLimitNoticeCopy()
+          : result.error ?? "Could not duplicate routine.");
         return;
       }
       if (!result.routineId) {
@@ -331,7 +347,7 @@ export function CreateRoutineClient({
                   disabled={duplicateName.trim().length === 0}
                   loading={isPending}
                 >
-                  Confirm
+                  Duplicate
                 </BottomDockButton>
               </>
             ) : null}

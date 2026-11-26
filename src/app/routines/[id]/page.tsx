@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { AppBadge } from "@/components/ui/app/AppBadge";
+import { Chip } from "@/components/ui/Chip";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { ScreenHeader } from "@/components/ui/app/ScreenHeader";
 import { ScreenHeaderBackButton } from "@/components/ui/app/ScreenHeaderBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -323,14 +325,24 @@ export default async function RoutineHomePage({ params }: PageProps) {
             kind="detail"
             title={routine.name}
             back={<ScreenHeaderBackButton href="/routines" label="Back to routines" historyBehavior="history-first" />}
-            trailing={isActiveRoutine ? <AppBadge tone="success">Active</AppBadge> : null}
+            trailing={isActiveRoutine ? <Chip tone="success">Active</Chip> : null}
           />
         )}
       >
         <ContentRail className="space-y-3">
-          <p data-routine-cycle-summary="true" className="px-1 text-[13px] text-[rgb(var(--text-secondary)/0.9)]">
-            {cycleSummary}
-          </p>
+          {/* DESIGN #8: routine home has its own Edit routine entry (name, start date, schedule) beside the summary. */}
+          <div className="flex items-center justify-between gap-3 px-1">
+            <p data-routine-cycle-summary="true" className="min-w-0 text-[13px] text-[rgb(var(--text-secondary)/0.9)]">
+              {cycleSummary}
+            </p>
+            <Link
+              href={getRoutineEditHref(routine.id, getRoutineHomeHref(routine.id))}
+              data-routine-home-edit="true"
+              className={getAppButtonClassName({ variant: "secondary", size: "sm", className: "min-h-11 shrink-0" })}
+            >
+              Edit routine
+            </Link>
+          </div>
           <RoutineHomeClient
             routineId={routine.id}
             routineStartDate={routine.start_date}
