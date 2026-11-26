@@ -110,12 +110,13 @@ export function buildSessionStatusChips(session: SessionSummary): SessionStatusC
   if (summary && summary.eventCount > 0) {
     const regressionCount = (summary.deloadCount ?? 0) + (summary.revertCount ?? 0);
     const watchCount = summary.watchCount ?? 0;
-    if (summary.promotionCount > 0) chips.push({ label: "Promotion", tone: "success" });
-    if (regressionCount > 0) chips.push({ label: "Regression", tone: "attention" });
-    if (watchCount > 0) chips.push({ label: "Watch", tone: "attention" });
-    if (summary.manualChangeCount > 0) chips.push({ label: "Manual", tone: "neutral" });
+    // Plain words (wave 2 copy pass #12), same as the detail-row signal chips.
+    if (summary.promotionCount > 0) chips.push({ label: "Went up", tone: "success" });
+    if (regressionCount > 0) chips.push({ label: "Went down", tone: "attention" });
+    if (watchCount > 0) chips.push({ label: "Watching", tone: "attention" });
+    if (summary.manualChangeCount > 0) chips.push({ label: "Goal changed", tone: "neutral" });
     if (summary.promotionCount + regressionCount + watchCount + summary.manualChangeCount === 0) {
-      chips.push({ label: "Progression event", tone: "neutral" });
+      chips.push({ label: "Goal changed", tone: "neutral" });
     }
   }
 

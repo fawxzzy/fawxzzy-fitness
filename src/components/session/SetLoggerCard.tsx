@@ -23,10 +23,10 @@ import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal
 import {
   LoggedSetDeleteButton,
   LoggerPrimaryLogButton,
-  LoggerSecondaryButton,
   LoggerToggleChip,
 } from "@/components/session/SetLoggerControls";
 import { describeLoggerChips, resolveLoggerLogPrefix } from "@/components/session/loggerChipCaption";
+import { formatLastTimeLine } from "@/components/session/lastTimeLine";
 import { appTokens } from "@/components/ui/app/tokens";
 import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
@@ -60,7 +60,7 @@ import {
   SESSION_FEEDBACK_SUMMARY_SEPARATOR,
 } from "@/lib/session-feedback-ui";
 import { normalizeSessionCopilotFeedbackEffort, normalizeSessionCopilotFeedbackNote, normalizeSessionCopilotFeedbackSignal, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
-import { type AddSetPayload, type AddSetActionResult, FAILURE_NOTE_SENTINEL, type SessionLoggerDraftQuickLogPayload, type SessionLoggerDraftFormState, type SessionLoggerDraftState, type SessionLoggerFormState, areLoggerFormStatesEqual, parseDurationInput, formatDurationInput, type DisplaySet, type AnimatedDisplaySet, type SetLoggerSeedSet, mergeDisplaySets, toDisplaySet, formatHistorySummary, formatLoggedSetRowLabel, getSessionSummaryItems, deriveLiveTargetMetrics, deriveDraftMetricPresence } from "./sessionLoggerModel";
+import { type AddSetPayload, type AddSetActionResult, FAILURE_NOTE_SENTINEL, type SessionLoggerDraftQuickLogPayload, type SessionLoggerDraftFormState, type SessionLoggerDraftState, type SessionLoggerFormState, areLoggerFormStatesEqual, parseDurationInput, formatDurationInput, type DisplaySet, type AnimatedDisplaySet, type SetLoggerSeedSet, mergeDisplaySets, toDisplaySet, formatLoggedSetRowLabel, getSessionSummaryItems, deriveLiveTargetMetrics, deriveDraftMetricPresence } from "./sessionLoggerModel";
 
 export function SetLoggerCard({
   userId,
@@ -116,8 +116,7 @@ export function SetLoggerCard({
   draftFormState,
   disableDraftPersistence = false,
   initialEffortRating = null,
-  exerciseTimerVisible = false,
-  onExerciseTimerVisibilityChange,
+  onSetSaved,
 }: {
   userId: string;
   sessionId: string;
@@ -193,8 +192,8 @@ export function SetLoggerCard({
   draftFormState?: SessionLoggerDraftFormState | null;
   disableDraftPersistence?: boolean;
   initialEffortRating?: number | null;
-  exerciseTimerVisible?: boolean;
-  onExerciseTimerVisibilityChange?: (nextVisible: boolean) => Promise<boolean>;
+  /** Called after a Log set tap is saved (server) or queued on this device, with the card's new set count. */
+  onSetSaved?: (setCount: number) => void;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -218,7 +217,6 @@ export function SetLoggerCard({
     : null;
   const [rpe, setRpe] = useState(seededInitialEffortRating === null ? "" : String(seededInitialEffortRating));
   const [isWarmup, setIsWarmup] = useState(false);
-  const [isTimerVisibilityPending, setIsTimerVisibilityPending] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
   const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
   const resolvedIsWarmup = isWarmup;
@@ -239,6 +237,13 @@ export function SetLoggerCard({
   const [isSavingCopilotFeedback, setIsSavingCopilotFeedback] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
   const latestSetsRef = useRef<DisplaySet[]>(initialSets.map(toDisplaySet));
+  // Auto-advance (SIMPLIFY #5): the parent hears about a set only once it is saved (server) or queued on this device.
+  // Validation errors and a failed local save never call it, so the card never moves on past a failed save.
+  const onSetSavedRef = useRef(onSetSaved);
+  onSetSavedRef.current = onSetSaved;
+  const notifySetSaved = useCallback(() => {
+    onSetSavedRef.current?.(latestSetsRef.current.length);
+  }, []);
   const draftStorageWriteTimeoutRef = useRef<number | null>(null);
   const draftStorageIdleCallbackRef = useRef<number | null>(null);
   const draftStorageSnapshotRef = useRef<{ key: string; payload: string } | null>(null);
@@ -400,10 +405,6 @@ export function SetLoggerCard({
     setIsWarmup(nextFormState.isWarmup);
     setIsFailure(nextFormState.isFailure);
   }, []);
-
-  const resetLoggerMeasurementInputs = useCallback(() => {
-    applyLoggerFormState(canonicalFormState);
-  }, [applyLoggerFormState, canonicalFormState]);
 
   useEffect(() => {
     if (lastInitializedSessionExerciseIdRef.current === sessionExerciseId) {
@@ -1037,6 +1038,7 @@ export function SetLoggerCard({
         toast.error(message);
       }
       releaseLogRequest();
+      if (queued) notifySetSaved();
       return;
     }
 
@@ -1101,6 +1103,7 @@ export function SetLoggerCard({
           toast.error(message);
         }
         releaseLogRequest();
+        if (queued) notifySetSaved();
         return;
       }
 
@@ -1162,9 +1165,11 @@ export function SetLoggerCard({
         toast.error(message);
       }
       releaseLogRequest();
+      if (queued) notifySetSaved();
       return;
     }
     releaseLogRequest();
+    notifySetSaved();
   }, [
     advanceLoggerAfterOptimisticLog,
     calories,
@@ -1185,6 +1190,7 @@ export function SetLoggerCard({
     addSetAction,
     onSetsChange,
     releaseLogRequest,
+    notifySetSaved,
   ]);
 
   const liveSummaryItems = useMemo(() => {
@@ -1365,102 +1371,37 @@ export function SetLoggerCard({
     }
   }
 
-  type HistoryRow = {
-    key: string;
-    label: string;
-    showPipe: boolean;
-    items: string[];
-    dateLabel: string | null;
-    applyValues: SessionTargetHint["suggestedValues"] | null;
-  };
-
-  const historyRowsSource: Array<HistoryRow | null> = [
-    targetHint.lastSummary ? {
-      key: "last-time",
-      label: "Last",
-      showPipe: true,
-      applyValues: targetHint.lastSuggestedValues,
-      ...formatHistorySummary(targetHint.lastSummary, targetHint.lastPerformedAtLabel),
-    } : null,
-    targetHint.recentBestSummary && targetHint.recentBestSummary !== targetHint.lastSummary ? {
-      key: "recent-best",
-      label: "Best",
-      showPipe: true,
-      applyValues: targetHint.recentBestSuggestedValues,
-      ...formatHistorySummary(targetHint.recentBestSummary, targetHint.recentBestPerformedAtLabel),
-    } : null,
-  ];
-  const historyRows = historyRowsSource.filter((value): value is HistoryRow => value !== null && value.items.length > 0);
-  const applyLastRow = historyRows.find((row) => row.key === "last-time" && row.applyValues !== null) ?? null;
-  const lastTargetButtonLabel = didApplyLastTarget
-    ? "Clear last"
-    : (isEditedFromCurrentTarget ? "Resync" : (applyLastRow ? "Use last" : "No last setup"));
-  const isLastTargetButtonDisabled = !didApplyLastTarget && !isEditedFromCurrentTarget && !applyLastRow;
-  const handleToggleLastTarget = useCallback(() => {
-    if (didApplyLastTarget || isEditedFromCurrentTarget) {
-      resetLoggerMeasurementInputs();
-      setDidApplyLastTarget(false);
-      setError(null);
+  // One "Last time" line (wave 2, SIMPLIFY #3): what was lifted last time; a tap fills the fields with it. It replaces
+  // the Use last / Resync / Clear last button. No last performance: no line.
+  const lastTimeLine = targetHint.lastSuggestedValues
+    ? formatLastTimeLine(targetHint.lastSummary, targetHint.lastPerformedAtLabel)
+    : null;
+  const lastTimeValues = targetHint.lastSuggestedValues;
+  const handleApplyLastTime = useCallback(() => {
+    if (!lastTimeValues) {
       return;
     }
-
-    if (applyLastRow?.applyValues) {
-      applyHintValues(applyLastRow.applyValues);
-      setDidApplyLastTarget(true);
-    }
-  }, [applyHintValues, applyLastRow, didApplyLastTarget, isEditedFromCurrentTarget, resetLoggerMeasurementInputs]);
-  const remainingTargetSetCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - sets.length);
-  const showLastTargetAction = !isLastTargetButtonDisabled;
-  // One remaining set: Log set already does it, so Log all only appears for two or more (same rule as the card bar).
-  const showLogAllAction = remainingTargetSetCount > 1;
-  const handleLogAll = useCallback(async () => {
-    const remainingCount = Math.max(0, (targetSetsMax ?? targetSetsMin ?? 0) - latestSetsRef.current.length);
-    if (logRequestInFlightRef.current || remainingCount === 0) {
-      return;
-    }
-
-    for (let index = 0; index < remainingCount; index += 1) {
-      const countBeforeLog = latestSetsRef.current.length;
-      await handleLogSet();
-      if (latestSetsRef.current.length <= countBeforeLog) {
-        break;
-      }
-    }
-  }, [handleLogSet, targetSetsMax, targetSetsMin]);
-  // Logger actions (Zac 2026-11-23): quiet secondaries on one row (Use last / Resync / Clear last, Log all), then the
-  // one primary Log set. Inside the logger box, padded; every control is a 44px+ target.
+    applyHintValues(lastTimeValues);
+    setDidApplyLastTarget(true);
+    setError(null);
+  }, [applyHintValues, lastTimeValues]);
+  // Logger actions (wave 2, SIMPLIFY #4): the card's More menu and the one big Log set. Log all lives only on the closed
+  // card bar. Inside the logger box, padded; every control is a 44px+ target.
   const attachedLoggerActionStrip = useMemo(
     () => (
-      <div data-logger-actions="true" className="grid gap-2 px-3 pb-3 pt-2">
-        {loggerLeadingAction || showLastTargetAction || showLogAllAction ? (
-          <div className="flex gap-2">
-            {loggerLeadingAction}
-            {showLastTargetAction ? (
-              <LoggerSecondaryButton intent="info" onPress={handleToggleLastTarget}>
-                {lastTargetButtonLabel}
-              </LoggerSecondaryButton>
-            ) : null}
-            {showLogAllAction ? (
-              <LoggerSecondaryButton
-                intent="positive"
-                inactive={isSaveDisabled}
-                ariaLabel={`Log all ${remainingTargetSetCount} remaining sets`}
-                onPress={() => { void handleLogAll(); }}
-              >
-                {`Log all (${remainingTargetSetCount})`}
-              </LoggerSecondaryButton>
-            ) : null}
-          </div>
-        ) : null}
-        <LoggerPrimaryLogButton
-          prefix={liveLogButtonPrefix}
-          summaryItems={liveSummaryItems}
-          inactive={isSaveDisabled}
-          onPress={() => { void handleLogSet(); }}
-        />
+      <div data-logger-actions="true" className="flex items-center gap-2 px-3 pb-3 pt-2">
+        {loggerLeadingAction}
+        <div className="min-w-0 flex-1">
+          <LoggerPrimaryLogButton
+            prefix={liveLogButtonPrefix}
+            summaryItems={liveSummaryItems}
+            inactive={isSaveDisabled}
+            onPress={() => { void handleLogSet(); }}
+          />
+        </div>
       </div>
     ),
-    [handleLogAll, handleLogSet, handleToggleLastTarget, isSaveDisabled, lastTargetButtonLabel, liveLogButtonPrefix, liveSummaryItems, loggerLeadingAction, remainingTargetSetCount, showLastTargetAction, showLogAllAction],
+    [handleLogSet, isSaveDisabled, liveLogButtonPrefix, liveSummaryItems, loggerLeadingAction],
   );
   // Keeps whichever measurement input (target/weight, reps, duration, etc.)
   // the user is actively editing visible once the mobile on-screen keyboard
@@ -1524,18 +1465,6 @@ export function SetLoggerCard({
     }
   }, []);
 
-  const handleExerciseTimerVisibilityToggle = useCallback(async () => {
-    if (!onExerciseTimerVisibilityChange || isTimerVisibilityPending) {
-      return;
-    }
-
-    setIsTimerVisibilityPending(true);
-    try {
-      await onExerciseTimerVisibilityChange(!exerciseTimerVisible);
-    } finally {
-      setIsTimerVisibilityPending(false);
-    }
-  }, [exerciseTimerVisible, isTimerVisibilityPending, onExerciseTimerVisibilityChange]);
   const measurementAuxiliaryFields = useMemo<MeasurementPanelAuxiliaryField[]>(() => {
     const warmupField: MeasurementPanelAuxiliaryField = {
       title: "Warm-Up",
@@ -1592,34 +1521,13 @@ export function SetLoggerCard({
       });
     }
 
-    if (onExerciseTimerVisibilityChange) {
-      fields.push({
-        title: "Timer",
-        input: null,
-        inlineLabel: "TIMER",
-        useInlineFieldShell: false,
-        showEmptyValue: false,
-        hasValue: true,
-        renderInput: () => (
-          <LoggerToggleChip
-            pressed={exerciseTimerVisible}
-            label="Timer"
-            ariaLabel="Exercise timer"
-            inactive={isTimerVisibilityPending}
-            onPress={() => { void handleExerciseTimerVisibilityToggle(); }}
-          />
-        ),
-      });
-    }
-
     return fields;
-  }, [exerciseTimerVisible, handleExerciseTimerVisibilityToggle, isTimerVisibilityPending, onExerciseTimerVisibilityChange, resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
-  // One plain line under the chips that says what the pressed chip(s) do (loggerChipCaption.ts has the verified rules).
+  }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
+  // One plain line under the chips that says what the pressed chip does (loggerChipCaption.ts has the verified rules).
+  // Nothing pressed: no line.
   const loggerChipCaption = describeLoggerChips({
     warmup: showWarmupToggle && resolvedIsWarmup,
     failure: resolvedIsFailure,
-    timer: Boolean(onExerciseTimerVisibilityChange) && exerciseTimerVisible,
-    hasMarkChips: showWarmupToggle || showFailureToggle,
   });
   const persistCopilotFeedback = useCallback(async (
     nextSignal: SessionCopilotFeedbackSignal | null,
@@ -1657,7 +1565,7 @@ export function SetLoggerCard({
           setCopilotNoteState(committedCopilotNoteRef.current ?? "");
           setRpe(committedCopilotEffortRef.current === null ? "" : String(committedCopilotEffortRef.current));
         }
-        toast.error(result.error || "Could not save session feedback.");
+        toast.error(result.error || "Could not save workout feedback.");
         return false;
       }
 
@@ -1683,7 +1591,7 @@ export function SetLoggerCard({
         setCopilotNoteState(committedCopilotNoteRef.current ?? "");
         setRpe(committedCopilotEffortRef.current === null ? "" : String(committedCopilotEffortRef.current));
       }
-      toast.error("Could not save session feedback.");
+      toast.error("Could not save workout feedback.");
       return false;
     } finally {
       setIsSavingCopilotFeedback(false);
@@ -1828,6 +1736,22 @@ export function SetLoggerCard({
           error ? "border-[rgb(var(--text-primary)/0.55)]" : "border-[rgb(var(--accent-divider-rgb)/0.18)]",
         )}
       >
+        {lastTimeLine ? (
+          <button
+            type="button"
+            data-logger-last-time="true"
+            aria-label={`${lastTimeLine}. Tap to fill reps and weight with it.`}
+            onClick={handleApplyLastTime}
+            className={cn(
+              // The global unlayered button rule adds a full border and fill; the ! utilities keep only the divider.
+              "flex min-h-11 w-full items-center gap-2 !rounded-none !border-x-0 !border-t-0 !border-b !border-[rgb(var(--accent-divider-rgb)/0.14)] !bg-transparent px-3 text-left text-[13px] font-medium leading-5 text-[rgb(var(--text-secondary))] transition-colors hover:text-[rgb(var(--text-primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--accent)/0.5)]",
+              tapFeedbackClass,
+            )}
+          >
+            <span className="min-w-0 flex-1 truncate">{lastTimeLine}</span>
+            <span aria-hidden="true" className="shrink-0 text-[12px] font-semibold text-[rgb(var(--accent))]">Fill</span>
+          </button>
+        ) : null}
         <WorkoutEntrySection
           className={cn(
             appTokens.currentSessionLoggerPanel,

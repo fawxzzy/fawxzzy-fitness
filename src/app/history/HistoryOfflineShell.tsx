@@ -120,8 +120,8 @@ export function HistoryOfflineShell({
           ) : (
             <CardEmptyState
               headingLevel={2}
-              title="No saved sessions"
-              body="Sessions you finish show here once you are back online."
+              title="No saved workouts"
+              body="Workouts you finish show here once you are back online."
             />
           )}
         </>

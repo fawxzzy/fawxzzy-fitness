@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -60,44 +59,6 @@ export function LoggerToggleChip({
         )}
       />
       <span className="truncate">{label}</span>
-    </button>
-  );
-}
-
-/** Quiet secondary pill (Use last, Resync, Log all). Disabled uses aria-disabled so focus never drops mid-save. */
-export function LoggerSecondaryButton({
-  children,
-  onPress,
-  inactive = false,
-  ariaLabel,
-  intent,
-  className,
-}: {
-  children: ReactNode;
-  onPress: () => void;
-  inactive?: boolean;
-  ariaLabel?: string;
-  intent?: "info" | "positive";
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      aria-disabled={inactive || undefined}
-      data-bottom-action-intent={intent}
-      onClick={() => {
-        if (inactive) {
-          return;
-        }
-        onPress();
-      }}
-      className={cn(
-        "inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-full !border !border-[rgb(var(--border-strong)/0.26)] !bg-[rgb(var(--surface-2)/0.45)] px-3 text-[13px] font-semibold leading-none !text-[rgb(var(--text-primary))] shadow-none transition-colors hover:!bg-[rgb(var(--surface-2)/0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.45)] motion-reduce:transition-none aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
-        className,
-      )}
-    >
-      <span className="truncate">{children}</span>
     </button>
   );
 }

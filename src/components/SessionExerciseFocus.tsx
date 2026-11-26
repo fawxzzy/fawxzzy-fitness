@@ -81,6 +81,7 @@ import {
 import { useSessionSetLogSync } from "@/components/session/useSessionSetLogSync";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { ExerciseTimerControl } from "@/components/session/ExerciseTimerControl";
+import { findNextUnfinishedExerciseId, isLastPlannedSet } from "@/components/session/sessionAutoAdvance";
 import { SessionExerciseFeedbackPrompt } from "@/components/session/SessionExerciseFeedbackPrompt";
 import type { ExerciseTimerCommand, ExerciseTimerSnapshot } from "@/lib/exercise-timer";
 import { buildRecoveryTimingInsight } from "@/lib/recovery-timing";
@@ -418,6 +419,7 @@ export function SessionExerciseFocus({
       .filter((exercise) => exercise.exerciseTimer?.enabled)
       .map((exercise) => [exercise.id, true])),
   );
+  const [timerTogglePendingIds, setTimerTogglePendingIds] = useState<readonly string[]>([]);
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const [answeredFeedbackExerciseIds, setAnsweredFeedbackExerciseIds] = useState<Set<string>>(() => new Set(
     Object.entries(cachedSessionState?.savedFeedbackByExerciseId ?? {})
@@ -887,6 +889,92 @@ export function SessionExerciseFocus({
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
   }, [answeredFeedbackExerciseIds, exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, rowViewModelBySessionExerciseId, selectedExerciseId]);
 
+  // Auto-advance (SIMPLIFY #5): the logger reports each saved Log set tap; the one that reaches the plan closes this card
+  // and opens the next unfinished exercise. Read from a ref so a save that lands after the user moved on never yanks
+  // the selection back.
+  const autoAdvanceStateRef = useRef({ selectedExerciseId, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId });
+  autoAdvanceStateRef.current = { selectedExerciseId, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId };
+  const handleLoggerSetSaved = useCallback((exerciseId: string, savedSetCount: number) => {
+    const {
+      selectedExerciseId: openExerciseId,
+      rowClientStateBySessionExerciseId: rowStates,
+      setSnapshotsBySessionExerciseId: setSnapshots,
+    } = autoAdvanceStateRef.current;
+    if (openExerciseId !== exerciseId) {
+      return;
+    }
+    const exercise = exercises.find((item) => item.id === exerciseId);
+    if (!exercise) {
+      return;
+    }
+    const { goalSetTarget } = deriveSessionExerciseProgressState({
+      loggedSetCount: savedSetCount,
+      isSkipped: false,
+      targetSetsMin: exercise.targetSetsMin,
+      targetSetsMax: exercise.targetSetsMax,
+    });
+    if (!isLastPlannedSet(savedSetCount, goalSetTarget)) {
+      return;
+    }
+
+    const nextExerciseId = findNextUnfinishedExerciseId(exercises.map((item) => {
+      const isSkipped = rowStates[item.id]?.isSkipped ?? item.isSkipped;
+      const loggedSetCount = item.id === exerciseId
+        ? savedSetCount
+        : (setSnapshots[item.id]?.length ?? rowStates[item.id]?.loggedSetCount ?? item.loggedSetCount);
+      return {
+        id: item.id,
+        isSkipped,
+        isGoalCompleted: deriveSessionExerciseProgressState({
+          loggedSetCount,
+          isSkipped,
+          targetSetsMin: item.targetSetsMin,
+          targetSetsMax: item.targetSetsMax,
+        }).isGoalCompleted,
+      };
+    }), exerciseId);
+
+    // Close exactly as a header tap on a done card does: keep it on screen while its feedback is still unanswered.
+    handleSetCountChange(exerciseId, savedSetCount);
+    const shouldRetainCompletedCard = !answeredFeedbackExerciseIds.has(exerciseId) && !hasSavedSessionExerciseFeedback({
+      signal: exercise.copilotFeedbackSignal,
+      note: exercise.copilotFeedbackNote,
+      effort: exercise.copilotFeedbackEffort,
+    });
+    patchRowState(exerciseId, (current) => ({ ...current, showWhenCompleted: shouldRetainCompletedCard }));
+    if (nextExerciseId) {
+      setPersistedLoggerExerciseId(nextExerciseId);
+    }
+    onSelectedExerciseIdChange(nextExerciseId);
+  }, [answeredFeedbackExerciseIds, exercises, handleSetCountChange, onSelectedExerciseIdChange, patchRowState]);
+
+  // The exercise timer is shown or hidden from the card's More menu (SIMPLIFY #4): the open logger keeps only Warm-up
+  // and Failure. Turning it on enables the server timer; a failed toggle shows the in-flow notice and changes nothing.
+  const handleExerciseTimerToggle = useCallback(async (exerciseId: string, nextVisible: boolean) => {
+    if (!updateSessionExerciseTimerAction) {
+      return;
+    }
+    setTimerTogglePendingIds((current) => (current.includes(exerciseId) ? current : [...current, exerciseId]));
+    try {
+      const result = await updateSessionExerciseTimerAction({
+        sessionId,
+        sessionExerciseId: exerciseId,
+        command: nextVisible ? "enable" : "disable",
+      });
+      if (!result.ok || !result.data?.timer) {
+        toast.error((!result.ok && result.error) || "Could not update exercise timer.");
+        return;
+      }
+      const nextTimer = result.data.timer;
+      setTimerSnapshotsBySessionExerciseId((current) => ({ ...current, [exerciseId]: nextTimer }));
+      setTimerVisibilityBySessionExerciseId((current) => ({ ...current, [exerciseId]: nextVisible }));
+    } catch {
+      toast.error("Could not update exercise timer.");
+    } finally {
+      setTimerTogglePendingIds((current) => current.filter((id) => id !== exerciseId));
+    }
+  }, [sessionId, toast, updateSessionExerciseTimerAction]);
+
   const handleSkipToggle = useCallback(async (
     exerciseId: string,
     previousSkipped: boolean,
@@ -1257,26 +1345,6 @@ export function SessionExerciseFocus({
                   copilotFeedbackUpdatedAt={exercise.copilotFeedbackUpdatedAt ?? null}
                   initialEffortRating={draftState?.copilotFeedbackEffort ?? exercise.copilotFeedbackEffort ?? null}
                   updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
-                  exerciseTimerVisible={isExerciseTimerVisible}
-                  onExerciseTimerVisibilityChange={updateSessionExerciseTimerAction ? async (nextVisible) => {
-                    const result = await updateSessionExerciseTimerAction({
-                      sessionId,
-                      sessionExerciseId: exercise.id,
-                      command: nextVisible ? "enable" : "disable",
-                    });
-                    if (!result.ok) {
-                      toast.error(result.error || "Could not update exercise timer.");
-                      return false;
-                    }
-                    if (!result.data?.timer) {
-                      toast.error("Could not update exercise timer.");
-                      return false;
-                    }
-                    const nextTimer = result.data.timer;
-                    setTimerSnapshotsBySessionExerciseId((current) => ({ ...current, [exercise.id]: nextTimer }));
-                    setTimerVisibilityBySessionExerciseId((current) => ({ ...current, [exercise.id]: nextVisible }));
-                    return true;
-                  } : undefined}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
@@ -1324,6 +1392,11 @@ export function SessionExerciseFocus({
                         );
                       }}
                       onRemove={canOfferRemove ? () => handleRemoveExercise(exercise.id) : undefined}
+                      timerVisible={isExerciseTimerVisible}
+                      timerInactive={timerTogglePendingIds.includes(exercise.id)}
+                      onToggleTimer={updateSessionExerciseTimerAction && !isStretchHub
+                        ? () => handleExerciseTimerToggle(exercise.id, !isExerciseTimerVisible)
+                        : undefined}
                     />
                   )}
                   fallbackGoalLabel={exercise.goalLabel}
@@ -1345,6 +1418,9 @@ export function SessionExerciseFocus({
                   }}
                   onSetCountChange={(count) => {
                     handleSetCountChange(exercise.id, count);
+                  }}
+                  onSetSaved={(count) => {
+                    handleLoggerSetSaved(exercise.id, count);
                   }}
                   onLogRequestPendingChange={(pending) => {
                     handleLoggerSavingChange(exercise.id, pending);

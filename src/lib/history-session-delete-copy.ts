@@ -16,11 +16,11 @@ export function buildHistorySessionDeleteCopy(input: {
   dateLabel?: string | null;
   exerciseCount: number;
 }): HistorySessionDeleteCopy {
-  const name = input.dayTitle?.trim() || input.dayName?.trim() || "this session";
+  const name = input.dayTitle?.trim() || input.dayName?.trim() || "this workout";
   const dateLabel = input.dateLabel?.trim() ?? "";
   const count = Math.max(0, Math.floor(input.exerciseCount));
   const consequence = [
-    dateLabel ? `Removes the ${dateLabel} session` : "Removes this session",
+    dateLabel ? `Removes the ${dateLabel} workout` : "Removes this workout",
     count > 0 ? ` and its ${count === 1 ? "1 exercise" : `${count} exercises`}` : "",
     ". This cannot be undone.",
   ].join("");

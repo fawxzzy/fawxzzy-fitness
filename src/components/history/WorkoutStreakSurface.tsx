@@ -18,8 +18,8 @@ function formatLastCompleted(dayKey: string | null) {
 
 function buildMetrics(summary: HistoryWorkoutStreakSummary): MetricDatum[] {
   return [
-    { label: "Current", value: `${summary.currentSessionCount} ${summary.currentSessionCount === 1 ? "session" : "sessions"}`, valueTone: summary.currentSessionCount > 0 ? "success" : "muted" },
-    { label: "Best", value: `${summary.bestSessionCount} ${summary.bestSessionCount === 1 ? "session" : "sessions"}`, valueTone: summary.bestSessionCount > 0 ? "default" : "muted" },
+    { label: "Current", value: `${summary.currentSessionCount} ${summary.currentSessionCount === 1 ? "workout" : "workouts"}`, valueTone: summary.currentSessionCount > 0 ? "success" : "muted" },
+    { label: "Best", value: `${summary.bestSessionCount} ${summary.bestSessionCount === 1 ? "workout" : "workouts"}`, valueTone: summary.bestSessionCount > 0 ? "default" : "muted" },
     { label: "Planned Logged", value: `${summary.completedPlannedSessionCount} / ${summary.trackedPlannedSessionCount}`, valueTone: summary.completedPlannedSessionCount > 0 ? "default" : "muted" },
     { label: "Last Workout", value: formatLastCompleted(summary.lastCompletedDayKey), valueTone: summary.lastCompletedDayKey ? "default" : "muted" },
   ];
@@ -43,14 +43,14 @@ function formatStreakRange(summary: HistoryWorkoutStreakSummary) {
 }
 
 export function WorkoutStreakSurface({ summary, viewMode }: { summary: HistoryWorkoutStreakSummary; viewMode: "compact" | "detailed" }) {
-  const streakLabel = `${summary.currentSessionCount} ${summary.currentSessionCount === 1 ? "session" : "sessions"}`;
-  const bestLabel = `Best ${summary.bestSessionCount} ${summary.bestSessionCount === 1 ? "session" : "sessions"}`;
+  const streakLabel = `${summary.currentSessionCount} ${summary.currentSessionCount === 1 ? "workout" : "workouts"}`;
+  const bestLabel = `Best ${summary.bestSessionCount} ${summary.bestSessionCount === 1 ? "workout" : "workouts"}`;
   const plannedLabel = `${summary.completedPlannedSessionCount} of ${summary.trackedPlannedSessionCount} planned`;
   const lastWorkoutLabel = summary.lastCompletedDayKey ? `Last ${formatLastCompleted(summary.lastCompletedDayKey)}` : "No workouts yet";
 
   return (
     <HistoryMetricsDisclosure
-      title="Session Streak"
+      title="Workout streak"
       titleMeta={formatStreakRange(summary)}
       tone="logged"
       compactSummaryItems={[streakLabel, bestLabel, plannedLabel, lastWorkoutLabel]}

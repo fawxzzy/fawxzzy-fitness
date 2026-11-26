@@ -10,6 +10,7 @@ import {
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "@/app/dev/mobile-regression/sessionScenarioFixtures";
 import { AppTabBarPreview } from "@/components/AppTabBar";
+import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AddExerciseScaffold } from "@/components/exercises/AddExerciseScaffold";
 import { formatAddExerciseSubtitle } from "@/lib/header-meta";
@@ -120,6 +121,10 @@ const HistoryLogPageClient = nextDynamic(
 );
 const ProgressionHistorySurface = nextDynamic(
   () => import("@/components/history/ProgressionHistorySurface").then((mod) => mod.ProgressionHistorySurface),
+  { ssr: true },
+);
+const HistoryProgressOverview = nextDynamic(
+  () => import("@/components/history/HistoryProgressOverview").then((mod) => mod.HistoryProgressOverview),
   { ssr: true },
 );
 const NewRoutineDraftForm = nextDynamic(
@@ -696,6 +701,42 @@ const longExerciseInfoHowTo = [
   "If the stride shortens as fatigue builds, reset the step length and keep the load balanced instead of letting the front knee shoot forward.",
   "Treat every rep like a controlled setup: brace, lower, settle, and push through the floor before taking the next step.",
 ].join(" ");
+
+// The strength-weight logger fixture carries one last performance, so the "Last time" line (wave 2, SIMPLIFY #3)
+// renders in captures and verifiers. Other session scenarios keep no last performance.
+const REGRESSION_LAST_TIME_SCENARIO_IDS = new Set(["session-logger-strength-weight"]);
+
+function withRegressionLastTime<T extends { id: string; exerciseId: string }>(scenarioId: string, exercises: T[]): T[] {
+  if (!REGRESSION_LAST_TIME_SCENARIO_IDS.has(scenarioId)) {
+    return exercises;
+  }
+  return exercises.map((exercise) => (
+    exercise.id === "session-ex-1"
+      ? {
+        ...exercise,
+        targetHint: deriveSessionTargetHint({
+          measurementType: "reps",
+          fallbackWeightUnit: "lbs",
+          plan: { measurementType: "reps", setsMin: 4, setsMax: 4, repsMin: 5, repsMax: 5, weightMin: 225, weightMax: 225, weightUnit: "lbs" },
+          stats: {
+            exercise_id: exercise.exerciseId,
+            last_weight: 220,
+            last_reps: 5,
+            last_unit: "lbs",
+            last_performed_at: "2026-04-02T13:00:00.000Z",
+            pr_weight: 220,
+            pr_reps: 5,
+            pr_est_1rm: null,
+            pr_achieved_at: null,
+            actual_pr_weight: null,
+            actual_pr_reps: null,
+            actual_pr_at: null,
+          },
+        }),
+      }
+      : exercise
+  ));
+}
 
 const mockSessionExercises = [
   {
@@ -2327,7 +2368,10 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
   }
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
-  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
+  const sessionScenarioExercises = withRegressionLastTime(
+    scenario.id,
+    applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt),
+  );
   const regressionSessionId = `dev-session-${scenario.fixtureState}`;
 
   return (
@@ -2774,7 +2818,20 @@ function renderHistoryProgressionScenario(scenario: MobileFixtureScenario) {
       activeTab="progression"
     >
       <RegressionMarker scenario={scenario} />
-      <ProgressionHistorySurface {...model} />
+      <ProgressionHistorySurface
+        {...model}
+        overview={(
+          <HistoryProgressOverview
+            sessions={[...mockHistorySessions]}
+            plannedSkippedDayKeys={["2026-04-08"]}
+            scopeSummary={mockHistoryScopeSummary}
+            weeklyProgress={mockHistoryWeeklyProgress}
+            activeRoutineTitle={mockHistoryWeeklyProgress.primaryRoutineTitle}
+            calendarNow="2026-04-10T12:00:00.000Z"
+            workoutsHref="/dev/mobile-regression?scenario=history-sessions-compact"
+          />
+        )}
+      />
     </HistoryRouteScaffold>
   );
 }
@@ -2900,9 +2957,9 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                   billingNotice={null}
                   achievements={[
                     { id: "first-workout", title: "First Workout", description: "Complete one workout.", unlocked: true },
-                    { id: "ten-sessions", title: "Ten Sessions", description: "Complete ten workouts over time.", unlocked: true },
-                    { id: "three-week-streak", title: "Three Session Streak", description: "Log three consecutive planned workout days.", unlocked: true },
-                    { id: "first-pr", title: "PR Logged", description: "Record one history-backed PR moment.", unlocked: true },
+                    { id: "ten-sessions", title: "Ten Workouts", description: "Complete ten workouts over time.", unlocked: true },
+                    { id: "three-week-streak", title: "Three Workout Streak", description: "Log three consecutive planned workout days.", unlocked: true },
+                    { id: "first-pr", title: "PR Logged", description: "Log your first PR.", unlocked: true },
                   ]}
                 />
               </div>

@@ -87,13 +87,13 @@ export function buildHistoryWorkoutStreak({
   const currentStartIndex = currentSessionCount > 0 ? trackedDayKeys.length - currentSessionCount : -1;
   const completedPlannedSessionCount = trackedDayKeys.filter((dayKey) => completedDayKeys.has(dayKey)).length;
   const missedPlannedSessionCount = trackedDayKeys.length - completedPlannedSessionCount;
-  let statusLabel = "No active session streak";
+  let statusLabel = "No active workout streak";
   if (currentSessionCount === 1) {
-    statusLabel = "1 planned session logged";
+    statusLabel = "1 planned workout logged";
   } else if (currentSessionCount > 1) {
-    statusLabel = `${currentSessionCount} planned sessions logged`;
+    statusLabel = `${currentSessionCount} planned workouts logged`;
   } else if (trackedDayKeys.length > 0) {
-    statusLabel = "Ready for the next planned session";
+    statusLabel = "Ready for the next planned workout";
   }
 
   return {

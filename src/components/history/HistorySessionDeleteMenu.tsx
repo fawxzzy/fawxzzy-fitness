@@ -81,7 +81,7 @@ export function HistorySessionDeleteMenu({
         minWidth={176}
         items={[{
           id: "delete-session",
-          label: "Delete session",
+          label: "Delete workout",
           tone: "danger",
           disabled: disabled || isLoading || isSubmitting,
           onSelect: () => setOpen(true),

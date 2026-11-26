@@ -545,8 +545,8 @@ test("buildHistorySessionCardViewModel favors PR progress language when a sessio
   }));
 
   assert.equal(viewModel.outcome, "Best: Back Squat | 315 lbs x 5");
-  assert.equal(viewModel.progress, "2 PRs this session");
-  assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "2 PRs this session"]);
+  assert.equal(viewModel.progress, "2 PRs this workout");
+  assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "2 PRs this workout"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Session Time", "Completion", "Exercises", "Sets", "PRs"]);
   assert.equal(viewModel.detailedMetrics.find((metric) => metric.label === "Completion")?.value, "100%");
 });

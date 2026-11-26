@@ -52,8 +52,8 @@ test("session card without href is static and an unselected card is neutral with
 test("session signals are status chips, spelled out, all visible (no rotating badge)", () => {
   const chips = buildSessionStatusChips(session).map((chip) => chip.label);
   assert.ok(chips.includes("PR"));
-  assert.ok(chips.includes("Promotion"));
-  assert.ok(chips.includes("Manual"));
+  assert.ok(chips.includes("Went up"));
+  assert.ok(chips.includes("Goal changed"));
   for (const label of chips) {
     assert.doesNotMatch(label, /^(PROMO|REG|EVENT)$/);
   }
@@ -200,10 +200,10 @@ test("detail exercise card: toggle row (aria-expanded), signal chips spelled out
   assert.match(html, /<h2[^>]*>Back Squat<\/h2>/);
   assert.match(html, />4\/4 sets</);
   assert.match(html, />Top Set</);
-  for (const label of ["PR", "Best", "Promotion", "Regression", "Watch", "Manual"]) {
+  for (const label of ["PR", "Best", "Went up", "Went down", "Watching", "Goal changed"]) {
     assert.equal(countMatches(html, new RegExp(`>${label}<`, "g")), 1, label);
   }
-  assert.equal(resolveHistorySignalChip("promo").label, "Promotion");
+  assert.equal(resolveHistorySignalChip("promo").label, "Went up");
   assert.equal(resolveHistorySignalChip("HARD").label, "HARD");
 
   const staticHtml = renderToStaticMarkup(<HistoryDetailExerciseCard exercise={{ name: "Plank" }} showLeadingVisual={false} />);
@@ -280,7 +280,7 @@ test("calendar: one month at a time, 44px day cells, a labelled pager and a live
   assert.doesNotMatch(html, /data-calendar-nav="[a-z]+"[^>]*disabled=""|disabled=""[^>]*data-calendar-nav/);
   assert.match(html, /data-calendar-day-state="training"/);
   // The name starts with the printed day and says what the cell means; days with nothing to say keep their printed name.
-  assert.match(html, /aria-label="\d+, 1 session"/);
+  assert.match(html, /aria-label="\d+, 1 workout"/);
   assert.match(html, /aria-label="22, planned workout skipped"/);
   assert.doesNotMatch(html, /sr-only/);
   // The shown month is held by key, so a newer month arriving does not switch the view.

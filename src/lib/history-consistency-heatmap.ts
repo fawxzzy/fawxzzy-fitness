@@ -175,9 +175,9 @@ export function describeHistoryConsistencyHeatmap(heatmap: HistoryConsistencyHea
 
   if (heatmap.sessionCount > 0) {
     return {
-      description: `${pluralize(heatmap.sessionCount, "session")} on ${pluralize(heatmap.activeDayCount, "active day")} in the last ${weekLabel}.`,
+      description: `${pluralize(heatmap.sessionCount, "workout")} on ${pluralize(heatmap.activeDayCount, "active day")} in the last ${weekLabel}.`,
       compactSummaryItems: [
-        pluralize(heatmap.sessionCount, "session"),
+        pluralize(heatmap.sessionCount, "workout"),
         pluralize(heatmap.activeDayCount, "active day"),
       ],
       emptyMessage: null,
@@ -186,14 +186,14 @@ export function describeHistoryConsistencyHeatmap(heatmap: HistoryConsistencyHea
 
   if (heatmap.totalSessionCount > 0) {
     return {
-      description: `No sessions in the last ${weekLabel}.`,
+      description: `No workouts in the last ${weekLabel}.`,
       compactSummaryItems: ["Ready when you are"],
       emptyMessage: "A quiet stretch. Your next workout puts a square back on the map.",
     };
   }
 
   return {
-    description: "No sessions yet.",
+    description: "No workouts yet.",
     compactSummaryItems: ["Start your map"],
     emptyMessage: "Finish your first workout and it lights up the first square.",
   };

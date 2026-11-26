@@ -121,7 +121,7 @@ test("progression filters live in the URL and clear back to the bare route", () 
     "/history/progression",
   );
   assert.ok(screen.getByRole("button", { name: "Filters, 2 on" }));
-  assert.ok(screen.getByRole("button", { name: "Remove filter Deload applied" }));
+  assert.ok(screen.getByRole("button", { name: "Remove filter Lighter week" }));
   assert.ok(screen.getByRole("button", { name: "Remove filter From Nov 1, 2026" }));
 
   fireEvent.click(screen.getByRole("button", { name: "Filters, 2 on" }));
@@ -168,9 +168,9 @@ test("the load-error notice only mentions the connection when the browser is off
   }
 });
 
-test("a deleted session (stale Open session link) shows a calm card with a way back, not a blank screen", () => {
+test("a deleted workout (stale Open workout link) shows a calm card with a way back, not a blank screen", () => {
   render(<HistorySessionMissingState />);
-  assert.ok(screen.getByRole("heading", { name: "This session is no longer here" }));
+  assert.ok(screen.getByRole("heading", { name: "This workout is no longer here" }));
   assert.equal(screen.getByRole("link", { name: "Back to History" }).getAttribute("href"), "/history");
   assert.equal(document.querySelector('[role="alert"]'), null, "no red error text for a missing session");
 });

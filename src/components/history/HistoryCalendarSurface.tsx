@@ -9,7 +9,7 @@ import type { HistoryCalendarView } from "@/lib/history-calendar";
 import { HistorySection } from "./HistoryShared";
 
 function formatMonthSummary(activeDayCount: number, sessionCount: number) {
-  return `${activeDayCount} active ${activeDayCount === 1 ? "day" : "days"} · ${sessionCount} ${sessionCount === 1 ? "session" : "sessions"}`;
+  return `${activeDayCount} active ${activeDayCount === 1 ? "day" : "days"} · ${sessionCount} ${sessionCount === 1 ? "workout" : "workouts"}`;
 }
 
 function getDayButtonClassName(args: {
@@ -73,10 +73,10 @@ function getDayBackgroundColor(args: {
   }
 }
 
-/** Accessible name for a day button: the printed day first, then what the cell means (`12, 2 sessions`). */
+/** Accessible name for a day button: the printed day first, then what the cell means (`12, 2 workouts`). */
 function formatDayLabel(day: { dayNumber: number; sessionCount: number; isSkipped: boolean }) {
   if (day.sessionCount > 0) {
-    return `${day.dayNumber}, ${day.sessionCount === 1 ? "1 session" : `${day.sessionCount} sessions`}`;
+    return `${day.dayNumber}, ${day.sessionCount === 1 ? "1 workout" : `${day.sessionCount} workouts`}`;
   }
   return day.isSkipped ? `${day.dayNumber}, planned workout skipped` : undefined;
 }
@@ -193,7 +193,7 @@ function CalendarContent({
         </span>
         {/* Density key: the green deepens with the number of sessions that day (1, 2, 3 or more). */}
         <span data-calendar-density-legend="true" className="inline-flex items-center gap-1.5">
-          <span>Sessions</span>
+          <span>Workouts</span>
           {CALENDAR_DENSITY_STEPS.map((step) => (
             <span key={step.label} className="inline-flex items-center gap-1">
               <span aria-hidden="true" className="h-3 w-3 rounded-[0.2rem] border border-[rgb(var(--success-rgb)/0.6)]" style={{ backgroundColor: step.color }} />

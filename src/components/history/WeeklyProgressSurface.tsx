@@ -162,7 +162,7 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
 
   return [
     {
-      label: summary.primaryRoutineTargetCount > 0 ? "Completed" : "Sessions",
+      label: summary.primaryRoutineTargetCount > 0 ? "Completed" : "Workouts",
       value: summary.primaryRoutineTargetCount > 0
         ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount}`
         : String(summary.completedWorkoutCount),

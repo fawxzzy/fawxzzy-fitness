@@ -124,9 +124,9 @@ export function HistoryTabs({
   return (
     <SegmentedControl
       options={[
-        { label: "Sessions", value: "sessions", href: sessionsHref },
+        { label: "Workouts", value: "sessions", href: sessionsHref },
         { label: "Exercises", value: "exercises", href: exercisesHref },
-        { label: "Progression", value: "progression", href: progressionHref },
+        { label: "Progress", value: "progression", href: progressionHref },
       ]}
       value={value}
       activeIntent="positive"

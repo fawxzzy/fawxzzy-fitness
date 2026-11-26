@@ -66,8 +66,8 @@ export default async function HistoryPage(
     });
     const state = await resolveHistorySessionsRouteState({
       fallback: {
-        subtitle: "Session history unavailable",
-        errorTitle: "Unable to load session history right now.",
+        subtitle: "Workout history unavailable",
+        errorTitle: "Could not load your workouts right now.",
         errorCaption: "Please try again in a moment.",
       },
       load: async () => {
@@ -182,7 +182,7 @@ export default async function HistoryPage(
         activeTab="sessions"
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <HistoryLoadErrorState title="Could not load sessions" />
+        <HistoryLoadErrorState title="Could not load workouts" />
       </HistoryRouteScaffold>
     );
   }

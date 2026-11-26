@@ -8,34 +8,25 @@
 // - Failure saves the set with the note marker FAILURE_NOTE_SENTINEL and tags it "Failure" in the set list. Nothing
 //   else reads that marker: it counts like any other set everywhere. Pressing it clears the reps field (SessionTimers),
 //   and blank reps save as 0, so the caption asks for the reps reached.
-// - Timer shows or hides the exercise timer on this card; it does not change the set. With Warm-up or Failure also
-//   pressed the caption names only the mark (one line at 320px); the open timer is its own visible section.
+//
+// Wave 2 (2026-11-26, SIMPLIFY #4): the open logger carries only Warm-up and Failure. The exercise timer moved into the
+// card's More menu, and the idle "Tap a chip..." caption is gone: nothing shows until a chip is pressed.
 
 export type LoggerChipState = {
   warmup: boolean;
   failure: boolean;
-  timer: boolean;
-  /** Whether the logger offers Warm-up or Failure at all (cardio-only cards may have only Timer). */
-  hasMarkChips: boolean;
 };
 
 export const LOGGER_CHIP_CAPTIONS = {
-  idle: "Tap a chip to mark the next set",
   warmup: "Warm-up: not counted for progression",
   failure: "Failure: a tag only. Enter reps reached",
-  timerOnly: "Timer: shown on this card",
 } as const;
 
-/** The one-line caption under the chip row: describes only the pressed chip(s). Null when there is nothing to say. */
+/** The one-line caption under the chip row: describes only the pressed chip. Null when no chip is pressed. */
 export function describeLoggerChips(state: LoggerChipState): string | null {
-  const mark = state.warmup ? LOGGER_CHIP_CAPTIONS.warmup : state.failure ? LOGGER_CHIP_CAPTIONS.failure : null;
-  if (mark) {
-    return mark;
-  }
-  if (state.timer) {
-    return LOGGER_CHIP_CAPTIONS.timerOnly;
-  }
-  return state.hasMarkChips ? LOGGER_CHIP_CAPTIONS.idle : null;
+  if (state.warmup) return LOGGER_CHIP_CAPTIONS.warmup;
+  if (state.failure) return LOGGER_CHIP_CAPTIONS.failure;
+  return null;
 }
 
 /** The Log set button names the kind of set it will save. */
