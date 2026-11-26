@@ -134,9 +134,26 @@ test("Today empty states share one card: centred title, no second line, one acti
   assert.doesNotMatch(render(<TodayEmptyDayCard kind="empty" actionHref={null} />), /<a /, "no editor href, no dead button");
 });
 
+test("Rest and empty days may add ONE Next up line with a quiet Show button; no schedule never does", () => {
+  const nextUp = { label: "Next up: Pull A · Thu", actionLabel: "Show Pull A", onShow: () => {} };
+  for (const kind of ["rest", "empty"] as const) {
+    const html = render(<TodayEmptyDayCard kind={kind} actionHref="/routines/r/edit" nextUp={nextUp} />);
+    assert.equal((html.match(/<p[\s>]/g) ?? []).length, 1, "exactly one second line");
+    assert.match(html, /data-today-next-up="true"/);
+    assert.match(html, />Next up: Pull A · Thu<\/p>/);
+    const button = html.match(/<button [^>]*>Show Pull A<\/button>/)?.[0] ?? "";
+    assert.ok(button.includes('type="button"'));
+    assert.match(button, /app-button-tertiary/, "quiet variant");
+  }
+  assert.doesNotMatch(render(<TodayEmptyDayCard kind="noSchedule" actionHref="/routines/r/edit" nextUp={nextUp} />), /Next up/);
+  const picker = readFileSync(new URL("./TodayDayPicker.tsx", import.meta.url), "utf8");
+  assert.match(picker, /<TodayEmptyDayCard kind="rest" nextUp=\{selectedDayNextUp\} \/>/);
+  assert.match(picker, /onShow: \(\) => setSelectedDayIndex\(next\.dayIndex\)/, "Show selects the day; it never starts a workout");
+});
+
 test("TodayDayPicker wires all three empty states through TodayEmptyDayCard with the right editor hrefs", () => {
   const picker = readSource("./TodayDayPicker.tsx");
-  assert.match(picker, /<TodayEmptyDayCard kind="rest" \/>/);
+  assert.match(picker, /<TodayEmptyDayCard kind="rest" nextUp=\{selectedDayNextUp\} \/>/, "rest day: no editor action, only Next up");
   assert.match(picker, /kind="noSchedule"\s+actionHref=\{progressionRoutineId \? getRoutineEditHref\(progressionRoutineId, "\/today"\) : null\}/);
   assert.match(picker, /kind="empty"\s+actionHref=\{progressionRoutineId \? getRoutineDayEditHref\(progressionRoutineId, selectedDay\.id, "\/today"\) : null\}/);
   assert.doesNotMatch(picker, /Add exercises|<RestDayCard|<CardEmptyState|<RoutineOverviewDayCard/);

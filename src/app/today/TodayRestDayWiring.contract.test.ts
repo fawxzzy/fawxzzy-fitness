@@ -38,7 +38,7 @@ test("TodayDayPicker renders a deliberate rest-day card for the closed-picker se
   assert.match(source, /import \{ TodayEmptyDayCard \} from "@\/app\/today\/TodayEmptyDayCard";/);
   assert.match(source, /const selectedDayRestCard = useMemo\(\(\) => \{/);
   assert.match(source, /if \(mode\.dayPickerOpen \|\| !mode\.restDay \|\| !selectedDay\) \{/);
-  assert.match(source, /return <TodayEmptyDayCard kind="rest" \/>;/);
+  assert.match(source, /return <TodayEmptyDayCard kind="rest" nextUp=\{selectedDayNextUp\} \/>;/);
   // The rest card takes the slot before the day summary card; the exercise rows never render beside it.
   assert.match(source, /\{selectedDayRestCard \?\? selectedDaySummaryNode\}/);
 });

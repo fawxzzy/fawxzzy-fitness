@@ -325,7 +325,8 @@ export function RoutineOverviewDayCard({
   const chips: ReactNode[] = [];
   if (day.isInSession) chips.push(<CardStatusChip key="in-session" status="inSession" />);
   if (day.isCompleted) chips.push(<CardStatusChip key="done" status="done" />);
-  if (day.isSkipped) chips.push(<CardStatusChip key="skipped" status="skipped" />);
+  // F-007 (display only): a day with a workout in progress is not skipped, so In session wins over a stale Skipped.
+  if (day.isSkipped && !day.isInSession) chips.push(<CardStatusChip key="skipped" status="skipped" />);
   if (day.isToday) chips.push(<CardStatusChip key="today" status="today" />);
   if (day.isRest) chips.push(<CardStatusChip key="rest" status="rest" />);
   else if (day.isOptional) chips.push(<CardStatusChip key="optional" status="optional" />);

@@ -44,6 +44,12 @@ test("day card: status chips carry text (TODAY, DONE with a check, SKIPPED with 
   assert.match(renderDay(day({ dayIndex: 3, isRest: true })), /data-card-tone="attention"[\s\S]*Rest/);
 });
 
+test("day card: In session and Skipped never show together (F-007 display symptom)", () => {
+  const html = renderDay(day({ dayIndex: 1, isInSession: true, isSkipped: true }));
+  assert.match(html, /In session/);
+  assert.doesNotMatch(html, /Skipped/);
+});
+
 test("day card: toggle interaction wires aria-expanded/controls and shows the recap only while expanded", () => {
   const recapExercises = [{ id: "e1", name: "Back Squat", targetLabel: "4 sets · 5 reps", signatureLabel: "Quads | Squat" }];
   const base = { interaction: "toggle" as const, onPress: () => {}, controlsId: "panel-1" };

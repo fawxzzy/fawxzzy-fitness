@@ -302,3 +302,11 @@ test("formatTodayHeaderSubtitle is one plain line: day, then routine", () => {
   assert.equal(formatTodayHeaderSubtitle("Day 2", null), "Day 2");
   assert.equal(formatTodayHeaderSubtitle(null, undefined), null);
 });
+
+test("formatTodayHeaderSubtitle adds the cycle position without repeating a generated Day N name", () => {
+  assert.equal(formatTodayHeaderSubtitle("Push A", "QA Routine", { dayIndex: 2, dayCount: 4 }), "Push A · Day 2 of 4 · QA Routine");
+  assert.equal(formatTodayHeaderSubtitle("Day 2", "QA Routine", { dayIndex: 2, dayCount: 4 }), "Day 2 of 4 · QA Routine");
+  assert.equal(formatTodayHeaderSubtitle("Push A", "QA Routine", { dayIndex: 1, dayCount: 1 }), "Push A · QA Routine", "one-day routine");
+  assert.equal(formatTodayHeaderSubtitle("Push A", null, { dayIndex: 7, dayCount: 4 }), "Push A", "out-of-range position is dropped");
+  assert.equal(formatTodayHeaderSubtitle("Push A", "QA Routine", null), "Push A · QA Routine");
+});

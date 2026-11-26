@@ -4,8 +4,9 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
 
 /**
- * The three quiet Today states share ONE card (Zac 2026-11-19): a centred decorative mark, a centred title, no
- * second line, and at most one centred action that opens the right editor.
+ * The three quiet Today states share ONE card (Zac 2026-11-19): a centred decorative mark, a centred title, and at
+ * most one centred action that opens the right editor. Rest and empty days may add ONE "Next up: <day>" line with a
+ * quiet Show button that selects that day (DESIGN today-rest / today-empty, 2026-11-26), so they are not dead ends.
  *   - "empty":      No exercises planned  -> [Edit day]      (Edit Day editor, /routines/[id]/edit/day/[dayId])
  *   - "rest":       Rest day              -> no action
  *   - "noSchedule": No scheduled workout  -> [Edit routine]  (routine editor, /routines/[id]/edit)
@@ -58,10 +59,13 @@ function TodayEmptyDayMark({ kind }: { kind: TodayEmptyDayKind }) {
 export function TodayEmptyDayCard({
   kind,
   actionHref,
+  nextUp,
   headingLevel = 2,
   className,
 }: {
   kind: TodayEmptyDayKind;
+  /** Rest / empty day only: the next day with exercises ("Next up: Pull A · Thu") and how to show it. */
+  nextUp?: { label: string; actionLabel: string; onShow: () => void } | null;
   /** Where the single action goes. Ignored for "rest"; when missing, the card shows no action. */
   actionHref?: string | null;
   headingLevel?: 2 | 3 | 4;
@@ -91,6 +95,18 @@ export function TodayEmptyDayCard({
           >
             {copy.actionLabel}
           </Link>
+        ) : null}
+        {nextUp && kind !== "noSchedule" ? (
+          <div data-today-next-up="true" className="grid justify-items-center gap-1.5">
+            <p className="text-sm text-[rgb(var(--text-secondary))]">{nextUp.label}</p>
+            <button
+              type="button"
+              onClick={nextUp.onShow}
+              className={getAppButtonClassName({ variant: "quiet", size: "sm", className: "min-h-11 min-w-[9.5rem]" })}
+            >
+              {nextUp.actionLabel}
+            </button>
+          </div>
         ) : null}
       </div>
     </CardSurface>

@@ -2,8 +2,24 @@
  * The Today tab header's one subtitle line: "<day> · <routine>" in plain words (DESIGN-CONTRACT.md section 15).
  * Falls back to whichever name exists; null when neither does.
  */
-export function formatTodayHeaderSubtitle(dayName: string | null | undefined, routineName: string | null | undefined) {
-  const parts = [dayName?.trim(), routineName?.trim()].filter((part): part is string => Boolean(part));
+/**
+ * Today header subtitle, one plain line: day, then routine. With `cycle` (DESIGN Today header line, 2026-11-26) the
+ * day also says where it sits in the cycle: "Push A · Day 2 of 4 · Routine"; a generated "Day 2" name becomes
+ * "Day 2 of 4" instead of repeating itself. One-day routines and unknown positions add nothing.
+ */
+export function formatTodayHeaderSubtitle(
+  dayName: string | null | undefined,
+  routineName: string | null | undefined,
+  cycle?: { dayIndex: number; dayCount: number } | null,
+) {
+  const day = dayName?.trim();
+  const position = cycle && cycle.dayCount >= 2 && cycle.dayIndex >= 1 && cycle.dayIndex <= cycle.dayCount
+    ? `Day ${cycle.dayIndex} of ${cycle.dayCount}`
+    : null;
+  const dayParts = position && day?.toLowerCase() === `day ${cycle!.dayIndex}`
+    ? [position]
+    : [day, position];
+  const parts = [...dayParts, routineName?.trim()].filter((part): part is string => Boolean(part));
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
